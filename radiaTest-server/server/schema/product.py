@@ -1,10 +1,3 @@
-# @Author : lemon-higgins
-# @Date   : 2021-09-20 17:23:25
-# @Email  : lemon.higgins@aliyun.com
-# @License: Mulan PSL v2
-# @Desc   :
-
-
 from typing import Optional
 
 from pydantic import BaseModel, constr, root_validator

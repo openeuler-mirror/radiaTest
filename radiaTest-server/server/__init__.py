@@ -1,9 +1,3 @@
-# @Author : lemon-higgins
-# @Date   : 2021-09-19 14:54:44
-# @Email  : lemon.higgins@aliyun.com
-# @License: Mulan PSL v2
-# @Desc   :
-
 import logging
 
 import pymysql

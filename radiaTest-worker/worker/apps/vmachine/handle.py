@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-# @Author : lemon-higgins
-# @Email  : lemon.higgins@aliyun.com
-# @License: Mulan PSL v2
-# @Date   : 2021-11-02 17:16:43
-
-
 import time
 import shlex
 import tempfile

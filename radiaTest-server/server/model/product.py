@@ -1,9 +1,3 @@
-# @Author : lemon-higgins
-# @Date   : 2021-09-20 17:17:55
-# @Email  : lemon.higgins@aliyun.com
-# @License: Mulan PSL v2
-
-
 from sqlalchemy.dialects.mysql import TINYTEXT
 
 from server import db

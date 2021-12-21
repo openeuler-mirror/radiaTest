@@ -5,7 +5,7 @@ const jobClick = (router) => {
   router.push('/home/testing/jobs');
 };
 const handleGiteeClick = () => {
-  window.open('https://gitee.com/lemon-higgins/mugen');
+  window.open('https://gitee.com/openeuler/radiaTest');
 };
 
 export {

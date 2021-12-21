@@ -1,9 +1,3 @@
-# @Author : lemon-higgins
-# @Date   : 2021-09-19 19:37:49
-# @Email  : lemon.higgins@aliyun.com
-# @License: Mulan PSL v2
-
-
 from flask import request
 from flask_restful import Resource
 from flask_pydantic import validate

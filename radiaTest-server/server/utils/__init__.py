@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-# @Author : lemon-higgins
-# @Email  : lemon.higgins@aliyun.com
-# @License: Mulan PSL v2
-# @Date   : 2021-11-18 12:12:57
-
-
 import json
 import datetime
 

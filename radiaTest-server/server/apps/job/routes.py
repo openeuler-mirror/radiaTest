@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-# @Author : lemon-higgins
-# @Email  : lemon.higgins@aliyun.com
-# @License: Mulan PSL v2
-# @Date   : 2021-11-15 14:18:54
-
-
 from flask import request
 from flask.json import jsonify
 from flask_restful import Resource

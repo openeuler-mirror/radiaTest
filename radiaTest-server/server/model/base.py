@@ -1,9 +1,3 @@
-# @Author : lemon-higgins
-# @Date   : 2021-09-20 16:57:11
-# @Email  : lemon.higgins@aliyun.com
-# @License: Mulan PSL v2
-
-
 import json
 import datetime
 

@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-# @Author : lemon-higgins
-# @Date   : 2021-08-15 09:29:30
-# @Email  : lemon.higgins@aliyun.com
-# @License: Mulan PSL v2
-# @Desc   :
-
 from gevent import monkey, pywsgi
 
 monkey.patch_all()

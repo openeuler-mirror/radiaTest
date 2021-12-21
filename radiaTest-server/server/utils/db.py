@@ -1,10 +1,3 @@
-# @Author : lemon-higgins
-# @Date   : 2021-09-25 15:13:52
-# @Email  : lemon.higgins@aliyun.com
-# @License: Mulan PSL v2
-# @Desc   :
-
-
 from functools import wraps
 
 from flask import jsonify, current_app

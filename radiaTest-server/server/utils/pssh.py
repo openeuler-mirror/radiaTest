@@ -1,10 +1,3 @@
-# @Author : lemon-higgins
-# @Date   : 2021-10-02 10:13:40
-# @Email  : lemon.higgins@aliyun.com
-# @License: Mulan PSL v2
-# @Desc   :
-
-
 import paramiko
 from flask import current_app
 

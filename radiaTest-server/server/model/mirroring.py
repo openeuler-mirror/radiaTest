@@ -1,10 +1,3 @@
-# @Author : lemon-higgins
-# @Date   : 2021-10-04 10:15:46
-# @Email  :
-# @License:
-# @Desc   :
-
-
 from sqlalchemy.dialects.mysql import TINYTEXT, LONGTEXT
 
 from server import db
