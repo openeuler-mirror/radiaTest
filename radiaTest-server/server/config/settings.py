@@ -1,40 +1,40 @@
 class Config(object):
     # nginx 没有nginx代理时，请使用后端服务的端口
-    NGINX_LISTEN = '1401'
+    # NGINX_LISTEN = xxxx
 
     # 模式
     DEBUG = False
     TESTING = False
 
     # 日志
-    LOG_PATH = "/var/log/Mugen.log"
+    LOG_PATH = "/var/log/radiaTest.log"
     LOG_LEVEL = "INFO"
 
     # 数据库
-    SQLALCHEMY_DATABASE_URI = "mysql://root@127.0.0.1/mugen"
+    # SQLALCHEMY_DATABASE_URI = xxxx
     SQLALCHEMY_POOL_SIZE = 100
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # Redis
-    REDIS_HOST = "localhost"
-    REDIS_PORT = 6379
+    # REDIS_HOST = xxxx
+    # REDIS_PORT = xxxx
     # REDIS_PASSWORD = "123"
-    REDIS_DB = 11
+    # REDIS_DB = xxxx
 
     # Gitee oauth login
-    GITEE_OAUTH_CLIENT_ID = "7b85571d5342bd00f53c392908e8438f80ff84358d4187a9dd062db1df8c8819"
-    GITEE_OAUTH_CLIENT_SECRET = "152bd73521b127f01a1ae8468051ae8e72d5f418055c44a65c9171d270215952"
-    GITEE_OAUTH_REDIRECT_URI = "http://123.60.114.22:1400/api/v1/gitee/oauth/callback"
-    GITEE_OAUTH_HOME_URL = "http://123.60.114.22:1400/login"
+    # GITEE_OAUTH_CLIENT_ID = xxxx
+    # GITEE_OAUTH_CLIENT_SECRET = xxxx
+    # GITEE_OAUTH_REDIRECT_URI = xxxx
+    # GITEE_OAUTH_HOME_URL = xxxx
     GITEE_OAUTH_SCOPE = ['user_info', 'emails', 'enterprises', 'issues']
 
     # Token
-    TOKEN_SECRET_KEY = "lPrn3bC4Iz7JoQcNDjOFS2m6sapqH8wA"
+    # TOKEN_SECRET_KEY = xxxx
     TOKEN_EXPIRES_TIME = 600
 
     # SERVER CONFIG
-    SERVER_IP = "172.168.131.14"
-    SERVER_PORT = 1401
+    # SERVER_IP = xxxx
+    # SERVER_PORT = xxxx
 
     # WEBSOCKIFY 监听端口
     WEBSOCKIFY_LISTEN = 1480
@@ -53,9 +53,9 @@ class Config(object):
 
     # PXE服务器
     ## PXE地址(必须配置免密登录，如果和server为同一台机器，则不需要)
-    PXE_IP = "172.168.131.94"
-    PXE_SSH_USER = "root"
-    PXE_SSH_PORT = 22
+    # PXE_IP = xxxx
+    # PXE_SSH_USER = xxxx
+    # PXE_SSH_PORT = xxxx
     PRIVATE_KEY = "/root/.ssh/id_rsa"
 
     ## dhcp配置文件
@@ -66,14 +66,14 @@ class Config(object):
 
     # 存储服务器
     ## httpd信息
-    REPO_IP = "172.168.131.94"
-    REPO_PORT = 9400
-    LOGS_ROOT_URL = "mugen.logs"
+    # REPO_IP = xxxx
+    # REPO_PORT = xxxx
+    # LOGS_ROOT_URL = xxxx
     ## rsyncd信息
-    RSYNC_USER = "root"
-    RSYNC_MODULE = "mugen"
-    RSYNC_PASSWORD = "mugen@1234"
-    RSYNC_PASSWORD_FILE = "/tmp/rsync.pass"
+    # RSYNC_USER = xxxx
+    # RSYNC_MODULE = xxxx
+    # RSYNC_PASSWORD = xxxx
+    # RSYNC_PASSWORD_FILE = xxxx
 
     # Worker节点
     ## 消息头
@@ -100,7 +100,7 @@ class Config(object):
     VM_MAX_CAPACITY = 500
 
     ## pxe安装，mac地址绑定网段
-    RANDOM_IP_POOL = "172.168.131"
+    # RANDOM_IP_POOL = xxxx
 
     ## 等待虚拟机建立通信时长
     VM_ENABLE_SSH = 300
@@ -165,34 +165,35 @@ class Config(object):
 
 class ProductionConfig(Config):
     # server
-    SERVER_IP = '172.168.131.215'
-    SERVER_PORT = 21510
+    # SERVER_IP = xxxx
+    # SERVER_PORT = xxxx
 
-    SQLALCHEMY_DATABASE_URI = "mysql://root:root@172.168.131.215/mugen"
+    # SQLALCHEMY_DATABASE_URI = xxxx
     # Gitee oauth login
-    GITEE_OAUTH_CLIENT_ID = "a7c1a9d429d5093af5c94a55f80719d741159377b905a1785c64756e1be7541c"
-    GITEE_OAUTH_CLIENT_SECRET = "0310115de51eb21835468e0a00a50a9b9c998694b220d075e00ba8ff7f3c0ee9"
-    GITEE_OAUTH_REDIRECT_URI = "http://123.60.114.22:21500/api/v1/gitee/oauth/callback"
-    GITEE_OAUTH_HOME_URL = "http://123.60.114.22:21500/login"
+    # GITEE_OAUTH_CLIENT_ID = xxxx
+    # GITEE_OAUTH_CLIENT_SECRET = xxxx
+    # GITEE_OAUTH_REDIRECT_URI = xxxx
+    # GITEE_OAUTH_HOME_URL = xxxx
 
-    NGINX_LISTEN = '21500'
+    # NGINX_LISTEN = xxxx
 
     # WEBSOCKIFY 监听端口
-    WEBSOCKIFY_LISTEN = 21580
+    # WEBSOCKIFY_LISTEN = xxxx
+    pass
 
 
 class DevelopmentConfig(Config):
     DEBUG = True
     # Gitee oauth login
-    GITEE_OAUTH_CLIENT_ID = "ca793f8540b6182f8beaf35c657e287de59a637ac36b40e852cab3f2bc2ed0fb"
-    GITEE_OAUTH_CLIENT_SECRET = "21c205de7e7540ae73d577c4459e7bb261eeb433538a9820703ea3e628e46642"
-    GITEE_OAUTH_REDIRECT_URI = "http://192.168.0.155:9200/api/v1/gitee/oauth/callback"
-    GITEE_OAUTH_HOME_URL = "http://192.168.0.155:9200/login"
+    # GITEE_OAUTH_CLIENT_ID = xxxx
+    # GITEE_OAUTH_CLIENT_SECRET = xxxx
+    # GITEE_OAUTH_REDIRECT_URI = xxxx
+    # GITEE_OAUTH_HOME_URL = xxxx
 
-    SERVER_IP = '0.0.0.0'
-    SERVER_PORT = 9201
+    # SERVER_IP = xxxx
+    # SERVER_PORT = xxxx
 
-    NGINX_LISTEN = '9201'
+    # NGINX_LISTEN = xxxx
 
 
 class TestingConfig(Config):

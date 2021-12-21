@@ -1,19 +1,21 @@
 class Config(object):
     LOG_LEVEL = "INFO"
-    LOG_PATH = "/var/log/mugen_work.log"
+    LOG_PATH = "/var/log/radiaTest_worker.log"
     STORAGE_POOL = "/var/lib/libvirt/images"
     NETWORK_INTERFACE_SOURCE = "br0"
 
 class DevelopmentConfig(Config):
-    SERVER_IP = "172.168.131.14"
-    SERVER_PORT = 1401
+    # SERVER_IP = xxxx
+    # SERVER_PORT = xxxx
 
-    WORKER_IP = "172.168.131.14"
-    WORKER_PORT = 5000
+    # WORKER_IP = xxxx
+    # WORKER_PORT = xxxx
+    pass
 
 class ProductionConfig(Config):
-    SERVER_IP = "172.168.131.215"
-    SERVER_PORT = 21510
+    # SERVER_IP = xxxx
+    # SERVER_PORT = xxxx
 
-    WORKER_IP = "172.168.131.215"
-    WORKER_PORT = 5000
+    # WORKER_IP = xxxx
+    # WORKER_PORT = xxxx
+    pass

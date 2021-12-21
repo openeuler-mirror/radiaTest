@@ -2,9 +2,9 @@ const name = 'radiaTest';
 const version = '1.1.0';
 const license = 'Mulan PSL v2';
 
-const serverIp = '123.60.114.22';
+// const serverIp = xxxx;
 
-const serverPort = 1401;
+// const serverPort = xxxx;
 
 const serverPath = `${serverIp}:${serverPort}`;
 
