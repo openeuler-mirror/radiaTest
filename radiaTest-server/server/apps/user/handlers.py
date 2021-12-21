@@ -223,18 +223,3 @@ def handler_add_group(group_id, body):
     message1.add_update()
     msg.add_update()
     return jsonify(error_code=RET.OK, error_msg="OK")
-
-# def handler_token(re_token):
-#     # 判断refresh是否过期
-#     token_data = redis_client.get(RedisKey.refresh_token(re_token))
-#     if not token_data:
-#         return jsonify(error_code=RET.VERIFY_ERR, error_msg="user login expired")
-#     token_data = json.loads(token_data)
-#     # 删除原来的refresh_token
-#     redis_client.delete(RedisKey.refresh_token(re_token))
-#     redis_client.delete(RedisKey.token(token_data.get("gitee_id")))
-#     token, refresh_token = generate_token(token_data.get("gitee_id"), token_data.get("gitee_login"))
-#     return_data = {
-#         'token': token, 'refresh_token': refresh_token
-#     }
-#     return jsonify(error_code=RET.OK, error_msg="OK", data=return_data)

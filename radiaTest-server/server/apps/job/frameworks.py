@@ -18,7 +18,7 @@ class Mugen:
 
     @staticmethod
     def run_all_cmd(path):
-        "cd %s/mugen && bash mugen.sh -a -x" % (path)
+        return "cd %s/mugen && bash mugen.sh -a -x" % (path)
 
     @staticmethod
     def run_suite_cmd(path, testsuite):

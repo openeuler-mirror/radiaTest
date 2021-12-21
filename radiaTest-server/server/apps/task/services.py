@@ -93,8 +93,6 @@ class UpdateTaskStatusService(object):
             db.session.commit()
 
     def execute(self):
-        # tasks = get_task_children(tasks=[self.task], children=[])
-        # tasks.append(self.task)
         result = None
         for task in [self.task]:
             status_id = task.status_id

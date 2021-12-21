@@ -96,7 +96,7 @@ class LogsHandler:
             raise RuntimeError("Could not connect the repo server of logs")
 
         _text = _resp.text
-        _pattern = '<a href="(.*)">.*\.log</a>'
+        _pattern = r'<a href="(.*)">.*\.log</a>'
 
         _logs_name = re.findall(_pattern, _text)[0].replace("./", "")
 

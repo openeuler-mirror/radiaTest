@@ -567,21 +567,6 @@ class HandlerTaskFamily(object):
         return jsonify(error_code=RET.OK, error_msg='OK')
 
 
-# class HandlerReportModel(object):
-#     @staticmethod
-#     @collect_sql_error
-#     def get(query: QueryTaskReportSchema):
-#         models = TaskReportModel.query.filter_by(is_version_task=query.is_version_task).order_by(
-#             TaskReportModel.order.asc()).all()
-#         return_data = [TaskReportSchema(**item.__dict__).dict() for item in models]
-#         return jsonify(error_code=RET.OK, error_msg='OK', data=return_data)
-#
-#     @staticmethod
-#     @collect_sql_error
-#     def add(body: TaskReportSchema):
-#         Insert(TaskReportModel, body.dict()).single()
-#         return jsonify(error_code=RET.OK, error_msg='OK')
-
 class HandlerTaskReport(object):
     @staticmethod
     @collect_sql_error

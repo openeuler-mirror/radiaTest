@@ -168,17 +168,6 @@ class Family(Resource):
         return HandlerTaskFamily.get(None, None)
 
 
-# class ReportModel(Resource):
-#     @auth.login_required()
-#     @validate()
-#     def get(self, query: QueryTaskReportSchema):
-#         return handler_get_task_report_model(query)
-#
-#     @auth.login_required()
-#     @validate()
-#     def post(self, body: TaskReportSchema):
-#         return handler_add_task_report_model(body)
-
 class Report(Resource):
     @auth.login_required()
     @response_collect
