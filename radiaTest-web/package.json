@@ -1,0 +1,201 @@
+{
+  "name": "mugen-front",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "serve": "vue-cli-service serve",
+    "build": "vue-cli-service build",
+    "lint": "vue-cli-service lint"
+  },
+  "dependencies": {
+    "@kangc/v-md-editor": "^2.3.12",
+    "@novnc/novnc": "^1.3.0",
+    "@tinymce/tinymce-vue": "^4.0.5",
+    "animate.css": "^4.1.1",
+    "axios": "^0.21.1",
+    "core-js": "^3.8.3",
+    "echarts": "^5.2.1",
+    "highlight.js": "^11.2.0",
+    "jsencrypt": "^3.2.1",
+    "lodash": "^4.17.21",
+    "moment": "^2.29.1",
+    "qs": "^6.10.1",
+    "socket.io-client": "^4.2.0",
+    "tinymce": "^5.10.2",
+    "vue": "^3.0.4",
+    "vue-native-websocket-vue3": "^3.1.4",
+    "vue-router": "^4.0.10",
+    "vue3-draggable-resizable": "^1.5.4",
+    "vuedraggable": "^4.1.0",
+    "vuex": "^4.0.2"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.12.16",
+    "@babel/eslint-parser": "^7.12.16",
+    "@types/highlight.js": "^10.1.0",
+    "@vicons/antd": "^0.10.0",
+    "@vicons/fa": "^0.10.0",
+    "@vicons/fluent": "^0.10.0",
+    "@vicons/ionicons4": "^0.10.0",
+    "@vicons/ionicons5": "^0.10.0",
+    "@vicons/material": "^0.10.0",
+    "@vicons/tabler": "^0.10.0",
+    "@vue/cli-plugin-babel": "~5.0.0-beta.2",
+    "@vue/cli-plugin-eslint": "~5.0.0-beta.2",
+    "@vue/cli-service": "~5.0.0-beta.4",
+    "@vue/compiler-sfc": "^3.0.4",
+    "eslint": "^7.20.0",
+    "eslint-plugin-vue": "^7.2.0",
+    "less": "^4.1.1",
+    "less-loader": "^10.0.1",
+    "naive-ui": "^2.19.2",
+    "vfonts": "^0.1.0",
+    "webpack-dev-server": "^3.11.2"
+  },
+  "eslintConfig": {
+    "root": true,
+    "env": {
+      "node": true
+    },
+    "extends": [
+      "plugin:vue/vue3-essential",
+      "eslint:recommended"
+    ],
+    "parserOptions": {
+      "parser": "@babel/eslint-parser",
+      "requireConfigFile": false
+    },
+    "rules": {
+      "no-irregular-whitespace": "error",
+      "eol-last": "error",
+      "semi": "error",
+      "indent": [
+        "error",
+        2,
+        {
+          "SwitchCase": 1
+        }
+      ],
+      "max-lines-per-function": [
+        "error",
+        50
+      ],
+      "quotes": [
+        "error",
+        "single"
+      ],
+      "camelcase": [
+        "error",
+        {
+          "properties": "never"
+        }
+      ],
+      "no-shadow-restricted-names": "error",
+      "no-shadow": "error",
+      "no-var": "error",
+      "one-var": [
+        "error",
+        "never"
+      ],
+      "no-redeclare": "error",
+      "no-undef": "error",
+      "no-use-before-define": "error",
+      "no-undef-init": "error",
+      "no-unused-vars": "error",
+      "no-multi-assign": "error",
+      "no-self-assign": "error",
+      "no-global-assign": "error",
+      "no-array-constructor": "error",
+      "no-new-object": "error",
+      "no-new-wrappers": "error",
+      "no-new-symbol": "error",
+      "no-new": "error",
+      "no-dupe-keys": "error",
+      "no-dupe-class-members": "error",
+      "no-useless-constructor": "error",
+      "no-prototype-builtins": "error",
+      "object-shorthand": "error",
+      "dot-notation": "error",
+      "func-style": [
+        "error",
+        "declaration",
+        {
+          "allowArrowFunctions": true
+        }
+      ],
+      "prefer-arrow-callback": [
+        "error",
+        {
+          "allowNamedFunctions": true,
+          "allowUnboundThis": false
+        }
+      ],
+      "no-return-assign": "error",
+      "consistent-return": "error",
+      "wrap-iife": "error",
+      "prefer-rest-params": "error",
+      "no-param-reassign": "error",
+      "no-dupe-args": "error",
+      "curly": "error",
+      "no-nested-ternary": "error",
+      "eqeqeq": "error",
+      "no-self-compare": "error",
+      "no-cond-assign": "error",
+      "no-unsafe-negation": "error",
+      "no-else-return": "error",
+      "no-labels": "error",
+      "yoda": "error",
+      "no-lonely-if": "error",
+      "default-case": "error",
+      "no-duplicate-case": "error",
+      "no-case-declarations": "error",
+      "no-multi-str": "error",
+      "prefer-template": "error",
+      "no-useless-concat": "error",
+      "template-curly-spacing": "error",
+      "no-useless-escape": "error",
+      "no-template-curly-in-string": "error",
+      "no-control-regex": "error",
+      "no-floating-decimal": "error",
+      "no-octal": "error",
+      "prefer-numeric-literals": "error",
+      "no-mixed-operators": "error",
+      "use-isnan": "error",
+      "no-compare-neg-zero": "error",
+      "no-ex-assign": "error",
+      "no-unsafe-finally": "error",
+      "no-throw-literal": "error",
+      "prefer-promise-reject-errors": "error",
+      "no-duplicate-imports": "error",
+      "prefer-destructuring": "error",
+      "no-eval": "error",
+      "no-restricted-properties": "error",
+      "max-params": [
+        "error",
+        5
+      ],
+      "complexity": [
+        "error",
+        10
+      ],
+      "max-depth": [
+        "error",
+        4
+      ],
+      "max-nested-callbacks": [
+        "error",
+        4
+      ],
+      "max-lines": [
+        "error",
+        2000
+      ]
+    }
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not dead",
+    "not ie 11"
+  ]
+}

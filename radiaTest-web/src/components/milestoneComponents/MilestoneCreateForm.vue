@@ -1,0 +1,119 @@
+<template>
+  <div>
+    <n-form
+      :label-width="40"
+      :model="formValue"
+      :rules="rules"
+      :size="size"
+      label-placement="top"
+      ref="formRef"
+    >
+      <n-grid :cols="18" :x-gap="24">
+        <n-form-item-gi :span="6" label="产品" path="product">
+          <n-select
+            v-model:value="formValue.product"
+            :options="productOpts"
+            placeholder="选择产品"
+            filterable
+          />
+        </n-form-item-gi>
+        <n-form-item-gi :span="6" label="版本" path="product_id">
+          <n-select
+            v-model:value="formValue.product_id"
+            :options="versionOpts"
+            placeholder="选择版本"
+            filterable
+          />
+        </n-form-item-gi>
+        <n-form-item-gi :span="6" label="里程碑类型" path="type">
+          <n-select
+            v-model:value="formValue.type"
+            :options="[
+              {
+                label: 'update版本',
+                value: 'update',
+              },
+              {
+                label: '迭代版本',
+                value: 'round',
+              },
+              {
+                label: '发布版本',
+                value: 'release',
+              },
+            ]"
+            placeholder="选择里程碑类型"
+            filterable
+          />
+        </n-form-item-gi>
+        <n-form-item-gi :span="18" label="里程碑名" path="name">
+          <n-input
+            v-model:value="formValue.name"
+            placeholder="若不填写，将根据已选字段自动生成里程碑名"
+            clearable
+          />
+        </n-form-item-gi>
+        <n-form-item-gi :span="9" label="开始时间" path="start_time">
+          <n-date-picker
+            type="date"
+            v-model:value="formValue.start_time"
+            placeholder="选择版本的开始日期"
+            style="width: 100%"
+          />
+        </n-form-item-gi>
+        <n-form-item-gi :span="9" label="结束时间" path="end_time">
+          <n-date-picker
+            type="date"
+            v-model:value="formValue.end_time"
+            placeholder="选择版本的开始日期"
+            style="width: 100%"
+          />
+        </n-form-item-gi>
+      </n-grid>
+    </n-form>
+  </div>
+</template>
+
+<script>
+import { watch, onMounted, onUnmounted, defineComponent } from 'vue';
+
+import validation from '@/assets/utils/validation.js';
+import { createAjax } from '@/assets/CRUD/create';
+import createForm from '@/views/milestone/modules/createForm.js';
+import { getProductOpts, getVersionOpts } from '@/assets/utils/getOpts';
+
+export default defineComponent({
+  setup(props, context) {
+    onMounted(() => {
+      getProductOpts(createForm.productOpts);
+    });
+
+    onUnmounted(() => {
+      createForm.clean();
+    });
+
+    watch(
+      () => createForm.formValue.value.product,
+      () => {
+        if (createForm.formValue.value.product) {
+          getVersionOpts(
+            createForm.versionOpts,
+            createForm.formValue.value.product
+          );
+        }
+      }
+    );
+
+    return {
+      ...createForm,
+      handlePropsButtonClick: () => validation(createForm.formRef, context),
+      post: () => {
+        createAjax.postForm('/v1/milestone', createForm.formValue);
+        context.emit('close');
+      }
+    };
+  },
+});
+</script>
+
+<style scoped></style>
