@@ -1,0 +1,199 @@
+<template>
+  <n-config-provider
+    :hljs="hljs"
+    :locale="zhCN"
+    :date-locale="dateZhCN"
+    :theme-overrides="themeOverrides"
+  >
+    <n-dialog-provider>
+      <n-loading-bar-provider>
+        <n-notification-provider>
+          <n-message-provider>
+            <router-view v-slot="{ Component }" :class="[routerClass]">
+              <transition :name="transitionName">
+                <component :is="Component" />
+              </transition>
+            </router-view>
+          </n-message-provider>
+        </n-notification-provider>
+      </n-loading-bar-provider>
+    </n-dialog-provider>
+  </n-config-provider>
+</template>
+
+<script>
+import { ref, getCurrentInstance, provide, readonly } from 'vue';
+import { zhCN, dateZhCN } from 'naive-ui';
+import hljs from 'highlight.js/lib/core';
+import bash from 'highlight.js/lib/languages/bash';
+import python from 'highlight.js/lib/languages/python';
+import ini from 'highlight.js/lib/languages/ini';
+import xml from 'highlight.js/lib/languages/xml';
+
+hljs.registerLanguage('bash', bash);
+hljs.registerLanguage('python', python);
+hljs.registerLanguage('ini', ini);
+hljs.registerLanguage('xml', xml);
+
+const themeOverrides = {
+  common: {
+    primaryColor: 'rgba(0, 47, 167, 1)',
+    primaryColorHover: '#3F65ABFF',
+    primaryColorPressed: 'rgba(0, 47, 167, 1)',
+    primaryColorSuppl: 'rgba(0, 47, 167, 1)',
+  },
+};
+
+export default {
+  name: 'App',
+  setup() {
+    const transitionName = ref('');
+    const { proxy } = getCurrentInstance();
+    proxy.$newsSocket.connect();
+    const msgCount = ref();
+    const updateMsgCount = (value) => {
+      msgCount.value = value;
+    };
+    provide('msgCount', readonly(msgCount));
+    proxy.$newsSocket.listen('server_count', (data) => {
+      provide('msgCountUpdate', updateMsgCount(data.msg_total));
+    });
+    const routerClass = ref('');
+    return {
+      zhCN,
+      dateZhCN,
+      transitionName,
+      themeOverrides,
+      routerClass,
+      hljs,
+    };
+  },
+  mounted() {
+    setInterval(() => {
+      if (this.$route.name !== 'login' && this.$route.path) {
+        if (!this.$newsSocket.isConnect()) {
+          this.$newsSocket.connect();
+        }
+        this.$newsSocket.emit('count', this.$storage.getValue('gitee_id'));
+      }
+    }, 1000);
+  },
+  watch: {
+    $route(to, from) {
+      if (from.name === 'login') {
+        this.transitionName = 'slide-right';
+        this.routerClass = 'router';
+        setTimeout(() => {
+          this.routerClass = '';
+        }, 500);
+      } else {
+        this.transitionName = '';
+        this.routerClass = '';
+      }
+    },
+  },
+};
+</script>
+
+<style>
+.n-code [class^='hljs'] {
+  color: #abb2bf;
+}
+.n-code {
+  display: block !important;
+  overflow-x: scroll !important;
+  padding: 1em !important;
+  color: #abb2bf !important;
+  background: #282c34 !important;
+  padding: 3px 5px !important;
+}
+.hljs {
+  color: #abb2bf !important;
+  background: #282c34;
+}
+.hljs-comment,
+.hljs-quote {
+  color: #5c6370 !important;
+  font-style: italic !important;
+}
+.hljs-doctag,
+.hljs-formula,
+.hljs-keyword {
+  color: #c678dd !important;
+}
+.hljs-deletion,
+.hljs-name,
+.hljs-section,
+.hljs-selector-tag,
+.hljs-subst {
+  color: #e06c75 !important;
+}
+.hljs-literal {
+  color: #56b6c2 !important;
+}
+.hljs-addition,
+.hljs-attribute,
+.hljs-meta .hljs-string,
+.hljs-regexp,
+.hljs-string {
+  color: #98c379 !important;
+}
+.hljs-attr,
+.hljs-number,
+.hljs-selector-attr,
+.hljs-selector-class,
+.hljs-selector-pseudo,
+.hljs-template-variable,
+.hljs-type,
+.hljs-variable {
+  color: #d19a66 !important;
+}
+.hljs-bullet,
+.hljs-link,
+.hljs-meta,
+.hljs-selector-id,
+.hljs-symbol,
+.hljs-title {
+  color: #61aeee !important;
+}
+.hljs-built_in,
+.hljs-class .hljs-title,
+.hljs-title.class_ {
+  color: #e6c07b !important;
+}
+.hljs-emphasis {
+  font-style: italic !important;
+}
+.hljs-strong {
+  font-weight: 700 !important;
+}
+.hljs-link {
+  text-decoration: underline !important;
+}
+.slide-right-leave-active {
+  opacity: 0;
+  transform: translate3d(-100%, 0, 0);
+}
+
+.slide-right-enter-from {
+  opacity: 0;
+  transform: translate3d(100%, 0, 0);
+}
+span.n-avatar {
+  background-color: rgba(0, 0, 0, 0);
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+}
+
+#app {
+  height: 100%;
+}
+
+.router {
+  transition: all 0.75s ease;
+}
+</style>
