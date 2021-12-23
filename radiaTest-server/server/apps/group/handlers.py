@@ -143,9 +143,14 @@ def handler_group_user_page(group_id, query: QueryGroupUserSchema):
     if not query.is_admin and re.role_type not in [GroupRole.admin.value, GroupRole.create_user.value]:
         return jsonify(error_code=RET.VERIFY_ERR, error_msg="user has not right")
     # 获取用户组
-    query_filter = ReUserGroup.query.filter_by(is_delete=False, group_id=group_id, user_add_group_flag=True,
-                                               org_id=redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')) \
-        .order_by(ReUserGroup.create_time.desc())
+    org_id = redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')
+    filter_params = [
+        ReUserGroup.is_delete.is_(False), ReUserGroup.group_id == group_id,
+        ReUserGroup.user_add_group_flag.is_(True), ReUserGroup.org_id == org_id
+    ]
+    if query.except_list:
+        filter_params.append(ReUserGroup.user_gitee_id.notin_(query.except_list))
+    query_filter = ReUserGroup.query.filter(*filter_params).order_by(ReUserGroup.create_time.desc())
 
     # 获取用户组下的所有用户
     def page_func(item):

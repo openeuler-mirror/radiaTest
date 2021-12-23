@@ -1,5 +1,8 @@
 from server.model.base import Base
 from .job import Analyzed
+from .user import User
+from .group import Group
+from .testcase import Suite
 from server import db
 import pandas as pd
 
@@ -162,7 +165,7 @@ class TaskComment(Base, db.Model):
 
 class TaskStatus(Base, db.Model):
     __tablename__ = "task_status"
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(32), nullable=False, unique=True)
     order = db.Column(db.Integer, nullable=False)
 
@@ -178,7 +181,7 @@ class TaskStatus(Base, db.Model):
 
 class TaskTag(Base, db.Model):
     __tablename__ = "task_tag"
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(32), nullable=False, unique=True)
     color = db.Column(db.Integer, nullable=False)
 
@@ -201,3 +204,60 @@ class TaskReportContent(Base, db.Model):
     # model_id = db.Column(db.Integer, db.ForeignKey("task_report_model.id"), primary_key=True)
     title = db.Column(db.String(50), nullable=False)
     content = db.Column(db.Text, nullable=False)
+
+
+class TaskDistributeTemplate(Base, db.Model):
+    __tablename__ = 'task_distribute_template'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    name = db.Column(db.String(32), nullable=False, unique=True)
+    creator_id = db.Column(db.Integer, nullable=False)
+    group_id = db.Column(db.Integer, nullable=False)
+    types = db.relationship("DistributeTemplateType", backref="template")
+
+    def to_json(self):
+        group = Group.query.filter_by(id=self.group_id, is_delete=False).first()
+        return {
+            'id': self.id,
+            'name': self.name,
+            'creator': User.query.get(self.creator_id).to_dict(),
+            'group': group.to_dict() if group else None,
+            'types': [item.to_json() for item in self.types],
+            'create_time': self.create_time
+        }
+
+
+class DistributeTemplateType(Base, db.Model):
+    __tablename__ = 'distribute_template_type'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    name = db.Column(db.String(32), nullable=False)
+    creator_id = db.Column(db.Integer, nullable=False)
+    executor_id = db.Column(db.Integer, db.ForeignKey("user.gitee_id"), nullable=False)
+    suites = db.Column(db.Text, nullable=False, default='')
+    helpers = db.Column(db.Text, nullable=False, default='')
+    template_id = db.Column(db.Integer, db.ForeignKey("task_distribute_template.id"))
+
+    def to_json(self):
+        suites = self.suites.split(',')
+        suites = [item.to_json() for item in Suite.query.filter(Suite.id.in_(suites))]
+        helpers = self.helpers.split(',')
+        helpers = [item.to_dict() for item in User.query.filter(User.gitee_id.in_(helpers))]
+        return {
+            'id': self.id,
+            'name': self.name,
+            'creator': User.query.get(self.creator_id).to_dict(),
+            'executor': User.query.get(self.executor_id).to_dict(),
+            'suites': suites,
+            'helpers': helpers,
+            'create_time': self.create_time
+            # 'template': self.template.to_json()
+        }
+
+    @property
+    def dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'executor_id': self.executor_id,
+            'suites': self.suites.split(','),
+            'helpers': self.helpers.split(',')
+        }
