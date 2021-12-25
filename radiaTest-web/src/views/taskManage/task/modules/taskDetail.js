@@ -1,7 +1,7 @@
 import { reactive, ref, nextTick, h, computed } from 'vue';
 import store from '@/store/index';
 import { DeleteOutlined } from '@vicons/antd';
-import { ReportAnalytics } from '@vicons/tabler';
+import { ReportAnalytics, ArrowsSplit } from '@vicons/tabler';
 import { NIcon, NButton, NDropdown } from 'naive-ui';
 import axios from '@/axios';
 import { formatTime } from '@/assets/utils/dateFormatUtils.js';
@@ -179,6 +179,11 @@ const menuOptions = ref([
     key: 'reporting',
     icon: renderIcon(ReportAnalytics),
   },
+  {
+    label: '分配任务',
+    key: 'distributeTask',
+    icon: renderIcon(ArrowsSplit),
+  },
 ]);
 
 const editRole = computed(() => {
@@ -300,7 +305,6 @@ function getCasesData(){
             suite:v.suite,
           });
           flag = false;
-          return;
         }
       });
       if (flag) {
@@ -502,6 +506,10 @@ const distributeCaseModalData = ref(null); // 分配测试用例弹框数据
 const distributeCaseTaskValue = ref(null); // 分配测试用例对应子任务
 const distributeCaseOption = ref([]); // 可分配子任务
 
+const distributeTaskModal = ref(false); // 分配任务弹框
+const distributeTaskValue = ref(null); // 分配任务模板
+const distributeTaskOption = ref([]); // 可分配模板
+
 // 取消分配测试用例
 function cancelDistributeCase(){
   distributeCaseModal.value = false;
@@ -546,6 +554,27 @@ function distributeCaseBtn(item){
         window.$message?.error(err.data.error_msg || '未知错误');
       });
   }
+}
+
+function cancelDistributeTask(){
+  distributeTaskModal.value = false;
+  distributeTaskValue.value = null;
+  distributeTaskOption.value = [];
+}
+
+function distributeTaskBtn(value){
+  axios
+    .put(`/v1/tasks/${modalData.value.detail.id}/distribute_templates/${value}`)
+    .then(() => {
+      getTaskCases();
+      initData();
+      distributeTaskModal.value = false;
+      distributeTaskValue.value = null;
+      distributeTaskOption.value = [];
+    })
+    .catch((err) => {
+      window.$message?.error(err.data.error_msg || '未知错误');
+    });
 }
 
 // 测试用例显示表格
@@ -763,7 +792,7 @@ function mergeFamilyTask(response){
       relation:'父任务',
       taskName:item.title,
       taskType:transTaskType(item.type),
-      belongTo:item.belong.gitee_name?item.executor.gitee_name:item.executor.name,
+      belongTo:item.belong.gitee_name?item.belong.gitee_name:item.belong.name,
       executor:item.executor.gitee_name,
       startTime:formatTime(item.start_time, 'yyyy-MM-dd hh:mm:ss'),
       endTime:formatTime(item.deadline, 'yyyy-MM-dd hh:mm:ss'),
@@ -777,7 +806,7 @@ function mergeFamilyTask(response){
       relation:'子任务',
       taskName:item.title,
       taskType:transTaskType(item.type),
-      belongTo:item.belong.gitee_name?item.executor.gitee_name:item.executor.name,
+      belongTo:item.belong.gitee_name?item.belong.gitee_name:item.belong.name,
       executor:item.executor.gitee_name,
       startTime:formatTime(item.start_time, 'yyyy-MM-dd hh:mm:ss'),
       endTime:formatTime(item.deadline, 'yyyy-MM-dd hh:mm:ss'),
@@ -1147,6 +1176,27 @@ function changeStatus ($event, status) {
     });
 }
 
+function getTemplateName(){
+  distributeTaskOption.value = [];
+  axios
+    .get('v1/tasks/distribute_templates',{
+      group_id:modalData.value.detail.group_id,
+    })
+    .then((res) => {
+      if (res.data.items) {
+        res.data.items.forEach((item) => {
+          distributeTaskOption.value.push({
+            label:item.name,
+            value:item.id,
+          });
+        });
+      }
+    })
+    .catch((err) => {
+      window.$message?.error(err.data.error_msg || '未知错误');
+    });
+}
+
 // 任务详情右上角菜单选择：删除任务、生成报告
 function handleSelect (key) {
   if (key === 'deleteTask') {
@@ -1183,6 +1233,9 @@ function handleSelect (key) {
     });
   } else if (key === 'reporting') {
     generateMdFile(modalData.value.detail.id, modalData.value.detail.type === 'VERSION');
+  }else if(key==='distributeTask'){
+    distributeTaskModal.value = true;
+    getTemplateName();
   }
 }
 
@@ -1501,4 +1554,9 @@ export {
   associatedMilestone,
   associatedMilestoneOptions,
   clickAssociatedCases,
+  distributeTaskModal,
+  distributeTaskValue,
+  distributeTaskOption,
+  cancelDistributeTask,
+  distributeTaskBtn,
 };

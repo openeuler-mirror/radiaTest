@@ -12,6 +12,7 @@
             padding-top: 40px;
             background-color: #FAFAFC;
         "
+    style="height: 100%"
   >
     <template #header>
       <n-grid :cols="3">
@@ -285,6 +286,9 @@ export default defineComponent({
         } else if (route.path === '/home/tm/report') {
           modules.menuSelect.value = 1;
           modules.isTask.value = false;
+        } else if (route.path === '/home/tm/distribution') {
+          modules.menuSelect.value = 2;
+          modules.isTask.value = false;
         }
       }
     );
@@ -302,6 +306,18 @@ export default defineComponent({
       config,
       ...modules,
     };
+  },
+  beforeRouteEnter(to) {
+    if (to.path === '/home/tm/task') {
+      modules.menuSelect.value = 0;
+      modules.isTask.value = true;
+    } else if (to.path === '/home/tm/report') {
+      modules.menuSelect.value = 1;
+      modules.isTask.value = false;
+    } else if (to.path === '/home/tm/distribution') {
+      modules.menuSelect.value = 2;
+      modules.isTask.value = false;
+    }
   },
 });
 </script>

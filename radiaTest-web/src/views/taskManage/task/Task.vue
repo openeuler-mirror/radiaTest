@@ -6,6 +6,7 @@
     <div class="task-body">
       <n-drawer
         v-model:show="showNewTaskDrawer"
+        :maskClosable="false"
         width="324px"
         placement="left"
       >
@@ -1090,6 +1091,39 @@
                   ghost
                   @click="
                     distributeCaseBtn(distributeCaseTaskValue)
+                  "
+                >分配</n-button>
+              </div>
+            </div>
+          </n-card>
+        </n-modal>
+        <n-modal v-model:show="distributeTaskModal">
+          <n-card
+            style="width: 600px"
+            title="分配任务"
+            :bordered="false"
+            size="huge"
+          >
+            <div
+             style="display:flex;"
+            >
+              <n-select
+                placeholder="请选择模板"
+                style="width:70%"
+                v-model:value="distributeTaskValue"
+                :options="distributeTaskOption"
+              />
+              <div style="width:30%;display:flex;justify-content:space-evenly;">
+                <n-button
+                  type="error"
+                  ghost
+                  @click="cancelDistributeTask"
+                >取消</n-button>
+                <n-button
+                  type="info"
+                  ghost
+                  @click="
+                    distributeTaskBtn(distributeTaskValue)
                   "
                 >分配</n-button>
               </div>

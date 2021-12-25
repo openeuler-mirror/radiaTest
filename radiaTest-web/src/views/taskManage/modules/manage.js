@@ -7,7 +7,7 @@ import { ref, toRef, h } from 'vue';
 import { NButton } from 'naive-ui';
 import { editTask } from '../task/modules/taskDetail.js';
 
-const menuSelect = ref(0); // 当前页面索引值
+const menuSelect = ref(null); // 当前页面索引值
 const isTask = ref(true); // 是否是任务页面
 const kanban = toRef(store.state.taskManage, 'kanban'); // 看板视图、表格视图切换
 const active = ref(false); // 显示筛选
@@ -206,6 +206,11 @@ const menu = ref([
     id: 1,
     text: '可视化',
     name: 'report',
+  },
+  {
+    id: 2,
+    text: '分配模板',
+    name: 'distribution',
   },
 ]);
 

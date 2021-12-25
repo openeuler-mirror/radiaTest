@@ -12,6 +12,7 @@ import Blank from '@/components/public/Blank';
 import Report from '@/views/taskManage/report/Report.vue';
 import TaskManage from '@/views/taskManage/TaskManage';
 import Task from '@/views/taskManage/task/Task';
+import Distribution from '@/views/taskManage/distribution/Distribution.vue';
 // import Login from '@/views/login/Login.vue';
 import newLogin from '@/views/login/newLogin.vue';
 import PersonalCenter from '@/views/personalCenter/PersonalCenter.vue';
@@ -134,6 +135,10 @@ const router = createRouter({
             {
               path: 'report/',
               component: Report,
+            },
+            {
+              path: 'distribution/',
+              component: Distribution,
             },
           ]
         },
