@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
 from datetime import datetime
 from typing import Optional
 from .base import PageBaseSchema
@@ -44,3 +44,11 @@ class UpdateGroupUserSchema(BaseModel):
 
 class QueryGroupUserSchema(PageBaseSchema):
     is_admin: bool = False
+    except_list: str = None
+
+    @validator('except_list')
+    def v_except_list(cls, v):
+        if v:
+            return [int(item) for item in v.split(',')]
+        else:
+            return None

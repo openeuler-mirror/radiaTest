@@ -1,4 +1,4 @@
-from pydantic import BaseModel, validator, root_validator
+from pydantic import BaseModel, validator, root_validator, Field
 from typing import List
 from typing_extensions import Literal
 from enum import Enum
@@ -258,7 +258,7 @@ class TaskReportContentSchema(BaseModel):
 
 class QueryTaskCaseSchema(PageBaseSchema):
     case_name: str = None
-    is_contain = False
+    is_contain: bool = False
     suite_id: int = None
 
 
@@ -315,3 +315,51 @@ class TaskCaseResultSchema(BaseModel):
 class DistributeTaskCaseSchema(BaseModel):
     cases: List[int]
     child_task_id: int
+
+
+class DistributeTemplateType(object):
+    class Add(BaseModel):
+        name: str = Field(..., max_length=32)
+        executor_id: int
+        suites: List[str]
+        helpers: List[str] = []
+
+    class Update(BaseModel):
+        name: str = Field(None, max_length=32)
+        executor_id: int = None
+        suites: List[str] = None
+        helpers: List[str] = None
+
+        @validator('suites')
+        def v_suites(cls, v):
+            if v:
+                return ','.join(v)
+            else:
+                return None
+
+        @validator('helpers')
+        def v_helpers(cls, v):
+            if v:
+                return ','.join(v)
+            else:
+                return None
+
+    class Query(PageBaseSchema):
+        # suite: bool = False
+        template_id: int = None
+
+
+class DistributeTemplate(object):
+    class Add(BaseModel):
+        name: str = Field(..., max_length=32)
+        group_id: int
+        types: List[DistributeTemplateType.Add] = None
+
+    class Query(PageBaseSchema):
+        name: str = None
+        group_id: int = None
+        type_name: str = None
+
+    class Update(BaseModel):
+        group_id: int = None
+        name: str = Field(None, max_length=32)
