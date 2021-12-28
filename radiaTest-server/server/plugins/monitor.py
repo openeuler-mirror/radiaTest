@@ -143,7 +143,7 @@ class RepoMonitor(BaseMonitor):
                 cases_data,
             ) in suite2cases:
                 resp = requests.get(
-                    "http://{}:{}/api/v1/suite".format(
+                    "http://{}:{}/api/v1/repo_monitor/suite".format(
                         self.app.config.get("SERVER_IP"),
                         self.app.config.get("SERVER_PORT"),
                     ),
@@ -161,9 +161,7 @@ class RepoMonitor(BaseMonitor):
                     if self._handle_suite_data("POST", suite_data):
                         self._handle_cases_data(cases_data)
                 else:
-                    suite_data["id"] = suite[0].get("id")
-                    if self._handle_suite_data("PUT", suite_data):
-                        self._handle_cases_data(cases_data)
+                    self._handle_cases_data(cases_data)
 
         self.app.logger.warn("RepoMonitor: ......Sleep.")
     
@@ -264,6 +262,7 @@ class RepoMonitor(BaseMonitor):
                         "steps": "default",
                         "expection": "default",
                         "automatic": True,
+                        "usabled": True,
                     }
                     case_data.update(case)
 
@@ -300,7 +299,7 @@ class RepoMonitor(BaseMonitor):
     def _handle_suite_data(self, handler, data):
         resp = requests.request(
             handler,
-            "http://{}:{}/api/v1/suite".format(
+            "http://{}:{}/api/v1/repo_monitor/suite".format(
                 self.app.config.get("SERVER_IP"),
                 self.app.config.get("SERVER_PORT"),
                 handler,
@@ -313,7 +312,7 @@ class RepoMonitor(BaseMonitor):
     def _handle_cases_data(self, cases_data):
         for case_data in cases_data:
             resp = requests.get(
-                "http://{}:{}/api/v1/case".format(
+                "http://{}:{}/api/v1/repo_monitor/case".format(
                     self.app.config.get("SERVER_IP"),
                     self.app.config.get("SERVER_PORT"),
                 ),
@@ -330,7 +329,7 @@ class RepoMonitor(BaseMonitor):
 
             if not case:
                 resp = requests.post(
-                    "http://{}:{}/api/v1/case".format(
+                    "http://{}:{}/api/v1/repo_monitor/case".format(
                         self.app.config.get("SERVER_IP"),
                         self.app.config.get("SERVER_PORT"),
                     ),
@@ -341,7 +340,7 @@ class RepoMonitor(BaseMonitor):
             else:
                 case_data["id"] = case[0].get("id")
                 resp = requests.put(
-                    "http://{}:{}/api/v1/case".format(
+                    "http://{}:{}/api/v1/repo_monitor/case".format(
                         self.app.config.get("SERVER_IP"),
                         self.app.config.get("SERVER_PORT"),
                     ),

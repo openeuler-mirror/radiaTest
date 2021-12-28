@@ -133,9 +133,9 @@ class HandlerTask(object):
 
     @staticmethod
     @collect_sql_error
-    def get_all(query):
+    def get_all(gitee_id, query):
         """获取任务列表"""
-        filter_params = [Task.organization_id == redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')]
+        filter_params = [Task.organization_id == redis_client.hget(RedisKey.user(gitee_id), 'current_org_id')]
         for key, value in query.dict().items():
             if not value and key != 'is_delete':
                 continue
@@ -165,12 +165,17 @@ class HandlerTask(object):
                 if len(milestone.cases) > len(milestone.manual_cases):
                     item_dict['has_auto_case'] = True
                     break
+            item_dict['auto_case_success'] = True
+            for milestone in item.milestones:
+                if len(milestone.cases) > len(milestone.manual_cases) and milestone.job_result != 'done':
+                    item_dict['auto_case_success'] = False
+                    break
             return item_dict
 
         page_dict, e = PageUtil.get_page_dict(query_filter, query.page_num, query.page_size, func=page_func)
         if e:
             return jsonify(error_code=RET.SERVER_ERR, error_msg=f'get group page error {e}')
-        return jsonify(error_code=RET.OK, error_msg='OK', data=page_dict)
+        return dict(error_code=RET.OK, error_msg='OK', data=page_dict)
 
     @staticmethod
     @collect_sql_error
@@ -195,8 +200,9 @@ class HandlerTask(object):
             task.add_update()
             _ = [task.parents.remove(item) for item in task.parents.all()]
             task.add_update()
-        db.session.delete(task.report)
-        db.session.commit()
+        if task.report:
+            db.session.delete(task.report)
+            db.session.commit()
         db.session.delete(task)
         db.session.commit()
         return jsonify(error_code=RET.OK, error_msg='OK')
@@ -675,6 +681,16 @@ class HandlerTaskCase(object):
         task_milestone.add_update()
         _ = [db.session.delete(item) for item in task_milestone.manual_cases if item.case_id in query.case_id]
         db.session.commit()
+        automatic = True
+        if not task_milestone.cases:
+            automatic = False
+        else:
+            for item in task_milestone.cases:
+                if not item.automatic:
+                    automatic = False
+                    break
+        task_milestone.task.automatic = automatic
+        task_milestone.task.add_update()
         return jsonify(error_code=RET.OK, error_msg='OK')
 
     @staticmethod
@@ -716,8 +732,12 @@ class HandlerTaskCase(object):
     @collect_sql_error
     def distribute(task_id, milestone_id, body: DistributeTaskCaseSchema):
         task_milestone = TaskMilestone.query.filter_by(task_id=task_id, milestone_id=milestone_id).first()
-        if task_milestone.task.task_status.name in ['执行中', '已执行', '已完成']:
+        if task_milestone.task.task_status.name == '已完成':
             return jsonify(error_code=RET.PARMA_ERR, error_msg='current task status not allowed operate')
+        if task_milestone.task.task_status.name == '执行中':
+            manual_case_id = [item.case_id for item in task_milestone.manual_cases]
+            if set(body.cases) - set(manual_case_id) and task_milestone.job_result == "running":
+                return jsonify(error_code=RET.PARMA_ERR, error_msg='current cass running')
         cases = Case.query.filter(Case.id.in_(body.cases)).all()
         _ = [task_milestone.cases.remove(item) for item in cases if item in task_milestone.cases]
         task_milestone.add_update()
@@ -823,7 +843,9 @@ class HandlerTaskStatistics(object):
             filter_params.append(Task.executor_id.in_(query.executors))
         if query.milestone_id:
             filter_params.append(TaskMilestone.milestone_id == query.milestone_id)
-        self.tasks = Task.query.filter(*filter_params).all()
+            self.tasks = Task.query.join(TaskMilestone).filter(*filter_params).all()
+        else:
+            self.tasks = Task.query.filter(*filter_params).all()
         self.expired_tasks = []
         self.accomplish_tasks = []
 

@@ -242,7 +242,7 @@
                 <template #trigger>
                   <img
                     style="width:100px;cursor:pointer;"
-                    :src="claImgUrl"
+                    src="/cla.jpg"
                     @click="gotoCLA"
                   />
                 </template>

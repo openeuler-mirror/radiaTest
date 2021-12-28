@@ -24,7 +24,7 @@ def run_gevent():
 
     DaemonThread(LifecycleMonitor(app, 300)).start()
 
-    # DaemonThread(RepoMonitor(app, 600)).start()
+    DaemonThread(RepoMonitor(app, 600)).start()
 
     server = pywsgi.WSGIServer(
         (app.config.get("SERVER_IP"), int(app.config.get("SERVER_PORT"))),

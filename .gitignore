@@ -1,0 +1,11 @@
+**/__pycache__
+.vscode
+venv
+**/migrations
+**/tests
+radiaTest-web/node_modules
+radiaTest-server/server/config/
+radiaTest-web/src/assets/config/settings.js
+radiaTest-worker/worker/config/settings.py
+
+

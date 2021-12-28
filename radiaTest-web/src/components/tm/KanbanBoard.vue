@@ -195,7 +195,7 @@ export default {
       }
     },
     isDrag(element){
-      if(!element.has_milestone||element.status.name==='已完成'||(element.status.name==='执行中'&&element.has_auto_case)){
+      if(!element.has_milestone||element.status.name==='已完成'||(element.status.name==='执行中'&&!element.auto_case_success)){
         return 'forbid';
       }
       return '';
@@ -327,6 +327,7 @@ export default {
                 word-wrap: break-word;
                 overflow: hidden;
                 flex: 1 1 auto;
+                width: 200px;
               }
 
               .avatar {

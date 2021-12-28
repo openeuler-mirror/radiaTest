@@ -1,5 +1,8 @@
+import json
+from flask import g
 from flask_restful import Resource
 from flask_pydantic import validate
+from server import socketio
 from server.utils.auth_util import auth
 from server.utils.response_util import response_collect
 from server.schema.task import *
@@ -7,6 +10,7 @@ from .handlers import HandlerTaskStatus, HandlerTask, HandlerTaskParticipant, Ha
 from .handlers import HandlerTaskFamily, HandlerTaskCase, HandlerTaskReport
 from .handlers import HandlerTaskMilestone, HandlerTaskStatistics
 from .handlers import HandlerTaskExecute
+from .template_handler import HandlerTemplate, HandlerTemplateType, HandlerTaskDistributeCass
 
 
 class Status(Resource):
@@ -48,7 +52,7 @@ class Task(Resource):
     @response_collect
     @validate()
     def get(self, query: QueryTaskSchema):
-        return HandlerTask.get_all(query)
+        return HandlerTask.get_all(g.gitee_id, query)
 
     @auth.login_required()
     @response_collect
@@ -244,3 +248,64 @@ class TaskExecute(Resource):
         if not isinstance(e, HandlerTaskExecute):
             return e
         return e.execute()
+
+
+class DistributeTemplate(Resource):
+
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def get(self, query: DistributeTemplate.Query):
+        return HandlerTemplate.get(query)
+
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def post(self, body: DistributeTemplate.Add):
+        return HandlerTemplate.add(body)
+
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def put(self, template_id, body: DistributeTemplate.Update):
+        return HandlerTemplate.update(template_id, body)
+
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def delete(self, template_id):
+        return HandlerTemplate.delete(template_id)
+
+
+class DistributeTemplateType(Resource):
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def get(self, query: DistributeTemplateType.Query):
+        return HandlerTemplateType.get(query)
+
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def post(self, template_id, body: DistributeTemplateType.Add):
+        return HandlerTemplateType.add(template_id, body)
+
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def put(self, type_id, body: DistributeTemplateType.Update):
+        return HandlerTemplateType.update(type_id, body)
+
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def delete(self, type_id):
+        return HandlerTemplateType.delete(type_id)
+
+
+class DistributeCaseByTemplate(Resource):
+
+    @auth.login_required()
+    @response_collect
+    def put(self, task_id, template_id):
+        return HandlerTaskDistributeCass().distribute(task_id, template_id)

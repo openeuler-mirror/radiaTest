@@ -20,8 +20,16 @@ class Group(db.Model, Base):
 
     re_user_group = db.relationship("ReUserGroup", backref="group")
 
+    baselines = db.relationship("Baseline", cascade="all, delete", backref="group")
+
     def to_dict(self):
-        return self.__dict__
+        return {
+            'id': self.id,
+            'name': self.name,
+            'description': self.description,
+            'avatar_url': self.avatar_url,
+            'is_delete': self.is_delete
+        }
 
     @staticmethod
     def create(name, description=None, avatar_url=None):

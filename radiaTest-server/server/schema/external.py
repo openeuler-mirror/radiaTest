@@ -4,6 +4,9 @@ from urllib import request, error
 from pydantic import BaseModel, validator
 from pydantic.networks import HttpUrl
 
+from server.schema import MachineType
+from server.schema.base import UpdateBaseModel
+
 
 class OpenEulerUpdateTaskBase(BaseModel):
     product: str
@@ -34,4 +37,12 @@ class OpenEulerUpdateTaskBase(BaseModel):
                 raise ValueError("epol_update_url:%s is not available." % v)
 
             return v
+
+
+class RepoCaseUpdateBase(UpdateBaseModel):
+    machine_num: Optional[int] = 1
+    machine_type: Optional[MachineType] = "kvm"
+    add_network_interface: Optional[int]
+    add_disk: Optional[str]
+    usabled: bool = False
 
