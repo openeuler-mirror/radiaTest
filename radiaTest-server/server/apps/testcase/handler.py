@@ -179,8 +179,13 @@ class BaselineHandler:
     def get(baseline_id, query):
         baseline = Baseline.query.filter_by(id=baseline_id).first()
 
-        if redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id') != baseline.org_id:
-          return jsonify(error_code=RET.VERIFY_ERROR, error_msg="No right to query")
+        current_org_id = int(redis_client.hget(
+            RedisKey.user(g.gitee_id), 
+            'current_org_id'
+        ))
+
+        if current_org_id != baseline.org_id:
+            return jsonify(error_code=RET.VERIFY_ERR, error_msg="No right to query")
 
         if not baseline:
             return jsonify(error_code=RET.NO_DATA_ERR, error_msg="baseline is not exists")
