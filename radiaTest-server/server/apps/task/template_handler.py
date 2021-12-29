@@ -15,6 +15,7 @@ from server.utils.page_util import PageUtil
 from server.utils.response_util import RET
 from server.utils.db import collect_sql_error
 from server.utils.redis_util import RedisKey
+from .services import judge_task_automatic
 
 
 class HandlerTemplate:
@@ -90,6 +91,9 @@ class HandlerTemplateType:
     @collect_sql_error
     def get(query):
         filter_params = [Suite.deleted.is_(False)]
+        if query.type_id:
+            print(query.type_id)
+            return HandlerTemplateType.get_info(query.type_id)
         if query.template_id:
             template = TaskDistributeTemplate.query.get(query.template_id)
             template_suites = HandlerTemplateType.get_all_suites(template)
@@ -99,6 +103,12 @@ class HandlerTemplateType:
         if e:
             return jsonify(error_code=RET.SERVER_ERR, error_msg=f'get group page error {e}')
         return jsonify(error_code=RET.OK, error_msg="OK", data=page_dict)
+
+    @staticmethod
+    @collect_sql_error
+    def get_info(type_id):
+        return_data = DistributeTemplateType.query.get(type_id)
+        return jsonify(error_code=RET.OK, error_msg="OK", data=return_data.to_json())
 
     @staticmethod
     @collect_sql_error
@@ -139,80 +149,113 @@ class HandlerTaskDistributeCass:
 
     def __init__(self):
         self.status = TaskStatus.query.filter_by(name="待办中").first()
+        self.parent_task = None
+        self.task_milestone = None
 
     @collect_sql_error
-    def distribute(self, task_id, template_id):
+    def distribute(self, task_id, template_id, body):
         # 分析数据
         # milestone_id, case_id, suite_id
         task = Task.query.get(task_id)
         if not task or not task.group_id or task.type == 'PERSON':
             return jsonify(error_code=RET.PARMA_ERR, error_msg='task can not use template distribute cases')
-        task_cases = []
-        for item in task.milestones:
-            for case in item.cases:
-                task_cases.append((item.milestone_id, case.id, case.suite_id))
-        task_cases_df = pd.DataFrame(task_cases, columns=['milestone_id', 'case_id', 'suite_id'])
+        self.parent_task = task
+        task_milestone = TaskMilestone.query.filter_by(task_id=task_id, milestone_id=body.milestone_id).first()
+        if not task_milestone:
+            return jsonify(error_code=RET.PARMA_ERR, error_msg='task milestone relationship no find')
+        self.task_milestone = task_milestone
+        task_cases = task_milestone.distribute_df_data(body.distribute_all_cases)
+        task_cases_df = pd.DataFrame(task_cases,
+                                     columns=['milestone_id', 'case_id', 'suite_id', 'case_result'])
         # suite_id, executor_id, helpers, type_name
         template = TaskDistributeTemplate.query.get(template_id)
         if template.group_id != task.group_id:
             return jsonify(error_code=RET.PARMA_ERR, error_msg='task group not match template group')
         template_cases = []
+        template_types = []
         for item in template.types:
+            template_types.append(item.name)
+            if not item.suites:
+                continue
             for suite in item.suites.split(','):
                 template_cases.append((int(suite), item.executor_id, item.helpers, item.name))
         template_cases_df = pd.DataFrame(template_cases, columns=['suite_id', 'executor_id', 'helpers', 'type_name'])
         merge_df = pd.merge(task_cases_df, template_cases_df, on='suite_id').reset_index(drop=True)
-        if merge_df.empty:
-            return jsonify(error_code=RET.NO_DATA_ERR, error_msg='no cases that can be assigned were found')
-        for item in merge_df['type_name'].drop_duplicates().tolist():
-            temp_df = merge_df[merge_df.type_name == item]
-            temp_df = temp_df.reset_index(drop=True)
-            self.create_child_task(task, temp_df, template.group_id)
+        merge_case_type = []
+        if not merge_df.empty:
+            merge_case_type = merge_df['type_name'].drop_duplicates().tolist()
+            for item in merge_df['type_name'].drop_duplicates().tolist():
+                temp_df = merge_df[merge_df.type_name == item]
+                temp_df = temp_df.reset_index(drop=True)
+                self.create_child_task(temp_df, template.group_id, body.milestone_id)
+        null_case_type = list(set(template_types) - set(merge_case_type))
+        for item in template.types:
+            if item.name in null_case_type:
+                self.create_no_case_task(item, template.group_id, body.milestone_id)
         return jsonify(error_code=RET.OK, error_msg="OK")
 
-    def create_child_task(self, parent_task: Task, df: pd.DataFrame, group_id):
-        # milestone_id, case_id, suite_id, executor_id, helpers, type_name
-        for milestone_id in df['milestone_id'].drop_duplicates().tolist():
-            child_task = Task()
-            child_task.title = f'T{parent_task.id}_TM{df.loc[0, "type_name"]}' \
-                               f'_M{milestone_id}_S{time.strftime("%Y%m%d%H%M%S")}'
-            child_task.type = 'GROUP'
-            child_task.group_id = group_id
-            child_task.originator = g.gitee_id
-            child_task.start_time = parent_task.start_time
-            child_task.executor_id = df.loc[0, "executor_id"]
-            child_task.deadline = parent_task.deadline
-            child_task.organization_id = parent_task.organization_id
-            child_task.frame = parent_task.frame
-            child_task.status_id = self.status.id
-            child_task_id = child_task.add_flush_commit()
-            child_task = Task.query.get(child_task_id)
-            child_task.automatic = True
-            if df.loc[0, 'helpers']:
-                for item in df.loc[0, 'helpers'].split(','):
-                    tp = TaskParticipant()
-                    tp.task_id = child_task_id
-                    tp.participant_id = item
-                    child_task.participants.append(tp)
+    def child_task(self, title, group_id, executor_id):
+        child_task = Task()
+        child_task.title = title
+        child_task.type = 'GROUP'
+        child_task.group_id = group_id
+        child_task.originator = g.gitee_id
+        child_task.start_time = self.parent_task.start_time
+        child_task.executor_id = executor_id
+        child_task.deadline = self.parent_task.deadline
+        child_task.organization_id = self.parent_task.organization_id
+        child_task.frame = self.parent_task.frame
+        child_task.status_id = self.status.id
+        child_task_id = child_task.add_flush_commit()
+        child_task = Task.query.get(child_task_id)
+        return child_task
 
-            tm = TaskMilestone()
-            tm.task_id = child_task_id
-            tm.milestone_id = milestone_id
-            tm.cases = Case.query.filter(Case.id.in_(df[df.milestone_id == milestone_id]['case_id'].tolist()),
-                                         Case.deleted.is_(False)).all()
+    @staticmethod
+    def add_helpers(task, helpers):
+        if helpers:
+            for item in helpers.split(','):
+                tp = TaskParticipant()
+                tp.task_id = task.id
+                tp.participant_id = item
+                task.participants.append(tp)
+            task.add_update()
+
+    @staticmethod
+    def add_milestone(task, milestone_id, cases=None):
+        task.automatic = True
+        tm = TaskMilestone()
+        tm.task_id = task.id
+        tm.milestone_id = milestone_id
+        if cases:
+            tm.cases = Case.query.filter(Case.id.in_(cases), Case.deleted.is_(False)).all()
             for case in tm.cases:
-                if not case.automatic:
+                if not case.usabled:
                     tmc = TaskManualCase(case_id=case.id)
-                    child_task.automatic = False
+                    task.automatic = False
                     tm.manual_cases.append(tmc)
-            tm.add_update()
-            child_task.add_update()
-            # 父任务添加子任务
-            parent_task.children.append(child_task)
+        tm.add_update()
+        task.add_update()
+
+    def create_no_case_task(self, item: DistributeTemplateType, group_id, milestone_id):
+        title = f'T{self.parent_task.id}_TM{item.name}' \
+                f'_M{milestone_id}_S{time.strftime("%Y%m%d%H%M%S")}'
+        child_task = self.child_task(title, group_id, item.executor_id)
+        self.add_helpers(child_task, item.helpers)
+        self.add_milestone(child_task, milestone_id)
+        self.parent_task.children.append(child_task)
+        self.parent_task.add_update()
+
+    def create_child_task(self, df: pd.DataFrame, group_id, milestone_id):
+        # milestone_id, case_id, suite_id, executor_id, helpers, type_name
+        title = f'T{self.parent_task.id}_TM{df.loc[0, "type_name"]}' \
+                f'_M{milestone_id}_S{time.strftime("%Y%m%d%H%M%S")}'
+        child_task = self.child_task(title, group_id, df.loc[0, "executor_id"])
+        self.add_helpers(child_task, df.loc[0, 'helpers'])
+        self.add_milestone(child_task, milestone_id, df[df.milestone_id == milestone_id]['case_id'].tolist())
+        self.parent_task.children.append(child_task)
+        self.parent_task.add_update()
         # 父任务删除测试用例
-        for item in parent_task.milestones:
-            self.delete_task_cases(item, df['case_id'].tolist())
-        parent_task.add_update()
+        self.delete_task_cases(self.task_milestone, df['case_id'].tolist())
 
     @staticmethod
     def delete_task_cases(task_milestone: TaskMilestone, cases: list):
@@ -222,13 +265,4 @@ class HandlerTaskDistributeCass:
         tm_manual_cases = task_milestone.manual_cases.copy() if task_milestone.manual_cases else []
         _ = [db.session.delete(item) for item in tm_manual_cases if item.case_id in cases]
         db.session.commit()
-        automatic = True
-        if not task_milestone.cases:
-            automatic = False
-        else:
-            for item in task_milestone.cases:
-                if not item.automatic:
-                    automatic = False
-                    break
-        task_milestone.task.automatic = automatic
-        task_milestone.task.add_update()
+        judge_task_automatic(task_milestone)

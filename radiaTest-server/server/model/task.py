@@ -53,6 +53,28 @@ class TaskMilestone(db.Model, Base):
                             passive_deletes=True)
     manual_cases = db.relationship('TaskManualCase', backref='task_milestone')
 
+    def distribute_df_data(self, distribute_all_cases=True):
+        df_list = []
+        manual_df = pd.DataFrame([item.to_json() for item in self.manual_cases])
+        for case in self.cases:
+            if case.deleted:
+                continue
+            if case.usabled:
+                analyzed = Analyzed.query.filter_by(job_id=self.job_id, case_id=case.id).first()
+                case_result = analyzed.result if analyzed and analyzed.result else 'running'
+            else:
+                case_result = 'running'
+                if not manual_df.empty:
+                    case_result_se = manual_df[manual_df.case_id == case.id].case_result
+                    if not case_result_se.empty:
+                        case_result = case_result_se.to_list()[0]
+            if distribute_all_cases:
+                df_list.append((self.milestone_id, case.id, case.suite_id, case_result))
+            else:
+                if case_result.lower() != 'success':
+                    df_list.append((self.milestone_id, case.id, case.suite_id, case_result))
+        return df_list
+
     def to_json(self):
         auto_cases, manual_cases = [], []
         manual_df = pd.DataFrame([item.to_json() for item in self.manual_cases])
@@ -60,7 +82,7 @@ class TaskMilestone(db.Model, Base):
             if case.deleted:
                 continue
             case_json = case.to_json()
-            if case.automatic:
+            if case.usabled:
                 case_result = self.job_result
                 if self.job_result == 'block':
                     case_result = 'failed'

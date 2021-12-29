@@ -69,7 +69,7 @@ class UpdateTaskStatusService(object):
         for case in cases:
             if case.deleted:
                 continue
-            if case.automatic:
+            if case.usabled:
                 auto_cases.append(case)
             else:
                 manual_cases.append(case)
@@ -249,3 +249,16 @@ def send_message(task: Task, msg, from_id=1):
         "level": 0
     } for item in to_id]
     db.session.execute(Message.__table__.insert(), insert_data)
+
+
+def judge_task_automatic(task_milestone: TaskMilestone):
+    automatic = True
+    if not task_milestone.cases:
+        automatic = False
+    else:
+        for item in task_milestone.cases:
+            if not item.usabled:
+                automatic = False
+                break
+    task_milestone.task.automatic = automatic
+    task_milestone.task.add_update()
