@@ -138,6 +138,12 @@ class RepoMonitor(BaseMonitor):
             )
         else:
             suite2cases = self._resolve_suite2cases()
+
+            if not isinstance(suite2cases, list):
+                self.app.logger.error("RepoMonitor: Could not get suite2cases files")
+                self.app.logger.warn("RepoMonitor: ......Sleep.")
+                return
+
             for (
                 suite_data,
                 cases_data,
