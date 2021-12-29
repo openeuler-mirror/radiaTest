@@ -171,16 +171,11 @@ function menuClick(item, index) {
 const menu = ref([
   {
     id: 0,
-    text: '测试套仓库',
-    name: 'testsuite',
-  },
-  {
-    id: 1,
     text: '用例仓库',
     name: 'testcase',
   },
   {
-    id: 2,
+    id: 1,
     text: '用例评审',
     name: 'review',
   },
@@ -188,8 +183,6 @@ const menu = ref([
 
 const isTabActive = (index) => {
   if (index === 0) {
-    return router.currentRoute.value.fullPath === '/home/tcm/testsuite';
-  } else if (index === 1) {
     return router.currentRoute.value.fullPath === '/home/tcm/testcase';
   }
   return router.currentRoute.value.fullPath === '/home/tcm/review';

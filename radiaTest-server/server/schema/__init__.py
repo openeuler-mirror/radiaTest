@@ -61,3 +61,7 @@ TestLevel = Literal["系统测试", "集成测试", "单元测试"]
 
 ## 测试类型
 TestType = Literal["功能测试", "安全测试", "性能测试", "压力测试", "可靠性测试"]
+
+## 基线库节点类型
+BaselineType = Literal["directory", "suite", "case"]
+

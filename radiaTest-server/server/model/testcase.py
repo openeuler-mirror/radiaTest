@@ -1,14 +1,57 @@
-# -*- coding: utf-8 -*-
-# @Author : Ethan-Zhang
-# @Date   : 2021-09-06 20:39:53
-# @Email  : ethanzhang55@outlook.com
-# @License: Mulan PSL v2
-# @Desc   :
-
 from sqlalchemy.dialects.mysql import LONGTEXT
+from sqlalchemy.orm import backref
 
 from server import db
 from server.model import BaseModel
+
+
+baseline_family = db.Table(
+    'baseline_family',
+    db.Column('parent_id', db.Integer, db.ForeignKey('baseline.id'), primary_key=True),
+    db.Column('child_id', db.Integer, db.ForeignKey('baseline.id'), primary_key=True)
+)
+
+class Baseline(BaseModel, db.Model):
+    __tablename__ = "baseline"
+
+    id = db.Column(db.Integer(), primary_key=True)
+    title = db.Column(db.String(255), nullable=False)
+    type=db.Column(db.String(64), nullable=False, default="directory")
+    is_root=db.Column(db.Boolean(), default=True)
+    in_set=db.Column(db.Boolean(), default=False)
+
+    group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
+
+    org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
+
+    suite_id = db.Column(db.Integer(), db.ForeignKey("suite.id"))
+
+    case_id = db.Column(db.Integer(), db.ForeignKey("case.id"))
+
+    children = db.relationship(
+        "Baseline", 
+        secondary=baseline_family, 
+        primaryjoin=(baseline_family.c.parent_id == id),
+        secondaryjoin=(baseline_family.c.child_id == id),
+        backref=db.backref('parent', lazy='dynamic'),
+        lazy='dynamic',
+        cascade="all, delete"
+    )
+    
+    def to_json(self):
+        return {
+            "id": self.id,
+            "title": self.title,
+            "type": self.type,
+            "in_set": self.in_set,
+            "group_id": self.group_id,
+            "org_id": self.org_id,
+            "suite_id": self.suite_id,
+            "case_id": self.case_id,
+        }
+
+    def to_dict(self):
+        return self.__dict__
 
 
 class Suite(BaseModel, db.Model):
@@ -23,9 +66,17 @@ class Suite(BaseModel, db.Model):
     remark = db.Column(LONGTEXT(), nullable=True)
     owner = db.Column(db.String(64), nullable=True)
     deleted = db.Column(db.Boolean(), nullable=False, default=False)
+    
+    group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
+
+    org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
 
     case = db.relationship(
         "Case", backref="suite", cascade="all, delete, delete-orphan"
+    )
+
+    baselines = db.relationship(
+        "Baseline", backref="suite", cascade="all, delete, delete-orphan"
     )
 
     def to_json(self):
@@ -38,6 +89,8 @@ class Suite(BaseModel, db.Model):
             "add_network_interface": self.add_network_interface,
             "add_disk": self.add_disk,
             "remark": self.remark,
+            "group_id": self.group_id,
+            "org_id": self.org_id,
         }
 
 
@@ -60,9 +113,14 @@ class Case(BaseModel, db.Model):
     remark = db.Column(LONGTEXT(), nullable=True)
     owner = db.Column(db.String(64), nullable=True)
     automatic = db.Column(db.Boolean(), nullable=False, default=False)
+    usabled = db.Column(db.Boolean(), nullable=False, default=False)
     deleted = db.Column(db.Boolean(), nullable=False, default=False)
 
     analyzeds = db.relationship('Analyzed', backref='case')
+
+    baselines = db.relationship(
+        "Baseline", backref="case", cascade="all, delete, delete-orphan"
+    )
 
     tasks_manuals = db.relationship('TaskManualCase', backref='case', cascade='all, delete')
 
@@ -86,4 +144,7 @@ class Case(BaseModel, db.Model):
             "owner": self.owner,
             "automatic": self.automatic,
             "deleted": self.deleted,
+            "group_id": self.suite.group_id,
+            "org_id": self.suite.org_id,
+            "usabled": self.usabled,
         }

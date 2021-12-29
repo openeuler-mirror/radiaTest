@@ -9,7 +9,7 @@ const createButton = ref(null);
 
 const personalData = ref([]);
 const teamData = ref([]);
-const orgnizationData = ref([]);
+const organizationData = ref([]);
 const taskData = ref([]);
 
 const handleHover = (button) => {
@@ -24,24 +24,20 @@ const devideData = (res) => {
   try {
     res.forEach((item) => {
       item.create_time
-        ? item.create_time = any2standard(item.create_time)
+        ? (item.create_time = any2standard(item.create_time))
         : 0;
       item.update_time
-        ? item.update_time = any2standard(item.update_time)
+        ? (item.update_time = any2standard(item.update_time))
         : 0;
     });
     personalData.value = res.filter(
       (item) => item.template_type === 'personal'
     );
-    teamData.value = res.filter(
-      (item) => item.template_type === 'team'
+    teamData.value = res.filter((item) => item.template_type === 'team');
+    organizationData.value = res.filter(
+      (item) => item.template_type === 'organization'
     );
-    orgnizationData.value = res.filter(
-      (item) => item.template_type === 'orgnization'
-    );
-    taskData.value = res.filter(
-      (item) => item.template_type === 'task'
-    );
+    taskData.value = res.filter((item) => item.template_type === 'task');
   } catch (error) {
     window.$message?.error(error);
   }
@@ -52,7 +48,7 @@ const getData = () => {
     .get('/v1/template')
     .then((res) => {
       if (!res.error_mesg) {
-        devideData((res));
+        devideData(res);
       } else {
         window.$message?.error('无法获取数据，请检查网络连接或联系管理员处理');
       }
@@ -67,7 +63,7 @@ export default {
   createButton,
   personalData,
   teamData,
-  orgnizationData,
+  organizationData,
   taskData,
   handleHover,
   handleLeave,

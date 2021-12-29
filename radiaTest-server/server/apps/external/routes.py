@@ -2,15 +2,19 @@ import re
 import json
 import requests
 
-from flask import current_app
+from flask import current_app, request, jsonify
 from flask_restful import Resource
 from flask_pydantic import validate
 
-from server.schema.external import OpenEulerUpdateTaskBase
+from server.schema.external import OpenEulerUpdateTaskBase, RepoCaseUpdateBase
 from server.model.group import Group
 from server.model.mirroring import Repo
 from server.utils.db import Insert, Edit
 from .handler import UpdateRepo, UpdateTaskHandler, UpdateTaskForm
+from server.model.testcase import Suite, Case
+from server.schema.testcase import SuiteBase, CaseBase
+from server.utils.db import Select
+from server.utils.response_util import RET
 
 
 class UpdateTaskEvent(Resource):
@@ -98,4 +102,40 @@ class UpdateTaskEvent(Resource):
         return {"error_code": "2000", "error_mesg": "OK"}
                 
 
-            
+class RepoSuiteEvent(Resource):
+    def get(self):
+        body = request.args.to_dict()
+        return Select(Suite, body).precise()
+
+    
+    @validate()
+    def post(self, body: SuiteBase):
+        return Insert(Suite, body.__dict__).single(Suite, "/suite")
+
+
+class RepoCaseEvent(Resource):
+    def get(self):
+        body = request.args.to_dict()
+        return Select(Case, body).precise()
+
+    @validate()
+    def post(self, body: CaseBase):
+        _body = body.__dict__
+        
+        _suite = Suite.query.filter_by(name=_body.get("suite")).first()
+        if not _suite:
+            return jsonify(
+                error_code=RET.PARMA_ERR, 
+                error_mesg="The suite {} is not exist".format(
+                    _body.get("suite")
+                )
+            )
+
+        _body["suite_id"] = _suite.id
+        _body.pop("suite")
+        
+        return Insert(Case, _body).single(Case, "/case")
+    
+    @validate()
+    def put(self, body: RepoCaseUpdateBase):
+        return Edit(Case, body.__dict__).single(Case, "/case")

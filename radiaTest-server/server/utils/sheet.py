@@ -15,9 +15,21 @@ class Excel:
     
     def load(self, filepath):
         _load_method = PandasDict.load_methods[self.filetype]
-        df = _load_method(filepath)
+        
+        if self.filetype == 'csv':
+            with open(filepath, 'rb') as file:
+                df = _load_method(file)
+                return df.to_dict("records")
 
-        return df.to_dict("records")
+        with open(filepath, 'rb') as file:
+            df = dict()
+            df = _load_method(file, sheet_name=None)
+            total_df = []      
+            
+            for sheet in df.values():
+                total_df += sheet.to_dict("records")
+            
+            return total_df
 
 
 class SheetExtractor:
