@@ -328,12 +328,12 @@ class DistributeTemplateType(object):
     class Update(BaseModel):
         name: str = Field(None, max_length=32)
         executor_id: int = None
-        suites: List[str] = None
-        helpers: List[str] = None
+        suites: List[str] = []
+        helpers: List[str] = []
 
         @validator('suites')
         def v_suites(cls, v):
-            if v:
+            if v is not None:
                 return ','.join(v)
             else:
                 return None
