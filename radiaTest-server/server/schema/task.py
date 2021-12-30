@@ -260,6 +260,7 @@ class QueryTaskCaseSchema(PageBaseSchema):
     case_name: str = None
     is_contain: bool = False
     suite_id: int = None
+    milestone_id: int = None
 
 
 class AddTaskCaseSchema(BaseModel):
@@ -321,7 +322,7 @@ class DistributeTemplateType(object):
     class Add(BaseModel):
         name: str = Field(..., max_length=32)
         executor_id: int
-        suites: List[str]
+        suites: List[str] = []
         helpers: List[str] = []
 
     class Update(BaseModel):
@@ -347,6 +348,7 @@ class DistributeTemplateType(object):
     class Query(PageBaseSchema):
         # suite: bool = False
         template_id: int = None
+        type_id: int = None
 
 
 class DistributeTemplate(object):
@@ -363,3 +365,7 @@ class DistributeTemplate(object):
     class Update(BaseModel):
         group_id: int = None
         name: str = Field(None, max_length=32)
+
+    class Distribute(BaseModel):
+        milestone_id: int
+        distribute_all_cases: bool = True

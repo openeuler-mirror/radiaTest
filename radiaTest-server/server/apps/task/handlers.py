@@ -19,7 +19,8 @@ from server.utils.redis_util import RedisKey
 from server.utils.response_util import RET
 from server.utils.page_util import PageUtil
 from server.apps.milestone.handler import HandlerIssuesList
-from .services import UpdateTaskStatusService, get_family_member, update_task_display, AnalysisTaskInfo, send_message
+from .services import UpdateTaskStatusService, get_family_member, update_task_display, AnalysisTaskInfo, send_message, \
+    judge_task_automatic
 
 
 class HandlerTaskStatus(object):
@@ -614,18 +615,19 @@ class HandlerTaskCase(object):
         @param query:
         @return:
         """
-        task_milestones = TaskMilestone.query.filter_by(task_id=task_id).all()
         if query.is_contain:
+            task_milestones = TaskMilestone.query.filter_by(task_id=task_id).all()
             return_data = []
             for item in task_milestones:
                 item_dict = item.to_json()
                 item_dict['milestone'] = Milestone.query.get(item.milestone_id).to_json() if item.milestone_id else None
                 return_data.append(item_dict)
         else:
-            case_list = []
-            for milestone in task_milestones:
-                _ = [case_list.append(item.id) for item in milestone.cases]
-            filter_params = [Case.deleted == False, Case.id.notin_(case_list)]
+            task_milestone = TaskMilestone.query.filter_by(task_id=task_id, milestone_id=query.milestone_id).first()
+            if not task_milestone:
+                return jsonify(error_code=RET.NO_DATA_ERR, error_msg='no find data')
+            case_list = [item.id for item in task_milestone.cases]
+            filter_params = [Case.deleted.is_(False), Case.id.notin_(case_list)]
             if query.case_name:
                 filter_params.append(Case.name.like(f'%{query.case_name}%'))
             if query.suite_id:
@@ -654,13 +656,7 @@ class HandlerTaskCase(object):
         cases = Case.query.filter(Case.id.in_(body.case_id), Case.deleted == False).all()
         _ = [task_milestone.cases.append(item) for item in cases if item not in task_milestone.cases]
         task_milestone.add_update()
-        automatic = True
-        for item in task_milestone.cases:
-            if not item.automatic:
-                automatic = False
-                break
-        task_milestone.task.automatic = automatic
-        task_milestone.task.add_update()
+        judge_task_automatic(task_milestone)
         return jsonify(error_code=RET.OK, error_msg='OK')
 
     @staticmethod
@@ -681,16 +677,7 @@ class HandlerTaskCase(object):
         task_milestone.add_update()
         _ = [db.session.delete(item) for item in task_milestone.manual_cases if item.case_id in query.case_id]
         db.session.commit()
-        automatic = True
-        if not task_milestone.cases:
-            automatic = False
-        else:
-            for item in task_milestone.cases:
-                if not item.automatic:
-                    automatic = False
-                    break
-        task_milestone.task.automatic = automatic
-        task_milestone.task.add_update()
+        judge_task_automatic(task_milestone)
         return jsonify(error_code=RET.OK, error_msg='OK')
 
     @staticmethod
@@ -743,16 +730,7 @@ class HandlerTaskCase(object):
         task_milestone.add_update()
         _ = [db.session.delete(item) for item in task_milestone.manual_cases if item.case_id in body.cases]
         db.session.commit()
-        automatic = True
-        if not task_milestone.cases:
-            automatic = False
-        else:
-            for item in task_milestone.cases:
-                if not item.automatic:
-                    automatic = False
-                    break
-        task_milestone.task.automatic = automatic
-        task_milestone.task.add_update()
+        judge_task_automatic(task_milestone)
         child_task = Task.query.get(body.child_task_id)
         child_task_milestone = TaskMilestone.query.filter_by(task_id=body.child_task_id,
                                                              milestone_id=milestone_id).first()
@@ -767,7 +745,7 @@ class HandlerTaskCase(object):
             return jsonify(error_code=RET.PARMA_ERR, error_msg='child task not have milestone')
         automatic = True
         for item in child_task_milestone.cases:
-            if not item.automatic:
+            if not item.usabled:
                 if item.id in body.cases:
                     child_task_milestone.manual_cases.append(
                         TaskManualCase(task_milestone_id=child_task_milestone.id, case_id=item.id))

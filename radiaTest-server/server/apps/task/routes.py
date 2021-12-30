@@ -250,7 +250,7 @@ class TaskExecute(Resource):
         return e.execute()
 
 
-class DistributeTemplate(Resource):
+class TaskDistributeTemplate(Resource):
 
     @auth.login_required()
     @response_collect
@@ -277,7 +277,7 @@ class DistributeTemplate(Resource):
         return HandlerTemplate.delete(template_id)
 
 
-class DistributeTemplateType(Resource):
+class DistributeType(Resource):
     @auth.login_required()
     @response_collect
     @validate()
@@ -307,5 +307,6 @@ class DistributeCaseByTemplate(Resource):
 
     @auth.login_required()
     @response_collect
-    def put(self, task_id, template_id):
-        return HandlerTaskDistributeCass().distribute(task_id, template_id)
+    @validate()
+    def put(self, task_id, template_id, body: DistributeTemplate.Distribute):
+        return HandlerTaskDistributeCass().distribute(task_id, template_id, body)
