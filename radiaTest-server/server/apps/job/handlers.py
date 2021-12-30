@@ -182,7 +182,12 @@ class RunSuite(RunJob):
             
             self._body.update({
                 "status": "installing",
-                "total": len(Case.query.filter_by(suite_id=suite.id).all()),
+                "total": len(
+                    Case.query.filter_by(
+                        suite_id=suite.id,
+                        usabled=True,
+                    ).all()
+                ),
                 "success_cases": 0,
                 "fail_cases": 0,
             })
@@ -227,7 +232,7 @@ class RunSuite(RunJob):
             success = 0
             fail = 0
             for case in suite.case:
-                if case.automatic:
+                if case.usabled:
                     exitcode, output = _executor.run_test(
                         testcase=case.name,
                         testsuite=suite.name, 
