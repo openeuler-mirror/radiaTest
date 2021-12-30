@@ -267,6 +267,7 @@ function getTempCases(data){
           status: c.result,
           suite:c.suite,
           taskMilestoneId: v.id, // 里程碑ID（里程碑表）
+          usabled:c.usabled,
         });
         tempArray[i] = (tempArray[i] || 0) + 1;
       });
@@ -279,6 +280,7 @@ function getTempCases(data){
           type: 'auto',
           status: c.result,
           suite:c.suite,
+          usabled:c.usabled,
         });
         tempArray[i] = (tempArray[i] || 0) + 1;
       });
@@ -303,6 +305,7 @@ function getCasesData(){
             type: v.type,
             status: v.status,
             suite:v.suite,
+            usabled:v.usabled,
           });
           flag = false;
         }
@@ -322,6 +325,7 @@ function getCasesData(){
               type: v.type,
               status: v.status,
               suite:v.suite,
+              usabled:v.usabled,
             },
           ],
         });
@@ -391,11 +395,13 @@ function suiteHandleSearch(query){
   );
 }
 
+let activeMilestoneId = '';
 // 获取测试用例数据
 function getCase () {
   loadingRef.value = true;
   caseOperator({
     is_contain: false,
+    milestone_id: activeMilestoneId,
     page_num: casePagination.page,
     page_size: casePagination.pageSize,
     case_name: tempSearchStr,
@@ -467,7 +473,6 @@ function deleteCase (rowData) {
 const showAssociatedCases = ref(false);
 const associatedMilestone = ref(null);
 const associatedMilestoneOptions = ref([]);
-let activeMilestoneId = '';
 
 // 显示关联测试弹窗
 function addCase (milestoneId) {
@@ -505,10 +510,33 @@ const distributeCaseModal = ref(false); // 分配测试用例弹框
 const distributeCaseModalData = ref(null); // 分配测试用例弹框数据
 const distributeCaseTaskValue = ref(null); // 分配测试用例对应子任务
 const distributeCaseOption = ref([]); // 可分配子任务
+const distributeAllCases = ref(false); // 分配所有用例或仅分配未完成
 
 const distributeTaskModal = ref(false); // 分配任务弹框
 const distributeTaskValue = ref(null); // 分配任务模板
 const distributeTaskOption = ref([]); // 可分配模板
+const distributeTaskMilestoneValue = ref(null); // 分配任务里程碑
+const distributeTaskMilestoneOption = ref([]); // 可分配里程碑
+
+// 获取里程碑选项
+function getDistributeMilestone(){
+  distributeTaskMilestoneValue.value = null;
+  distributeTaskMilestoneOption.value = [];
+  if(modalData.value.detail.milestones){
+    modalData.value.detail.milestones.forEach(item=>{
+      distributeTaskMilestoneOption.value.push({
+        label:item.name,
+        value:item.id,
+      });
+    });
+  }else if(modalData.value.detail.milestone){
+    distributeTaskMilestoneOption.value.push({
+      label:modalData.value.detail.milestone.name,
+      value:modalData.value.detail.milestone.id,
+    });
+    distributeTaskMilestoneValue.value = modalData.value.detail.milestone.id;
+  }
+}
 
 // 取消分配测试用例
 function cancelDistributeCase(){
@@ -523,7 +551,7 @@ function distributeCaseBtn(item){
         `/v1/tasks/${modalData.value.detail.id}/milestones/${caseItem.milestoneId}/cases`,
         {
           cases:[caseItem.id],
-          child_task_id:item
+          child_task_id:item,
         }
       );
     });
@@ -542,7 +570,7 @@ function distributeCaseBtn(item){
         `/v1/tasks/${modalData.value.detail.id}/milestones/${distributeCaseModalData.value.milestoneId}/cases`,
         {
           cases:[distributeCaseModalData.value.id],
-          child_task_id:item
+          child_task_id:item,
         }
       )
       .then(() => {
@@ -556,15 +584,20 @@ function distributeCaseBtn(item){
   }
 }
 
+// 取消分配模板
 function cancelDistributeTask(){
   distributeTaskModal.value = false;
   distributeTaskValue.value = null;
   distributeTaskOption.value = [];
 }
 
+// 确认分配模板
 function distributeTaskBtn(value){
   axios
-    .put(`/v1/tasks/${modalData.value.detail.id}/distribute_templates/${value}`)
+    .put(`/v1/tasks/${modalData.value.detail.id}/distribute_templates/${value}`,{
+      milestone_id:distributeTaskMilestoneValue.value,
+      distribute_all_cases:distributeAllCases.value,
+    })
     .then(() => {
       getTaskCases();
       initData();
@@ -659,6 +692,20 @@ const caseViewColumns = [
         rowData.status
       ));
       return dropDown;
+    }
+  },
+  {
+    title: '可获取',
+    align: 'center',
+    key: 'available',
+    render (rowData) {
+      let result = '';
+      if (rowData.usabled === true) {
+        result = '是';
+      } else if(rowData.usabled === false){
+        result = '否';
+      }
+      return result;
     }
   },
   {
@@ -1164,7 +1211,7 @@ function changeStatus ($event, status) {
     .put(`/v1/tasks/${$event.id}`, { status_id: status.id })
     .then(() => {
       showLoading.value = false;
-      if($event.has_auto_case&&status.id===2){
+      if($event.has_auto_case&&status.id===3){
         window.$message?.success('该任务的自动化测试用例已经开始执行');
       }
       $event.status.name = status.statusItem;
@@ -1177,6 +1224,7 @@ function changeStatus ($event, status) {
 }
 
 function getTemplateName(){
+  distributeTaskValue.value = null;
   distributeTaskOption.value = [];
   axios
     .get('v1/tasks/distribute_templates',{
@@ -1236,6 +1284,7 @@ function handleSelect (key) {
   }else if(key==='distributeTask'){
     distributeTaskModal.value = true;
     getTemplateName();
+    getDistributeMilestone();
   }
 }
 
@@ -1409,6 +1458,9 @@ function getExecutor (value, type) {
   } else if (type === 'GROUP') {
     options.group_id = modalData.value.detail.group_id;
     options.executor_id = value.id;
+  } else if (type === 'VERSION') {
+    options.executor_id = value.id;
+    options.executor_type = value.type;
   }
   editTask(modalData.value.detail.id, options);
 }
@@ -1559,4 +1611,8 @@ export {
   distributeTaskOption,
   cancelDistributeTask,
   distributeTaskBtn,
+  distributeTaskMilestoneValue,
+  distributeTaskMilestoneOption,
+  getDistributeMilestone,
+  distributeAllCases,
 };
