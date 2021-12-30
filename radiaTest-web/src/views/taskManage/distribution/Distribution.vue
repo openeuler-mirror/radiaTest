@@ -20,10 +20,7 @@
             <n-input
               placeholder="请输入模板名称"
               v-model:value="drawerModel.templateName"
-              :disabled="
-                drawerType === 'newTemplateType' ||
-                  drawerType === 'editTemplateType'
-              "
+              :disabled="drawerTypeJudge()"
             />
           </n-form-item>
           <n-form-item
@@ -34,19 +31,17 @@
             <n-select
               v-model:value="drawerModel.groupName"
               placeholder="请选择团队"
+              :loading="groupSelectLoading"
               :options="groupNameOptions"
               @update:value="handleChangeGroup"
               clearable
-              :disabled="
-                drawerType === 'newTemplateType' ||
-                  drawerType === 'editTemplateType'
-              "
+              :disabled="drawerTypeJudge()"
             />
           </n-form-item>
           <n-form-item
             label="模板类型"
             path="templateType"
-            v-if="drawerType !== 'editTemplateName'"
+            v-if="drawerTypeJudge()"
           >
             <n-input
               placeholder="请输入模板名称"
@@ -56,10 +51,11 @@
           <n-form-item
             label="测试套"
             path="suiteNames"
-            v-if="drawerType !== 'editTemplateName'"
+            v-if="drawerTypeJudge()"
           >
             <n-select
               v-model:value="drawerModel.suiteNames"
+              :loading="suiteSelectLoading"
               multiple
               filterable
               placeholder="请选择测试套"
@@ -72,10 +68,11 @@
           <n-form-item
             label="责任人"
             path="executor"
-            v-if="drawerType !== 'editTemplateName'"
+            v-if="drawerTypeJudge()"
           >
             <n-select
               placeholder="请选择责任人"
+              :loading="userSelectLoading"
               filterable
               clearable
               remote
@@ -88,11 +85,12 @@
           <n-form-item
             label="协助人"
             path="helper"
-            v-if="drawerType !== 'editTemplateName'"
+            v-if="drawerTypeJudge()"
           >
             <n-select
               v-model:value="drawerModel.helpers"
               multiple
+              :loading="userSelectLoading"
               filterable
               placeholder="请选择协助人"
               :options="helpersOptions"

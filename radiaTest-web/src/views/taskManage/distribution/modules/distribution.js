@@ -27,12 +27,6 @@ const drawerRules = ref({
     message: '模板类型必填',
     trigger: ['blur', 'input'],
   },
-  suiteNames: {
-    type: 'array',
-    required: true,
-    message: '请选择测试套',
-    trigger: ['blur', 'change'],
-  },
   executor: {
     type: 'number',
     required: true,
@@ -50,15 +44,18 @@ const drawerModel = ref({
 });
 
 const groupNameOptions = ref([]);
+const groupSelectLoading = ref(false);
 
 function getGroupAxios() {
   groupNameOptions.value = [];
+  groupSelectLoading.value = true;
   axios
     .get('/v1/groups', {
       page_num: 1,
       page_size: 99999999,
     })
     .then((res) => {
+      groupSelectLoading.value = false;
       if (res.data.items) {
         res.data.items.forEach((item) => {
           groupNameOptions.value.push({
@@ -69,6 +66,7 @@ function getGroupAxios() {
       }
     })
     .catch((err) => {
+      groupSelectLoading.value = false;
       window.$message?.error(err.data.error_msg || '未知错误');
     });
 }
@@ -77,8 +75,10 @@ const helpersOptions = ref([]);
 let helpersTemp = [];
 const executorOptions = ref([]);
 let executorTemp = [];
+const userSelectLoading = ref(false);
 
 function getUserAxios() {
+  userSelectLoading.value = true;
   helpersOptions.value = [];
   helpersTemp = [];
   executorOptions.value = [];
@@ -89,6 +89,7 @@ function getUserAxios() {
       page_size: 99999999,
     })
     .then((res) => {
+      userSelectLoading.value = false;
       if (res.data.items) {
         res.data.items.forEach((item) => {
           helpersOptions.value.push({
@@ -102,14 +103,17 @@ function getUserAxios() {
       }
     })
     .catch((err) => {
+      userSelectLoading.value = false;
       window.$message?.error(err.data.error_msg || '未知错误');
     });
 }
 
 const suiteNamesOptions = ref([]);
 let suitesTemp = [];
+const suiteSelectLoading = ref(false);
 
 function getSuitesAxios() {
+  suiteSelectLoading.value = true;
   suiteNamesOptions.value = [];
   suitesTemp = [];
   axios
@@ -118,6 +122,7 @@ function getSuitesAxios() {
       page_size: 99999999,
     })
     .then((res) => {
+      suiteSelectLoading.value = false;
       if (res.data.items) {
         res.data.items.forEach((item) => {
           suiteNamesOptions.value.push({
@@ -129,6 +134,7 @@ function getSuitesAxios() {
       }
     })
     .catch((err) => {
+      suiteSelectLoading.value = false;
       window.$message?.error(err.data.error_msg || '未知错误');
     });
 }
@@ -198,7 +204,7 @@ function handleChangeExecutor(v) {
     .get(`/v1/groups/${drawerModel.value.groupName}/users`, {
       except_list: v,
       page_num: 1,
-      page_size: 99999999
+      page_size: 99999999,
     })
     .then((res) => {
       if (res.data.items) {
@@ -223,7 +229,7 @@ function handleChangeHelper(v) {
     .get(`/v1/groups/${drawerModel.value.groupName}/users`, {
       except_list: v.join(','),
       page_num: 1,
-      page_size: 99999999
+      page_size: 99999999,
     })
     .then((res) => {
       if (res.data.items) {
@@ -244,8 +250,6 @@ function handleChangeHelper(v) {
 // 抽屉打开回调
 function drawerShowCb(type) {
   showNewTemplateDrawer.value = true;
-  getGroupAxios();
-  getSuitesAxios();
   switch (type) {
     case 'newTemplate':
       drawerTitle.value = '创建模板';
@@ -262,6 +266,13 @@ function drawerShowCb(type) {
     default:
       drawerTitle.value = '';
   }
+}
+
+function drawerTypeJudge() {
+  return (
+    drawerType.value === 'newTemplateType' ||
+    drawerType.value === 'editTemplateType'
+  );
 }
 
 const distributionLoading = ref(false);
@@ -412,6 +423,37 @@ function warning(title, content, confirmCb, cancelCb) {
   });
 }
 
+// 获取模板类型数据
+function getTemplateType(value) {
+  drawerModel.value.suiteNames = [];
+  drawerModel.value.executor = null;
+  drawerModel.value.helpers = [];
+  axios
+    .get(
+      `v1/tasks/distribute_templates/suites?page_num=1&page_size=99999999&type_id=${value}`
+    )
+    .then((res) => {
+      if (res.data.suites) {
+        res.data.suites.forEach((item) => {
+          drawerModel.value.suiteNames.push(item.id);
+        });
+      }
+      drawerModel.value.executor = res.data.executor.gitee_id;
+      if (res.data.helpers) {
+        res.data.helpers.forEach((item) => {
+          drawerModel.value.helpers.push(item.gitee_id);
+        });
+      }
+      handleChangeExecutor(drawerModel.value.executor);
+      handleChangeHelper(drawerModel.value.helpers);
+      getGroupAxios();
+      getSuitesAxios();
+    })
+    .catch((err) => {
+      window.$message?.error(err.data.error_msg || '未知错误');
+    });
+}
+
 // 新增类型
 function operateMenuAdd(rowData) {
   return h(
@@ -427,6 +469,8 @@ function operateMenuAdd(rowData) {
         drawerType.value = 'newTemplateType';
         drawerShowCb(drawerType.value);
         getUserAxios();
+        getGroupAxios();
+        getSuitesAxios();
       },
     },
     '新增'
@@ -449,11 +493,12 @@ function operateMenuEdit(rowData) {
           drawerShowCb(drawerType.value);
         } else if (rowData.level === 'templateType') {
           drawerModel.value.templateName = rowData.templateName;
-          drawerModel.value.templateTypeID = rowData.templateTypeID;
           drawerModel.value.groupName = rowData.groupID;
+          drawerModel.value.templateTypeID = rowData.templateTypeID;
+          drawerModel.value.templateType = rowData.templateType;
           drawerType.value = 'editTemplateType';
           drawerShowCb(drawerType.value);
-          getUserAxios();
+          getTemplateType(rowData.templateTypeID);
         }
       },
     },
@@ -549,6 +594,7 @@ const distributionColumns = [
 function showAddTemplateBtn() {
   drawerType.value = 'newTemplate';
   drawerShowCb(drawerType.value);
+  getGroupAxios();
 }
 
 // 取消创建模板
@@ -571,14 +617,6 @@ function createTemplate() {
         .post('/v1/tasks/distribute_templates', {
           name: drawerModel.value.templateName,
           group_id: drawerModel.value.groupName,
-          types: [
-            {
-              name: drawerModel.value.templateType,
-              executor_id: drawerModel.value.executor,
-              suites: drawerModel.value.suiteNames,
-              helpers: drawerModel.value.helpers,
-            },
-          ],
         })
         .then(() => {
           getTemplateTableData();
@@ -707,4 +745,8 @@ export {
   handleChangeExecutor,
   handleChangeHelper,
   handleTemplatePageChange,
+  drawerTypeJudge,
+  groupSelectLoading,
+  userSelectLoading,
+  suiteSelectLoading,
 };

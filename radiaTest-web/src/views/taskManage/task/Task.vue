@@ -413,43 +413,6 @@
                               >
                                 <CheckSquareOutlined />
                               </n-icon>
-                              <span class="field-name">执行者</span>
-                            </div>
-                            <div class="field-right" :class="{'editable':editStatus&&modalData.detail.type !=='GROUP'}">
-                              <n-popover
-                                trigger="manual"
-                                placement="bottom"
-                                :show="showPopoverExecutors"
-                                @clickoutside="editStatus?showPopoverExecutors = false:''"
-                                :disabled="modalData.detail.type === 'GROUP'||!editStatus"
-                              >
-                                <template #trigger>
-                                  <div @click="editStatus?showPopoverExecutors = true:''">
-                                    {{
-                                      modalData.detail.executor_group
-                                        ? modalData.detail.executor_group.name
-                                        : '无'
-                                    }}
-                                  </div>
-                                </template>
-                                <taskMemberMenu
-                                  type="ALL"
-                                  @getPerson="getExecutors"
-                                ></taskMemberMenu>
-                              </n-popover>
-                            </div>
-                          </div>
-                          <div
-                            class="field"
-                            v-if="modalData.detail.type !== 'PERSON'"
-                          >
-                            <div class="field-left">
-                              <n-icon
-                                size="14"
-                                class="task-icon"
-                              >
-                                <CheckSquareOutlined />
-                              </n-icon>
                               <span class="field-name">责任人</span>
                             </div>
                             <div class="field-right" :class="{'editable':editStatus}">
@@ -468,15 +431,19 @@
                                 <template #trigger>
                                   <div @click="editStatus?showPopoverExecutor = true:''">
                                     {{
-                                      modalData.detail.executor
-                                        ? modalData.detail.executor.gitee_name
+                                      modalData.detail.executor?
+                                        modalData.detail.executor_type === 'PERSON' ?
+                                          modalData.detail.type === 'GROUP'?
+                                            `${modalData.detail.executor_group.name}/${modalData.detail.executor.gitee_name}`
+                                            :modalData.detail.executor.gitee_name
+                                          :`${modalData.detail.executor_group.name}/${modalData.detail.executor.gitee_name}`
                                         : '待认领'
                                     }}
                                   </div>
                                 </template>
                                 <taskMemberMenu
                                   :type="
-                                    modalData.detail.type === 'ORGANIZATION'
+                                    modalData.detail.type === 'ORGANIZATION'||modalData.detail.type ==='VERSION'
                                       ? 'ALL'
                                       : 'PERSON'
                                   "
@@ -835,21 +802,22 @@
                 >
                   <div>
                     <div>
-                      <div
-                        class="associated-task"
-                        @click="clickAssociatedCases"
-                        v-show="editStatus"
-                      >
-                        <a>
-                          <n-icon
-                            size="16"
-                            class="add"
-                          >
-                            <Add />
-                          </n-icon>
-                          <span>关联用例</span>
-                        </a>
-                      </div>
+                        <div
+                          class="associated-task"
+                          style="display: inline-block;"
+                          @click="clickAssociatedCases"
+                          v-show="editStatus"
+                        >
+                          <a>
+                            <n-icon
+                              size="16"
+                              class="add"
+                            >
+                              <Add />
+                            </n-icon>
+                            <span>关联用例</span>
+                          </a>
+                        </div>
                       <div
                         class="associated-task-body"
                         v-show="showAssociatedCases"
@@ -894,6 +862,7 @@
                   <div>
                     <div
                       class="associated-task"
+                      style="display: inline-block;"
                       @click="associatedTask"
                       v-show="editStatus"
                     >
@@ -940,6 +909,7 @@
                   <div>
                     <div
                       class="associated-task"
+                      style="display: inline-block;"
                       @click="associatedChildTask"
                       v-show="editStatus"
                     >
@@ -1104,14 +1074,30 @@
             :bordered="false"
             size="huge"
           >
+            <template #header-extra>
+              <div>
+                <n-switch
+                  v-model:value="distributeAllCases"
+                >
+                  <template #checked>全用例分配</template>
+                  <template #unchecked>仅分配未完成</template>
+                </n-switch>
+              </div>
+            </template>
             <div
              style="display:flex;"
             >
               <n-select
                 placeholder="请选择模板"
-                style="width:70%"
+                style="width:35%"
                 v-model:value="distributeTaskValue"
                 :options="distributeTaskOption"
+              />
+              <n-select
+                placeholder="请选择里程碑"
+                style="width:35%;margin-left:10px;"
+                v-model:value="distributeTaskMilestoneValue"
+                :options="distributeTaskMilestoneOption"
               />
               <div style="width:30%;display:flex;justify-content:space-evenly;">
                 <n-button
