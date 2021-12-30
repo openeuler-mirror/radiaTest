@@ -204,6 +204,21 @@ class BaselineHandler:
 
         return_data["children"] = [child.to_json() for child in children]
 
+        source = list()
+        cur = baseline
+
+        while cur:
+            if not cur.parent.all():
+                source.append(cur.id)
+                break
+            if len(cur.parent.all()) > 1:
+                raise RuntimeError("baseline should not have parents beyond one")
+
+            source.append(cur.id)
+            cur = cur.parent[0]
+
+        return_data["source"] = source
+
         return jsonify(error_code=RET.OK, error_msg="OK", data=return_data)
 
     @staticmethod
