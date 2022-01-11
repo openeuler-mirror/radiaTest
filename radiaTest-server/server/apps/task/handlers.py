@@ -317,7 +317,7 @@ class HandlerTask(object):
         query_filter = Task.query.filter_by(is_delete=True,
                                             organization_id=redis_client.hget(RedisKey.user(g.gitee_id),
                                                                               'current_org_id')).order_by(
-            Task.update_time.desc())
+            Task.update_time.desc(), Task.id.asc())
 
         def page_func(item: Task):
             item_dict = TaskRecycleBinInfo(**item.__dict__).dict()
