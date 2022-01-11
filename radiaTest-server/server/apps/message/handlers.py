@@ -23,7 +23,7 @@ def handler_msg_list():
     if has_read in [0, 1]:
         filter_params.append(Message.has_read == (True if has_read else False))
 
-    query_filter = Message.query.filter(*filter_params).order_by(Message.create_time.desc())
+    query_filter = Message.query.filter(*filter_params).order_by(Message.create_time.desc(), Message.id.asc())
     page_func = lambda item: MessageModel(**item.to_dict()).dict()
     page_data, e = PageUtil.get_page_dict(query_filter, page_num=page_num, page_size=page_size, func=page_func)
     if e:
