@@ -16,6 +16,7 @@ from . import template
 from . import testcase
 from . import vmachine
 from . import external
+from . import framework
 
 
 def init_api(app: Flask):
@@ -36,3 +37,4 @@ def init_api(app: Flask):
     testcase.init_api(api)
     vmachine.init_api(api)
     external.init_api(api)
+    framework.init_api(api)

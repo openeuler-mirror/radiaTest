@@ -1,18 +1,14 @@
 import os
 import re
 import shutil
-from shlex import quote
 
-from werkzeug.utils import secure_filename
-from pypinyin import lazy_pinyin
-from flask import json, jsonify, g, request, current_app, Response
+from flask import json, jsonify, g, current_app, Response
 
 from server import db, redis_client
 from server.utils.redis_util import RedisKey
 from server.utils.response_util import RET
-from server.utils.db import Edit, Insert, Select, collect_sql_error
+from server.utils.db import Edit, Insert, collect_sql_error
 from server.model.testcase import Baseline, Suite, Case
-from server.utils.shell import local_cmd
 from server.schema.testcase import BaselineBaseSchema
 from server.utils.files_util import ZipImportFile, ExcelImportFile
 from server.utils.sheet import Excel, SheetExtractor 
@@ -22,7 +18,7 @@ from server.schema.testcase import BaselineBodyInternalSchema
 class CaseImportHandler:
     @staticmethod
     @collect_sql_error
-    def loads_data(filetype, filepath, group_id):
+    def loads_data(filetype, filepath, group_id, framework_id):
         excel = Excel(filetype).load(filepath)
 
         cases = SheetExtractor(
@@ -53,6 +49,7 @@ class CaseImportHandler:
                             "name": case.get("suite"),
                             "group_id": group_id,
                             "org_id": redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id'),
+                            "framework_id": framework_id,
                         }
                     ).single(Suite, '/suite')
                     
@@ -80,7 +77,7 @@ class CaseImportHandler:
 
     @staticmethod
     @collect_sql_error
-    def import_case(file, group_id):
+    def import_case(file, group_id, framework_id):
         try:
             case_file = ExcelImportFile(file)
 
@@ -89,7 +86,7 @@ class CaseImportHandler:
                     current_app.config.get("UPLOAD_FILE_SAVE_PATH")
                 )
 
-                suites = CaseImportHandler.loads_data(case_file.filetype, case_file.filepath, group_id)
+                suites = CaseImportHandler.loads_data(case_file.filetype, case_file.filepath, group_id, framework_id)
 
                 if isinstance(suites, Response):
                     r = json.loads(suites.response[0])
@@ -129,7 +126,7 @@ class CaseImportHandler:
 
     @staticmethod
     @collect_sql_error
-    def import_case_with_abspath(filepath, group_id):
+    def import_case_with_abspath(filepath, group_id, framework_id):
         try:
             filetype = os.path.splitext(filepath)[-1]
 
@@ -139,7 +136,8 @@ class CaseImportHandler:
                 suites = CaseImportHandler.loads_data(
                     filetype[1:], 
                     filepath, 
-                    group_id
+                    group_id,
+                    framework_id
                 )
 
                 if isinstance(suites, Response):
@@ -226,7 +224,8 @@ class BaselineHandler:
     def get_roots(query):
         filter_params = [
             Baseline.is_root.is_(True), 
-            Baseline.org_id == redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')
+            Baseline.org_id == redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id'),
+            Baseline.group_id == query.group_id,
         ]
         for key, value in query.dict().items():
             if not value:
@@ -280,7 +279,11 @@ class BaselineHandler:
     def update(baseline_id, body):
         baseline = Baseline.query.filter_by(id=baseline_id).first()
 
-        if redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id') != baseline.org_id:
+        current_org_id = int(
+            redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')
+        )
+
+        if current_org_id != baseline.org_id:
           return jsonify(error_code=RET.VERIFY_ERROR, error_msg="No right to edit")
 
         if not baseline:
@@ -297,8 +300,12 @@ class BaselineHandler:
     def delete(baseline_id):
         baseline = Baseline.query.filter_by(id=baseline_id).first()
 
-        if redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id') != baseline.org_id:
-          return jsonify(error_code=RET.VERIFY_ERROR, error_msg="No right to delete")
+        current_org_id = int(
+            redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')
+        )
+
+        if current_org_id != baseline.org_id:
+          return jsonify(error_code=RET.VERIFY_ERR, error_msg="No right to delete")
 
         if not baseline:
             return jsonify(error_code=RET.NO_DATA_ERR, error_msg="baseline is not exists")
@@ -370,7 +377,7 @@ class BaselineHandler:
 
                 return resp["data"]
 
-        def deep_create(_filepath, _parent_id, _group_id, _org_id):
+        def deep_create(_filepath, _parent_id, _group_id, _framework_id, _org_id):
             _title = ""
             if not _parent_id:
                 _title = "用例集"
@@ -397,7 +404,11 @@ class BaselineHandler:
                 _file_id = resp["data"]
 
                 _resp = json.loads(
-                    CaseImportHandler.import_case_with_abspath(_filepath, _group_id).response[0]
+                    CaseImportHandler.import_case_with_abspath(
+                        _filepath,
+                        _group_id, 
+                        _framework_id
+                    ).response[0]
                 )
                 if not _resp.get("data"):
                     return
@@ -467,6 +478,7 @@ class BaselineHandler:
                     _filepath=uncompressed_filepath,
                     _parent_id=None,
                     _group_id=form.get("group_id"),
+                    _framework_id=form.get("framework_id"),
                     _org_id=redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')
                 )
                 
@@ -486,4 +498,31 @@ class BaselineHandler:
                     shutil.rmtree(uncompressed_filepath)
 
 
+class SuiteHandler:
+    @staticmethod
+    @collect_sql_error
+    def create(body):
+        _id = Insert(Suite, body.__dict__).insert_id(Suite, "/suite") 
+        return jsonify(error_code=RET.OK, error_msg="OK", data={"id": _id})
+
+
+class CaseHandler:
+    @staticmethod
+    @collect_sql_error
+    def create(body):
+        _body = body.__dict__
+
+        _suite = Suite.query.filter_by(name=_body.get("suite")).first()
+        if not _suite:
+            return jsonify(
+                error_code=RET.PARMA_ERR, 
+                error_mesg="The suite {} is not exist".format(
+                    _body.get("suite")
+                )
+            )
+        _body["suite_id"] = _suite.id
+        _body.pop("suite")
+
+        _id = Insert(Case, _body).insert_id(Case, "/case") 
+        return jsonify(error_code=RET.OK, error_msg="OK", data={"id": _id})
 

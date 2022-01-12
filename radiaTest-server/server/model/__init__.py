@@ -7,3 +7,4 @@ from server.model.vmachine import Vmachine, Vdisk, Vnic
 from server.model.testcase import Suite, Case
 from server.model.template import Template
 from server.model.job import Job, Analyzed, Logs
+from server.model.framework import Framework

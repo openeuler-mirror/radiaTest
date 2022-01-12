@@ -3,6 +3,7 @@ from sqlalchemy.orm import backref
 
 from server import db
 from server.model import BaseModel
+from server.model.framework import Framework
 
 
 baseline_family = db.Table(
@@ -67,6 +68,8 @@ class Suite(BaseModel, db.Model):
     owner = db.Column(db.String(64), nullable=True)
     deleted = db.Column(db.Boolean(), nullable=False, default=False)
     
+    framework_id = db.Column(db.Integer(), db.ForeignKey("framework.id"))
+
     group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
 
     org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
@@ -89,6 +92,7 @@ class Suite(BaseModel, db.Model):
             "add_network_interface": self.add_network_interface,
             "add_disk": self.add_disk,
             "remark": self.remark,
+            "framework_id": self.framework_id,
             "group_id": self.group_id,
             "org_id": self.org_id,
         }
@@ -114,6 +118,7 @@ class Case(BaseModel, db.Model):
     owner = db.Column(db.String(64), nullable=True)
     automatic = db.Column(db.Boolean(), nullable=False, default=False)
     usabled = db.Column(db.Boolean(), nullable=False, default=False)
+    code = db.Column(LONGTEXT(), nullable=True)
     deleted = db.Column(db.Boolean(), nullable=False, default=False)
 
     analyzeds = db.relationship('Analyzed', backref='case')
@@ -125,11 +130,17 @@ class Case(BaseModel, db.Model):
     tasks_manuals = db.relationship('TaskManualCase', backref='case', cascade='all, delete')
 
     def to_json(self):
+        _framework = Framework.query.filter_by(
+            id=self.suite.framework_id
+        ).first()
+
         return {
             "id": self.id,
             "name": self.name,
             "suite_id": self.suite_id,
             "suite": self.suite.name,
+            "framework_id": _framework.id,
+            "framework_name": _framework.name,
             "test_level": self.test_level,
             "test_type": self.test_type,
             "machine_num": self.machine_num,
@@ -147,4 +158,7 @@ class Case(BaseModel, db.Model):
             "group_id": self.suite.group_id,
             "org_id": self.suite.org_id,
             "usabled": self.usabled,
+            "code": self.code,
+            "create_time": self.create_time,
+            "update_time": self.update_time,
         }

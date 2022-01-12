@@ -32,14 +32,14 @@ def pdbc(func):
                     "error_mesg": str(e),
                 }
             )
-        except Exception as e:
-            current_app.logger.error(e)
-            return jsonify(
-                {
-                    "error_code": 1009,
-                    "error_mesg": "Unknown error, please contact the administrator to handle.",
-                }
-            )
+        # except Exception as e:
+        #     current_app.logger.error(e)
+        #     return jsonify(
+        #         {
+        #             "error_code": 1009,
+        #             "error_mesg": "Unknown error, please contact the administrator to handle.",
+        #         }
+        #     )
 
     return wrapper
 
@@ -130,11 +130,11 @@ class Insert(FilterBase):
         super().__init__(table, data)
 
     @pdbc
-    def single(self, Table, namespace):
-        self._instance.add_update(Table, namespace)
+    def single(self, table, namespace):
+        self._instance.add_update(table, namespace)
 
-    def insert_id(self):
-        return self._instance.add_flush_commit()
+    def insert_id(self, table=None, namespace=None):
+        return self._instance.add_flush_commit(table, namespace)
 
 
 class Delete(DataBase):

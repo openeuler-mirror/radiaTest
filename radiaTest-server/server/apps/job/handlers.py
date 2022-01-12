@@ -1,11 +1,3 @@
-# -*- coding: utf-8 -*-
-# @Author : lemon.higgins
-# @Date   : 2021-10-26 10:07:24
-# @Email  : lemon.higgins@aliyun.com
-# @License: Mulan PSL v2
-# @Desc   :
-
-
 import json
 import time
 import random
@@ -118,7 +110,11 @@ class RunJob:
         pmachines = Precise(
             Pmachine,
             {"description": current_app.config.get("CI_PURPOSE"), "state": "idle"},
-        ).all
+        ).all()
+
+        if len(pmachines) < quantity:
+            raise RuntimeError("Not enough Pmachines to be used")
+        
         machines = random.choices(pmachines, k=quantity)
         for pmachine in machines:
             p_body = pmachine.to_json().update(
@@ -464,7 +460,7 @@ class RunTemplate(RunJob):
                 time.sleep(10)
                 _logs_handler.loads_to_db(testcase.id)
 
-        except Exception as e:
+        except RuntimeError as e:
             self._body.update({
                 "status": "block",
                 "result": "fail",
@@ -567,4 +563,3 @@ class RunTemplate(RunJob):
         finally:
             if self._body.get("taskmilestone_id"):
                 self._callback_task_job_result()
-

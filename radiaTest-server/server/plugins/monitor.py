@@ -1,12 +1,5 @@
-# -*- coding: utf-8 -*-
-# @Author : Ethan-Zhang
-# @Date   : 2021-09-07 15:10:30
-# @Email  : ethanzhang55@outlook.com
-# @License: Mulan PSL v2
-# @Desc   :
-
-
 import os
+import re
 import abc
 import json
 import shlex
@@ -206,6 +199,22 @@ class RepoMonitor(BaseMonitor):
                 )
             )
             return False if exitcode else True
+    
+    def get_case_code(self, _path, _case):
+        if not _path or not _case.get("name"):
+            return None
+        
+        script_code = None
+
+        # 支持的脚本文件类型后续写入配置文件中['.py', '.sh']
+        for ext in ['.py', '.sh']:
+            _filepath = _path + '/' +  _case.get("name") + ext
+            if os.path.isfile(_filepath):
+                with open(_filepath, 'r') as script:
+                    script_code = script.read()
+                    break
+        
+        return script_code
 
     def _resolve_suite2cases(self):
         exitcode, output = subprocess.getstatusoutput(
@@ -248,6 +257,7 @@ class RepoMonitor(BaseMonitor):
 
                 suite_data = {
                     "name": suite,
+                    "framework_id": 1,
                 }
                 suite_data.update(deepcopy(origin_data))
 
@@ -257,7 +267,17 @@ class RepoMonitor(BaseMonitor):
                     )
 
                 suite_data.pop("cases")
-                suite_data.pop("path")
+                _raw_path = suite_data.pop("path")
+                _suite_path = None
+
+                result = re.search(r'^(\$OET_PATH\/)(.+)$', _raw_path)
+                if result is not None:
+                    _suite_path = '{}/mugen/{}'.format(
+                        self.app.config.get("SERVER_FRAMEWORK_PATH"),
+                        result[2]
+                    )
+                    if _suite_path[-1] == '/':
+                        _suite_path = _suite_path[:-1]
 
                 cases_data = []
                 for case in origin_data["cases"]:
@@ -270,6 +290,12 @@ class RepoMonitor(BaseMonitor):
                         "automatic": True,
                         "usabled": True,
                     }
+                    if _suite_path:
+                        case_data["code"] = self.get_case_code(
+                            _suite_path, 
+                            case,
+                        )
+
                     case_data.update(case)
 
                     if case_data.get("add_disk") is not None:
@@ -328,9 +354,18 @@ class RepoMonitor(BaseMonitor):
             case = json.loads(resp.text)
 
             if not isinstance(case, list):
-                self.app.logger.error(
-                    "RepoMonitor: " + case.get("error_mesg")
-                )
+                if case.get("error_mesg"):
+                    self.app.logger.error(
+                        "RepoMonitor: " + case.get("error_mesg")
+                    )
+                elif case.get("error_msg"):
+                    self.app.logger.error(
+                        "RepoMonitor: " + case.get("error_msg")
+                    )
+                elif case.get("message"):
+                    self.app.logger.error(
+                        "RepoMonitor: " + case.get("message")
+                    )
                 continue
 
             if not case:

@@ -77,8 +77,6 @@ class BaselineBaseSchema(BaseModel):
 
 class SuiteBase(BaseModel):
     name: str
-    test_type: Optional[TestType]
-    test_level: Optional[TestLevel]
     machine_num: Optional[int] = 1
     machine_type: Optional[MachineType] = "kvm"
     add_network_interface: Optional[int]
@@ -86,6 +84,7 @@ class SuiteBase(BaseModel):
     remark: Optional[str]
     deleted: Optional[bool] = False
     owner: Optional[str]
+    framework_id: Optional[int]
 
     @validator("add_disk")
     def check_add_disk(cls, v):
@@ -114,6 +113,7 @@ class CaseBase(SuiteBase):
     expection: str
     automatic: bool
     usabled: Optional[bool] = False
+    code: Optional[str]
 
 
 class CaseUpdate(CaseBase, UpdateBaseModel):

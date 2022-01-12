@@ -1,11 +1,3 @@
-# -*- coding: utf-8 -*-
-# @Author : lemon.higgins
-# @Date   : 2021-10-20 10:02:56
-# @Email  : lemon.higgins@aliyun.com
-# @License: Mulan PSL v2
-# @Desc   :
-
-
 import datetime
 from re import template
 from typing import Optional
@@ -48,7 +40,8 @@ class RunTemplateBase(TemplateUpdate):
     def assignment(cls, values):
         values["start_time"] = datetime.datetime.now()
 
-        template = Precise(Template, values).first()
+        template = Template.query.filter_by(id=values["id"]).first()
+        
         values["template"] = template
 
         if not values.get("name"):

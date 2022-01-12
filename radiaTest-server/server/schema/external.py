@@ -45,4 +45,5 @@ class RepoCaseUpdateBase(UpdateBaseModel):
     add_network_interface: Optional[int]
     add_disk: Optional[str]
     usabled: bool = False
+    code: Optional[str]
 
