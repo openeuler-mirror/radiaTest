@@ -93,7 +93,8 @@ class LogsHandler:
 
         _resp = requests.get(_log_url)
         if _resp.status_code != 200:
-            raise RuntimeError("Could not connect the repo server of logs")
+            current_app.logger.error("Could not connect to the logs url: {}".format(_log_url))
+            return
 
         _text = _resp.text
         _pattern = r'<a href="(.*)">.*\.log</a>'

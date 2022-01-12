@@ -22,8 +22,12 @@ from server.schema.testcase import (
     CaseBase,
     CaseUpdate,
 )
-from server.apps.testcase.handler import CaseImportHandler, BaselineHandler
-
+from server.apps.testcase.handler import (
+    CaseImportHandler, 
+    BaselineHandler, 
+    SuiteHandler, 
+    CaseHandler
+)
 
 class BaselineEvent(Resource):
     @auth.login_required()
@@ -68,6 +72,12 @@ class BaselineImportEvent(Resource):
                 error_code=RET.PARMA_ERR,
                 error_msg="the id of group could not be empty as importing case set"
             )
+        
+        if not request.form.get("framework_id"):
+            return jsonify(
+                error_code=RET.PARMA_ERR,
+                error_msg="the id of framework could not be empty as importing case set"
+            )
 
         return BaselineHandler.import_case_set(
             request.form, 
@@ -80,7 +90,7 @@ class SuiteEvent(Resource):
     @response_collect
     @validate()
     def post(self, body: SuiteBase):
-        return Insert(Suite, body.__dict__).single(Suite, "/suite")
+        return SuiteHandler.create(body)
 
     @auth.login_required()
     @response_collect
@@ -97,7 +107,12 @@ class SuiteEvent(Resource):
     @auth.login_required()
     @response_collect
     def get(self):
-        body = request.args.to_dict()
+        body = dict()
+
+        for key, value in request.args.to_dict().items():
+            if value:
+                body[key] = value
+
         return Select(Suite, body).fuzz()
 
 
@@ -106,20 +121,7 @@ class CaseEvent(Resource):
     @response_collect
     @validate()
     def post(self, body: CaseBase):
-        _body = body.__dict__
-
-        _suite = Suite.query.filter_by(name=_body.get("suite")).first()
-        if not _suite:
-            return jsonify(
-                error_code=RET.PARMA_ERR, 
-                error_mesg="The suite {} is not exist".format(
-                    _body.get("suite")
-                )
-            )
-        _body["suite_id"] = _suite.id
-        _body.pop("suite")
-
-        return Insert(Case, _body).single(Case, "/case")
+        return CaseHandler.create(body)
 
     @auth.login_required()
     @response_collect
@@ -142,7 +144,12 @@ class CaseEvent(Resource):
     @auth.login_required()
     @response_collect
     def get(self):
-        body = request.args.to_dict()
+        body = dict()
+
+        for key, value in request.args.to_dict().items():
+            if value:
+                body[key] = value
+
         return Select(Case, body).precise()
 
 
@@ -162,10 +169,14 @@ class CaseImport(Resource):
         
         if not request.form.get("group_id"):
             return jsonify(error_code=RET.PARMA_ERR, error_msg="The file should be binded to a group")
+
+        if not request.form.get("framework_id"):
+            return jsonify(error_code=RET.PARMA_ERR, error_msg="The file should be binded to a framework")
         
         return CaseImportHandler.import_case(
             request.files.get("file"),
             request.form.get("group_id"),
+            request.form.get("framework_id")
         )
 
 

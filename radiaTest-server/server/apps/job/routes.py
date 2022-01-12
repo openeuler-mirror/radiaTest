@@ -50,7 +50,7 @@ class AnalyzedRecords(Resource):
 
         if not _case:
             return {"error_code": 60002, "error_mesg": "case is not exist"}
-        
+
         return Select(Analyzed, {"case_id": _case.id}).precise()
 
 

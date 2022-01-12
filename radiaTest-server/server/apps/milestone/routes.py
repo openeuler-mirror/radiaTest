@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-# @Author : lemon.higgins
-# @Date   : 2021-10-05 10:24:25
-# @Email  : lemon.higgins@aliyun.com
-# @License: Mulan PSL v2
-
-
 from flask import request
 from flask_restful import Resource
 from flask_pydantic import validate

@@ -90,7 +90,9 @@ class Analyzed(BaseModel, db.Model):
             "details": self.details,
             "case": self.case.name,
             "job": self.job.name,
+            "job_id": self.job_id,
             "create_time": self.create_time,
+            "milestone_id": self.job.milestone_id,
         }
 
     def get_logs(self):
