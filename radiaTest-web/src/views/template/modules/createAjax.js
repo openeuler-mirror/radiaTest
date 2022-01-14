@@ -3,28 +3,36 @@ import { createAjax } from '@/assets/CRUD/create';
 import axios from '@/axios';
 import { storage } from '@/assets/utils/storageUtils';
 
-const getData = (options, loading) => {
-  loading.value = true;
+const getData = (options) => {
   axios
-    .get('/v1/suite')
+    .get('/v1/case', {usabled: 1})
     .then((res) => {
-      options.value = res.map((item) => {
-        return {
-          key: item.id,
-          label: item.name,
-          children: []
-        };
-      });
-      axios
-        .get('/v1/case')
-        .then((resp) => {
-          resp.forEach((item) => {
-            if (item.suite_id) {
-              options.value.filter(suite => suite.key === item.suite_id)[0].children.push({ label: item.name, key: item.name });
+      const suites = new Map();
+      res.forEach((item) => {
+        if (!suites.has(item.suite_id)) {
+          suites.set(
+            item.suite_id,
+            {
+              key: item.suite_id,
+              label: item.suite,
+              children: [
+                {
+                  key: item.id,
+                  label: item.name,
+                }
+              ]
             }
+          );
+        } else {
+          suites.get(item.suite_id).children.push({
+            key: item.id,
+            label: item.name,
           });
-          loading.value = false;
-        });
+        }
+      });
+      for ( let suite of suites.values() ) {
+        options.value.push(suite);
+      }
     })
     .catch(() => {
       window.$message?.error('无法连接服务器，请检查网络连接');

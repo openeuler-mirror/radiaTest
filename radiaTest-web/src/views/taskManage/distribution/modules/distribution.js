@@ -46,7 +46,7 @@ const drawerModel = ref({
 const groupNameOptions = ref([]);
 const groupSelectLoading = ref(false);
 
-function getGroupAxios() {
+function getGroupAxios () {
   groupNameOptions.value = [];
   groupSelectLoading.value = true;
   axios
@@ -77,7 +77,7 @@ const executorOptions = ref([]);
 let executorTemp = [];
 const userSelectLoading = ref(false);
 
-function getUserAxios() {
+function getUserAxios () {
   userSelectLoading.value = true;
   helpersOptions.value = [];
   helpersTemp = [];
@@ -112,7 +112,7 @@ const suiteNamesOptions = ref([]);
 let suitesTemp = [];
 const suiteSelectLoading = ref(false);
 
-function getSuitesAxios() {
+function getSuitesAxios () {
   suiteSelectLoading.value = true;
   suiteNamesOptions.value = [];
   suitesTemp = [];
@@ -139,7 +139,7 @@ function getSuitesAxios() {
     });
 }
 
-function handleSuiteNamesSearch(query) {
+function handleSuiteNamesSearch (query) {
   if (!query.length) {
     suiteNamesOptions.value = suitesTemp;
     return;
@@ -149,7 +149,7 @@ function handleSuiteNamesSearch(query) {
   );
 }
 
-function handleChangeGroup(value) {
+function handleChangeGroup (value) {
   drawerModel.value.groupName = value;
   drawerModel.value.executor = null;
   drawerModel.value.helpers = [];
@@ -177,7 +177,7 @@ function handleChangeGroup(value) {
     });
 }
 
-function handleHelpersSearch(query) {
+function handleHelpersSearch (query) {
   if (!query.length) {
     helpersOptions.value = helpersTemp;
     return;
@@ -187,7 +187,7 @@ function handleHelpersSearch(query) {
   );
 }
 
-function handleExecutorSearch(query) {
+function handleExecutorSearch (query) {
   if (!query.length) {
     executorOptions.value = executorTemp;
     return;
@@ -197,7 +197,7 @@ function handleExecutorSearch(query) {
   );
 }
 
-function handleChangeExecutor(v) {
+function handleChangeExecutor (v) {
   helpersOptions.value = [];
   helpersTemp = [];
   axios
@@ -222,7 +222,7 @@ function handleChangeExecutor(v) {
     });
 }
 
-function handleChangeHelper(v) {
+function handleChangeHelper (v) {
   executorOptions.value = [];
   executorTemp = [];
   axios
@@ -248,7 +248,7 @@ function handleChangeHelper(v) {
 }
 
 // 抽屉打开回调
-function drawerShowCb(type) {
+function drawerShowCb (type) {
   showNewTemplateDrawer.value = true;
   switch (type) {
     case 'newTemplate':
@@ -268,7 +268,7 @@ function drawerShowCb(type) {
   }
 }
 
-function drawerTypeJudge() {
+function drawerTypeJudge () {
   return (
     drawerType.value === 'newTemplateType' ||
     drawerType.value === 'editTemplateType'
@@ -282,7 +282,7 @@ const templatePagination = reactive({
   pageSize: 15, //受控模式下的分页大小
 });
 
-function getTemplateTableRowsData(items) {
+function getTemplateTableRowsData (items) {
   let index = 0;
   items.forEach((item, i) => {
     distributionTableData.value.push({
@@ -334,7 +334,7 @@ function getTemplateTableRowsData(items) {
 }
 
 // 获取模板表格数据
-function getTemplateTableData() {
+function getTemplateTableData () {
   distributionLoading.value = true;
   axios
     .get('v1/tasks/distribute_templates', {
@@ -356,14 +356,14 @@ function getTemplateTableData() {
     });
 }
 
-function handleTemplatePageChange(currentPage) {
+function handleTemplatePageChange (currentPage) {
   if (!distributionLoading.value) {
     templatePagination.page = currentPage;
     getTemplateTableData();
   }
 }
 
-function deleteTemplateName(templateNameID) {
+function deleteTemplateName (templateNameID) {
   axios
     .delete(`/v1/tasks/distribute_templates/${templateNameID}`)
     .then(() => {
@@ -374,7 +374,7 @@ function deleteTemplateName(templateNameID) {
     });
 }
 
-function deleteTemplateType(templateTypeID) {
+function deleteTemplateType (templateTypeID) {
   axios
     .delete(`/v1/tasks/distribute_templates/types/${templateTypeID}`)
     .then(() => {
@@ -385,7 +385,7 @@ function deleteTemplateType(templateTypeID) {
     });
 }
 
-function warning(title, content, confirmCb, cancelCb) {
+function warning (title, content, confirmCb, cancelCb) {
   const d = window.$dialog?.warning({
     title,
     content,
@@ -424,7 +424,7 @@ function warning(title, content, confirmCb, cancelCb) {
 }
 
 // 获取模板类型数据
-function getTemplateType(value) {
+function getTemplateType (value) {
   drawerModel.value.suiteNames = [];
   drawerModel.value.executor = null;
   drawerModel.value.helpers = [];
@@ -455,7 +455,7 @@ function getTemplateType(value) {
 }
 
 // 新增类型
-function operateMenuAdd(rowData) {
+function operateMenuAdd (rowData) {
   return h(
     NButton,
     {
@@ -478,7 +478,7 @@ function operateMenuAdd(rowData) {
 }
 
 // 修改菜单
-function operateMenuEdit(rowData) {
+function operateMenuEdit (rowData) {
   return h(
     NButton,
     {
@@ -507,7 +507,7 @@ function operateMenuEdit(rowData) {
 }
 
 // 删除菜单
-function operateMenuDelete(rowData) {
+function operateMenuDelete (rowData) {
   return h(
     NButton,
     {
@@ -575,7 +575,7 @@ const distributionColumns = [
     title: '操作',
     key: 'operate',
     align: 'center',
-    render(rowData) {
+    render (rowData) {
       if (rowData.level === 'templateName') {
         return [
           operateMenuAdd(rowData),
@@ -591,14 +591,14 @@ const distributionColumns = [
 ];
 
 // 点击“创建模板”按钮
-function showAddTemplateBtn() {
+function showAddTemplateBtn () {
   drawerType.value = 'newTemplate';
   drawerShowCb(drawerType.value);
   getGroupAxios();
 }
 
 // 取消创建模板
-function cancelCreateTemplate() {
+function cancelCreateTemplate () {
   showNewTemplateDrawer.value = false;
   drawerModel.value = {};
   helpersOptions.value = [];
@@ -608,7 +608,7 @@ function cancelCreateTemplate() {
 }
 
 // “创建模板”按钮
-function createTemplate() {
+function createTemplate () {
   templateFormRef.value.validate((error) => {
     if (error) {
       window.$message?.error('请填写相关信息');
@@ -631,7 +631,7 @@ function createTemplate() {
 }
 
 // “新增类型”按钮
-function createTemplateType() {
+function createTemplateType () {
   templateFormRef.value.validate((error) => {
     if (error) {
       window.$message?.error('请填写相关信息');
@@ -659,7 +659,7 @@ function createTemplateType() {
 }
 
 // 修改模板名称回调
-function editTemplateNameCb() {
+function editTemplateNameCb () {
   templateFormRef.value.validate((error) => {
     if (error) {
       window.$message?.error('请填写相关信息');
@@ -684,7 +684,7 @@ function editTemplateNameCb() {
 }
 
 // 修改模板类型数据回调
-function editTemplateTypeCb() {
+function editTemplateTypeCb () {
   templateFormRef.value.validate((error) => {
     if (error) {
       window.$message?.error('请填写相关信息');
@@ -711,7 +711,7 @@ function editTemplateTypeCb() {
   });
 }
 
-function init() {
+function init () {
   getTemplateTableData();
 }
 

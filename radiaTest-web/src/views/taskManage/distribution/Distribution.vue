@@ -65,11 +65,7 @@
               @search="handleSuiteNamesSearch"
             />
           </n-form-item>
-          <n-form-item
-            label="责任人"
-            path="executor"
-            v-if="drawerTypeJudge()"
-          >
+          <n-form-item label="责任人" path="executor" v-if="drawerTypeJudge()">
             <n-select
               placeholder="请选择责任人"
               :loading="userSelectLoading"
@@ -82,11 +78,7 @@
               @update:value="handleChangeExecutor"
             />
           </n-form-item>
-          <n-form-item
-            label="协助人"
-            path="helper"
-            v-if="drawerTypeJudge()"
-          >
+          <n-form-item label="协助人" path="helper" v-if="drawerTypeJudge()">
             <n-select
               v-model:value="drawerModel.helpers"
               multiple
@@ -158,7 +150,7 @@
         创建模板
       </n-button>
     </div>
-    <n-scrollbar style="max-height: 800px;">
+    <n-scrollbar style="max-height: 800px">
       <n-data-table
         remote
         :loading="distributionLoading"

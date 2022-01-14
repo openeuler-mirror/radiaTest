@@ -39,7 +39,7 @@ const typeOpts = ref([
   },
   {
     label: '组织模板',
-    value: 'organization',
+    value: 'orgnization',
   },
 ]);
 
@@ -55,9 +55,7 @@ const getTeamOptions = () => {
       });
     })
     .catch(() => {
-      window.$message?.error(
-        '无法获取所属团队信息，请检查网络或联系管理员处理'
-      );
+      window.$message?.error('无法获取所属团队信息，请检查网络或联系管理员处理');
     });
 };
 
@@ -66,14 +64,14 @@ watch(
   () => {
     if (formValue.value.template_type === 'personal') {
       disabled.value = true;
-      formValue.value.owner = storage.getValue('gitee_name');
+      formValue.value.owner =  storage.getValue('gitee_name');
     } else if (formValue.value.template_type === 'team') {
       disabled.value = false;
       formValue.value.owner = null;
       getTeamOptions();
-    } else if (formValue.value.template_type === 'organization') {
+    } else if (formValue.value.template_type === 'orgnization') {
       disabled.value = true;
-      formValue.value.owner = currentOrg.value;
+      formValue.value.owner =  currentOrg.value;
     }
   }
 );
@@ -113,7 +111,7 @@ const rules = {
     required: true,
     message: '请绑定里程碑',
     trigger: ['blur'],
-  },
+  }
 };
 
 const validateFormData = (context) => {
@@ -152,7 +150,10 @@ const activeVersionWatcher = () => {
   watch(
     () => formValue.value.version,
     () => {
-      getMilestoneOpts(milestoneOpts, formValue.value.version);
+      getMilestoneOpts(
+        milestoneOpts,
+        formValue.value.version,
+      );
     }
   );
 };
@@ -173,3 +174,4 @@ export default {
   activeProductWatcher,
   activeVersionWatcher,
 };
+

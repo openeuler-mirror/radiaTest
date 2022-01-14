@@ -64,6 +64,7 @@ function switchOrg () {
         });
         currentOrg.value = current.label;
         showOrgModal.value = false;
+        router.replace({ name: 'home' });
         document.dispatchEvent(new CustomEvent('reloadInfo'));
       }
     });

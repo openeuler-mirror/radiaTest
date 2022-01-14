@@ -21,6 +21,9 @@ import AccountInfo from '@/views/personalCenter/accountInfo/AccountInfo.vue';
 import News from '@/views/personalCenter/news/News.vue';
 import OrgManagement from '@/views/personalCenter/orgManagement/orgManagement.vue';
 import CaseManagement from '@/views/caseManage/CaseManagement.vue';
+import folderView from '@/views/caseManage/folderView/folderView.vue';
+import taskDetails from '@/views/caseManage/folderView/taskDetails/taskDetails.vue';
+import testsuite from '@/views/caseManage/testsuite/testsuite.vue';
 
 const routerHistory = createWebHistory();
 const router = createRouter({
@@ -120,7 +123,30 @@ const router = createRouter({
             {
               path: 'testcase/',
               component: Testcase,
+              name: 'testcase'
             },
+            {
+              path: 'testsuite/',
+              component: testsuite,
+              name: 'testsuite'
+            },
+            {
+              path: 'testsuite/',
+              component: testsuite,
+              name:'testsuite'
+            },
+            {
+              path: 'folderview/',
+              component: folderView,
+              name: 'folderview',
+              children: [
+                {
+                  path: 'taskdetail/:taskid/',
+                  component: taskDetails,
+                  name: 'taskDetails'
+                }
+              ]
+            }
           ]
         },
         {

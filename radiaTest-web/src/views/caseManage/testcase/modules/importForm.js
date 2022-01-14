@@ -4,34 +4,42 @@ import axios from '@/axios';
 const size = ref('medium');
 
 const model = ref({
-  suite: undefined,
+  group: undefined,
+  framework: undefined,
 });
 const fileListRef = ref([]);
 
 const clean = () => {
-  model.value.suite = undefined;
+  model.value.group = undefined;
+  model.value.framework = undefined;
   fileListRef.value = [];
 };
 
 const formRef = ref(null);
 const uploadRef = ref(null);
 
-const suiteOptions = ref([]);
+const groupOptions = ref([]);
+const frameworkOptions = ref([]);
 
 const rules = {
-  suite: {
+  group: {
     required: true,
-    message: '必须选择一个测试套以绑定',
+    message: '必须选择归属团队',
     trigger: ['blur'],
   },
+  framework: {
+    required: true,
+    message: '必须选定测试框架',
+    trigger: ['blur'],
+  }
 };
 
-const initSuiteOptions = () => {
+const getFrameworkOptions = () => {
   axios
-    .get('/v1/suite')
+    .get('/v1/framework')
     .then((res) => {
       if (!res.error_mesg) {
-        suiteOptions.value = res.map((item) => {
+        frameworkOptions.value = res.map((item) => {
           return {
             label: item.name,
             value: item.name,
@@ -42,8 +50,29 @@ const initSuiteOptions = () => {
       }
     })
     .catch(() => {
-      window.$message?.error('获取数据失败，请检查网络或联系管理员处理');
+      window.$message?.error('获取框架数据失败，请检查网络或联系管理员处理');
     });
+};
+
+const getGroupOptions = () => {
+  axios
+    .get('/v1/groups')
+    .then((res) => {
+      groupOptions.value = res.data.items.map((item) => {
+        return {
+          label: item.name,
+          value: item.name,
+        };
+      });
+    })
+    .catch(() => {
+      window.$message?.error('无法获取所属团队信息，请检查网络或联系管理员处理');
+    });
+};
+
+const initOptions = () => {
+  getFrameworkOptions();
+  getGroupOptions();
 };
 
 async function beforeUpload({ file }) {
@@ -84,8 +113,9 @@ export default {
   handleUploadChange,
   model,
   formRef,
-  suiteOptions,
-  initSuiteOptions,
+  groupOptions,
+  frameworkOptions,
+  initOptions,
   uploadRef,
   beforeUpload,
   validateFormData,

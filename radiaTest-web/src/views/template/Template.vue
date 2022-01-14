@@ -20,7 +20,7 @@
         <template-card type="task" id="taskTemp" />
         <template-card type="personal" id="personalTemp" />
         <template-card type="team" id="teamTemp" />
-        <template-card type="organization" id="orgTemp" />
+        <template-card type="orgnization" id="orgTemp" />
       </div>
       <div style="width: 144px; display: block">
         <n-anchor
@@ -143,7 +143,7 @@ export default defineComponent({
 
     provide('personal', template.personalData);
     provide('team', template.teamData);
-    provide('organization', template.organizationData);
+    provide('orgnization', template.orgnizationData);
     provide('task', template.taskData);
 
     onMounted(() => {
