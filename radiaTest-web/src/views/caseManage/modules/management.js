@@ -171,21 +171,23 @@ function menuClick(item, index) {
 const menu = ref([
   {
     id: 0,
+    text: '测试套仓库',
+    name: 'testsuite',
+  },
+  {
+    id: 1,
     text: '用例仓库',
     name: 'testcase',
   },
   {
-    id: 1,
+    id: 2,
     text: '用例评审',
     name: 'review',
   },
 ]);
 
-const isTabActive = (index) => {
-  if (index === 0) {
-    return router.currentRoute.value.fullPath === '/home/tcm/testcase';
-  }
-  return router.currentRoute.value.fullPath === '/home/tcm/review';
+const isTabActive = (name) => {
+  return router.currentRoute.value.path.indexOf(name) !== -1;
 };
 
 function showRecycleBin() {

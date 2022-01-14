@@ -4,17 +4,18 @@
     :segmented="{
       content: 'hard',
     }"
+    style="height: 100%"
+    content-style="padding:0"
     header-style="
             font-size: 30px;
             height: 80px;
             font-family: 'v-sans';
-            padding-top: 40px;
             background-color: #FAFAFC;
         "
   >
     <template #header>
       <n-grid :cols="3">
-        <n-gi class="nav-header">测试用例管理</n-gi>
+        <n-gi class="nav-header"></n-gi>
         <n-gi class="nav-body">
           <ul class="nav-wrapper">
             <li
@@ -22,12 +23,18 @@
               :key="index"
               @click="menuClick(item, index)"
             >
-              <a :class="{ active: isTabActive(index) }">{{ item.text }}</a>
+              <a :class="{ active: isTabActive(item.name) }">{{ item.text }}</a>
             </li>
           </ul>
         </n-gi>
         <n-gi class="nav-footer">
           <div class="footer-wrapper">
+            <a class="footer-item" v-show="!tableView" @click="toggleView">
+              <n-icon size="16"> <Table24Regular /> </n-icon>表格视图
+            </a>
+            <a class="footer-item" v-show="tableView" @click="toggleView">
+              <n-icon size="16"> <Folder20Regular /> </n-icon>目录视图
+            </a>
             <a class="footer-item" @click="showRecycleBin">
               <n-icon size="16">
                 <Delete48Regular />
@@ -54,7 +61,7 @@
       <div class="recycleWrap">
         <n-modal v-model:show="showRecycleBinModal">
           <n-card
-            style="width:1200px;"
+            style="width: 1200px"
             title="用例回收站"
             :bordered="false"
             size="huge"
@@ -91,18 +98,25 @@
 
 <script>
 import { defineComponent } from 'vue';
-import { QuestionCircle20Regular, Delete48Regular } from '@vicons/fluent';
+import { QuestionCircle20Regular, Delete48Regular, Folder20Regular, Table24Regular } from '@vicons/fluent';
 
 import settings from '@/assets/config/settings.js';
 import manage from './modules/management.js';
-
+import view from './modules/view.js';
 export default defineComponent({
   components: {
     QuestionCircle20Regular,
     Delete48Regular,
+    Folder20Regular,
+    Table24Regular,
+  },
+  mounted() {
+    this.tableView = this.$route.path.indexOf('folderview') === -1;
+    this.setMenu();
   },
   setup() {
     return {
+      ...view,
       ...manage,
       settings,
     };

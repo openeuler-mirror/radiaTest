@@ -8,11 +8,19 @@
     ref="formRef"
   >
     <n-grid :cols="18" :x-gap="24">
-      <n-form-item-gi :span="18" label="默认归属测试套" path="suite">
+      <n-form-item-gi :span="9" label="归属团队" path="group">
         <n-select
-          v-model:value="model.suite"
-          placeholder="为文件中测试套属性为空的用例赋予默认测试套"
-          :options="suiteOptions"
+          v-model:value="model.group"
+          placeholder="选择团队"
+          :options="groupOptions"
+          filterable
+        />
+      </n-form-item-gi>
+      <n-form-item-gi :span="9" label="测试框架" path="framework">
+        <n-select
+          v-model:value="model.framework"
+          placeholder="选择框架"
+          :options="frameworkOptions"
           filterable
         />
       </n-form-item-gi>
@@ -55,7 +63,7 @@ export default defineComponent({
     ArchiveIcon,
   },
   setup(props, context) {
-    onMounted(() => importForm.initSuiteOptions());
+    onMounted(() => importForm.initOptions());
     onUnmounted(() => importForm.clean());
 
     return {

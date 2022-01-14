@@ -8,6 +8,7 @@ const unreadPageInfo = reactive({
   page: 1,
   pageCount: 1,
   pageSize: 7,
+  total:1
 });
 const unreadNewsList = ref([]);
 function getUnreadNews () {
@@ -15,6 +16,7 @@ function getUnreadNews () {
   axios.get('/v1/msg', { has_read: 0, page_num: unreadPageInfo.page, page_size: unreadPageInfo.pageSize }).then(res => {
     unreadNewsList.value = res.data.items ? res.data.items : [];
     unreadPageInfo.pageCount = res.data.pages;
+    unreadPageInfo.total = res.data.total;
     changeLoadingStatus(false);
   }).catch((err) => {
     window.$message?.error(err.data.error_msg||'未知错误');

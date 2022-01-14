@@ -237,21 +237,23 @@ export default defineComponent({
         createForm.tab.value = tabValue;
       },
       post: () => {
-        const infoCopyData = JSON.parse(
-          JSON.stringify(createForm.infoFormValue.value)
-        );
-        if (infoCopyData.add_disk) {
-          infoCopyData.add_disk = infoCopyData.add_disk
-            .map((item) => item.replace(' GiB', ''))
-            .join(',');
-        } else {
-          infoCopyData.add_disk = '';
-        }
-        const postData = ref(
-          Object.assign(infoCopyData, createForm.contentFormValue.value)
-        );
-        createAjax.postForm('/v1/case', postData);
-        context.emit('close');
+        return new Promise((resolve, reject) => {
+          const infoCopyData = JSON.parse(
+            JSON.stringify(createForm.infoFormValue.value)
+          );
+          if (infoCopyData.add_disk) {
+            infoCopyData.add_disk = infoCopyData.add_disk
+              .map((item) => item.replace(' GiB', ''))
+              .join(',');
+          } else {
+            infoCopyData.add_disk = '';
+          }
+          const postData = ref(
+            Object.assign(infoCopyData, createForm.contentFormValue.value)
+          );
+          createAjax.postForm('/v1/case', postData).then(res=>resolve(res)).catch(err=>reject(err));
+          context.emit('close');
+        });
       },
     };
   },

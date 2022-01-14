@@ -34,7 +34,7 @@ const handleExecute = async (row, dOccupy) => {
       .then(() => {
         dOccupy.content = '执行请求已发送';
         postExecData(row);
-        window.$message?.success('模板已成功执行');
+        window.$message?.success('模板已成功执行，请前往测试看板查看');
         resolve();
       });
   });

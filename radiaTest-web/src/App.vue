@@ -69,12 +69,16 @@ export default {
     };
   },
   mounted() {
+    window.addEventListener('beforeunload',()=>{
+      if(this.$route.name === 'taskDetails'){
+        sessionStorage.setItem('refresh',1);
+      }
+    });
     setInterval(() => {
       if (this.$route.name !== 'login' && this.$route.path) {
-        if (!this.$newsSocket.isConnect()) {
-          this.$newsSocket.connect();
+        if (this.$newsSocket.isConnect()) {
+          this.$newsSocket.emit('count', this.$storage.getValue('gitee_id'));
         }
-        this.$newsSocket.emit('count', this.$storage.getValue('gitee_id'));
       }
     }, 1000);
   },
@@ -96,6 +100,22 @@ export default {
 </script>
 
 <style>
+
+::-webkit-scrollbar {
+  width:8px;
+  height: 8px;
+}
+/* 滚动槽 */
+::-webkit-scrollbar-track {
+  box-shadow:inset006pxrgba(0,0,0,0.3);
+  border-radius:8px;
+}
+/* 滚动条滑块 */
+::-webkit-scrollbar-thumb {
+  border-radius:8px;
+  background:#abb2bf;
+  box-shadow:inset006pxrgba(0,0,0,0.5);
+}
 .n-code [class^='hljs'] {
   color: #abb2bf;
 }
