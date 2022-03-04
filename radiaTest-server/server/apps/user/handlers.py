@@ -1,5 +1,8 @@
 import json
+
 from flask import current_app, request, Response, redirect, g, jsonify
+from sqlalchemy import or_
+
 from server import redis_client
 from server.utils.response_util import RET
 from server.utils.gitee_util import GiteeApi
@@ -7,13 +10,14 @@ from server.utils.auth_util import generate_token
 from server.utils.redis_util import RedisKey
 from server.utils.db import collect_sql_error
 from server.utils.cla_util import Cla, ClaShowAdminSchema
+from server.utils.page_util import PageUtil
 from server.model.user import User
 from server.model.message import Message
 from server.model.organization import Organization, ReUserOrganization
 from server.model.group import ReUserGroup, GroupRole
 from server.schema.group import ReUserGroupSchema, GroupInfoSchema
 from server.schema.organization import OrgUserInfoSchema, ReUserOrgSchema
-from server.schema.user import UserInfoSchema
+from server.schema.user import UserBaseSchema, UserInfoSchema
 
 
 def handler_gitee_login():
@@ -223,3 +227,28 @@ def handler_add_group(group_id, body):
     message1.add_update()
     msg.add_update()
     return jsonify(error_code=RET.OK, error_msg="OK")
+
+
+@collect_sql_error
+def handler_get_all(query):
+    filter_params = []
+
+    if query.gitee_id:
+        filter_params.append(User.gitee_id.like(f'%{query.gitee_id}%'))
+    if query.gitee_login:
+        filter_params.append(User.gitee_id.like(f'%{query.gitee_login}%'))
+    if query.gitee_name:
+        filter_params.append(User.gitee_id.like(f'%{query.gitee_name}%'))
+
+    query_filter = User.query.filter(*filter_params).order_by(User.create_time.desc())
+
+    # 获取用户组下的所有用户
+    def page_func(item):
+        user_dict = item.to_dict()
+        return user_dict
+
+    # 返回结果
+    page_dict, e = PageUtil.get_page_dict(query_filter, query.page_num, query.page_size, func=page_func)
+    if e:
+        return jsonify(error_code=RET.SERVER_ERR, error_msg=f'get group page error {e}')
+    return jsonify(error_code=RET.OK, error_msg="OK", data=page_dict)

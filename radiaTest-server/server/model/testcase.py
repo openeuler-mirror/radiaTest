@@ -3,23 +3,26 @@ from sqlalchemy.orm import backref
 
 from server import db
 from server.model import BaseModel
-from server.model.framework import Framework
+from server.model.framework import Framework, GitRepo
 
 
 baseline_family = db.Table(
     'baseline_family',
-    db.Column('parent_id', db.Integer, db.ForeignKey('baseline.id'), primary_key=True),
-    db.Column('child_id', db.Integer, db.ForeignKey('baseline.id'), primary_key=True)
+    db.Column('parent_id', db.Integer, db.ForeignKey(
+        'baseline.id'), primary_key=True),
+    db.Column('child_id', db.Integer, db.ForeignKey(
+        'baseline.id'), primary_key=True)
 )
+
 
 class Baseline(BaseModel, db.Model):
     __tablename__ = "baseline"
 
     id = db.Column(db.Integer(), primary_key=True)
     title = db.Column(db.String(255), nullable=False)
-    type=db.Column(db.String(64), nullable=False, default="directory")
-    is_root=db.Column(db.Boolean(), default=True)
-    in_set=db.Column(db.Boolean(), default=False)
+    type = db.Column(db.String(64), nullable=False, default="directory")
+    is_root = db.Column(db.Boolean(), default=True)
+    in_set = db.Column(db.Boolean(), default=False)
 
     group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
 
@@ -30,15 +33,15 @@ class Baseline(BaseModel, db.Model):
     case_id = db.Column(db.Integer(), db.ForeignKey("case.id"))
 
     children = db.relationship(
-        "Baseline", 
-        secondary=baseline_family, 
+        "Baseline",
+        secondary=baseline_family,
         primaryjoin=(baseline_family.c.parent_id == id),
         secondaryjoin=(baseline_family.c.child_id == id),
         backref=db.backref('parent', lazy='dynamic'),
         lazy='dynamic',
         cascade="all, delete"
     )
-    
+
     def to_json(self):
         return {
             "id": self.id,
@@ -67,8 +70,8 @@ class Suite(BaseModel, db.Model):
     remark = db.Column(LONGTEXT(), nullable=True)
     owner = db.Column(db.String(64), nullable=True)
     deleted = db.Column(db.Boolean(), nullable=False, default=False)
-    
-    framework_id = db.Column(db.Integer(), db.ForeignKey("framework.id"))
+
+    git_repo_id = db.Column(db.Integer(), db.ForeignKey("git_repo.id"))
 
     group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
 
@@ -83,6 +86,15 @@ class Suite(BaseModel, db.Model):
     )
 
     def to_json(self):
+        _framework = Framework.query.filter_by(
+            id=self.git_repo.framework_id
+        ).first()
+
+        framework = dict()
+
+        if _framework is not None:
+            framework = _framework.to_json()
+
         return {
             "id": self.id,
             "name": self.name,
@@ -92,7 +104,8 @@ class Suite(BaseModel, db.Model):
             "add_network_interface": self.add_network_interface,
             "add_disk": self.add_disk,
             "remark": self.remark,
-            "framework_id": self.framework_id,
+            "git_repo": self.git_repo.to_json() if self.git_repo_id else {},
+            "framework": framework,
             "group_id": self.group_id,
             "org_id": self.org_id,
         }
@@ -127,20 +140,25 @@ class Case(BaseModel, db.Model):
         "Baseline", backref="case", cascade="all, delete, delete-orphan"
     )
 
-    tasks_manuals = db.relationship('TaskManualCase', backref='case', cascade='all, delete')
+    tasks_manuals = db.relationship(
+        'TaskManualCase', backref='case', cascade='all, delete')
 
     def to_json(self):
-        _framework = Framework.query.filter_by(
-            id=self.suite.framework_id
+        _git_repo = GitRepo.query.filter_by(
+            id=self.suite.git_repo.id
         ).first()
+
+        git_repo = dict()
+
+        if _git_repo is not None:
+            git_repo = _git_repo.to_json()
 
         return {
             "id": self.id,
             "name": self.name,
             "suite_id": self.suite_id,
             "suite": self.suite.name,
-            "framework_id": _framework.id,
-            "framework_name": _framework.name,
+            "git_repo": git_repo,
             "test_level": self.test_level,
             "test_type": self.test_type,
             "machine_num": self.machine_num,

@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import Optional
 
 from pydantic import BaseModel, constr, validator
 from pydantic.class_validators import root_validator
@@ -32,19 +32,19 @@ class BaselineBodySchema(BaseModel):
         if values["type"] == 'suite':
             if not values["suite_id"]:
                 raise ValueError("The baseline should relate to one suite")
-            
+
             suite = Suite.query.filter_by(id=values["suite_id"]).first()
             if not suite:
                 raise ValueError("The suite to be related is not exist")
-        
+
         elif values["type"] == 'case':
             if not values["case_id"]:
                 raise ValueError("The baseline should relate to one case")
-            
+
             case = Case.query.filter_by(id=values["case_id"]).first()
             if not case:
                 raise ValueError("The case to be related is not exist")
-        
+
         return values
 
 
@@ -84,7 +84,7 @@ class SuiteBase(BaseModel):
     remark: Optional[str]
     deleted: Optional[bool] = False
     owner: Optional[str]
-    framework_id: Optional[int]
+    git_repo_id: Optional[int]
 
     @validator("add_disk")
     def check_add_disk(cls, v):
@@ -125,3 +125,23 @@ class CaseUpdate(CaseBase, UpdateBaseModel):
     expection: Optional[str]
     automatic: Optional[bool]
 
+
+class CaseBaseSchemaWithSuiteId(SuiteBase):
+    suite_id: int
+    description: str
+    preset: Optional[str]
+    steps: str
+    expection: str
+    automatic: bool
+    usabled: Optional[bool] = False
+    code: Optional[str]
+
+
+class CaseUpdateSchemaWithSuiteId(CaseBaseSchemaWithSuiteId, UpdateBaseModel):
+    name: Optional[str]
+    suite_id: Optional[int]
+    description: Optional[str]
+    preset: Optional[str]
+    steps: Optional[str]
+    expection: Optional[str]
+    automatic: Optional[bool]

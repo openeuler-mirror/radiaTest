@@ -1,10 +1,11 @@
 from flask import Blueprint
 from flask_restful import Resource
 from flask_pydantic import validate
+from server.utils.db import Select
 from server.utils.cla_util import ClaSignSchema
 from server.utils.auth_util import auth
 from server.utils.response_util import response_collect
-from server.schema.user import UpdateUserSchema, JoinGroupSchema
+from server.schema.user import UpdateUserSchema, JoinGroupSchema, UserQuerySchema
 from .handlers import handler_gitee_callback
 from .handlers import handler_gitee_login
 from .handlers import handler_register
@@ -13,6 +14,7 @@ from .handlers import handler_user_info
 from .handlers import handler_logout
 from .handlers import handler_select_default_org
 from .handlers import handler_add_group
+from .handlers import handler_get_all
 
 gitee = Blueprint('gitee', __name__)
 
@@ -28,6 +30,14 @@ class GiteeLogin(Resource):
 
 
 class User(Resource):
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def get(self, query: UserQuerySchema):
+        return handler_get_all(query)
+
+
+class UserItem(Resource):
     @validate()
     def post(self, gitee_id, body: ClaSignSchema):
         return handler_register(gitee_id, body)

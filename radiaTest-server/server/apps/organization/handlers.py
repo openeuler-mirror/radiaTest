@@ -10,7 +10,7 @@ from server.utils.page_util import PageUtil
 from server.utils.db import collect_sql_error
 from server.utils.redis_util import RedisKey
 from server.utils.cla_util import ClaShowUserSchema, Cla, ClaShowAdminSchema
-from server.schema.organization import ReUserOrgSchema
+from server.schema.organization import OrgBaseSchema, ReUserOrgSchema
 from server.schema.user import UserBaseSchema
 from server.schema.base import PageBaseSchema
 from server.schema.group import GroupInfoSchema
@@ -55,11 +55,7 @@ def handler_org_user_page(org_id):
     page_size = int(request.args.get('page_size', 10))
     name = request.args.get('name')
     group_id = request.args.get('group_id')
-    # 判断当前用户是否属于该组织
-    re = ReUserOrganization.query.filter_by(is_delete=False, user_gitee_id=g.gitee_id,
-                                            organization_id=org_id).first()
-    if not re or re.organization.is_delete:
-        return jsonify(error_code=RET.NO_DATA_ERR, error_msg="user organization no find")
+
     # 获取组织下的所有用户
     filter_params = [
         ReUserOrganization.is_delete == False,
@@ -77,7 +73,7 @@ def handler_org_user_page(org_id):
 
     def page_func(item):
         re_dict = ReUserOrgSchema(**item.to_dict()).dict()
-        user_dict = UserBaseSchema(**item.user.to_dict()).dict()
+        user_dict = item.user.to_dict()
         return {**user_dict, **re_dict}
 
     # 返回结果
@@ -89,9 +85,8 @@ def handler_org_user_page(org_id):
 
 @collect_sql_error
 def handler_org_group_page(org_id, query: PageBaseSchema):
-    if org_id != int(redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')):
-        return jsonify(error_code=RET.NO_DATA_ERR, error_msg="user organization no find")
-    query_filter = ReUserGroup.query.filter_by(is_delete=False, org_id=org_id)
+
+    query_filter = ReUserGroup.query.filter_by(is_delete=False, org_id=org_id).order_by(ReUserGroup.create_time)
 
     def page_func(item):
         return GroupInfoSchema(**item.group.__dict__).dict()
@@ -100,4 +95,28 @@ def handler_org_group_page(org_id, query: PageBaseSchema):
     page_dict, e = PageUtil.get_page_dict(query_filter, query.page_num, query.page_size, func=page_func, is_set=True)
     if e:
         return jsonify(error_code=RET.SERVER_ERR, error_msg=f'get group page error {e}')
+    return jsonify(error_code=RET.OK, error_msg="OK", data=page_dict)
+
+
+@collect_sql_error
+def handler_get_all_org(query):
+    filter_params = [
+        Organization.is_delete == query.is_delete,
+    ]
+    if query.org_name:
+        filter_params.append(Organization.name.like(f'%{query.org_name}%'))
+    if query.org_description:
+        filter_params.append(Organization.description.like(f'%{query.org_description}%'))
+    
+    query_filter = Organization.query.filter(*filter_params)
+
+    def page_func(item):
+        if item.is_delete:
+            return None
+        return OrgBaseSchema(**item.to_dict()).dict()
+    
+    page_dict, e = PageUtil.get_page_dict(query_filter, query.page_num, query.page_size, func=page_func)
+    if e:
+        return jsonify(error_code=RET.SERVER_ERR, error_msg=f'get organization page error {e}')
+
     return jsonify(error_code=RET.OK, error_msg="OK", data=page_dict)

@@ -65,3 +65,12 @@ TestType = Literal["功能测试", "安全测试", "性能测试", "压力测试
 ## 基线库节点类型
 BaselineType = Literal["directory", "suite", "case"]
 
+
+# 权限管理相关类型
+## 角色类型
+RoleType = Literal["public", "group", "organization"]
+## RESTFUL请求类型
+ActionType = Literal["post", "get", "delete", "put"]
+## 效果类型
+EffectType = Literal["allow", "deny"]
+

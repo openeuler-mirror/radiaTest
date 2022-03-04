@@ -4,8 +4,12 @@ venv
 **/migrations
 **/tests
 radiaTest-web/node_modules
-radiaTest-server/server/config/
+radiaTest-server/celeryservice/flower
+radiaTest-server/celeryservice/celerymain
+radiaTest-server/celeryservice/celerybeat
+radiaTest-server/server/config/vnc_tokens
 radiaTest-web/src/assets/config/settings.js
-radiaTest-worker/worker/config/settings.py
-
+radiaTest-worker/celeryservice/flower
+radiaTest-worker/celeryservice/celerymain
+radiaTest-worker/celeryservice/celerybeat
 

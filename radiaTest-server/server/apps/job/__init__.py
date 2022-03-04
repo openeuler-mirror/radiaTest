@@ -6,12 +6,17 @@ from .routes import JobEvent
 from .routes import AnalyzedEvent
 from .routes import AnalyzedRecords
 from .routes import AnalyzedLogs
+from .routes import NewRunSuiteEvent
+from .routes import NewRunTemplateEvent
 
 
 def init_api(api: Api):
     api.add_resource(RunSuiteEvent, "/api/v1/job/suite")
-    api.add_resource(RunTemplateEvent, "/api/v1/job/template", endpoint='run_template_event')
+    api.add_resource(RunTemplateEvent, "/api/v1/job/template",
+                     endpoint='run_template_event')
     api.add_resource(JobEvent, "/api/v1/job")
     api.add_resource(AnalyzedEvent, "/api/v1/analyzed")
     api.add_resource(AnalyzedRecords, "/api/v1/analyzed/records")
     api.add_resource(AnalyzedLogs, "/api/v1/analyzed/logs")
+    api.add_resource(NewRunSuiteEvent, "/api/v2/job/suite")
+    api.add_resource(NewRunTemplateEvent, "/api/v2/job/template")

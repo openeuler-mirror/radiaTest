@@ -42,6 +42,10 @@ class Template(BaseModel, db.Model):
         db.Integer(), db.ForeignKey("milestone.id"), nullable=False
     )
 
+    git_repo_id = db.Column(
+        db.Integer(), db.ForeignKey("git_repo.id"), nullable=False
+    )
+
     def _get_cases_name(self):
         cases_name = []
         for case in self.cases:
@@ -54,6 +58,7 @@ class Template(BaseModel, db.Model):
             "name": self.name,
             "description": self.description,
             "milestone": Milestone.query.filter_by(id=self.milestone_id).first().name,
+            "git_repo": self.git_repo.to_json() if self.git_repo_id else {},
             "cases": self._get_cases_name(),
             "author": self.author,
             "owner": self.owner,

@@ -17,6 +17,9 @@ from . import testcase
 from . import vmachine
 from . import external
 from . import framework
+from . import permission
+from . import test
+from . import celerytask
 
 
 def init_api(app: Flask):
@@ -38,3 +41,6 @@ def init_api(app: Flask):
     vmachine.init_api(api)
     external.init_api(api)
     framework.init_api(api)
+    permission.init_api(api)
+    test.init_api(api)
+    celerytask.init_api(api)

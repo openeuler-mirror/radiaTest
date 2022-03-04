@@ -152,7 +152,8 @@ class CheckInstall:
         self._ip = ip
 
     def check(self):
-        client = Connection(self._ip, "openEuler12#$")  # TODO pxe安装后的密码，后续需要处理
+        # TODO pxe安装后的密码，后续需要处理（lemon.higgins）
+        client = Connection(self._ip, "openEuler12#$")  
 
         for _ in range(1800):
             conn = client._conn()

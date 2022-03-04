@@ -1,5 +1,7 @@
 import json
+
 from flask import request, g, current_app, jsonify
+
 from server import redis_client, db
 from server.utils.response_util import RET
 from server.utils.redis_util import RedisKey
@@ -7,9 +9,9 @@ from server.utils.db import collect_sql_error
 from server.utils.file_util import FileUtil
 from server.utils.page_util import PageUtil
 from server.model.group import Group, ReUserGroup, GroupRole
+from server.model.administrator import Admin
 from server.model.message import Message, MsgType, MsgLevel
 from server.schema.group import ReUserGroupSchema, GroupInfoSchema, QueryGroupUserSchema
-from server.schema.user import UserBaseSchema
 
 
 @collect_sql_error
@@ -137,28 +139,29 @@ def handler_group_page():
 
 @collect_sql_error
 def handler_group_user_page(group_id, query: QueryGroupUserSchema):
-    # 判断用户是否有权限
-    re = ReUserGroup.query.filter_by(is_delete=False, user_gitee_id=g.gitee_id, group_id=group_id).first()
-    if not re or re.group.is_delete:
-        return jsonify(error_code=RET.NO_DATA_ERR, error_msg="user group no find")
-    if not query.is_admin and re.role_type not in [GroupRole.admin.value, GroupRole.create_user.value]:
-        return jsonify(error_code=RET.VERIFY_ERR, error_msg="user has not right")
-    # 获取用户组
-    org_id = redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')
     filter_params = [
-        ReUserGroup.is_delete.is_(False), ReUserGroup.group_id == group_id,
-        ReUserGroup.user_add_group_flag.is_(True), ReUserGroup.org_id == org_id
+        ReUserGroup.is_delete.is_(False), 
+        ReUserGroup.group_id == group_id,
+        ReUserGroup.user_add_group_flag.is_(True),
     ]
+
+    admin = Admin.query.filter_by(account=g.gitee_login).first()
+    if not admin:
+        org_id = redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')
+        filter_params.append(ReUserGroup.org_id == org_id)
+
     if query.except_list:
-        filter_params.append(ReUserGroup.user_gitee_id.notin_(query.except_list))
-    query_filter = ReUserGroup.query.filter(*filter_params).order_by(ReUserGroup.create_time.desc(),
-                                                                     ReUserGroup.id.asc())
+        filter_params.append(
+            ReUserGroup.user_gitee_id.notin_(query.except_list)
+        )
+
+    query_filter = ReUserGroup.query.filter(*filter_params).order_by(ReUserGroup.create_time.desc())
 
     # 获取用户组下的所有用户
     def page_func(item):
         if item.is_delete:
             return None
-        user_dict = UserBaseSchema(**item.user.to_dict()).dict()
+        user_dict = item.user.to_dict()
         re_dict = ReUserGroupSchema(**item.to_dict()).dict()
         return {**re_dict, **user_dict}
 

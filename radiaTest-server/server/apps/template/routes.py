@@ -22,8 +22,8 @@ class TemplateEvent(Resource):
         _body = body.__dict__
 
         cases = []
-        for case_name in _body.get("cases"):
-            case = Case.query.filter_by(name=case_name).first()
+        for case_id in _body.get("cases"):
+            case = Case.query.filter_by(id=case_id).first()
             if not case:
                 continue
 

@@ -6,6 +6,7 @@ class PageUtil(object):
     def get_page_dict(query_filter, page_num=1, page_size=10, model=None, func=None, is_set=False):
         try:
             page = query_filter.paginate(page=page_num, per_page=page_size)
+
             if not page or page.total <= 0:
                 return {}, None
             page_dict = {
@@ -19,6 +20,7 @@ class PageUtil(object):
                 "total": page.total
             }
             items = list()
+
             for item in page.items:
                 item = func(item) if func else item.__dict__
                 if not item:

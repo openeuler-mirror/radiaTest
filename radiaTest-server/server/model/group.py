@@ -22,6 +22,8 @@ class Group(db.Model, Base):
 
     baselines = db.relationship("Baseline", cascade="all, delete", backref="group")
 
+    roles = db.relationship("Role", cascade="all, delete", backref="group")
+
     def to_dict(self):
         return {
             'id': self.id,

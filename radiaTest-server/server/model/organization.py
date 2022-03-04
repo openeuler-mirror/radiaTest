@@ -19,6 +19,8 @@ class Organization(db.Model, Base):
 
     re_user_org = db.relationship("ReUserOrganization", backref="organization")
 
+    roles = db.relationship("Role", cascade="all, delete", backref="organization")
+
     def to_dict(self):
         return self.__dict__
 

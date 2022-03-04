@@ -17,7 +17,7 @@ manager = Manager(app)
 @manager.command
 def run_gevent():
 
-    DaemonThread(IllegalMonitor(app, 600)).start()
+    # DaemonThread(IllegalMonitor(app, 600)).start()
 
     server = pywsgi.WSGIServer(
         (app.config.get("WORKER_IP"), app.config.get("WORKER_PORT")), app

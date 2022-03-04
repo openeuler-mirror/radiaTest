@@ -1,23 +1,30 @@
+from datetime import datetime
 import json
 import time
 from random import choice
 
 from requests import request, RequestException
-from flask import current_app, jsonify
-
+from flask import current_app, jsonify, g
 
 from server.utils import DateEncoder
-from server.utils.db import Delete, Edit, Precise, Insert, MultipleConditions
+from server.utils.db import Delete, Edit, Precise, Insert, MultipleConditions, collect_sql_error
 from server.utils.pssh import Connection
 from server.utils.pxe import QueryIp
 from server.utils.token_creator import VncTokenCreator
-
-from server.model import Pmachine, Vmachine, IMirroring, QMirroring, Milestone, Repo
+from server.utils.response_util import RET
+from server.model import Pmachine, Vmachine, IMirroring, QMirroring, Milestone, Repo, CeleryTask
 
 
 class MessageBody:
     def __init__(self, body) -> None:
         self._body = body
+
+
+class AuthMessageBody(MessageBody):
+    def __init__(self, body) -> None:
+        _user_id = int(g.gitee_id)
+        body.update({"user_id": _user_id})
+        super().__init__(body)
 
 
 class ChoosePmachine(MessageBody):
@@ -91,24 +98,42 @@ class Messenger:
             if response.status_code != 200:
                 return {"error_code": response.status_code, "error_mesg": resp}
 
+            self._body.update({
+                "pmachine_id": self._pmachine.id,
+            })
+
             resp_dict = json.loads(resp)
-            if resp_dict.get("error_code"):
+
+            celerytask_body = resp_dict.get("data")
+
+            if not celerytask_body:
                 return resp_dict
 
-            self._body.update({"pmachine_id": self._pmachine.id})
-            self._body.update(resp_dict)
+            celerytask_body.update({
+                "state": "PENDING",
+                "object_type": "vmachine",
+                "vmachine_id": self._body.get("id"),
+                "user_id": int(g.gitee_id),
+            })
+
+            _ = Insert(CeleryTask, celerytask_body).single(
+                CeleryTask, "/celerytask")
 
             return self._body
+
         except RequestException as e:
             current_app.logger.error(e)
             raise RecursionError(e)
 
 
-class CreateVmachine(MessageBody):
+class CreateVmachine(AuthMessageBody):
+    @collect_sql_error
     def install(self):
         pmachine = ChoosePmachine(self._body, choice).run()
         if isinstance(pmachine, dict):
             return pmachine
+
+        self._body.update({"pmachine_id": pmachine.id})
 
         _milestone = Milestone.query.filter_by(
             id=self._body.get("milestone_id")
@@ -134,13 +159,14 @@ class CreateVmachine(MessageBody):
             if isinstance(mirror, dict):
                 self._body["method"] = "cdrom"
             else:
-                self._body.update({"location": mirror.location, "ks": mirror.ks})
+                self._body.update(
+                    {"location": mirror.location, "ks": mirror.ks})
 
         elif self._body.get("method") == "cdrom":
             mirror = ChooseMirror(self._body, IMirroring).run(_milestone)
             if isinstance(mirror, dict):
                 return mirror
-    
+
             self._body.update({"url": mirror.url})
 
         if _update_milestone:
@@ -148,9 +174,11 @@ class CreateVmachine(MessageBody):
                 {
                     "host": pmachine.ip,
                     "product": _product.name + " " + _product.version,
-                    "milestone": _update_milestone.name,
+                    "milestone": _milestone.name,
+                    "milestotne_id": _milestone.id,
+                    "update_milestone": _update_milestone.name,
+                    "update_millestone_id": _update_milestone.id,
                     "status": "start create vm",
-                    "pmachine_id": pmachine.id,
                 }
             )
         else:
@@ -159,8 +187,8 @@ class CreateVmachine(MessageBody):
                     "host": pmachine.ip,
                     "product": _product.name + " " + _product.version,
                     "milestone": _milestone.name,
+                    "milestotne_id": _milestone.id,
                     "status": "start create vm",
-                    "pmachine_id": pmachine.id,
                 }
             )
 
@@ -169,7 +197,8 @@ class CreateVmachine(MessageBody):
             return output
 
         self._body.update(
-            {"id": Precise(Vmachine, {"name": self._body.get("name")}).first().id}
+            {"id": Precise(
+                Vmachine, {"name": self._body.get("name")}).first().id}
         )
 
         self._body.update({"status": "installing"})
@@ -180,90 +209,18 @@ class CreateVmachine(MessageBody):
             )
             return output
 
-        output = Messenger(self._body, pmachine, "virtual/machine", "post").work()
-        if output.get("error_code"):
-            Delete(Vmachine, {"name": self._body.get("name")}).single(
-                Vmachine, "/vmachine"
-            )
-            return jsonify(output)
+        output = Messenger(self._body, pmachine,
+                           "virtual/machine", "post").work()
 
         self._body.update(output)
 
-        _vnc_token = VncTokenCreator(pmachine.ip, self._body.get("vnc_port")).start()
+        _ = Edit(Vmachine, self._body).single(Vmachine, "/vmachine")
 
-        self._body.update(
-            {
-                "vnc_token": _vnc_token,
-                "websockify_listen": current_app.config.get("WEBSOCKIFY_LISTEN"),
-            }
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+            data={"id": self._body.get("id")}
         )
-        Edit(Vmachine, self._body).single(Vmachine, "/vmachine")
-       
-        if self._body.get("method") == "cdrom":
-            return Edit(Vmachine, self._body).single(Vmachine, "/vmachine")
-        
-        pxe = QueryIp(self._body.get("mac"))
-        for _ in range(current_app.config.get("VM_ENABLE_SSH")):
-            ip = pxe.query()
-            if isinstance(ip, dict):
-                Delete(Vmachine, {"name": self._body.get("name")}).single(
-                    Vmachine, "/vmachine"
-                )
-                return ip
-            ssh = Connection(ip,"openEuler12#$")
-            conn = ssh._conn()
-            if conn:
-                break
-            time.sleep(1)
-        if not conn:
-                mesg = "Failed to configure the repo source address."
-                current_app.logger.warning(mesg)
-                self._body.get("description") + " \n" + mesg
-        
-        self._body.update({"ip": ip})
-
-        repo = Precise(
-            Repo,
-            {
-                "milestone_id": _milestone.id,
-                "frame": self._body.get("frame"),
-            },
-        ).first()
-
-        if _update_milestone:
-            update_repo = Precise(
-                    Repo,
-                    {
-                        "milestone_id": _update_milestone.id,
-                        "frame": self._body.get("frame"),
-                    },
-                ).first()
-
-
-        if repo:
-            ssh._command(
-                "mv /etc/yum.repos.d/openEuler.repo /etc/yum.repos.d/openEuler.repo.bak && echo -e '%s' > /etc/yum.repos.d/%s.repo"
-                % (repo.content, _milestone.name.replace(" ", "-"))
-            )
-
-        if _update_milestone:
-            update_repo = Precise(
-                    Repo,
-                    {
-                        "milestone_id": _update_milestone.id,
-                        "frame": self._body.get("frame"),
-                    },
-                ).first()
-                
-            if update_repo:
-                ssh._command(
-                            "echo -e '%s' > /etc/yum.repos.d/%s.repo"
-                            % (update_repo.content, _update_milestone.name.replace(" ", "-"))
-                        )
-
-        ssh._close()
-
-        return Edit(Vmachine, self._body).single(Vmachine, "/vmachine")
 
 
 class Control(MessageBody):
@@ -275,7 +232,8 @@ class Control(MessageBody):
         self._body = body
 
     def run(self):
-        output = Messenger(self._body, self._pmachine, "virtual/machine/power").work()
+        output = Messenger(self._body, self._pmachine,
+                           "virtual/machine/power").work()
 
         if output.get("error_code"):
             return output
@@ -339,7 +297,8 @@ class DeleteVmachine(MessageBody):
 
 class DeviceManager(Messenger):
     def add(self, table):
-        vmachine = Precise(Vmachine, {"id": self._body.get("vmachine_id")}).first()
+        vmachine = Precise(
+            Vmachine, {"id": self._body.get("vmachine_id")}).first()
         self._pmachine = vmachine.pmachine
         self._body.update({"name": vmachine.name})
         self._method = "post"
@@ -367,7 +326,8 @@ class DeviceManager(Messenger):
         return Delete(table, self._body).batch(table, "/" + table.__name__.lower())
 
     def attach(self):
-        vmachine = Precise(Vmachine, {"id": self._body.get("vmachine_id")}).first()
+        vmachine = Precise(
+            Vmachine, {"id": self._body.get("vmachine_id")}).first()
         self._pmachine = vmachine.pmachine
         self._body.update({"name": vmachine.name})
         self._method = "post"
@@ -383,7 +343,7 @@ class DeviceManager(Messenger):
             if resp and resp.get("error_code") == 0:
                 if not vmachine.special_device:
                     Edit(
-                        Vmachine, 
+                        Vmachine,
                         {
                             "id": vmachine.id,
                             "special_device": self._body.get("service"),
@@ -391,18 +351,98 @@ class DeviceManager(Messenger):
                     ).single(Vmachine, "/vmachine")
                 else:
                     Edit(
-                        Vmachine, 
+                        Vmachine,
                         {
                             "id": vmachine.id,
                             "special_device": vmachine.special_device + ',' + self._body.get("service"),
                         }
                     ).single(Vmachine, "/vmachine")
-        
+
             resps.append(resp)
-        
+
         return jsonify(resps)
-        
+
 
 def search_device(body, table):
     devices = table.query.filter_by(vmachine_id=body.get("vmachine_id")).all()
     return jsonify([data.to_json() for data in devices])
+
+
+class VmachineAsyncResultHandler:
+    @staticmethod
+    @collect_sql_error
+    def edit(body):
+        pmachine = Pmachine.query.filter_by(id=body.get("pmachine_id")).first()
+        if not pmachine:
+            return jsonify(error_code=RET.DATA_EXIST_ERR, error_msg="host not exist for this vmachine")
+
+        _vnc_token = VncTokenCreator(pmachine.ip, body.get("vnc_port")).start()
+
+        body.update(
+            {
+                "vnc_token": _vnc_token,
+                "websockify_listen": current_app.config.get("WEBSOCKIFY_LISTEN"),
+            }
+        )
+        Edit(Vmachine, body).single(Vmachine, "/vmachine")
+
+        if body.get("method") == "cdrom":
+            return Edit(Vmachine, body).single(Vmachine, "/vmachine")
+
+        pxe = QueryIp(body.get("mac"))
+        for _ in range(current_app.config.get("VM_ENABLE_SSH")):
+            ip = pxe.query()
+            if isinstance(ip, dict):
+                Delete(Vmachine, {"name": body.get("name")}).single(
+                    Vmachine, "/vmachine"
+                )
+                return ip
+
+            # TODO 密码写活
+            ssh = Connection(ip, "openEuler12#$")
+            conn = ssh._conn()
+            if conn:
+                break
+            time.sleep(1)
+
+        if not conn:
+            mesg = "Failed to configure the repo source address."
+            current_app.logger.warning(mesg)
+            body.get("description") + " \n" + mesg
+
+        body.update({"ip": ip})
+
+        repo = Precise(
+            Repo,
+            {
+                "milestone_id": body.get("milestone_id"),
+                "frame": body.get("frame"),
+            },
+        ).first()
+
+        update_repo = None
+
+        if body.get("update_milestone_id"):
+            update_repo = Precise(
+                Repo,
+                {
+                    "milestone_id": body.get("_update_milestone_Id"),
+                    "frame": body.get("frame"),
+                },
+            ).first()
+
+        if repo:
+            ssh._command(
+                "mv /etc/yum.repos.d/openEuler.repo /etc/yum.repos.d/openEuler.repo.bak && echo -e '%s' > /etc/yum.repos.d/%s.repo"
+                % (repo.content, body.get("milestone").replace(" ", "-"))
+            )
+
+        if update_repo:
+            ssh._command(
+                "echo -e '%s' > /etc/yum.repos.d/%s.repo"
+                % (update_repo.content, body.get("update_milestone").name.replace(" ", "-"))
+            )
+
+        ssh._close()
+
+        return Edit(Vmachine, body).single(Vmachine, "/vmachine")

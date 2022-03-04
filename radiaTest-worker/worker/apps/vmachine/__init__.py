@@ -1,10 +1,8 @@
-import time
-
 from flask import request, jsonify
 from flask_restful import Resource
 
 from worker.apps.vmachine.handle import (
-    InstallVmachine,
+    # InstallVmachine,
     domain_cli,
     domain_state,
     attach_device,
@@ -13,19 +11,18 @@ from worker.apps.vmachine.handle import (
     OperateVnic,
 )
 
+from celeryservice.tasks import *
+
 
 class VmachineEvent(Resource):
     def post(self):
         body = request.json
-
-        if body.get("method") == "auto":
-            return InstallVmachine(body).kickstart()
-        elif body.get("method") == "import":
-            return InstallVmachine(body)._import()
-        elif body.get("method") == "cdrom":
-            return InstallVmachine(body).cd_rom()
-        else:
-            return jsonify({"error_code": 30010, "error_mesg": "未提供正确的安装方式."})
+        _task = create_vmachine.delay(body)
+        return jsonify(
+            error_code="2000", 
+            error_msg="OK", 
+            data={"tid": _task.task_id}
+        )
 
     def put(self):
         pass

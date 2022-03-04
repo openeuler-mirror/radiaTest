@@ -1,6 +1,6 @@
 from werkzeug.security import generate_password_hash, check_password_hash
 from server.model.base import Base
-from server import db
+from server import db, casbin_enforcer
 
 
 class Admin(db.Model, Base):
@@ -19,3 +19,19 @@ class Admin(db.Model, Base):
 
     def check_password_hash(self, password):
         return check_password_hash(self.password_hash, password)
+
+    def add_update(self, table=None, namespace=None):
+        casbin_enforcer.adapter.add_policy(
+            "g", 
+            "g", 
+            ["admin_%s"%(self.id), "root"]
+        )
+        return super().add_update(table, namespace)
+
+    def delete(self, table, namespace):
+        casbin_enforcer.adapter.remove_policy(
+            "g", 
+            "g", 
+            ["admin_%s"%(self.id), "root"]
+        )
+        return super().delete(table, namespace)
