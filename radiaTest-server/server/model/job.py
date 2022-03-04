@@ -1,16 +1,8 @@
-# @Author : lemon.higgins
-# @Date   : 2021-10-19 17:05:53
-# @Email  : lemon.higgins@aliyun.com
-# @License: Mulan PSL v2
-# @Desc   :
-
-
-import json
-
 from sqlalchemy.dialects.mysql import LONGTEXT
 
 from server import db
 from server.model.base import BaseModel
+
 
 job_vmachine = db.Table(
     "job_vmachine",
@@ -41,7 +33,7 @@ class Job(BaseModel, db.Model):
     success_cases = db.Column(db.Integer())
     fail_cases = db.Column(db.Integer())
     result = db.Column(db.String(32))
-    status = db.Column(db.String(32), nullable=False)
+    status = db.Column(db.String(32), nullable=True)
     remark = db.Column(db.String(512))
     frame = db.Column(db.String(9), nullable=False)
     master = db.Column(db.String(15))
@@ -54,7 +46,7 @@ class Job(BaseModel, db.Model):
         return {
             "id": self.id,
             "name": self.name,
-            "milestone": self.milestone.name,
+            "milestone": self.milestone.to_json() if self.milestone_id else {},
             "start_time": self.start_time,
             "end_time": self.end_time,
             "total": self.total,

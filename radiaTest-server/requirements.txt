@@ -52,3 +52,6 @@ xlrd==2.0.1
 pypinyin==0.44.0
 wget==3.2
 rarfile==4.0
+celery==5.1.2
+ httplib2==0.20.1 
+ pyrabbit==1.1.0

@@ -7,6 +7,7 @@ from datetime import datetime
 from flask_socketio import SocketIO
 from flask import current_app, jsonify
 
+from server import db
 from server.utils.pssh import Connection
 from server.utils.db import Edit, Insert, Like, Precise
 from server.model import (
@@ -24,13 +25,12 @@ from server.model import (
 from server.model.milestone import Milestone
 from server.model.task import TaskMilestone
 from server.apps.job.executor import Executor
-from server.apps.job.frameworks import Mugen
+from server.model.framework import Framework, GitRepo
+from server.apps.framework.adaptor import FrameworkAdaptor
 from server.apps.job.logs_handler import LogsHandler
 from server.apps.vmachine.handlers import CreateVmachine, DeleteVmachine, DeviceManager
 from server.apps.pmachine.handlers import AutoInstall
 from server.schema.vmachine import VmachineBase, VnicBase, VdiskBase
-
-socketio = SocketIO(cors_allowed_origins="*")
 
 
 class RunJob:
@@ -47,18 +47,18 @@ class RunJob:
         if _milestone.type == "update":
             _milestone = Precise(
                 Milestone, {
-                    "product_id": _milestone.product.id, 
+                    "product_id": _milestone.product.id,
                     "type": "release"
                 }
             ).first()
 
         qcow2_mirror = QMirroring.query.filter_by(
-            milestone_id=_milestone.id, 
+            milestone_id=_milestone.id,
             frame=self._body.get("frame")
         ).first()
 
         iso_mirror = IMirroring.query.filter_by(
-            milestone_id=_milestone.id, 
+            milestone_id=_milestone.id,
             frame=self._body.get("frame")
         ).first()
 
@@ -73,12 +73,31 @@ class RunJob:
         self._body.update({"description": "used for CI job:%s" % self._name})
         for num in range(quantity):
             self._body.update({"name": self._name + "-" + str(num + 1)})
-            output = CreateVmachine(VmachineBase(**self._body).dict()).install()
- 
+            output = CreateVmachine(VmachineBase(
+                **self._body).dict()).install()
+
             if output.json.get("error_code") != 200:
                 raise RuntimeError("Failed to create test machine.")
 
-        return Precise(Vmachine, {"description": self._body.get("description")}).all()
+        times = 0
+        while times < 30:
+            num = 0
+            db.session.commit()
+            vmachines = Vmachine.query.filter_by(
+                description=self._body.get("description")
+            ).all()
+            for vmachine in vmachines:
+                if vmachine.ip is not None:
+                    num += 1
+
+            if num == quantity:
+                return vmachines
+
+            times += 1
+            time.sleep(60)
+
+        raise RuntimeError(
+            "time out of limit for getting IP of job's machines")
 
     def increase_vnic(self, machines, quantity):
         for machine in machines:
@@ -109,12 +128,13 @@ class RunJob:
     def install_physical(self, quantity):
         pmachines = Precise(
             Pmachine,
-            {"description": current_app.config.get("CI_PURPOSE"), "state": "idle"},
+            {"description": current_app.config.get(
+                "CI_PURPOSE"), "state": "idle"},
         ).all()
 
         if len(pmachines) < quantity:
             raise RuntimeError("Not enough Pmachines to be used")
-        
+
         machines = random.choices(pmachines, k=quantity)
         for pmachine in machines:
             p_body = pmachine.to_json().update(
@@ -149,7 +169,7 @@ class RunJob:
                 "Can't establish a communication connection with the tester, please contact the administrator."
             )
         return ssh
-        
+
     def _create_job(self):
         self._body.update({"status": "preparing"})
         if self._body.get("id"):
@@ -170,12 +190,13 @@ class RunSuite(RunJob):
             self._body.update(self._job.to_json())
             self._body.pop("milestone")
 
-            suite = Precise(Suite, {"name": self._body.get("testsuite")}).first()
+            suite = Precise(
+                Suite, {"name": self._body.get("testsuite")}).first()
             if not suite:
                 raise RuntimeError(
                     "The test suite:%s does not exist, please contact the tester to add it in time."
                 )
-            
+
             self._body.update({
                 "status": "installing",
                 "total": len(
@@ -210,12 +231,23 @@ class RunSuite(RunJob):
 
             ssh = self.connect_master(machines)
 
-            _executor = Executor(ssh, Mugen)
+            framework = Framework.query.filter_by(
+                name="mugen"
+            ).first()
+
+            adaptor = getattr(FrameworkAdaptor, framework.name)
+
+            git_repo = GitRepo.query.filter_by(name="mugen").first()
+
+            _executor = Executor(
+                ssh, framework, git_repo, adaptor
+            )
             _logs_handler = LogsHandler(
-                ssh, 
+                ssh,
                 self._body.get("id"),
                 self._name,
-                Mugen,
+                framework,
+                adaptor
             )
 
             _executor.prepare_git()
@@ -231,7 +263,7 @@ class RunSuite(RunJob):
                 if case.usabled:
                     exitcode, output = _executor.run_test(
                         testcase=case.name,
-                        testsuite=suite.name, 
+                        testsuite=suite.name,
                     )
                     current_app.logger.info(output)
                     _result = "success"
@@ -253,7 +285,7 @@ class RunSuite(RunJob):
                             "job_id": self._body.get("id"),
                             "case_id": case.id,
                             "master": self._body.get("master"),
-                            "log_url": "http://{}:{}/{}/{}/logs/{}/{}/".format(
+                            "log_url": "http://{}:{}/{}/{}/{}/{}/".format(
                                 current_app.config.get("REPO_IP"),
                                 current_app.config.get("REPO_PORT"),
                                 current_app.config.get("LOGS_ROOT_URL"),
@@ -292,10 +324,10 @@ class RunSuite(RunJob):
         finally:
             if self._body.get("result") == "success":
                 DeleteVmachine(self._body).run()
-            
+
             if self._body.get("status") != "block":
                 self._body.update({
-                    "status": "done", 
+                    "status": "done",
                     "end_time": datetime.now(),
                     "result": self._body.get("result"),
                 })
@@ -313,7 +345,7 @@ class RunTemplate(RunJob):
                 del self._body[key]
         if not self._body.get("milestone_id"):
             self._body.update({"milestone_id": self._template.milestone_id})
-        
+
     def _sort(self):
         cases = self._template.cases
         if not cases:
@@ -398,12 +430,19 @@ class RunTemplate(RunJob):
 
             ssh = self.connect_master(machines)
 
-            _executor = Executor(ssh, Mugen)
+            framework = Framework.query.filter_by(
+                name=self._body.get("framework")
+            ).first()
+
+            adaptor = getattr(FrameworkAdaptor, self._body.get("framework"))
+
+            _executor = Executor(ssh, framework, adaptor)
             _logs_handler = LogsHandler(
-                ssh, 
+                ssh,
                 self._body.get("id"),
                 self._name,
-                Mugen,
+                framework,
+                adaptor
             )
 
             _executor.prepare_git()
@@ -420,11 +459,11 @@ class RunTemplate(RunJob):
                     Case, {"suite_id": suite.id, "name": case[1]}
                 ).first()
                 exitcode, output = _executor.run_test(
-                    testcase=case[1], 
+                    testcase=case[1],
                     testsuite=case[0],
                 )
                 current_app.logger.info(output)
-                if exitcode: 
+                if exitcode:
                     result = "fail"
                     self._body.update({
                         "fail_cases": self._body.get("fail_cases") + 1
@@ -467,13 +506,13 @@ class RunTemplate(RunJob):
                 "end_time": datetime.now()
             })
             Edit(Job, self._body).single(Job, '/job')
-            
+
             DeleteVmachine(self._body).run()
             raise RuntimeError(e)
-    
+
     def _callback_task_job_init(self):
         return Edit(
-            TaskMilestone, 
+            TaskMilestone,
             {
                 "id": self._body.get("taskmilestone_id"),
                 "job_id": self._job.id
@@ -498,11 +537,14 @@ class RunTemplate(RunJob):
             resp.encoding = resp.apparent_encoding
 
             if resp.status_code == 200:
-                current_app.logger.info("Task job has been call back => " + resp.text)
+                current_app.logger.info(
+                    "Task job has been call back => " + resp.text)
             else:
-                current_app.logger.error("Error in calling back to TaskMilestones => " + resp.text)
+                current_app.logger.error(
+                    "Error in calling back to TaskMilestones => " + resp.text)
         except Exception as e:
-            current_app.logger.error("Error in calling back to TaskMilestones => " +str(e))
+            current_app.logger.error(
+                "Error in calling back to TaskMilestones => " + str(e))
 
     def run(self):
         try:
@@ -513,7 +555,8 @@ class RunTemplate(RunJob):
             if self._job and self._body.get("taskmilestone_id"):
                 resp = self._callback_task_job_init()
                 if resp.status_code != 200:
-                    current_app.logger.error("Cannot callback job_id to taskmilestone table: " + resp.error_mesg)
+                    current_app.logger.error(
+                        "Cannot callback job_id to taskmilestone table: " + resp.error_mesg)
 
             self._body.update({
                 "status": "preparing",
@@ -533,15 +576,15 @@ class RunTemplate(RunJob):
                     cases.get("disk"),
                     cases.get("cases"),
                 )
-            
+
             _result = "fail"
 
             if self._body.get("total") == self._body.get("success_cases"):
                 _result = "success"
 
             self._body.update({
-                "status": "done", 
-                "result": _result, 
+                "status": "done",
+                "result": _result,
                 "end_time": datetime.now()
             })
             Edit(Job, self._body).single(Job, '/job')
@@ -552,14 +595,14 @@ class RunTemplate(RunJob):
 
             self._body.update({
                 "result": "fail",
-                "status": "block", 
+                "status": "block",
                 "remark": str(e),
                 "end_time": datetime.now()
             })
-            Edit(Job,self._body).single(Job, "/job")
+            Edit(Job, self._body).single(Job, "/job")
 
             return jsonify({"error_code": 60009, "error_mesg": str(e)})
-        
+
         finally:
             if self._body.get("taskmilestone_id"):
                 self._callback_task_job_result()

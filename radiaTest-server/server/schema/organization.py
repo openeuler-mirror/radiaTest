@@ -3,6 +3,8 @@ from pydantic import BaseModel, Field, validator
 from typing import Optional
 from datetime import datetime
 
+from .base import PageBaseSchema
+
 
 class OrgUserInfoSchema(BaseModel):
     org_id: int = Field(alias="id")
@@ -22,6 +24,10 @@ class AddSchema(BaseModel):
     cla_sign_url: str
     cla_request_type: str
     cla_pass_flag: str
+
+
+class OrgBaseSchema(AddSchema):
+    id: int
 
 
 class UpdateSchema(BaseModel):
@@ -53,3 +59,9 @@ class ReUserOrgSchema(BaseModel):
             return json.loads(v)
         except:
             return None
+
+
+class OrgQuerySchema(PageBaseSchema):
+    is_delete: bool = False
+    org_name: Optional[str] = Field(alias="name")
+    org_description: Optional[str] = Field(alias="description")

@@ -46,6 +46,14 @@ class Group(Resource):
         return handler_group_page()
 
 
+# class OrgGroups(Resource):
+#     @auth.login_required()
+#     @response_collect
+#     @validate()
+#     def get(self, org_id, query: GroupsQuerySchema):
+#         return handler_get_groups(org_id, query)
+
+
 class User(Resource):
     @auth.login_required()
     @response_collect

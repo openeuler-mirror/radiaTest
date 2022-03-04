@@ -1,4 +1,5 @@
 from server.model.base import Base
+from server.model.permission import Role
 from server import db, redis_client
 from server.utils.redis_util import RedisKey
 
@@ -12,8 +13,16 @@ class User(db.Model, Base):
     avatar_url = db.Column(db.String(512), nullable=True, default=None)
     cla_email = db.Column(db.String(128), nullable=True, default=None)
 
+    re_user_role = db.relationship("ReUserRole", backref="user")
     re_user_group = db.relationship("ReUserGroup", backref="user")
     re_user_organization = db.relationship("ReUserOrganization", backref="user")
+
+    def _get_roles(self):
+        roles = []
+        for re in self.re_user_role:
+            role = Role.query.filter_by(id=re.role_id).first()
+            roles.append(role.to_json())
+        return roles
 
     def to_dict(self):
         return {
@@ -23,6 +32,7 @@ class User(db.Model, Base):
             "phone": self.phone,
             "avatar_url": self.avatar_url,
             "cla_email": self.cla_email,
+            "roles": self._get_roles()
         }
 
     @staticmethod

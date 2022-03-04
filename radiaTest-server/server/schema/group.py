@@ -43,7 +43,6 @@ class UpdateGroupUserSchema(BaseModel):
 
 
 class QueryGroupUserSchema(PageBaseSchema):
-    is_admin: bool = False
     except_list: str = None
 
     @validator('except_list')
@@ -52,3 +51,10 @@ class QueryGroupUserSchema(PageBaseSchema):
             return [int(item) for item in v.split(',')]
         else:
             return None
+
+
+class GroupsQuerySchema(PageBaseSchema):
+    is_delete: bool = False
+    name: Optional[str]
+    description: Optional[str]
+

@@ -130,7 +130,7 @@ class Insert(FilterBase):
         super().__init__(table, data)
 
     @pdbc
-    def single(self, table, namespace):
+    def single(self, table=None, namespace=None):
         self._instance.add_update(table, namespace)
 
     def insert_id(self, table=None, namespace=None):
@@ -139,7 +139,7 @@ class Insert(FilterBase):
 
 class Delete(DataBase):
     @pdbc
-    def batch(self, table, namespace):
+    def batch(self, table=None, namespace=None):
         data = MultipleConditions(self._table, self._data).all()
         if not data:
             raise ValueError("Related data has been deleted.")
@@ -148,7 +148,7 @@ class Delete(DataBase):
             d.delete(table, namespace)
 
     @pdbc
-    def single(self, table, namespace):
+    def single(self, table=None, namespace=None):
         data = Precise(self._table, self._data).first()
         if not data:
             raise ValueError("Related data has been deleted.")

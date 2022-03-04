@@ -1,17 +1,16 @@
-import os
-from flask import request
-from flask.globals import current_app
-from flask.json import jsonify
+from celeryservice.tasks import resolve_testcase_file_for_baseline
+from flask import request, g, jsonify
 from flask_restful import Resource
 from flask_pydantic import validate
-from werkzeug.utils import secure_filename
 
+from server import redis_client
+from server.utils.redis_util import RedisKey
 from server.utils.auth_util import auth
 from server.utils.response_util import RET, response_collect
 from server.model.testcase import Suite, Case
-from server.utils.db import Insert, Edit, Select, Delete
-from server.utils.sheet import Excel, SheetExtractor 
+from server.utils.db import Edit, Select, Delete, collect_sql_error
 from server.schema.base import DeleteBaseModel
+from server.schema.celerytask import CeleryTaskUserInfoSchema
 from server.schema.testcase import (
     BaselineBodySchema,
     BaselineQuerySchema,
@@ -23,11 +22,12 @@ from server.schema.testcase import (
     CaseUpdate,
 )
 from server.apps.testcase.handler import (
-    CaseImportHandler, 
-    BaselineHandler, 
-    SuiteHandler, 
+    CaseImportHandler,
+    BaselineHandler,
+    SuiteHandler,
     CaseHandler
 )
+
 
 class BaselineEvent(Resource):
     @auth.login_required()
@@ -72,16 +72,17 @@ class BaselineImportEvent(Resource):
                 error_code=RET.PARMA_ERR,
                 error_msg="the id of group could not be empty as importing case set"
             )
-        
-        if not request.form.get("framework_id"):
+
+        if not request.form.get("git_repo_id"):
             return jsonify(
                 error_code=RET.PARMA_ERR,
-                error_msg="the id of framework could not be empty as importing case set"
+                error_msg="the id of git repo could not be empty as importing case set"
             )
 
         return BaselineHandler.import_case_set(
-            request.form, 
-            request.files.get("file")
+            request.files.get("file"),
+            request.form.get("group_id"),
+            int(request.form.get("git_repo_id")),
         )
 
 
@@ -130,7 +131,8 @@ class CaseEvent(Resource):
         _body = body.__dict__
 
         if _body["suite"]:
-            _body["suite_id"] = Suite.query.filter_by(name=_body.get("suite")).first().id
+            _body["suite_id"] = Suite.query.filter_by(
+                name=_body.get("suite")).first().id
             _body.pop("suite")
 
         return Edit(Case, _body).single(Case, "/case")
@@ -166,19 +168,46 @@ class CaseImport(Resource):
     def post(self):
         if not request.files.get("file"):
             return jsonify(error_code=RET.PARMA_ERR, error_msg="The file being uploaded is not exist")
-        
+
         if not request.form.get("group_id"):
             return jsonify(error_code=RET.PARMA_ERR, error_msg="The file should be binded to a group")
 
-        if not request.form.get("framework_id"):
-            return jsonify(error_code=RET.PARMA_ERR, error_msg="The file should be binded to a framework")
-        
+        if not request.form.get("git_repo_id"):
+            return jsonify(error_code=RET.PARMA_ERR, error_msg="The file should be binded to a git repo")
+
         return CaseImportHandler.import_case(
             request.files.get("file"),
             request.form.get("group_id"),
-            request.form.get("framework_id")
+            int(request.form.get("git_repo_id"))
         )
 
 
+class ResolveTestcaseByFilepath(Resource):
+    @auth.login_required()
+    @response_collect
+    @collect_sql_error
+    def post(self):
+        body = request.json
 
-        
+        _task = resolve_testcase_file_for_baseline.delay(
+            body.get("file_id"),
+            body.get("filepath"),
+            body.get("git_repo_id"),
+            CeleryTaskUserInfoSchema(
+                auth=request.headers.get("authorization"),
+                user_id=int(g.gitee_id),
+                group_id=body.get("group_id"),
+                org_id=redis_client.hget(
+                    RedisKey.user(g.gitee_id),
+                    'current_org_id'
+                )
+            ).__dict__,
+        )
+
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+            data={
+                "tid": _task.task_id
+            }
+        )

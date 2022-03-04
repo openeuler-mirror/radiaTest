@@ -36,6 +36,9 @@ class Pmachine(BaseModel, db.Model):
     vmachine = db.relationship(
         "Vmachine", backref="pmachine", cascade="all, delete, delete-orphan"
     )
+    celerytasks = db.relationship(
+        "CeleryTask", backref="pmachine", cascade="all, delete, delete-orphan"
+    )
 
     def to_json(self):
         return {

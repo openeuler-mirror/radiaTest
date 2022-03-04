@@ -20,11 +20,12 @@ class Connection(SSH):
     def _conn(self):
         try:
             self._client.connect(
-                self._ip,
-                self._port,
-                self._user,
+                hostname=self._ip,
+                port=self._port,
+                username=self._user,
                 password=self._passwd,
                 timeout=300,
+                banner_timeout=300,
                 look_for_keys=False,
                 pkey=self._pkey,
             )

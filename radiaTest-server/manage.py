@@ -6,12 +6,13 @@ from geventwebsocket.handler import WebSocketHandler
 from flask_script import Manager
 from flask_migrate import Migrate, MigrateCommand
 
+from server.utils.celery_utils import make_celery
 from server import create_app, db
-from server.utils.daemon import DaemonThread
-from server.plugins.monitor import LifecycleMonitor, RepoMonitor
 
 
-app = create_app()
+my_celery = make_celery(__name__)
+
+app = create_app(celery=my_celery)
 
 manager = Manager(app)
 migrate = Migrate(app, db)
@@ -21,10 +22,6 @@ manager.add_command("db", MigrateCommand)
 
 @manager.command
 def run_gevent():
-
-    DaemonThread(LifecycleMonitor(app, 300)).start()
-
-    DaemonThread(RepoMonitor(app, 600)).start()
 
     server = pywsgi.WSGIServer(
         (app.config.get("SERVER_IP"), int(app.config.get("SERVER_PORT"))),

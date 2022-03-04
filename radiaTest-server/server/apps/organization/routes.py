@@ -1,5 +1,7 @@
 from flask_pydantic import validate
 from flask_restful import Resource
+
+from server.schema.organization import OrgQuerySchema
 from server.utils.cla_util import ClaBaseSchema
 from server.utils.auth_util import auth
 from server.utils.response_util import response_collect
@@ -15,6 +17,14 @@ class Cla(Resource):
     @validate()
     def post(self, org_id, body: ClaBaseSchema):
         return handler_org_cla(org_id, body)
+
+
+class Org(Resource):
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def get(self, query: OrgQuerySchema):
+        return handler_get_all_org(query)
 
 
 class User(Resource):
