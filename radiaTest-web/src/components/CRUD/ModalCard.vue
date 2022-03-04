@@ -15,15 +15,27 @@
       <n-card
         class="modalCard"
         :title="title"
-        style="min-width: 680px; max-width: 1280px;"
+        style="min-width: 680px; max-width: 1280px"
       >
         <slot name="form"></slot>
         <n-space class="NPbutton">
-          <n-button size="large" type="error" @click="onNegativeClick" ghost>
-            取消
+          <n-button
+            size="large"
+            type="error"
+            @click="onNegativeClick"
+            ghost
+            v-if="showCancel"
+          >
+            {{ cancelText }}
           </n-button>
-          <n-button size="large" type="primary" @click="onPositiveClick" ghost>
-            提交
+          <n-button
+            size="large"
+            type="primary"
+            @click="onPositiveClick"
+            ghost
+            v-if="showConfirm"
+          >
+            {{ confirmText }}
           </n-button>
         </n-space>
       </n-card>
@@ -43,6 +55,22 @@ export default defineComponent({
     Vue3DraggableResizable,
   },
   props: {
+    showConfirm: {
+      type: Boolean,
+      default: true
+    },
+    showCancel: {
+      type: Boolean,
+      default: true
+    },
+    cancelText: {
+      type: String,
+      default: '取消'
+    },
+    confirmText: {
+      type: String,
+      default: '提交'
+    },
     title: String,
     initX: {
       default: 600,

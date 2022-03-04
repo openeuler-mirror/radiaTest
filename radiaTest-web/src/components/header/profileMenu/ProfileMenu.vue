@@ -1,32 +1,21 @@
 <template>
   <n-grid :cols="16">
     <n-gi :span="2"> </n-gi>
-    <n-gi
-      :span="7"
-      style="display:flex;align-items:center;"
-    >
-      <b style="color:rgba(0, 47, 167, 1)">{{currentOrg}}</b>
+    <n-gi :span="7" style="display: flex; align-items: center">
+      <n-gradient-text type="primary">{{ currentOrg }}</n-gradient-text>
       <n-divider vertical />
-      <span>{{accountName}}</span>
+      <n-gradient-text type="info">{{ accountName }}</n-gradient-text>
     </n-gi>
     <n-gi :span="2">
       <div class="msg-box">
-        <n-badge
-          :value="msgCount"
-          style="cursor:pointer;"
-          @click="gotoNews"
-        >
-          <n-icon
-            :size="40"
-            :color="msgCount?'':'#9b9b9b'"
-          >
+        <n-badge :value="msgCount" style="cursor: pointer" @click="gotoNews">
+          <n-icon :size="40" :color="msgCount ? '' : '#9b9b9b'">
             <bell-outlined />
           </n-icon>
         </n-badge>
       </div>
     </n-gi>
-    <n-gi :span="1">
-    </n-gi>
+    <n-gi :span="1"> </n-gi>
     <n-gi :span="4">
       <n-dropdown
         trigger="hover"
@@ -37,7 +26,7 @@
         placement="bottom-end"
       >
         <n-avatar
-          style="position: relative; left: 10px;cursor: pointer;"
+          style="position: relative; left: 10px; cursor: pointer"
           circle
           :size="60"
           :src="avatarUrl"
@@ -67,12 +56,9 @@
       ></n-select>
     </n-form-item>
     <template #action>
-      <n-button
-        @click="switchOrg"
-        type="primary"
-        ghost
-        size="large"
-      >确定</n-button>
+      <n-button @click="switchOrg" type="primary" ghost size="large"
+        >确定</n-button
+      >
     </template>
   </n-modal>
 </template>
@@ -86,7 +72,7 @@ export default defineComponent({
   components: {
     BellOutlined
   },
-  setup () {
+  setup() {
     const { proxy } = getCurrentInstance();
     modules.getOrg();
     const msgCount = inject('msgCount');
@@ -115,9 +101,9 @@ export default defineComponent({
 </script>
 
 <style scoped lang="less">
-.msg-box{
+.msg-box {
   display: flex;
   align-items: center;
-  height:100%;
+  height: 100%;
 }
 </style>

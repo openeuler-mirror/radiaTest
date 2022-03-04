@@ -44,10 +44,17 @@
             v-if="drawerTypeJudge()"
           >
             <n-input
-              placeholder="请输入模板名称"
+              placeholder="请输入模板类型"
               v-model:value="drawerModel.templateType"
             />
           </n-form-item>
+          <div v-if="drawerTypeJudge()" style="margin-left:80px;">
+            <n-checkbox
+              v-model:checked="suitesAllCheckValue"
+              @update:checked="handleCheckedChange"
+              >全选</n-checkbox
+            >
+          </div>
           <n-form-item
             label="测试套"
             path="suiteNames"
@@ -62,9 +69,13 @@
               :options="suiteNamesOptions"
               clearable
               remote
+              :max-tag-count="10"
               @search="handleSuiteNamesSearch"
+              @update:value="handleSuiteNames"
+              @clear="suiteNamesClear"
             />
           </n-form-item>
+
           <n-form-item label="责任人" path="executor" v-if="drawerTypeJudge()">
             <n-select
               placeholder="请选择责任人"

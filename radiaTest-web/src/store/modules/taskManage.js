@@ -9,7 +9,11 @@ export default {
   getters: {},
   mutations: {
     toggleView(state) {
-      state.kanban === true ? (state.kanban = false) : (state.kanban = true);
+      if(state.kanban){
+        state.kanban = false;
+      }else{
+        state.kanban = true;
+      }
     },
     toggleNewTaskDrawer(state) {
       state.showNewTaskDrawer === true

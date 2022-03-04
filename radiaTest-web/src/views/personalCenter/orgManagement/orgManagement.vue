@@ -10,14 +10,6 @@
           </template>
           注册新组织
         </n-button>
-        <n-button text type="primary" @click="logout">
-          <template #icon>
-            <n-icon>
-              <exit />
-            </n-icon>
-          </template>
-          退出登录
-        </n-button>
       </div>
       <n-divider />
       <h3>组织</h3>
@@ -29,7 +21,7 @@
       <n-modal
         v-model:show="showRegisterOrgWindow"
         preset="dialog"
-        style="width:700px"
+        style="width: 700px"
       >
         <template #header>
           <h3>注册新组织</h3>
@@ -99,7 +91,7 @@
           </n-form-item>
         </n-form>
         <template #action>
-          <n-space style="width:100%">
+          <n-space style="width: 100%">
             <n-button
               type="error"
               size="large"
@@ -119,14 +111,13 @@
 </template>
 
 <script>
-import { Add, Exit } from '@vicons/ionicons5';
+import { Add } from '@vicons/ionicons5';
 import cardPage from '@/components/common/cardPage';
 import { modules } from './modules/index.js';
 export default {
   components: {
     cardPage,
     Add,
-    Exit,
   },
   setup() {
     modules.getData();

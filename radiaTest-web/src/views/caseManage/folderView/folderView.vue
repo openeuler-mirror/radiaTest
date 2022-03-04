@@ -1,62 +1,102 @@
 <template>
-  <modal-card
-    :initY="100"
-    :initX="300"
-    title="新建文本用例"
-    ref="createModalRef"
-    @validate="() => createFormRef.handlePropsButtonClick()"
-    @submit="submitCreateCase"
-  >
-    <template #form>
-      <n-tabs type="line" size="large" :tab-padding="20">
-        <n-tab-pane name="基本信息" @click="createFormRef.changeTabs('info')">
-          <div></div>
-        </n-tab-pane>
-        <n-tab-pane
-          name="详细内容"
-          @click="createFormRef.changeTabs('content')"
+  <n-spin :show="showLoading" stroke="rgba(0, 47, 167, 1)">
+    <modal-card
+      :initY="100"
+      :initX="300"
+      title="新建文本用例"
+      ref="createModalRef"
+      @validate="() => createFormRef.handlePropsButtonClick()"
+      @submit="submitCreateCase"
+    >
+      <template #form>
+        <n-tabs type="line" size="large" :tab-padding="20">
+          <n-tab-pane name="基本信息" @click="createFormRef.changeTabs('info')">
+            <div></div>
+          </n-tab-pane>
+          <n-tab-pane
+            name="详细内容"
+            @click="createFormRef.changeTabs('content')"
+          >
+            <div></div>
+          </n-tab-pane>
+        </n-tabs>
+        <testcase-create-form
+          ref="createFormRef"
+          @valid="() => createModalRef.submitCreateForm()"
+          @close="
+            () => {
+              createModalRef.close();
+            }
+          "
+        />
+      </template>
+    </modal-card>
+    <modal-card
+      :initY="100"
+      :initX="300"
+      title="修改测试套"
+      ref="putModalRef"
+      @validate="() => putFormRef.put()"
+    >
+      <template #form>
+        <testsuite-create
+          ref="putFormRef"
+          :data="suiteInfo"
+          @close="
+            () => {
+              putModalRef.close();
+            }
+          "
+        />
+      </template>
+    </modal-card>
+    <modal-card
+          :initX="300"
+          title="修改文本用例"
+          ref="updateModalRef"
+          @validate="() => updateFormRef.handlePropsButtonClick()"
+          @submit="updateFormRef.put()"
         >
-          <div></div>
-        </n-tab-pane>
-      </n-tabs>
-      <testcase-create-form
-        ref="createFormRef"
-        @valid="() => createModalRef.submitCreateForm()"
-        @close="
-          () => {
-            createModalRef.close();
-          }
-        "
-      />
-    </template>
-  </modal-card>
-  <n-layout has-sider>
-    <n-layout-sider
-      bordered
-      content-style="padding: 24px;overflow-y:auto;"
-      collapse-mode="width"
-      :collapsed-width="1"
-      :width="400"
-      show-trigger="arrow-circle"
-      :style="{ height: contentHeight + 'px' }"
-    >
-      <tree
-        :expandKeys="expandKeys"
-        :data="menuList"
-        @load="loadData"
-        @selectAction="selectAction"
-        @menuClick="menuClick"
-        :selectKey="selectKey"
-        @expand="expand"
-      />
-    </n-layout-sider>
-    <n-layout-content
-      content-style="padding: 24px;"
-      :style="{ height: contentHeight + 'px', overflowY: 'auto' }"
-    >
-      <router-view :key="key" />
-    </n-layout-content>
-  </n-layout>
+          <template #form>
+            <testcase-update-form
+              ref="updateFormRef"
+              @valid="() => updateModalRef.submitCreateForm()"
+              @close="
+                () => {
+                  updateModalRef.close();
+                }
+              "
+            />
+          </template>
+        </modal-card>
+    <n-layout has-sider>
+      <n-layout-sider
+        bordered
+        content-style="padding: 24px;overflow-y:auto;"
+        collapse-mode="width"
+        :collapsed-width="1"
+        :width="400"
+        show-trigger="arrow-circle"
+        :style="{ height: contentHeight + 'px' }"
+      >
+        <tree
+          :expandKeys="expandKeys"
+          :data="menuList"
+          @load="loadData"
+          @selectAction="selectAction"
+          @menuClick="menuClick"
+          :selectKey="selectKey"
+          @expand="expand"
+        />
+      </n-layout-sider>
+      <n-layout-content
+        content-style="padding: 24px;"
+        :style="{ height: contentHeight + 'px', overflowY: 'auto' }"
+      >
+        <router-view :key="key" />
+      </n-layout-content>
+    </n-layout>
+  </n-spin>
 </template>
 <script>
 import tree from '@/components/tree/tree.vue';
@@ -64,11 +104,13 @@ import { modules } from './modules';
 import Common from '@/components/CRUD';
 import Essential from '@/components/testcaseComponents';
 import { ref } from 'vue';
+import testsuiteCreate from '@/components/testsuiteComponents/testsuiteCreate.vue';
 export default {
   components: {
     ...Common,
     ...Essential,
     tree,
+    testsuiteCreate
   },
   computed: {
     key() {
@@ -76,6 +118,12 @@ export default {
     },
   },
   mounted() {
+    this.$axios.get('/v1/framework').then((res) => {
+      this.frameworkList = res.map((item) => ({
+        label: item.name,
+        value: item.id,
+      }));
+    });
     this.contentHeight =
       document.body.clientHeight -
       document.getElementById('header').clientHeight -

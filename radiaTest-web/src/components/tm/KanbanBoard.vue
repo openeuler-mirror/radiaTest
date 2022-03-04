@@ -2,10 +2,22 @@
   <div class="board">
     <div class="header">
       <div class="stage-name">
-        <div v-if="showStatusItem">
-          <span>{{ taskData.statusItem }}</span>
-          <span> · </span>
-          <span>{{ taskData.tasks.length }}</span>
+        <div v-if="showStatusItem" class="left">
+          <div>
+            <span>{{ taskData.statusItem }}</span>
+            <span> · </span>
+            <span>{{ taskData.tasks.length }}</span>
+          </div>
+          <div v-if="taskData.statusItem === '已完成'">
+            <n-switch
+              v-model:value="showTaskList"
+              size="small"
+              @update:value="handleChange"
+            >
+              <template #checked>全任务</template>
+              <template #unchecked>仅本人</template>
+            </n-switch>
+          </div>
         </div>
         <div v-else>
           <div class="inputWrap">
@@ -16,21 +28,16 @@
             />
           </div>
           <div class="btnWrap">
-            <n-button type="error" ghost @click="cancelStatusItem">取消</n-button>
-            <n-button
-              type="info"
-              ghost
-              @click="editStatusItem"
-            >确定</n-button>
+            <n-button type="error" ghost @click="cancelStatusItem"
+              >取消</n-button
+            >
+            <n-button type="info" ghost @click="editStatusItem">确定</n-button>
           </div>
         </div>
       </div>
       <div class="dots">
         <a>
-          <n-dropdown
-            :options="options"
-            @select="select"
-          >
+          <n-dropdown :options="options" @select="select">
             <n-icon size="14">
               <Dots />
             </n-icon>
@@ -59,10 +66,7 @@
                   ></div>
                   <div class="task-main">
                     <div class="task-content-wrapper">
-                      <div
-                        class="task-content"
-                        @click="taskDetail(element)"
-                      >
+                      <div class="task-content" @click="taskDetail(element)">
                         {{ element.title }}
                       </div>
                       <img
@@ -88,7 +92,7 @@
             </template>
           </draggable>
         </div>
-        <div class="task-creator" v-show="taskData.statusItem==='待办中'">
+        <div class="task-creator" v-show="taskData.statusItem === '待办中'">
           <a @click="showCreateTask">
             <n-icon size="16">
               <AddCircle24Regular />
@@ -98,6 +102,35 @@
         </div>
       </div>
     </n-scrollbar>
+    <n-modal v-model:show="deleteTasksModal">
+      <n-card
+        style="width: 600px"
+        title="批量删除任务"
+        :bordered="false"
+        size="huge"
+      >
+        <div style="display:flex;">
+          <n-select
+            placeholder="请选择任务"
+            style="width:70%"
+            multiple
+            v-model:value="deleteTasksValue"
+            :options="deleteTasksOption"
+          />
+          <div style="width:30%;display:flex;justify-content:space-evenly;">
+            <n-button type="error" ghost @click="cancelDeleteTasks"
+              >取消</n-button
+            >
+            <n-button
+              type="info"
+              ghost
+              @click="deleteTasksBtn(deleteTasksValue)"
+              >删除</n-button
+            >
+          </div>
+        </div>
+      </n-card>
+    </n-modal>
   </div>
 </template>
 
@@ -129,47 +162,68 @@ export default {
     draggable,
   },
   props: ['taskData'],
-  emits: ['showDetail'],
-  data () {
+  emits: ['showDetail', 'toggleComplete'],
+  data() {
     return {
       options: [
         {
-          label: '编辑',
+          label: '编辑状态',
           key: 'edit',
           icon: renderIcon(Edit24Regular),
         },
         {
-          label: '删除',
+          label: '删除状态',
           key: 'delete',
+          icon: renderIcon(Delete20Regular),
+        },
+        {
+          label: '批量删除任务',
+          key: 'deleteTasks',
+          disabled: this.taskData.statusItem !== '待办中',
           icon: renderIcon(Delete20Regular),
         },
       ],
       showStatusItem: true,
       statusItemValue: null,
+      deleteTasksModal: false,
+      deleteTasksValue: null,
+      deleteTasksOption: [],
+      showTaskList: true,
     };
   },
   methods: {
-    select (key) {
+    select(key) {
       if (key === 'delete') {
         this.$emit('select', { key });
       } else if (key === 'edit') {
         this.showStatusItem = false;
+      } else if (key === 'deleteTasks') {
+        this.deleteTasksModal = true;
+        if (this.taskData.tasks) {
+          this.deleteTasksValue = null;
+          this.deleteTasksOption = this.taskData.tasks.map((v) => {
+            return {
+              label: v.title,
+              value: v.id,
+            };
+          });
+        }
       }
     },
-    editStatusItem () {
+    editStatusItem() {
       this.$emit('select', { key: 'edit', value: this.statusItemValue });
     },
-    cancelStatusItem () {
+    cancelStatusItem() {
       this.showStatusItem = true;
     },
-    showCreateTask () {
+    showCreateTask() {
       this.$store.commit('taskManage/toggleNewTaskDrawer');
       this.$emit('createTask');
     },
-    taskDetail (element) {
+    taskDetail(element) {
       this.$emit('showDetail', element);
     },
-    tagColor (type) {
+    tagColor(type) {
       let bgColor = '';
       switch (type) {
         case 'PERSON':
@@ -189,17 +243,34 @@ export default {
       }
       return bgColor;
     },
-    dragChange (e) {
+    dragChange(e) {
       if (e.added) {
         this.$emit('changeStatus', e.added.element);
       }
     },
-    isDrag(element){
-      if(!element.has_milestone||element.status.name==='已完成'||(element.status.name==='执行中'&&!element.auto_case_success)){
+    isDrag(element) {
+      if (
+        !element.has_milestone ||
+        element.status.name === '已完成' ||
+        (element.status.name === '执行中' && !element.auto_case_success)
+      ) {
         return 'forbid';
       }
       return '';
-    }
+    },
+    cancelDeleteTasks() {
+      this.deleteTasksModal = false;
+    },
+    deleteTasksBtn() {
+      this.$emit('select', {
+        key: 'deleteTasks',
+        value: this.deleteTasksValue,
+      });
+      this.deleteTasksModal = false;
+    },
+    handleChange(value) {
+      this.$emit('toggleComplete', value);
+    },
   },
 };
 </script>
@@ -234,6 +305,11 @@ export default {
     .stage-name {
       box-sizing: border-box;
       width: 90%;
+
+      .left {
+        display: flex;
+        justify-content: space-between;
+      }
 
       .btnWrap {
         display: flex;

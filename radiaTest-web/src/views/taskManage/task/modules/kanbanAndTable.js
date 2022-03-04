@@ -4,6 +4,7 @@ import { showLoading, getDetail } from './taskDetail.js';
 import { NAvatar } from 'naive-ui';
 import { formatTime } from '@/assets/utils/dateFormatUtils.js';
 import axios from '@/axios';
+import { storage } from '@/assets/utils/storageUtils';
 
 const listData = ref([]); // 看板数据
 const personArray = ref([]); // 执行者
@@ -11,6 +12,7 @@ const kanban = toRef(store.state.taskManage, 'kanban'); // 获取看板、表格
 const showCreate = ref(true); // 显示新建任务状态
 const inputInstRef = ref(null); // 新建任务状态文本框名称
 const statusValue = ref(null); // 新建任务状态数据
+const giteeId = Number(storage.getValue('gitee_id'));
 
 // 任务状态数组
 const statusArray = computed(() => {
@@ -27,7 +29,7 @@ const columns = ref([
   {
     title: '任务名称',
     key: 'statusItem',
-    render (row) {
+    render(row) {
       if (row.statusItem) {
         return row.statusItem;
       }
@@ -37,8 +39,8 @@ const columns = ref([
   {
     title: '创建者',
     key: 'owner',
-    align:'center',
-    render (row) {
+    align: 'center',
+    render(row) {
       const avatar = h(NAvatar, {
         src: row.originator?.avatar_url,
         style: 'margin-right:5px',
@@ -56,8 +58,8 @@ const columns = ref([
   {
     title: '截止日期',
     key: 'deadline',
-    align:'center',
-    render (row) {
+    align: 'center',
+    render(row) {
       if (row.deadline) {
         return formatTime(row.deadline, 'yyyy-MM-dd hh:mm:ss');
       }
@@ -67,12 +69,12 @@ const columns = ref([
 ]);
 
 // 获取任务信息
-function getTask () {
+function getTask() {
   const allRequest = listData.value.map((item) => {
     return axios.get('/v1/tasks', {
       status_id: item.id,
-      page_num:1,
-      page_size:99999999
+      page_num: 1,
+      page_size: 99999999,
     });
   });
   Promise.allSettled(allRequest)
@@ -83,13 +85,13 @@ function getTask () {
         }
       });
     })
-    .catch((errors) => {
-      console.log(errors);
+    .catch((err) => {
+      window.$message?.error(err.data.error_msg || '未知错误');
     });
 }
 
 // 初始化数据
-function initData () {
+function initData(cb) {
   showLoading.value = true;
   axios
     .get('/v1/task/status')
@@ -106,6 +108,7 @@ function initData () {
           });
         }
         getTask();
+        cb&&cb();
       } else {
         window.$message?.error(res.errmsg || '未知错误');
       }
@@ -116,8 +119,8 @@ function initData () {
     });
 }
 
-// 任务下拉菜单：删除任务
-function selectTools ({ key, value }, element) {
+// 甬道菜单
+function selectTools({ key, value }, element) {
   if (key === 'delete') {
     showLoading.value = true;
     axios
@@ -143,11 +146,24 @@ function selectTools ({ key, value }, element) {
         window.$message?.error(err.data.error_msg || '未知错误');
         initData();
       });
+  } else if (key === 'deleteTasks') {
+    showLoading.value = true;
+    axios
+      .put('/v1/tasks/list', {
+        task_ids: value,
+      })
+      .then(() => {
+        showLoading.value = false;
+        initData();
+      })
+      .catch((err) => {
+        window.$message?.error(err.data.error_msg || '未知错误');
+      });
   }
 }
 
 // 甬道拖动回调
-function dragChange ({ moved }) {
+function dragChange({ moved }) {
   const orderList = listData.value.map((item, index) => {
     return { name: item.statusItem, order: index + 1 };
   });
@@ -160,17 +176,20 @@ function dragChange ({ moved }) {
     })
     .catch((err) => {
       window.$message?.error(err.data.error_msg || '未知错误');
-      [listData.value[moved.newIndex], listData.value[moved.oldIndex]] = [listData.value[moved.oldIndex], listData.value[moved.newIndex]];
+      [listData.value[moved.newIndex], listData.value[moved.oldIndex]] = [
+        listData.value[moved.oldIndex],
+        listData.value[moved.newIndex],
+      ];
     });
 }
 
 // 设置表格视图行数据key
-function listRowKey (rowData) {
+function listRowKey(rowData) {
   return rowData.id;
 }
 
 // 表格视图行数据点击回调
-function rowProps (rowData) {
+function rowProps(rowData) {
   return {
     style: 'cursor: pointer;',
     onClick: (e) => {
@@ -207,7 +226,7 @@ function rowProps (rowData) {
 }
 
 // 点击新建任务状态
-function createStatusLink () {
+function createStatusLink() {
   showCreate.value = false;
   nextTick(() => {
     inputInstRef.value.focus();
@@ -215,12 +234,12 @@ function createStatusLink () {
 }
 
 // 取消新建任务状态
-function cancelCreate () {
+function cancelCreate() {
   showCreate.value = true;
 }
 
 // 保存新建人物状态
-function createStatus (str) {
+function createStatus(str) {
   if (str) {
     showLoading.value = true;
     axios
@@ -239,17 +258,52 @@ function createStatus (str) {
     showCreate.value = true;
   }
 }
-function moveList (e) {
-  if (e.draggedContext.element.statusItem === '执行中' || e.draggedContext.element.statusItem === '已执行') {
+function moveList(e) {
+  if (
+    e.draggedContext.element.statusItem === '执行中' ||
+    e.draggedContext.element.statusItem === '已执行'
+  ) {
     return false;
   }
-  if (e.willInsertAfter === false && e.relatedContext.element.statusItem === '已执行') {
+  if (
+    e.willInsertAfter === false &&
+    e.relatedContext.element.statusItem === '已执行'
+  ) {
     return false;
   }
-  if (e.willInsertAfter === true && e.relatedContext.element.statusItem === '执行中') {
+  if (
+    e.willInsertAfter === true &&
+    e.relatedContext.element.statusItem === '执行中'
+  ) {
     return false;
   }
   return true;
+}
+
+const tempData = ref([]);
+
+function toggleComplete2($event) {
+  if ($event) {
+    listData.value.forEach((v) => {
+      if (v.id === 5) {
+        v.tasks = tempData.value;
+      }
+    });
+  } else {
+    listData.value.forEach((v) => {
+      if (v.id === 5) {
+        tempData.value = v.tasks;
+        let tempArr = [];
+        console.log(v.tasks);
+        v.tasks.forEach((task) => {
+          if (task?.executor?.gitee_id === giteeId) {
+            tempArr.push(task);
+          }
+        });
+        v.tasks = tempArr;
+      }
+    });
+  }
 }
 
 export {
@@ -271,4 +325,5 @@ export {
   createStatusLink,
   cancelCreate,
   createStatus,
+  toggleComplete2,
 };

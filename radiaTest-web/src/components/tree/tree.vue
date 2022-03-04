@@ -127,10 +127,9 @@ export default {
           temp = temp.children[item];
         }
       });
-      console.log(subscriptArr);
       this.activeItem = temp;
       this.showDropdown = false;
-      this.$nextTick(()=>{
+      this.$nextTick(() => {
         this.showDropdown = true;
         this.x = e.clientX;
         this.y = e.clientY;

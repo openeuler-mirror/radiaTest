@@ -18,9 +18,9 @@
         @click="handleClick"
       >
         <div class="table-cell">
-          <span>
+          <n-text>
             <slot name="text"></slot>
-          </span>
+          </n-text>
           <n-icon
             class="arrow"
             ref="arrow"
@@ -68,8 +68,6 @@ export default defineComponent({
     onMounted(() => {
       if (router.currentRoute.value.fullPath.startsWith(url.value)) {
         tab.value.style.borderBottomColor = 'rgba(0, 47, 167, 1)';
-      } else {
-        tab.value.style.borderBottomColor = 'white';
       }
       if (props.disabled) {
         tab.value.style.color = 'grey';

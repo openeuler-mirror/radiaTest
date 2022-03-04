@@ -1,18 +1,18 @@
 <template>
-  <div>
+  <div class="box-container">
     <div id="header" class="header">
       <mugen-header @menuClick="handleMenuClick" @menuBlur="handleMenuBlur" />
     </div>
-    <n-layout id="main" has-sider position="absolute" class="body">
-      <n-layout id="homeBody">
+    <n-layout id="homeBody" has-sider class="body home">
+      <router-view></router-view>
+      <!-- <n-layout id="homeBody">
         <div ref="home" class="home">
           <router-view></router-view>
         </div>
-      </n-layout>
+      </n-layout> -->
     </n-layout>
   </div>
 </template>
-
 <script>
 import { ref, defineComponent } from 'vue';
 import { useMessage, useNotification, useDialog } from 'naive-ui';
@@ -41,13 +41,28 @@ export default defineComponent({
 });
 </script>
 
+<style>
+.box-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.home {
+  width: 100%;
+  height: 100%;
+}
+#homeBody {
+  transition: all 1s ease-out;
+  height: 100%;
+  overflow-y: auto;
+}
+</style>
 <style scoped>
 .header {
-  position: fixed;
   width: 100%;
   z-index: 5;
   height: 100px;
-  background-color: white;
+  flex-shrink: 0;
   box-shadow: 0 2px 8px 0 rgb(2, 24, 42, 0.1);
   transition: height 1s ease-in-out;
 }
@@ -57,16 +72,8 @@ export default defineComponent({
     overflow: hidden;
   }
 }
-.body {
+/* .body {
   position: absolute;
   padding-top: 100px;
-}
-.home {
-  width: 100%;
-  height: 100%;
-}
-#main {
-  top: 0;
-  transition: all 1s ease-out;
-}
+} */
 </style>

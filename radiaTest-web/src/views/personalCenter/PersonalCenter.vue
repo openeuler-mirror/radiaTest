@@ -1,21 +1,11 @@
 <template>
-  <div>
-    <div
-      id="header"
-      class="header"
-      v-if="showHeader"
-    >
+  <div class="box-container">
+    <div id="header" class="header" v-if="showHeader">
       <mugen-header />
     </div>
-    <n-layout
-      id="main"
-      has-sider
-      position="absolute"
-      class="body"
-      :style="showHeader?{paddingTop:'115px'}:{paddingTop:'0px'}"
-    >
+    <n-layout has-sider class="body">
       <n-layout-sider
-        style="box-sizing: content-box;"
+        style="box-sizing: content-box"
         bordered
         content-style="padding: 0;"
         collapse-mode="width"
@@ -27,7 +17,7 @@
         @expand="collapsed = false"
       >
         <n-menu
-          style="font-size: 20px;padding-top:20px;"
+          style="font-size: 20px; padding-top: 20px"
           :collapsed-width="60"
           :collapsed-icon-size="30"
           :options="menuOptions"
@@ -37,11 +27,27 @@
           @update:value="handleUpdateValue"
         />
       </n-layout-sider>
-      <n-layout>
-        <div
-          ref="container"
-          class="home"
-        >
+      <n-layout id="homeBody">
+        <div ref="container" class="home">
+          <div
+            v-if="!showHeader"
+            style="
+              display: flex;
+              padding-right: 20px;
+              justify-content: flex-end;
+              height: 50px;
+              line-height: 50px;
+            "
+          >
+            <n-button text type="primary" @click="logout">
+              <template #icon>
+                <n-icon>
+                  <exit />
+                </n-icon>
+              </template>
+              退出登录
+            </n-button>
+          </div>
           <router-view></router-view>
         </div>
       </n-layout>
@@ -51,6 +57,7 @@
 <script>
 import { ref, defineComponent, provide, getCurrentInstance, watch, inject } from 'vue';
 import { useNotification, useDialog, useMessage } from 'naive-ui';
+import { Exit } from '@vicons/ionicons5';
 
 import MugenHeader from '@/components/header/Header';
 import { modules } from './modules/index.js';
@@ -58,18 +65,18 @@ import { storage } from '@/assets/utils/storageUtils';
 
 export default defineComponent({
   components: {
-    MugenHeader,
+    MugenHeader, Exit
   },
   watch: {
-    $route (newUrl) {
+    $route(newUrl) {
       this.menuOptions.forEach(item => {
-        if (item.key === newUrl.name) {
-          this.menuValue = newUrl.name;
+        if (newUrl.path.indexOf(item.key) !== -1) {
+          this.menuValue = item.key;
         }
       });
     }
   },
-  setup () {
+  setup() {
     const { proxy } = getCurrentInstance();
     const notification = useNotification();
     const dialog = useDialog();
@@ -80,6 +87,11 @@ export default defineComponent({
 
     modules.initRoleOptions(storage?.getValue('role') || 0);
     const menuValue = ref(proxy.$root.$route.name);
+    modules.menuOptions.value.forEach(item => {
+      if (proxy.$root.$route.path.indexOf(item.key) !== -1) {
+        menuValue.value = item.key;
+      }
+    });
     const msgCount = inject('msgCount');
     const msgCountUpdate = inject('msgCountUpdate');
     provide('showMenu', true);
@@ -109,11 +121,10 @@ export default defineComponent({
 }
 
 .header {
-  position: fixed;
   width: 100%;
   z-index: 5;
   height: 100px;
-  background-color: white;
+  flex-shrink: 0;
   box-shadow: 0 2px 8px 0 rgb(2, 24, 42, 0.1);
   transition: height 1s ease-in-out;
 }
@@ -122,17 +133,5 @@ export default defineComponent({
     height: 100px;
     overflow: hidden;
   }
-}
-.body {
-  position: absolute;
-  padding-top: 115px;
-}
-.home {
-  width: 100%;
-  height: 100%;
-}
-#main {
-  top: 0;
-  transition: all 1s ease-out;
 }
 </style>

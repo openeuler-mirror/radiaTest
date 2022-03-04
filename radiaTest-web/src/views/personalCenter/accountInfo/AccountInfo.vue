@@ -1,12 +1,9 @@
 <template>
-  <n-spin
-    :show="showLoading"
-    stroke="rgba(0, 47, 167, 1)"
-  >
+  <n-spin :show="showLoading" stroke="rgba(0, 47, 167, 1)">
     <div>
       <div class="accountInfo-header">
         <n-avatar
-          style="position: absolute; top:50%;z-index:999;"
+          style="position: absolute; top: 50%; z-index: 999"
           circle
           :size="100"
           :src="state.userInfo.avatar_url"
@@ -20,10 +17,9 @@
               <p>用户名</p>
             </n-gi>
             <n-gi :span="2">
-              <p>{{state.userInfo.gitee_name}}</p>
+              <p>{{ state.userInfo.gitee_name }}</p>
             </n-gi>
-            <n-gi :span="9">
-            </n-gi>
+            <n-gi :span="9"> </n-gi>
           </n-grid>
         </div>
         <div class="info-item">
@@ -32,12 +28,8 @@
               <p>手机号</p>
             </n-gi>
             <n-gi :span="2">
-              <n-input
-                v-model:value="phone"
-                type="text"
-                v-if="isEditPhone"
-              />
-              <p v-else>{{state.userInfo.phone}}</p>
+              <n-input v-model:value="phone" type="text" v-if="isEditPhone" />
+              <p v-else>{{ state.userInfo.phone }}</p>
             </n-gi>
             <n-gi :span="9">
               <n-button
@@ -47,7 +39,8 @@
                 tag="span"
                 type="primary"
               >
-                {{isEditPhone?"保存":"修改"}}</n-button>
+                {{ isEditPhone ? '保存' : '修改' }}</n-button
+              >
               <n-button
                 v-if="isEditPhone"
                 class="info-operation-btn"
@@ -56,7 +49,8 @@
                 tag="span"
                 type="primary"
               >
-                取消</n-button>
+                取消</n-button
+              >
             </n-gi>
           </n-grid>
         </div>
@@ -66,22 +60,18 @@
               <p>邮箱</p>
             </n-gi>
             <n-gi :span="2">
-              <p>{{state.userInfo.cla_email}}</p>
+              <p>{{ state.userInfo.cla_email }}</p>
             </n-gi>
-            <n-gi :span="9">
-            </n-gi>
+            <n-gi :span="9"> </n-gi>
           </n-grid>
         </div>
         <n-divider />
         <div
           class="item-title"
-          style="justify-content:space-between;display:flex"
+          style="justify-content: space-between; display: flex"
         >
           <h3>我的组织</h3>
-          <n-button
-            type="primary"
-            @click="handleAddOrg"
-          >
+          <n-button type="primary" @click="handleAddOrg">
             <template #icon>
               <n-icon>
                 <add />
@@ -114,10 +104,7 @@
         label-align="left"
         label-width="100"
       >
-        <n-select
-          v-model:value="addInfo.org"
-          :options="orgList"
-        />
+        <n-select v-model:value="addInfo.org" :options="orgList" />
       </n-form-item>
       <n-form-item
         label="cla邮箱"
@@ -126,25 +113,20 @@
         label-align="left"
         label-width="100"
       >
-        <n-input
-          v-model:value="addInfo.claEmail"
-          style="margin:5px 0"
-        />
+        <n-input v-model:value="addInfo.claEmail" style="margin: 5px 0" />
       </n-form-item>
       <template #action>
-        <n-space style="width:100%">
+        <n-space style="width: 100%">
           <n-button
-            @click="showAddModal=false"
+            @click="showAddModal = false"
             ghost
             size="large"
             type="error"
-          >取消</n-button>
-          <n-button
-            @click="submitAddOrg"
-            size="large"
-            ghost
-            type="primary"
-          >确认</n-button>
+            >取消</n-button
+          >
+          <n-button @click="submitAddOrg" size="large" ghost type="primary"
+            >确认</n-button
+          >
         </n-space>
       </template>
     </n-modal>
@@ -156,7 +138,7 @@ import { modules } from './modules/index.js';
 
 export default {
   components: { Add },
-  setup () {
+  setup() {
     modules.init();
 
     document.addEventListener('reloadInfo', () => {

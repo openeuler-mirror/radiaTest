@@ -5,10 +5,10 @@
     @click="handleHomeClick"
     url="/home/dashboard"
   >
-    <template #text> 主页</template>
+    <template #text> <n-text>主页</n-text></template>
   </my-tab>
   <my-tab url="/home/pvm">
-    <template #text> 版本管理 </template>
+    <template #text> <n-text>版本管理</n-text> </template>
     <template #menu>
       <animate-button url="/home/pvm/product" :size="270">
         <template #icon>
@@ -16,7 +16,7 @@
             <logo-firebase />
           </n-icon>
         </template>
-        <template #text> 产品版本 </template>
+        <template #text><n-text>产品版本</n-text> </template>
       </animate-button>
       <animate-button url="/home/pvm/milestone" :size="270">
         <template #icon>
@@ -24,12 +24,12 @@
             <task-list />
           </n-icon>
         </template>
-        <template #text> 里程碑 </template>
+        <template #text> <n-text>里程碑</n-text> </template>
       </animate-button>
     </template>
   </my-tab>
   <my-tab url="/home/resource-pool">
-    <template #text> 资源池 </template>
+    <template #text> <n-text>资源池</n-text> </template>
     <template #menu>
       <animate-button url="/home/resource-pool/pmachine" :size="270">
         <template #icon>
@@ -37,7 +37,7 @@
             <computer-round />
           </n-icon>
         </template>
-        <template #text> 物理机 </template>
+        <template #text><n-text>物理机</n-text> </template>
       </animate-button>
       <animate-button url="/home/resource-pool/vmachine" :size="270">
         <template #icon>
@@ -45,7 +45,7 @@
             <computer-round />
           </n-icon>
         </template>
-        <template #text> 虚拟机 </template>
+        <template #text> <n-text>虚拟机</n-text> </template>
       </animate-button>
       <animate-button
         :disabled="true"
@@ -57,12 +57,12 @@
             <logo-docker />
           </n-icon>
         </template>
-        <template #text> Docker </template>
+        <template #text> <n-text>Docker</n-text> </template>
       </animate-button>
     </template>
   </my-tab>
   <my-tab url="/home/testing">
-    <template #text> 测试中心 </template>
+    <template #text> <n-text>测试中心</n-text> </template>
     <template #menu>
       <animate-button url="/home/testing/jobs" :size="270">
         <template #icon>
@@ -70,7 +70,7 @@
             <board />
           </n-icon>
         </template>
-        <template #text> 测试看板 </template>
+        <template #text> <n-text>测试看板</n-text> </template>
       </animate-button>
       <animate-button url="/home/testing/template" :size="270">
         <template #icon>
@@ -78,7 +78,7 @@
             <format />
           </n-icon>
         </template>
-        <template #text> 模板仓库 </template>
+        <template #text> <n-text>模板仓库</n-text> </template>
       </animate-button>
     </template>
   </my-tab>
@@ -88,10 +88,10 @@
     url="/home/tcm/testcase"
     @click="handleTcmClick"
   >
-    <template #text> 用例管理 </template>
+    <template #text> <n-text>用例管理</n-text> </template>
   </my-tab>
   <my-tab :has-arrow="false" url="/home/tm" @click="handleTaskClick">
-    <template #text> 任务管理 </template>
+    <template #text> <n-text>任务管理</n-text> </template>
   </my-tab>
 </template>
 

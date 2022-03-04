@@ -1,7 +1,9 @@
 import { ref } from 'vue';
 import axios from '@/axios.js';
 import { formatTime } from '@/assets/utils/dateFormatUtils.js';
+import router from '@/router';
 const caseInfo = ref({});
+const task = ref({});
 const detailsList = ref([
   {
     title: '基础信息', name: 'baseInfo', rows: [
@@ -28,6 +30,24 @@ const detailsList = ref([
     ]
   }
 ]);
+const status = ref([]);
+function getStatus () {
+  axios.get('/v1/task/status').then(res => {
+    status.value = res.data;
+  });
+}
+const report = ref({
+  name: '',
+  content: ''
+});
+function getReport () {
+  axios.get(`/v1/tasks/${task.value.id}/reports`).then(res => {
+    if (res.data.title && res.data.content) {
+      report.value.name = res.data.title;
+      report.value.content = res.data.content;
+    }
+  });
+}
 function setDataList(Info){
   detailsList.value = [
     {
@@ -49,8 +69,8 @@ function setDataList(Info){
     },
     {
       title: '执行信息', name: 'info', rows: [
-        { cols: [{ label: '执行框架', value: Info.framework.name}, { label: '是否已适配', value: Info.framework.adaptive?'是':'否'}] },
-        { cols: [{ label: '代码仓', value: Info.framework.url }, { label: '相对路径', value: Info.framework.logs_path}] },
+        { cols: [{ label: '执行框架', value: Info.framework?.name}, { label: '是否已适配', value: Info.framework?.adaptive?'是':'否'}] },
+        { cols: [{ label: '代码仓', value: Info.framework?.url }, { label: '相对路径', value: Info.framework?.logs_path}] },
       ]
     }
   ];
@@ -70,13 +90,34 @@ function getDetail (caseId) {
         caseInfo.value.code = '';
       }
     }).catch(err => window.$message?.error(err.data.error_msg || '未知错误'));
-  }).catch(err => {
-    window.$message?.error(err.data.error_msg ||'未知错误');
+  }).catch(() => {
+    router.push({ name: 'folderview' });
   });
+  axios.get(`/v1/case/${caseId}/task`).then(res => {
+    task.value = res.data;
+    getReport();
+  });
+  getStatus();
+
 }
+function setStatus (state) {
+  const index = status.value.findIndex(item => item.id === state.id);
+  const active = status.value.findIndex(item => item.id === task.value.status_id);
+  if (index === active) {
+    return 'process';
+  }
+  return index > active ? 'wait' : 'finish';
+}
+const showReportModal = ref(false);
+
 
 export {
+  report,
+  status,
+  task,
   caseInfo,
   detailsList,
+  showReportModal,
   getDetail,
+  setStatus,
 };
