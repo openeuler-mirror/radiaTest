@@ -9,6 +9,14 @@ from server.utils.db import Insert, Delete, Edit, Select
 from server.schema.base import DeleteBaseModel
 from server.schema.product import ProductBase, ProductUpdate
 
+class ProductEventItem(Resource):
+    @validate()
+    def delete(self, product_id):
+        return Delete(Product, {"id":product_id}).single(Product, '/product')
+    
+    @validate()
+    def get(self, product_id):
+        return Select(Product, {"id":product_id}).single()
 
 class ProductEvent(Resource):
     @validate()

@@ -14,22 +14,22 @@ def pdbc(func):
             if ret:
                 return ret
             return jsonify(
-                {"error_code": 200, "error_mesg": "Request processed successfully."}
+                {"error_code": RET.OK, "error_msg": "Request processed successfully."}
             )
         except sqlalchemy.exc.IntegrityError as e:
             current_app.logger.error(e)
             return jsonify(
                 {
-                    "error_code": 1001,
-                    "error_mesg": "The submitted data has interleaving issues.",
+                    "error_code": RET.DB_DATA_ERR,
+                    "error_msg": "The submitted data has interleaving issues.",
                 }
             )
         except ValueError as e:
             current_app.logger.error(e)
             return jsonify(
                 {
-                    "error_code": 1003,
-                    "error_mesg": str(e),
+                    "error_code": RET.DB_DATA_ERR,
+                    "error_msg": str(e),
                 }
             )
         # except Exception as e:
@@ -37,7 +37,7 @@ def pdbc(func):
         #     return jsonify(
         #         {
         #             "error_code": 1009,
-        #             "error_mesg": "Unknown error, please contact the administrator to handle.",
+        #             "error_msg": "Unknown error, please contact the administrator to handle.",
         #         }
         #     )
 
@@ -185,12 +185,38 @@ class Edit(DataBase):
 class Select(DataBase):
     @pdbc
     def fuzz(self):
-        return jsonify([data.to_json() for data in Like(self._table, self._data).all()])
+        data = [dt.to_json() for dt in Like(self._table, self._data).all()]
+        return jsonify(
+            {
+                "error_code": RET.OK,
+                "error_msg": "OK!",
+                "data": data
+            }
+        )
 
     @pdbc
     def precise(self):
+        data = [dt.to_json() for dt in Precise(self._table, self._data).all()]
         return jsonify(
-            [data.to_json() for data in Precise(self._table, self._data).all()]
+            {
+                "error_code": RET.OK,
+                "error_msg": "OK!",
+                "data": data
+            }
+        )
+    
+    @pdbc
+    def single(self):
+        tdata = self._table.query.filter_by(id=self._data.get("id")).first()
+        data=[]
+        if tdata:
+            data = [tdata.to_json()]
+        return jsonify(
+            {
+                "error_code": RET.OK,
+                "error_msg": "OK!",
+                "data": data
+            }
         )
 
 

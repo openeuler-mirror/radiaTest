@@ -10,6 +10,14 @@ from server.schema.base import DeleteBaseModel
 from server.schema.milestone import MilestoneBase, MilestoneUpdate
 from .handler import HandlerIssuesList
 
+class MilestoneEventItem(Resource):
+    @validate()
+    def delete(self, milestone_id):
+        return Delete(Milestone, {"id":milestone_id}).single(Milestone, '/milestone')
+    
+    @validate()
+    def get(self, milestone_id):
+        return Select(Milestone, {"id":milestone_id}).single()
 
 class MilestoneEvent(Resource):
     @validate()

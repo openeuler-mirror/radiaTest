@@ -10,6 +10,7 @@ from server.apps.vmachine.handlers import (
     DeviceManager,
     VmachineAsyncResultHandler,
     search_device,
+    ForceDeleteVmachine,
 )
 from server.model.pmachine import Pmachine
 from server.schema.base import DeleteBaseModel
@@ -21,16 +22,27 @@ from server.schema.vmachine import (
     Vdisk,
     DeviceDelete,
     DeviceBase,
+    VmachineDelay
 )
 from server.utils.auth_util import auth
-from server.utils.db import Like, Select
+from server.utils.db import Edit, Like, Precise, Select
 from server.model import Vmachine, Vdisk, Vnic
 
+
+class VmachineEventItem(Resource):
+    @validate()
+    def delete(self, vmachine_id):
+        return DeleteVmachine({"id":vmachine_id}).run()
+
+    @validate()
+    def get(self, vmachine_id):
+        return Select(Vmachine, {"id":vmachine_id}).single()
 
 class VmachineEvent(Resource):
     @auth.login_required
     @validate()
     def post(self, body: VmachineBase):
+        body.pm_select_mode = "auto"
         return CreateVmachine(body.__dict__).install()
 
     @auth.login_required
@@ -84,6 +96,16 @@ class VmachineControl(Resource):
     def put(self, body: Power):
         return Control(body.__dict__).run()
 
+class VmachineDelayEvent(Resource):
+    @validate()
+    def put(self, vmachine_id, body: VmachineDelay):
+        body.id = vmachine_id
+        return Edit(Vmachine, body.__dict__).single(Vmachine, "/vmachine")
+
+class VmachineEventItemForce(Resource):
+    @validate()
+    def delete(self, vmachine_id):
+        return ForceDeleteVmachine({"id":[vmachine_id]}).run()
 
 class AttachDevice(Resource):
     @validate()

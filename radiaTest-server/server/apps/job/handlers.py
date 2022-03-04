@@ -31,6 +31,7 @@ from server.apps.job.logs_handler import LogsHandler
 from server.apps.vmachine.handlers import CreateVmachine, DeleteVmachine, DeviceManager
 from server.apps.pmachine.handlers import AutoInstall
 from server.schema.vmachine import VmachineBase, VnicBase, VdiskBase
+from server.utils.response_util import RET
 
 
 class RunJob:
@@ -76,7 +77,7 @@ class RunJob:
             output = CreateVmachine(VmachineBase(
                 **self._body).dict()).install()
 
-            if output.json.get("error_code") != 200:
+            if output.json.get("error_code") != RET.OK:
                 raise RuntimeError("Failed to create test machine.")
 
         times = 0
@@ -108,7 +109,7 @@ class RunJob:
                     "virtual/machine/vnic",
                 ).add(Vnic)
 
-                if output.json.get("error") != 200:
+                if output.json.get("error_code") != RET.OK:
                     raise RuntimeError("Failed to increase network card.")
 
     def increase_vdisk(self, machines, capacities):
@@ -122,7 +123,7 @@ class RunJob:
                     "virtual/machine/vdisk",
                 ).add(Vdisk)
 
-                if output.json.get("error") != 200:
+                if output.json.get("error_code") != RET.OK:
                     raise RuntimeError("Failed to increase disk.")
 
     def install_physical(self, quantity):
@@ -142,7 +143,7 @@ class RunJob:
             )
 
             output = AutoInstall(p_body).kickstart()
-            if output.json.get("error") != 200:
+            if output.json.get("error_code") != RET.OK:
                 raise RuntimeError("Failed to install system os.")
 
         return machines
@@ -175,7 +176,7 @@ class RunJob:
         if self._body.get("id"):
             del self._body["id"]
         output = Insert(Job, self._body).single(Job, "/job")
-        if output.json.get("error_code") != 200:
+        if output.json.get("error_code") != RET.OK:
             raise RuntimeError(
                 "Failed to create job for template:%s."
                 % self._template.name
@@ -319,7 +320,7 @@ class RunSuite(RunJob):
                 and Like(Vmachine, {"name": self._name}).all()
             ):
                 DeleteVmachine(self._body).run()
-            return jsonify({"error_code": 60009, "error_mesg": str(e)})
+            return jsonify({"error_code": RET.RUNTIME_ERROR, "error_msg": str(e)})
 
         finally:
             if self._body.get("result") == "success":
@@ -556,7 +557,7 @@ class RunTemplate(RunJob):
                 resp = self._callback_task_job_init()
                 if resp.status_code != 200:
                     current_app.logger.error(
-                        "Cannot callback job_id to taskmilestone table: " + resp.error_mesg)
+                        "Cannot callback job_id to taskmilestone table: " + resp.error_msg)
 
             self._body.update({
                 "status": "preparing",
@@ -591,7 +592,7 @@ class RunTemplate(RunJob):
 
         except RuntimeError as e:
             if not self._job:
-                return jsonify({"error_code": 60009, "error_mesg": str(e)})
+                return jsonify({"error_code": RET.RUNTIME_ERROR, "error_msg": str(e)})
 
             self._body.update({
                 "result": "fail",
@@ -601,7 +602,7 @@ class RunTemplate(RunJob):
             })
             Edit(Job, self._body).single(Job, "/job")
 
-            return jsonify({"error_code": 60009, "error_mesg": str(e)})
+            return jsonify({"error_code": RET.RUNTIME_ERROR, "error_msg": str(e)})
 
         finally:
             if self._body.get("taskmilestone_id"):

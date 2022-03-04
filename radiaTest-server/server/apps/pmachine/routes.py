@@ -20,6 +20,14 @@ from server.schema.pmachine import (
     PmachinePower,
 )
 
+class PmachineEventItem(Resource):
+    @validate()
+    def delete(self, pmachine_id):
+        return Delete(Pmachine, {"id":pmachine_id}).single(Pmachine, "/pmachine")
+    
+    @validate()
+    def get(self, pmachine_id):
+        return Select(Pmachine, {"id":pmachine_id}).single()
 
 class PmachineEvent(Resource):
     @validate()

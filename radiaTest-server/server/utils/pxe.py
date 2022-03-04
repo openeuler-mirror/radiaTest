@@ -9,6 +9,7 @@ import time
 
 from flask import current_app, jsonify
 from flask.helpers import send_file
+from .response_util import RET
 
 
 from server.utils.shell import ShellCmd
@@ -56,8 +57,8 @@ class PxeInstall(DHCP):
                 return jsonify(
                     {
                         {
-                            "error_code": 50008,
-                            "error_mesg": "dhcp configuration file backup failed, please contact the administrator to deal with it in time.",
+                            "error_code": RET.NET_CONF_ERR,
+                            "error_msg": "dhcp configuration file backup failed, please contact the administrator to deal with it in time.",
                         }
                     }
                 )
@@ -72,8 +73,8 @@ class PxeInstall(DHCP):
                     return jsonify(
                         {
                             {
-                                "error_code": 50008,
-                                "error_mesg": "dhcp configuration item cleanup failed and recovery failed, please contact the administrator in time.",
+                                "error_code": RET.NET_CONF_ERR,
+                                "error_msg": "dhcp configuration item cleanup failed and recovery failed, please contact the administrator in time.",
                             }
                         }
                     )
@@ -81,8 +82,8 @@ class PxeInstall(DHCP):
                 self._conn._close()
                 return jsonify(
                     {
-                        "error_code": 50008,
-                        "error_mesg": "dhcp configuration item cleanup failed.",
+                        "error_code": RET.NET_CONF_ERR,
+                        "error_msg": "dhcp configuration item cleanup failed.",
                     }
                 )
 
@@ -103,15 +104,15 @@ class PxeInstall(DHCP):
                 return jsonify(
                     {
                         {
-                            "error_code": 50008,
-                            "error_mesg": "Failed to bind the mac address and recovery failed, please contact the administrator in time.",
+                            "error_code": RET.NET_CONF_ERR,
+                            "error_msg": "Failed to bind the mac address and recovery failed, please contact the administrator in time.",
                         }
                     }
                 )
 
             self._conn._close()
             return jsonify(
-                {{"error_code": 50008, "error_mesg": "Failed to bind mac address."}}
+                {{"error_code": RET.NET_CONF_ERR, "error_msg": "Failed to bind mac address."}}
             )
 
         exitcode, output = ShellCmd(restart_dhcp(), self._conn)._exec()
@@ -127,8 +128,8 @@ class PxeInstall(DHCP):
                 return jsonify(
                     {
                         {
-                            "error_code": 50008,
-                            "error_mesg": "Failed to bind the mac address and recovery failed, please contact the administrator in time.",
+                            "error_code": RET.NET_CONF_ERR,
+                            "error_msg": "Failed to bind the mac address and recovery failed, please contact the administrator in time.",
                         }
                     }
                 )
@@ -137,8 +138,8 @@ class PxeInstall(DHCP):
             return jsonify(
                 {
                     {
-                        "error_code": 50008,
-                        "error_mesg": "Failed to bind mac address.",
+                        "error_code": RET.NET_CONF_ERR,
+                        "error_msg": "Failed to bind mac address.",
                     }
                 }
             )
@@ -164,8 +165,8 @@ class CheckInstall:
         if not conn:
             return jsonify(
                 {
-                    "error_code": 50010,
-                    "error_mesg": "Cannot connect to the installed machine, you need to check whether the installation is successful, or whether the provided user name and password are correct.",
+                    "error_code": RET.NET_CONECT_ERR,
+                    "error_msg": "Cannot connect to the installed machine, you need to check whether the installation is successful, or whether the provided user name and password are correct.",
                 }
             )
 
@@ -186,4 +187,4 @@ class QueryIp(DHCP):
         if ip:
             return ip.strip()
         else:
-            return jsonify({"error_code": 30011, "error_mesg": "未获取到ip."})
+            return jsonify({"error_code": RET.NET_CONECT_ERR, "error_msg": "未获取到ip."})

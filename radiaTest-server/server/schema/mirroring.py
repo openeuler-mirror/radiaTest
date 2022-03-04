@@ -23,9 +23,6 @@ class MirroringBase(BaseModel):
     milestone_id: int
     frame: Frame
     url: HttpUrl
-    efi: Optional[constr(max_length=255)]
-    ks: Optional[constr(max_length=255)]
-    location: Optional[constr(max_length=255)]
 
     @validator("milestone_id")
     def check_milestone(cls, v):
@@ -51,6 +48,10 @@ class MirroringBase(BaseModel):
 
 
 class IMirroringBase(MirroringBase):
+    efi: Optional[constr(max_length=255)]
+    ks: Optional[constr(max_length=255)]
+    location: Optional[constr(max_length=255)]
+
     @root_validator
     def guarantee_uniqueness(cls, values):
         if Precise(
@@ -72,6 +73,18 @@ class IMirroringUpdate(MirroringBase, UpdateBaseModel):
     ks: Optional[constr(max_length=255)]
     location: Optional[constr(max_length=255)]
 
+    @root_validator
+    def guarantee_uniqueness(cls, values):
+        imirroring =  Precise(
+            IMirroring,
+            {"milestone_id": values.get("milestone_id"), "frame": values.get("frame")},
+        ).first()
+        if imirroring and imirroring.id != values.get("id"):
+            raise ValueError(
+                "The url of %s iso image already exists under the milestone."
+                % values.get("frame")
+            )
+        return values
 
 class QMirroringBase(MirroringBase):
     user: constr(max_length=32) = "root"
@@ -91,7 +104,7 @@ class QMirroringBase(MirroringBase):
         return values
 
 
-class QMirroringUpdate(QMirroringBase, UpdateBaseModel):
+class QMirroringUpdate(MirroringBase, UpdateBaseModel):
     milestone_id: Optional[int]
     frame: Optional[Frame]
     url: Optional[HttpUrl]
@@ -99,12 +112,30 @@ class QMirroringUpdate(QMirroringBase, UpdateBaseModel):
     port: Optional[int]
     password: Optional[constr(max_length=256)]
 
+    @root_validator
+    def guarantee_uniqueness(cls, values):
+        qmirroring =  Precise(
+            QMirroring,
+            {"milestone_id": values.get("milestone_id"), "frame": values.get("frame")},
+        ).first()
+        if qmirroring and qmirroring.id != values.get("id"):
+            raise ValueError(
+                "The url of %s qcow image already exists under the milestone."
+                % values.get("frame")
+            )
+        return values
 
 class RepoBase(BaseModel):
     milestone_id: int
     frame: Frame
     content: str
 
+    @validator("milestone_id")
+    def check_milestone(cls, v):
+        milestone = Precise(Milestone, {"id": v}).first()
+        if not milestone:
+            raise ValueError("The milestone does not exist.")
+        return v
 
 class RepoCreate(RepoBase):
     @root_validator
@@ -113,9 +144,19 @@ class RepoCreate(RepoBase):
             Repo,
             {"milestone_id": values.get("milestone_id"), "frame": values.get("frame")},
         ).first():
-            raise ValueError("The repo address is already registered..")
+            raise ValueError("The repo address is already registered.")
         return values
 
 
 class RepoUpdate(RepoBase, UpdateBaseModel):
     content: Optional[str]
+
+    @root_validator
+    def guarantee_uniqueness(cls, values):
+        repo = Precise(
+            Repo,
+            {"milestone_id": values.get("milestone_id"), "frame": values.get("frame")},
+        ).first()
+        if repo and repo.id != values.get("id"):
+            raise ValueError("The repo address is already registered.")
+        return values

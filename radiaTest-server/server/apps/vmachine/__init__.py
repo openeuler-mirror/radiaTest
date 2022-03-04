@@ -6,13 +6,18 @@ from .routes import (
     VdiskEvent,
     VmachineControl,
     AttachDevice,
-    VmachineCallbackEvent,
-    # VmachineItemEvent
+    VmachineEventItem,
+	VmachineDelayEvent,
+    VmachineEventItemForce,
+	VmachineCallbackEvent
 )
 
 
 def init_api(api: Api):
     api.add_resource(VmachineEvent, "/api/v1/vmachine")
+    api.add_resource(VmachineEventItemForce, "/api/v1/vmachine/<int:vmachine_id>/force")
+    api.add_resource(VmachineDelayEvent, "/api/v1/vmachine/<int:vmachine_id>/delay")
+    api.add_resource(VmachineEventItem, "/api/v1/vmachine/<int:vmachine_id>")
     api.add_resource(VmachineControl, "/api/v1/vmachine/power")
     api.add_resource(AttachDevice, "/api/v1/vmachine/attach")
     api.add_resource(VnicEvent, "/api/v1/vnic")
