@@ -489,7 +489,11 @@ function addCase(milestoneId) {
   }
 }
 
-function clickAssociatedCases() {
+function clickAssociatedCases () {
+  if (modalData.value.detail.is_single_case && modalData.value.cases.length) {
+    window.$message?.error('只允许关联一个测试用例!');
+    return;
+  }
   if (modalData.value.detail.milestone) {
     addCase(modalData.value.detail.milestone.id);
   } else if (modalData.value.detail.milestones) {
@@ -984,7 +988,7 @@ function addCaseBtn() {
 }
 
 // 跳转子任务
-function jumpChildTask(jumpTask) {
+function jumpChildTask (jumpTask) {
   detailTask.taskId = jumpTask.id;
   detailTask.level = jumpTask.level;
   detailTask.parentId = jumpTask.parent_id;
@@ -1526,7 +1530,26 @@ function editTaskDetail() {
   }
 }
 
+// 自动完成
+const autocompleteArray = ref([
+  {
+    label: '是',
+    value: true,
+  },
+  {
+    label: '否',
+    value: false,
+  },
+]);
+
+// 任务详情页自动完成变回调
+function autocompleteChange(value) {
+  editTask(modalData.value.detail.id, { automatic_finish: value });
+}
+
 export {
+  autocompleteArray,
+  autocompleteChange,
   init,
   tempCases,
   reportArray,

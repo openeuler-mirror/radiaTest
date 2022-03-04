@@ -27,10 +27,13 @@ import '@kangc/v-md-editor/lib/plugins/mermaid/mermaid.css';
 // highlightjs
 import hljs from 'highlight.js';
 
+import VueGridLayout from 'vue-grid-layout';
+
 VMdEditor.use(githubTheme, {
   Hljs: hljs,
-}).use(createTodoListPlugin()).use(createTipPlugin());
-
+})
+  .use(createTodoListPlugin())
+  .use(createTipPlugin());
 
 //前端应用由vue框架定义
 const app = createApp(App);
@@ -42,7 +45,11 @@ app.config.globalProperties.$storage = storage;
 app.config.globalProperties.$newsSocket = new Socket(config.newsSocketPath);
 
 //应用插件
-app.use(naive).use(VMdEditor).use(store).use(router);
+app
+  .use(naive)
+  .use(VMdEditor)
+  .use(store)
+  .use(router);
 
 //开发模式下浏览器开发者工具的启用
 if (process.env.NODE_ENV === 'development') {
@@ -63,7 +70,7 @@ router.beforeEach((to, from, next) => {
   if (to.meta.title) {
     document.title = to.meta.title;
   } else {
-    document.title = 'raidaTest测试平台';
+    document.title = 'radiaTest测试平台';
   }
   next();
 });

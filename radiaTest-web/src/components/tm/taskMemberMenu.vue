@@ -9,63 +9,58 @@
       />
     </div>
     <div class="selectable-selection">
-      <ul class="member-list">
-        <li class="select-option-group">
-          <div class="option-group-label">
-            {{ type === 'PERSON' ? '人员' : '团队' }}
-          </div>
-          <ul v-if="!multiple">
-            <li
-              class="member-menu-item"
-              v-for="(value, index) in personArray"
-              :key="index"
-              @click="selectPerson(value)"
-            >
-              <span><img :src="value.avatar" /></span>
-              <div class="item-content-wrap">
-                <div class="item-content">
-                  <div class="item-main">
-                    <div class="item-name">{{ value.name }}</div>
-                  </div>
-                </div>
-              </div>
-            </li>
-          </ul>
-          <ul v-else>
-            <n-checkbox-group v-model:value="groupValue">
-              <div
+      <n-scrollbar style="max-height: 300px;">
+        <ul class="member-list">
+          <li class="select-option-group">
+            <div class="option-group-label">
+              {{ type === 'PERSON' ? '人员' : '团队' }}
+            </div>
+            <ul v-if="!multiple">
+              <li
+                class="member-menu-item"
                 v-for="(value, index) in personArray"
                 :key="index"
-                class="member-menu-item"
+                @click="selectPerson(value)"
               >
-                <n-checkbox :value="JSON.stringify(value)">
-                  <div style="display:flex">
-                    <span><img :src="value.avatar" /></span>
-                    <div class="item-content-wrap">
-                      <div class="item-content">
-                        <div class="item-main">
-                          <div class="item-name">{{ value.name }}</div>
+                <span><img :src="value.avatar"/></span>
+                <div class="item-content-wrap">
+                  <div class="item-content">
+                    <div class="item-main">
+                      <div class="item-name">{{ value.name }}</div>
+                    </div>
+                  </div>
+                </div>
+              </li>
+            </ul>
+            <ul v-else>
+              <n-checkbox-group v-model:value="groupValue">
+                <div
+                  v-for="(value, index) in personArray"
+                  :key="index"
+                  class="member-menu-item"
+                >
+                  <n-checkbox :value="JSON.stringify(value)">
+                    <div style="display:flex">
+                      <span><img :src="value.avatar"/></span>
+                      <div class="item-content-wrap">
+                        <div class="item-content">
+                          <div class="item-main">
+                            <div class="item-name">{{ value.name }}</div>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                </n-checkbox>
-              </div>
-            </n-checkbox-group>
-          </ul>
-        </li>
-      </ul>
+                  </n-checkbox>
+                </div>
+              </n-checkbox-group>
+            </ul>
+          </li>
+        </ul>
+      </n-scrollbar>
     </div>
     <n-divider style="margin: 4px 0" />
-    <div
-      class="footer"
-      v-show="multiple"
-    >
-      <n-button
-        type="info"
-        @click="confirm"
-        class="btn"
-      >确定</n-button>
+    <div class="footer" v-show="multiple">
+      <n-button type="info" @click="confirm" class="btn">确定</n-button>
     </div>
   </div>
 </template>
@@ -81,7 +76,7 @@ export default {
     'groupId',
     'originator',
   ],
-  data () {
+  data() {
     return {
       personArray: [],
       personArrayTemp: [],
@@ -90,7 +85,7 @@ export default {
     };
   },
   methods: {
-    getGroupUser () {
+    getGroupUser() {
       return new Promise((resolve, reject) => {
         const id = this.groupId;
         this.$axios
@@ -117,7 +112,7 @@ export default {
           });
       });
     },
-    getOrgUser () {
+    getOrgUser() {
       return new Promise((resolve, reject) => {
         const id = this.$storage.getValue('orgId');
         this.$axios
@@ -144,7 +139,7 @@ export default {
           });
       });
     },
-    getOrgGroup () {
+    getOrgGroup() {
       return new Promise((resolve, reject) => {
         this.$axios
           .get('/v1/groups', {
@@ -170,13 +165,13 @@ export default {
           });
       });
     },
-    selectPerson (value) {
+    selectPerson(value) {
       this.$emit('getPerson', value);
     },
-    confirm () {
+    confirm() {
       this.$emit('getPerson', this.groupValue);
     },
-    search () {
+    search() {
       if (!this.inputValue) {
         this.personArray = this.personArrayTemp;
       }
@@ -185,7 +180,7 @@ export default {
       );
     },
   },
-  mounted () {
+  mounted() {
     (async () => {
       this.personArray = [];
       this.personArrayTemp = [];

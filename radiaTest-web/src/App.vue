@@ -4,6 +4,8 @@
     :locale="zhCN"
     :date-locale="dateZhCN"
     :theme-overrides="themeOverrides"
+    :theme="theme"
+    :abstract="true"
   >
     <n-dialog-provider>
       <n-loading-bar-provider>
@@ -13,6 +15,16 @@
               <transition :name="transitionName">
                 <component :is="Component" />
               </transition>
+              <fix-navigation v-show="notLoginPage" />
+              <collapse-n-drawer
+                placement="right"
+                contentWidth="1200px"
+                v-if="showTaskPage"
+              >
+                <template #content>
+                  <backend-task />
+                </template>
+              </collapse-n-drawer>
             </router-view>
           </n-message-provider>
         </n-notification-provider>
@@ -29,6 +41,11 @@ import bash from 'highlight.js/lib/languages/bash';
 import python from 'highlight.js/lib/languages/python';
 import ini from 'highlight.js/lib/languages/ini';
 import xml from 'highlight.js/lib/languages/xml';
+import { theme } from '@/assets/config/theme.js';
+import fixNavigation from '@/components/fixNavigation/fixNavgation.vue';
+import collapseNDrawer from '@/components/collapseDrawer/collapseNDrawer.vue';
+import backendTask from '@/views/backendTask/backendTask.vue';
+import { storage } from '@/assets/utils/storageUtils';
 
 hljs.registerLanguage('bash', bash);
 hljs.registerLanguage('python', python);
@@ -46,6 +63,17 @@ const themeOverrides = {
 
 export default {
   name: 'App',
+  components: {
+    fixNavigation, collapseNDrawer, backendTask
+  },
+  computed: {
+    notLoginPage() {
+      return this.$route.name !== 'login';
+    },
+    showTaskPage() {
+      return this.$route.name !== 'login' && (storage?.getValue('role') !== 1 && storage?.getValue('role') !== 2);
+    }
+  },
   setup() {
     const transitionName = ref('');
     const { proxy } = getCurrentInstance();
@@ -64,14 +92,15 @@ export default {
       dateZhCN,
       transitionName,
       themeOverrides,
+      theme,
       routerClass,
       hljs,
     };
   },
   mounted() {
-    window.addEventListener('beforeunload',()=>{
-      if(this.$route.name === 'taskDetails'){
-        sessionStorage.setItem('refresh',1);
+    window.addEventListener('beforeunload', () => {
+      if (this.$route.name === 'taskDetails') {
+        sessionStorage.setItem('refresh', 1);
       }
     });
     setInterval(() => {
@@ -100,21 +129,20 @@ export default {
 </script>
 
 <style>
-
 ::-webkit-scrollbar {
-  width:8px;
+  width: 8px;
   height: 8px;
 }
 /* 滚动槽 */
 ::-webkit-scrollbar-track {
-  box-shadow:inset006pxrgba(0,0,0,0.3);
-  border-radius:8px;
+  box-shadow: inset006pxrgba(0, 0, 0, 0.3);
+  border-radius: 8px;
 }
 /* 滚动条滑块 */
 ::-webkit-scrollbar-thumb {
-  border-radius:8px;
-  background:#abb2bf;
-  box-shadow:inset006pxrgba(0,0,0,0.5);
+  border-radius: 8px;
+  background: #abb2bf;
+  box-shadow: inset006pxrgba(0, 0, 0, 0.5);
 }
 .n-code [class^='hljs'] {
   color: #abb2bf;

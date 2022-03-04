@@ -9,42 +9,20 @@
       />
     </div>
     <div class="selectable-selection">
-      <ul
-        class="member-list"
-        v-if="!multiple"
-      >
-        <li class="select-option-group">
-          <div class="option-group-label">里程碑</div>
-          <ul v-if="milepostArray.length">
-            <li
-              class="member-menu-item"
-              v-for="(value, index) in milepostArray"
-              :key="index"
-              @click="selectMilepost(value)"
-            >
-              <div class="item-content-wrap">
-                <div class="item-content">
-                  <div class="item-main">
-                    <div class="item-name">{{ value.name }}</div>
-                  </div>
-                </div>
-              </div>
-            </li>
-          </ul>
-          <div v-else>
-            <n-empty description="无数据"></n-empty>
-          </div>
-        </li>
-      </ul>
-      <ul v-else>
-        <n-checkbox-group v-model:value="groupValue">
-          <div
-            v-for="(value, index) in milepostArray"
-            :key="index"
-            class="member-menu-item"
-          >
-            <n-checkbox :value="value.id">
-              <div style="display:flex">
+      <n-scrollbar style="max-height: 300px;">
+        <ul
+          class="member-list"
+          v-if="!multiple"
+        >
+          <li class="select-option-group">
+            <div class="option-group-label">里程碑</div>
+            <ul v-if="milepostArray.length">
+              <li
+                class="member-menu-item"
+                v-for="(value, index) in milepostArray"
+                :key="index"
+                @click="selectMilepost(value)"
+              >
                 <div class="item-content-wrap">
                   <div class="item-content">
                     <div class="item-main">
@@ -52,11 +30,35 @@
                     </div>
                   </div>
                 </div>
-              </div>
-            </n-checkbox>
-          </div>
-        </n-checkbox-group>
-      </ul>
+              </li>
+            </ul>
+            <div v-else>
+              <n-empty description="无数据"></n-empty>
+            </div>
+          </li>
+        </ul>
+        <ul v-else>
+          <n-checkbox-group v-model:value="groupValue">
+            <div
+              v-for="(value, index) in milepostArray"
+              :key="index"
+              class="member-menu-item"
+            >
+              <n-checkbox :value="value.id">
+                <div style="display:flex">
+                  <div class="item-content-wrap">
+                    <div class="item-content">
+                      <div class="item-main">
+                        <div class="item-name">{{ value.name }}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </n-checkbox>
+            </div>
+          </n-checkbox-group>
+        </ul>
+      </n-scrollbar>
     </div>
     <n-divider style="margin: 4px 0" />
     <div
@@ -123,6 +125,7 @@ ul {
   display: flex;
   flex: 1;
   min-height: 0%;
+  margin: 10px;
 
   .member-list {
     width: 100%;

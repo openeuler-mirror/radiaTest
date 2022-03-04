@@ -180,7 +180,12 @@ function taskTypeChange(value) {
   model.value.type = value;
   model.value.taskType = 'PERSON';
   if (model.value.type === 'PERSON') {
-    personArray.value = [{ label: storage.getValue('gitee_name'), value: String(storage.getValue('gitee_id')) }];
+    personArray.value = [
+      {
+        label: storage.getValue('gitee_name'),
+        value: String(storage.getValue('gitee_id')),
+      },
+    ];
     groups.value = [{ label: '个人', value: '0' }];
     nextTick(() => {
       model.value.group = '0';
@@ -205,7 +210,6 @@ function getUserByGroup(value) {
     .get(`/v1/groups/${model.value.group}/users`, {
       page_num: 1,
       page_size: 99999,
-      is_admin: true,
     })
     .then((res) => {
       showLoading.value = false;
@@ -321,48 +325,49 @@ function createVersionTask() {
 
 // 确认创建版本任务
 function createVersionTaskBtn() {
-  formRefVersion.value.validate(error => {
+  formRefVersion.value.validate((error) => {
     if (error) {
       window.$message?.error('请填写相关信息');
     } else {
-      axios.post('/v1/tasks', {
-        is_version_task: true,
-        type: 'VERSION',
-        title: modelVersion.value.name,
-        status_id: detailTask.statusId,
-        executor_type: modelVersion.value.taskType,
-        parent_id: modelVersion.value.fatherTask,
-        child_id: modelVersion.value.childTask,
-        executor_id: Number(modelVersion.value.orgTask),
-        deadline: formatTime(
-          new Date(modelVersion.value.closingTime),
-          'yyyy-MM-dd hh:mm:ss'
-        ),
-        keywords: modelVersion.value.keyword,
-        abstract: modelVersion.value.abstract,
-        abbreviation: modelVersion.value.abbreviation,
-      }).then(() => {
-        if (showRelation.value) {
-          initData();
-        } else {
-          getDetailTask();
-        }
-        window.$message?.success('任务创建成功!');
-        cancelCreateVersionTask();
-        showLoading.value = false;
-      }).catch((err) => {
-        showLoading.value = false;
-        window.$message?.error(err.data.error_msg || '未知错误');
-      });
+      axios
+        .post('/v1/tasks', {
+          is_version_task: true,
+          type: 'VERSION',
+          title: modelVersion.value.name,
+          status_id: detailTask.statusId,
+          executor_type: modelVersion.value.taskType,
+          parent_id: modelVersion.value.fatherTask,
+          child_id: modelVersion.value.childTask,
+          executor_id: Number(modelVersion.value.orgTask),
+          deadline: formatTime(
+            new Date(modelVersion.value.closingTime),
+            'yyyy-MM-dd hh:mm:ss'
+          ),
+          keywords: modelVersion.value.keyword,
+          abstract: modelVersion.value.abstract,
+          abbreviation: modelVersion.value.abbreviation,
+        })
+        .then(() => {
+          if (showRelation.value) {
+            initData();
+          } else {
+            getDetailTask();
+          }
+          window.$message?.success('任务创建成功!');
+          cancelCreateVersionTask();
+          showLoading.value = false;
+        })
+        .catch((err) => {
+          showLoading.value = false;
+          window.$message?.error(err.data.error_msg || '未知错误');
+        });
     }
   });
-
 }
 function versionSelect(value, { type }) {
   modelVersion.value.orgTask = value;
   modelVersion.value.taskType = type;
 }
-
 
 // 新建任务
 function createTask(e, versionTask = false) {
@@ -444,10 +449,10 @@ function renderLabel(option) {
 }
 
 const relationTasks = ref([]);
-function getRelationTask () {
+function getRelationTask() {
   relationTasks.value = [];
-  axios.get('/v1/tasks/family').then(res => {
-    res.data.forEach(item => {
+  axios.get('/v1/tasks/family').then((res) => {
+    res.data.forEach((item) => {
       relationTasks.value.push({
         label: item.title,
         value: item.id,

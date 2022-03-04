@@ -64,7 +64,6 @@ export default defineComponent({
         pagination.value.page = 1;
       },
     });
-
     return {
       store,
       columns,

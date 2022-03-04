@@ -20,58 +20,38 @@
       >
         <template v-slot:imgTop-0>
           <div :class="{ loginActive: activeIndex === 0 || activeIndex === 5 }">
-            <p class="carousel-description">
-              便捷轻松地管理测试任务，
-            </p>
-            <p class="carousel-description">
-              为团队效率加速
-            </p>
+            <p class="carousel-description">便捷轻松地管理测试任务，</p>
+            <p class="carousel-description">为团队效率加速</p>
           </div>
         </template>
         <template v-slot:imgTop-1>
           <div :class="{ loginActive: activeIndex === 1 }">
-            <p class="carousel-description">
-              文本用例集中管理，
-            </p>
-            <p class="carousel-description">
-              更有线上评审功能
-            </p>
+            <p class="carousel-description">文本用例集中管理，</p>
+            <p class="carousel-description">更有线上评审功能</p>
           </div>
         </template>
         <template v-slot:imgTop-2>
           <div :class="{ loginActive: activeIndex === 2 }">
-            <p class="carousel-description">
-              测试环境一键部署，
-            </p>
-            <p class="carousel-description">
-              测试用例自动执行
-            </p>
+            <p class="carousel-description">测试环境一键部署，</p>
+            <p class="carousel-description">测试用例自动执行</p>
           </div>
         </template>
         <template v-slot:imgTop-3>
           <div :class="{ loginActive: activeIndex === 3 }">
-            <p class="carousel-description">
-              测试报告一键生成，
-            </p>
-            <p class="carousel-description">
-              全面助力版本级测试
-            </p>
+            <p class="carousel-description">测试报告一键生成，</p>
+            <p class="carousel-description">全面助力版本级测试</p>
           </div>
         </template>
         <template v-slot:imgTop-4>
           <div :class="{ loginActive: activeIndex === 4 }">
-            <p class="carousel-description">
-              资源池分布式管理，
-            </p>
-            <p class="carousel-description">
-              实现高效智能化调度
-            </p>
+            <p class="carousel-description">资源池分布式管理，</p>
+            <p class="carousel-description">实现高效智能化调度</p>
           </div>
         </template>
       </carousel>
     </div>
     <n-card class="login-box" :bordered="false" :segmented="{ footer: 'hard' }">
-      <div style="text-align:center">
+      <div style="text-align: center">
         <span id="radiaTest">
           <n-gradient-text type="primary">radiaTest</n-gradient-text>
         </span>
@@ -83,7 +63,7 @@
       >
         <n-tab-pane name="signin" tab="用户登录">
           <n-form>
-            <n-form-item style="--label-height:6px">
+            <n-form-item style="--label-height: 6px">
               <n-input
                 round
                 size="large"
@@ -98,7 +78,7 @@
                 </template>
               </n-input>
             </n-form-item>
-            <n-form-item style="--label-height:6px">
+            <n-form-item style="--label-height: 6px">
               <n-input
                 round
                 size="large"
@@ -118,17 +98,17 @@
             type="error"
             block
             round
-            style="margin-top:10px"
+            style="margin-top: 10px"
             @click="hanleLogin"
           >
             <span class="iconfont icon-gitee2"></span>
-            <span style="margin-left:10px">码云鉴权登录</span>
+            <span style="margin-left: 10px">码云鉴权登录</span>
           </n-button>
         </n-tab-pane>
         <n-tab-pane name="signup" tab="管理员登录" v-if="!isFrame">
           <div id="loginForm">
             <n-form :rules="rules" :model="loginForm" ref="loginFormRef">
-              <n-form-item style="--label-height:6px" path="userName">
+              <n-form-item style="--label-height: 6px" path="userName">
                 <n-input
                   round
                   size="large"
@@ -143,7 +123,7 @@
                   </template>
                 </n-input>
               </n-form-item>
-              <n-form-item style="--label-height:6px" path="passWord">
+              <n-form-item style="--label-height: 6px" path="passWord">
                 <n-input
                   round
                   size="large"
@@ -163,7 +143,7 @@
               type="primary"
               block
               round
-              style="margin-top:10px"
+              style="margin-top: 10px"
               @click="handleLoginByForm"
               >登录</n-button
             >
@@ -171,7 +151,7 @@
         </n-tab-pane>
       </n-tabs>
       <template #footer>
-        <p style="text-align:center">
+        <p style="text-align: center">
           {{ `${config.name} ${config.version}·${config.license}` }}
         </p>
       </template>
@@ -218,37 +198,40 @@
             >
               <n-input
                 v-model:value="loginInfo.claEmail"
-                style="margin:5px 0"
+                style="margin: 5px 0"
               />
             </n-form-item>
           </div>
           <div v-if="contentName === 'success'">
             <n-result status="success" title="注册成功">
-              <template #footer>
-                即将为您跳转主页...
-              </template>
+              <template #footer> 即将为您跳转主页... </template>
             </n-result>
           </div>
           <div
             v-if="contentName === 'signCLA'"
-            style="height:100%;display: flex;flex-direction: column;justify-content: space-around;"
+            style="
+              height: 100%;
+              display: flex;
+              flex-direction: column;
+              justify-content: space-around;
+            "
           >
-            <div style="display:flex;align-items:center;">
-              <p style="width:50px;flex-shrink:0">组织:</p>
+            <div style="display: flex; align-items: center">
+              <p style="width: 50px; flex-shrink: 0">组织:</p>
               <n-select v-model:value="loginInfo.org" :options="orgList" />
             </div>
-            <div style="text-align:center;">
+            <div style="text-align: center">
               <n-tooltip placement="bottom" trigger="hover">
                 <template #trigger>
                   <img
-                    style="width:100px;cursor:pointer;"
+                    style="width: 100px; cursor: pointer"
                     src="/cla.jpg"
                     @click="gotoCLA"
                   />
                 </template>
                 点击前往CLA签署界面
               </n-tooltip>
-              <p style="margin:5px 0">点击图片前往CLA签署界面</p>
+              <p style="margin: 5px 0">点击图片前往CLA签署界面</p>
             </div>
           </div>
         </div>

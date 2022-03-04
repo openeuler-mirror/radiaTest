@@ -172,12 +172,13 @@
               :animation="200"
             >
               <template #item="{ element }">
-                <kanban-board
+                <kanban-board ref="kanban"
                   @changeStatus="changeStatus($event, element)"
                   :taskData="element"
                   @showDetail="getDetail"
                   @createTask="createBaseTask(element)"
                   @select="selectTools($event, element)"
+                  @toggleComplete="toggleComplete2($event)"
                 ></kanban-board>
               </template>
             </draggable>
@@ -672,6 +673,28 @@
                                 :disabled="!editStatus"
                               >
                                 {{modalData.detail.frame||'请选择'}}
+                              </n-popselect>
+                            </div>
+                          </div>
+                          <div class="field">
+                            <div class="field-left">
+                              <n-icon
+                                size="14"
+                                class="task-icon"
+                              >
+                                <CheckSquareOutlined />
+                              </n-icon>
+                              <span class="field-name" title="当所有子任务'已完成'时,自动完成本任务">自动完成</span>
+                            </div>
+                            <div class="field-right" :class="{'editable':editStatus}">
+                              <n-popselect
+                                v-model:value="modalData.detail.automatic_finish"
+                                @update:value="autocompleteChange"
+                                :options="autocompleteArray"
+                                trigger="click"
+                                :disabled="!editStatus"
+                              >
+                                {{ modalData.detail.automatic_finish?'是':'否' }}
                               </n-popselect>
                             </div>
                           </div>
@@ -1286,7 +1309,6 @@ export default defineComponent({
   setup () {
     const { proxy } = getCurrentInstance();
     let listDataTemp;
-
     modules.initData();
     modules.getGroup();
     modules.getRelationTask();
@@ -1322,6 +1344,7 @@ export default defineComponent({
             if (item?.value?.data?.items?.length) {
               modules.listData.value[index].tasks = item.value.data.items;
             }
+            proxy.$refs.kanban.showTaskList = true;
           });
         })
         .catch(() => {

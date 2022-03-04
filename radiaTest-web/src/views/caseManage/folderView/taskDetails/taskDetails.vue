@@ -6,7 +6,7 @@
           <!--最新关联任务名称-->
           <n-gi :span="24">
             <div style="font-size: 16px; font-weight: 800">
-              openEuler 20.03-LTS-SP1 update 211224 oe_test_nginx_lvs_base
+              {{ task.title }}
             </div>
           </n-gi>
           <!--任务责任人-->
@@ -20,7 +20,9 @@
               raw
             >
               <template #trigger>
-                <span class="sub-content user">张以正</span>
+                <span class="sub-content user">{{
+                  task.executor?.gitee_name
+                }}</span>
               </template>
               <n-card>
                 <div
@@ -30,22 +32,18 @@
                     align-items: center;
                   "
                 >
-                  <n-avatar
-                    round
-                    :size="96"
-                    src="https://07akioni.oss-cn-beijing.aliyuncs.com/07akioni.jpeg"
-                  />
+                  <n-avatar round :size="96" :src="task.executor?.avatar_url" />
                   <div style="padding-top: 20px">
                     <p style="text-align: center">
-                      <span>张以正</span>
+                      <span>{{ task.executor?.gitee_name }}</span>
                     </p>
                     <p style="padding-top: 20px">
                       <span>手机：</span>
-                      <span>13430919587</span>
+                      <span>{{ task.executor?.phone }}</span>
                     </p>
                     <p>
                       <span>邮箱：</span>
-                      <span>ethanzhang55@outlook.com</span>
+                      <span>{{ task.executor?.cla_email }}</span>
                     </p>
                   </div>
                 </div>
@@ -54,25 +52,37 @@
           </n-gi>
           <!--任务协助人-->
           <n-gi :span="6">
-            <span class="sub-title">协助人：</span>
+            <span class="sub-title"
+              >协助人：{{ task.originator?.gitee_name }}</span
+            >
             <!--用户信息组件-->
           </n-gi>
           <!--任务开始时间-->
-          <n-gi :span="6"> 开始时间：2021-12-29 00:00:00 </n-gi>
+          <n-gi :span="6">
+            开始时间：{{ formatTime(task.start_time, 'yyyy-MM-dd') }}
+          </n-gi>
           <!--任务结束时间-->
-          <n-gi :span="6"> 结束时间： </n-gi>
+          <n-gi :span="6">
+            结束时间： {{ formatTime(task.deadline, 'yyyy-MM-dd') }}</n-gi
+          >
           <n-gi :span="20">
-            <n-steps :current="2" status="process" size="small">
-              <n-step title="待办的" />
-              <n-step title="进行中" />
-              <n-step title="执行中" />
-              <n-step title="已执行" />
-              <n-step title="已完成" />
+            <n-steps status="process" size="small">
+              <template v-for="item in status" :key="item.id">
+                <n-step :title="item.name" :status="setStatus(item)" />
+              </template>
             </n-steps>
           </n-gi>
           <n-gi :span="4">
             <!--未完成时需要disabled-->
-            <n-button style="width: 100%" strong secondary round type="primary">
+            <n-button
+              :disabled="task.accomplish_time === null && !report.content"
+              style="width: 100%"
+              strong
+              secondary
+              round
+              type="primary"
+              @click="showReportModal = true"
+            >
               查看报告
             </n-button>
           </n-gi>
@@ -84,7 +94,7 @@
         style="
           display: flex;
           justify-content: space-between;
-          margin-bottom: 10px;
+          margin: 10px 0;
         "
       >
         <n-tabs type="line" @update:value="tabChange" :value="activeTab">
@@ -94,7 +104,15 @@
           <n-tab name="historicalVersion" disabled>历史版本</n-tab>
         </n-tabs>
         <!--存在未完成关联任务时disabled-->
-        <n-button strong secondary round type="primary">创建关联任务</n-button>
+        <n-button
+          strong
+          secondary
+          round
+          type="primary"
+          :disabled="task.accomplish_time === null"
+          @click="showCreateForm"
+          >创建关联任务</n-button
+        >
       </div>
       <n-card size="large">
         <template v-if="activeTab === 'details'">
@@ -109,6 +127,31 @@
         <template v-else>{{ activeTab }}</template>
       </n-card>
     </div>
+    <create-drawer ref="createForm" @submit="createRelationTask" />
+    <n-modal
+      v-model:show="showReportModal"
+      preset="dialog"
+      :show-icon="false"
+      title="Dialog"
+      class="previewWindow"
+      :style="{ width: previewWidth + 'px', height: previewHeight + 'px' }"
+    >
+      <template #header>
+        <h3>{{ report.name }}</h3>
+      </template>
+      <div
+        class="previewContent"
+        :style="{ height: previewHeight - 100 + 'px' }"
+      >
+        <v-md-editor
+          v-model="report.content"
+          :left-toolbar="tools"
+          :right-toolbar="rightTools"
+          :include-level="[1, 4]"
+          :toolbar="toolbar"
+        ></v-md-editor>
+      </div>
+    </n-modal>
   </div>
   <div
     v-else
@@ -128,16 +171,21 @@ import { modules } from './modules';
 import collapseList from '@/components/collapseList/collapseList.vue';
 import historicalExec from './tabview/historicalExec.vue';
 import autoScript from './tabview/autoScript.vue';
+import createDrawer from '@/components/task/createDrawer.vue';
 import { ref, provide } from 'vue';
+import { formatTime } from '@/assets/utils/dateFormatUtils';
+import {previewWidth,previewHeight} from '@/views/taskManage/task/modules/mdFile';
 export default {
   components: {
     collapseList,
     historicalExec,
     autoScript,
+    createDrawer,
   },
   mounted() {
     if (this.$route.params.taskid === 'development') {
       this.showDetail = false;
+      sessionStorage.setItem('refresh', 0);
     } else {
       this.$nextTick(() => {
         this.getDetail(this.$route.params.taskid);
@@ -158,7 +206,10 @@ export default {
     const showDetail = ref(true);
     provide('caseInfo', modules.caseInfo);
     return {
+      previewWidth,
+      previewHeight,
       showDetail,
+      formatTime,
       ...modules,
     };
   },

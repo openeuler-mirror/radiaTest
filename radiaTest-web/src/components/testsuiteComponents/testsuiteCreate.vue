@@ -19,7 +19,12 @@
           placeholder="请输入已在平台注册用户的用户名"
         />
       </n-form-item-gi> -->
-      <n-form-item-gi v-show="!data" :span="8" label="测试框架" path="framework">
+      <n-form-item-gi
+        v-show="!data"
+        :span="8"
+        label="测试框架"
+        path="framework"
+      >
         <n-select
           v-model:value="infoFormValue.framework_id"
           :options="frameworkList"
@@ -128,7 +133,7 @@ export default defineComponent({
         }
       });
     },
-    put(){
+    put() {
       this.infoFormRef.validate((errors) => {
         if (errors) {
           window.$message?.error('请检查输入合法性');
@@ -152,8 +157,9 @@ export default defineComponent({
       });
     }
   },
-  props:['data'],
+  props: ['data'],
   setup(props) {
+    console.log(props.data);
     const diskUsage = ref();
     const usageOptions = computed(() => {
       if (diskUsage.value === null) {
@@ -167,8 +173,8 @@ export default defineComponent({
       ];
     });
     const frameworkList = ref();
-    axios.get('/v1/framework').then(res=>{
-      frameworkList.value = res.map(item=>({label:item.name,value:item.id}));
+    axios.get('/v1/framework').then(res => {
+      frameworkList.value = res.map(item => ({ label: item.name, value: item.id }));
     });
     const infoFormRef = ref();
     const infoFormValue = ref({
@@ -181,10 +187,10 @@ export default defineComponent({
       add_disk: [],
       remark: '',
     });
-    if(props.data){
+    if (props.data) {
       const temp = JSON.parse(JSON.stringify(props.data));
-      temp.add_disk?temp.add_disk = temp.add_disk.split(','):temp.add_disk = [];
-      infoFormValue.value  = temp;
+      temp.add_disk ? temp.add_disk = temp.add_disk.split(',') : temp.add_disk = [];
+      infoFormValue.value = temp;
     }
     const infoRules = {
       name: {

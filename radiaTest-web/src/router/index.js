@@ -20,10 +20,16 @@ import AccountManagement from '@/views/personalCenter/accountManagement/AccountM
 import AccountInfo from '@/views/personalCenter/accountInfo/AccountInfo.vue';
 import News from '@/views/personalCenter/news/News.vue';
 import OrgManagement from '@/views/personalCenter/orgManagement/orgManagement.vue';
+import authorityManagement from '@/views/personalCenter/authorityManagement/authorityManagement.vue';
 import CaseManagement from '@/views/caseManage/CaseManagement.vue';
 import folderView from '@/views/caseManage/folderView/folderView.vue';
 import taskDetails from '@/views/caseManage/folderView/taskDetails/taskDetails.vue';
 import testsuite from '@/views/caseManage/testsuite/testsuite.vue';
+import authorityManagement from '@/views/personalCenter/authorityManagement/authorityManagement.vue';
+import rulesManagement from '@/views/personalCenter/authorityManagement/rulesManagement/rulesManagement.vue';
+import rolesManagement from '@/views/personalCenter/authorityManagement/rolesManagement/rolesManagement.vue';
+import usersManagement from '@/views/personalCenter/usersManagement/usersManagement.vue';
+// import test from '@/views/test/Test.vue';
 
 const routerHistory = createWebHistory();
 const router = createRouter({
@@ -39,15 +45,15 @@ const router = createRouter({
       component: Home,
       name: 'home',
       meta: {
-        title: 'raidaTest测试平台'
+        title: 'raidaTest测试平台',
       },
       children: [
         {
           path: 'dashboard/',
           component: Dashboard,
           meta: {
-            title: 'raidaTest测试平台'
-          }
+            title: 'raidaTest测试平台',
+          },
         },
         {
           path: 'pvm/',
@@ -58,17 +64,17 @@ const router = createRouter({
               path: 'product/',
               component: Product,
               meta: {
-                title: '产品版本管理'
+                title: '产品版本管理',
               },
             },
             {
               path: 'milestone/',
               component: Milestone,
               meta: {
-                title: '里程碑管理'
+                title: '里程碑管理',
               },
             },
-          ]
+          ],
         },
         {
           path: 'resource-pool/',
@@ -79,17 +85,17 @@ const router = createRouter({
               path: 'pmachine/',
               component: Pmachine,
               meta: {
-                title: '物理机资源池'
+                title: '物理机资源池',
               },
             },
             {
               path: 'vmachine/',
               component: Vmachine,
               meta: {
-                title: '虚拟机资源池'
+                title: '虚拟机资源池',
               },
             },
-          ]
+          ],
         },
         {
           path: 'testing/',
@@ -100,40 +106,40 @@ const router = createRouter({
               path: 'jobs/',
               component: Job,
               meta: {
-                title: '测试看板'
+                title: '测试看板',
               },
             },
             {
               path: 'template/',
               component: Template,
               meta: {
-                title: '模板仓库'
+                title: '模板仓库',
               },
             },
-          ]
+          ],
         },
         {
           path: 'tcm/',
           redirect: '/home/tcm/testcase',
           component: CaseManagement,
           meta: {
-            title: '用例管理'
+            title: '用例管理',
           },
           children: [
             {
               path: 'testcase/',
               component: Testcase,
-              name: 'testcase'
+              name: 'testcase',
             },
             {
               path: 'testsuite/',
               component: testsuite,
-              name: 'testsuite'
+              name: 'testsuite',
             },
             {
               path: 'testsuite/',
               component: testsuite,
-              name:'testsuite'
+              name: 'testsuite',
             },
             {
               path: 'folderview/',
@@ -143,11 +149,11 @@ const router = createRouter({
                 {
                   path: 'taskdetail/:taskid/',
                   component: taskDetails,
-                  name: 'taskDetails'
-                }
-              ]
-            }
-          ]
+                  name: 'taskDetails',
+                },
+              ],
+            },
+          ],
         },
         {
           path: 'tm/',
@@ -166,17 +172,17 @@ const router = createRouter({
               path: 'distribution/',
               component: Distribution,
             },
-          ]
+          ],
         },
-      ]
+      ],
     },
     {
       path: '/login/',
       component: newLogin,
       name: 'login',
       meta: {
-        title: '登陆'
-      }
+        title: '登陆',
+      },
     },
     {
       path: '/personalCenter/',
@@ -185,7 +191,7 @@ const router = createRouter({
       children: [
         {
           path: '',
-          redirect: '/personalCenter/accountManagement/'
+          redirect: '/personalCenter/accountManagement/',
         },
         {
           path: 'accountManagement/',
@@ -208,7 +214,43 @@ const router = createRouter({
           component: OrgManagement,
           name: 'orgManagement',
           meta: {
-            title: '组织管理'
+            title: '组织管理',
+          },
+        },
+        {
+          path: 'authorityManagement/',
+          component: authorityManagement,
+          name: 'authorityManagement',
+          children: [
+            {
+              path: 'rulesManagement/',
+              component: rulesManagement,
+              name: 'rulesManagement',
+            },
+            {
+              path: 'rolesManagement/:roleId',
+              component: rolesManagement,
+              name: 'rolesManagement',
+            },
+          ],
+          meta: {
+            title: '权限管理',
+          },
+        },
+        {
+          path: 'usersManagement/',
+          component: usersManagement,
+          name: 'usersManagement',
+          meta: {
+            title: '成员管理',
+          },
+        },
+        {
+          path: 'authorityManagement/',
+          component: authorityManagement,
+          name: 'authorityManagement',
+          meta: {
+            title: '权限管理'
           }
         },
         {
@@ -216,11 +258,11 @@ const router = createRouter({
           component: News,
           name: 'news',
           meta: {
-            title: '消息中心'
+            title: '消息中心',
           },
-        }
-      ]
+        },
+      ],
     },
-  ]
+  ],
 });
 export default router;

@@ -8,17 +8,17 @@ const orgOptions = ref([]);
 const currentOrg = ref('');
 const activeOrg = ref('');
 const avatarUrl = ref('');
-function getOrg () {
-  axios.get(`/v1/users/${storage.getValue('gitee_id')}`).then(res => {
+function getOrg() {
+  axios.get(`/v1/users/${storage.getValue('gitee_id')}`).then((res) => {
     const { data } = res;
     accountName.value = data.gitee_name;
-    orgOptions.value = data.orgs.map(item => {
+    orgOptions.value = data.orgs.map((item) => {
       return {
         label: item.org_name,
         value: item.org_id,
       };
     });
-    const defaultOrg = data.orgs.find(item => {
+    const defaultOrg = data.orgs.find((item) => {
       return item.re_user_org_default === true;
     });
     activeOrg.value = defaultOrg.org_id;
@@ -30,11 +30,4 @@ function getOrg () {
   });
 }
 
-export {
-  avatarUrl,
-  currentOrg,
-  activeOrg,
-  accountName,
-  orgOptions,
-  getOrg,
-};
+export { avatarUrl, currentOrg, activeOrg, accountName, orgOptions, getOrg };

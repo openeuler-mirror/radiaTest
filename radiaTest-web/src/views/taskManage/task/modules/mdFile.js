@@ -5,11 +5,12 @@ import { generateMDByTemplate } from './utils/generateMD';
 import { showReportModal, getMdFiles } from './taskDetail';
 import { NButton, NInput } from 'naive-ui';
 
-const tools = 'undo redo clear | h bold italic strikethrough quote | ul ol table hr | link image code | todo-list tip | save';
+const tools =
+  'undo redo clear | h bold italic strikethrough quote | ul ol table hr | link image code | todo-list tip | save';
 const rightTools = 'download preview toc sync-scroll fullscreen';
 
 const previewShow = ref(false);
-function previewMd () {
+function previewMd() {
   previewShow.value = true;
 }
 
@@ -18,7 +19,7 @@ const md = reactive({
   content: '',
   taskId: '',
 });
-async function generateMdFile (taskId, isVersionTask) {
+async function generateMdFile(taskId, isVersionTask) {
   try {
     md.taskId = taskId;
     const data = await axios.get(`/v1/tasks/${taskId}/reports`);
@@ -30,12 +31,12 @@ async function generateMdFile (taskId, isVersionTask) {
   }
 }
 
-function downloadMd () {
+function downloadMd() {
   let a = document.createElement('a');
   let blob = new Blob([md.content]);
   const url = window.URL.createObjectURL(blob);
   a.href = url;
-  a.download = md.name;
+  a.download = `${md.name}.md`;
   a.click();
   window.URL.revokeObjectURL(url);
 }
@@ -43,47 +44,54 @@ function downloadMd () {
 const previewWidth = window.innerWidth * 0.8;
 const previewHeight = window.innerHeight * 0.8;
 
-function generateDailog () {
+function generateDailog() {
   return new Promise((resolve, reject) => {
     const d = window.$dialog?.info({
       title: '报告名称',
       content: () => {
         return h(NInput, {
           placeholder: '请输入报告名称',
-          onUpdateValue (value) {
+          onUpdateValue(value) {
             md.name = value;
-          }
+          },
         });
       },
-      action () {
-        return h(NButton, {
-          type: 'primary',
-          onClick () {
-            if (md.name) {
-              d.destroy();
-              resolve();
-            } else {
-              window.$message?.error('请填写报告名称');
-              reject(new Error('请填写报告名称'));
-            }
-          }
-        }, '确定');
-      }
+      action() {
+        return h(
+          NButton,
+          {
+            type: 'primary',
+            onClick() {
+              if (md.name) {
+                d.destroy();
+                resolve();
+              } else {
+                window.$message?.error('请填写报告名称');
+                reject(new Error('请填写报告名称'));
+              }
+            },
+          },
+          '确定'
+        );
+      },
     });
   });
 }
-function saveFileAction () {
-  axios.put(`/v1/tasks/${md.taskId}/reports`, {
-    title: md.name,
-    content: md.content,
-  }).then(() => {
-    window.$message?.success('保存成功!');
-    getMdFiles();
-  }).catch(err => {
-    window.$message?.error(err.data.error_msg || '未知错误');
-  });
+function saveFileAction() {
+  axios
+    .put(`/v1/tasks/${md.taskId}/reports`, {
+      title: md.name,
+      content: md.content,
+    })
+    .then(() => {
+      window.$message?.success('保存成功!');
+      getMdFiles();
+    })
+    .catch((err) => {
+      window.$message?.error(err.data.error_msg || '未知错误');
+    });
 }
-function saveFile () {
+function saveFile() {
   if (md.name) {
     saveFileAction();
   } else {
@@ -93,12 +101,11 @@ function saveFile () {
   }
 }
 
-
 const toolbar = {
   download: {
     title: '下载',
     icon: 'iconfont icon-download',
-    action () {
+    action() {
       if (md.name) {
         downloadMd();
       } else {
@@ -106,7 +113,7 @@ const toolbar = {
           downloadMd();
         });
       }
-    }
+    },
   },
   // save: {
   //   title: '保存',
