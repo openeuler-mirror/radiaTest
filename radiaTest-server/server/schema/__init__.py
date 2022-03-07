@@ -24,6 +24,10 @@ Power = Literal["on", "off", "reset"]
 ## 虚拟机
 ### 安装方式
 InstallMethod = Literal["auto", "import", "cdrom"]
+
+### 物理机选择方式
+PmSelectMode = Literal["auto", "assign"]
+
 ### 状态
 VMStatus = Literal[
     "start", "destroy", "shutdown", "reset", "reboot", "suspend", "resume"
@@ -65,6 +69,8 @@ TestType = Literal["功能测试", "安全测试", "性能测试", "压力测试
 ## 基线库节点类型
 BaselineType = Literal["directory", "suite", "case"]
 
+#权限归属
+PermissionType = Literal["PERSON", "GROUP", "ORG", "PUBLIC"]
 
 # 权限管理相关类型
 ## 角色类型

@@ -53,5 +53,14 @@ class Base(object):
 class BaseModel(Base):
     id = db.Column(db.Integer(), primary_key=True)
 
-
-
+class PermissionBaseModel(Base):
+    creater_id = db.Column(db.Integer(), db.ForeignKey("user.gitee_id"))
+    permission_type = db.Column(db.Enum(
+            "PERSON",  # 个人
+            "GROUP",  # 团队
+            "ORG",   # 组织
+            "PUBLIC" #公共
+        ),default="PERSON")
+    user_id = db.Column(db.Integer(), db.ForeignKey("user.id"))
+    group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
+    org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))

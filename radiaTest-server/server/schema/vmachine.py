@@ -26,12 +26,14 @@ from server.schema import (
     DiskBus,
     DiskCache,
     VideoBus,
+    PmSelectMode,
+    PermissionType
 )
 from server.schema.base import UpdateBaseModel
 
 from server.utils.db import Precise
 
-from server.model import Vmachine, Vdisk
+from server.model import Vmachine, Vdisk, Pmachine
 from server.config.settings import Config
 
 
@@ -40,6 +42,8 @@ class VmachineBase(BaseModel):
     frame: Frame
     description: constr(min_length=10, max_length=255)
     milestone_id: int
+    pm_select_mode: Optional[PmSelectMode] = "auto"
+    pmachine_id: int = 0
     name: Optional[constr(min_length=10, max_length=255)]
     memory: Optional[conint(ge=2048, le=Config.VM_MAX_MEMEORY)] = 4096
     sockets: Optional[conint(ge=1, le=Config.VM_MAX_SOCKET)] = 1
@@ -86,6 +90,12 @@ class VmachineBase(BaseModel):
 
         return values
 
+    @validator("pmachine_id")
+    def check_pmselect(cls, v, values):
+        if values.get("pmselect") and values.get("pmselect") == "assign":
+            pm = Precise(Pmachine, {"id": v}).first()
+            if not pm:
+                raise ValueError("Must select an existing pysical machine, when pmselect is assign.")
 
 class VmachineUpdate(UpdateBaseModel):
     memory: Optional[conint(ge=2048, le=Config.VM_MAX_MEMEORY)] = 2048
@@ -111,6 +121,25 @@ class VmachineUpdate(UpdateBaseModel):
                 "The lifetime of virtual machine(days):%s"
                 % current_app.config.get("VM_MAX_DAYS")
             )
+        return v
+
+class VmachineDelay(UpdateBaseModel):
+    end_time: Optional[datetime]
+
+    @validator("end_time")
+    def check_end_time(cls, v, values):
+        try: 
+            vm = Precise(Vmachine, {"id": values.get("id")}).first()
+        except Exception:
+            raise ValueError("Must select an existing virtual machine.")
+        
+        dl = (v - vm.end_time).days
+        if dl > current_app.config.get("VM_MAX_DAYS"):
+            raise ValueError(
+                "The lifetime of virtual machine(days):%s"
+                % current_app.config.get("VM_MAX_DAYS")
+            )
+
         return v
 
 

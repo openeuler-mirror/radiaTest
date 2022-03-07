@@ -1,4 +1,4 @@
-import datetime
+import datetime, re
 from typing import List
 
 from flask import current_app
@@ -99,8 +99,11 @@ class UpdateRepo:
         self.content = ""
 
     def create_repo_config(self):
+        pattern = r'/(update.+?)/'
+        result = re.findall(pattern, self._base_url)
         if self._base_url:
-            self.content += "[update]\nname=update\nbaseurl={}$basearch/\nenabled=1\ngpgcheck=0\n\n".format(self._base_url)
+            self.content += "[{}}]\nname={}\nbaseurl={}$basearch/\nenabled=1\ngpgcheck=0\n\n".format(result[-1], result[-1], self._base_url)
         
         if self._epol_url:
-            self.content += "[EPOL-UPDATE]\nname=EPOL-UPDATE\nbaseurl={}$basearch/\nenabled=1\ngpgcheck=0\n\n".format(self._epol_url)
+            rs = result[-1].split("_")[-1]
+            self.content += "[EPOL-UPDATE-{}]\nname=EPOL-UPDATE-{}\nbaseurl={}$basearch/\nenabled=1\ngpgcheck=0\n\n".format(rs, rs, self._epol_url)

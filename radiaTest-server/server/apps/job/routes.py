@@ -78,12 +78,12 @@ class AnalyzedRecords(Resource):
         body = request.args.to_dict()
 
         if not body.get("case"):
-            return {"error_code": 60001, "error_mesg": "validation_error"}
+            return {"error_code": RET.NO_KEYS_ERR, "error_msg": "validation_error"}
 
         _case = Case.query.filter_by(name=body.get("case")).first()
 
         if not _case:
-            return {"error_code": 60002, "error_mesg": "case is not exist"}
+            return {"error_code": RET.NO_RECORDS_ERR, "error_msg": "case is not exist"}
 
         return Select(Analyzed, {"case_id": _case.id}).precise()
 
@@ -94,8 +94,8 @@ class AnalyzedLogs(Resource):
         body = request.args.to_dict()
 
         if not body.get("id"):
-            return {"error_code": 60001, "error_mesg": "validation_error"}
-
+            return {"error_code": RET.NO_KEYS_ERR, "error_msg": "validation_error"}
+        
         _analyzed = Analyzed.query.filter_by(id=body.get("id")).first()
 
         return jsonify(_analyzed.get_logs())

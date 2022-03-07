@@ -24,6 +24,7 @@ from server.utils.bash import (
     power_on_off,
 )
 from server.utils.pxe import PxeInstall, CheckInstall
+from server.utils.response_util import RET
 
 
 class AutoInstall:
@@ -41,8 +42,8 @@ class AutoInstall:
             current_app.logger.error(e)
             return jsonify(
                 {
-                    "error_code": 50008,
-                    "error_mesg": "The selected machine does not exist or the milestone is not bound to the mirror.",
+                    "error_code": RET.INSTALL_CONF_ERR,
+                    "error_msg": "The selected machine does not exist or the milestone is not bound to the mirror.",
                 }
             )
 
@@ -50,24 +51,24 @@ class AutoInstall:
         if not self._mirroring.efi:
             return jsonify(
                 {
-                    "error_code": 50008,
-                    "error_mesg": "The milestone image does not provide grub.efi path .",
+                    "error_code": RET.INSTALL_CONF_ERR,
+                    "error_msg": "The milestone image does not provide grub.efi path .",
                 }
             )
 
         if not self._pmachine.mac:
             return jsonify(
                 {
-                    "error_code": 50008,
-                    "error_mesg": "The physical machine registration information does not exist in the mac address.",
+                    "error_code": RET.INSTALL_CONF_ERR,
+                    "error_msg": "The physical machine registration information does not exist in the mac address.",
                 }
             )
 
         if not self._pmachine.ip:
             return jsonify(
                 {
-                    "error_code": 50008,
-                    "error_mesg": "The registration information of the physical machine does not have an IP address.",
+                    "error_code": RET.INSTALL_CONF_ERR,
+                    "error_msg": "The registration information of the physical machine does not have an IP address.",
                 }
             )
 
@@ -85,19 +86,19 @@ class AutoInstall:
             )
         )._exec()
         if exitcode:
-            error_mesg = (
+            error_msg = (
                 "Failed to boot pxe to start the physical machine:%s."
                 % self._pmachine.ip
             )
-            current_app.logger.error(error_mesg)
+            current_app.logger.error(error_msg)
             current_app.logger.error(output)
-            return jsonify({"error_code": 50009, "error_mesg": error_mesg})
+            return jsonify({"error_code": RET.INSTALL_CONF_ERR, "error_msg": error_msg})
 
         result = CheckInstall(self._pmachine.ip).check()
         if isinstance(result, tuple):
             return result
 
-        return jsonify({"error_code": 200, "error_mesg": "系统安装成功."})
+        return jsonify({"error_code": RET.OK, "error_msg": "系统安装成功."})
 
 
 class OnOff:
@@ -115,7 +116,7 @@ class OnOff:
             )
         )._exec()
         if exitcode:
-            return jsonify({"error_code": exitcode, "error_mesg": output})
+            return jsonify({"error_code": exitcode, "error_msg": output})
         return Edit(Pmachine, self._body).single(Pmachine, '/pmachine')
 
 
@@ -133,13 +134,13 @@ class StateHandler:
         if not self.pmachine:
             return jsonify(
                 error_code=RET.DATA_EXIST_ERR, 
-                error_mesg="The pmachine is not exist"
+                error_msg="The pmachine is not exist"
             )
         
         if self.pmachine.state == self.to_state:
             return jsonify(
                 error_code=RET.PARMA_ERR,
-                error_mesg="The pamachine has been {}".format(self.to_state)
+                error_msg="The pamachine has been {}".format(self.to_state)
             )
         
         # 暂时请求通知统一发送于openEuler-QA的创建者
@@ -154,7 +155,7 @@ class StateHandler:
         re = ReUserGroup.query.join(Group).filter(*filter_params).first() 
 
         if not re:
-            return jsonify(error_code=RET.NO_DATA_ERR, error_mesg="The group which machine belongs to is not exist")
+            return jsonify(error_code=RET.NO_DATA_ERR, error_msg="The group which machine belongs to is not exist")
 
         _message = dict(
             data=json.dumps(

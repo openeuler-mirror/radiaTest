@@ -385,7 +385,7 @@ class CaseHandler:
         if not _suite:
             return jsonify(
                 error_code=RET.PARMA_ERR,
-                error_mesg="The suite {} is not exist".format(
+                error_msg="The suite {} is not exist".format(
                     _body.get("suite")
                 )
             )

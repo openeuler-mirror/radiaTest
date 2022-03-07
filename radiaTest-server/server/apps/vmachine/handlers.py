@@ -41,12 +41,25 @@ class ChoosePmachine(MessageBody):
         self._algorithm = algorithm
 
     def run(self):
-        if self._pmachine:
-            return self._algorithm(self._pmachine)
+        org_len = len(self._pmachine)
+        while len(self._pmachine) > 0:
+            pm = self._algorithm(self._pmachine)
+            result = check_available_mem(pm.ip, pm.password, self._body.get("capacity"))
+            if result:
+                return pm
+            else:
+                self._pmachine.remove(pm)
+        
+        if org_len > 0:
+            return {
+                    "error_code": RET.NO_MEM_ERR,
+                    "error_msg": "the machine has no enough memory to use"
+                }
+   
 
         return {
-            "error_code": 30005,
-            "error_mesg": "No physical machine could be chosen.",
+            "error_code": RET.NO_RES_ERR,
+            "error_msg": "No physical machine could be chosen.",
         }
 
 
@@ -67,7 +80,7 @@ class ChooseMirror(MessageBody):
         if mirroring:
             return mirroring
 
-        return {"error_code": 30006, "error_mesg": "No mirroring could be chosen."}
+        return {"error_code": RET.NO_RES_ERR, "error_msg": "No mirroring could be chosen."}
 
 
 class Messenger:
@@ -96,7 +109,7 @@ class Messenger:
                 response.apparent_encoding
             )
             if response.status_code != 200:
-                return {"error_code": response.status_code, "error_mesg": resp}
+                return {"error_code": response.status_code, "error_msg": resp}
 
             self._body.update({
                 "pmachine_id": self._pmachine.id,
@@ -125,11 +138,33 @@ class Messenger:
             current_app.logger.error(e)
             raise RecursionError(e)
 
+def check_available_mem(ip, pwd, vm_mem):
+    ssh = Connection(ip, pwd)
+    conn = ssh._conn()
+    if not conn:
+        raise "failed to connect to physical machine."
+    _, avail_mem = ssh._command("free -g | sed -n '2p' | awk '{print $7}'")
+    ssh._close()
+    return int(avail_mem) > int(vm_mem) + 5
 
 class CreateVmachine(AuthMessageBody):
     @collect_sql_error
     def install(self):
-        pmachine = ChoosePmachine(self._body, choice).run()
+        if self._body.get("pm_select_mode") == "auto":
+            pmachine = ChoosePmachine(self._body, choice).run()
+        elif self._body.get("pm_select_mode") == "assign":
+            pmachine = Precise(Pmachine, {"id": self._body.get("pmachine_id")}).first()
+            result = check_available_mem(pmachine.ip, pmachine.password, self._body.get("capacity"))
+            if not result:
+                return jsonify(
+                    {
+                        "error_code": RET.NO_MEM_ERR,
+                        "error_msg": "the machine has no enough memory to use"
+                    }
+                )
+        else:
+            #预留其他方式
+            pass
         if isinstance(pmachine, dict):
             return pmachine
 
@@ -259,8 +294,8 @@ class DeleteVmachine(MessageBody):
         if not vmachines:
             return jsonify(
                 {
-                    "error_code": 30005,
-                    "error_mesg": "Those virtual machines have been deleted.",
+                    "error_code": RET.NO_RES_ERR,
+                    "error_msg": "Those virtual machines have been deleted.",
                 }
             )
 
@@ -275,7 +310,7 @@ class DeleteVmachine(MessageBody):
                 ).work()
 
                 if resp.get("error_code"):
-                    current_app.logger.debug(resp.get("error_mesg"))
+                    current_app.logger.debug(resp.get("error_msg"))
                     fail_del.append(vmachine.name)
                     continue
 
@@ -287,13 +322,31 @@ class DeleteVmachine(MessageBody):
         if fail_del:
             return jsonify(
                 {
-                    "error_code": 30005,
-                    "error_mesg": "Some virtual machines:%s fail to be deleted."
+                    "error_code": RET.DATA_DEL_ERR,
+                    "error_msg": "Some virtual machines:%s fail to be deleted."
                     % fail_del,
                 }
             )
-        return jsonify({"error_code": 200, "error_mesg": "success to delete."})
+        return jsonify({"error_code": RET.OK, "error_msg": "success to delete."})
 
+
+class ForceDeleteVmachine(MessageBody):
+    def run(self):
+        vmachines = MultipleConditions(Vmachine, self._body).all()
+        if not vmachines:
+            return jsonify(
+                {
+                    "error_code": RET.NO_RES_ERR,
+                    "error_msg": "Those virtual machines have been deleted.",
+                }
+            )
+
+        for vmachine in vmachines:
+            pmachine = vmachine.pmachine
+            if vmachine and vmachine.vnc_port:
+                VncTokenCreator(pmachine.ip, vmachine.vnc_port).end()
+            vmachine.delete(Vmachine, "/vmachine")
+        return jsonify({"error_code": RET.OK, "error_msg": "success to delete."})
 
 class DeviceManager(Messenger):
     def add(self, table):
@@ -365,7 +418,12 @@ class DeviceManager(Messenger):
 
 def search_device(body, table):
     devices = table.query.filter_by(vmachine_id=body.get("vmachine_id")).all()
-    return jsonify([data.to_json() for data in devices])
+    return jsonify({
+        "error_code": RET.OK,
+        "error_msg": "OK!",
+        "data": [data.to_json() for data in devices]
+        }
+    )
 
 
 class VmachineAsyncResultHandler:

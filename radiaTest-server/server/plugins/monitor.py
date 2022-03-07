@@ -10,6 +10,7 @@ from time import sleep
 from copy import deepcopy
 
 import ntplib
+from server.utils.response_util import RET
 
 
 class BaseMonitor:
@@ -152,7 +153,7 @@ class RepoMonitor(BaseMonitor):
                 suite = json.loads(resp.text)
                 if not isinstance(suite, list):
                     self.app.logger.error(
-                        "RepoMonitor: " + suite.get("error_mesg")
+                        "RepoMonitor: " + suite.get("error_msg")
                     )
                     continue
 
@@ -319,9 +320,9 @@ class RepoMonitor(BaseMonitor):
 
         if resp.status_code != 200:
             self.app.logger.error("RepoMonitor: " + resp.text)
-        elif json.loads(resp.text).get("error_code") != 200:
+        elif json.loads(resp.text).get("error_code") != RET.OK:
             self.app.logger.error(
-                "RepoMonitor: " + json.loads(resp.text).get("error_mesg")
+                "RepoMonitor: " + json.loads(resp.text).get("error_msg")
             )
         else:
             return True
@@ -354,9 +355,9 @@ class RepoMonitor(BaseMonitor):
             case = json.loads(resp.text)
 
             if not isinstance(case, list):
-                if case.get("error_mesg"):
+                if case.get("error_msg"):
                     self.app.logger.error(
-                        "RepoMonitor: " + case.get("error_mesg")
+                        "RepoMonitor: " + case.get("error_msg")
                     )
                 elif case.get("error_msg"):
                     self.app.logger.error(

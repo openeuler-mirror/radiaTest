@@ -16,7 +16,7 @@ from dateutil.relativedelta import relativedelta
 from pydantic import BaseModel, constr, validator, root_validator
 
 
-from server.schema import Frame, PmachineState, Power
+from server.schema import Frame, PmachineState, Power, PermissionType
 from server.schema.base import UpdateBaseModel
 
 from server.utils.db import Precise

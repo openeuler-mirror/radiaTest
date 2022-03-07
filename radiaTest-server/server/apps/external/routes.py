@@ -27,7 +27,7 @@ class UpdateTaskEvent(Resource):
         _group = list(filter(lambda x: x.name == current_app.config.get("OE_QA_GROUP_NAME"), groups))
 
         if not _group:
-            return {"error_code": 60001, "error_mesg": "invalid group name by openEuler QA config"}
+            return {"error_code": RET.TASK_WRONG_GROUP_NAME, "error_msg": "invalid group name by openEuler QA config"}
         
         group = _group[0]
 
@@ -40,7 +40,7 @@ class UpdateTaskEvent(Resource):
         result = re.findall(pattern, body.base_update_url)
 
         if  not result:
-            return {"error_code": 60002, "error_mesg": "invalid repo url format"}
+            return {"error_code": RET.WRONG_INSTALL_WAY, "error_msg": "invalid repo url format"}
 
         form.title = "{} {} {}".format(
             body.product,
@@ -99,7 +99,7 @@ class UpdateTaskEvent(Resource):
             )
             
         # return response
-        return {"error_code": "2000", "error_mesg": "OK"}
+        return {"error_code": RET.OK, "error_msg": "OK"}
                 
 
 class RepoSuiteEvent(Resource):
@@ -126,7 +126,7 @@ class RepoCaseEvent(Resource):
         if not _suite:
             return jsonify(
                 error_code=RET.PARMA_ERR, 
-                error_mesg="The suite {} is not exist".format(
+                error_msg="The suite {} is not exist".format(
                     _body.get("suite")
                 )
             )

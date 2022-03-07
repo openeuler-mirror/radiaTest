@@ -8,7 +8,7 @@ from server.model import Product, Milestone
 
 from server.utils.db import Precise
 
-from server.schema import MilestoneType
+from server.schema import MilestoneType, PermissionType
 from server.schema.base import UpdateBaseModel
 
 
