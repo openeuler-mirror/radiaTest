@@ -16,7 +16,10 @@ from server.utils.celery_utils import init_celery
 
 db = SQLAlchemy()
 redis_client = RedisClient()
-socketio = SocketIO(cors_allowed_origins="*", async_mode="gevent")
+socketio = SocketIO(
+    cors_allowed_origins="*", 
+    async_mode="gevent",
+)
 adapter = casbin_sqlalchemy_adapter.Adapter(
     loads_db_url("/etc/radiaTest/server.ini")
 )
@@ -54,7 +57,7 @@ def create_app(**kwargs):
         init_celery(kwargs['celery'], app)
 
     CORS(cors_allowed_origins="*")
-    socketio.init_app(app)
+    socketio.init_app(app, message_queue="redis://localhost:6379/10")
 
     pymysql.install_as_MySQLdb()
     db.init_app(app)

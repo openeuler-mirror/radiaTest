@@ -1,31 +1,58 @@
 import json
-import requests
 from datetime import datetime
 
 from flask import current_app
-from celery import group
-# from celery.canvas import GroupResult
+from celery import chord
 
 from server.utils.db import Edit, Insert
+from server.utils.response_util import RET
+from server.utils.permission_utils import PermissionItemsPool
 from server.model.job import Job
 from server.model.testcase import Suite
+from server.model.pmachine import Pmachine
 from server.model.task import TaskMilestone
 from server.model.template import Template
 from celeryservice.lib import TaskAuthHandler
-from celeryservice.sub_tasks import run_case
+from celeryservice.sub_tasks import job_result_callback, run_case
 
 
-# TODO 新增部分机器是已指定机器的场景
-# TODO 新增指定机器作为master的场景
 class RunJob(TaskAuthHandler):
     def __init__(self, body, promise, user, logger) -> None:
         self._body = body
         self.promise = promise
+        self.app_context= current_app.app_context()
+
         super().__init__(user, logger)
 
-    def _create_job(self):
+        self._body.update({
+            "status": "PENDING",
+            "start_time": self.start_time,
+            "running_time": 0,
+        })
+
+    @property
+    def pmachine_pool(self):
+        _pmachines = Pmachine.query.filter_by(
+            locked=False,
+            status="on",
+            description=current_app.config.get("CI_PURPOSE")
+        ).all()
+
+        return PermissionItemsPool(
+            _pmachines,
+            "pmachine",
+            "GET",
+            self.user.get("auth")
+        ).allow_list
+
+    def _create_job(self, multiple: bool):
         if self._body.get("id"):
             del self._body["id"]
+        
+        self._body.update({
+            "multiple": multiple,
+            "is_suite_job": True,
+        })
 
         job_id = Insert(Job, self._body).insert_id(Job, "/job")
 
@@ -35,60 +62,82 @@ class RunJob(TaskAuthHandler):
                 % self.name
             )
 
-        return Job.query.filter_by(id=job_id).first()
+        _job = Job.query.filter_by(id=job_id).first()
+
+        self._body.update(_job.to_dict())
+        self._body.pop("milestone")
+    
+    def _update_job(self, app_context=None, **kwargs):
+        self.next_period()
+        self._body.update({
+            "running_time": self.running_time,
+            **kwargs,
+        })
+        
+        if app_context is not None:
+            with app_context:
+                job = Job.query.filter_by(id=self._body.get("id")).first()
+                for key, value in self._body.items():
+                    setattr(job, key, value)
+
+                job.add_update(Job, "/job", True)
+        else:
+            job = Job.query.filter_by(id=self._body.get("id")).first()
+            for key, value in self._body.items():
+                setattr(job, key, value)
+            
+            job.add_update(Job, "/job", True)
 
 
 class RunSuite(RunJob):
     def run(self):
-        self.promise.update_state(
-            state="RUNNING",
-            meta={
-                "start_time": self.start_time,
-                "running_time": self.running_time,
-            },
-        )
+        self._create_job(False)
 
-        self._job = self._create_job()
-        self._body.update(self._job.to_json())
-        self._body.pop("milestone")
+        try:
+            suite = Suite.query.filter_by(
+                id=self._body.get("suite_id")
+            ).first()
 
-        suite = Suite.query.filter_by(
-            id=self._body.get("suite_id")
-        ).first()
+            if not suite:
+                raise RuntimeError(
+                    "test suite of id: {} does not exist, please check testcase repo.".format(
+                        self._body.get("suite_id"))
+                )
 
-        if not suite:
-            raise RuntimeError(
-                "test suite of id: {} does not exist, please check testcase repo.".format(
-                    self._body.get("suite_id"))
+            env_params = {
+                "machine_type": suite.machine_type,
+                "machine_num": suite.machine_num,
+                "add_network_interface": suite.add_network_interface,
+                "add_disk": suite.add_disk,
+            }
+
+            suites_cases = [(suite.name, case.name) for case in suite.case]
+            
+            _task = run_case.delay(
+                self.user,
+                self._body,
+                env_params,
+                suites_cases,
+                self.pmachine_pool,
             )
 
-        suites_cases = [(suite.name, case.name) for case in suite.case]
-
-        _task = run_case.delay(
-            self.user,
-            self._body,
-            suite.machine_type,
-            suite.machine_num,
-            suite.add_network_interface,
-            suite.add_disk,
-            suites_cases,
-        )
-
-        self.next_period()
-        self.promise.update_state(
-            state="DONE",
-            meta={
-                "group_tasks_result": _task.get(),
-                "start_time": self.start_time,
-                "running_time": self.running_time,
-                **self._body,
-            }
-        )
+            self._update_job(tid = _task.task_id)
+        
+        except RuntimeError as e:
+            self.logger.error(str(e))
+            self._update_job(
+                result="fail",
+                remark=str(e),
+                end_time=datetime.now(),
+                status="BLOCK",
+            )
 
 
 class RunTemplate(RunJob):
     def __init__(self, body, promise, user, logger) -> None:
         super().__init__(body, promise, user, logger)
+
+        self.progress = 0
 
         self._template = Template.query.filter_by(
             id=self._body.get("template_id")
@@ -102,13 +151,10 @@ class RunTemplate(RunJob):
         self._body.update({
             "milestone_id": self._template.milestone_id,
             "git_repo_id": self._template.git_repo_id,
+            "total": len(self._template.cases),
+            "success_cases": 0,
+            "fail_cases": 0,
         })
-
-        # for key in list(self._body.keys()):
-        #     if not self._body.get(key):
-        #         del self._body[key]
-        # if not self._body.get("milestone_id"):
-        #     self._body.update({"milestone_id": self._template.milestone_id})
 
     def _sort(self):
         cases = self._template.cases
@@ -133,14 +179,13 @@ class RunTemplate(RunJob):
                     for disk in add_disk:
                         cs = {}
                         cl = []
-                        for i in range(len(cases)-1, -1, -1):
+                        for case in cases:
                             if (
-                                cases[i].machine_num == machine
-                                and cases[i].add_network_interface == network
-                                and cases[i].add_disk == disk
+                                case.machine_num == machine
+                                and case.add_network_interface == network
+                                and case.add_disk == disk
                             ):
-                                _case = cases.pop(i)
-                                cl.append([_case.suite.name, _case.name])
+                                cl.append([case.suite.name, case.name])
 
                         if cl:
                             cs["type"] = m_type
@@ -161,116 +206,64 @@ class RunTemplate(RunJob):
             }
         ).single()
 
-    def _callback_task_job_result(self):
-        try:
-            resp = requests.put(
-                url="{}://{}:{}/api/v1/task/milestones/{}".format(
-                    current_app.config.get("PROTOCOL"),
-                    current_app.config.get("SERVER_IP"),
-                    current_app.config.get("SERVER_PORT"),
-                    self._body.get("taskmilestone_id")
-                ),
-                data=json.dumps({
-                    "job_id": self._body.get("id"),
-                    "result": self._body.get("status"),
-                }),
-                headers=current_app.config.get("HEADERS")
-            )
-            resp.encoding = resp.apparent_encoding
-
-            if resp.status_code == 200:
-                current_app.logger.info(
-                    "Task job has been call back => " + resp.text)
-            else:
-                current_app.logger.error(
-                    "Error in calling back to TaskMilestones => " + resp.text)
-        except Exception as e:
-            current_app.logger.error(
-                "Error in calling back to TaskMilestones => " + str(e))
-
     def run(self):
+        self._create_job(True)
+
         try:
-            self.promise.update_state(
-                state="PREPARING",
-                meta={
-                    "start_time": self.start_time,
-                    "running_time": self.running_time,
-                },
-            )
-
-            self._job = self._create_job()
-            self._body.update(self._job.to_json())
-            self._body.pop("milestone")
-
-            if self._job and self._body.get("taskmilestone_id"):
+            if self._body.get("id") and self._body.get("taskmilestone_id"):
                 resp = self._callback_task_job_init()
-                if resp.status_code != 200:
-                    self.logger.error(
-                        "Cannot callback job_id to taskmilestone table: " + resp.error_mesg
-                    )
+                try:
+                    output = json.loads(resp.text)
+                    if output.get("error_code") != RET.OK:
+                        self.logger.error(
+                            "Cannot callback job_id to taskmilestone table: " + resp.error_mesg
+                        )
+                except (AttributeError, TypeError, RuntimeError) as e:
+                    self.logger.error(str(e))
+                    raise RuntimeError(str(e)) from e
 
-            self._body.update({
-                "total": len(self._template.cases),
-                "success_cases": 0,
-                "fail_cases": 0,
-            })
-
-            self.next_period()
-            self.promise.update_state(
-                state="CLASSIFYING",
-                meta={
-                    "start_time": self.start_time,
-                    "running_time": self.running_time,
-                    **self._body,
-                },
+            self._update_job(
+                status="CLASSIFYING",
             )
 
             classify_cases = self._sort()
 
             tasks = []
             for cases in classify_cases:
+                env_params = {
+                    "machine_type": cases.get("type"),
+                    "machine_num": cases.get("machine"),
+                    "add_network_interface": cases.get("network"),
+                    "add_disk": cases.get("disk"),
+                }
+
                 tasks.append(
                     run_case.s(
                         self.user,
                         self._body,
-                        cases.get("type"),
-                        cases.get("machine"),
-                        cases.get("network"),
-                        cases.get("disk"),
+                        env_params,
                         cases.get("suites_cases"),
+                        self.pmachine_pool,
                     )
                 )
 
-            g_task = group(tasks).apply_async()
+            chord_task = chord(tasks)(
+                job_result_callback.s(
+                    job_id=self._body.get("id"),
+                    taskmilestone_id=self._body.get("taskmilestone_id")
+                )
+            )
 
-            self.next_period()
-            self.promise.update_state(
-                state="DONE",
-                meta={
-                    "group_task_id": g_task.id,
-                    "start_time": self.start_time,
-                    "running_time": self.running_time,
-                    **self._body,
-                }
+            self._update_job(
+                status="RUNNING",
+                tid=chord_task.task_id,
             )
 
         except RuntimeError as e:
             self.logger.error(str(e))
-
-            self._body.update({
-                "result": "fail",
-                "remark": str(e),
-                "end_time": datetime.now()
-            })
-            self.promise.update_state(
-                state="BLOCK",
-                meta={
-                    "start_time": self.start_time,
-                    "running_time": self.running_time,
-                    **self._body,
-                },
+            self._update_job(
+                result="fail",
+                remark=str(e),
+                end_time=datetime.now(),
+                status="BLOCK",
             )
-
-        finally:
-            if self._body.get("taskmilestone_id"):
-                self._callback_task_job_result()

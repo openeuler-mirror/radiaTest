@@ -72,6 +72,17 @@ BaselineType = Literal["directory", "suite", "case"]
 #权限归属
 PermissionType = Literal["PERSON", "GROUP", "ORG", "PUBLIC"]
 
+
+# 测试执行
+## Job排序依据
+JobSortedBy = Literal["create_time", "end_time"]
+## Job分表依据
+JobDefaultStates = Literal["PENDING", "DONE"]
+## Job执行机器选取策略
+MachinePolicy = Literal["auto", "manual"]
+
+
+
 # 权限管理相关类型
 ## 角色类型
 RoleType = Literal["public", "group", "organization"]

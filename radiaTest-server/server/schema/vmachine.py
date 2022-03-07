@@ -14,7 +14,7 @@ from typing import List, Optional
 
 from flask import current_app
 from pydantic import BaseModel, conint, constr, Field, validator, root_validator
-
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from server.schema import (
     Frame,
@@ -110,7 +110,7 @@ class VmachineUpdate(UpdateBaseModel):
             create_time = (
                 Precise(Vmachine, {"id": values.get("id")}).first().create_time
             )
-        except Exception:
+        except (IntegrityError, SQLAlchemyError):
             raise ValueError("Must select an existing virtual machine.")
 
         max_time = create_time + timedelta(
@@ -130,7 +130,7 @@ class VmachineDelay(UpdateBaseModel):
     def check_end_time(cls, v, values):
         try: 
             vm = Precise(Vmachine, {"id": values.get("id")}).first()
-        except Exception:
+        except (SQLAlchemyError, IntegrityError):
             raise ValueError("Must select an existing virtual machine.")
         
         dl = (v - vm.end_time).days

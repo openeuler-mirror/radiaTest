@@ -16,9 +16,12 @@ class Config(object):
     # Gitee oauth login
     GITEE_OAUTH_SCOPE = ['user_info', 'emails', 'enterprises', 'issues']
 
+    # API 官方版本
+    OFFICIAL_API_VERSION = "v1"
+
     # 物理机
     # CI宿主机标志
-    CI_SIGN = "as the host of ci"
+    CI_HOST = "as the host of ci"
     # CI测试机标志
     CI_PURPOSE = "used for ci"
 

@@ -34,7 +34,7 @@ class ChoosePmachine(MessageBody):
             Pmachine,
             {
                 "frame": self._body.get("frame"),
-                "description": current_app.config.get("CI_SIGN"),
+                "description": current_app.config.get("CI_HOST"),
                 "state": "occupied",
             },
         ).all()
@@ -44,7 +44,7 @@ class ChoosePmachine(MessageBody):
         org_len = len(self._pmachine)
         while len(self._pmachine) > 0:
             pm = self._algorithm(self._pmachine)
-            result = check_available_mem(pm.ip, pm.password, self._body.get("capacity"))
+            result = check_available_mem(pm.ip, pm.password, self._body.get("memory"))
             if result:
                 return pm
             else:
@@ -58,7 +58,7 @@ class ChoosePmachine(MessageBody):
    
 
         return {
-            "error_code": RET.NO_RES_ERR,
+            "error_code": RET.NO_DATA_ERR,
             "error_msg": "No physical machine could be chosen.",
         }
 
@@ -80,7 +80,7 @@ class ChooseMirror(MessageBody):
         if mirroring:
             return mirroring
 
-        return {"error_code": RET.NO_RES_ERR, "error_msg": "No mirroring could be chosen."}
+        return {"error_code": RET.NO_DATA_ERR, "error_msg": "No mirroring could be chosen."}
 
 
 class Messenger:
@@ -145,7 +145,7 @@ def check_available_mem(ip, pwd, vm_mem):
         raise "failed to connect to physical machine."
     _, avail_mem = ssh._command("free -g | sed -n '2p' | awk '{print $7}'")
     ssh._close()
-    return int(avail_mem) > int(vm_mem) + 5
+    return int(avail_mem) > int(vm_mem)/1024 + 5
 
 class CreateVmachine(AuthMessageBody):
     @collect_sql_error
@@ -154,7 +154,7 @@ class CreateVmachine(AuthMessageBody):
             pmachine = ChoosePmachine(self._body, choice).run()
         elif self._body.get("pm_select_mode") == "assign":
             pmachine = Precise(Pmachine, {"id": self._body.get("pmachine_id")}).first()
-            result = check_available_mem(pmachine.ip, pmachine.password, self._body.get("capacity"))
+            result = check_available_mem(pmachine.ip, pmachine.password, self._body.get("memory"))
             if not result:
                 return jsonify(
                     {
@@ -294,7 +294,7 @@ class DeleteVmachine(MessageBody):
         if not vmachines:
             return jsonify(
                 {
-                    "error_code": RET.NO_RES_ERR,
+                    "error_code": RET.NO_DATA_ERR,
                     "error_msg": "Those virtual machines have been deleted.",
                 }
             )
@@ -336,7 +336,7 @@ class ForceDeleteVmachine(MessageBody):
         if not vmachines:
             return jsonify(
                 {
-                    "error_code": RET.NO_RES_ERR,
+                    "error_code": RET.NO_DATA_ERR,
                     "error_msg": "Those virtual machines have been deleted.",
                 }
             )
@@ -432,7 +432,7 @@ class VmachineAsyncResultHandler:
     def edit(body):
         pmachine = Pmachine.query.filter_by(id=body.get("pmachine_id")).first()
         if not pmachine:
-            return jsonify(error_code=RET.DATA_EXIST_ERR, error_msg="host not exist for this vmachine")
+            return jsonify(error_code=RET.NO_DATA_ERR, error_msg="host not exist for this vmachine")
 
         _vnc_token = VncTokenCreator(pmachine.ip, body.get("vnc_port")).start()
 
@@ -456,7 +456,7 @@ class VmachineAsyncResultHandler:
                 )
                 return ip
 
-            # TODO 密码写活
+            # TODO 密码写活 可选自设字段 330前完成
             ssh = Connection(ip, "openEuler12#$")
             conn = ssh._conn()
             if conn:

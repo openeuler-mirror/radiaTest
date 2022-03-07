@@ -86,14 +86,18 @@ class Suite(BaseModel, db.Model):
     )
 
     def to_json(self):
-        _framework = Framework.query.filter_by(
-            id=self.git_repo.framework_id
-        ).first()
-
+        git_repo_dict = dict()
         framework = dict()
 
-        if _framework is not None:
-            framework = _framework.to_json()
+        if self.git_repo_id:
+            git_repo_dict = self.git_repo.to_json()
+
+            _framework = Framework.query.filter_by(
+                id=self.git_repo.framework_id
+            ).first()
+
+            if _framework is not None:
+                framework = _framework.to_json()
 
         return {
             "id": self.id,
@@ -104,7 +108,7 @@ class Suite(BaseModel, db.Model):
             "add_network_interface": self.add_network_interface,
             "add_disk": self.add_disk,
             "remark": self.remark,
-            "git_repo": self.git_repo.to_json() if self.git_repo_id else {},
+            "git_repo": git_repo_dict,
             "framework": framework,
             "group_id": self.group_id,
             "org_id": self.org_id,
@@ -144,21 +148,18 @@ class Case(BaseModel, db.Model):
         'TaskManualCase', backref='case', cascade='all, delete')
 
     def to_json(self):
-        _git_repo = GitRepo.query.filter_by(
-            id=self.suite.git_repo.id
-        ).first()
-
-        git_repo = dict()
+        _git_repo = self.suite.git_repo
+        git_repo_dict = dict()
 
         if _git_repo is not None:
-            git_repo = _git_repo.to_json()
+            git_repo_dict = _git_repo.to_json()
 
         return {
             "id": self.id,
             "name": self.name,
             "suite_id": self.suite_id,
             "suite": self.suite.name,
-            "git_repo": git_repo,
+            "git_repo": git_repo_dict,
             "test_level": self.test_level,
             "test_type": self.test_type,
             "machine_num": self.machine_num,

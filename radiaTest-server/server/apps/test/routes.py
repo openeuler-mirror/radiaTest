@@ -1,16 +1,29 @@
-from flask import request, jsonify
+from flask import jsonify, request
 from flask_restful import Resource
 
-from server import redis_client
+from server.model.vmachine import Vmachine
 from server.utils.response_util import RET
+from server.utils.auth_util import auth
+from server.utils.permission_utils import PermissionItemsPool
 
 
 class TestEvent(Resource):
+    @auth.login_required
     def get(self):
-        body = request.args.to_dict()
+        _auth = request.headers.get("authorization")
 
-        task_id = body["task_id"]
+        _vmachines = Vmachine.query.all()
 
-        status = redis_client.get("celery-task-meta-{}".format(task_id))
+        vmachine_pool = PermissionItemsPool(
+            _vmachines, 
+            "vmachine", 
+            "GET", 
+            _auth
+        )
 
-        return jsonify(error_code=RET.OK, error_msg="OK", data=status)
+
+        return jsonify(
+            error_code=RET.OK, 
+            error_msg="OK", 
+            data=vmachine_pool.allow_list
+        )

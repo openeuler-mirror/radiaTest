@@ -8,6 +8,7 @@ from abc import abstractmethod
 import shlex
 
 from .utils import authorization_decoder, UnSupportedAuthType
+from server.utils.response_util import RET
 
 
 class CasbinEnforcer:
@@ -167,7 +168,7 @@ class CasbinEnforcer:
                     else " by user: %s" % owner_audit,
                 )
             )
-            return jsonify(error_code="4000", error_msg="Unauthorized")
+            return jsonify(error_code=RET.UNAUTHORIZE_ERR, error_msg="Unauthorized")
 
         return wrapper
 

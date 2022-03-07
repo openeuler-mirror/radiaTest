@@ -13,6 +13,8 @@ class Milestone(BaseModel, db.Model):
     start_time = db.Column(db.Date(), nullable=False)
     end_time = db.Column(db.Date(), nullable=False)
     description = db.Column(TINYTEXT())
+    state = db.Column(db.String(16))
+    is_sync = db.Column(db.Boolean(), default=False)
 
     product_id = db.Column(db.Integer(), db.ForeignKey("product.id"))
 
@@ -60,5 +62,7 @@ class Milestone(BaseModel, db.Model):
             "product_version": self.product.version,
             "tags": tags,
             "task_num": len(self.tasks),
+            "state": self.state,
+            "is_sync": self.is_sync,
         }
 

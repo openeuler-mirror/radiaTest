@@ -20,7 +20,7 @@ from celeryservice.tasks import resolve_testcase_file, resolve_testcase_file_for
 class CaseImportHandler:
     @staticmethod
     @collect_sql_error
-    def loads_data(filetype, filepath, group_id, git_repo_id):
+    def loads_data(filetype, filepath, group_id):
         excel = Excel(filetype).load(filepath)
 
         cases = SheetExtractor(
@@ -50,7 +50,6 @@ class CaseImportHandler:
                         "name": case.get("suite"),
                         "group_id": group_id,
                         "org_id": redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id'),
-                        "git_repo_id": git_repo_id,
                     }
                 ).single(Suite, '/suite')
                 _suite = Suite.query.filter_by(
@@ -76,7 +75,7 @@ class CaseImportHandler:
 
     @staticmethod
     @collect_sql_error
-    def import_case(file, group_id, git_repo_id, baseline_id=None):
+    def import_case(file, group_id, baseline_id=None):
         try:
             case_file = ExcelImportFile(file)
 
@@ -91,7 +90,6 @@ class CaseImportHandler:
                     _task = resolve_testcase_file_for_baseline.delay(
                         baseline_id,
                         case_file.filepath,
-                        git_repo_id,
                         CeleryTaskUserInfoSchema(
                             auth=request.headers.get("authorization"),
                             user_id=int(g.gitee_id),
@@ -105,7 +103,6 @@ class CaseImportHandler:
                 else:
                     _task = resolve_testcase_file.delay(
                         case_file.filepath,
-                        git_repo_id,
                         CeleryTaskUserInfoSchema(
                             auth=request.headers.get("authorization"),
                             user_id=int(g.gitee_id),
@@ -303,7 +300,7 @@ class BaselineHandler:
 
     @staticmethod
     @collect_sql_error
-    def import_case_set(file, group_id, git_repo_id):
+    def import_case_set(file, group_id):
         uncompressed_filepath = None
         try:
             zip_case_set = ZipImportFile(file)
@@ -323,7 +320,6 @@ class BaselineHandler:
                 _task = resolve_testcase_set.delay(
                     zip_case_set.filepath,
                     uncompressed_filepath,
-                    git_repo_id,
                     CeleryTaskUserInfoSchema(
                         auth=request.headers.get("authorization"),
                         user_id=int(g.gitee_id),
@@ -394,3 +390,18 @@ class CaseHandler:
 
         _id = Insert(Case, _body).insert_id(Case, "/case")
         return jsonify(error_code=RET.OK, error_msg="OK", data={"id": _id})
+
+
+class TemplateCasesHandler:
+    @staticmethod
+    @collect_sql_error
+    def get_all(git_repo_id):
+        cases = Case.query.join(Suite).filter(
+            Suite.git_repo_id == git_repo_id
+        ).all()
+        data = [case.to_json() for case in cases]
+        return jsonify(
+            error_code = RET.OK,
+            error_msg="OK",
+            data=data,
+        )

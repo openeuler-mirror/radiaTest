@@ -15,7 +15,7 @@ class RoleHandler:
     def get(role_id):
         role = Role.query.filter_by(id=role_id).first()
         if not role:
-            return jsonify(error_code=RET.DATA_EXIST_ERR, error_msg="The role is not exist")
+            return jsonify(error_code=RET.NO_DATA_ERR, error_msg="The role is not exist")
         
         return_data = role.to_json()
 
@@ -87,7 +87,7 @@ class RoleHandler:
             ).first()
 
         if not _relation and _body["type"] != "public":
-            return jsonify(error_code=RET.DATA_EXIST_ERR, error_msg="Group/Organization has not been exist")
+            return jsonify(error_code=RET.NO_DATA_ERR, error_msg="Group/Organization has not been exist")
 
         if _role is not None:
             return jsonify(error_code=RET.DATA_EXIST_ERR, error_msg="This role is already exist")
@@ -100,7 +100,7 @@ class RoleHandler:
     def delete(role_id):
         role = Role.query.filter_by(id=role_id).first()
         if not role:
-            return jsonify(error_code=RET.DATA_EXIST_ERR, error_msg="The role to delete is not exist")
+            return jsonify(error_code=RET.NO_DATA_ERR, error_msg="The role to delete is not exist")
         
         db.session.delete(role)
         db.session.commit()
@@ -112,7 +112,7 @@ class RoleHandler:
     def update(role_id, body):
         role = Role.query.filter_by(id=role_id).first()
         if not role:
-            return jsonify(error_code=RET.DATA_EXIST_ERR, error_msg="The role to delete is not exist")
+            return jsonify(error_code=RET.NO_DATA_ERR, error_msg="The role to delete is not exist")
 
         role.name = body.name
 
@@ -154,7 +154,7 @@ class ScopeHandler:
     def delete(role_id):
         scope = Scope.query.filter_by(id=role_id).first()
         if not scope:
-            return jsonify(error_code=RET.DATA_EXIST_ERR, error_msg="The scope to delete is not exist")
+            return jsonify(error_code=RET.NO_DATA_ERR, error_msg="The scope to delete is not exist")
         
         db.session.delete(scope)
         db.session.commit()
@@ -166,7 +166,7 @@ class ScopeHandler:
     def update(role_id, body):
         scope = Scope.query.filter_by(id=role_id).first()
         if not scope:
-            return jsonify(error_code=RET.DATA_EXIST_ERR, error_msg="The scope to delete is not exist")
+            return jsonify(error_code=RET.NO_DATA_ERR, error_msg="The scope to delete is not exist")
 
         scope.alias = body.alias
         scope.uri = body.uri
@@ -186,7 +186,7 @@ class BindingHandler:
         _role = Role.query.filter_by(id=body.role_id).first()
 
         if not _scope or not _role:
-            return jsonify(error_code=RET.DATA_EXIST_ERR, error_msg="Scope/Role has not been exist")
+            return jsonify(error_code=RET.NO_DATA_ERR, error_msg="Scope/Role has not been exist")
 
         return Insert(ReScopeRole, body.__dict__).single()
 
@@ -197,7 +197,7 @@ class BindingHandler:
         _role = Role.query.filter_by(id=body.role_id).first()
 
         if not _user or not _role:
-            return jsonify(error_code=RET.DATA_EXIST_ERR, error_msg="User/Role has not been exist")
+            return jsonify(error_code=RET.NO_DATA_ERR, error_msg="User/Role has not been exist")
 
         return Insert(ReUserRole, body.__dict__).single()
 
@@ -273,7 +273,7 @@ class ScopeRoleLimitedHandler(RoleLimitedHandler):
         
         re = ReScopeRole.query.filter_by(role_id=self.role_id, scope_id=self.scope_id).first()
         if not re:
-            return jsonify(error_code=RET.DATA_EXIST_ERR, error_msg="This Binding is already not exist")
+            return jsonify(error_code=RET.NO_DATA_ERR, error_msg="This Binding is already not exist")
 
         return Delete(
             ReScopeRole,

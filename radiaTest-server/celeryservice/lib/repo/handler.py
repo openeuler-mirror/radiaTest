@@ -75,8 +75,7 @@ class RepoTaskHandler(TaskHandlerBase):
         )
 
         for (suite_data, cases_data) in suite2cases:
-            _task = update_suite.delay(suite_data, cases_data)
-            self.logger.warn(_task.task_id)
+            update_suite.delay(suite_data, cases_data)
 
         self.next_period()
         self.promise.update_state(

@@ -32,6 +32,7 @@ class Pmachine(BaseModel, db.Model):
     filename = db.Column(LONGTEXT())
     status = db.Column(db.String(9))
     occupier = db.Column(db.String(64), nullable=True)
+    locked = db.Column(db.Boolean(), default=False)
 
     vmachine = db.relationship(
         "Vmachine", backref="pmachine", cascade="all, delete, delete-orphan"
@@ -59,4 +60,5 @@ class Pmachine(BaseModel, db.Model):
             "listen": self.listen,
             "status": self.status,
             "occupier": self.occupier,
+            "locked": self.locked,
         }

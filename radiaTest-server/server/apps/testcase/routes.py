@@ -25,7 +25,8 @@ from server.apps.testcase.handler import (
     CaseImportHandler,
     BaselineHandler,
     SuiteHandler,
-    CaseHandler
+    CaseHandler,
+    TemplateCasesHandler
 )
 
 
@@ -73,16 +74,9 @@ class BaselineImportEvent(Resource):
                 error_msg="the id of group could not be empty as importing case set"
             )
 
-        if not request.form.get("git_repo_id"):
-            return jsonify(
-                error_code=RET.PARMA_ERR,
-                error_msg="the id of git repo could not be empty as importing case set"
-            )
-
         return BaselineHandler.import_case_set(
             request.files.get("file"),
             request.form.get("group_id"),
-            int(request.form.get("git_repo_id")),
         )
 
 
@@ -155,6 +149,15 @@ class CaseEvent(Resource):
         return Select(Case, body).precise()
 
 
+class TemplateCasesQuery(Resource):
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def get(self, git_repo_id):
+        return TemplateCasesHandler.get_all(git_repo_id)
+
+
+
 class CaseRecycleBin(Resource):
     @auth.login_required()
     @response_collect
@@ -172,13 +175,9 @@ class CaseImport(Resource):
         if not request.form.get("group_id"):
             return jsonify(error_code=RET.PARMA_ERR, error_msg="The file should be binded to a group")
 
-        if not request.form.get("git_repo_id"):
-            return jsonify(error_code=RET.PARMA_ERR, error_msg="The file should be binded to a git repo")
-
         return CaseImportHandler.import_case(
             request.files.get("file"),
             request.form.get("group_id"),
-            int(request.form.get("git_repo_id"))
         )
 
 
@@ -192,7 +191,6 @@ class ResolveTestcaseByFilepath(Resource):
         _task = resolve_testcase_file_for_baseline.delay(
             body.get("file_id"),
             body.get("filepath"),
-            body.get("git_repo_id"),
             CeleryTaskUserInfoSchema(
                 auth=request.headers.get("authorization"),
                 user_id=int(g.gitee_id),

@@ -51,6 +51,11 @@ def make_celery(app_name):
                 'routing_key': 'run_template',
                 'delivery_mode': 1,
             },
+            'celeryservice.sub_tasks.job_result_callback': {
+                'queue': 'queue_job_callback',
+                'routing_key': 'job_callback',
+                'delivery_mode': 1,
+            },
             'celeryservice.sub_tasks.run_case': {
                 'queue': 'queue_run_case',
                 'routing_key': 'run_case',

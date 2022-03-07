@@ -32,14 +32,6 @@ def pdbc(func):
                     "error_msg": str(e),
                 }
             )
-        # except Exception as e:
-        #     current_app.logger.error(e)
-        #     return jsonify(
-        #         {
-        #             "error_code": 1009,
-        #             "error_msg": "Unknown error, please contact the administrator to handle.",
-        #         }
-        #     )
 
     return wrapper
 

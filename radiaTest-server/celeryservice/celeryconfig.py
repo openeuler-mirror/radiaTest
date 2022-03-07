@@ -9,10 +9,10 @@ broker_pool_limit = 10
 
 imports = ('manage', )
 
-# worker_state_db = 'celeryservice/celerymain/celery_revokes_state_db'
+worker_state_db = 'celeryservice/celerymain/celery_revokes_state_db'
 
 # Task结果储存配置
-task_ignore_result = True
+task_ignore_result = False
 
 # Using mysql to store state and results
 result_backend = 'redis://localhost:6379/11'
@@ -111,6 +111,14 @@ task_queues = (
         routing_key='run_case',
     ),
     Queue(
+        'queue_job_callback',
+        exchange=Exchange(
+            'server_exchange',
+            type='direct'
+        ),
+        routing_key='job_callback',
+    ),
+    Queue(
         'queue_file_resolution',
         exchange=Exchange(
             'server_exchange',
@@ -128,32 +136,5 @@ task_queues = (
     ),
 )
 
-# task_default_queue = 'celery'
 task_default_exchange_type = 'direct'
-# task_default_routing_key = 'celery'
 
-# 路由属性配置
-# delivery_mode = 1 非持久化存储Tasks信息
-# delivery_mode = 2 持续化存储Tasks信息
-# task_routes = {
-#     'celeryservice.tasks.async_update_celerytask_status': {
-#         'queue': 'queue_update_celerytask_status',
-#         'routing_key': 'celerytask_status',
-#         'delivery_mode': 1,
-#     },
-#     'celeryservice.tasks.execute_job': {
-#         'queue': 'queue_job',
-#         'routing_key': 'job',
-#         'delivery_mode': 1,
-#     },
-#     'celeryservice.tasks.resolve_testcase_file': {
-#         'queue': 'queue_file_resolution',
-#         'routing_key': 'file',
-#         'delivery_mode': 1,
-#     },
-#     'celeryservice.tasks.resolve_testcase_repo': {
-#         'queue': 'queue_repo_resolution',
-#         'routing_key': 'repo',
-#         'delivery_mode': 1,
-#     },
-# }

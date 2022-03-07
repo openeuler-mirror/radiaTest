@@ -12,13 +12,14 @@ from server.model.organization import Organization
 from server.model.milestone import Milestone
 from server.model.testcase import Case
 from server.schema.task import *
+from server.schema.milestone import GiteeIssueQueryV8
 from server.schema.user import UserBaseSchema
 from server.schema.group import GroupInfoSchema
 from server.utils.db import collect_sql_error, Insert
 from server.utils.redis_util import RedisKey
 from server.utils.response_util import RET
 from server.utils.page_util import PageUtil
-from server.apps.milestone.handler import HandlerIssuesList
+from server.apps.milestone.handler import IssueOpenApiHandlerV5, IssueOpenApiHandlerV8
 from .services import UpdateTaskStatusService, get_family_member, update_task_display, AnalysisTaskInfo, send_message, \
     judge_task_automatic
 
@@ -948,6 +949,20 @@ class HandlerTaskStatistics(object):
         }
         return jsonify(error_code=RET.OK, error_msg="OK", data=return_data)
 
+    def get_issues_v8(self):
+        if not self.query.milestone_id:
+            return jsonify(error_code=RET.PARMA_ERR, error_msg="milestone_id should be provided")
+
+        org = Organization.query.get(redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id'))
+        if not org:
+            return jsonify(error_code=RET.NO_DATA_ERR, error_msg="the organization not exist")
+
+        params = self.query.__dict__
+
+        return IssueOpenApiHandlerV8().get_all(
+            GiteeIssueQueryV8(**params).__dict__
+        )
+    
     def get_issues(self):
         issues = []
         if not self.query.milestone_id:
@@ -960,7 +975,7 @@ class HandlerTaskStatistics(object):
         if not org:
             return issues
 
-        issues_proxy = HandlerIssuesList(org.enterprise, milestone.name)
+        issues_proxy = IssueOpenApiHandlerV5(org.enterprise, milestone.name)
         issues_list = issues_proxy.get_all_list(params={
             "enterprise": org.enterprise,
             "state": "open",
