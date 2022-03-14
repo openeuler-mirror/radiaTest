@@ -1,25 +1,37 @@
 import datetime
-from typing import Optional
+from typing import Literal, Optional
 
-from pydantic import BaseModel, constr, root_validator
+from pydantic import BaseModel, Field, constr, root_validator
 
 
 from server.model import Product, Milestone
 
 from server.utils.db import Precise
 
-from server.schema import MilestoneType, PermissionType
-from server.schema.base import UpdateBaseModel
+from server.schema import MilestoneType
 
 
-class MilestoneBase(BaseModel):
-    product_id: int
-    type: MilestoneType
-    start_time: Optional[datetime.datetime] = datetime.datetime.now()
-    end_time: datetime.datetime
+class MilestoneBaseSchema(BaseModel):
+    start_time: Optional[datetime.datetime]
     description: Optional[constr(max_length=255)]
     name: Optional[constr(max_length=64)]
+    end_time: Optional[datetime.datetime]
+    product_id: Optional[int]
+    type: Optional[MilestoneType]
+    state: Optional[Literal["open", "closed"]]
+    is_sync: Optional[bool]
 
+
+class MilestoneUpdateSchema(MilestoneBaseSchema):
+    state_event: Optional[Literal["activate", "close"]]
+
+
+class MilestoneCreateSchema(MilestoneBaseSchema):
+    product_id: int
+    type: MilestoneType
+    end_time: datetime.datetime
+    start_time: Optional[datetime.datetime] = datetime.datetime.now()
+    
     @root_validator
     def assign_name(cls, values):
         if not values.get("name"):
@@ -64,8 +76,53 @@ class MilestoneBase(BaseModel):
         return values
 
 
-class MilestoneUpdate(MilestoneBase, UpdateBaseModel):
-    end_time: Optional[datetime.datetime]
-    name: Optional[constr(max_length=64)]
-    product_id: Optional[int]
-    type: Optional[MilestoneType]
+class GiteeMilestoneBase(BaseModel):
+    access_token: str
+    title: str = Field(alias="name")
+    due_date: str = Field(alias="end_time")
+    start_date: Optional[str] = Field(alias="start_time")
+
+
+class GiteeMilestoneEdit(GiteeMilestoneBase):
+    title: Optional[str] = Field(alias="name")
+    due_date: Optional[str] = Field(alias="end_time")
+    state_event: Optional[Literal["activate", "close"]]
+
+
+class GiteeIssueQueryV8(BaseModel):
+    milestone_id: Optional[str]
+    state: Optional[str]
+    only_related_me: Optional[str]
+    assignee_id: Optional[str]
+    author_id: Optional[str]
+    collaborator_ids: Optional[str]
+    created_at: Optional[str]
+    finished_at: Optional[str]
+    plan_started_at: Optional[str]
+    deadline: Optional[str]
+    filter_child: Optional[str]
+    # TODO 建立新表存储issue_state_id信息，关联org表， 等待gitee v8接口可用
+    issue_type_id: int = 118738
+    priority: Optional[str]
+    sort: Optional[str]
+    direction: Optional[str]
+    page: int = 1
+    per_page: int = 10
+
+
+class GiteeIssueQueryV5(BaseModel):
+    state: Optional[str]
+    sort: Optional[str]
+    direction: Optional[str]
+    since: Optional[str]
+    schedule: Optional[str]
+    deadline: Optional[str]
+    created_at: Optional[str]
+    finished_at: Optional[str]
+    milestone: Optional[str]
+    assignee: Optional[str]
+    creator: Optional[str]
+    page: int = 1
+    per_page: int = 10
+
+

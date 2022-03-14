@@ -19,10 +19,15 @@ celery = Celery(
             'routing_key': 'create_vmachine',
             'delivery_mode': 1,
         },
+        'celeryservice.tasks.async_illegal_monitor': {
+            'queue': 'queue_illegal_monitor',
+            'routing_key': 'illegal_monitor',
+            'delivery_mode': 1,
+        },
     }
 )
 
-def init_celery(app):
+def init_celery():
     celery.config_from_object(celeryconfig)
 
 def create_app():
@@ -40,7 +45,7 @@ def create_app():
         format="%(asctime)s - %(name)s - %(levelname)s: %(message)s",
     )
     
-    init_celery(app)
+    init_celery()
 
     api = Api(app)
 

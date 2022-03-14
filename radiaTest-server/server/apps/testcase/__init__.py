@@ -8,7 +8,8 @@ from .routes import (
     CaseEvent,
     CaseImport,
     CaseRecycleBin,
-    ResolveTestcaseByFilepath
+    ResolveTestcaseByFilepath,
+    TemplateCasesQuery,
 )
 
 
@@ -26,4 +27,9 @@ def init_api(api: Api):
     api.add_resource(CaseEvent, "/api/v1/case")
     api.add_resource(CaseImport, "/api/v1/case/import")
     api.add_resource(CaseRecycleBin, "/api/v1/case/recycle_bin")
-    api.add_resource(ResolveTestcaseByFilepath, "/api/v1/testcase/resolve_by_filepath")
+    api.add_resource(
+        ResolveTestcaseByFilepath, "/api/v1/testcase/resolve_by_filepath"
+    )
+    api.add_resource(
+        TemplateCasesQuery, "/api/v1/template/cases/<int:git_repo_id>"
+    )

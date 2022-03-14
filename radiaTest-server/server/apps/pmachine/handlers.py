@@ -1,14 +1,8 @@
-# -*- coding: utf-8 -*-
-# @Author : lemon.higgins
-# @Date   : 2021-10-17 16:50:37
-# @Email  : lemon.higgins@aliyun.com
-# @License: Mulan PSL v2
-
-
 import time
 import json
 
 from flask import g, current_app, jsonify
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from server import redis_client, db
 from server.model import Pmachine, IMirroring
@@ -38,7 +32,7 @@ class AutoInstall:
                     "frame": self._pmachine.frame,
                 },
             ).first()
-        except Exception as e:
+        except (IntegrityError, SQLAlchemyError) as e:
             current_app.logger.error(e)
             return jsonify(
                 {
@@ -133,7 +127,7 @@ class StateHandler:
     def change_state(self):
         if not self.pmachine:
             return jsonify(
-                error_code=RET.DATA_EXIST_ERR, 
+                error_code=RET.NO_DATA_ERR, 
                 error_msg="The pmachine is not exist"
             )
         

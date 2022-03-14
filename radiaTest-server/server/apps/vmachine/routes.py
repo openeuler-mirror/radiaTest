@@ -3,6 +3,7 @@ from flask.json import jsonify
 from flask_restful import Resource
 from flask_pydantic import validate
 
+from server import casbin_enforcer
 from server.apps.vmachine.handlers import (
     CreateVmachine,
     DeleteVmachine,
@@ -25,7 +26,7 @@ from server.schema.vmachine import (
     VmachineDelay
 )
 from server.utils.auth_util import auth
-from server.utils.db import Edit, Like, Precise, Select
+from server.utils.db import Edit, Like, Select
 from server.model import Vmachine, Vdisk, Vnic
 
 
@@ -69,21 +70,6 @@ class VmachineEvent(Resource):
                     results = results + result.json
             return jsonify(list(set(results)))
         return Select(Vmachine, body).fuzz()
-
-
-# class VmachineItemEvent(Resource):
-#     @auth.login_required
-#     @collect_sql_error
-#     @validate()
-#     def delete(self, vmachine_id):
-#         vmachine = Vmachine.query.filter_by(id=vmachine_id).first()
-#         if not vmachine:
-#             return jsonify(error_code=RET.DATA_EXIST_ERR, error_msg="the vmachine not exist")
-
-#         vmachine.delete(Vmachine, "/vmachine")
-
-#         return jsonify(error_code=RET.OK, error_msg="OK")
-
 
 class VmachineCallbackEvent(Resource):
     def put(self):

@@ -1,5 +1,4 @@
 import paramiko
-from flask import current_app
 
 
 class SSH(object):
@@ -45,7 +44,7 @@ class Connection(SSH):
 
         if exitcode:
             result = errput if errput else output
-            current_app.logger.error(
+            print(
                 "Failed to execute command remotely.\n%s\n%s" % (cmd, result)
             )
         else:

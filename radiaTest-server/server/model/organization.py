@@ -5,8 +5,10 @@ from server import db
 class Organization(db.Model, Base):
     __tablename__ = "organization"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    alias = db.Column(db.String(50), nullable=False)
     name = db.Column(db.String(50), nullable=False)
-    enterprise = db.Column(db.String(50), nullable=False)
+    enterprise_id = db.Column(db.String(50), nullable=False)
+    enterprise_name = db.Column(db.String(50), nullable=False)
     description = db.Column(db.String(256), nullable=True)
     avatar_url = db.Column(db.String(512), nullable=True, default=None)
     is_delete = db.Column(db.Boolean, default=False, nullable=False)
@@ -27,6 +29,7 @@ class Organization(db.Model, Base):
     @staticmethod
     def create(model):
         new_recode = Organization()
+        new_recode.alias = model.alias
         new_recode.name = model.name
         new_recode.avatar_url = model.avatar_url
         new_recode.cla_sign_url = model.cla_sign_url
@@ -36,7 +39,8 @@ class Organization(db.Model, Base):
         new_recode.cla_verify_params = model.cla_verify_params
         new_recode.cla_request_type = model.cla_request_type
         new_recode.description = model.description
-        new_recode.enterprise = model.enterprise
+        new_recode.enterprise_id = model.enterprise_id
+        new_recode.enterprise_name = model.enterprise_name
         new_id = new_recode.add_flush_commit()
         if not new_id:
             return None

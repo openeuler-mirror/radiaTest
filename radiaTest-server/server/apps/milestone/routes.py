@@ -6,51 +6,96 @@ from server.utils.auth_util import auth
 from server.utils.response_util import response_collect
 from server.model import Milestone
 from server.utils.db import Insert, Delete, Edit, Select
-from server.schema.base import DeleteBaseModel
-from server.schema.milestone import MilestoneBase, MilestoneUpdate
-from .handler import HandlerIssuesList
+from server.schema.milestone import GiteeIssueQueryV8, MilestoneBaseSchema, MilestoneCreateSchema, MilestoneUpdateSchema
+from .handler import MilestoneOpenApiHandler, IssueOpenApiHandlerV5, IssueOpenApiHandlerV8
 
-class MilestoneEventItem(Resource):
+
+class MilestoneItemEventV1(Resource):
     @validate()
     def delete(self, milestone_id):
         return Delete(Milestone, {"id":milestone_id}).single(Milestone, '/milestone')
     
     @validate()
+    def put(self, body: MilestoneUpdateSchema):
+        return Edit(Milestone, body.__dict__).single(Milestone, '/milestone')
+
+    @validate()
     def get(self, milestone_id):
         return Select(Milestone, {"id":milestone_id}).single()
 
-class MilestoneEvent(Resource):
+
+class MilestoneEventV1(Resource):
     @validate()
-    def post(self, body: MilestoneBase):
+    def post(self, body: MilestoneCreateSchema):
         return Insert(Milestone, body.__dict__).single(Milestone, '/milestone')
 
     @validate()
-    def delete(self, body: DeleteBaseModel):
-        return Delete(Milestone, body.__dict__).batch(Milestone, '/milestone')
+    def get(self, query: MilestoneBaseSchema):
+        params = dict()
+        q_dict = query.__dict__
+        for key in q_dict.keys():
+            if q_dict[key] is not None:
+                params[key] = q_dict[key]
 
-    @validate()
-    def put(self, body: MilestoneUpdate):
-        return Edit(Milestone, body.__dict__).single(Milestone, '/milestone')
-
-    def get(self):
-        body = request.args.to_dict()
-        return Select(Milestone, body).fuzz()
+        return Select(Milestone, params).fuzz()
 
 
-class PreciseGet(Resource):
-    def get(self):
-        body = request.args.to_dict()
-        return Select(Milestone, body).precise()
-
-
-class GiteeIssues(Resource):
+class MilestoneEventV2(Resource):
     @auth.login_required()
     @response_collect
     @validate()
+    def post(self, body: MilestoneCreateSchema):
+        return MilestoneOpenApiHandler(body.__dict__).create()
+
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def get(self, query: MilestoneBaseSchema):
+        params = dict()
+        _query = query.__dict__
+        for key in _query.keys():
+            if _query[key] is not None:
+                params[key] = _query[key]
+        
+        return Select(Milestone, params).fuzz()
+
+
+class MilestoneItemEventV2(Resource):
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def put(self, milestone_id, body: MilestoneBaseSchema):
+        return MilestoneOpenApiHandler(body.__dict__).edit(milestone_id)
+    
+    @auth.login_required()
+    @response_collect
+    def delete(self, milestone_id):
+        return MilestoneOpenApiHandler().delete(milestone_id)
+
+
+class MilestonePreciseEvent(Resource):
+    @auth.login_required()
+    @validate()
+    def get(self, query: MilestoneBaseSchema):
+        return Select(Milestone, query.__dict__).precise()
+
+
+class GiteeIssuesV1(Resource):
+    @auth.login_required
+    @response_collect
+    @validate()
     def get(self):
-        _issues = HandlerIssuesList(
+        _issues = IssueOpenApiHandlerV5(
             request.args.get("enterprise"),
             request.args.get("milestone")
         )
 
         return _issues.getAll(request.args)
+
+
+class GiteeIssuesV2(Resource):
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def get(self, query: GiteeIssueQueryV8):
+        return IssueOpenApiHandlerV8().get_all_v8(query.__dict__)

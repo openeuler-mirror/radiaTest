@@ -2,9 +2,11 @@ import os
 import sys
 import json
 
+from flask_socketio import SocketIO
 from celery import current_app as celery
 from celery.utils.log import get_task_logger
 from celery.signals import task_postrun
+from celery.schedules import crontab
 
 from server.model.framework import Framework, GitRepo
 from server.model.celerytask import CeleryTask
@@ -14,16 +16,14 @@ from celeryservice.lib.job.handler import RunSuite, RunTemplate
 from celeryservice.lib.repo.handler import RepoTaskHandler
 from celeryservice.lib.monitor import LifecycleMonitor
 from celeryservice.lib.testcase import TestcaseHandler
-from celery.schedules import crontab
 
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(BASE_DIR)
 
-# from celery import chain, group, chord, Task
-
 
 logger = get_task_logger('manage')
+socketio = SocketIO(message_queue="redis://localhost:6379/10")
 
 
 @task_postrun.connect
@@ -57,20 +57,20 @@ def async_update_celerytask_status():
             dict_t = json.loads(str_t)
 
             if not dict_t.get("status"):
-                db.session.delete(_task)
+                _task.delete(CeleryTask, "/celerytask", True)
             else:
                 _task.status = dict_t["status"]
 
                 if dict_t.get("result"):
                     _result = dict_t["result"]
-                    _task.start_time = _result["start_time"] if _result.get(
-                        "start_time") else None
-                    _task.running_time = _result["running_time"] if _result.get(
-                        "running_time") else None
+                    if _result.get("start_time"):
+                        _task.start_time = _result["start_time"]
+                    if _result.get("running_time"):
+                        _task.running_time = _result["running_time"]
 
     db.session.commit()
 
-    logger.info("Data of celery tasks have been updated")
+    socketio.emit("update", namespace="/celerytask", broadcast=True)
 
 
 @celery.task
@@ -124,26 +124,23 @@ def run_template(self, body, user):
 
 
 @celery.task(bind=True)
-def resolve_testcase_file(self, filepath, git_repo_id, user):
+def resolve_testcase_file(self, filepath, user):
     TestcaseHandler(user, logger, self).resolve(
         filepath,
-        git_repo_id,
     )
 
 
 @celery.task(bind=True)
-def resolve_testcase_file_for_baseline(self, file_id, filepath, git_repo_id, user):
+def resolve_testcase_file_for_baseline(self, file_id, filepath, user):
     TestcaseHandler(user, logger, self).resolve(
         filepath,
-        git_repo_id,
         file_id,
     )
 
 
 @celery.task(bind=True)
-def resolve_testcase_set(self, zip_filepath, unzip_filepath, git_repo_id, user):
+def resolve_testcase_set(self, zip_filepath, unzip_filepath, user):
     TestcaseHandler(user, logger, self).resolve_case_set(
         zip_filepath,
         unzip_filepath,
-        git_repo_id,
     )

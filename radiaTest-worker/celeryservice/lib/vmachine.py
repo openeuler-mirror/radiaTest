@@ -201,6 +201,7 @@ class InstallVmachine(VmachineBase):
             )
         )
         
+        self.next_period()
         promise.update_state(
             state="DOWNLOADING",
             meta={

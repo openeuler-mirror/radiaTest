@@ -22,12 +22,21 @@ analyzed_logs = db.Table(
     db.Column("logs_id", db.Integer(), db.ForeignKey("logs.id")),
 )
 
+job_family = db.Table(
+    'job_family',
+    db.Column('parent_id', db.Integer, db.ForeignKey(
+        'job.id'), primary_key=True),
+    db.Column('child_id', db.Integer, db.ForeignKey(
+        'job.id'), primary_key=True)
+)
 
 class Job(BaseModel, db.Model):
     __tablename__ = "job"
 
+    id = db.Column(db.Integer(), primary_key=True)
     name = db.Column(db.String(512), unique=True, nullable=False)
     start_time = db.Column(db.DateTime(), nullable=False)
+    running_time = db.Column(db.Integer())
     end_time = db.Column(db.DateTime())
     total = db.Column(db.Integer())
     success_cases = db.Column(db.Integer())
@@ -37,17 +46,31 @@ class Job(BaseModel, db.Model):
     remark = db.Column(db.String(512))
     frame = db.Column(db.String(9), nullable=False)
     master = db.Column(db.String(15))
+    multiple = db.Column(db.Boolean(), nullable=False)
+    is_suite_job = db.Column(db.Boolean(), default=False)
+    tid = db.Column(db.String(512))
 
     milestone_id = db.Column(db.Integer(), db.ForeignKey("milestone.id"))
 
     analyzeds = db.relationship('Analyzed', backref='job')
 
-    def to_json(self):
+    children = db.relationship(
+        "Job",
+        secondary=job_family,
+        primaryjoin=(job_family.c.parent_id == id),
+        secondaryjoin=(job_family.c.child_id == id),
+        backref=db.backref('parent', lazy='dynamic'),
+        lazy='dynamic',
+        cascade="all, delete"
+    )
+    
+    def to_dict(self):
         return {
             "id": self.id,
             "name": self.name,
-            "milestone": self.milestone.to_json() if self.milestone_id else {},
+            "milestone": self.milestone.name if self.milestone_id else None,
             "start_time": self.start_time,
+            "running_time": self.running_time,
             "end_time": self.end_time,
             "total": self.total,
             "success_cases": self.success_cases,
@@ -57,6 +80,41 @@ class Job(BaseModel, db.Model):
             "remark": self.remark,
             "frame": self.frame,
             "master": self.master,
+            "multiple": self.multiple,
+            "tid": self.tid,
+            "is_suite_job": self.is_suite_job,
+        }
+
+    def to_json(self):
+        success_sum = 0
+        fail_sum = 0
+        masters = list()
+        running_time = 0
+        if self.multiple:
+            for child in self.children:
+                success_sum += child.success_cases
+                fail_sum += child.fail_cases
+                masters.append(child.master)
+                running_time = max(running_time, child.running_time)
+
+        return {
+            "id": self.id,
+            "name": self.name,
+            "milestone": self.milestone.name if self.milestone_id else None,
+            "start_time": self.start_time,
+            "running_time": self.running_time if not self.multiple else running_time,
+            "end_time": self.end_time,
+            "total": self.total,
+            "success_cases": self.success_cases if not self.multiple else success_sum,
+            "fail_cases": self.fail_cases if  not self.multiple else fail_sum,
+            "result": self.result,
+            "status": self.status,
+            "remark": self.remark,
+            "frame": self.frame,
+            "master": self.master if not self.multiple else masters,
+            "multiple": self.multiple,
+            "tid": self.tid,
+            "is_suite_job": self.is_suite_job,
         }
 
 
@@ -68,6 +126,7 @@ class Analyzed(BaseModel, db.Model):
     fail_type = db.Column(db.String(32))
     details = db.Column(db.Text())
     master = db.Column(db.String(15))
+    running_time = db.Column(db.Integer())
 
     case_id = db.Column(db.Integer(), db.ForeignKey("case.id"))
     job_id = db.Column(db.Integer(), db.ForeignKey("job.id"))
@@ -80,11 +139,12 @@ class Analyzed(BaseModel, db.Model):
             "log_url": self.log_url,
             "fail_type": self.fail_type,
             "details": self.details,
-            "case": self.case.name,
+            "case": self.case.to_json(),
             "job": self.job.name,
             "job_id": self.job_id,
             "create_time": self.create_time,
             "milestone_id": self.job.milestone_id,
+            "running_time": self.running_time,
         }
 
     def get_logs(self):

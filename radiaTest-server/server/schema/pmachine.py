@@ -92,7 +92,7 @@ class PmachineBase(BaseModel):
         elif values.get("state") == "idle":
             if values.get("pmachine") and values.get(
                 "pmachine"
-            ).description == current_app.config.get("CI_SIGN"):
+            ).description == current_app.config.get("CI_HOST"):
                 if values.get("pmachine").vmachine:
                     raise ValueError("There are virtual machines used under the host.")
             values["start_time"] = None
@@ -102,7 +102,7 @@ class PmachineBase(BaseModel):
 
         if values.get("description") in [
             current_app.config.get("CI_PURPOSE"),
-            current_app.config.get("CI_SIGN"),
+            current_app.config.get("CI_HOST"),
         ]:
             values["start_time"] = datetime.datetime.now()
             values["end_time"] = (
@@ -122,7 +122,7 @@ class PmachineBase(BaseModel):
                     "As a CI host, ip、user、port、password must be provided."
                 )
 
-        if values.get("description") == current_app.config.get("CI_SIGN"):
+        if values.get("description") == current_app.config.get("CI_HOST"):
             if not values.get("listen"):
                 raise ValueError("As a CI host, listen must be provided.")
 
@@ -170,7 +170,7 @@ class PmachineUpdate(PmachineBase, UpdateBaseModel):
     @validator("description")
     def check_description(cls, v, values):
         desc = values.get("pmachine").description
-        if desc == current_app.config.get("CI_SIGN"):
+        if desc == current_app.config.get("CI_HOST"):
             if desc != v:
                 virtual = values.get("pmachine").virtual.query.filter.all()
                 if virtual:
@@ -181,7 +181,7 @@ class PmachineUpdate(PmachineBase, UpdateBaseModel):
             if values.get("state") == "idle":
                 raise ValueError("Worker can't be released.")
 
-        if v == current_app.config.get("CI_SIGN"):
+        if v == current_app.config.get("CI_HOST"):
             if not values.get("listen"):
                 listen = values.get("pmachine").listen
                 if not listen:

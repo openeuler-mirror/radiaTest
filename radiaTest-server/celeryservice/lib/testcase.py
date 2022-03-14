@@ -5,6 +5,7 @@ import requests
 import shutil
 
 from flask import current_app, jsonify, Response
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from celeryservice.lib import TaskAuthHandler
 from server.utils.sheet import Excel, SheetExtractor
@@ -48,7 +49,7 @@ class TestcaseHandler(TaskAuthHandler):
 
         return baseline.id
 
-    def loads_data(self, filetype, filepath, git_repo_id):
+    def loads_data(self, filetype, filepath):
         excel = Excel(filetype).load(filepath)
 
         cases = SheetExtractor(
@@ -72,18 +73,24 @@ class TestcaseHandler(TaskAuthHandler):
                 name=case.get("suite")
             ).first()
             if not _suite:
-                Insert(
-                    Suite,
-                    {
-                        "name": case.get("suite"),
-                        "group_id": self.user.get("group_id"),
-                        "org_id": self.user.get("org_id"),
-                        "git_repo_id": git_repo_id,
-                    }
-                ).single(Suite, '/suite')
-                _suite = Suite.query.filter_by(
-                    name=case.get("suite")
-                ).first()
+                try:
+                    Insert(
+                        Suite,
+                        {
+                            "name": case.get("suite"),
+                            "group_id": self.user.get("group_id"),
+                            "org_id": self.user.get("org_id"),
+                        }
+                    ).single(Suite, '/suite')
+                    _suite = Suite.query.filter_by(
+                        name=case.get("suite")
+                    ).first()
+                except IntegrityError as e:
+                    self.logger.error(f'database operate error -> {e}')
+                    raise RuntimeError(f'data has exist / foreign key is bond') from e
+                except SQLAlchemyError as e:
+                    current_app.logger.error(f'database operate error -> {e}')
+                    raise RuntimeError(f'database operate error -> {e}') from e
 
             case["suite_id"] = _suite.id
 
@@ -182,7 +189,7 @@ class TestcaseHandler(TaskAuthHandler):
                     _case_id=case.id,
                 )
 
-    def deep_create(self, _filepath, _parent_id, _git_repo_id):
+    def deep_create(self, _filepath, _parent_id):
         _title = ""
         if not _parent_id:
             _title = "用例集"
@@ -208,7 +215,6 @@ class TestcaseHandler(TaskAuthHandler):
                 "file_id": _file_id,
                 "filepath": _filepath,
                 "group_id": self.user.get("group_id"),
-                "git_repo_id": _git_repo_id,
                 "user_id": self.user.get("user_id"),
             }
 
@@ -229,7 +235,7 @@ class TestcaseHandler(TaskAuthHandler):
                 if resp_dict.get("data"):
                     self.save_task_to_db(
                         resp_dict["data"]["tid"],
-                        f"resolve testcase {_filepath}",  # TODO re 只取末尾
+                        f"resolve testcase {os.path.basename(_filepath)}",
                     )
                 else:
                     self.logger.error(resp_dict["error_msg"])
@@ -262,10 +268,9 @@ class TestcaseHandler(TaskAuthHandler):
             self.deep_create(
                 _filepath="{}/{}".format(_filepath, subfile),
                 _parent_id=_this_id,
-                _git_repo_id=_git_repo_id,
             )
 
-    def resolve(self, filepath, git_repo_id, file_id=None):
+    def resolve(self, filepath, file_id=None):
         try:
             self.promise.update_state(
                 state="READING",
@@ -283,7 +288,6 @@ class TestcaseHandler(TaskAuthHandler):
                 suites = self.loads_data(
                     filetype[1:],
                     filepath,
-                    git_repo_id
                 )
 
                 if isinstance(suites, Response):
@@ -356,7 +360,7 @@ class TestcaseHandler(TaskAuthHandler):
 
             return jsonify(error_code=RET.SERVER_ERR, error_msg=str(e))
 
-    def resolve_case_set(self, zip_filepath, unzip_filepath, git_repo_id):
+    def resolve_case_set(self, zip_filepath, unzip_filepath):
         try:
             self.promise.update_state(
                 state="CREATING",
@@ -369,7 +373,6 @@ class TestcaseHandler(TaskAuthHandler):
             self.deep_create(
                 _filepath=unzip_filepath,
                 _parent_id=None,
-                _git_repo_id=git_repo_id,
             )
 
             self.next_period()

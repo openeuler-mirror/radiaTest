@@ -12,7 +12,7 @@ class Base(object):
         db.DateTime(), default=datetime.datetime.now, onupdate=datetime.datetime.now
     )
 
-    def add_update(self, table=None, namespace=None):
+    def add_update(self, table=None, namespace=None, broadcast=False):
         db.session.add(self)
         db.session.commit()
         if table and namespace:
@@ -20,9 +20,10 @@ class Base(object):
                 "update",
                 json.dumps([item.to_json() for item in table.query.all()], cls=DateEncoder),
                 namespace=namespace,
+                broadcast=broadcast,
             )
 
-    def delete(self, table=None, namespace=None):
+    def delete(self, table=None, namespace=None, broadcast=False):
         db.session.delete(self)
         db.session.commit()
         if table and namespace:
@@ -30,9 +31,10 @@ class Base(object):
                 "update",
                 json.dumps([item.to_json() for item in table.query.all()], cls=DateEncoder),
                 namespace=namespace,
+                broadcast=broadcast,
             )
 
-    def add_flush_commit(self, table=None, namespace=None):
+    def add_flush_commit(self, table=None, namespace=None, broadcast=False):
         db.session.add(self)
         db.session.flush()
         record_id = None
@@ -45,6 +47,7 @@ class Base(object):
                 "update",
                 json.dumps([item.to_json() for item in table.query.all()], cls=DateEncoder),
                 namespace=namespace,
+                broadcast=broadcast,
             )
         
         return record_id
