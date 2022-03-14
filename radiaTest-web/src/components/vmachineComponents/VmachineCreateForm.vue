@@ -123,6 +123,38 @@
           placeholder="输入使用描述"
         />
       </n-form-item-gi>
+      <n-form-item-gi :span="9" label="物理机选取策略" path="pm_select_mode">
+        <n-select
+          v-model:value="formValue.pm_select_mode"
+          :options="[
+            { label: '随机分配', value: 'auto' },
+            { label: '指定', value: 'assign' },
+          ]"
+          placeholder="物理机选取策略"
+        />
+      </n-form-item-gi>
+      <n-form-item-gi
+        :span="9"
+        label="指定物理机"
+        path="pmachine_id"
+        v-if="formValue.pm_select_mode === 'assign'"
+      >
+        <n-popover >
+          <template #trigger>
+            <n-button text type="info">{{
+              formValue.pmachine_id ? formValue.pmachine_name : '选取物理机'
+            }}</n-button>
+          </template>
+          <n-data-table
+            :data="pmData"
+            :columns="pmcolumns"
+            :row-key="row => row.id"
+            :checked-row-keys="checkedPm"
+            @update:checked-row-keys="handleCheck"
+            :pagination="pagination"
+          />
+        </n-popover>
+      </n-form-item-gi>
     </n-grid>
   </n-form>
 </template>

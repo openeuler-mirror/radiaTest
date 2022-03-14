@@ -1,62 +1,64 @@
 <template>
   <div class="fix-container">
-    <n-tooltip trigger="hover" placement="right">
-      <template #trigger>
-        <p class="fix-item" @click="backToBottom">
-          <n-icon size="40" color="#fff">
-            <up-to-top />
-          </n-icon>
-        </p>
-      </template>
-      回到底部
-    </n-tooltip>
-    <n-tooltip trigger="hover" placement="right">
-      <template #trigger>
-        <p class="fix-item" @click="backToTop">
-          <n-icon size="40" color="#fff">
-            <down-to-bottom />
-          </n-icon>
-        </p>
-      </template>
-      回到顶部
-    </n-tooltip>
-    <div style="overflow: hidden">
-      <div ref="expandContainer">
-        <n-tooltip trigger="hover" placement="right">
-          <template #trigger>
-            <p class="fix-item expandable disabled">
-              <n-icon size="40" color="#fff">
-                <ArrowSwap20Filled />
-              </n-icon>
-            </p>
-          </template>
-          语言切换
-        </n-tooltip>
-        <n-tooltip trigger="hover" placement="right">
-          <template #trigger>
-            <p class="fix-item expandable disabled">
-              <n-icon size="40" color="#fff" v-if="lightTheme">
-                <MoonSharp />
-              </n-icon>
-              <n-icon size="40" color="#fff" v-else>
-                <Sunny />
-              </n-icon>
-            </p>
-          </template>
-          主题切换
-        </n-tooltip>
-        <n-tooltip trigger="hover" placement="right">
-          <template #trigger>
-            <p class="fix-item expand" @click="handleExpand">
-              <n-icon size="40" color="#fff" :class="{ expandBack: expand }">
-                <add />
-              </n-icon>
-            </p>
-          </template>
-          {{ expand ? '隐藏' : '更多' }}
-        </n-tooltip>
+    <vue3-draggable-resizable :draggable="true" :resizable="false">
+      <div style="overflow: hidden">
+        <div ref="expandContainer">
+          <n-tooltip trigger="hover" placement="right">
+            <template #trigger>
+              <p class="fix-item expand" @click="handleExpand">
+                <n-icon size="40" color="#fff" :class="{ expandBack: expand }">
+                  <add />
+                </n-icon>
+              </p>
+            </template>
+            {{ expand ? '隐藏' : '更多' }}
+          </n-tooltip>
+          <n-tooltip trigger="hover" placement="right">
+            <template #trigger>
+              <p class="fix-item expandable disabled">
+                <n-icon size="40" color="#fff">
+                  <ArrowSwap20Filled />
+                </n-icon>
+              </p>
+            </template>
+            语言切换
+          </n-tooltip>
+          <n-tooltip trigger="hover" placement="right">
+            <template #trigger>
+              <p class="fix-item expandable disabled">
+                <n-icon size="40" color="#fff" v-if="lightTheme">
+                  <MoonSharp />
+                </n-icon>
+                <n-icon size="40" color="#fff" v-else>
+                  <Sunny />
+                </n-icon>
+              </p>
+            </template>
+            主题切换
+          </n-tooltip>
+        </div>
       </div>
-    </div>
+      <n-tooltip trigger="hover" placement="right">
+        <template #trigger>
+          <p class="fix-item" @click="backToTop">
+            <n-icon size="40" color="#fff">
+              <up-to-top />
+            </n-icon>
+          </p>
+        </template>
+        回到顶部
+      </n-tooltip>
+      <n-tooltip trigger="hover" placement="right">
+        <template #trigger>
+          <p class="fix-item" @click="backToBottom">
+            <n-icon size="40" color="#fff">
+              <down-to-bottom />
+            </n-icon>
+          </p>
+        </template>
+        回到底部
+      </n-tooltip>
+    </vue3-draggable-resizable>
   </div>
 </template>
 <script>
@@ -65,8 +67,10 @@ import { UpToTop, DownToBottom } from '@vicons/carbon';
 import { ArrowSwap20Filled } from '@vicons/fluent';
 import { changeTheme } from '@/assets/config/theme';
 import { darkTheme } from 'naive-ui';
+import Vue3DraggableResizable from 'vue3-draggable-resizable';
+import 'vue3-draggable-resizable/dist/Vue3DraggableResizable.css';
 export default {
-  components: { Add, UpToTop, DownToBottom, ArrowSwap20Filled, Sunny, MoonSharp },
+  components: { Add, UpToTop, DownToBottom, ArrowSwap20Filled, Sunny, MoonSharp, Vue3DraggableResizable },
   data() {
     return {
       expand: false,
@@ -74,7 +78,7 @@ export default {
     };
   },
   mounted() {
-    this.$refs.expandContainer.style.transform = `translateY(-${2 * (document.querySelector('.expandable').clientHeight + 10)}px)`;
+    this.$refs.expandContainer.style.transform = `translateY(${2 * (document.querySelector('.expandable').clientHeight + 10)}px)`;
   },
   methods: {
     backToTop() {
@@ -95,7 +99,7 @@ export default {
       if (this.expand) {
         this.$refs.expandContainer.style.transform = 'translateY(0)';
       } else {
-        this.$refs.expandContainer.style.transform = `translateY(-${2 * (itemHeight + 10)}px)`;
+        this.$refs.expandContainer.style.transform = `translateY(${2 * (itemHeight + 10)}px)`;
       }
     },
     backToBottom() {
@@ -108,10 +112,10 @@ export default {
 .fix-container {
   position: fixed;
   right: 50px;
-  transform: rotateZ(180deg);
-  bottom: 50px;
+  bottom: 350px;
   width: 50px;
   z-index: 9999;
+  cursor: move;
   .disabled {
     background: #ccc !important;
     cursor: not-allowed !important;

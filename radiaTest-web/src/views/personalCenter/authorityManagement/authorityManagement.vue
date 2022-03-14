@@ -11,7 +11,7 @@
             <n-button type="primary" text @click="rulesView">
               <template #icon>
                 <n-icon>
-                  <Eye />
+                  <PolicyOutlined />
                 </n-icon>
               </template>
               规则
@@ -59,14 +59,15 @@
 import { defineComponent } from 'vue';
 import { modules } from './modules/index.js';
 import cardPage from '@/components/common/cardPage';
-import { Search, Eye } from '@vicons/tabler';
+import { Search } from '@vicons/tabler';
+import { PolicyOutlined } from '@vicons/material';
 import roleForm from '@/components/form/roleForm.vue';
 
 export default defineComponent({
   components: {
     cardPage,
     Search,
-    Eye,
+    PolicyOutlined,
     roleForm,
   },
   computed: {

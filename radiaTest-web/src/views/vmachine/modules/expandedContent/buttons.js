@@ -34,11 +34,11 @@ const changeState = (machineId, nextStatus) => {
       status: nextStatus,
     })
     .then((res) => {
-      if (res.error_code === 200) {
+      if (res.error_code === '2000') {
         window.$message?.success(`${nextStatus}succeed`);
         disabledAll.value = false;
       } else {
-        window.$message?.error(`${nextStatus}fail, ${res.error_mesg}`);
+        window.$message?.error(`${nextStatus}fail, ${res.error_msg}`);
         disabledAll.value = false;
       }
     })

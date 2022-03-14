@@ -1,20 +1,9 @@
 import axios from '@/axios';
-import { NPopover, NProgress, NTag } from 'naive-ui';
+import { NPopover, NTag } from 'naive-ui';
 import { h, ref } from 'vue';
-import { formatTime } from '@/assets/utils/dateFormatUtils';
+import { formatTime, timeProcess } from '@/assets/utils/dateFormatUtils';
 
 const loading = ref(false);
-function detailNumber(num) {
-  const str = String(num);
-  const [I, F] = str.split('.');
-  let result = I;
-  if (F) {
-    I.length > 3
-      ? (result = `${result}.${F.slice(0, 2)}`)
-      : (result = `${result}.${F.slice(0, 4)}`);
-  }
-  return result;
-}
 const taskColumns = [
   { title: '任务ID', key: 'tid', align: 'center' },
   {
@@ -51,10 +40,7 @@ const taskColumns = [
     key: 'running_time',
     align: 'center',
     render(row) {
-      if (row.running_time > 1000 * 1000) {
-        return `${detailNumber(row.running_time / (1000 * 1000))}s`;
-      }
-      return row.running_time ? `${detailNumber(row.running_time / 1000)}ms` : '';
+      return timeProcess(row.running_time, 'ms');
     },
   },
   {
@@ -75,19 +61,19 @@ const taskColumns = [
       );
     },
   },
-  {
-    title: '预估进度',
-    align: 'center',
-    width:200,
-    render() {
-      return h(NProgress, {
-        type: 'line',
-        processing: true,
-        indicatorPlacement: 'inside',
-        percentage: 60,
-      });
-    },
-  },
+  // {
+  //   title: '预估进度',
+  //   align: 'center',
+  //   width:200,
+  //   render() {
+  //     return h(NProgress, {
+  //       type: 'line',
+  //       processing: true,
+  //       indicatorPlacement: 'inside',
+  //       percentage: 60,
+  //     });
+  //   },
+  // },
 ];
 const taskData = ref([]);
 const pagination = ref({
@@ -95,14 +81,16 @@ const pagination = ref({
   pageCount: 1,
   pageSize: 10,
   showSizePicker: true,
-  pageSizes: [5, 10, 20]
+  pageSizes: [5, 10, 20],
 });
-function getTask () {
+const searchInfo = ref();
+function getTask() {
   loading.value = true;
   axios
     .get('/v1/celerytask', {
       page_num: pagination.value.page,
       page_size: pagination.value.pageSize,
+      tid: searchInfo.value,
     })
     .then((res) => {
       loading.value = false;
@@ -114,10 +102,24 @@ function handlePageChange(page) {
   pagination.value.page = page;
   getTask();
 }
-function handlePageSizeChange (pageSize) {
+function handlePageSizeChange(pageSize) {
   pagination.value.pageSize = pageSize;
   pagination.value.page = 1;
   console.log(pageSize);
   getTask();
 }
-export { taskData, taskColumns, pagination, getTask, handlePageChange, handlePageSizeChange };
+
+function searchTask() {
+  pagination.value.page = 1;
+  getTask();
+}
+export {
+  searchInfo,
+  taskData,
+  taskColumns,
+  pagination,
+  getTask,
+  handlePageChange,
+  handlePageSizeChange,
+  searchTask,
+};

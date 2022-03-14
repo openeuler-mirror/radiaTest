@@ -56,6 +56,15 @@ server.interceptors.response.use(
       router.push({
         name: 'login',
       });
+    }else if(error.response.status === 500){
+      window.$message?.destroyAll();
+      error.response.data = {
+        error_msg:'服务端错误'
+      };
+    }else if(error.response.status === 400){
+      error.response.data = {
+        error_msg:error.response.data.validation_error.body_params[0].msg
+      };
     }
     return Promise.reject(error.response || error);
   }

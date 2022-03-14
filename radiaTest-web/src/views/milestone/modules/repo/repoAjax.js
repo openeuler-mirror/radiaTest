@@ -6,12 +6,8 @@ const getcode = (id, thisFrame) => {
   axios
     .get('/v1/repo', { milestone_id: id, frame: thisFrame })
     .then((res) => {
-      if (!res.error_mesg) {
-        const [data] = res;
-        repoCard.repo.value[thisFrame] = data;
-      } else {
-        window.$message?.error(res.error_mesg);
-      }
+      const [data] = res.data;
+      repoCard.repo.value[thisFrame] = data;
       repoCard.loading.value = false;
     })
     .catch((err) => {
@@ -28,7 +24,7 @@ const handleCreateClick = (id, thisFrame) => {
       content: repoCard.content.value[thisFrame],
     })
     .then((res) => {
-      if (res.error_code === 200) {
+      if (res.error_code === '2000') {
         window.$message?.success('创建成功');
       } else {
         window.$message?.error('创建失败');
@@ -54,7 +50,7 @@ const handleEditSubmit = (id, thisFrame) => {
       content: repoCard.content.value[thisFrame],
     })
     .then((res) => {
-      if (res.error_code === 200) {
+      if (res.error_code === '2000') {
         window.$message?.success('修改成功');
       } else {
         window.$message?.error('修改失败');
@@ -73,5 +69,5 @@ export default {
   getcode,
   handleCreateClick,
   handleEditClick,
-  handleEditSubmit
+  handleEditSubmit,
 };

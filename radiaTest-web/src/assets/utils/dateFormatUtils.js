@@ -36,5 +36,34 @@ function formatTime(date, formatStr) {
   }
   return formatString;
 }
+const timeMenu = {
+  us: {
+    next: 'ms',
+    step: 1000,
+  },
+  ms: {
+    next: 's',
+    step: 1000,
+  },
+  s: {
+    next: 'min',
+    step: 60,
+  },
+  min: {
+    next: 'h',
+    step: 60,
+  },
+  h: {
+    next: '',
+  },
+};
+function timeProcess(time, unit) {
+  const nextUnit = timeMenu[unit.toLowerCase()].next;
+  const nextUnitTime = Number(time) / timeMenu[unit.toLowerCase()].step;
+  if (nextUnitTime >= 1 && nextUnit) {
+    return timeProcess(nextUnitTime, nextUnit);
+  }
+  return Number(time).toFixed(2) + unit;
+}
 
-export { any2stamp, any2standard, formatTime };
+export { any2stamp, timeProcess, any2standard, formatTime };

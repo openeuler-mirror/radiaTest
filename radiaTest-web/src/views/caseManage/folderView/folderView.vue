@@ -51,24 +51,46 @@
       </template>
     </modal-card>
     <modal-card
-          :initX="300"
-          title="修改文本用例"
-          ref="updateModalRef"
-          @validate="() => updateFormRef.handlePropsButtonClick()"
-          @submit="updateFormRef.put()"
-        >
-          <template #form>
-            <testcase-update-form
-              ref="updateFormRef"
-              @valid="() => updateModalRef.submitCreateForm()"
-              @close="
-                () => {
-                  updateModalRef.close();
-                }
-              "
-            />
-          </template>
-        </modal-card>
+      :initY="200"
+      :initX="600"
+      title="导入文本用例"
+      ref="importModalRef"
+      @validate="() => importFormRef.handlePropsButtonClick()"
+      @submit="importFormRef.post()"
+    >
+      <template #form>
+        <testcase-import-form
+          :showGroup="false"
+          ref="importFormRef"
+          @submitForm="extendSubmit"
+          @valid="() => importModalRef.submitCreateForm()"
+          @close="
+            () => {
+              importModalRef.close();
+            }
+          "
+        />
+      </template>
+    </modal-card>
+    <modal-card
+      :initX="300"
+      title="修改文本用例"
+      ref="updateModalRef"
+      @validate="() => updateFormRef.handlePropsButtonClick()"
+      @submit="updateFormRef.put()"
+    >
+      <template #form>
+        <testcase-update-form
+          ref="updateFormRef"
+          @valid="() => updateModalRef.submitCreateForm()"
+          @close="
+            () => {
+              updateModalRef.close();
+            }
+          "
+        />
+      </template>
+    </modal-card>
     <n-layout has-sider>
       <n-layout-sider
         bordered
@@ -119,9 +141,10 @@ export default {
   },
   mounted() {
     this.$axios.get('/v1/framework').then((res) => {
-      this.frameworkList = res.map((item) => ({
+      this.frameworkList = res.data?.map((item) => ({
         label: item.name,
         value: item.id,
+        isLeaf: false
       }));
     });
     this.contentHeight =

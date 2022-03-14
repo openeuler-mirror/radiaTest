@@ -174,7 +174,7 @@ export default defineComponent({
     });
     const frameworkList = ref();
     axios.get('/v1/framework').then(res => {
-      frameworkList.value = res.map(item => ({ label: item.name, value: item.id }));
+      frameworkList.value = res.data?.map(item => ({ label: item.name, value: item.id }));
     });
     const infoFormRef = ref();
     const infoFormValue = ref({

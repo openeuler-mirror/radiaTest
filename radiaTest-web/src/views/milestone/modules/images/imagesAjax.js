@@ -44,8 +44,8 @@ const getIsoData = (form, data) => {
       milestone_id: form.value.id,
     })
     .then((res) => {
-      if (res.length) {
-        devideIsoData(res, data);
+      if (res.data.length) {
+        devideIsoData(res.data, data);
       }
 
     });
@@ -57,8 +57,8 @@ const getQcow2Data = (form, data) => {
       milestone_id: form.value.id,
     })
     .then((res) => {
-      if (res.length) {
-        devideQcow2Data(res, data);
+      if (res.data.length) {
+        devideQcow2Data(res.data, data);
       }
     });
 };

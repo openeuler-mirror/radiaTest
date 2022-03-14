@@ -698,6 +698,20 @@
                               </n-popselect>
                             </div>
                           </div>
+                          <div class="field">
+                            <div class="field-left">
+                              <n-icon
+                                size="14"
+                                class="task-icon"
+                              >
+                                <CheckSquareOutlined />
+                              </n-icon>
+                              <span class="field-name">是否单测试用例</span>
+                            </div>
+                            <div class="field-right" >
+                              <span>{{modalData.detail.is_single_case?'是':'否'}}</span>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>

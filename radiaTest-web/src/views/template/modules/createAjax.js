@@ -3,12 +3,12 @@ import { createAjax } from '@/assets/CRUD/create';
 import axios from '@/axios';
 import { storage } from '@/assets/utils/storageUtils';
 
-const getData = (options) => {
+const getData = (options,id) => {
   axios
-    .get('/v1/case', {usabled: 1})
+    .get(`/v1/template/cases/${id}`)
     .then((res) => {
       const suites = new Map();
-      res.forEach((item) => {
+      res.data.forEach((item) => {
         if (!suites.has(item.suite_id)) {
           suites.set(
             item.suite_id,

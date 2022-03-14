@@ -756,7 +756,7 @@ const caseViewColumns = [
             {
               type: 'primary',
               text: true,
-              disabled: !editStatus.value,
+              disabled: !editStatus.value||modalData.value.detail.is_single_case,
               onClick: () => {
                 if (editStatus.value) {
                   deleteCase(rowData);

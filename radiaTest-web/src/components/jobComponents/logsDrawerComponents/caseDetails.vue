@@ -74,8 +74,7 @@ export default {
     CollapseList,
   },
   props: ['list', 'logsData', 'selectedStage', 'selectedRecord'],
-  setup(props) {
-    console.log(props.list, props.selectedStage, props.selectedRecord, props.logsData);
+  setup() {
     const updateModalRef = ref(null);
     const updateFormRef = ref(null);
     return {

@@ -26,7 +26,7 @@ function handleline(value){
   axios.get('/v1/analyzed/logs',{
     id:value.id
   }).then(res=>{
-    logsData.value = res;
+    logsData.value = res.data;
     selectedRecord.value = value;
   });
 }
@@ -56,10 +56,10 @@ function getTimeline(caseInfo){
   caseDetail = caseInfo;
   return new Promise((resolve,reject)=>{
     axios.get('/v1/analyzed/records',{
-      case:caseInfo.title
+      case_id:caseInfo.id
     }).then(res=>{
-      records.value = res.map(item=>item);
-      cloneRecords = res.map(item=>item);
+      records.value = res.data.map(item=>item);
+      cloneRecords = res.data.map(item=>item);
       resolve();
     }).catch(err=>reject(err));
   });

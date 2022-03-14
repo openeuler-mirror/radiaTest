@@ -1,18 +1,13 @@
 import { Socket } from '@/socket';
 import config from '@/assets/config/settings';
 import { getTask } from './taskTable';
-let socketObj;
-function handleSocket() {
-  if (socketObj.isConnect()) {
-    socketObj.listen('listen', () => {
-      getTask();
-    });
-  }
-}
 function connectSocket() {
-  socketObj = new Socket(`ws://${config.serverPath}/celerytask`);
+  const socketObj = new Socket(`ws://${config.serverPath}/celerytask`);
+  console.log('connect');
   socketObj.connect();
-  handleSocket();
+  socketObj.listen('update', () => {
+    getTask();
+  });
 }
 
 export { connectSocket };

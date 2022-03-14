@@ -52,8 +52,8 @@ export default {
     expand(str) {
       this.$emit('expand', str);
     },
-    selectMenu(key) {
-      this.$emit('menuClick', key);
+    selectMenu(key, options) {
+      this.$emit('menuClick', { key, options });
     },
     handleSelect(key, options) {
       const result = {

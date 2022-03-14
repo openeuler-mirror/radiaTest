@@ -18,10 +18,10 @@
     <div v-for="_analyzed in analyzeds" :key="_analyzed.id">
       <n-alert
         class="alertButton"
-        :title="_analyzed.case"
-        :id="_analyzed.case"
+        :title="_analyzed.case.name"
+        :id="'case'+_analyzed.case.id"
         :type="_analyzed.result === 'success' ? 'success' : 'error'"
-        @click="handleSelectCase(_analyzed.case)"
+        @click="handleSelectCase(_analyzed.case.id)"
       >
         用时:
       </n-alert>

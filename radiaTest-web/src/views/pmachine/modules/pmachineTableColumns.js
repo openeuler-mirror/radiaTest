@@ -178,6 +178,7 @@ const createColumns = (updateHandler) => {
 };
 
 export {
+  ColumnDefault,
   createColumns,
   ColumnEndtime,
 };

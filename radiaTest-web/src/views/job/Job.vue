@@ -1,8 +1,10 @@
 <template>
   <n-card
     id="card"
+    :bordered="false"
     title="测试看板"
     size="huge"
+    content-style="padding:5px 50px"
     :segmented="{
       content: 'hard',
     }"
@@ -14,15 +16,21 @@
             background-color: #FAFAFC;
         "
   >
-    <div style="display: flex; flex-wrap: nowrap">
-      <div
-        style="width: calc(100% - 180px); display: block; margin-right: 36px"
-      >
-        <jobs-card type="execute" id="execute" />
-        <jobs-card type="wait" id="wait" />
-        <jobs-card type="finish" id="finish" />
+    <div style="display: flex; ">
+      <div style="width: 100%">
+        <jobs-card type="execute" id="execute" ref="executeRef" />
+        <jobs-card type="wait" id="wait" ref="waitRef" />
+        <jobs-card type="finish" id="finish" ref="finishRef" />
       </div>
-      <div style="width: 144px; display: block">
+      <div
+        style="
+          width: 144px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          flex-shrink: 0;
+        "
+      >
         <n-anchor
           affix
           :trigger-top="24"
@@ -42,7 +50,7 @@
               style="
                 position: fixed;
                 height: 100px;
-                bottom: 200px;
+                bottom: 300px;
                 color: rgba(206, 206, 206, 1);
               "
               @mouseenter="handleHover(createButton)"
@@ -95,7 +103,7 @@
 </template>
 
 <script>
-import { provide, onMounted, onUnmounted, defineComponent } from 'vue';
+import { ref,provide, onMounted, onUnmounted, defineComponent } from 'vue';
 
 import ModalCard from '@/components/CRUD/ModalCard.vue';
 import Essential from '@/components/jobComponents';
@@ -116,16 +124,21 @@ export default defineComponent({
   setup() {
     const jobSocket = new Socket(`ws://${settings.serverPath}/job`);
     jobSocket.connect();
+    const finishRef = ref();
+    const waitRef = ref();
+    const executeRef = ref();
 
     provide('execute', job.execData);
     provide('wait', job.waitData);
     provide('finish', job.finishData);
 
     onMounted(() => {
-      job.getData();
 
-      jobSocket.listen('update', (res) =>
-        job.devideData(job.changeTimeFormat(JSON.parse(res)))
+      jobSocket.listen('update', () =>{
+        executeRef.value.getData();
+        waitRef.value.getData();
+        finishRef.value.getData();
+      }
       );
     });
 
@@ -136,6 +149,9 @@ export default defineComponent({
     return {
       settings,
       ...job,
+      finishRef,
+      waitRef,
+      executeRef
     };
   },
 });

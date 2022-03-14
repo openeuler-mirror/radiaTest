@@ -22,13 +22,13 @@ const postDelete = (url, idList, store, selected) => {
   axios
     .delete(url, { id: idList })
     .then((res) => {
-      if (res.error_code === 200) {
+      if (res.error_code === '2000') {
         handleDeleteSuccess();
         store
           ? store.commit('selected/setDeletedData', selected.value)
           : 0;
       } else {
-        handleDeleteFail(res.error_mesg);
+        handleDeleteFail(res.error_msg);
       }
     })
     .catch((err) => {

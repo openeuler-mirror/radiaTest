@@ -4,8 +4,8 @@ import axios from '@/axios';
 const size = ref('medium');
 
 const model = ref({
-  group: undefined,
-  framework: undefined,
+  group_id: undefined,
+  framework_id: undefined,
 });
 const fileListRef = ref([]);
 
@@ -22,32 +22,28 @@ const groupOptions = ref([]);
 const frameworkOptions = ref([]);
 
 const rules = {
-  group: {
+  group_id: {
     required: true,
     message: '必须选择归属团队',
     trigger: ['blur'],
   },
-  framework: {
+  framework_id: {
     required: true,
     message: '必须选定测试框架',
     trigger: ['blur'],
-  }
+  },
 };
 
 const getFrameworkOptions = () => {
   axios
     .get('/v1/framework')
     .then((res) => {
-      if (!res.error_mesg) {
-        frameworkOptions.value = res.map((item) => {
-          return {
-            label: item.name,
-            value: item.name,
-          };
-        });
-      } else {
-        window.$message?.error(res.error_mesg);
-      }
+      frameworkOptions.value = res.data?.map((item) => {
+        return {
+          label: item.name,
+          value: String(item.id),
+        };
+      });
     })
     .catch(() => {
       window.$message?.error('获取框架数据失败，请检查网络或联系管理员处理');
@@ -61,12 +57,14 @@ const getGroupOptions = () => {
       groupOptions.value = res.data.items.map((item) => {
         return {
           label: item.name,
-          value: item.name,
+          value: String(item.id),
         };
       });
     })
     .catch(() => {
-      window.$message?.error('无法获取所属团队信息，请检查网络或联系管理员处理');
+      window.$message?.error(
+        '无法获取所属团队信息，请检查网络或联系管理员处理'
+      );
     });
 };
 
@@ -79,14 +77,8 @@ async function beforeUpload({ file }) {
   const matchList = file.file.name.match(/\..*$/);
   let fileType = null;
   matchList.length > 0 ? (fileType = matchList[matchList.length - 1]) : 0;
-  if (
-    fileType !== '.xlsx' &&
-      fileType !== '.xls' &&
-      fileType !== '.csv'
-  ) {
-    window.$message?.error(
-      '只能上传xlsx、xls、csv格式的Excel文件，请重新上传'
-    );
+  if (fileType !== '.xlsx' && fileType !== '.xls' && fileType !== '.csv') {
+    window.$message?.error('只能上传xlsx、xls、csv格式的Excel文件，请重新上传');
     return false;
   }
   return true;
@@ -121,5 +113,3 @@ export default {
   validateFormData,
   clean,
 };
-
-

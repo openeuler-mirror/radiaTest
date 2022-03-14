@@ -70,14 +70,14 @@ const getCases = (id) => {
     axios
       .get('/v1/analyzed', { job_id: id })
       .then((res) => {
-        if (res.length === 0) {
+        if (res.data.length === 0) {
           active.value = false;
           window.$message?.error(
             '无法获取本测试任务的分析数据，请联系管理员进行处理'
           );
         } else {
           const tmpList = [];
-          res.forEach((item) => {
+          res.data.forEach((item) => {
             if (!tmpList.includes(item.case)) {
               tmpList.push(item.case);
               originAnalyzeds.value.push(item);
@@ -96,14 +96,14 @@ const getCases = (id) => {
 
 const getCaseDetail = (_case) => {
   axios
-    .get('/v1/case', { name: _case })
+    .get('/v1/case', { id: _case })
     .then((res) => {
-      if (res.length === 0) {
+      if (res.data?.length === 0) {
         window.$message?.error(
           '无法获取本测试用例详细数据，请联系管理员进行处理'
         );
       } else {
-        [caseDetail.value] = res;
+        [caseDetail.value] = res.data;
       }
     })
     .catch(() => {
@@ -115,9 +115,9 @@ const getCaseDetail = (_case) => {
 
 const getLogsData = (_id) => {
   axios
-    .get('/v1/analyzed/logs', { id: _id })
+    .get(`/v1/analyzed/${_id}/logs`)
     .then((res) => {
-      logsData.value = res;
+      logsData.value = res.data;
     })
     .catch(() => {
       window.$message?.error(
@@ -128,20 +128,20 @@ const getLogsData = (_id) => {
 
 const handleSelectRecord = (record) => {
   selectedRecord.value = record;
-  getCaseDetail(record.case);
+  getCaseDetail(record.case.id);
   getLogsData(record.id);
 };
 
 const getRecords = (_case) => {
   axios
-    .get('/v1/analyzed/records', { case: _case })
+    .get('/v1/analyzed/records', { case_id: _case })
     .then((res) => {
-      res.forEach((item) => {
+      res.data.forEach((item) => {
         item.create_time 
           ? item.create_time = any2standard(item.create_time) 
           : 0;
       });
-      originRecords.value = res;
+      originRecords.value = res.data;
     })
     .catch(() => {
       window.$message?.error(
@@ -170,13 +170,13 @@ const handleSelectCase = (testcase) => {
   selectedRecord.value = null;
   if (selectedCase.value === '') {
     selectedCase.value = testcase;
-    document.getElementById(selectedCase.value).style.boxShadow =
+    document.getElementById(`case${selectedCase.value}`).style.boxShadow =
         '0 4px 20px 4px rgba(0, 0, 0, 0.4)';
   } else {
-    document.getElementById(selectedCase.value).style.boxShadow =
+    document.getElementById(`case${selectedCase.value}`).style.boxShadow =
         '0 4px 36px 0 rgba(190, 196, 204, 0.2)';
     selectedCase.value = testcase;
-    document.getElementById(selectedCase.value).style.boxShadow =
+    document.getElementById(`case${selectedCase.value}`).style.boxShadow =
         '0 4px 20px 4px rgba(0, 0, 0, 0.4)';
   }
   getRecords(testcase);
@@ -194,14 +194,14 @@ const createTimelineType = (result) => {
 const emitUpdateEvent = () => {
   const recordId = selectedRecord.value.id;
   axios
-    .get('/v1/analyzed/records', { case: selectedCase.value })
+    .get('/v1/analyzed/records', { case_id: selectedCase.value })
     .then((res) => {
-      res.forEach((item) => {
+      res.data.forEach((item) => {
         item.create_time 
           ? item.create_time = any2standard(item.create_time) 
           : 0;
       });
-      originRecords.value = res;
+      originRecords.value = res.data;
       const [ newSelectedRecord ] = originRecords.value.filter(
         item => item.id === recordId
       );

@@ -7,10 +7,10 @@ const poweroff = (machineId, disabled) => {
       status: 'off',
     })
     .then((res) => {
-      if (res.error_code === 200) {
+      if (res.error_code === '2000') {
         window.$message?.success('已成功下电');
       } else {
-        window.$message?.error(`下电失败：${res.error_mesg}`);
+        window.$message?.error(`下电失败：${res.error_msg}`);
       }
       disabled.value = false;
     })
@@ -31,10 +31,10 @@ const poweron = (machineId, disabled) => {
       status: 'on',
     })
     .then((res) => {
-      if (res.error_code === 200) {
+      if (res.error_code === '2000') {
         window.$message?.success('已成功上电');
       } else {
-        window.$message?.error(`上电失败：${res.error_mesg}`);
+        window.$message?.error(`上电失败：${res.error_msg}`);
       }
       disabled.value = false;
     })

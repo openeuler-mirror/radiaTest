@@ -61,26 +61,22 @@ function query() {
     .get('/v1/case/recycle_bin')
     .then((res) => {
       recycleBinCaseLoading.value = false;
-      if(!res.error_mesg){
-        recycleBinCaseData.value = res.map((_case, index) => {
-          return {
-            key: index,
-            id: _case.id,
-            suite: _case.suite,
-            name: _case.name,
-            test_type: _case.test_type,
-            test_level: _case.test_level,
-            owner: _case.owner,
-            deleteTime: formatTime(_case.update_time, 'yyyy-MM-dd hh:mm:ss'),
-          };
-        });
-      }else{
-        recycleBinCaseData.value = [];
-      }
+      recycleBinCaseData.value = res.data.map((_case, index) => {
+        return {
+          key: index,
+          id: _case.id,
+          suite: _case.suite,
+          name: _case.name,
+          test_type: _case.test_type,
+          test_level: _case.test_level,
+          owner: _case.owner,
+          deleteTime: formatTime(_case.update_time, 'yyyy-MM-dd hh:mm:ss'),
+        };
+      });
     })
     .catch((err) => {
       recycleBinCaseLoading.value = false;
-      window.$message?.error(err.error_mesg || '未知错误');
+      window.$message?.error(err.error_msg || '未知错误');
     });
 }
 
@@ -149,7 +145,7 @@ const recycleBinCaseColumns = [
                     query();
                   })
                   .catch((err) => {
-                    window.$message?.error(err.data.error_mesg || '未知错误');
+                    window.$message?.error(err.data.error_msg || '未知错误');
                   });
               });
             },

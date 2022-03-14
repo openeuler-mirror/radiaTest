@@ -2,18 +2,25 @@
   <div class="container">
     <div class="task-header">
       <n-h2>后台任务</n-h2>
-      <n-input round placeholder="请输入" style="width: 200px" />
+      <n-inpu
+        v-model:value="searchInfo"
+        round
+        placeholder="请输入"
+        @change="searchTask"
+      />
     </div>
-    <n-data-table
-      :bordered="false"
-      :columns="taskColumns"
-      :data="taskData"
-      :loading="loading"
-      :pagination="pagination"
-      @update:page="handlePageChange"
-      @update:page-size="handlePageSizeChange"
-      remote
-    />
+    <div>
+      <n-data-table
+        :bordered="false"
+        :columns="taskColumns"
+        :data="taskData"
+        :loading="loading"
+        :pagination="pagination"
+        @update:page="handlePageChange"
+        @update:page-size="handlePageSizeChange"
+        remote
+      />
+    </div>
   </div>
 </template>
 <script>

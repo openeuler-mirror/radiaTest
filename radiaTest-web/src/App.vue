@@ -45,7 +45,6 @@ import { theme } from '@/assets/config/theme.js';
 import fixNavigation from '@/components/fixNavigation/fixNavgation.vue';
 import collapseNDrawer from '@/components/collapseDrawer/collapseNDrawer.vue';
 import backendTask from '@/views/backendTask/backendTask.vue';
-import { storage } from '@/assets/utils/storageUtils';
 
 hljs.registerLanguage('bash', bash);
 hljs.registerLanguage('python', python);
@@ -71,7 +70,7 @@ export default {
       return this.$route.name !== 'login';
     },
     showTaskPage() {
-      return this.$route.name !== 'login' && (storage?.getValue('role') !== 1 && storage?.getValue('role') !== 2);
+      return this.$route.name !== 'login';
     }
   },
   setup() {

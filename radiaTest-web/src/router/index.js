@@ -24,8 +24,8 @@ import authorityManagement from '@/views/personalCenter/authorityManagement/auth
 import CaseManagement from '@/views/caseManage/CaseManagement.vue';
 import folderView from '@/views/caseManage/folderView/folderView.vue';
 import taskDetails from '@/views/caseManage/folderView/taskDetails/taskDetails.vue';
+import frameWork from '@/views/caseManage/folderView/frameWork/frameWork.vue';
 import testsuite from '@/views/caseManage/testsuite/testsuite.vue';
-import authorityManagement from '@/views/personalCenter/authorityManagement/authorityManagement.vue';
 import rulesManagement from '@/views/personalCenter/authorityManagement/rulesManagement/rulesManagement.vue';
 import rolesManagement from '@/views/personalCenter/authorityManagement/rolesManagement/rolesManagement.vue';
 import usersManagement from '@/views/personalCenter/usersManagement/usersManagement.vue';
@@ -151,6 +151,11 @@ const router = createRouter({
                   component: taskDetails,
                   name: 'taskDetails',
                 },
+                {
+                  path: 'frameWork/:groupId',
+                  component: frameWork,
+                  name: 'frameWork',
+                },
               ],
             },
           ],
@@ -244,14 +249,6 @@ const router = createRouter({
           meta: {
             title: '成员管理',
           },
-        },
-        {
-          path: 'authorityManagement/',
-          component: authorityManagement,
-          name: 'authorityManagement',
-          meta: {
-            title: '权限管理'
-          }
         },
         {
           path: 'news/',

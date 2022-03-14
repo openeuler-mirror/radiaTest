@@ -18,10 +18,10 @@ const putForm = (url, formValue) => {
   axios
     .put(url, formValue.value)
     .then((res) => {
-      if (res.error_code === 200) {
+      if (res.error_code === '2000') {
         handleSuccessUpdate();
       } else {
-        handleFailUpdate(res.error_mesg);
+        handleFailUpdate(res.error_msg);
       }
     })
     .catch((error) => {
@@ -32,11 +32,11 @@ const putFormEmitClose = (url, formValue, context) => {
   axios
     .put(url, formValue.value)
     .then((res) => {
-      if (res.error_code === 200) {
+      if (res.error_code === '2000') {
         handleSuccessUpdate();
         context.emit('close');
       } else {
-        handleFailUpdate(res.error_mesg);
+        handleFailUpdate(res.error_msg);
       }
     })
     .catch((error) => {

@@ -4,10 +4,10 @@ const deleteDevice = (url, target, deviceId) => {
   axios
     .delete(url, { id: deviceId })
     .then((res) => {
-      if (res.error_code === 200) {
+      if (res.error_code === '2000') {
         window.$message?.success(`${target}已卸载`);
       } else {
-        window.$message?.error(`${target}未能卸载：${res.error_mesg}`);
+        window.$message?.error(`${target}未能卸载：${res.error_msg}`);
       }
     })
     .catch((err) => {

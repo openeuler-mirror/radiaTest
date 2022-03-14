@@ -42,7 +42,7 @@ const onValidSubmit = (context) => {
       threads: model.value.threads,
     })
     .then((res) => {
-      if (res.error_code === 200) {
+      if (res.error_code === '2000') {
         window.$notification?.success(
           handleSuccessSubmit(propsData.value.name, 'CPU配置', [
             {
@@ -65,7 +65,7 @@ const onValidSubmit = (context) => {
         context.emit('refresh');
       } else {
         window.$notification?.error(
-          handleFailureSubmit(propsData.value.name, 'CPU配置', res.error_mesg)
+          handleFailureSubmit(propsData.value.name, 'CPU配置', res.error_msg)
         );
       }
     })

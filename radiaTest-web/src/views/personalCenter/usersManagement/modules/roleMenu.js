@@ -4,8 +4,9 @@ import { renderIcon } from '@/assets/utils/icon';
 import { GroupsFilled } from '@vicons/material';
 import { Organization20Regular } from '@vicons/fluent';
 import { getUserInfo } from './userInfo';
+import { storage } from '@/assets/utils/storageUtils';
 
-const selectdRole = ref('public');
+const selectdRole = ref('');
 const expandKeys = ref([]);
 const roleMenu = ref([
   {
@@ -24,6 +25,8 @@ const roleMenu = ref([
   },
 ]);
 function getGroups(orgs) {
+  const groupIndex = roleMenu.value.findIndex((item) => item.key === 'group');
+  roleMenu.value[groupIndex].children = [];
   const requests = orgs?.map((item) =>
     axios.get(`/v1/org/${item}/groups`, { page_num: 1, page_size: 99999 })
   );
@@ -31,7 +34,7 @@ function getGroups(orgs) {
     values?.forEach((res) => {
       if (res.status === 'fulfilled') {
         res.value.data.items.forEach((item) => {
-          roleMenu.value[1].children.push({
+          roleMenu.value[groupIndex].children.push({
             key: window.btoa(`group-${item.id}`),
             label: item.name,
             prefix: renderIcon(GroupsFilled),
@@ -42,9 +45,41 @@ function getGroups(orgs) {
   });
 }
 function getOrgs() {
+  if (storage.getValue('role') === 1) {
+    roleMenu.value = [
+      {
+        label: '平台',
+        key: 'public',
+      },
+      {
+        label: '团队',
+        key: 'group',
+        children: [],
+      },
+      {
+        label: '组织',
+        key: 'org',
+        children: [],
+      },
+    ];
+  } else {
+    roleMenu.value = [
+      {
+        label: '团队',
+        key: 'group',
+        children: [],
+      },
+      {
+        label: '组织',
+        key: 'org',
+        children: [],
+      },
+    ];
+  }
   axios.get('/v1/orgs/all', { page_num: 1, page_size: 99999 }).then((res) => {
     const orgs = [];
-    roleMenu.value[2].children = res.data.items?.map((item) => {
+    const groupInext = roleMenu.value.findIndex((item) => item.key === 'org');
+    roleMenu.value[groupInext].children = res.data.items?.map((item) => {
       orgs.push(item.id);
       return {
         key: window.btoa(`org-${item.id}`),
@@ -52,7 +87,6 @@ function getOrgs() {
         prefix: renderIcon(Organization20Regular),
       };
     });
-    roleMenu.value[1].children = [];
     getGroups(orgs);
   });
 }

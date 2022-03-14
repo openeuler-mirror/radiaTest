@@ -70,9 +70,8 @@ export default defineComponent({
       handlePropsButtonClick: () => validateFormData(),
       put: () => {
         updateAjax.putFormEmitClose(
-          '/v1/analyzed',
+          `/v1/analyzed/${data.value.id}`,
           ref({
-            id: data.value.id,
             fail_type: formValue.value.fail_type,
             details: formValue.value.details,
           }),

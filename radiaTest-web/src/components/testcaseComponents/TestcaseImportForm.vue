@@ -8,22 +8,31 @@
     ref="formRef"
   >
     <n-grid :cols="18" :x-gap="24">
-      <n-form-item-gi :span="9" label="归属团队" path="group">
+      <n-form-item-gi
+        :span="18"
+        v-if="showGroup"
+        label="归属团队"
+        path="group_id"
+      >
         <n-select
-          v-model:value="model.group"
+          v-model:value="model.group_id"
           placeholder="选择团队"
           :options="groupOptions"
           filterable
         />
       </n-form-item-gi>
-      <n-form-item-gi :span="9" label="测试框架" path="framework">
+      <!-- <n-form-item-gi
+        :span="showGroup ? 9 : 18"
+        label="测试框架"
+        path="framework_id"
+      >
         <n-select
-          v-model:value="model.framework"
+          v-model:value="model.framework_id"
           placeholder="选择框架"
           :options="frameworkOptions"
           filterable
         />
-      </n-form-item-gi>
+      </n-form-item-gi> -->
     </n-grid>
   </n-form>
   <n-upload
@@ -37,13 +46,13 @@
     action="/api/v1/case/import"
   >
     <n-upload-dragger>
-      <div style="margin-bottom: 12px;">
+      <div style="margin-bottom: 12px">
         <n-icon size="48" :depth="3">
           <archive-icon />
         </n-icon>
       </div>
-      <n-text style="font-size: 16px;">点击或者拖动文件到该区域来上传</n-text>
-      <n-p depth="3" style="margin: 8px 0 0 0;">
+      <n-text style="font-size: 16px">点击或者拖动文件到该区域来上传</n-text>
+      <n-p depth="3" style="margin: 8px 0 0 0">
         仅支持导入xlsx、csv、xls格式的Excel文件，且表格列名需与平台保持一致
       </n-p>
     </n-upload-dragger>
@@ -59,6 +68,12 @@ import settings from '@/assets/config/settings.js';
 import importForm from '@/views/caseManage/testcase/modules/importForm.js';
 
 export default defineComponent({
+  props: {
+    showGroup: {
+      type: Boolean,
+      default: true,
+    }
+  },
   components: {
     ArchiveIcon,
   },
@@ -71,8 +86,12 @@ export default defineComponent({
       ...importForm,
       handlePropsButtonClick: () => importForm.validateFormData(context),
       post: () => {
-        importForm.uploadRef.value.submit();
-        context.emit('close');
+        if (props.showGroup) {
+          importForm.uploadRef.value.submit();
+          context.emit('close');
+        } else {
+          context.emit('submitForm', { data: importForm.model.value, file: importForm.fileListRef.value });
+        }
       },
     };
   },
