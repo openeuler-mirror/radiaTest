@@ -61,7 +61,7 @@ export default defineComponent({
             if (resps.length) {
               resps.forEach((resp) => {
                 if (resp.error_code !== 0) {
-                  window.$message?.error(resp.error_mesg);
+                  window.$message?.error(resp.error_msg);
                 } else {
                   window.$message?.success(`${resp.service}配置添加成功`);
                 }

@@ -12,7 +12,7 @@ class Socket {
     this.socket.close();
   }
   isConnect() {
-    return this.socket && this.socket.connected;
+    return this.socket?.connected;
   }
   emit(event, data) {
     this.socket.emit(event, data);
@@ -24,6 +24,4 @@ class Socket {
   }
 }
 
-export {
-  Socket,
-};
+export { Socket };

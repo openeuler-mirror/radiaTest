@@ -12,7 +12,7 @@ const kanban = toRef(store.state.taskManage, 'kanban'); // 获取看板、表格
 const showCreate = ref(true); // 显示新建任务状态
 const inputInstRef = ref(null); // 新建任务状态文本框名称
 const statusValue = ref(null); // 新建任务状态数据
-const giteeId = Number(storage.getValue('gitee_id'));
+let giteeId;
 
 // 任务状态数组
 const statusArray = computed(() => {
@@ -92,6 +92,7 @@ function getTask() {
 
 // 初始化数据
 function initData(cb) {
+  giteeId=Number(storage.getValue('gitee_id'));
   showLoading.value = true;
   axios
     .get('/v1/task/status')
@@ -218,8 +219,6 @@ function rowProps(rowData) {
         } else {
           getDetail(rowData);
         }
-        //TODO 调用接口获取任务详情数据
-        // showModal.value = true;
       }
     },
   };

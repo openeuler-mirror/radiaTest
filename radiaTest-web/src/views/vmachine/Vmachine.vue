@@ -59,6 +59,13 @@
       <n-gi :span="24"></n-gi>
       <n-gi :span="24">
         <vmachine-table ref="tableRef" @update="() => updateModalRef.show()" />
+        <modal-card title="延期" ref="delayModalRef" @validate="submitDelay">
+          <template #form>
+            <n-form-item label="释放时间">
+             <n-date-picker style="width:100%" v-model:value="delay.time" type="date" :is-date-disabled="(current)=>delay.time>current" />
+            </n-form-item>
+          </template>
+        </modal-card>
         <modal-card
           title="修改虚拟机"
           url="/v1/vmachine"
@@ -102,7 +109,7 @@ import { ref, defineComponent } from 'vue';
 import settings from '@/assets/config/settings.js';
 import Common from '@/components/CRUD';
 import Essential from '@/components/vmachineComponents';
-
+import {delayModalRef,delay,submitDelay} from './modules/vmachineTableColumns';
 export default defineComponent({
   components: {
     ...Common,
@@ -122,6 +129,9 @@ export default defineComponent({
       updateFormRef,
       createModalRef,
       updateModalRef,
+      delayModalRef,
+      submitDelay,
+      delay,
     };
   },
 });

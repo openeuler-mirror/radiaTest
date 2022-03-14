@@ -24,7 +24,7 @@ const postForm = (url, form) => {
       .post(url, form.value)
       .then((res) => {
         if (res.error_code !== 200 && res.error_code !== '2000') {
-          handleFailCreate(res.error_mesg);
+          handleFailCreate(res.error_msg);
           reject(res);
         } else {
           handleSuccessCreate();

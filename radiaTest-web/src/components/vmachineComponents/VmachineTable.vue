@@ -31,8 +31,8 @@ export default defineComponent({
 
     onMounted(() => {
       get.list('/v1/vmachine', vmachineTable.totalData, vmachineTable.loading);
-      vmachineSocket.listen('update', (res) => {
-        vmachineTable.totalData.value = JSON.parse(res);
+      vmachineSocket.listen('update', () => {
+        get.list('/v1/vmachine', vmachineTable.totalData, vmachineTable.loading);
       });
     });
     onUnmounted(() => {
@@ -59,7 +59,7 @@ export default defineComponent({
 </script>
 
 <style>
-.end-time {
+/* .end-time {
   width: 10%;
 }
 .vm-name {
@@ -67,5 +67,5 @@ export default defineComponent({
 }
 .cols.vmachine-operation {
   width: 10%;
-}
+} */
 </style>

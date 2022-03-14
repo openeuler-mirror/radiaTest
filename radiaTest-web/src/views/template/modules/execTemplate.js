@@ -1,14 +1,12 @@
 import { h } from 'vue';
-import axios from '@/axios';
+// import axios from '@/axios';
 import { NSelect } from 'naive-ui';
+import {implementTemplate} from '@/api/post';
 
 const postExecData = (row) => {
-  axios.post('/v1/job/template', {
-    id: row.id,
-    frame: row.frame,
-  })
+  implementTemplate({template_id:row.id,template_name:row.name,frame:row.frame})
     .then((res) => {
-      if (res.error_code === 200) {
+      if (res.error_code === '2000') {
         window.$notification?.success({
           content: '测试任务已执行完成',
           meta: `模板：${row.name}`,
@@ -29,15 +27,10 @@ const postExecData = (row) => {
 };
 
 const handleExecute = async (row, dOccupy) => {
-  return new Promise((resolve) => {
-    new Promise((resolveWaitSend) => setTimeout(resolveWaitSend, 1000))
-      .then(() => {
-        dOccupy.content = '执行请求已发送';
-        postExecData(row);
-        window.$message?.success('模板已成功执行，请前往测试看板查看');
-        resolve();
-      });
-  });
+  dOccupy.content = '执行请求已发送';
+  postExecData(row);
+  window.$message?.success('模板已成功执行，请前往测试看板查看');
+  return '';
 };
 
 const handlePositiveClick = (row, dOccupy) => {

@@ -5,11 +5,6 @@
     </div>
     <n-layout id="homeBody" has-sider class="body home">
       <router-view></router-view>
-      <!-- <n-layout id="homeBody">
-        <div ref="home" class="home">
-          <router-view></router-view>
-        </div>
-      </n-layout> -->
     </n-layout>
   </div>
 </template>

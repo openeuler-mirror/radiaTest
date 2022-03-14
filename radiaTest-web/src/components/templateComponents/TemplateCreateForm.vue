@@ -87,7 +87,16 @@
               filterable
             />
           </n-form-item-gi>
-          <n-form-item-gi :span="24" label="模板描述" path="description">
+          <n-form-item-gi :span="8" label="测试脚本代码仓" path="git_repo">
+            <n-select
+              :options="gitRepoOpts"
+              v-model:value="formValue.git_repo"
+              placeholder="选择模板绑定的测试脚本代码仓"
+              @update:value="changeRepo"
+              filterable
+            />
+          </n-form-item-gi>
+          <n-form-item-gi :span="16" label="模板描述" path="description">
             <n-input v-model:value="formValue.description" />
           </n-form-item-gi>
         </n-grid>
@@ -142,7 +151,7 @@ export default defineComponent({
   },
   setup(props, context) {
     onMounted(() => {
-      createAjax.getData(casesForm.options, casesForm.loading);
+      // createAjax.getData(casesForm.options, casesForm.loading);
       createForm.getProductOptions();
     });
 

@@ -44,8 +44,9 @@ function getRoleList() {
         }
       });
     } else {
+      const [key,id] = window.atob(selectdRole.value).split('-');
       res.data.forEach((item) => {
-        if (item.type === 'org') {
+        if (item.type === key && item[`${key}_id`] === Number(id)) {
           roleList.value.push({
             label: item.name,
             value: String(item.id),
@@ -59,13 +60,17 @@ function getUserInfo() {
   if (selectdRole.value === 'public') {
     requestUrl = '/v1/user_role';
     actionUrl.value = '/v1/users';
+    getUserTableData();
+    getRoleList();
   } else {
     const [key, id] = window.atob(selectdRole.value).split('-');
-    requestUrl = `/v1/user_role/${key}/${id}`;
-    actionUrl.value = `/v1/${key === 'group' ? 'groups' : 'org'}/${id}/users`;
+    if (key) {
+      requestUrl = `/v1/user_role/${key}/${id}`;
+      actionUrl.value = `/v1/${key === 'group' ? 'groups' : 'org'}/${id}/users`;
+      getUserTableData();
+      getRoleList();
+    }
   }
-  getUserTableData();
-  getRoleList();
 }
 function handlePageChange(page) {
   pagination.value.page = page;
@@ -120,7 +125,7 @@ const usersColumns = [
     title: '角色',
     key: 'role',
     align: 'center',
-    render(row) {
+    render (row) {
       const tag = h(
         NTag,
         {

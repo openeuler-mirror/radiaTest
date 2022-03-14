@@ -103,8 +103,8 @@ export default {
   },
   mounted () {
     this.$axios.get('/v1/milestone').then((res) => {
-      this.milepostArray = res;
-      this.milepostArrayTemp = res;
+      this.milepostArray = res.data;
+      this.milepostArrayTemp = res.data;
     });
     if (this.defaultValue) {
       this.groupValue = this.defaultValue.map(item => item.id);

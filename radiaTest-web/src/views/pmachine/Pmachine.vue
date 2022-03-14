@@ -32,15 +32,17 @@
             @submit="createFormRef.post()"
           >
             <template #form>
-              <n-tabs type="line" size="large" :tab-padding="20">
+              <n-tabs type="line" size="large" :tab-padding="20" @update:value="(value)=>{createFormRef.changeTabs(value)}">
                 <n-tab-pane
-                  name="基本参数"
+                  tab="基本参数"
+                  name="basic"
                   @click="createFormRef.changeTabs('basic')"
                 >
                   <div></div>
                 </n-tab-pane>
                 <n-tab-pane
-                  name="SSH参数"
+                  tab="SSH参数"
+                  name="ssh"
                   @click="createFormRef.changeTabs('ssh')"
                 >
                   <div></div>

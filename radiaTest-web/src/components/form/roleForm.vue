@@ -85,8 +85,8 @@ export default {
       }
     },
     getOrg() {
-      this.$axios.get('/v1/admin/org').then(res => {
-        this.orgs = res.data.map(item => ({ label: item.organization_name, value: String(item.organization_id) }));
+      this.$axios.get('/v1/orgs/all',{page_size:99999,page_num:1}).then(res => {
+        this.orgs = res.data.items?.map(item => ({ label: item.name, value: String(item.id) }));
       }).catch(err => window.message?.error(err.data.error_msg || '未知错误'));
     },
     getGroups() {

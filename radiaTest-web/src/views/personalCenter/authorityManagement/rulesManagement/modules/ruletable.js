@@ -1,10 +1,10 @@
 import { ref, h } from 'vue';
 import { NIcon, NButton, NSpace } from 'naive-ui';
-import { Construct, CheckmarkCircleOutline } from '@vicons/ionicons5';
+import { CheckmarkCircleOutline } from '@vicons/ionicons5';
 import { Delete24Regular as Delete, Prohibited24Regular } from '@vicons/fluent';
 import { renderTooltip } from '@/assets/render/tooltip';
 import axios from '@/axios';
-import { setFormType, createRef, setEditData } from './ruleForm';
+// import { setFormType, createRef, setEditData } from './ruleForm';
 import { changeLoadingStatus } from '@/assets/utils/loading';
 
 const data = ref();
@@ -18,11 +18,11 @@ function getRules() {
     changeLoadingStatus(false);
   });
 }
-function editRule(row) {
-  setFormType('edit');
-  setEditData(JSON.parse(JSON.stringify(row)));
-  createRef.value.show();
-}
+// function editRule(row) {
+//   setFormType('edit');
+//   setEditData(JSON.parse(JSON.stringify(row)));
+//   createRef.value.show();
+// }
 function deleteRule(row) {
   axios.delete(`/v1/scope/${row.id}`).then(() => getRules());
 }
@@ -83,19 +83,19 @@ const columns = [
           align: 'center',
         },
         [
-          renderTooltip(
-            h(
-              NButton,
-              {
-                size: 'medium',
-                type: 'warning',
-                circle: true,
-                onClick: () => editRule(row),
-              },
-              h(NIcon, { size: '20' }, h(Construct))
-            ),
-            '修改'
-          ),
+          // renderTooltip(
+          //   h(
+          //     NButton,
+          //     {
+          //       size: 'medium',
+          //       type: 'warning',
+          //       circle: true,
+          //       onClick: () => editRule(row),
+          //     },
+          //     h(NIcon, { size: '20' }, h(Construct))
+          //   ),
+          //   '修改'
+          // ),
           renderTooltip(
             h(
               NButton,

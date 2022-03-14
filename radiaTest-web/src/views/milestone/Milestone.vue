@@ -15,7 +15,7 @@
     style="height: 100%"
   >
     <selection-button
-      :left="40"
+      :left="20"
       :top="88"
       @show="tableRef.showSelection()"
       @off="tableRef.offSelection()"

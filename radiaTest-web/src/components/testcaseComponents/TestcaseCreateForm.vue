@@ -251,7 +251,7 @@ export default defineComponent({
           const postData = ref(
             Object.assign(infoCopyData, createForm.contentFormValue.value)
           );
-          createAjax.postForm('/v1/case', postData).then(res=>resolve(res)).catch(err=>reject(err));
+          createAjax.postForm('/v1/case', postData).then(res=>resolve(res.data)).catch(err=>reject(err));
           context.emit('close');
         });
       },

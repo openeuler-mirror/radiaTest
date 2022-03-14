@@ -46,6 +46,7 @@ app.config.globalProperties.$newsSocket = new Socket(config.newsSocketPath);
 
 //应用插件
 app
+  .use(VueGridLayout)
   .use(naive)
   .use(VMdEditor)
   .use(store)

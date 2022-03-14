@@ -128,7 +128,7 @@ export default {
     getData() {
       this.loading = true;
       this.$axios.get('/v1/suite', this.filterValue).then((res) => {
-        this.data = res;
+        this.data = res.data;
         this.loading = false;
       });
     },

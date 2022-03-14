@@ -1,9 +1,12 @@
-import { ref, watch } from 'vue';
+import { ref, watch, h } from 'vue';
+import { NTooltip } from 'naive-ui';
 import {
   getProductOpts,
   getVersionOpts,
   getMilestoneOpts,
 } from '@/assets/utils/getOpts.js';
+import { getPm } from '@/api/get';
+import { ColumnDefault } from '@/views/pmachine/modules/pmachineTableColumns';
 
 const size = ref('medium');
 
@@ -14,16 +17,17 @@ const milestoneOpts = ref([]);
 const frameOpts = ref([
   {
     label: 'aarch64',
-    value: 'aarch64'
+    value: 'aarch64',
   },
   {
     label: 'x86_64',
-    value: 'x86_64'
+    value: 'x86_64',
   },
 ]);
 
 const formValue = ref({
   frame: undefined,
+  pm_select_mode: undefined,
   product: undefined,
   version: undefined,
   milestone_id: undefined,
@@ -35,7 +39,9 @@ const formValue = ref({
   threads: 1,
   description: undefined,
   method: undefined,
+  pmachine_id: undefined,
 });
+const checkedPm = ref();
 
 const rules = ref({
   method: {
@@ -57,6 +63,15 @@ const rules = ref({
     required: true,
     message: '版本名不可为空',
     trigger: ['blur'],
+  },
+  pm_select_mode: {
+    required: true,
+    message: '请选择物理机选取策略',
+    trigger: ['blur', 'change'],
+  },
+  pmachine_id: {
+    required: true,
+    message: '物理机不可为空',
   },
   milestone_id: {
     required: true,
@@ -93,6 +108,7 @@ const validator = (value) => {
 };
 
 const clean = () => {
+  checkedPm.value = '';
   formValue.value = {
     frame: undefined,
     product: undefined,
@@ -100,6 +116,8 @@ const clean = () => {
     milestone_id: undefined,
     cpu_mode: undefined,
     capacity: null,
+    pm_select_mode: undefined,
+    pmachine_id: undefined,
     memory: 4096,
     sockets: 1,
     cores: 1,
@@ -108,9 +126,12 @@ const clean = () => {
     method: undefined,
   };
 };
-
+const pmData = ref();
 const getProductOptions = () => {
   getProductOpts(productOpts);
+  getPm().then((res) => {
+    pmData.value = res.data;
+  });
 };
 
 const activeMethodWatcher = () => {
@@ -135,22 +156,51 @@ const activeVersionWatcher = () => {
   watch(
     () => formValue.value.version,
     () => {
-      getMilestoneOpts(
-        milestoneOpts,
-        formValue.value.version,
-      );
+      getMilestoneOpts(milestoneOpts, formValue.value.version);
     }
   );
 };
 
-watch(() => formValue.value.method, () => {
-  formValue.value.method === 'import'
-    ? formValue.value.capacity = null
-    : 0;
-});
+watch(
+  () => formValue.value.method,
+  () => {
+    formValue.value.method === 'import' ? (formValue.value.capacity = null) : 0;
+  }
+);
+function renderOption({ node, option }) {
+  return h(NTooltip, null, {
+    trigger: () => node,
+    default: () => {
+      return `ip:${option.info.ip}<br/>label:${option.label}`;
+    },
+  });
+}
 
+const pmcolumns = [
+  {
+    type: 'selection',
+  },
+  ...ColumnDefault,
+].map((item) => {
+  if (item.type) {
+    return item;
+  }
+  return { key: item.key, title: item.title };
+});
+const pagination = {
+  pageSize: 5,
+};
+function handleCheck(check) {
+  checkedPm.value = [check?.pop()];
+  [formValue.value.pmachine_id] = checkedPm.value;
+  formValue.value.pmachine_name = pmData.value.find(item=>item.id === formValue.value.pmachine_id).ip;
+}
 export default {
+  checkedPm,
   size,
+  pmcolumns,
+  pagination,
+  pmData,
   productOpts,
   versionOpts,
   milestoneOpts,
@@ -161,9 +211,10 @@ export default {
   validateFormData,
   validator,
   clean,
+  renderOption,
+  handleCheck,
   getProductOptions,
   activeMethodWatcher,
   activeProductWatcher,
   activeVersionWatcher,
 };
-

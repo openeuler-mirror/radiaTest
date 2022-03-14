@@ -9,6 +9,9 @@ const showIssueDrawer = ref(false);
 const isCheck= ref(false);
 const loading= ref(true);
 const isUpdating = ref(false);
+const filter = ref({
+  name:''
+});
 
 const rowProps= (row) => {
   return {
@@ -41,6 +44,7 @@ const handleCheck = (rowKeys) => {
 
 export default {
   data,
+  filter,
   totalData,
   rowData,
   refresh,

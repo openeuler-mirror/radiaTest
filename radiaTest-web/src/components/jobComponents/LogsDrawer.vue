@@ -1,11 +1,11 @@
 <template>
-  <n-drawer v-model:show="active" :width="1800" :placement="right">
+  <n-drawer v-model:show="active" :width="1600" :placement="right">
     <n-drawer-content
       header-style="justify-content: center;"
       body-style="background-color: rgba(240,241,244,1)"
     >
       <template #header>
-        <p style="width: 1700px; text-align: center; margin: 0">
+        <p style="width: 1400px; text-align: center; margin: 0">
           <n-button
             @click="
               () => {

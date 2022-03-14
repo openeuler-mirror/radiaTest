@@ -15,16 +15,12 @@ const initSuiteOptions = () => {
   axios
     .get('/v1/suite')
     .then((res) => {
-      if (!res.error_mesg) {
-        suiteOptions.value = res.map((item) => {
-          return {
-            label: item.name,
-            value: item.name,
-          };
-        });
-      } else {
-        window.$message?.error(res.error_mesg);
-      }
+      suiteOptions.value = res.data.map((item) => {
+        return {
+          label: item.name,
+          value: item.name,
+        };
+      });
     })
     .catch(() => {
       window.$message?.error('获取数据失败，请检查网络或联系管理员处理');

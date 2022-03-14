@@ -1,10 +1,20 @@
-import { h } from 'vue';
-import { NTag, NButton, NSpace } from 'naive-ui';
+import { h, ref } from 'vue';
+import { NTag, NButton, NSpace, NTooltip, NGradientText } from 'naive-ui';
 
 import ExpandedCard from '@/components/vmachineComponents/ExpandedCard';
 
 import { deleteAjax } from '@/assets/CRUD/delete';
+import { deleteVm } from '@/api/delete';
+import { modifyDelayTime } from '@/api/put';
+import { formatTime } from '@/assets/utils/dateFormatUtils';
+import { get } from '@/assets/CRUD/read';
+import vmachineTable from '@/views/vmachine/modules/vmachineTable.js';
 
+const delayModalRef = ref();
+const delay = ref({
+  time: '',
+  id: '',
+});
 const getColumnExpand = () => {
   return {
     type: 'expand',
@@ -15,10 +25,23 @@ const getColumnExpand = () => {
       return h(ExpandedCard, {
         data: rowData,
       });
-    }
+    },
   };
-
 };
+function warningDialog(confirm) {
+  const d = window.$dialog?.warning({
+    title: '警告',
+    content: '你确定删除该虚拟机？',
+    positiveText: '确定',
+    negativeText: '取消',
+    onPositiveClick: () => {
+      confirm && confirm();
+    },
+    onNegativeClick: () => {
+      d.destroy();
+    },
+  });
+}
 
 const ColumnDefault = [
   {
@@ -52,6 +75,32 @@ const ColumnDefault = [
     className: 'cols end-time',
     sorter: true,
     sortOrder: false,
+    render(row) {
+      return h(
+        NTooltip,
+        {
+          trigger: 'hover',
+        },
+        {
+          trigger: () => {
+            return h(
+              NGradientText,
+              {
+                type: 'info',
+                style: 'cursor:pointer',
+                onClick: () => {
+                  delay.value.time = new Date(row.end_time).getTime();
+                  delay.value.id = row.id;
+                  delayModalRef.value.show();
+                },
+              },
+              row.end_time
+            );
+          },
+          default: () => '延长期限',
+        }
+      );
+    },
   },
 ];
 
@@ -66,7 +115,7 @@ const ColumnState = {
       return h(NTag, { color: 'grey', round: true }, row.status);
     }
     return h(NTag, { color: 'warning', round: true }, row.status);
-  }
+  },
 };
 
 const ColumnOperate = {
@@ -78,28 +127,34 @@ const ColumnOperate = {
       NSpace,
       {
         justify: 'center',
+        wrap: false,
       },
       [
         h(
           NButton,
           {
-            size: 'medium',
+            size: 'small',
             type: 'error',
-            text: true,
             disabled: !row.ip,
-            onClick: () => deleteAjax.postDelete('/v1/vmachine', [row.id]),
+            onClick: () =>
+              warningDialog(() => {
+                deleteAjax.postDelete('/v1/vmachine', [row.id]);
+              }),
           },
           '删除'
         ),
         h(
           NButton,
           {
-            size: 'medium',
-            type: 'info',
-            text: true,
-            disabled: true,
+            size: 'small',
+            type: 'error',
+            tertiary: true,
+            onClick: () =>
+              warningDialog(() => {
+                deleteVm(row.id);
+              }),
           },
-          '延期'
+          '强制删除'
         ),
       ]
     );
@@ -107,15 +162,16 @@ const ColumnOperate = {
 };
 
 const createColumns = () => {
-  return [
-    getColumnExpand(),
-    ...ColumnDefault,
-    ColumnState,
-    ColumnOperate,
-  ];
+  return [getColumnExpand(), ...ColumnDefault, ColumnState, ColumnOperate];
 };
+function submitDelay() {
+  modifyDelayTime(delay.value.id, {
+    end_time: formatTime(delay.value.time, 'yyyy-MM-dd hh:mm:ss'),
+  }).then(() => {
+    delay.value.id = '';
+    delayModalRef.value.close();
+    get.list('/v1/vmachine', vmachineTable.totalData, vmachineTable.loading);
+  });
+}
 
-export {
-  createColumns,
-};
-
+export { delay, delayModalRef, createColumns, submitDelay };

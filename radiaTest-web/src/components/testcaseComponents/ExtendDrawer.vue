@@ -54,11 +54,7 @@ export default defineComponent({
           name: testcaseTable.rowData.value.name,
         })
         .then((res) => {
-          if (!res.error_mesg && res) {
-            [formValue.value] = res;
-          } else {
-            window.$message?.error(res.error_mesg);
-          }
+          [formValue.value] = res.data;
         })
         .catch(() => {
           window.$message?.error('无法获取数据');

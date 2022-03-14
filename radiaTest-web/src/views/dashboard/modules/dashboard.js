@@ -277,7 +277,7 @@ const machineActive = ref('0'); // 我的机器活动tab
 
 const myMachineData = ref([]);
 
-function getMachineData() {
+function getMachineData () {
   myMachineData.value = [];
   axios
     .post('/v1/user/machine/info', {
@@ -287,7 +287,6 @@ function getMachineData() {
       page_size: 999999999,
     })
     .then((res) => {
-      console.log(res);
       if (res.data.items) {
         res.data.items.forEach((v, i) => {
           myMachineData.value.push({
@@ -445,18 +444,26 @@ function resizedEvent(i, newH, newW, newHPx) {
   if (i === 'tasks') {
     tasksPagination.value.page = 1;
     tasksPagination.value.pageSize = Math.round((newHPx - 240) / 47, 0);
-    console.log(tasksPagination.value.pageSize);
     getTaskData();
   }
 }
 
+function debounce (func, delay) {
+  let timeout;
+  return (...args) => {
+    if (args[0].deltaY > 0) {
+      showWorkbench.value = true;
+    }
+    clearTimeout(timeout);
+    timeout = setTimeout(() => {
+      if (args[0].deltaY > 0) {
+        func.apply(this, args);
+      }
+    }, delay);
+  };
+}
 // 滚轮下滚
-const handleWheelDown = (e) => {
-  if (e.deltaY > 0) {
-    showWorkbench.value = true;
-    initData();
-  }
-};
+const handleWheelDown = debounce(initData, 1000);
 
 // 滚轮上滚
 const handleWheelUp = (e) => {

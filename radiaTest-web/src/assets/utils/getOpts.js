@@ -1,5 +1,35 @@
 import axios from '@/axios';
-
+import { getRepo,getSuite,getPm,getVm } from '@/api/get';
+export async function createRepoOptions(filter) {
+  const data = await getRepo(filter);
+  return data.data.map((item) => ({
+    label: item.git_url,
+    value: String(item.id),
+  }));
+}
+export async function createSuiteOptions(filter){
+  const data = await getSuite(filter);
+  return data.data.map((item) => ({
+    label: item.name,
+    value: String(item.id),
+    machineCount:item.machine_num,
+    machineType:item.machine_type
+  }));
+}
+export async function createPmOptions(filter){
+  const data = await getPm(filter);
+  return data.data.map((item) => ({
+    label: item.ip,
+    value: String(item.id),
+  }));
+}
+export async function createVmOptions(filter){
+  const data = await getVm(filter);
+  return data.data.map((item) => ({
+    label: item.ip,
+    value: String(item.id),
+  }));
+}
 const getProductOpts = (productOpts, loading) => {
   loading ? loading.value = true : 0;
   productOpts.value = [];
@@ -7,7 +37,7 @@ const getProductOpts = (productOpts, loading) => {
     .get('/v1/product')
     .then((res) => {
       loading ? loading.value = false : 0;
-      res.forEach((item) => {
+      res.data.forEach((item) => {
         if (!productOpts.value.includes(item.name)) {
           productOpts.value.push(item.name);
         }
@@ -32,7 +62,7 @@ const getVersionOpts = (versionOpts, productName, loading) => {
     .get('/v1/product', { name: productName })
     .then((res) => {
       loading ? loading.value = false : 0;
-      versionOpts.value = res.map((item) => {
+      versionOpts.value = res.data.map((item) => {
         return {
           label: item.version,
           value: item.id.toString(),
@@ -54,7 +84,7 @@ const getMilestoneOpts = (milestoneOpts, productId, loading) => {
     })
     .then((res) => {
       loading ? loading.value = false : 0;
-      res.forEach((item) => {
+      res.data.forEach((item) => {
         milestoneOpts.value.push({
           label: item.name,
           value: item.id.toString(),
@@ -81,7 +111,7 @@ const getFrameOpts = (frameOpts, milestoneId, filetype, loading) => {
     })
     .then((res) => {
       loading ? loading.value = false : 0;
-      frameOpts.value = res.map((item) => {
+      frameOpts.value = res.data.map((item) => {
         return {
           label: item.frame,
           value: item.frame,

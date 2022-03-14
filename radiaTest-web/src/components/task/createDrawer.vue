@@ -211,7 +211,7 @@ export default {
       this.$axios
         .get('/v1/milestone')
         .then((res) => {
-          this.milestones = res.map((item) => ({
+          this.milestones = res.data.map((item) => ({
             label: item.name,
             value: String(item.id),
           }));

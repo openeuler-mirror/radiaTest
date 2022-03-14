@@ -135,7 +135,7 @@ const handleOccupy = async (dOccupy, connect) => {
     new Promise((resolveWaitSend) => setTimeout(resolveWaitSend, 1000))
       .then(() => handleSendRequest(dOccupy, connect))
       .then((res) => {
-        if (res.error_code === 200) {
+        if (res.error_code === '2000') {
           dOccupy.content = '物理机已成功占用';
           return new Promise((resolveWaitResv) =>
             setTimeout(() => {
@@ -171,7 +171,7 @@ const handleRelease = async (dRelease, connect) => {
         });
       })
       .then((res) => {
-        if (res.error_code === 200) {
+        if (res.error_code === '2000') {
           dRelease.content = '物理机已确认释放';
           return new Promise((resolveWaitResv) =>
             setTimeout(() => {
