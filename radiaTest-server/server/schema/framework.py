@@ -9,7 +9,7 @@ class FrameworkBase(BaseModel):
     name: str
     url: HttpUrl
     logs_path: str
-    adaptive: bool
+    adaptive: bool = False
 
 
 class FrameworkQuery(BaseModel):

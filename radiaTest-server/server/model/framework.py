@@ -7,7 +7,7 @@ class Framework(db.Model, BaseModel):
     name = db.Column(db.String(64), unique=True, nullable=False)
     url = db.Column(db.String(256), unique=True, nullable=False)
     logs_path = db.Column(db.String(256))
-    adaptive = db.Column(db.Boolean(), nullable=False)
+    adaptive = db.Column(db.Boolean(), nullable=False, default=False)
 
     gitee_repos = db.relationship('GitRepo', backref='framework')
 

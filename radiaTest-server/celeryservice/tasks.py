@@ -91,6 +91,7 @@ def async_read_git_repo():
         repos = GitRepo.query.filter_by(
             framework_id=framework.id,
             sync_rule=True,
+            adaptive=True,
         ).all()
 
         for repo in repos:
