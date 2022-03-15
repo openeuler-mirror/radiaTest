@@ -22,7 +22,7 @@ class RepoTaskHandler(TaskHandlerBase):
         )
         return False if exitcode else True
 
-    def main(self, id, name, url):
+    def main(self, id, name, url, framework_name):
         self.promise.update_state(
             state="DOWNLOADING",
             meta={
@@ -47,7 +47,7 @@ class RepoTaskHandler(TaskHandlerBase):
             }
         )
 
-        resolver = getattr(Resolver, name)
+        resolver = getattr(Resolver, framework_name)
 
         if not resolver:
             raise RuntimeError(

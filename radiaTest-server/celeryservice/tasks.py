@@ -79,8 +79,8 @@ def async_check_vmachine_lifecycle():
 
 
 @celery.task(bind=True)
-def load_scripts(self, id, name, url):
-    RepoTaskHandler(logger, self).main(id, name, url)
+def load_scripts(self, id, name, url, template_name):
+    RepoTaskHandler(logger, self).main(id, name, url, template_name)
 
 
 @celery.task
@@ -88,30 +88,31 @@ def async_read_git_repo():
     frameworks = Framework.query.filter_by(adaptive=True).all()
 
     for framework in frameworks:
-        repos = GitRepo.query.filter_by(
-            framework_id=framework.id,
-            sync_rule=True,
-            adaptive=True,
-        ).all()
+        if framework.adaptive is True:
+            repos = GitRepo.query.filter_by(
+                framework_id=framework.id,
+                sync_rule=True,
+            ).all()
 
-        for repo in repos:
-            _task = load_scripts.delay(
-                repo.id,
-                repo.name,
-                repo.git_url,
-            )
+            for repo in repos:
+                _task = load_scripts.delay(
+                    repo.id,
+                    repo.name,
+                    repo.git_url,
+                    framework.name,
+                )
 
-            logger.info(f"task id: {_task.task_id}")
+                logger.info(f"task id: {_task.task_id}")
 
-            celerytask = {
-                "tid": _task.task_id,
-                "status": "PENDING",
-                "object_type": "scripts_load",
-                "description": f"from {repo.git_url}",
-            }
+                celerytask = {
+                    "tid": _task.task_id,
+                    "status": "PENDING",
+                    "object_type": "scripts_load",
+                    "description": f"from {repo.git_url}",
+                }
 
-            _ = Insert(CeleryTask, celerytask).single(
-                CeleryTask, '/celerytask')
+                _ = Insert(CeleryTask, celerytask).single(
+                    CeleryTask, '/celerytask')
 
 
 @celery.task(bind=True)
