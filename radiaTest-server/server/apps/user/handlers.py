@@ -1,7 +1,8 @@
 import json
-
+import calendar
+from datetime import datetime, timedelta
 from flask import current_app, request, Response, redirect, g, jsonify
-from sqlalchemy import or_
+from sqlalchemy import or_, and_, extract
 
 from server import redis_client
 from server.utils.response_util import RET
@@ -13,11 +14,19 @@ from server.utils.cla_util import Cla, ClaShowAdminSchema
 from server.utils.page_util import PageUtil
 from server.model.user import User
 from server.model.message import Message
+from server.model.task import Task
+from server.model.vmachine import Vmachine
+from server.model.pmachine import Pmachine
+from server.model.milestone import Milestone
 from server.model.organization import Organization, ReUserOrganization
 from server.model.group import ReUserGroup, GroupRole
 from server.schema.group import ReUserGroupSchema, GroupInfoSchema
 from server.schema.organization import OrgUserInfoSchema, ReUserOrgSchema
-from server.schema.user import UserBaseSchema, UserInfoSchema
+from server.schema.user import UserBaseSchema, UserInfoSchema, UserTaskSchema, UserMachineSchema
+from server.schema.task import TaskInfoSchema
+from server.schema.vmachine import VmachineBasic
+from server.schema.pmachine import PmachineBasic
+from server.utils.page_util import PageUtil
 
 
 def handler_gitee_login():
@@ -251,4 +260,136 @@ def handler_get_all(query):
     page_dict, e = PageUtil.get_page_dict(query_filter, query.page_num, query.page_size, func=page_func)
     if e:
         return jsonify(error_code=RET.SERVER_ERR, error_msg=f'get group page error {e}')
+    return jsonify(error_code=RET.OK, error_msg="OK", data=page_dict)
+
+
+@collect_sql_error
+def handler_get_user_task(body: UserTaskSchema):
+    now = datetime.now()
+    # 全部任务
+    basic_filter_params = [Task.is_delete.is_(False),
+                           Task.executor_type == 'PERSON',
+                           Task.executor_id == g.gitee_id]
+
+    # 今日任务总数
+    today_filter_params = [extract('year', Task.create_time) == now.year,
+                           extract('month', Task.create_time) == now.month,
+                           extract('day', Task.create_time) == now.day]
+    today_filter_params.extend(basic_filter_params)
+    today_tasks_count = Task.query.filter(*today_filter_params).count()
+
+    # 本周任务总数
+    today = datetime(now.year, now.month, now.day, 0, 0, 0)
+    this_week_start = today - timedelta(days=now.weekday())
+    this_week_end = today + timedelta(days=7 - now.weekday())
+    week_filter_params = [Task.create_time >= this_week_start,
+                          Task.create_time < this_week_end]
+    week_filter_params.extend(basic_filter_params)
+    week_tasks_count = Task.query.filter(*week_filter_params).count()
+
+    # 本月任务总数
+    this_month_start = datetime(now.year, now.month, 1)
+    next_month_start = datetime(now.year, now.month + 1, 1)
+    month_filter_params = [Task.create_time >= this_month_start,
+                           Task.create_time < next_month_start]
+    month_filter_params.extend(basic_filter_params)
+    month_tasks_count = Task.query.filter(*month_filter_params).count()
+
+    def page_func(task: Task):
+        item_dict = TaskInfoSchema(**task.__dict__).dict()
+        if task.type != 'VERSION' and task.milestones:
+            milestone = Milestone.query.get(task.milestones[0].milestone_id) if task.milestones else None
+            item_dict['milestone'] = milestone.to_json()
+        elif task.type == 'VERSION' and task.milestones:
+            milestones = [item.milestone_id for item in task.milestones]
+            milestones = Milestone.query.filter(Milestone.id.in_(milestones)).all()
+            item_dict['milestones'] = [item.to_json() for item in milestones]
+        return item_dict
+
+    if body.task_title:
+        basic_filter_params.append(Task.title.like(f'%{body.task_title}%'))
+
+    filter_param = []
+    if body.task_type == 'all':
+        # 任务总数、分页
+        basic_filter = Task.query.filter(*basic_filter_params).order_by(Task.update_time.desc())
+        filter_param = basic_filter
+
+    elif body.task_type == 'month':
+        # 本月任务
+        month_filter_params.extend(basic_filter_params)
+        month_filter = Task.query.filter(*month_filter_params).order_by(Task.update_time.desc())
+        filter_param = month_filter
+    elif body.task_type == 'week':
+        week_filter_params.extend(basic_filter_params)
+        week_filter = Task.query.filter(*week_filter_params).order_by(Task.update_time.desc())
+        filter_param = week_filter
+    elif body.task_type == 'today':
+        today_filter_params.extend(basic_filter_params)
+        today_filter = Task.query.filter(*today_filter_params).order_by(Task.update_time.desc())
+        filter_param = today_filter
+    elif body.task_type == 'overtime':
+        overtime_filter_params = [
+            or_(
+                and_(
+                    Task.accomplish_time.is_(None),
+                    Task.deadline < now
+                ),
+                Task.deadline < Task.accomplish_time
+            )
+        ]
+        overtime_filter_params.extend(basic_filter_params)
+        overtime_filter = Task.query.filter(*overtime_filter_params).order_by(Task.update_time.desc())
+        filter_param = overtime_filter
+    elif body.task_type == 'not_accomplish':
+        not_accomplish_filter_params = [Task.accomplish_time.is_(None)]
+        not_accomplish_filter_params.extend(basic_filter_params)
+        not_accomplish_filter = Task.query.filter(*not_accomplish_filter_params).order_by(Task.update_time.desc())
+        filter_param = not_accomplish_filter
+
+    page_dict, e = PageUtil.get_page_dict(filter_param, body.page_num, body.page_size, func=page_func)
+    if e:
+        return jsonify(error_code=RET.SERVER_ERR, error_msg=f'get task page error {e}')
+
+    page_dict["today_tasks_count"] = today_tasks_count
+    page_dict["week_tasks_count"] = week_tasks_count
+    page_dict["month_tasks_count"] = month_tasks_count
+    return jsonify(error_code=RET.OK, error_msg="OK", data=page_dict)
+
+
+@collect_sql_error
+def handler_get_user_machine(body: UserMachineSchema):
+    page_dict = None
+    if body.machine_type == 'physics':
+        def page_func(item: Pmachine):
+            item_dict = PmachineBasic(**item.__dict__).dict()
+            return item_dict
+
+        filter_params = [or_(Pmachine.user == g.gitee_id, Pmachine.occupier == g.gitee_id)]
+        if body.machine_name:
+            filter_params.append(or_(
+                Pmachine.ip.like(f'%{body.machine_name}%'),
+                Pmachine.description.like(f'%{body.machine_name}%'),
+                Pmachine.bmc_ip.like(f'%{body.machine_name}%')
+            ))
+        filter_chain = Pmachine.query.filter(*filter_params).order_by(Pmachine.create_time.desc())
+        page_dict, e = PageUtil.get_page_dict(filter_chain, body.page_num, body.page_size, func=page_func)
+        if e:
+            return jsonify(error_code=RET.SERVER_ERR, error_msg=f'get pmachine page error {e}')
+    elif body.machine_type == 'virtual':
+        def page_func(item: Vmachine):
+            item_dict = VmachineBasic(**item.__dict__).dict()
+            return item_dict
+
+        filter_params = [Vmachine.user == g.gitee_id]
+        if body.machine_name:
+            filter_params.append(or_(
+                Vmachine.ip.like(f'%{body.machine_name}%'),
+                Vmachine.description.like(f'%{body.machine_name}%'),
+                Vmachine.milestone.like(f'%{body.machine_name}%')
+            ))
+        filter_chain = Vmachine.query.filter(*filter_params).order_by(Vmachine.create_time.desc())
+        page_dict, e = PageUtil.get_page_dict(filter_chain, body.page_num, body.page_size, func=page_func)
+        if e:
+            return jsonify(error_code=RET.SERVER_ERR, error_msg=f'get vmachine page error {e}')
     return jsonify(error_code=RET.OK, error_msg="OK", data=page_dict)

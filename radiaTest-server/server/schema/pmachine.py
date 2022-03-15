@@ -198,3 +198,10 @@ class PmachineInstall(BaseModel):
 class PmachinePower(BaseModel):
     id: int
     status: Power
+
+
+class PmachineBasic(BaseModel):
+    ip: str
+    description: str
+    status: str
+    bmc_ip: str

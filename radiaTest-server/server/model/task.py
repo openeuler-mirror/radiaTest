@@ -1,10 +1,11 @@
-from server.model.base import Base
-from .job import Analyzed
-from .user import User
-from .group import Group
-from .testcase import Suite
-from server import db
 import pandas as pd
+
+from server import db
+from server.model.base import Base
+from .group import Group
+from .job import Analyzed
+from .testcase import Suite
+from .user import User
 
 re_task_tag = db.Table('re_task_tag',
                        db.Column('task_id', db.Integer, db.ForeignKey('task.id'), primary_key=True),
@@ -148,9 +149,12 @@ class Task(db.Model, Base):
     keywords = db.Column(db.Text, nullable=True)
     abstract = db.Column(db.Text, nullable=True)
     abbreviation = db.Column(db.Text, nullable=True)
-    frame = db.Column(db.Enum("aarch64", "x86_64"), default="aarch64", nullable=False)
+    frame = db.Column(db.String(16), nullable=True)
     display = db.Column(db.Boolean, default=True, nullable=False)
     automatic = db.Column(db.Boolean, default=False, nullable=False)  # 是否是只有自动化用例的任务
+    automatic_finish = db.Column(db.Boolean, default=False, nullable=False)  # 子任务完成，任务是否自动完成
+    is_single_case = db.Column(db.Boolean, default=False, nullable=False)  # 是否单测试用例任务
+    is_manage_task = db.Column(db.Boolean, default=False, nullable=False)  # 是否管理型任务
     status_id = db.Column(db.Integer, db.ForeignKey("task_status.id"), nullable=True)  # 任务分类表关联
 
     comments = db.relationship("TaskComment", backref="task")  # 评论表关联

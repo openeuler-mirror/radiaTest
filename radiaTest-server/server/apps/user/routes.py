@@ -5,7 +5,7 @@ from server.utils.db import Select
 from server.utils.cla_util import ClaSignSchema
 from server.utils.auth_util import auth
 from server.utils.response_util import response_collect
-from server.schema.user import UpdateUserSchema, JoinGroupSchema, UserQuerySchema
+from server.schema.user import UpdateUserSchema, JoinGroupSchema, UserQuerySchema, UserTaskSchema, UserMachineSchema
 from .handlers import handler_gitee_callback
 from .handlers import handler_gitee_login
 from .handlers import handler_register
@@ -15,6 +15,8 @@ from .handlers import handler_logout
 from .handlers import handler_select_default_org
 from .handlers import handler_add_group
 from .handlers import handler_get_all
+from .handlers import handler_get_user_task
+from .handlers import handler_get_user_machine
 
 gitee = Blueprint('gitee', __name__)
 
@@ -79,3 +81,19 @@ class Group(Resource):
 #     @validate()
 #     def put(self, body: RefreshTokenSchema):
 #         return handler_token(body.refresh_token)
+
+
+class UserTask(Resource):
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def post(self, body: UserTaskSchema):
+        return handler_get_user_task(body)
+
+
+class UserMachine(Resource):
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def post(self, body: UserMachineSchema):
+        return handler_get_user_machine(body)

@@ -196,3 +196,10 @@ class DeviceBase(BaseModel):
                 raise ValueError("Value format of device is invalid")
         
         return v
+
+
+class VmachineBasic(BaseModel):
+    ip: str
+    description: str
+    milestone: str
+    status: str
