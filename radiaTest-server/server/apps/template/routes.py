@@ -1,22 +1,18 @@
-# -*- coding: utf-8 -*-
-# @Author : Ethan-Zhang
-# @Date   : 2021-09-06 20:39:53
-# @Email  : ethanzhang55@outlook.com
-# @License: Mulan PSL v2
-# @Desc   :
-
-from flask import request
+from flask import request, jsonify
 from flask_restful import Resource
 from flask_pydantic import validate
 
 from server.model.template import Template
 from server.model.testcase import Case
 from server.utils.db import Insert, Edit, Select, Delete
+from server.utils.auth_util import auth
+from server.utils.response_util import RET
 from server.schema.base import DeleteBaseModel
 from server.schema.template import TemplateBase, TemplateUpdate
 
 
 class TemplateEvent(Resource):
+    @auth.login_required
     @validate()
     def post(self, body: TemplateBase):
         _body = body.__dict__
@@ -41,6 +37,7 @@ class TemplateEvent(Resource):
 
         return resp
 
+    @auth.login_required
     @validate()
     def put(self, body: TemplateUpdate):
         _body = body.__dict__
@@ -63,10 +60,36 @@ class TemplateEvent(Resource):
 
         return resp
 
+    @auth.login_required
     @validate()
     def delete(self, body: DeleteBaseModel):
         return Delete(Template, body.__dict__).batch(Template, "/template")
 
+    @auth.login_required
     def get(self):
         body = request.args.to_dict()
         return Select(Template, body).precise()
+
+
+class TemplateItemEvent(Resource):
+    @auth.login_required
+    def get(self, template_id):
+        template = Template.query.filter_by(id=template_id).first()
+        if not template:
+            return jsonify(error_code=RET.NO_DATA_ERR, error_msg="template not exist")
+        
+        vm_req_num = 0
+        pm_req_num = 0
+        for case in template.cases:
+            if case.machine_type == "kvm":
+                vm_req_num = max(vm_req_num, case.machine_num)
+            elif case.machine_type == "physical":
+                pm_req_num = max(vm_req_num, case.machine_num)
+
+        return_data = template.to_json()
+        return_data.update({
+            "vm_req_num": vm_req_num,
+            "pm_req_num": pm_req_num,
+        })
+
+        return jsonify(error_code=RET.OK, error_msg="OK", data=return_data)
