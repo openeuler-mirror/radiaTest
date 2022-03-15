@@ -92,10 +92,10 @@ class VmachineBase(BaseModel):
 
     @validator("pmachine_id")
     def check_pmselect(cls, v, values):
-        if values.get("pmselect") and values.get("pmselect") == "assign":
+        if values.get("pm_select_mode") and values.get("pm_select_mode") == "assign":
             pm = Precise(Pmachine, {"id": v}).first()
             if not pm:
-                raise ValueError("Must select an existing pysical machine, when pmselect is assign.")
+                raise ValueError("Must select an existing pysical machine, when pm_select_mode is assign.")
 
 class VmachineUpdate(UpdateBaseModel):
     memory: Optional[conint(ge=2048, le=Config.VM_MAX_MEMEORY)] = 2048
@@ -123,17 +123,13 @@ class VmachineUpdate(UpdateBaseModel):
             )
         return v
 
-class VmachineDelay(UpdateBaseModel):
+class VmachineDelay(BaseModel):
     end_time: Optional[datetime]
 
     @validator("end_time")
     def check_end_time(cls, v, values):
-        try: 
-            vm = Precise(Vmachine, {"id": values.get("id")}).first()
-        except (SQLAlchemyError, IntegrityError):
-            raise ValueError("Must select an existing virtual machine.")
         
-        dl = (v - vm.end_time).days
+        dl = (v - datetime.now()).days
         if dl > current_app.config.get("VM_MAX_DAYS"):
             raise ValueError(
                 "The lifetime of virtual machine(days):%s"
