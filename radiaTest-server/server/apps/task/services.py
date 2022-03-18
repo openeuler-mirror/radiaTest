@@ -55,9 +55,20 @@ class UpdateTaskStatusService(object):
                 accomplish_flag = False
                 break
         if accomplish_flag:
-            tasks = self.task.parents.filter(Task.is_delete.is_(False)).all()
-            for item in tasks:
+            parents = self.task.parents.filter(Task.is_delete.is_(False)).all()
+            for item in parents:
                 send_message(item, msg=f'子任务{self.task.title}已完成。', from_id=g.gitee_id)
+                if item.automatic_finish:
+                    children_ = get_task_children(tasks=[item], children=[])
+                    all_accomplish = True
+                    for child in children_:
+                        if child.task_status.name == '已完成':
+                            all_accomplish = False
+                            break
+                    if all_accomplish:
+                        item.accomplish_time = datetime.datetime.now()
+                        item.status_id = self.status.id
+
             self.task.accomplish_time = datetime.datetime.now()
             self.update_task_status()
         else:
@@ -124,7 +135,7 @@ class UpdateTaskStatusService(object):
                     milestone.job_result = 'pending'
                     milestone.add_update()
 
-                if milestone.job_result in ['pending', 'block']:
+                if milestone.job_result in ['pending', 'block'] and task.frame and not task.is_manage_task:
                     get_job_url = f'http://{current_app.config.get("SERVER_IP")}:{current_app.config.get("SERVER_PORT")}' \
                                   f'{url_for("run_template_event")}'
                     headers = {"content-type": "application/json"}

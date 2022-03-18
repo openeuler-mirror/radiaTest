@@ -1,4 +1,5 @@
 import math
+import ast
 from flask import jsonify, g, request
 from sqlalchemy import or_
 from datetime import timedelta
@@ -104,7 +105,6 @@ class HandlerTask(object):
         insert_dict = body.dict()
         insert_dict['originator'] = g.gitee_id
         insert_dict['organization_id'] = redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')
-
         executor_id = body.executor_id
 
         if body.executor_type == EnumsTaskExecutorType.GROUP.value and (
@@ -131,6 +131,14 @@ class HandlerTask(object):
             _ = [task.parents.append(item) for item in parents]
             task.display = False
         task.add_update()
+
+        if body.case_id and body.milestone_id:
+            task = Task.query.filter_by(title=body.title).first()
+            update_task_schema = UpdateTaskSchema(milestone_id=body.milestone_id)
+            HandlerTask.update(task.id, update_task_schema)
+            add_task_case_schema = AddTaskCaseSchema(case_id=[body.case_id])
+            HandlerTaskCase.add(task.id, body.milestone_id, add_task_case_schema)
+
         return jsonify(error_code=RET.OK, error_msg="OK")
 
     @staticmethod
@@ -233,6 +241,8 @@ class HandlerTask(object):
             task.executor_id = body.executor_id
 
         if task.task_status.name not in ['执行中', '已执行', '已完成']:
+            if body.is_manage_task:
+                setattr(task, "frame", None)
             if body.frame:
                 task.frame = body.frame
             if any([body.milestones, body.milestone_id]) and any([task.parents.filter(Task.is_delete.is_(False)).all(),
@@ -331,6 +341,19 @@ class HandlerTask(object):
             return jsonify(error_code=RET.SERVER_ERR, error_msg=f'get group page error {e}')
         return_data = page_info
         return jsonify(error_code=RET.OK, error_msg='OK', data=return_data)
+
+    @staticmethod
+    @collect_sql_error
+    def delete_task_list(body: DeleteTaskList):
+        if body.task_ids:
+            for task_id in body.task_ids:
+                task = Task.query.filter_by(id=task_id, originator=g.gitee_id).first()
+                if not task:
+                    continue
+                if task and task.task_status.name == '待办中':
+                    setattr(task, 'is_delete', True)
+                    task.add_update()
+        return jsonify(error_code=RET.OK, error_msg='OK')
 
 
 class HandlerTaskParticipant(object):
@@ -654,6 +677,11 @@ class HandlerTaskCase(object):
         if task_milestone.task.task_status.name in ['执行中', '已执行', '已完成']:
             return jsonify(error_code=RET.PARMA_ERR, error_msg='current task status not allowed operate')
 
+        task = Task.query.get(task_id)
+        if task and task.is_single_case:
+            return jsonify(error_code=RET.PARMA_ERR,
+                           error_msg='single-case task is not allowed associating more than 1 cases')
+
         cases = Case.query.filter(Case.id.in_(body.case_id), Case.deleted == False).all()
         _ = [task_milestone.cases.append(item) for item in cases if item not in task_milestone.cases]
         task_milestone.add_update()
@@ -672,6 +700,11 @@ class HandlerTaskCase(object):
             return jsonify(error_code=RET.NO_DATA_ERR, error_msg="task or template is not exists / user is no right")
         if task_milestone.task.task_status.name in ['执行中', '已执行', '已完成']:
             return jsonify(error_code=RET.PARMA_ERR, error_msg='current task status not allowed operate')
+
+        task = Task.query.get(task_id)
+        if task and task.is_single_case:
+            return jsonify(error_code=RET.PARMA_ERR,
+                           error_msg='can not delete case in single-case task!')
 
         cases = Case.query.filter(Case.id.in_(query.case_id)).all()
         _ = [task_milestone.cases.remove(item) for item in cases if item in task_milestone.cases]
@@ -962,7 +995,7 @@ class HandlerTaskStatistics(object):
         return IssueOpenApiHandlerV8().get_all(
             GiteeIssueQueryV8(**params).__dict__
         )
-    
+
     def get_issues(self):
         issues = []
         if not self.query.milestone_id:
@@ -1042,3 +1075,22 @@ class HandlerTaskExecute(object):
         if result:
             return result
         return jsonify(error_code=RET.OK, error_msg="OK")
+
+
+class HandlerCaseTask(object):
+    @staticmethod
+    @collect_sql_error
+    def get_task_info(case_id):
+        filter_param = [Case.id == case_id, Task.is_single_case == True]
+        task = Task.query.filter(*filter_param).first()
+        return HandlerTask.get(task.id)
+
+
+class HandlerCaseFrame(object):
+    @staticmethod
+    @collect_sql_error
+    def get_task_frame():
+        _frame = str(Frame)
+        index = _frame.index("[", 0, len(_frame))
+        frame = ast.literal_eval(_frame[index:len(_frame)])
+        return jsonify(error_code=RET.OK, error_msg="OK", data=frame)

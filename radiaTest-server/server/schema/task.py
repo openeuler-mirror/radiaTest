@@ -5,6 +5,7 @@ from enum import Enum
 from datetime import datetime, time
 from dateutil import parser
 from .base import PageBaseSchema, BaseEnum
+from server.schema import Frame
 
 
 class AddTaskStatusSchema(BaseModel):
@@ -60,6 +61,10 @@ class AddTaskSchema(BaseModel):
     keywords: str = None
     abstract: str = None
     abbreviation: str = None
+    milestone_id: int = None
+    case_id: int = None
+    is_single_case: bool = False
+    is_manage_task: bool = False
 
 
 class OutAddTaskSchema(BaseModel):
@@ -67,7 +72,7 @@ class OutAddTaskSchema(BaseModel):
     cases: List[int]
     milestone_id: int
     group_id: int
-    frame: Literal["aarch64", "x86_64"]
+    frame: Frame
 
 
 class QueryTaskSchema(PageBaseSchema):
@@ -109,7 +114,11 @@ class TaskInfoSchema(TaskBaseSchema):
     keywords: str = None
     abstract: str = None
     abbreviation: str = None
-    frame: Literal['aarch64', 'x86_64'] = None
+    frame: str = None
+    automatic_finish: bool = False
+    is_single_case: bool = False
+    accomplish_time: datetime = None
+    is_manage_task: bool = False
 
     @validator('priority')
     def validate(cls, v):
@@ -136,11 +145,13 @@ class UpdateTaskSchema(BaseModel):
     group_id: int = None
     content: str = None
     is_delete: bool = None
-    frame: Literal['aarch64', 'x86_64'] = None
+    frame: Frame = None
     priority: Literal['GENERAL', 'URGENCY', 'VERY_URGENCY'] = None
     milestone_id: int = None
     # product_id: int = None
     milestones: List[int] = None
+    automatic_finish: bool = None
+    is_manage_task: bool = None
 
     @validator('priority')
     def validate(cls, v):
@@ -340,7 +351,7 @@ class DistributeTemplateType(object):
 
         @validator('helpers')
         def v_helpers(cls, v):
-            if v:
+            if v is not None:
                 return ','.join(v)
             else:
                 return None
@@ -369,3 +380,8 @@ class DistributeTemplate(object):
     class Distribute(BaseModel):
         milestone_id: int
         distribute_all_cases: bool = True
+
+
+class DeleteTaskList(BaseModel):
+    task_ids: List[int] = None
+

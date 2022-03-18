@@ -9,7 +9,7 @@ from server.schema.task import *
 from .handlers import HandlerTaskStatus, HandlerTask, HandlerTaskParticipant, HandlerTaskComment, HandlerTaskTag
 from .handlers import HandlerTaskFamily, HandlerTaskCase, HandlerTaskReport
 from .handlers import HandlerTaskMilestone, HandlerTaskStatistics
-from .handlers import HandlerTaskExecute
+from .handlers import HandlerTaskExecute, HandlerCaseTask, HandlerCaseFrame
 from .template_handler import HandlerTemplate, HandlerTemplateType, HandlerTaskDistributeCass
 
 
@@ -310,3 +310,25 @@ class DistributeCaseByTemplate(Resource):
     @validate()
     def put(self, task_id, template_id, body: DistributeTemplate.Distribute):
         return HandlerTaskDistributeCass().distribute(task_id, template_id, body)
+
+
+class TaskList(Resource):
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def put(self, body: DeleteTaskList):
+        return HandlerTask.delete_task_list(body)
+
+
+class CaseTask(Resource):
+    @auth.login_required()
+    @response_collect
+    def get(self, case_id):
+        return HandlerCaseTask.get_task_info(case_id)
+
+
+class TaskFrame(Resource):
+    @auth.login_required()
+    @response_collect
+    def get(self):
+        return HandlerCaseFrame.get_task_frame()

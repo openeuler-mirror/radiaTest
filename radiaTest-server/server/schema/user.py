@@ -26,6 +26,21 @@ class UpdateUserSchema(BaseModel):
     phone: str
 
 
+class UserTaskSchema(BaseModel):
+    task_title: str = None
+    task_type: str
+    page_num: int
+    page_size: int
+
+
+class UserMachineSchema(BaseModel):
+    machine_name: str = None
+    machine_type: str
+    page_num: int
+    page_size: int
+    gitee_id: int = None
+
+
 class UserInfoSchema(UserBaseSchema):
     orgs: Optional[list]
     groups: Optional[list]
