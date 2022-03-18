@@ -3,7 +3,7 @@ from sqlalchemy import or_
 
 from server.utils.db import collect_sql_error
 from server.model.celerytask import CeleryTask
-from server.schema.celerytask import CeleryTaskQuerySchema
+from server.model.administrator import Admin
 from server.utils.page_util import PageUtil
 from server.utils.response_util import RET
 
@@ -12,9 +12,11 @@ class CeleryTaskHandler:
     @staticmethod
     @collect_sql_error
     def get_all(query):
-        filter_params = [
-            CeleryTask.user_id == int(g.gitee_id),
-        ]
+        filter_params = []
+
+        admin = Admin.query.filter_by(account=g.gitee_login).first()
+        if not admin:
+            filter_params.append(CeleryTask.user_id == int(g.gitee_id))
 
         if query.tid:
             filter_params.append(CeleryTask.tid.like(f'%{query.tid}%'))

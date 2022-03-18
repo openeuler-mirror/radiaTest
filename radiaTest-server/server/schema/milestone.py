@@ -5,10 +5,8 @@ from pydantic import BaseModel, Field, constr, root_validator
 
 
 from server.model import Product, Milestone
-
 from server.utils.db import Precise
-
-from server.schema import MilestoneType
+from server.schema import MilestoneType, MilestoneState
 
 
 class MilestoneBaseSchema(BaseModel):
@@ -18,12 +16,18 @@ class MilestoneBaseSchema(BaseModel):
     end_time: Optional[datetime.datetime]
     product_id: Optional[int]
     type: Optional[MilestoneType]
-    state: Optional[Literal["open", "closed"]]
+    state: Optional[MilestoneState]
+    is_sync: Optional[bool] = True
+
+
+class MilestoneQuerySchema(MilestoneBaseSchema):
     is_sync: Optional[bool]
+    page_num: int = 1
+    page_size: int = 10
 
 
-class MilestoneUpdateSchema(MilestoneBaseSchema):
-    state_event: Optional[Literal["activate", "close"]]
+class MilestoneUpdateSchema(BaseModel):
+    state_event: Literal["activate", "close"]
 
 
 class MilestoneCreateSchema(MilestoneBaseSchema):
@@ -85,13 +89,18 @@ class GiteeMilestoneBase(BaseModel):
 
 class GiteeMilestoneEdit(GiteeMilestoneBase):
     title: Optional[str] = Field(alias="name")
+    start_date: Optional[str] = Field(alias="start_time")
     due_date: Optional[str] = Field(alias="end_time")
-    state_event: Optional[Literal["activate", "close"]]
+    
+
+class GiteeMilestoneChangeState(BaseModel):
+    access_token: str
+    state_event: Literal["activate", "close"]
 
 
 class GiteeIssueQueryV8(BaseModel):
-    milestone_id: Optional[str]
-    state: Optional[str]
+    milestone_id: str
+    state: Optional[MilestoneState]
     only_related_me: Optional[str]
     assignee_id: Optional[str]
     author_id: Optional[str]
@@ -101,8 +110,7 @@ class GiteeIssueQueryV8(BaseModel):
     plan_started_at: Optional[str]
     deadline: Optional[str]
     filter_child: Optional[str]
-    # TODO 建立新表存储issue_state_id信息，关联org表， 等待gitee v8接口可用
-    issue_type_id: int = 118738
+    issue_type_id: int
     priority: Optional[str]
     sort: Optional[str]
     direction: Optional[str]
@@ -111,7 +119,7 @@ class GiteeIssueQueryV8(BaseModel):
 
 
 class GiteeIssueQueryV5(BaseModel):
-    state: Optional[str]
+    state: Optional[MilestoneState]
     sort: Optional[str]
     direction: Optional[str]
     since: Optional[str]

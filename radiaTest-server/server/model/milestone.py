@@ -13,7 +13,7 @@ class Milestone(BaseModel, db.Model):
     start_time = db.Column(db.Date(), nullable=False)
     end_time = db.Column(db.Date(), nullable=False)
     description = db.Column(TINYTEXT())
-    state = db.Column(db.String(16))
+    state = db.Column(db.Enum("active", "closed"), default="active")
     is_sync = db.Column(db.Boolean(), default=False)
 
     product_id = db.Column(db.Integer(), db.ForeignKey("product.id"))

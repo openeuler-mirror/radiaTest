@@ -31,21 +31,46 @@ def handler_show_org_cla_list():
 
 @collect_sql_error
 def handler_org_cla(org_id, body):
-    re = ReUserOrganization.query.filter_by(is_delete=False, user_gitee_id=g.gitee_id, organization_id=org_id).first()
+    re = ReUserOrganization.query.filter_by(
+        is_delete=False, 
+        user_gitee_id=g.gitee_id, 
+        organization_id=org_id
+    ).first()
     if re:
-        return jsonify(error_code=RET.DATA_EXIST_ERR, error_msg="relationship has exist")
+        return jsonify(
+            error_code=RET.DATA_EXIST_ERR, 
+            error_msg="relationship has exist"
+        )
+
     # 从数据库中获取cla信息
     org = Organization.query.filter_by(id=org_id, is_delete=False).first()
     if not org:
-        return jsonify(error_code=RET.NO_DATA_ERR, error_msg=f"database no find data")
+        return jsonify(
+            error_code=RET.NO_DATA_ERR, 
+            error_msg=f"database no find data"
+        )
+
     org_info = org.to_dict()
-    if not Cla.is_cla_signed(ClaShowAdminSchema(**org_info).dict(), body.cla_verify_params, body.cla_verify_body):
-        return jsonify(error_code=RET.CLA_VERIFY_ERR, error_msg="user is not pass cla verification, please retry",
-                    data=g.gitee_id)
+
+    if org.cla_verify_url and not Cla.is_cla_signed(
+        ClaShowAdminSchema(**org_info).dict(), 
+        body.cla_verify_params, 
+        body.cla_verify_body
+    ):
+        return jsonify(
+            error_code=RET.CLA_VERIFY_ERR, 
+            error_msg="user is not pass cla verification, please retry",
+            data=g.gitee_id
+        )
+    
     # 生成用户和组织的关系
-    ReUserOrganization.create(g.gitee_id, org_id,
-                              json.dumps({**body.cla_verify_params, **body.cla_verify_body}),
-                              default=False).add_update()
+    ReUserOrganization.create(
+        g.gitee_id, 
+        org_id,
+        json.dumps({**body.cla_verify_params, **body.cla_verify_body}),
+        default=False
+    ).add_update()
+
     return jsonify(error_code=RET.OK, error_msg="OK")
 
 

@@ -1,10 +1,21 @@
-# import datetime
-from celery.schedules import crontab
-from datetime import timedelta
+import configparser
+from pathlib import Path
+
 from kombu import Exchange, Queue
 
+ini_path = "/etc/radiaTest/server.ini"
+
+def loads_config_ini(section, option):
+    config_ini = Path(ini_path)
+
+    cfg = configparser.ConfigParser()
+    cfg.read(config_ini)
+
+    return cfg.get(section, option)
+
+
 # Broker settings
-broker_url = 'amqp://radiaTest:1234@172.168.131.14:5672/radiaTest'
+broker_url = loads_config_ini("celery", "BROKER_URL")
 broker_pool_limit = 10
 
 imports = ('manage', )
@@ -15,7 +26,11 @@ worker_state_db = 'celeryservice/celerymain/celery_revokes_state_db'
 task_ignore_result = False
 
 # Using mysql to store state and results
-result_backend = 'redis://localhost:6379/11'
+result_backend = loads_config_ini("celery", "RESULT_BACKEND")
+
+# socketio pubsub redis url
+socketio_pubsub = loads_config_ini("celery", "SOCKETIO_PUBSUB")
+
 
 # 频次限制配置
 worker_disable_rate_limits = True

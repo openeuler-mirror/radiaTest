@@ -10,7 +10,7 @@ import casbin_sqlalchemy_adapter
 from .utils.redis_util import RedisClient
 from importlib import import_module
 from .plugins.flask_authz import CasbinEnforcer
-from server.utils.config_util import loads_config_ini, loads_db_url
+from server.utils.config_util import loads_config_ini
 from server.utils.celery_utils import init_celery
 
 
@@ -20,10 +20,7 @@ socketio = SocketIO(
     cors_allowed_origins="*", 
     async_mode="gevent",
 )
-adapter = casbin_sqlalchemy_adapter.Adapter(
-    loads_db_url("/etc/radiaTest/server.ini")
-)
-casbin_enforcer = CasbinEnforcer(adapter=adapter)
+casbin_enforcer = CasbinEnforcer()
 
 
 from server.sockets.monitor_socket import RemoteMonitorSocket
@@ -48,7 +45,6 @@ def create_app(**kwargs):
         raise RuntimeError("There is no valid config files for this flask app.")
 
     logging.basicConfig(
-        # filename=app.config.get("LOG_PATH"),
         level=app.config.get("LOG_LEVEL"),
         format="%(asctime)s - %(name)s - %(levelname)s: %(message)s",
     )
@@ -57,7 +53,10 @@ def create_app(**kwargs):
         init_celery(kwargs['celery'], app)
 
     CORS(cors_allowed_origins="*")
-    socketio.init_app(app, message_queue="redis://localhost:6379/10")
+
+    socketio.init_app(
+        app, message_queue=app.config.get("SOCKETIO_PUBSUB")
+    )
 
     pymysql.install_as_MySQLdb()
     db.init_app(app)
@@ -70,7 +69,10 @@ def create_app(**kwargs):
     auth_util.init(app)
 
     # casbin
-    casbin_enforcer.init_app(app)
+    adapter = casbin_sqlalchemy_adapter.Adapter(
+        app.config.get("SQLALCHEMY_DATABASE_URI")
+    )
+    casbin_enforcer.init_app(app, adapter)
 
     # apps
     apps = import_module('server.apps')

@@ -11,7 +11,7 @@ class RedisClient(object):
         self.redis_params = dict(
             host=app.config.get("REDIS_HOST", "localhost"),
             port=app.config.get("REDIS_PORT", 6379),
-            password=app.config.get("REDIS_PASSWORD", None),
+            password=app.config.get("REDIS_SECRET", None),
             db=app.config.get("REDIS_DB", 0),
             decode_responses=True
         )
@@ -84,3 +84,4 @@ class RedisKey(object):
     user = lambda gitee_id: f"user_{gitee_id}"
     gitee_user = lambda gitee_id: f"gitee_user_{gitee_id}"
     organization = lambda organization_id: f"organization_{organization_id}"
+    login_org = lambda gitee_id: f"{gitee_id}_login_org"

@@ -92,7 +92,6 @@ class HandlerTemplateType:
     def get(query):
         filter_params = [Suite.deleted.is_(False)]
         if query.type_id:
-            print(query.type_id)
             return HandlerTemplateType.get_info(query.type_id)
         if query.template_id:
             template = TaskDistributeTemplate.query.get(query.template_id)

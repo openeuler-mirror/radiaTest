@@ -6,6 +6,7 @@ from server.utils.cla_util import ClaSignSchema
 from server.utils.auth_util import auth
 from server.utils.response_util import response_collect
 from server.schema.user import UpdateUserSchema, JoinGroupSchema, UserQuerySchema, UserTaskSchema, UserMachineSchema
+from server.schema.user import GiteeLoginSchema, LoginSchema, UpdateUserSchema, JoinGroupSchema, UserQuerySchema
 from .handlers import handler_gitee_callback
 from .handlers import handler_gitee_login
 from .handlers import handler_register
@@ -17,6 +18,7 @@ from .handlers import handler_add_group
 from .handlers import handler_get_all
 from .handlers import handler_get_user_task
 from .handlers import handler_get_user_machine
+from .handlers import handler_login_callback
 
 gitee = Blueprint('gitee', __name__)
 
@@ -27,8 +29,15 @@ def gitee_callback():
 
 
 class GiteeLogin(Resource):
-    def get(self):
-        return handler_gitee_login()
+    @validate()
+    def get(self, query: GiteeLoginSchema):
+        return handler_gitee_login(query)
+
+
+class Login(Resource):
+    @validate()
+    def get(self, query: LoginSchema):
+        return handler_login_callback(query)
 
 
 class User(Resource):

@@ -2,6 +2,14 @@ from pydantic import BaseModel
 from typing import List, Optional
 
 
+class GiteeLoginSchema(BaseModel):
+    org_id: int
+
+
+class LoginSchema(GiteeLoginSchema):
+    code: str
+
+
 class UserBaseSchema(BaseModel):
     gitee_id: int
     gitee_login: str

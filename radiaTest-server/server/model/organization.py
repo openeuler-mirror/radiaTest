@@ -5,19 +5,22 @@ from server import db
 class Organization(db.Model, Base):
     __tablename__ = "organization"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    alias = db.Column(db.String(50), nullable=False)
     name = db.Column(db.String(50), nullable=False)
-    enterprise_id = db.Column(db.String(50), nullable=False)
-    enterprise_name = db.Column(db.String(50), nullable=False)
     description = db.Column(db.String(256), nullable=True)
     avatar_url = db.Column(db.String(512), nullable=True, default=None)
     is_delete = db.Column(db.Boolean, default=False, nullable=False)
-    cla_verify_url = db.Column(db.String(512), nullable=False)
+
+    enterprise_id = db.Column(db.String(50))
+    oauth_client_id = db.Column(db.String(512))
+    oauth_client_secret = db.Column(db.String(512))
+    oauth_scope = db.Column(db.String(256))
+
+    cla_verify_url = db.Column(db.String(512), nullable=True)
     cla_verify_params = db.Column(db.String(512), nullable=True)
     cla_verify_body = db.Column(db.String(512), nullable=True)
-    cla_sign_url = db.Column(db.String(512), nullable=False)
-    cla_request_type = db.Column(db.String(8), nullable=False)
-    cla_pass_flag = db.Column(db.String(512), nullable=False)
+    cla_sign_url = db.Column(db.String(512), nullable=True)
+    cla_request_type = db.Column(db.String(8), nullable=True)
+    cla_pass_flag = db.Column(db.String(512), nullable=True)
 
     re_user_org = db.relationship("ReUserOrganization", backref="organization")
 
@@ -29,7 +32,6 @@ class Organization(db.Model, Base):
     @staticmethod
     def create(model):
         new_recode = Organization()
-        new_recode.alias = model.alias
         new_recode.name = model.name
         new_recode.avatar_url = model.avatar_url
         new_recode.cla_sign_url = model.cla_sign_url
@@ -40,7 +42,9 @@ class Organization(db.Model, Base):
         new_recode.cla_request_type = model.cla_request_type
         new_recode.description = model.description
         new_recode.enterprise_id = model.enterprise_id
-        new_recode.enterprise_name = model.enterprise_name
+        new_recode.oauth_client_id = model.oauth_client_id
+        new_recode.oauth_client_secret = model.oauth_client_secret
+        new_recode.oauth_scope = model.oauth_scope
         new_id = new_recode.add_flush_commit()
         if not new_id:
             return None
@@ -71,4 +75,5 @@ class ReUserOrganization(db.Model, Base):
         new_record.role_type = role_type
         new_record.cla_info = cla_info
         new_record.default = default
+        new_record.add_update()
         return new_record

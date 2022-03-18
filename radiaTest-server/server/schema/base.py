@@ -30,11 +30,11 @@ class BaseEnum(Enum):
             return None
 
 class PermissionBase(BaseModel):
-    creater_id = int
-    permission_type = PermissionType
-    user_id = int
-    group_id = int
-    org_id = int
+    creater_id: int
+    permission_type: PermissionType
+    user_id: int
+    group_id: int
+    org_id: int
 
     @root_validator
     def check_exist(cls, values):

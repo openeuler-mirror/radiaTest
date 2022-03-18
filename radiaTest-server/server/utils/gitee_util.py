@@ -1,13 +1,7 @@
-# -*- coding: utf-8 -*-
-# @Author : GaoDi
-# @Date   : 2021-08-30 19:51:54
-# @Email  : ethanzhang55@outlook.com
-# @License: Mulan PSL v2
-# @Desc   :
-
 from server.utils.requests_util import do_request
 
-GITEE_HTTP_PREFIX = "https://gitee.com/api/v5"
+GITEE_HTTP_PREFIX_V5 = "https://gitee.com/api/v5"
+GITEE_HTTP_PREFIX_V8 = "https://api.gitee.com/enterprises"
 
 
 class GiteeApi(object):
@@ -38,14 +32,22 @@ class GiteeApi(object):
             return True, resp
 
     class User:
-        HTTP_PREFIX = f"{GITEE_HTTP_PREFIX}/user"
+        HTTP_PREFIX_V5 = f"{GITEE_HTTP_PREFIX_V5}/user"
+        HTTP_PREFIX_V8 = f"{GITEE_HTTP_PREFIX_V8}/users"
 
         @staticmethod
         def get_info(access_token):
-            url = GiteeApi.User.HTTP_PREFIX
+            url_v5 = GiteeApi.User.HTTP_PREFIX_V5
+            url_v8 = GiteeApi.User.HTTP_PREFIX_V8
+
             params = {"access_token": access_token}
             resp = {}
-            r = do_request("get", url, params=params, obj=resp)
+            r = do_request("get", url_v8, params=params, obj=resp)
             if r != 0 or not resp.get("id"):
-                return False, {}
+                r = do_request("get", url_v5, params=params, obj=resp)
+                if r != 0 or not resp.get("id"):
+                    return False, {}
+
+                return True, resp
+
             return True, resp

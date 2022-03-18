@@ -27,12 +27,20 @@ class Org(Resource):
 
     @auth.login_required()
     @response_collect
-    @validate()
-    def post(self, body: AddSchema):
-        return handler_save_org(body)
+    def post(self):
+        _form = dict()
+        for key, value in request.form.items():
+            if not value:
+                _form[key] = value
 
+        body = AddSchema(**_form)
+        avatar = request.files.get("avatar_url")
+        return handler_save_org(body, avatar)
+
+
+class OrgItem(Resource):
     @auth.login_required()
     @response_collect
     @validate()
-    def put(self, body: UpdateSchema):
-        return handler_update_org(body)
+    def put(self, org_id, body: UpdateSchema):
+        return handler_update_org(org_id, body)

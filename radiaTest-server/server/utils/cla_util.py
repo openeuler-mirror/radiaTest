@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-# @Author : gaodi12
-# @Date   : 2021-09-14 17:52:53
-# @Email  : gaodi12@huawei.com
-# @License: Mulan PSL v2
-# @Desc   :
-
 import json
 from flask import current_app
 from server.utils.requests_util import do_request
@@ -91,10 +84,17 @@ class ClaSignSchema(ClaBaseSchema):
 class ClaShowUserSchema(ClaBaseSchema):
     organization_id: int = Field(alias='id')
     organization_name: str = Field(alias="name")
-    cla_sign_url: str
+    organization_description: str = Field(alias="description")
+    organization_avatar: str = Field(alias="avatar_url")    
+
+    cla_sign_url: Optional[str]
 
 
 class ClaShowAdminSchema(ClaShowUserSchema):
-    cla_verify_url: str
-    cla_request_type: str
-    cla_pass_flag: str
+    cla_verify_url: Optional[str]
+    cla_request_type: Optional[str]
+    cla_pass_flag: Optional[str]
+    enterprise_id: Optional[int]
+    oauth_client_id: Optional[str]
+    oauth_client_secret: Optional[str]
+    oauth_scope: Optional[str]

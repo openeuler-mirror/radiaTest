@@ -9,6 +9,8 @@ from typing_extensions import Literal
 # 里程碑
 ##类型
 MilestoneType = Literal["release", "round", "update"]
+## 状态
+MilestoneState = Literal["active", "closed"]
 
 # 设备
 ## 架构

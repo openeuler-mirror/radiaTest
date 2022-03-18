@@ -1,5 +1,6 @@
 """flask-casbin: Flask module for using Casbin with flask apps
 """
+from sqlite3 import adapt
 import casbin
 from flask import request, jsonify, g
 from functools import partial, wraps
@@ -33,8 +34,9 @@ class CasbinEnforcer:
         if self.app is not None:
             self.init_app(self.app)
 
-    def init_app(self, app):
+    def init_app(self, app, adapter):
         self.app = app
+        self.adapter = adapter
         self.e = casbin.Enforcer(app.config.get("CASBIN_MODEL"), self.adapter)
         if self.watcher:
             self.e.set_watcher(self.watcher)
