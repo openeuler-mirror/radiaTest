@@ -39,12 +39,11 @@ class Config(object):
     # tftp-server 文件存储路径
     TFTP_PATH = "/var/lib/tftpboot"
 
-    # Worker节点
-    # 消息头
+    # HTTP请求头
     HEADERS = {"Content-Type": "application/json;charset=utf8"}
 
-    # 通信协议
-    PROTOCOL = "http"
+    # HTTP PROTOCOL
+    PROTOCAL = "http"
 
     # 虚拟机
     # 虚拟机创建基础信息

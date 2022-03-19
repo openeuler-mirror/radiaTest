@@ -258,15 +258,19 @@ class DistributeTemplateType(Base, db.Model):
     name = db.Column(db.String(32), nullable=False)
     creator_id = db.Column(db.Integer, nullable=False)
     executor_id = db.Column(db.Integer, db.ForeignKey("user.gitee_id"), nullable=False)
-    suites = db.Column(db.Text, nullable=False, default='')
-    helpers = db.Column(db.Text, nullable=False, default='')
+    suites = db.Column(db.Text, nullable=True, default='')
+    helpers = db.Column(db.Text, nullable=True, default='')
     template_id = db.Column(db.Integer, db.ForeignKey("task_distribute_template.id"))
 
     def to_json(self):
-        suites = self.suites.split(',')
-        suites = [item.to_json() for item in Suite.query.filter(Suite.id.in_(suites))]
-        helpers = self.helpers.split(',')
-        helpers = [item.to_dict() for item in User.query.filter(User.gitee_id.in_(helpers))]
+        suites = None
+        if self.suites:
+            suites = self.suites.split(',')
+            suites = [item.to_json() for item in Suite.query.filter(Suite.id.in_(suites))]
+        helpers = None
+        if self.helpers:
+            helpers = self.helpers.split(',')
+            helpers = [item.to_dict() for item in User.query.filter(User.gitee_id.in_(helpers))]
         return {
             'id': self.id,
             'name': self.name,
@@ -284,6 +288,6 @@ class DistributeTemplateType(Base, db.Model):
             'id': self.id,
             'name': self.name,
             'executor_id': self.executor_id,
-            'suites': self.suites.split(','),
-            'helpers': self.helpers.split(',')
+            'suites': self.suites.split(',') if self.suites else None,
+            'helpers': self.helpers.split(',') if self.helpers else None
         }

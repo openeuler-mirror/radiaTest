@@ -110,8 +110,8 @@ class LoginOrgList(Resource):
         for org in orgs:
             org_dict = LoginOrgListSchema(**org.__dict__).__dict__
             org_dict.update({
-                "cla": not org.cla_verify_url,
-                "enterprise": not org.enterprise_id,
+                "cla": True if org.cla_verify_url else False,
+                "enterprise": True if org.enterprise_id else False,
             })
             return_data.append(org_dict)
 
