@@ -1,5 +1,6 @@
-import datetime, re
-from typing import List
+import re
+import json
+import datetime
 
 from flask import current_app
 
@@ -7,6 +8,9 @@ from server.model.product import Product
 from server.model.milestone import Milestone
 from server.model.testcase import Case, Suite
 from server.utils.db import Insert
+from server.utils.response_util import RET
+from server.apps.milestone.handler import MilestoneOpenApiHandler
+from server.schema.milestone import MilestoneCreateSchema
 
 
 class UpdateTaskForm:
@@ -42,18 +46,46 @@ class UpdateTaskHandler:
         _milestone = Milestone.query.filter_by(name=form.title).first()
 
         if not _milestone:
-            form.milestone_id = Insert(
-                Milestone, 
-                {
-                    "name": form.title,
-                    "product_id": form.product_id,
-                    "type": "update",
-                    "start_time": datetime.datetime.now(),
-                    "end_time": datetime.datetime.now() + datetime.timedelta(
-                        days=current_app.config.get("OE_QA_UPDATE_TASK_PERIOD")
+            body = {
+                "name": form.title,
+                "product_id": form.product_id,
+                "type": "update",
+                "is_sync": True,
+                "end_time": datetime.datetime.now() + datetime.timedelta(
+                    days=current_app.config.get("OE_QA_UPDATE_TASK_PERIOD")
+                )
+            }
+            _resp = MilestoneOpenApiHandler(
+                MilestoneCreateSchema(**body).__dict__
+            ).create()
+
+            _r = None
+            try:
+                _r = _resp.json
+            except AttributeError:
+                _r = json.loads(_resp.text)
+            
+            if _r.get("error_code") != RET.OK:
+                form.milestone_id = Insert(
+                    Milestone, 
+                    {
+                        "name": form.title,
+                        "product_id": form.product_id,
+                        "type": "update",
+                        "is_sync": False,
+                        "start_time": datetime.datetime.now(),
+                        "end_time": datetime.datetime.now() + datetime.timedelta(
+                            days=current_app.config.get("OE_QA_UPDATE_TASK_PERIOD")
+                        )
+                    }
+                ).insert_id()
+            else:
+                _milestone = Milestone.query.filter_by(name=form.title).first()
+                if not _milestone:
+                    raise RuntimeError(
+                        "create milestone fail either of sync or not sync method"
                     )
-                }
-            ).insert_id()
+                form.milestone_id = _milestone.id
         else:
             form.milestone_id = _milestone.id
 

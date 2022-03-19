@@ -1,5 +1,5 @@
 from flask_restful import Api
-from .routes import GiteeLogin
+from .routes import GiteeLogin, Login
 from .routes import User
 from .routes import UserItem
 from .routes import Org
@@ -12,6 +12,7 @@ from .routes import UserMachine
 
 def init_api(api: Api):
     api.add_resource(GiteeLogin, '/api/v1/gitee/oauth/login', endpoint='user_login')
+    api.add_resource(Login, '/api/v1/login', endpoint='login')
     api.add_resource(User, '/api/v1/users', endpoint="user")
     api.add_resource(UserItem, '/api/v1/users/<int:gitee_id>', endpoint='useritem')
     api.add_resource(Org, '/api/v1/users/org/<int:org_id>', endpoint='user_org')

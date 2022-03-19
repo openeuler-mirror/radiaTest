@@ -1,8 +1,32 @@
+import configparser
+from pathlib import Path
+import socket
+
 from kombu import Exchange, Queue
 
-# TODO celery的敏感信息一样需要存入ini文件
+celery_ini_path = "/etc/radiaTest/worker.ini"
+
+def loads_config_ini(section, option):
+    config_ini = Path(celery_ini_path)
+
+    cfg = configparser.ConfigParser()
+    cfg.read(config_ini)
+
+    return cfg.get(section, option)
+ 
+def get_current_ip():
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(('8.8.8.8', 80))
+        ip = s.getsockname()[0]
+    finally:
+        s.close()
+ 
+    return ip
+
+
 # Broker settings
-broker_url = 'amqp://radiaTest:1234@172.168.131.14:5672/radiaTest'
+broker_url = loads_config_ini("celery","BROKER_URL")
 broker_pool_limit = 10
 
 imports = ('tasks', )
@@ -13,7 +37,7 @@ worker_state_db = 'celeryservice/celerymain/celery_revokes_state_db'
 task_ignore_result = True
 
 ## Using mysql to store state and results
-result_backend = 'redis://localhost:6379/11'
+result_backend = loads_config_ini("celery", "RESULT_BACKEND")
 
 # 频次限制配置
 worker_disable_rate_limits = True
@@ -32,12 +56,14 @@ enable_utc = True
 celeryd_log_file = 'celeryservice/celerymain/celery.log'
 
 # rabbitMQ routing配置
-## 队列属性定义 后续ip使用动态获取
+## 队列属性定义
 task_queues = (
     Queue(
         'queue_create_vmachine', 
         exchange=Exchange(
-            'worker#172.168.131.14_exchange', 
+            'worker@{}_exchange'.format(
+                get_current_ip()
+            ),
             type='direct'
         ),
         routing_key='create_vmachine',
@@ -45,7 +71,9 @@ task_queues = (
     Queue(
         'queue_illegal_monitor', 
         exchange=Exchange(
-            'worker#172.168.131.14_exchange', 
+            'worker@{}_exchange'.format(
+                get_current_ip()
+            ),
             type='direct'
         ),
         routing_key='illegal_monitor',
@@ -53,10 +81,12 @@ task_queues = (
 )
 
 # worker相关配置 
-# TODO 后续从ini文件读取
-STORAGE_POOL = "/var/lib/libvirt/images"
-NETWORK_INTERFACE_SOURCE = "br0"
-SERVER_IP = "172.168.131.14"
-SERVER_PORT = 1401
-PROTOCOL = "http"
-HEADERS = {"Content-Type": "application/json;charset=utf8"}
+STORAGE_POOL = loads_config_ini("worker","STORAGE_POOL")
+NETWORK_AUTHENTICATION_REQUIRED = loads_config_ini(
+    "worker",
+    "NETWORK_AUTHENTICATION_REQUIRED"
+)
+SERVER_IP = loads_config_ini("worker","SERVER_IP")
+SERVER_PORT = loads_config_ini("worker","SERVER_PORT")
+PROTOCOL = loads_config_ini("worker","PROTOCOL")
+HEADER = loads_config_ini("worker","HEADER")

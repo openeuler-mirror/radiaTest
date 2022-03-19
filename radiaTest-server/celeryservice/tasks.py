@@ -12,6 +12,7 @@ from server.model.framework import Framework, GitRepo
 from server.model.celerytask import CeleryTask
 from server.utils.db import Insert
 from server import db, redis_client
+from celeryservice import celeryconfig
 from celeryservice.lib.job.handler import RunSuite, RunTemplate
 from celeryservice.lib.repo.handler import RepoTaskHandler
 from celeryservice.lib.monitor import LifecycleMonitor
@@ -23,7 +24,7 @@ sys.path.append(BASE_DIR)
 
 
 logger = get_task_logger('manage')
-socketio = SocketIO(message_queue="redis://localhost:6379/10")
+socketio = SocketIO(message_queue=celeryconfig.socketio_pubsub)
 
 
 @task_postrun.connect

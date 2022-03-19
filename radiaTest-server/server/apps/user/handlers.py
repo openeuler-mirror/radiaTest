@@ -10,7 +10,7 @@ from server.utils.gitee_util import GiteeApi
 from server.utils.auth_util import generate_token
 from server.utils.redis_util import RedisKey
 from server.utils.db import collect_sql_error
-from server.utils.cla_util import Cla, ClaShowAdminSchema
+from server.utils.cla_util import Cla, ClaShowAdminSchema, ClaShowUserSchema
 from server.utils.page_util import PageUtil
 from server.model.user import User
 from server.model.message import Message
@@ -29,67 +29,193 @@ from server.schema.pmachine import PmachineBasic
 from server.utils.page_util import PageUtil
 
 
-def handler_gitee_login():
-    gitee_oauth_login_url = f"https://gitee.com/oauth/authorize?" \
-                            f"client_id={current_app.config.get('GITEE_OAUTH_CLIENT_ID')}" \
-                            f"&redirect_uri={current_app.config.get('GITEE_OAUTH_REDIRECT_URI')}" \
-                            f"&response_type=code&scope={'%20'.join(current_app.config.get('GITEE_OAUTH_SCOPE'))}"
-    return jsonify(error_code=RET.OK, error_msg='OK', data=gitee_oauth_login_url)
+def handler_gitee_login(query):
+    org = Organization.query.filter_by(id=query.org_id).first()
+    if not org:
+        return jsonify(
+            error_code=RET.NO_DATA_ERR, 
+            error_msg="the organization not exist"
+        )
 
+    if not org.enterprise_id:
+        gitee_oauth_login_url = "https://gitee.com/oauth/authorize?" \
+        "client_id={}" \
+        "&redirect_uri={}" \
+        "&response_type=code&scope={}".format(
+            current_app.config.get(
+                'GITEE_OAUTH_CLIENT_ID'
+            ),
+            current_app.config.get(
+                'GITEE_OAUTH_REDIRECT_URI'
+            ),
+            '%20'.join(
+                current_app.config.get(
+                    'GITEE_OAUTH_SCOPE'
+                )
+            ),
+        )
+        return jsonify(
+            error_code=RET.OK, 
+            error_msg='OK', 
+            data=gitee_oauth_login_url
+        )
+
+    else:
+        gitee_oauth_login_url = "https://gitee.com/oauth/authorize?" \
+        "client_id={}" \
+        "&redirect_uri={}" \
+        "&response_type=code&scope={}".format(
+            org.oauth_client_id,
+            current_app.config.get("GITEE_OAUTH_REDIRECT_URI"),
+            org.oauth_scope.replace(',', '%20'),
+        )
+        return jsonify(
+            error_code=RET.OK, 
+            error_msg='OK', 
+            data=gitee_oauth_login_url
+        )
 
 def handler_gitee_callback():
     # 校验参数
     code = request.args.get('code')
     if not code:
-        return jsonify(error_code=RET.PARMA_ERR, error_msg="user code is not null")
-    # 调用gitee的oauth授权接口
-    oauth_flag, gitee_token = GiteeApi.Oauth.callback(code,
-                                                      current_app.config.get("GITEE_OAUTH_CLIENT_ID"),
-                                                      current_app.config.get("GITEE_OAUTH_REDIRECT_URI"),
-                                                      current_app.config.get("GITEE_OAUTH_CLIENT_SECRET"))
+        return jsonify(
+            error_code=RET.PARMA_ERR, 
+            error_msg="user code should not be null"
+        )
+    
+    return redirect(
+        '{}?code={}'.format(
+            current_app.config["GITEE_OAUTH_HOME_URL"],
+            code
+        )
+    )
+
+def handler_login_callback(query):
+    # 校验参数
+    org = Organization.query.filter_by(id=query.org_id).first()
+    if not org:
+        return jsonify(
+            error_code=RET.NO_DATA_ERR,
+            error_msg="the organization not exist"
+        )
+    
+    oauth_flag, gitee_token = None, None
+    if not org.enterprise_id:
+        oauth_flag, gitee_token = GiteeApi.Oauth.callback(
+            query.code,
+            current_app.config.get("GITEE_OAUTH_CLIENT_ID"),
+            current_app.config.get("GITEE_OAUTH_REDIRECT_URI"),
+            current_app.config.get("GITEE_OAUTH_CLIENT_SECRET")
+        )
+    else:
+        oauth_flag, gitee_token = GiteeApi.Oauth.callback(
+            query.code,
+            org.oauth_client_id,
+            current_app.config.get("GITEE_OAUTH_REDIRECT_URI"),
+            org.oauth_client_secret
+        )
+
     if not oauth_flag:
-        return jsonify(error_code=RET.OTHER_REQ_ERR, error_msg="gitee oauth request error")
-    result = handler_login(gitee_token)
+        return jsonify(
+            error_code=RET.OTHER_REQ_ERR, 
+            error_msg="gitee oauth request error"
+        )
+
+    result = handler_login(gitee_token, org.id)
+
     if not isinstance(result, tuple) or not isinstance(result[0], bool):
         return result
     if result[0]:
-        resp = Response()
-        resp.headers['location'] = f'{current_app.config["GITEE_OAUTH_HOME_URL"]}?isSuccess=True'
-        resp.status = 302
+        resp = Response(content_type="application/json")
+        resp.set_data(
+            json.dumps(
+                {
+                    "error_code": RET.OK,
+                    "error_msg": "OK",
+                    "data": f'{current_app.config["GITEE_OAUTH_HOME_URL"]}?isSuccess=True'
+                }
+            )
+        )
+        resp.status = 200
         resp.set_cookie('token', result[2])
         resp.set_cookie('gitee_id', str(result[1]))
         return resp
     else:
-        return redirect(f'{current_app.config["GITEE_OAUTH_HOME_URL"]}?isSuccess=False&gitee_id={result[1]}')
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+            data='{}?isSuccess=False&gitee_id={}&org_id={}&require_cla={}'.format(
+                current_app.config["GITEE_OAUTH_HOME_URL"],
+                result[1],
+                org.id,
+                org.cla_verify_url is not None,
+            )
+        )
 
 
 @collect_sql_error
-def handler_login(gitee_token):
+def handler_login(gitee_token, org_id):
     """
     处理用户登录
     :param gitee_token: gitee_token
+    :param org_id: 当前登入的组织id
     :return: 元组 (登录是否成功，gitee_id，[token，refresh_token])
              flask dict
     """
     # 调用gitee的api获取用户的基本信息
-    user_flag, gitee_user = GiteeApi.User.get_info(gitee_token.get("access_token"))
+    user_flag, gitee_user = GiteeApi.User.get_info(
+        gitee_token.get("access_token")
+    )
     if not user_flag:
-        return jsonify(error_code=RET.OTHER_REQ_ERR, error_msg="gitee api request error")
+        return jsonify(
+            error_code=RET.OTHER_REQ_ERR, 
+            error_msg="gitee api request error"
+        )
+
+    # 先将gitee的token缓存到redis中, 有效期为10min，这段时间主要用来是验证cla签名
+    gitee_user["access_token"] = gitee_token.get("access_token")
+    gitee_user["refresh_token"] = gitee_token.get("refresh_token")
+    redis_client.hmset(
+        RedisKey.gitee_user(gitee_user.get("id")), 
+        gitee_user, 
+        ex=600
+    )
+
     # 从数据库中获取用户信息
     user = User.query.filter_by(gitee_id=gitee_user.get("id")).first()
     # 判断用户是否存在
     if user:
         user = User.synchronize_gitee_info(gitee_user, user)
         # 用户缓存到redis中
-        user.save_redis(gitee_token.get("access_token"), gitee_token.get("refresh_token"))
+        user.save_redis(
+            gitee_token.get("access_token"), 
+            gitee_token.get("refresh_token")
+        )
         # 生成token值
         token = generate_token(user.gitee_id, user.gitee_login)
+
+        if org_id is not None and isinstance(org_id, int):
+            re = ReUserOrganization.query.filter_by(
+                user_gitee_id=gitee_user.get("id"),
+                organization_id=org_id,
+                is_delete=False,
+            ).first()
+            if not re:
+                return False, gitee_user.get("id")
+
+            if re.default is False:
+                _resp = handler_select_default_org(org_id, gitee_user.get("id"))
+                try:
+                    _r = _resp.json
+                    if _r.get("error_code") != RET.OK:
+                        return False, gitee_user.get("id")
+                
+                except (AttributeError, TypeError) as e:
+                    raise RuntimeError(str(e)) from e
+
         return True, user.gitee_id, token
-    # 用户没有通过cla验证
-    # 先将gitee的token缓存到redis中, 有效期为10min，这段时间主要用来是验证cla签名
-    gitee_user["access_token"] = gitee_token.get("access_token")
-    gitee_user["refresh_token"] = gitee_token.get("refresh_token")
-    redis_client.hmset(RedisKey.gitee_user(gitee_user.get("id")), gitee_user, ex=600)
+
     # 返回结果
     return False, gitee_user.get("id")
 
@@ -99,45 +225,110 @@ def handler_register(gitee_id, body):
     # 从redis中获取之前的gitee用户信息
     gitee_user = redis_client.hgetall(RedisKey.gitee_user(gitee_id))
     if not gitee_user:
-        return jsonify(error_code=RET.VERIFY_ERR, error_msg="user gitee info expired")
+        return jsonify(
+            error_code=RET.VERIFY_ERR, 
+            error_msg="user gitee info expired"
+        )
+
     # 从数据库中获取cla信息
-    org = Organization.query.filter_by(id=body.organization_id, is_delete=False).first()
+    org = Organization.query.filter_by(
+        id=body.organization_id, 
+        is_delete=False
+    ).first()
     if not org:
-        return jsonify(error_code=RET.NO_DATA_ERR, error_msg=f"database no find data")
-    if not Cla.is_cla_signed(ClaShowAdminSchema(**org.to_dict()).dict(), body.cla_verify_params, body.cla_verify_body):
-        return jsonify(error_code=RET.CLA_VERIFY_ERR, error_msg="user is not pass cla verification, please retry",
-                       data=gitee_user.get("id"))
+        return jsonify(
+            error_code=RET.NO_DATA_ERR, 
+            error_msg=f"database no find data"
+        )
+
+    if org.cla_verify_url and not Cla.is_cla_signed(
+        ClaShowAdminSchema(**org.to_dict()).dict(), 
+        body.cla_verify_params, 
+        body.cla_verify_body
+    ):
+        return jsonify(
+            error_code=RET.CLA_VERIFY_ERR, 
+            error_msg="user is not pass cla verification, please retry",
+            data=gitee_user.get("id")
+        )
+    
     # 生成用户和组织的关系
-    re_user_organization = ReUserOrganization.create(gitee_user.get("id"), body.organization_id,
-                                                     json.dumps({**body.cla_verify_params, **body.cla_verify_body}),
-                                                     default=True)
+    re_user_organization = ReUserOrganization.create(
+        gitee_user.get("id"), 
+        body.organization_id,
+        json.dumps({
+            **body.cla_verify_params, 
+            **body.cla_verify_body
+        }),
+        default=False
+    )
+
     # 提取cla邮箱
     cla_email = None
-    for key, value in {**body.cla_verify_params, **body.cla_verify_body}.items():
+    for key, value in {
+        **body.cla_verify_params, 
+        **body.cla_verify_body
+    }.items():
         if 'email' in key:
             cla_email = value
             break
-    # 用户注册成功保存用户信息、生成token
-    user = User.create_commit(gitee_user, cla_email, [re_user_organization])
+
+    user = User.query.filter_by(gitee_id=gitee_user.get("id")).first()
+    if not user:
+        # 用户注册成功保存用户信息、生成token
+        user = User.create_commit(
+            gitee_user, 
+            cla_email, 
+            [re_user_organization]
+        )
+
     # 用户缓存到redis中
-    user.save_redis(gitee_user.get("access_token"), gitee_user.get("refresh_token"), body.organization_id)
-    redis_client.hset(RedisKey.user(gitee_user.get("id")), 'current_org_name', org.name)
+    user.save_redis(
+        gitee_user.get("access_token"), 
+        gitee_user.get("refresh_token"), 
+        body.organization_id
+    )
+    redis_client.hset(
+        RedisKey.user(gitee_user.get("id")), 
+        'current_org_name', 
+        org.name
+    )
+    
     # 生成token值
     token = generate_token(user.gitee_id, user.gitee_login)
     return_data = {
         'token': token,
     }
+
+    # 将当前组织设为注册组织
+    _resp = handler_select_default_org(org.id, gitee_user.get("id"))
+    try:
+        _r = _resp.json
+        if _r.get("error_code") != RET.OK:
+            raise RuntimeError(_r.get("error_msg"))
+    
+    except (AttributeError, RuntimeError) as e:
+        return jsonify(
+            error_code=RET.SERVER_ERR, 
+            error_msg=f"SERVER ERROR: {str(e)}"
+        )
+
     return jsonify(error_code=RET.OK, error_msg="OK", data=return_data)
 
 
 @collect_sql_error
 def handler_update_user(gitee_id, body):
     if g.gitee_id != gitee_id:
-        return jsonify(error_code=RET.VERIFY_ERR, error_msg="user token and user id do not match")
+        return jsonify(
+            error_code=RET.VERIFY_ERR, 
+            error_msg="user token and user id do not match"
+        )
+
     # 从数据库中获取用户信息
     user = User.query.filter_by(gitee_id=gitee_id).first()
     if not user:
         return jsonify(error_code=RET.NO_DATA_ERR, error_msg=f"user is no find")
+
     # 修改数据保存到数据库
     user.phone = body.phone
     user.add_update()
@@ -149,11 +340,16 @@ def handler_update_user(gitee_id, body):
 @collect_sql_error
 def handler_user_info(gitee_id):
     if g.gitee_id != gitee_id:
-        return jsonify(error_code=RET.VERIFY_ERR, error_msg="user token and user id do not match")
+        return jsonify(
+            error_code=RET.VERIFY_ERR, 
+            error_msg="user token and user id do not match"
+        )
+
     user = User.query.filter_by(gitee_id=gitee_id).first()
     if not user:
         return jsonify(error_code=RET.NO_DATA_ERR, error_msg=f"user is no find")
     user_dict = user.to_dict()
+
     # 用户组信息
     group_list = []
     groups = user.re_user_group
@@ -163,6 +359,7 @@ def handler_user_info(gitee_id):
             group = GroupInfoSchema(**item.group.to_dict())
             group_list.append({**re_user_group.dict(), **group.dict()})
     user_dict["groups"] = group_list
+    
     # 组织信息
     org_list = []
     orgs = user.re_user_organization
@@ -184,16 +381,36 @@ def handler_logout():
 
 
 @collect_sql_error
-def handler_select_default_org(org_id):
-    # 从数据库中获取数据
-    re = ReUserOrganization.query.filter_by(user_gitee_id=g.gitee_id, organization_id=org_id, is_delete=False).first()
+def handler_select_default_org(org_id, gitee_id=None):
+    user_gitee_id = None
+    if gitee_id is None:
+        user_gitee_id = g.gitee_id
+    else:
+        user_gitee_id = gitee_id
+    
+    re = ReUserOrganization.query.filter_by(
+        user_gitee_id=user_gitee_id, 
+        organization_id=org_id, 
+        is_delete=False
+    ).first()
+
     if not re:
-        return jsonify(error_code=RET.NO_DATA_ERR, error_msg="relationship no find")
+        return jsonify(
+            error_code=RET.NO_DATA_ERR, 
+            error_msg="relationship no find"
+        )
+
     # 切换数据
-    re_old = ReUserOrganization.query.filter_by(user_gitee_id=g.gitee_id, default=True, is_delete=False).first()
+    re_old = ReUserOrganization.query.filter_by(
+        user_gitee_id=user_gitee_id, 
+        default=True, 
+        is_delete=False
+    ).first()
+
     if re_old:
         re_old.default = False
         re_old.add_update()
+    
     re.default = True
     cla_email = None
     for key, value in json.loads(re.cla_info).items():
@@ -204,8 +421,16 @@ def handler_select_default_org(org_id):
     user.cla_email = cla_email
     re.add_update()
     user.add_update()
-    redis_client.hset(RedisKey.user(g.gitee_id), 'current_org_id', org_id)
-    redis_client.hset(RedisKey.user(g.gitee_id), 'current_org_name', re.organization.name)
+    redis_client.hset(
+        RedisKey.user(user_gitee_id), 
+        'current_org_id', 
+        org_id
+    )
+    redis_client.hset(
+        RedisKey.user(user_gitee_id), 
+        'current_org_name', 
+        re.organization.name
+    )
     return jsonify(error_code=RET.OK, error_msg="OK")
 
 

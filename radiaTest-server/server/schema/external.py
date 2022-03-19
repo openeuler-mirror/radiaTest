@@ -1,7 +1,7 @@
 from typing import List, Optional
 from urllib import request, error
 
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, Field, validator
 from pydantic.networks import HttpUrl
 
 from server.schema import MachineType
@@ -47,3 +47,8 @@ class RepoCaseUpdateBase(UpdateBaseModel):
     usabled: bool = False
     code: Optional[str]
 
+
+class LoginOrgListSchema(BaseModel):
+    org_id: int = Field(alias="id")
+    org_name: str = Field(alias="name")
+    org_avatar: Optional[str] = Field(alias="avatar_url")

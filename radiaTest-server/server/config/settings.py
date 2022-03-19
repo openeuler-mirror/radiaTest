@@ -1,6 +1,6 @@
 class Config(object):
     # Config.ini 文件目录
-    CONFIG_INI_FILE_PATH = "/etc/radiaTest/server.ini"
+    INI_PATH = "/etc/radiaTest/server.ini"
 
     # 模式
     DEBUG = False
@@ -13,7 +13,7 @@ class Config(object):
     # 数据库
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
-    # Gitee oauth login
+    # Gitee oauth login 通用配置
     GITEE_OAUTH_SCOPE = ['user_info', 'emails', 'enterprises', 'issues']
 
     # API 官方版本

@@ -1,7 +1,9 @@
 import json
-from pydantic import BaseModel, Field, validator
 from typing import Optional
 from datetime import datetime
+
+from flask import current_app
+from pydantic import BaseModel, Field, root_validator, validator
 
 from .base import PageBaseSchema
 
@@ -11,19 +13,47 @@ class OrgUserInfoSchema(BaseModel):
     org_name: str = Field(alias="name")
     org_description: Optional[str] = Field(alias="description")
     org_avatar_url: Optional[str] = Field(alias="avatar_url")
+    org_enterprise: Optional[str] = Field(alias="enterprise_id")
 
 
 class AddSchema(BaseModel):
     name: str
-    enterprise: str
     description: Optional[str]
     avatar_url: Optional[str]
-    cla_verify_url: str
+
+    enterprise_id: Optional[int]
+    oauth_client_id: Optional[str]
+    oauth_client_secret: Optional[str]
+    oauth_scope: Optional[str]
+
+    cla_verify_url: Optional[str]
     cla_verify_params: Optional[str]
     cla_verify_body: Optional[str]
-    cla_sign_url: str
-    cla_request_type: str
-    cla_pass_flag: str
+    cla_sign_url: Optional[str]
+    cla_request_type: Optional[str]
+    cla_pass_flag: Optional[str]
+
+    @root_validator
+    def validate_enterpise(cls, values):
+        if values.get("enterprise_id"):
+            if not values["oauth_client_id"] or not values["oauth_client_secret"] or not values["oauth_scope"]:
+                raise TypeError("lack of enterprise info to create this organization")
+
+            try:
+                scope_list = values["oauth_scope"].split(',')
+                for scope in scope_list:
+                    if not isinstance(scope, str):
+                        raise TypeError(
+                            "the format of oauth_scope is not valid"
+                        )
+            except AttributeError as e:
+                raise TypeError(str(e)) from e
+
+        if values.get("cla_verify_url"):
+            if not values["cla_sign_url"] or not values["cla_request_type"] or not values["cla_pass_flag"]:
+                raise TypeError("lack of cla info to create this organization")
+        
+        return values
 
 
 class OrgBaseSchema(AddSchema):
@@ -31,17 +61,21 @@ class OrgBaseSchema(AddSchema):
 
 
 class UpdateSchema(BaseModel):
-    org_id: int
-    name: str = None
-    enterprise: str = None
+    name: Optional[str]
     description: Optional[str]
     avatar_url: Optional[str]
-    cla_verify_url: str = None
+
+    enterprise_id: Optional[int]
+    oauth_client_id: Optional[str]
+    oauth_client_secret: Optional[str]
+    oauth_scope: Optional[str]
+
+    cla_verify_url: Optional[str]
     cla_verify_params: Optional[str]
     cla_verify_body: Optional[str]
-    cla_sign_url: str = None
-    cla_request_type: str = None
-    cla_pass_flag: str = None
+    cla_sign_url: Optional[str]
+    cla_request_type: Optional[str]
+    cla_pass_flag: Optional[str]
     is_delete: bool = None
 
 

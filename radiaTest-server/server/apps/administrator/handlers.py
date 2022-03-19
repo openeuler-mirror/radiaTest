@@ -4,6 +4,7 @@ from server.utils.response_util import RET
 from server.utils.redis_util import RedisKey
 from server.utils.auth_util import generate_token
 from server.utils.db import collect_sql_error
+from server.utils.file_util import FileUtil
 from server.utils.cla_util import ClaShowAdminSchema
 from server.model.administrator import Admin
 from server.model.organization import Organization
@@ -76,15 +77,27 @@ def handler_read_org_list():
 
 
 @collect_sql_error
-def handler_save_org(body):
+def handler_save_org(body, avatar=None):
     # 判断用户是否为管理员
     admin = Admin.query.filter_by(account=g.gitee_login).first()
     if not admin:
         return jsonify(error_code=RET.VERIFY_ERR, error_msg='no right')
+
     # 添加一个新的组织
     org = Organization.query.filter_by(is_delete=False, name=body.name).first()
     if org:
-        return jsonify(errno_code=RET.DATA_EXIST_ERR, error_msg="organizations name exist")
+        return jsonify(
+            errno_code=RET.DATA_EXIST_ERR, 
+            error_msg="organizations name exist"
+        )
+
+    if avatar is not None:
+        avatar_url = FileUtil.flask_save_file(
+            avatar, 
+            FileUtil.generate_filepath("avatar")
+        )
+        body.avatar_url = avatar_url
+    
     org = Organization.create(body)
     if not org:
         return jsonify(errno_code=RET.DB_ERR, error_msg="database add error")
@@ -92,12 +105,12 @@ def handler_save_org(body):
 
 
 @collect_sql_error
-def handler_update_org(body):
+def handler_update_org(org_id, body):
     # 判断用户是否为管理员
     admin = Admin.query.filter_by(account=g.gitee_login).first()
     if not admin:
         return jsonify(error_code=RET.VERIFY_ERR, error_msg='no right')
-    org = Organization.query.filter_by(is_delete=False, id=body.org_id).first()
+    org = Organization.query.filter_by(is_delete=False, id=org_id).first()
     if not org:
         return jsonify(errno_code=RET.NO_DATA_ERR, error_msg="no find organization")
     for key, value in body.dict().items():

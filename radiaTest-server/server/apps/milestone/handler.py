@@ -9,10 +9,44 @@ from flask import g, jsonify
 from server import redis_client
 from server.utils.redis_util import RedisKey
 from server.utils.db import collect_sql_error, Insert, Edit, Delete
+from server.utils.page_util import PageUtil
 from server.utils.response_util import RET
 from server.model.organization import Organization
 from server.model.milestone import Milestone
-from server.schema.milestone import GiteeMilestoneBase, GiteeMilestoneEdit
+from server.schema.milestone import GiteeMilestoneBase, GiteeMilestoneEdit, GiteeMilestoneChangeState
+
+
+class MilestoneHandler:
+    @staticmethod
+    @collect_sql_error
+    def get_all(query):
+        filter_params = []
+        
+        if query.name:
+            filter_params.append(Milestone.name.like(f"%{query.name}%"))
+        if query.type:
+            filter_params.append(Milestone.type == query.type)
+        if query.state:
+            filter_params.append(Milestone.state == query.state)
+        if query.is_sync:
+            filter_params.append(Milestone.is_sync == query.is_sync)
+        
+        query_filter = Milestone.query.filter(*filter_params).order_by(Milestone.create_time)
+
+        def page_func(item):
+            milestone_dict = item.to_json()
+            return milestone_dict
+
+        page_dict, e = PageUtil.get_page_dict(
+            query_filter, query.page_num, 
+            query.page_size, 
+            func=page_func
+        )
+        if e:
+            return jsonify(error_code=RET.SERVER_ERR, error_msg=f'get milestone page error {e}')
+        return jsonify(error_code=RET.OK, error_msg="OK", data=page_dict)
+
+
 
 
 class BaseOpenApiHandler:    
@@ -45,7 +79,7 @@ class BaseOpenApiHandler:
         return org
 
     @collect_sql_error
-    def add_update(self, act, url, data, handler):
+    def add_update(self, act, url, data, schema, handler):
         data.update({
             "access_token": self.access_token
         })
@@ -53,13 +87,13 @@ class BaseOpenApiHandler:
         _resp = requests.request(
             method=act,
             url=url,
-            data=GiteeMilestoneBase(**data).__dict__,
+            data=json.dumps(schema(**data).__dict__),
             headers=current_app.config.get("HEADERS")
         )
 
         _resp.encoding = _resp.apparent_encoding
         
-        if _resp.status_code != 200:
+        if _resp.status_code != 201:
             current_app.logger.error(_resp.text)
             return jsonify(error_code=RET.BAD_REQ_ERR, error_msg="fail to add_update through gitee v8 openAPI")
         
@@ -73,15 +107,19 @@ class BaseOpenApiHandler:
             error_code=RET.OK,
             error_msg="OK",
         )
+            
 
     @collect_sql_error
-    def query(self, url, params):
+    def query(self, url, params=None):
+        _params = {
+            "access_token": self.access_token,
+        }
+        if params is not None and isinstance(params, dict):
+            _params.update(params)
+            
         _resp = requests.get(
             url=url,
-            params={
-                "access_token": self.access_token,
-                **params,
-            },
+            params=_params,
             headers=current_app.config.get("HEADERS")
         )
 
@@ -101,6 +139,8 @@ class BaseOpenApiHandler:
 class MilestoneOpenApiHandler(BaseOpenApiHandler): 
     def __init__(self, body=None):
         if body is not None:
+            self.type = body.get("type")
+            self.product_id = body.get("product_id")
             self.body = self.radia_2_gitee(body)
         super().__init__(Milestone, "/milestone")
 
@@ -116,6 +156,13 @@ class MilestoneOpenApiHandler(BaseOpenApiHandler):
                 body.get("due_date"), 
                 "%Y-%m-%d"
             )
+
+        body.update({
+            "name": body.get("title"),
+            "type": self.type,
+            "product_id": self.product_id,
+            "is_sync": True,
+        })
 
         return body
     
@@ -138,10 +185,11 @@ class MilestoneOpenApiHandler(BaseOpenApiHandler):
             act="POST",
             url=_url,
             data=self.body,
+            schema=GiteeMilestoneBase,
             handler=Insert,
         )
 
-    def udpate(self, milestone_id):
+    def edit(self, milestone_id):
         _url = "https://api.gitee.com/enterprises/{}/milestones/{}".format(
             self.current_org.enterprise_id,
             milestone_id,
@@ -150,9 +198,23 @@ class MilestoneOpenApiHandler(BaseOpenApiHandler):
             act="PUT",
             url=_url,
             data=self.body,
+            schema=GiteeMilestoneEdit,
             handler=Edit,
         )
     
+    def change_state(self, milestone_id):
+        _url = "https://api.gitee.com/enterprises/{}/milestones/{}".format(
+            self.current_org.enterprise_id,
+            milestone_id,
+        )
+        return self.add_update(
+            act="PUT",
+            url=_url,
+            data=self.body,
+            schema=GiteeMilestoneChangeState,
+            handler=Edit,
+        )
+
     def delete(self, milestone_id):
         milestone = Milestone.query.filter_by(id=milestone_id).first()
         if not milestone:
@@ -247,8 +309,14 @@ class IssueOpenApiHandlerV5:
 
 
 class IssueOpenApiHandlerV8(BaseOpenApiHandler):
-    def get_all_v8(self, params):
+    def get_all(self, params):
         _url = "https://api.gitee.com/enterprises/{}/issues".format(
             self.current_org.enterprise_id,
         )
         return self.query(url=_url,params=params)
+    
+    def get_issue_types(self):
+        _url = "https://api.gitee.com/enterprises/{}/issue_types".format(
+            self.current_org.enterprise_id,
+        )
+        return self.query(url=_url)
