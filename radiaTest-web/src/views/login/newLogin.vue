@@ -61,43 +61,85 @@
         size="large"
         justify-content="space-around"
       >
-        <n-tab-pane name="signin" tab="用户登录">
+        <n-tab-pane name="signin" tab="用户登录" display-directive="show">
           <n-form>
             <n-form-item style="--label-height: 6px">
-              <n-input
-                round
+              <n-select
+                ref="select"
+                :options="orgOpts"
+                v-model:value="loginOrg"
+                @update:value="selectOrg"
+                :render-label="renderLabel"
+                palceholder="请选择组织"
                 size="large"
-                placeholder="请输入用户名"
-                type="text"
-                :disabled="true"
-              >
-                <template #prefix>
-                  <n-icon size="20">
-                    <user />
-                  </n-icon>
-                </template>
-              </n-input>
+              />
             </n-form-item>
             <n-form-item style="--label-height: 6px">
-              <n-input
-                round
-                size="large"
-                placeholder="请输入密码"
-                type="password"
-                :disabled="true"
+              <div
+                style="
+                  width: 100%;
+                  display: flex;
+                  justify-content: space-around;
+                "
               >
-                <template #prefix>
-                  <n-icon size="20">
-                    <lock />
+                <p style="display: flex; align-items: center">
+                  <n-icon
+                    size="20"
+                    :color="hasCLA ? 'rgba(0, 47, 167, 1)' : 'grey'"
+                  >
+                    <CheckmarkCircleOutline />
                   </n-icon>
-                </template>
-              </n-input>
+                  <span
+                    :style="{ color: hasCLA ? 'rgba(0, 47, 167, 1)' : 'grey' }"
+                  >
+                    <n-tooltip trigger="hover" v-if="!hasCLA">
+                      <template #trigger>
+                        <n-button text style="color: grey"> CLA </n-button>
+                      </template>
+                      尚未要求签署CLA
+                    </n-tooltip>
+                    <n-tooltip trigger="hover" v-else>
+                      <template #trigger>
+                        <n-button text> CLA </n-button>
+                      </template>
+                      此组织要求签署CLA
+                    </n-tooltip>
+                  </span>
+                </p>
+                <p style="display: flex; align-items: center">
+                  <n-icon
+                    size="20"
+                    :color="hasEnterprise ? 'rgba(0, 47, 167, 1)' : 'grey'"
+                  >
+                    <CheckmarkCircleOutline />
+                  </n-icon>
+                  <span
+                    :style="{
+                      color: hasEnterprise ? 'rgba(0, 47, 167, 1)' : 'grey',
+                    }"
+                  >
+                    <n-tooltip trigger="hover" v-if="!hasEnterprise">
+                      <template #trigger>
+                        <n-button text style="color: grey"> 企业仓 </n-button>
+                      </template>
+                      尚未注册企业仓信息
+                    </n-tooltip>
+                    <n-tooltip trigger="hover" v-else>
+                      <template #trigger>
+                        <n-button text> 企业仓 </n-button>
+                      </template>
+                      此组织已注册企业仓信息
+                    </n-tooltip>
+                  </span>
+                </p>
+              </div>
             </n-form-item>
           </n-form>
           <n-button
             type="error"
             block
             round
+            :disabled="!loginOrg"
             style="margin-top: 10px"
             @click="hanleLogin"
           >
@@ -187,7 +229,11 @@
               label-align="left"
               label-width="100"
             >
-              <n-select v-model:value="loginInfo.org" :options="orgList" />
+              <n-select
+                v-model:value="loginInfo.org"
+                :options="orgList"
+                :disabled="true"
+              />
             </n-form-item>
             <n-form-item
               label="cla邮箱"
@@ -261,6 +307,7 @@
 import config from '@/assets/config/settings';
 import { ref } from 'vue';
 import { modules } from './modules/index';
+import { CheckmarkCircleOutline } from '@vicons/ionicons5';
 import { useMessage } from 'naive-ui';
 import { User, Lock } from '@vicons/fa';
 import carousel from '@/components/carousel/carousel.vue';
@@ -269,6 +316,11 @@ export default {
     User,
     Lock,
     carousel,
+    CheckmarkCircleOutline
+  },
+  mounted() {
+    this.$refs.select.$el.children[0].children[1].style.borderRadius = '20px';
+    this.$refs.select.$el.children[0].children[2].style.borderRadius = '20px';
   },
   methods: {
     indexChange(index) {
@@ -355,23 +407,21 @@ export default {
   }
   .carousel-container {
     position: fixed;
-    bottom: 300px;
+    bottom: 200px;
     left: 10%;
     width: 800px;
-    height: 480px;
+    height: 608px;
     background-color: #fff;
     z-index: 98;
     .carousel {
-      height: 608px;
       .carousel-item {
         .carousel-img {
           object-fit: fill;
-          height: 480px;
-          width: 608px;
         }
       }
     }
   }
+
   .left-slider {
     position: fixed;
     left: 0;

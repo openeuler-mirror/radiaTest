@@ -4,10 +4,11 @@
       <n-gi :span="15">
         <h3>{{ total }} issues in total</h3>
       </n-gi>
-      <n-gi :span="6">
+      <!-- <n-gi :span="6">
         <n-input
           v-model:value="title"
           placeholder="请输入Issue标题"
+          @change="searchIssue"
           round
           clearable
         />
@@ -16,8 +17,19 @@
         <n-input
           v-model:value="assignee"
           placeholder="请输入责任人"
+          @change="searchIssue"
           round
           clearable
+        />
+      </n-gi> -->
+      <n-gi :span="6"></n-gi>
+      <n-gi :span="3">
+        <n-select
+          v-model:value="stateType"
+          :options="issueTypeOpts"
+          @update:value="changeState"
+          round
+          placeholder="请选择"
         />
       </n-gi>
     </n-grid>
@@ -27,49 +39,106 @@
       :bordered="false"
       :loading="loading"
       :columns="columns"
-      :data="data"
+      :data="rowData"
       :row-props="rowProps"
       :row-key="(row) => row.id"
       :pagination="pagination"
+      remote
+      @update:page="changePage"
     />
   </n-card>
 </template>
 
 <script>
-import { ref, computed, onMounted, defineComponent } from 'vue';
+import { ref, defineComponent } from 'vue';
 import issuesColumns from '@/views/milestone/modules/issueTableColumns.js';
-import milestoneIssuesAjax from '@/views/milestone/modules/milestoneIssuesAjax.js';
+// import milestoneIssuesAjax from '@/views/milestone/modules/milestoneIssuesAjax.js';
+import { getIssueType, getIssue } from '@/api/get';
 
 export default defineComponent({
   props: {
     form: Object,
   },
-  setup(props) {
+  mounted() {
+    this.getIssueStateType();
+  },
+  methods: {
+    searchIssue() {
+      this.changePage(this.pagination.page);
+    },
+    changeState(state) {
+      this.stateType = state;
+      this.getData();
+    },
+    changePage(page) {
+      this.pagination.page = page;
+      this.getData();
+    },
+    getData() {
+      this.loading = true;
+      getIssue({
+        page: this.pagination.page,
+        per_page: this.pagination.pageSize,
+        milestone_id: this.form.id,
+        issue_type_id: this.stateType
+      })
+        .then((res) => {
+          const resData = JSON.parse(res.data);
+          this.rawData = resData.data;
+          this.total = resData.total_count;
+          this.loading = false;
+          this.pagination.pageCount = Math.ceil(Number(this.total) / this.pagination.pageSize) || 1;
+        })
+        .catch((err) => {
+          if (err.data.validation_error) {
+            window.$message.error(err.data.validation_error.body_params[0].msg);
+          } else {
+            window.$message.error('发生未知错误，获取数据失败');
+          }
+          this.loading = false;
+        });
+    },
+    getIssueStateType() {
+      getIssueType().then(res => {
+        this.issueTypeOpts = JSON.parse(res.data).data.map(item => ({ label: item.title, value: String(item.id) }));
+        const defect = this.issueTypeOpts.find(item => item.label === '缺陷');
+        if (defect) {
+          this.stateType = defect.value;
+          this.getData();
+        } else {
+          window.$message?.info('当前组织企业仓的任务类型不存在"缺陷",请手动选择要查询的任务类型');
+        }
+      });
+    }
+  },
+  setup() {
     const rawData = ref([]);
+    const issueTypeOpts = ref([]);
     const loading = ref(false);
     const columns = issuesColumns;
     const total = ref(0);
     const title = ref(null);
     const assignee = ref(null);
-    const data = computed(() =>
-      rawData.value.filter((item) => {
-        return (
-          (!title.value || item.title.includes(title.value)) &&
-          (!assignee.value ||
-            (item.assignee && item.assignee.name.includes(assignee.value)))
-        );
-      })
-    );
-
-    onMounted(() => {
-      milestoneIssuesAjax.getData(rawData, loading, total, props);
+    const pagination = ref({
+      pageSize: 10,
+      page: 1,
+      pageCount: 1
     });
+    // onMounted(() => {
+    //   milestoneIssuesAjax.getData(rawData, loading, total, props, pagination.value);
+    // });
+    // function changePage(page) {
+    //   pagination.value.page = page;
+    //   milestoneIssuesAjax.getData(rawData, loading, total, props, pagination.value);
+    // }
 
     return {
-      data,
+      stateType: ref(null),
+      rawData,
       loading,
       columns,
-      pagination: { pageSize: 10 },
+      issueTypeOpts,
+      pagination,
       total,
       title,
       assignee,

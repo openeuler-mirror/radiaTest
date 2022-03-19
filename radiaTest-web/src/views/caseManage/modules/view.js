@@ -1,9 +1,9 @@
 import { ref } from 'vue';
 import router from '@/router/index.js';
 import management from './management';
-const tableView = ref(true);
-function setMenu(){
-  if(tableView.value){
+const tableView = ref(false);
+function setMenu() {
+  if (tableView.value) {
     management.menu.value = [
       {
         id: 0,
@@ -21,7 +21,7 @@ function setMenu(){
         name: 'review',
       },
     ];
-  }else {
+  } else {
     management.menu.value = [
       {
         id: 1,
@@ -36,7 +36,7 @@ function setMenu(){
     ];
   }
 }
-function toggleView () {
+function toggleView() {
   tableView.value = !tableView.value;
   if (tableView.value) {
     router.push({ name: 'testcase' });
@@ -49,5 +49,5 @@ function toggleView () {
 export default {
   tableView,
   toggleView,
-  setMenu
+  setMenu,
 };

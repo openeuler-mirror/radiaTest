@@ -26,7 +26,10 @@
       >
         <n-grid :cols="24" :x-gap="36">
           <n-form-item-gi :span="25" label="任务名" path="name">
-            <n-input v-model:value="formValue.name" placeholder="默认任务名: Job-{milestone}-{frame}-{Y}-{m}-{d}-{H}-{M}-{S}" />
+            <n-input
+              v-model:value="formValue.name"
+              placeholder="默认任务名: Job-{milestone}-{frame}-{Y}-{m}-{d}-{H}-{M}-{S}"
+            />
           </n-form-item-gi>
           <n-form-item-gi :span="6" label="产品" path="product">
             <n-select
@@ -79,18 +82,6 @@
               @update:value="changeSuite"
               filterable
             />
-            <!-- <n-input v-model:value="formValue.suite" style="width: 90%" />
-            <n-icon
-              size="20"
-              color="rgba(23, 168, 88,1)"
-              class="loading"
-              v-show="loading"
-            >
-              <loading />
-            </n-icon>
-            <n-icon size="25" color="rgba(255,195,0,1)" v-show="warning">
-              <warning />
-            </n-icon> -->
           </n-form-item-gi>
           <n-form-item-gi :span="6" label="选取策略" path="select_mode">
             <n-select
@@ -195,25 +186,25 @@ export default defineComponent({
       post: () => {
         let machineInfo;
         if (createForm.isPmachine.value) {
-          machineInfo = { 
-            pmachine_list: createForm.formValue.value.machine_list 
+          machineInfo = {
+            pmachine_list: createForm.formValue.value.machine_list
           };
-        }else{
-          machineInfo = { 
-            vmachine_list: createForm.formValue.value.machine_list 
+        } else {
+          machineInfo = {
+            vmachine_list: createForm.formValue.value.machine_list
           };
         }
         createAjax.postForm(
-          '/v2/job/suite',
+          '/v1/job/suite',
           ref(Object.assign({
             milestone_id: createForm.formValue.value.milestone,
             name: createForm.formValue.value.name,
             frame: createForm.formValue.value.frame,
             suite_id: createForm.formValue.value.suite,
             git_repo_id: createForm.formValue.value.git_repo_id,
-            strict_mode:createForm.formValue.value.strict_mode,
-            machine_policy:createForm.formValue.value.select_mode, 
-          },machineInfo))
+            strict_mode: createForm.formValue.value.strict_mode,
+            machine_policy: createForm.formValue.value.select_mode,
+          }, machineInfo))
         );
         context.emit('close');
       },

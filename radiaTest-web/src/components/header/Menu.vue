@@ -85,7 +85,7 @@
   <my-tab
     id="testcase"
     :has-arrow="false"
-    url="/home/tcm/testcase"
+    url="/home/tcm/folderview"
     @click="handleTcmClick"
   >
     <template #text> <n-text>用例管理</n-text> </template>
@@ -127,7 +127,7 @@ export default defineComponent({
 
     return {
       handleTcmClick() {
-        router.push('/home/tcm/');
+        router.push('/home/tcm/folderview');
       },
       handleTaskClick() {
         router.push('/home/tm/task');

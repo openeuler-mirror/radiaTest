@@ -87,7 +87,7 @@ export default defineComponent({
     const failRecordsOnly = ref(false);
     const milestone = ref();
     const milestoneList = ref([]);
-    axios.get('/v1/milestone').then(res => {
+    axios.get('/v2/milestone').then(res => {
       milestoneList.value = res.data.map(item => ({ label: item.name, value: item.id }));
     }).catch(err => window.$message?.error(err.data.error_msg || '未知错误'));
     return {

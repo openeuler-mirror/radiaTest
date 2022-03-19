@@ -66,7 +66,7 @@ export default defineComponent({
           start_time: start,
           end_time: end,
         });
-        updateAjax.putForm('/v1/milestone', data);
+        updateAjax.putForm('/v2/milestone', data);
         context.emit('close');
       },
     };

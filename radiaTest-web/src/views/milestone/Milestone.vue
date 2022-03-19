@@ -14,19 +14,19 @@
         "
     style="height: 100%"
   >
-    <selection-button
+    <!-- <selection-button
       :left="20"
       :top="88"
       @show="tableRef.showSelection()"
       @off="tableRef.offSelection()"
-    />
+    /> -->
     <n-grid x-gap="24" y-gap="6">
       <n-gi :span="12">
         <n-space>
           <create-button title="注册里程碑" @click="createModalRef.show()" />
           <modal-card
             title="注册里程碑"
-            url="/v1/milestone"
+            url="/v2/milestone"
             ref="createModalRef"
             @validate="() => createFormRef.handlePropsButtonClick()"
             @submit="createFormRef.post()"
@@ -43,7 +43,7 @@
               />
             </template>
           </modal-card>
-          <delete-button title="里程碑" url="/v1/milestone" />
+          <!-- <delete-button title="里程碑" url="/v2/milestone" /> -->
         </n-space>
       </n-gi>
       <n-gi :span="10">
@@ -60,7 +60,7 @@
         <milestone-table ref="tableRef" @update="() => updateModalRef.show()" />
         <modal-card
           title="修改里程碑"
-          url="/v1/milestone"
+          url="/v2/milestone"
           ref="updateModalRef"
           @validate="() => updateFormRef.handlePropsButtonClick()"
           @submit="updateFormRef.put()"

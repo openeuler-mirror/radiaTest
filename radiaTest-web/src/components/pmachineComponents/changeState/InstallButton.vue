@@ -4,6 +4,7 @@
       <n-button
         size="medium"
         type="default"
+        :disabled="disabled"
         @click="updateModalRef.show()"
         circle
       >
@@ -25,6 +26,7 @@
       <system-install-form
         ref="updateFormRef"
         :machine-id="id"
+        :disabled="disabled"
         @valid="() => updateModalRef.submitCreateForm()"
         @close="
           () => {
@@ -51,6 +53,10 @@ export default defineComponent({
   },
   props: {
     id: Number,
+    disabled:{
+      type:Boolean,
+      default:false
+    }
   },
   setup() {
     const updateModalRef = ref(null);

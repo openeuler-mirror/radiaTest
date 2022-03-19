@@ -2,10 +2,11 @@
   <n-tooltip trigger="hover">
     <template #trigger>
       <n-button
+        :disabled="disabled"
         v-show="connectShow"
         size="medium"
         type="info"
-        @click="() => handleConnectClick(connect, 'occupy')"
+        @click="() => !disabled && handleConnectClick(connect, 'occupy')"
         circle
       >
         <n-icon size="20">
@@ -20,8 +21,9 @@
       <n-button
         v-show="!connectShow"
         size="medium"
+        :disabled="disabled"
         type="info"
-        @click="() => handleConnectClick(connect, 'release')"
+        @click="() => !disabled && handleConnectClick(connect, 'release')"
         circle
       >
         <n-icon size="20">
@@ -52,6 +54,10 @@ export default defineComponent({
   },
   props: {
     data: Object,
+    disabled: {
+      type: Boolean,
+      default: false
+    }
   },
   setup(props) {
     const connectShow = computed(() => props.data.state === 'idle');

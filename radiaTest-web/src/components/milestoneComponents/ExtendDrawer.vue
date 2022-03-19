@@ -1,8 +1,8 @@
 <template>
-  <n-drawer v-model:show="active" :width="1800" placement="right">
+  <n-drawer v-model:show="active" :width="1600" placement="right">
     <n-drawer-content>
       <template #header>
-        <p style="width: 1700px; text-align: center; margin: 0">
+        <p style="width: 1500px; text-align: center; margin: 0">
           <n-button
             @click="
               () => {
@@ -10,7 +10,7 @@
               }
             "
             size="medium"
-            style="float: left;"
+            style="float: left"
             quaternary
             circle
           >

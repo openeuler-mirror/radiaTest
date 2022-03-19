@@ -7,7 +7,7 @@ import {
 } from '@/assets/utils/getOpts.js';
 import { storage } from '@/assets/utils/storageUtils';
 import { currentOrg } from '@/components/header/profileMenu/modules/orgInfo';
-import {createRepoOptions} from '@/assets/utils/getOpts';
+import { createRepoOptions } from '@/assets/utils/getOpts';
 import createAjax from '@/views/template/modules/createAjax.js';
 import casesForm from '@/views/template/modules/casesForm.js';
 
@@ -146,9 +146,8 @@ const gitRepoOpts = ref();
 const getProductOptions = async () => {
   getProductOpts(productOpts);
   gitRepoOpts.value = await createRepoOptions();
-  console.log(gitRepoOpts.value);
 };
-function changeRepo(value){
+function changeRepo(value) {
   createAjax.getData(casesForm.options, value);
 }
 

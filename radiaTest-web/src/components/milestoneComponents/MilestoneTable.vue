@@ -31,9 +31,9 @@ export default defineComponent({
     milestoneSocket.connect();
 
     onMounted(() => {
-      get.list('/v1/milestone', milestoneTable.totalData, milestoneTable.loading,milestoneTable.filter.value);
+      get.list('/v2/milestone', milestoneTable.totalData, milestoneTable.loading,milestoneTable.filter.value);
       milestoneSocket.listen('update', () => {
-        get.list('/v1/milestone', milestoneTable.totalData, milestoneTable.loading,milestoneTable.filter.value);
+        get.list('/v2/milestone', milestoneTable.totalData, milestoneTable.loading,milestoneTable.filter.value);
       });
     });
     onUnmounted(() => {
@@ -58,7 +58,7 @@ export default defineComponent({
       showSelection: () => selection.show(columns),
       offSelection: () => selection.off(columns),
       refreshData: () =>
-        get.refresh('/v1/milestone', milestoneTable.data, milestoneTable.loading,milestoneTable.filter.value),
+        get.refresh('/v2/milestone', milestoneTable.data, milestoneTable.loading,milestoneTable.filter.value),
     };
   },
 });

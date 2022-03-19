@@ -1,19 +1,19 @@
-import axios from '@/axios';
+import { getIssue } from '@/api/get';
 
-const getData = (data, loading, total, props) => {
+const getData = (data, loading, total, props, page) => {
+  console.log(props);
   loading.value = true;
-  axios
-    .get('/v1/milestone/issues', {
-      enterprise: 'open_euler', // TODO 从storage可以获得么
-      state: 'all',
-      sort: 'updated',
-      direction: 'desc',
-      milestone: props.form.name,
-    })
+  getIssue({
+    page: page.page,
+    per_page: page.pageSize,
+    milestone_id: props.form.id,
+  })
     .then((res) => {
-      data.value = res.filter((item) => item.issue_type === '缺陷');
-      total.value = data.value.length;
+      const resData = JSON.parse(res.data);
+      data.value = resData.data;
+      total.value = resData.total_count;
       loading.value = false;
+      page.pageCount = Math.ceil(Number(total.value) / page.pageSize) || 1;
     })
     .catch((err) => {
       if (err.data.validation_error) {

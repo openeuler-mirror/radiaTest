@@ -125,7 +125,10 @@ const recycleBinCaseColumns = [
             style: 'margin-right:10px;',
             onClick: () => {
               warning('恢复用例', '您确定要恢复此用例吗？', () => {
-                updateAjax.putForm('/v1/case', ref({id: row.id, deleted: false}));
+                updateAjax.putForm(
+                  '/v1/case',
+                  ref({ id: row.id, deleted: false })
+                );
                 query();
               });
             },
@@ -140,7 +143,7 @@ const recycleBinCaseColumns = [
             onClick: () => {
               warning('彻底删除用例', '您确定要彻底删除此用例吗？', () => {
                 axios
-                  .delete('/v1/case', {id: [row.id]})
+                  .delete('/v1/case', { id: [row.id] })
                   .then(() => {
                     query();
                   })
@@ -166,14 +169,9 @@ function menuClick(item, index) {
 // tab名称
 const menu = ref([
   {
-    id: 0,
-    text: '测试套仓库',
-    name: 'testsuite',
-  },
-  {
     id: 1,
     text: '用例仓库',
-    name: 'testcase',
+    name: 'folderview',
   },
   {
     id: 2,

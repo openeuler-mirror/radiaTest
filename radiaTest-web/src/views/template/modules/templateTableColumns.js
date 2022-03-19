@@ -4,6 +4,7 @@ import ExpandedCard from '@/components/templateComponents/ExpandedCard';
 
 import { deleteAjax } from '@/assets/CRUD/delete';
 import { handleExecClick } from './execTemplate';
+import textDialog from '@/assets/utils/dialog';
 
 const ColumnExpand = {
   type: 'expand',
@@ -68,7 +69,7 @@ const getColumns = () => [
         NSpace,
         {
           justify: 'center',
-          align: 'center'
+          align: 'center',
         },
         [
           h(
@@ -85,7 +86,10 @@ const getColumns = () => [
             {
               text: true,
               color: 'rgba(242,93,93,1)',
-              onClick: () => deleteAjax.postDelete('/v1/template', [row.id]),
+              onClick: () =>
+                textDialog('warning', '警告', '你确定要删除吗?', () =>
+                  deleteAjax.postDelete('/v1/template', [row.id])
+                ),
             },
             '删除'
           ),
@@ -95,6 +99,4 @@ const getColumns = () => [
   },
 ];
 
-export {
-  getColumns,
-};
+export { getColumns };

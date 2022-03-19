@@ -17,6 +17,6 @@ function postRequest(url, data) {
 export function createRepo(data) {
   return postRequest('/v1/git_repo', data);
 }
-export function implementTemplate(data){
-  return postRequest('/v2/job/template',data);
+export function implementTemplate(data) {
+  return postRequest('/v1/job/template', data);
 }

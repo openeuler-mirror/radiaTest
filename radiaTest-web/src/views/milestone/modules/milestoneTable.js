@@ -4,16 +4,18 @@ import store from '@/store';
 const totalData = ref([]);
 const rowData = ref({});
 const refresh = ref(false);
-const active= ref(false);
+const active = ref(false);
 const showIssueDrawer = ref(false);
-const isCheck= ref(false);
-const loading= ref(true);
+const isCheck = ref(false);
+const loading = ref(true);
 const isUpdating = ref(false);
 const filter = ref({
-  name:''
+  name: '',
+  page_num: 1,
+  page_size: 10,
 });
 
-const rowProps= (row) => {
+const rowProps = (row) => {
   return {
     style: {
       cursor: 'pointer',
@@ -31,9 +33,8 @@ const rowProps= (row) => {
 
 const data = computed(() => {
   const filterName = store.getters.filterMilestoneState.value;
-  return totalData.value.filter(
-    (item) =>
-      item.name.toLowerCase().includes(filterName.toLowerCase())
+  return totalData.value.filter((item) =>
+    item.name.toLowerCase().includes(filterName.toLowerCase())
   );
 });
 

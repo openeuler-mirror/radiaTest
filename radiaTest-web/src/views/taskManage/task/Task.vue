@@ -670,9 +670,11 @@
                                 @update:value="frameChange"
                                 :options="frameArray"
                                 trigger="click"
-                                :disabled="!editStatus"
+                                :disabled="!editStatus||modalData.detail.is_manage_task"
                               >
-                                {{modalData.detail.frame||'请选择'}}
+                                <span :style="{color:!editStatus||modalData.detail.is_manage_task?'grey':''}">
+                                  {{modalData.detail.frame||'请选择'}}
+                                </span>
                               </n-popselect>
                             </div>
                           </div>
@@ -710,6 +712,21 @@
                             </div>
                             <div class="field-right" >
                               <span>{{modalData.detail.is_single_case?'是':'否'}}</span>
+                            </div>
+                          </div>
+                          <div class="field">
+                            <div class="field-left">
+                              <n-icon
+                                size="14"
+                                class="task-icon"
+                              >
+                                <CheckSquareOutlined />
+                              </n-icon>
+                              <span class="field-name">是否管理型任务</span>
+                            </div>
+                            <div class="field-right" >
+                              <span v-show="!editStatus">{{modalData.detail.is_manage_task?'是':'否'}}</span>
+                              <n-checkbox v-show="editStatus" @update:checked="changeManage" :checked="modalData.detail.is_manage_task"></n-checkbox>
                             </div>
                           </div>
                         </div>
@@ -1326,8 +1343,8 @@ export default defineComponent({
     modules.initData();
     modules.getGroup();
     modules.getRelationTask();
+    modules.getFrame();
     modules.tinymce.init;
-
     document.addEventListener('searchTask', (e) => {
       modules.showLoading.value = true;
       const temp = JSON.parse(JSON.stringify(e.detail));

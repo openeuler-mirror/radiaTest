@@ -54,9 +54,9 @@ export default {
       type: Boolean,
       default: false,
     },
-    mouseStop:{
-      type:Boolean,
-      default:true
+    mouseStop: {
+      type: Boolean,
+      default: true
     }
   },
   watch: {
@@ -85,7 +85,7 @@ export default {
     };
 
     const stopFN = () => {
-      if(props.mouseStop&&timer.value){
+      if (props.mouseStop && timer.value) {
         clearInterval(timer.value);
       }
     };
@@ -127,6 +127,8 @@ export default {
       width: 100%;
       height: 100%;
       overflow: hidden;
+      margin: 0;
+      padding: 0;
     }
     &-item {
       width: 100%;

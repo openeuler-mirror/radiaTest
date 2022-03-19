@@ -1,6 +1,6 @@
 <template>
-  <n-card class="analyzedCard" hoverable>
-    <div style="width: 100%; margin-bottom: 20px;">
+  <n-card class="analyzedCard" hoverable ref="container">
+    <div style="width: 100%; margin-bottom: 20px">
       <n-space item-style="display: flex;" align="center" justify="start">
         <n-checkbox v-model:checked="failRecordsOnly">
           仅测试不通过
@@ -19,9 +19,9 @@
       <timeline-item
         v-for="(record, index) in records"
         :key="index"
+        :leftWidth="container.$el.clientWidth - 60"
         :type="createTimelineType(record.result)"
         :title="record.job"
-        :left-width="300"
         :content="
           !record.fail_type && record.result === 'success'
             ? '测试通过'
@@ -46,7 +46,7 @@
 </template>
 
 <script>
-import { defineComponent } from 'vue';
+import { defineComponent, ref } from 'vue';
 
 import Timeline from '@/components/timeline/timeline.vue';
 import TimelineItem from '@/components/timeline/timelineItem.vue';
@@ -59,8 +59,10 @@ export default defineComponent({
     TimelineItem,
   },
   setup() {
+    const container = ref();
     return {
       ...logsDrawer,
+      container
     };
   },
 });

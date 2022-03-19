@@ -102,7 +102,7 @@ export default {
     },
   },
   mounted () {
-    this.$axios.get('/v1/milestone').then((res) => {
+    this.$axios.get('/v2/milestone').then((res) => {
       this.milepostArray = res.data;
       this.milepostArrayTemp = res.data;
     });

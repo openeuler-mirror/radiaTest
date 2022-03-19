@@ -9,6 +9,7 @@ import { modifyDelayTime } from '@/api/put';
 import { formatTime } from '@/assets/utils/dateFormatUtils';
 import { get } from '@/assets/CRUD/read';
 import vmachineTable from '@/views/vmachine/modules/vmachineTable.js';
+import textDialog from '@/assets/utils/dialog';
 
 const delayModalRef = ref();
 const delay = ref({
@@ -28,20 +29,6 @@ const getColumnExpand = () => {
     },
   };
 };
-function warningDialog(confirm) {
-  const d = window.$dialog?.warning({
-    title: '警告',
-    content: '你确定删除该虚拟机？',
-    positiveText: '确定',
-    negativeText: '取消',
-    onPositiveClick: () => {
-      confirm && confirm();
-    },
-    onNegativeClick: () => {
-      d.destroy();
-    },
-  });
-}
 
 const ColumnDefault = [
   {
@@ -137,7 +124,7 @@ const ColumnOperate = {
             type: 'error',
             disabled: !row.ip,
             onClick: () =>
-              warningDialog(() => {
+              textDialog('warning', '警告', '你确定删除该虚拟机？', () => {
                 deleteAjax.postDelete('/v1/vmachine', [row.id]);
               }),
           },
@@ -150,9 +137,14 @@ const ColumnOperate = {
             type: 'error',
             tertiary: true,
             onClick: () =>
-              warningDialog(() => {
-                deleteVm(row.id);
-              }),
+              textDialog(
+                'warning',
+                '警告',
+                '你确定要对此机器强制删除吗？(建议非特殊情况不要进行强制删除)',
+                () => {
+                  deleteVm(row.id);
+                }
+              ),
           },
           '强制删除'
         ),
