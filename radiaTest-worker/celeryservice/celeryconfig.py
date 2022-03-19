@@ -82,11 +82,12 @@ task_queues = (
 
 # worker相关配置 
 STORAGE_POOL = loads_config_ini("worker","STORAGE_POOL")
-NETWORK_AUTHENTICATION_REQUIRED = loads_config_ini(
+NETWORK_INTERFACE_SOURCE= loads_config_ini(
     "worker",
-    "NETWORK_AUTHENTICATION_REQUIRED"
+    "NETWORK_INTERFACE_SOURCE"
 )
 SERVER_IP = loads_config_ini("worker","SERVER_IP")
 SERVER_PORT = loads_config_ini("worker","SERVER_PORT")
 PROTOCOL = loads_config_ini("worker","PROTOCOL")
-HEADER = loads_config_ini("worker","HEADER")
+
+HEADERS = {"Content-Type": "application/json;charset=utf8"}

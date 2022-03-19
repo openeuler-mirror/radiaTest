@@ -9,3 +9,4 @@ psutil==5.8.0
 Flask_Cors==3.0.10
 celery==5.1.2
 supervisor==4.2.4
+flower==1.0.0
