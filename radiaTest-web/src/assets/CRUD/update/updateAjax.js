@@ -16,7 +16,7 @@ const handleFailUpdate = (msg) => {
 };
 const putForm = (url, formValue) => {
   axios
-    .put(url, formValue.value)
+    .put(`${url}/${formValue.value.id}`, formValue.value)
     .then((res) => {
       if (res.error_code === '2000') {
         handleSuccessUpdate();
@@ -30,7 +30,7 @@ const putForm = (url, formValue) => {
 };
 const putFormEmitClose = (url, formValue, context) => {
   axios
-    .put(url, formValue.value)
+    .put(`${url}/${formValue.value.id}`, formValue.value)
     .then((res) => {
       if (res.error_code === '2000') {
         handleSuccessUpdate();

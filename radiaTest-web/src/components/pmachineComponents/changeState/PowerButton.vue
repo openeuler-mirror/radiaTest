@@ -36,7 +36,7 @@
 </template>
 
 <script>
-import { ref, defineComponent } from 'vue';
+import { defineComponent } from 'vue';
 import { PowerOff } from '@vicons/fa';
 
 import { handlePowerClick } from '@/views/pmachine/modules/changeState/power.js';
@@ -48,13 +48,15 @@ export default defineComponent({
   props: {
     id: Number,
     status: String,
+    disabled: {
+      type: Boolean,
+      default: false
+    }
   },
   setup(props) {
-    const disabled = ref(false);
 
     return {
-      disabled,
-      handleClick: () => handlePowerClick(props.id, props.status, disabled),
+      handleClick: () => handlePowerClick(props.id, props.status, props.disabled),
     };
   },
 });

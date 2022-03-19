@@ -52,16 +52,7 @@ const reportArray = ref([]); // 报告数组
 const editStatus = ref(false); // 编辑状态
 const showEditTaskDetailBtn = ref(true); // 显示编辑任务按钮
 
-const frameArray = ref([
-  {
-    label: 'aarch64',
-    value: 'aarch64',
-  },
-  {
-    label: 'x86_64',
-    value: 'x86_64',
-  },
-]);
+const frameArray = ref();
 
 // 富文本配置
 const init = {
@@ -1546,8 +1537,17 @@ const autocompleteArray = ref([
 function autocompleteChange(value) {
   editTask(modalData.value.detail.id, { automatic_finish: value });
 }
+function changeManage (value) {
+  editTask(modalData.value.detail.id, { is_manage_task: value});
+}
+function getFrame () {
+  axios.get('/v1/task/frame').then(res => {
+    frameArray.value = res.data.map(item => ({ label: item, value: item }));
+  });
+}
 
 export {
+  getFrame,
   autocompleteArray,
   autocompleteChange,
   init,
@@ -1673,4 +1673,5 @@ export {
   distributeTaskMilestoneOption,
   getDistributeMilestone,
   distributeAllCases,
+  changeManage
 };

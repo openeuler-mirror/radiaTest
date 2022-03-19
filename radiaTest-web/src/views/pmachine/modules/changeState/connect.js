@@ -10,9 +10,7 @@ class ConnectState {
     this.originData = data;
     this.formValue = ref(data);
     this.datetime = ref(undefined);
-    data.end_time
-      ? this.datetime.value = any2stamp(data.end_time)
-      : 0;
+    data.end_time ? (this.datetime.value = any2stamp(data.end_time)) : 0;
   }
   update(newData) {
     this.formValue.value = newData;
@@ -27,7 +25,7 @@ class ConnectState {
   }
   updateDescription = (value) => {
     this.formValue.value.description = value;
-  }
+  };
   updateListen(value) {
     this.formValue.value.listen = value;
   }
@@ -58,7 +56,8 @@ class ConnectState {
   datePickerElement() {
     if (
       this.formValue.value.description !== 'as the host of ci' &&
-      this.formValue.value.description !== 'used for ci') {
+      this.formValue.value.description !== 'used for ci'
+    ) {
       return h(NDatePicker, {
         onUpdateValue: (value) => this.updateDatetime(value),
         type: 'datetime',
@@ -67,7 +66,8 @@ class ConnectState {
         isDateDisabled: (ts) => {
           const now = new Date();
           const date = new Date(ts);
-          return date <= now - (24 * 60 * 60 * 1000);
+          const time = 24 * 60 * 60 * 1000;
+          return date <= now - time;
         },
         isTimeDisabled: (ts) => {
           const now = new Date();
@@ -88,7 +88,8 @@ class ConnectState {
   datePickerText() {
     if (
       this.formValue.value.description !== 'as the host of ci' &&
-      this.formValue.value.description !== 'used for ci') {
+      this.formValue.value.description !== 'used for ci'
+    ) {
       return h(
         'p',
         {
@@ -160,26 +161,19 @@ const handleOccupy = async (dOccupy, connect) => {
   });
 };
 
-const handleRelease = async (dRelease, connect) => {
-  return new Promise((resolve) => {
-    new Promise((resolveWaitSend) => setTimeout(resolveWaitSend, 1000))
-      .then(() => {
-        dRelease.content = '释放请求已发送';
-        return axios.put('/v1/pmachine', {
-          id: connect.formValue.value.id,
-          state: 'idle',
-        });
+const handleRelease = (dRelease, connect) => {
+  return new Promise((resolve, reject) => {
+    dRelease.content = '释放请求已发送';
+    return axios
+      .put('/v1/pmachine', {
+        id: connect.formValue.value.id,
+        state: 'idle',
       })
       .then((res) => {
         if (res.error_code === '2000') {
           dRelease.content = '物理机已确认释放';
-          return new Promise((resolveWaitResv) =>
-            setTimeout(() => {
-              resolveWaitResv();
-            }, 2 * 1000)
-          );
+          resolve();
         }
-        return Promise.reject(new Error('请检查参数或检查该物理机是否存在'));
       })
       .catch((err) => {
         if (!err.message && !err.data.validation_error) {
@@ -187,11 +181,11 @@ const handleRelease = async (dRelease, connect) => {
         } else if (err.data.validation_error) {
           window.$message?.error(err.data.validation_error.body_params[0].msg);
         } else {
-          window.$message?.error(err.message);
+          window.$message?.error(err.data.error_msg);
         }
         connect.clean();
-      })
-      .then(resolve);
+        reject(err);
+      });
   });
 };
 
@@ -257,7 +251,4 @@ const handleConnectClick = (connect, type) => {
   }
 };
 
-export {
-  ConnectState,
-  handleConnectClick,
-};
+export { ConnectState, handleConnectClick };

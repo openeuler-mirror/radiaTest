@@ -1,17 +1,45 @@
-import { h } from 'vue';
+import { ref } from 'vue';
 // import axios from '@/axios';
-import { NSelect } from 'naive-ui';
-import {implementTemplate} from '@/api/post';
+// import { NSelect } from 'naive-ui';
+import { implementTemplate } from '@/api/post';
+import { getTemplateInfo } from '@/api/get';
+import { createPmOptions, createVmOptions } from '@/assets/utils/getOpts';
 
-const postExecData = (row) => {
-  implementTemplate({template_id:row.id,template_name:row.name,frame:row.frame})
+const formValue = ref();
+const execModalRef = ref();
+const defaultProp = {
+  select_mode: 'auto',
+  strict_mode: false,
+  vmachine_list: [],
+  pmachine_list: [],
+};
+const postExecData = () => {
+  if (formValue.value.strict_mode) {
+    if (
+      formValue.value.vmachine_list.length !== formValue.value.vm_req_num ||
+      formValue.value.pmachine_list.length !== formValue.value.pm_req_num
+    ) {
+      window.$message?.error('严格模式下,需要选择相应数量的机器');
+      return;
+    }
+  }
+  implementTemplate({
+    template_id: formValue.value.id,
+    template_name: formValue.value.name,
+    frame: formValue.value.frame,
+    pmachine_list: formValue.value.pmachine_list,
+    vmachine_list: formValue.value.vmachine_list,
+    machine_policy: formValue.value.select_mode,
+    strict_mode: formValue.value.strict_mode,
+  })
     .then((res) => {
       if (res.error_code === '2000') {
         window.$notification?.success({
           content: '测试任务已执行完成',
-          meta: `模板：${row.name}`,
+          meta: `模板：${formValue.value.name}`,
         });
-        row.frame = null;
+        formValue.value.frame = null;
+        execModalRef.value.close();
       }
     })
     .catch((err) => {
@@ -22,71 +50,57 @@ const postExecData = (row) => {
       } else {
         window.$message?.error(err.message);
       }
-      row.frame = null;
+      formValue.value.frame = null;
     });
 };
-
-const handleExecute = async (row, dOccupy) => {
-  dOccupy.content = '执行请求已发送';
-  postExecData(row);
-  window.$message?.success('模板已成功执行，请前往测试看板查看');
-  return '';
-};
-
-const handlePositiveClick = (row, dOccupy) => {
-  dOccupy.loading = true;
-  return handleExecute(row, dOccupy);
-};
+const pmOpt = ref();
+const vmOpt = ref();
 
 const renderExecute = (row) => {
-  return h('div', {}, [
-    h(
-      'p',
-      {
-        style: {
-          fontSize: '18px',
-          fontWeight: '500',
-        },
-      },
-      `待执行模板:  ${row.name}`
-    ),
-    h(
-      'p',
-      {
-        style: {
-          height: '20px',
-        },
-      },
-      '环境架构'
-    ),
-    h(NSelect, {
-      value: row.frame,
-      onUpdateValue: (value) => { row.frame = value; },
-      options: [
-        {
-          label: 'aarch64',
-          value: 'aarch64'
-        },
-        {
-          label: 'x86_64',
-          value: 'x86_64'
-        },
-      ],
-      placeholder: '请选择架构',
-    }),
-  ]);
-};
-
-const handleExecClick = (row) => {
-  const dOccupy = window.$dialog?.info({
-    title: '确定要执行该模板吗？',
-    content: () => renderExecute(row),
-    negativeText: '取消',
-    positiveText: '确认',
-    onPositiveClick: () => handlePositiveClick(row, dOccupy),
+  getTemplateInfo(row.id).then((res) => {
+    formValue.value = { ...res.data, ...row, ...defaultProp };
+    console.log(formValue.value);
   });
 };
 
+const handleExecClick = async (row) => {
+  renderExecute(row);
+  if (!pmOpt.value) {
+    pmOpt.value = await createPmOptions();
+  }
+  if (!vmOpt.value) {
+    vmOpt.value = await createVmOptions();
+  }
+  execModalRef.value.show();
+};
+function selectmachine(type, value) {
+  if (type === 'pm') {
+    if (
+      formValue.value.strict_mode &&
+      formValue.value.pm_req_num < value.length
+    ) {
+      window.$message?.error('严格模式下,需要选择相应数量的机器');
+      return;
+    }
+    formValue.value.pmachine_list = value;
+  } else {
+    if (
+      formValue.value.strict_mode &&
+      formValue.value.vm_req_num < value.length
+    ) {
+      window.$message?.error('严格模式下,需要选择相应数量的机器');
+      return;
+    }
+    formValue.value.vmachine_list = value;
+  }
+}
+
 export {
   handleExecClick,
+  formValue,
+  execModalRef,
+  postExecData,
+  pmOpt,
+  vmOpt,
+  selectmachine,
 };

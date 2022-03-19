@@ -209,7 +209,7 @@ export default {
     },
     getMilestone() {
       this.$axios
-        .get('/v1/milestone')
+        .get('/v2/milestone')
         .then((res) => {
           this.milestones = res.data.map((item) => ({
             label: item.name,

@@ -1,4 +1,4 @@
-import { reactive, ref } from 'vue';
+import { reactive, ref, h } from 'vue';
 
 import axios from '@/axios';
 import router from '@/router/index';
@@ -7,7 +7,14 @@ import { getCookieValByKey } from '@/assets/utils/cookieUtils';
 import { urlArgs } from '@/assets/utils/urlUtils';
 import { changeLoadingStatus } from '@/assets/utils/loading';
 import { getClaOrg } from './org';
+import { getAllOrg, loginByCode } from '@/api/get';
+import { NAvatar } from 'naive-ui';
+import { loginInfo } from './claSign';
 
+const loginOrg = ref(null);
+const orgOpts = ref([]);
+const hasCLA = ref(false);
+const hasEnterprise = ref(false);
 const loginForm = reactive({
   userName: '',
   passWord: '',
@@ -56,8 +63,9 @@ function handleLoginByForm() {
 
 function hanleLogin() {
   changeLoadingStatus(true);
+  storage.setValue('loginOrgId', Number(loginOrg.value));
   axios
-    .get('/v1/gitee/oauth/login')
+    .get('/v1/gitee/oauth/login', { org_id: Number(loginOrg.value) })
     .then((res) => {
       if (res?.data) {
         const giteeUrl = res.data;
@@ -76,6 +84,24 @@ function hanleLogin() {
 
 const registerShow = ref(false);
 function gotoHome() {
+  getAllOrg().then((res) => {
+    orgOpts.value = res.data.map((item) => ({
+      label: item.org_name,
+      value: String(item.org_id),
+      ...item,
+    }));
+  });
+  if (urlArgs().code) {
+    loginByCode({
+      code: urlArgs().code,
+      org_id: storage.getValue('loginOrgId'),
+    }).then((res) => {
+      storage.setValue('token', getCookieValByKey('token'));
+      storage.setValue('refresh_token', getCookieValByKey('refresh_token'));
+      storage.setValue('gitee_id', getCookieValByKey('gitee_id'));
+      window.location = res.data;
+    });
+  }
   if (urlArgs().isSuccess === 'True') {
     setTimeout(() => {
       registerShow.value = false;
@@ -85,17 +111,52 @@ function gotoHome() {
       router.push({ name: 'home' });
     }, 1000);
   } else if (urlArgs().isSuccess === 'False') {
+    loginInfo.org = urlArgs().org_id;
     registerShow.value = true;
     getClaOrg();
   }
 }
+function renderLabel(option) {
+  return h(
+    'div',
+    {
+      style: {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '100%',
+      },
+    },
+    [
+      h(NAvatar, {
+        src: option.org_avatar,
+        round: true,
+        size: 'small',
+        style: 'margin-right:10px',
+      }),
+      option.label,
+    ]
+  );
+}
+function selectOrg(value) {
+  const org = orgOpts.value.find((item) => item.value === value);
+  hasCLA.value = org.cla;
+  hasEnterprise.value = org.enterprise;
+  loginOrg.value = org.value;
+}
 
 export {
   rules,
+  hasCLA,
+  hasEnterprise,
   loginForm,
   loginFormRef,
   registerShow,
   handleLoginByForm,
   hanleLogin,
   gotoHome,
+  loginOrg,
+  orgOpts,
+  renderLabel,
+  selectOrg,
 };

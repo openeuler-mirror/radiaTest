@@ -17,6 +17,7 @@
         :columns="orgColumns"
         :data="orgs"
         :pagination="pagination"
+        :row-key="(row) => row.organization_id"
       />
       <n-modal
         v-model:show="showRegisterOrgWindow"
@@ -35,45 +36,68 @@
           ref="regirsterRef"
           :rules="rules"
         >
+          <n-form-item label="头像">
+            <n-upload
+              list-type="image-card"
+              @update:file-list="uploadFinish"
+              accept=".png,.jpg,.gif"
+            >
+              点击上传
+            </n-upload>
+          </n-form-item>
           <n-form-item label="组织名称" path="name">
             <n-input
               v-model:value="registerModel.name"
               placeholder="请输入组织名"
             ></n-input>
           </n-form-item>
-          <n-form-item label="cla验证地址" path="claVerifyUrl">
+          <n-form-item label="描述" path="description">
+            <n-input
+              v-model:value="registerModel.description"
+              placeholder="请输入"
+            ></n-input>
+          </n-form-item>
+          <n-form-item>
+            <n-checkbox v-model:checked="requireCla" label="填写cla信息" />
+          </n-form-item>
+          <n-form-item
+            v-if="requireCla"
+            label="cla验证地址"
+            path="claVerifyUrl"
+          >
             <n-input
               v-model:value="registerModel.claVerifyUrl"
               placeholder="请输入cla验证地址"
             ></n-input>
           </n-form-item>
-          <n-form-item label="cla签署地址" path="claSignUrl">
+          <n-form-item v-if="requireCla" label="cla签署地址" path="claSignUrl">
             <n-input
               v-model:value="registerModel.claSignUrl"
               placeholder="请输入cla签署地址"
             ></n-input>
           </n-form-item>
-          <n-form-item label="cla验证通过的标志" path="claPassFlag">
+          <n-form-item
+            v-if="requireCla"
+            label="cla验证通过的标志"
+            path="claPassFlag"
+          >
             <n-input
               v-model:value="registerModel.claPassFlag"
               placeholder="请输入cla验证通过的标志"
             ></n-input>
           </n-form-item>
-          <n-form-item label="请求方式" path="claRequestMethod">
+          <n-form-item
+            v-if="requireCla"
+            label="请求方式"
+            path="claRequestMethod"
+          >
             <n-select
               v-model:value="registerModel.claRequestMethod"
               placeholder="请选择验证地址的请求方式"
               :options="requestOptions"
             ></n-select>
           </n-form-item>
-          <n-form-item label="enterprise" path="enterprise">
-            <n-input
-              v-model:value="registerModel.enterprise"
-              placeholder="请输入enterprise"
-              :maxlength="50"
-            ></n-input>
-          </n-form-item>
-          <n-form-item label="url中的参数">
+          <n-form-item v-if="requireCla" label="url中的参数">
             <n-dynamic-input
               preset="pair"
               v-model:value="registerModel.urlParams"
@@ -81,13 +105,59 @@
               value-placeholder="值"
             />
           </n-form-item>
-          <n-form-item label="body中的参数">
+          <n-form-item v-if="requireCla" label="body中的参数">
             <n-dynamic-input
               preset="pair"
               v-model:value="registerModel.bodyParams"
               key-placeholder="键"
               value-placeholder="值"
             />
+          </n-form-item>
+          <n-form-item>
+            <n-checkbox
+              v-model:checked="requireEnterprise"
+              label="填写企业仓信息"
+            />
+          </n-form-item>
+          <n-form-item
+            v-if="requireEnterprise"
+            label="enterprise"
+            path="enterprise"
+          >
+            <n-input
+              v-model:value="registerModel.enterprise"
+              placeholder="请填写该组织码云企业仓ID"
+              :maxlength="50"
+            ></n-input>
+          </n-form-item>
+          <n-form-item
+            v-if="requireEnterprise"
+            label="oauth_client_id"
+            path="oauth_client_id"
+          >
+            <n-input
+              v-model:value="registerModel.oauth_client_id"
+              placeholder="请填写oauth_client_id"
+              :maxlength="50"
+            ></n-input>
+          </n-form-item>
+          <n-form-item
+            v-if="requireEnterprise"
+            label="oauth_client_secret"
+            path="oauth_client_secret"
+          >
+            <n-input
+              v-model:value="registerModel.oauth_client_secret"
+              placeholder="请填写oauth_client_secret"
+              :maxlength="50"
+            ></n-input>
+          </n-form-item>
+          <n-form-item
+            v-if="requireEnterprise"
+            label="oauth_scope"
+            path="oauth_client_scope"
+          >
+            <n-dynamic-tags v-model:value="registerModel.oauth_client_scope" />
           </n-form-item>
         </n-form>
         <template #action>
@@ -120,6 +190,7 @@ export default {
     Add,
   },
   setup() {
+    console.log(1);
     modules.getData();
     return modules;
   },

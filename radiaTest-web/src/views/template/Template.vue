@@ -77,6 +77,17 @@
             />
           </template>
         </modal-card>
+        <modal-card
+          :title="执行模板"
+          :init-x="400"
+          :init-y="100"
+          ref="execModalRef"
+          @validate="postExecData()"
+        >
+          <template #form>
+            <exec-template />
+          </template>
+        </modal-card>
         <n-popover trigger="hover">
           <template #trigger>
             <div
@@ -121,6 +132,7 @@ import { provide, onMounted, onUnmounted, defineComponent } from 'vue';
 
 import ModalCard from '@/components/CRUD/ModalCard.vue';
 import Essential from '@/components/templateComponents';
+import execTemplate from '@/components/templateComponents/execTemplate.vue';
 import {
   CollectionsAdd24Filled as Copy,
   DocumentAdd16Filled as Create,
@@ -129,6 +141,7 @@ import {
 import { Socket } from '@/socket.js';
 import settings from '@/assets/config/settings.js';
 import template from './modules/template.js';
+import { execModalRef, postExecData } from './modules/execTemplate';
 
 export default defineComponent({
   components: {
@@ -136,6 +149,7 @@ export default defineComponent({
     ...Essential,
     Copy,
     Create,
+    execTemplate
   },
   setup() {
     const templateSocket = new Socket(`ws://${settings.serverPath}/template`);
@@ -161,6 +175,8 @@ export default defineComponent({
     return {
       settings,
       ...template,
+      postExecData,
+      execModalRef,
       handleCloneClick() {
         window.$message?.info('克隆功能将于下一个版本更新');
       },

@@ -40,6 +40,12 @@ const detailsList = ref([
     title: '用例详情',
     name: 'caseDetails',
     rows: [
+      {
+        cols: [
+          { label: '机器类型', value: '' },
+          { label: '机器数量', value: '' },
+        ],
+      },
       { cols: [{ label: '描述', value: '' }] },
       { cols: [{ label: '预置条件', value: '' }] },
       { cols: [{ label: '测试步骤', value: '' }] },
@@ -127,6 +133,12 @@ function setDataList(Info) {
       title: '用例详情',
       name: 'caseDetails',
       rows: [
+        {
+          cols: [
+            { label: '机器类型', value: Info.machine_type },
+            { label: '机器数量', value: Info.machine_num },
+          ],
+        },
         { cols: [{ label: '描述', value: Info.description, type: 'pre' }] },
         { cols: [{ label: '预置条件', value: Info.preset, type: 'pre' }] },
         { cols: [{ label: '测试步骤', value: Info.steps, type: 'pre' }] },
@@ -170,7 +182,9 @@ function getDetail(caseId) {
           caseInfo.value.title = res.data.title;
           if (response.data[0].git_repo?.framework?.id) {
             axios
-              .get('/v1/framework', { id: response.data[0].framework_id })
+              .get('/v1/framework', {
+                id: response.data[0].git_repo.framework.id,
+              })
               .then((result) => {
                 [caseInfo.value.framework] = result.data;
                 setDataList(caseInfo.value);

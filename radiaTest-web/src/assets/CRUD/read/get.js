@@ -1,43 +1,37 @@
 import axios from '@/axios';
 import { any2standard } from '@/assets/utils/dateFormatUtils';
 
-const list = (url, data, loading,params) => {
-  loading
-    ? loading.value = true
-    : 0;
+const list = (url, data, loading, params) => {
+  loading ? (loading.value = true) : 0;
   axios
-    .get(url,params)
+    .get(url, params)
     .then((res) => {
-      res.data.map((item) => {
-        item.start_time
-          ? item.start_time = any2standard(item.start_time)
-          : 0;
-        item.end_time
-          ? item.end_time = any2standard(item.end_time)
-          : 0;
+      let resData;
+      if (Array.isArray(res.data)) {
+        resData = res.data;
+      } else {
+        resData = res.data.items;
+      }
+      resData.forEach((item) => {
+        item.start_time ? (item.start_time = any2standard(item.start_time)) : 0;
+        item.end_time ? (item.end_time = any2standard(item.end_time)) : 0;
         item.create_time
-          ? item.start_time = any2standard(item.start_time)
+          ? (item.start_time = any2standard(item.start_time))
           : 0;
-        item.update_time
-          ? item.end_time = any2standard(item.end_time)
-          : 0;
+        item.update_time ? (item.end_time = any2standard(item.end_time)) : 0;
       });
-      data.value = res.data;
-      loading
-        ? loading.value = false
-        : 0;
+      data.value = resData;
+      loading ? (loading.value = false) : 0;
     })
     .catch(() => {
       window.$message?.error('发生未知错误，获取数据失败');
-      loading
-        ? loading.value = false
-        : 0;
+      loading ? (loading.value = false) : 0;
     });
 };
 
-const refresh = (url, data, loading,pramas) => {
+const refresh = (url, data, loading, pramas) => {
   if (!loading.value) {
-    list(url, data, loading,pramas);
+    list(url, data, loading, pramas);
   }
 };
 
@@ -47,18 +41,12 @@ const filter = (url, data, loading, filters) => {
     .get(url, filters)
     .then((res) => {
       res.data.map((item) => {
-        item.start_time
-          ? item.start_time = any2standard(item.start_time)
-          : 0;
-        item.end_time
-          ? item.end_time = any2standard(item.end_time)
-          : 0;
+        item.start_time ? (item.start_time = any2standard(item.start_time)) : 0;
+        item.end_time ? (item.end_time = any2standard(item.end_time)) : 0;
         item.create_time
-          ? item.start_time = any2standard(item.start_time)
+          ? (item.start_time = any2standard(item.start_time))
           : 0;
-        item.update_time
-          ? item.end_time = any2standard(item.end_time)
-          : 0;
+        item.update_time ? (item.end_time = any2standard(item.end_time)) : 0;
       });
       data.value = res.data;
       loading.value = false;

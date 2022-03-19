@@ -1,6 +1,7 @@
 import { h, ref } from 'vue';
 import { NSpace, NTag, NIcon, NButton } from 'naive-ui';
 import { Construct } from '@vicons/ionicons5';
+import { Locked } from '@vicons/carbon';
 import { renderTooltip } from '@/assets/render/tooltip';
 
 import PowerButton from '@/components/pmachineComponents/changeState/PowerButton';
@@ -23,6 +24,15 @@ const ColumnState = {
   render(row) {
     if (row.state === 'idle') {
       return h('span', null, '空闲');
+    }
+    if (row.locked) {
+      return h(
+        NIcon,
+        {},
+        {
+          default: () => h(Locked),
+        }
+      );
     }
     return h('span', null, '占用');
   },
@@ -69,9 +79,8 @@ const ColumnDescription = {
           'used for CI'
         )
       );
-    } 
+    }
     return h('div', {}, row.description);
-    
   },
 };
 
@@ -94,47 +103,44 @@ const getColumnOperation = (updateHandler) => {
     key: 'action',
     className: 'cols operation',
     render: (row) => {
-      return h(
-        NSpace,
-        {
-          class: 'operation',
-        },
-        [
-          h(PowerButton, {
+      return h(NSpace, { class: 'operation' }, [
+        h(PowerButton, {
+          id: row.id,
+          disabled: row.locked,
+          status: row.status,
+        }),
+        h(ConnectButton, {
+          disabled: row.locked,
+          data: {
             id: row.id,
-            status: row.status,
-          }),
-          h(ConnectButton, {
-            data: {
-              id: row.id,
-              state: row.state,
-              ip: row.ip,
-              mac: row.mac,
-              end_time: row.end_time,
-              listen: row.listen,
-              description: row.description,
+            state: row.state,
+            ip: row.ip,
+            mac: row.mac,
+            end_time: row.end_time,
+            listen: row.listen,
+            description: row.description,
+          },
+        }),
+        h(InstallButton, {
+          id: row.id,
+          disabled: row.locked,
+        }),
+        renderTooltip(
+          h(
+            NButton,
+            {
+              size: 'medium',
+              type: 'warning',
+              circle: true,
+              disabled: row.state === 'occupied' || row.locked,
+              onClick: () => updateHandler(row),
             },
-          }),
-          h(InstallButton, {
-            id: row.id,
-          }),
-          renderTooltip(
-            h(
-              NButton,
-              {
-                size: 'medium',
-                type: 'warning',
-                circle: true,
-                disabled: row.state === 'occupied',
-                onClick: () => updateHandler(row),
-              },
-              h(NIcon, { size: '20' }, h(Construct))
-            ),
-            '修改'
+            h(NIcon, { size: '20' }, h(Construct))
           ),
-        ]
-      );
-    }
+          '修改'
+        ),
+      ]);
+    },
   };
 };
 
@@ -177,9 +183,4 @@ const createColumns = (updateHandler) => {
   ];
 };
 
-export {
-  ColumnDefault,
-  createColumns,
-  ColumnEndtime,
-};
-
+export { ColumnDefault, createColumns, ColumnEndtime };

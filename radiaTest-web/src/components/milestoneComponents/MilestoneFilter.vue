@@ -15,9 +15,9 @@ import milestoneTable from '@/views/milestone/modules/milestoneTable';
 import { get } from '@/assets/CRUD/read';
 
 export default defineComponent({
-  methods:{
-    searchMilestone(){
-      get.list('/v1/milestone', milestoneTable.totalData, milestoneTable.loading,milestoneTable.filter.value);
+  methods: {
+    searchMilestone() {
+      get.list('/v2/milestone', milestoneTable.totalData, milestoneTable.loading, milestoneTable.filter.value);
     }
   },
   setup() {

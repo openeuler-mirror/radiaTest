@@ -108,7 +108,7 @@ export default defineComponent({
       ...createForm,
       handlePropsButtonClick: () => validation(createForm.formRef, context),
       post: () => {
-        createAjax.postForm('/v1/milestone', createForm.formValue);
+        createAjax.postForm('/v2/milestone', createForm.formValue);
         context.emit('close');
       }
     };

@@ -26,6 +26,7 @@ function getOrg() {
     storage.setValue('role', defaultOrg.re_user_org_role_type);
     storage.setValue('orgId', defaultOrg.org_id);
     storage.setValue('gitee_name', data.gitee_name);
+    storage.setValue('enterpriseId',defaultOrg.org_enterprise);
     avatarUrl.value = data.avatar_url;
   });
 }
