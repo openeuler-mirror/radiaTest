@@ -1,7 +1,8 @@
 import axios from '@/axios';
 import { any2standard } from '@/assets/utils/dateFormatUtils';
+import { unkonwnErrorMsg } from '@/assets/utils/description.js';
 
-const list = (url, data, loading, params) => {
+const list = (url, data, loading, params, page) => {
   loading ? (loading.value = true) : 0;
   axios
     .get(url, params)
@@ -22,9 +23,10 @@ const list = (url, data, loading, params) => {
       });
       data.value = resData;
       loading ? (loading.value = false) : 0;
+      page?.value && (page.value.pageCount = res.data.pages || 1);
     })
-    .catch(() => {
-      window.$message?.error('发生未知错误，获取数据失败');
+    .catch((err) => {
+      window.$message?.error(err.data?.error_msg || unkonwnErrorMsg);
       loading ? (loading.value = false) : 0;
     });
 };
@@ -51,8 +53,8 @@ const filter = (url, data, loading, filters) => {
       data.value = res.data;
       loading.value = false;
     })
-    .catch(() => {
-      window.$message?.error('发生未知错误，获取数据失败');
+    .catch((err) => {
+      window.$message?.error(err.data?.error_msg || unkonwnErrorMsg);
       loading.value = false;
     });
 };

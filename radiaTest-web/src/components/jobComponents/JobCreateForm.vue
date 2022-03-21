@@ -45,6 +45,7 @@
                 :options="versionOpts"
                 v-model:value="formValue.version"
                 placeholder="选择版本"
+                :disabled="!formValue.product"
                 filterable
               />
             </n-form-item>
@@ -54,6 +55,7 @@
               :options="milestoneOpts"
               v-model:value="formValue.milestone"
               placeholder="选择模板绑定的里程碑"
+              :disabled="!formValue.version"
               filterable
             />
           </n-form-item-gi>
@@ -70,6 +72,7 @@
               :options="repoOpts"
               v-model:value="formValue.git_repo_id"
               @update:value="repoChange"
+              :disabled="!formValue.framework"
               placeholder="选择测试脚本代码仓"
             />
           </n-form-item-gi>
@@ -79,6 +82,7 @@
               v-model:value="formValue.suite"
               :render-option="renderSuiteOption"
               placeholder="选择测试套"
+              :disabled="!formValue.git_repo_id"
               @update:value="changeSuite"
               filterable
             />

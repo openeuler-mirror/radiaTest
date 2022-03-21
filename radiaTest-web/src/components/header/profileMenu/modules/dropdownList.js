@@ -1,7 +1,7 @@
 import { h, ref } from 'vue';
 import { NIcon } from 'naive-ui';
 import { HomeOutlined } from '@vicons/antd';
-import { Exit, SwapHorizontal } from '@vicons/ionicons5';
+import { Exit } from '@vicons/ionicons5';
 
 import { activeOrg, orgOptions, currentOrg, getOrg } from './orgInfo';
 import axios from '@/axios';
@@ -17,15 +17,6 @@ const options = [
         default: () => h(HomeOutlined)
       });
     },
-  },
-  {
-    label: '切换组织',
-    key: 'accountManagement',
-    icon () {
-      return h(NIcon, null, {
-        default: () => h(SwapHorizontal)
-      });
-    }
   },
   {
     label: '退出登陆',

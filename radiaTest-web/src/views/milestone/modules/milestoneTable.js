@@ -1,5 +1,6 @@
 import { ref, computed } from 'vue';
 import store from '@/store';
+import { get } from '@/assets/CRUD/read';
 
 const totalData = ref([]);
 const rowData = ref({});
@@ -9,10 +10,11 @@ const showIssueDrawer = ref(false);
 const isCheck = ref(false);
 const loading = ref(true);
 const isUpdating = ref(false);
+const pagination = ref({ page: 1, pageCount: 1, pageSize: 10 });
 const filter = ref({
   name: '',
-  page_num: 1,
-  page_size: 10,
+  page_num: pagination.value.page,
+  page_size: pagination.value.pageSize,
 });
 
 const rowProps = (row) => {
@@ -42,6 +44,14 @@ const handleCheck = (rowKeys) => {
   isCheck.value = true;
   store.commit('selected/setSelectedData', rowKeys);
 };
+function getTableData(){
+  get.list('/v2/milestone', totalData, loading,filter.value,pagination);
+}
+function changePage(page){
+  pagination.value.page = page;
+  getTableData();
+}
+
 
 export default {
   data,
@@ -56,4 +66,7 @@ export default {
   handleCheck,
   isUpdating,
   showIssueDrawer,
+  pagination,
+  changePage,
+  getTableData
 };

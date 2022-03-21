@@ -9,7 +9,7 @@ class ConnectState {
   constructor(data) {
     this.originData = data;
     this.formValue = ref(data);
-    this.datetime = ref(undefined);
+    this.datetime = ref(data.end_time);
     data.end_time ? (this.datetime.value = any2stamp(data.end_time)) : 0;
   }
   update(newData) {
@@ -164,7 +164,7 @@ const handleOccupy = async (dOccupy, connect) => {
 const handleRelease = (dRelease, connect) => {
   return new Promise((resolve, reject) => {
     dRelease.content = '释放请求已发送';
-    return axios
+    axios
       .put('/v1/pmachine', {
         id: connect.formValue.value.id,
         state: 'idle',
@@ -219,6 +219,9 @@ const renderOccupy = (connect) => {
       value: connect.formValue.value.description,
       onUpdateValue: connect.updateDescription,
       options: getDesOptions(connect.formValue),
+      inputProps:{
+        focus:false
+      },
       placeholder: '请输入使用说明',
     }),
     connect.listenText(),

@@ -8,8 +8,8 @@ const server = axios.create({
   baseURL: '/api',
   withCredentials: true,
   headers: {
-    'Content-Type': 'application/json;charset=UTF-8'
-  }
+    'Content-Type': 'application/json;charset=UTF-8',
+  },
 });
 // axios.defaults.baseURL = '/api';
 
@@ -22,7 +22,7 @@ const server = axios.create({
 
 //请求拦截器
 server.interceptors.request.use(
-  config => {
+  (config) => {
     let token;
     if (config.url.indexOf('login') === -1) {
       try {
@@ -36,34 +36,41 @@ server.interceptors.request.use(
     }
     return config;
   },
-  error => {
+  (error) => {
     return Promise.reject(error);
   }
 );
 //回应拦截器
 server.interceptors.response.use(
-  response => {
-    if (response.data.error_code === 200 || response.data.error_code === '2000' || !response.data.error_code) {
-      response.headers.authorization && storage.setValue('token', response.headers.authorization);
+  (response) => {
+    if (
+      response.data.error_code === 200 ||
+      response.data.error_code === '2000' ||
+      !response.data.error_code
+    ) {
+      response.headers.authorization &&
+        storage.setValue('token', response.headers.authorization);
       return Promise.resolve(response);
     }
     return Promise.reject(response);
   },
-  error => {
+  (error) => {
     if (error.response.status === 401) {
       window.$message?.destroyAll();
       window.$message?.error('请重新登陆');
       router.push({
         name: 'login',
       });
-    }else if(error.response.status === 500){
+    } else if (error.response.status === 500) {
       window.$message?.destroyAll();
       error.response.data = {
-        error_msg:'服务端错误'
+        error_msg: '服务端错误',
       };
-    }else if(error.response.status === 400){
+    } else if (error.response.status === 400) {
       error.response.data = {
-        error_msg:error.response.data.validation_error.body_params[0].msg
+        error_msg:
+          error.response.data.validation_error.body_params[0]?.msg ||
+          error.response.data.validation_error.query_params[0]?.msg,
       };
     }
     return Promise.reject(error.response || error);
@@ -79,10 +86,10 @@ export default {
         url,
         data,
       })
-        .then(res => {
+        .then((res) => {
           resolve(res.data);
         })
-        .catch(err => {
+        .catch((err) => {
           reject(err);
         });
     });
@@ -95,10 +102,10 @@ export default {
         url,
         params: data,
       })
-        .then(res => {
+        .then((res) => {
           resolve(res.data);
         })
-        .catch(err => {
+        .catch((err) => {
           reject(err);
         });
     });
@@ -111,10 +118,10 @@ export default {
         url,
         data,
       })
-        .then(res => {
+        .then((res) => {
           resolve(res.data);
         })
-        .catch(err => {
+        .catch((err) => {
           reject(err);
         });
     });
@@ -127,10 +134,10 @@ export default {
         url,
         data,
       })
-        .then(res => {
+        .then((res) => {
           resolve(res.data);
         })
-        .catch(err => {
+        .catch((err) => {
           reject(err);
         });
     });

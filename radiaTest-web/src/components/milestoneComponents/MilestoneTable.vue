@@ -10,6 +10,8 @@
     :row-key="(row) => row.id"
     :row-props="(row) => rowProps(row)"
     @update:checked-row-keys="(keys) => handleCheck(keys)"
+    :pagination="pagination"
+    @update:page="changePage"
   />
 </template>
 
@@ -29,17 +31,27 @@ export default defineComponent({
     const store = useStore();
     const milestoneSocket = new Socket(`ws://${settings.serverPath}/milestone`);
     milestoneSocket.connect();
-
     onMounted(() => {
-      get.list('/v2/milestone', milestoneTable.totalData, milestoneTable.loading,milestoneTable.filter.value);
+      get.list(
+        '/v2/milestone',
+        milestoneTable.totalData,
+        milestoneTable.loading,
+        milestoneTable.filter.value,
+        milestoneTable.pagination
+      );
       milestoneSocket.listen('update', () => {
-        get.list('/v2/milestone', milestoneTable.totalData, milestoneTable.loading,milestoneTable.filter.value);
+        get.list(
+          '/v2/milestone',
+          milestoneTable.totalData,
+          milestoneTable.loading,
+          milestoneTable.filter.value,
+          milestoneTable.pagination
+        );
       });
     });
     onUnmounted(() => {
       milestoneSocket.disconnect();
     });
-
     const columns = ref(
       createColumns((row) => {
         let data = JSON.parse(JSON.stringify(row));
@@ -50,7 +62,6 @@ export default defineComponent({
         context.emit('update', row);
       })
     );
-
     return {
       store,
       columns,
@@ -58,7 +69,12 @@ export default defineComponent({
       showSelection: () => selection.show(columns),
       offSelection: () => selection.off(columns),
       refreshData: () =>
-        get.refresh('/v2/milestone', milestoneTable.data, milestoneTable.loading,milestoneTable.filter.value),
+        get.refresh(
+          '/v2/milestone',
+          milestoneTable.data,
+          milestoneTable.loading,
+          milestoneTable.filter.value
+        ),
     };
   },
 });
