@@ -1,4 +1,4 @@
-from datetime import datetime
+import abc
 import json
 import time
 from random import choice
@@ -91,6 +91,10 @@ class Messenger:
         self._pmachine = pmachine
         self._method = method
 
+    @abc.abstractmethod
+    def handle_callback(self):
+        pass
+
     def work(self):
         try:
             response = request(
@@ -116,27 +120,43 @@ class Messenger:
             })
 
             resp_dict = json.loads(resp)
-
-            celerytask_body = resp_dict.get("data")
-
-            if not celerytask_body:
-                return resp_dict
-
-            celerytask_body.update({
-                "state": "PENDING",
-                "object_type": "vmachine",
-                "vmachine_id": self._body.get("id"),
-                "user_id": int(g.gitee_id),
-            })
-
-            _ = Insert(CeleryTask, celerytask_body).single(
-                CeleryTask, "/celerytask")
-
-            return self._body
+            
+            return self.handle_callback(resp_dict)
 
         except RequestException as e:
             current_app.logger.error(e)
             raise RecursionError(e)
+
+
+class CeleryMessenger(Messenger):
+    def handle_callback(self, resp_dict):
+        celerytask_body = resp_dict.get("data")
+
+        if not celerytask_body:
+            return resp_dict
+
+        celerytask_body.update({
+            "state": "PENDING",
+            "object_type": "vmachine",
+            "vmachine_id": self._body.get("id"),
+            "user_id": int(g.gitee_id),
+        })
+
+        _ = Insert(CeleryTask, celerytask_body).single(
+            CeleryTask, "/celerytask")
+        
+        return self._body
+
+
+class SyncMessenger(Messenger):
+    def handle_callback(self, resp_dict):
+        if resp_dict.get("error_code"):
+            return resp_dict
+
+        self._body.update({"pmachine_id": self._pmachine.id})
+        self._body.update(resp_dict)
+
+        return self._body
 
 def check_available_mem(ip, pwd, vm_mem):
     ssh = Connection(ip, pwd)
@@ -232,20 +252,28 @@ class CreateVmachine(AuthMessageBody):
             return output
 
         self._body.update(
-            {"id": Precise(
-                Vmachine, {"name": self._body.get("name")}).first().id}
+            {
+                "id": Precise(
+                    Vmachine, 
+                    {"name": self._body.get("name")}
+                ).first().id
+            }
         )
 
         self._body.update({"status": "installing"})
         output = Edit(Vmachine, self._body).single(Vmachine, "/vmachine")
         if isinstance(output, dict):
-            Delete(Vmachine, {"name": self._body.get("name")}).single(
-                Vmachine, "/vmachine"
-            )
+            Delete(
+                Vmachine, 
+                {"name": self._body.get("name")}
+            ).single(Vmachine, "/vmachine")
             return output
 
-        output = Messenger(self._body, pmachine,
-                           "virtual/machine", "post").work()
+        output = CeleryMessenger(
+            self._body, 
+            pmachine,
+            "virtual/machine", "post"
+        ).work()
 
         self._body.update(output)
 
@@ -267,8 +295,11 @@ class Control(MessageBody):
         self._body = body
 
     def run(self):
-        output = Messenger(self._body, self._pmachine,
-                           "virtual/machine/power").work()
+        output = SyncMessenger(
+            self._body, 
+            self._pmachine,
+            "virtual/machine/power"
+        ).work()
 
         if output.get("error_code"):
             return output
@@ -302,7 +333,7 @@ class DeleteVmachine(MessageBody):
         for vmachine in vmachines:
             pmachine = vmachine.pmachine
             if pmachine:
-                resp = Messenger(
+                resp = SyncMessenger(
                     vmachine.to_json(),
                     pmachine,
                     "virtual/machine",
@@ -348,7 +379,7 @@ class ForceDeleteVmachine(MessageBody):
             vmachine.delete(Vmachine, "/vmachine")
         return jsonify({"error_code": RET.OK, "error_msg": "success to delete."})
 
-class DeviceManager(Messenger):
+class DeviceManager(SyncMessenger):
     def add(self, table):
         vmachine = Precise(
             Vmachine, {"id": self._body.get("vmachine_id")}).first()

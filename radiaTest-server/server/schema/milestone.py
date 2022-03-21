@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field, constr, root_validator
 
 from server.model import Product, Milestone
 from server.utils.db import Precise
-from server.schema import MilestoneType, MilestoneState
+from server.schema import MilestoneType, MilestoneState, MilestoneStateEvent
 
 
 class MilestoneBaseSchema(BaseModel):
@@ -17,7 +17,7 @@ class MilestoneBaseSchema(BaseModel):
     product_id: Optional[int]
     type: Optional[MilestoneType]
     state: Optional[MilestoneState]
-    is_sync: Optional[bool] = True
+    is_sync: Optional[bool]
 
 
 class MilestoneQuerySchema(MilestoneBaseSchema):
@@ -27,8 +27,12 @@ class MilestoneQuerySchema(MilestoneBaseSchema):
 
 
 class MilestoneUpdateSchema(BaseModel):
-    state_event: Literal["activate", "close"]
-
+    start_time: Optional[datetime.datetime]
+    description: Optional[constr(max_length=255)]
+    name: Optional[constr(max_length=64)]
+    end_time: Optional[datetime.datetime]
+    state_event: Optional[MilestoneStateEvent]
+    
 
 class MilestoneCreateSchema(MilestoneBaseSchema):
     product_id: int
@@ -91,11 +95,7 @@ class GiteeMilestoneEdit(GiteeMilestoneBase):
     title: Optional[str] = Field(alias="name")
     start_date: Optional[str] = Field(alias="start_time")
     due_date: Optional[str] = Field(alias="end_time")
-    
-
-class GiteeMilestoneChangeState(BaseModel):
-    access_token: str
-    state_event: Literal["activate", "close"]
+    state_event:  Optional[Literal["activate", "close"]]
 
 
 class GiteeIssueQueryV8(BaseModel):

@@ -5,6 +5,7 @@ from server import casbin_enforcer
 from server.utils.auth_util import auth
 from server.utils.response_util import response_collect
 from server.schema.permission import (
+    AccessableMachinesQuery,
     RoleBaseSchema, 
     RoleUpdateSchema, 
     RoleQuerySchema,
@@ -14,7 +15,7 @@ from server.schema.permission import (
     UserRoleBaseSchema,
     ScopeRoleBaseSchema
 )
-from .handler import RoleHandler, ScopeHandler, UserRoleLimitedHandler, ScopeRoleLimitedHandler
+from .handler import AccessableMachinesHandler, RoleHandler, ScopeHandler, UserRoleLimitedHandler, ScopeRoleLimitedHandler
 
 
 class RoleEvent(Resource):
@@ -219,3 +220,11 @@ class ScopeRoleGroupEvent(Resource):
             group_id=group_id, 
             body=body
         ).unbind_scope()
+    
+
+class AccessableMachinesEvent(Resource):
+    @auth.login_required
+    @response_collect
+    @validate()
+    def get(self, query: AccessableMachinesQuery):
+        return AccessableMachinesHandler.get_all(query)

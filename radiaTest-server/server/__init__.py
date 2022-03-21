@@ -24,14 +24,24 @@ casbin_enforcer = CasbinEnforcer()
 
 
 from server.sockets.monitor_socket import RemoteMonitorSocket
-from server.utils.resource_monitor import RemoteShellMonitor, RemoteRestfulMonitor
-
+from server.sockets.xterm import TerminalSocket
+from server.utils.resource_monitor import RemoteShellMonitor
+from server.utils.resource_monitor import RemoteRestfulMonitor
 
 socketio.on_namespace(
-    RemoteMonitorSocket("/monitor/normal", RemoteShellMonitor)
+    TerminalSocket("/xterm")
 )
 socketio.on_namespace(
-    RemoteMonitorSocket("/monitor/host", RemoteRestfulMonitor)
+    RemoteMonitorSocket(
+        "/monitor/normal", 
+        RemoteShellMonitor
+    )
+)
+socketio.on_namespace(
+    RemoteMonitorSocket(
+        "/monitor/host", 
+        RemoteRestfulMonitor
+    )
 )
 
 

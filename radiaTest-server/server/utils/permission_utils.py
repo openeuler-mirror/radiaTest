@@ -1,4 +1,5 @@
 import json
+from paramiko import SSHException
 import requests
 from typing import List
 
@@ -66,7 +67,9 @@ class PermissionManager:
 
 
 class PermissionItemsPool:
-    def __init__(self, origin_pool, namespace, act, auth):
+    def __init__(
+        self, origin_pool, namespace, act, auth, get_query_object=False
+    ):
         self.origin_pool = origin_pool
         self._root_url = "api/{}/{}".format(
             current_app.config.get("OFFICIAL_API_VERSION"), 
@@ -74,6 +77,7 @@ class PermissionItemsPool:
         )
         self.act = act
         self.auth = auth
+        self.get_query_object = get_query_object
 
     def _get_items(self, eft):
         return_data = []
@@ -96,12 +100,22 @@ class PermissionItemsPool:
                 if _resp.status_code != 200:
                     raise RuntimeError(_resp.text)
 
-                _output = json.loads(_resp.text)
+                _output = None
+                try:
+                    _output = json.loads(_resp.text)
+                except AttributeError:
+                    try:
+                        _output = _resp.json
+                    except AttributeError as e:
+                        raise RuntimeError(str(e))
 
                 if (_output.get("error_code") != RET.UNAUTHORIZE_ERR) == (eft == "allow"):
-                    return_data.append(_item.id)
+                    if not self.get_query_object:
+                        return_data.append(_item.id)
+                    else:
+                        return_data.append(_item)
 
-            except Exception as e:
+            except (SSHException, RuntimeError) as e:
                 current_app.logger.warn(str(e))
                 continue
         

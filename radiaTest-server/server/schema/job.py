@@ -3,7 +3,7 @@ from typing import Optional, List
 
 from pydantic import BaseModel, constr, root_validator, validator
 
-from server.schema import Frame, JobDefaultStates, JobSortedBy, MachinePolicy
+from server.schema import Frame, JobDefaultStates, JobSortedBy, MachinePolicy, MachineType
 from server.schema.base import PageBaseSchema
 from server.utils.db import Precise
 from server.model import Milestone

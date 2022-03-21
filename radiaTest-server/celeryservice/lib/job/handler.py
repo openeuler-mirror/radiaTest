@@ -2,12 +2,14 @@ import json
 from datetime import datetime
 
 from flask import current_app
+from sqlalchemy import or_, and_
 from celery import chord
 
 from server.utils.db import Edit, Insert
 from server.utils.response_util import RET
 from server.utils.permission_utils import PermissionItemsPool
 from server.model.job import Job
+from server.model.user import User
 from server.model.testcase import Suite
 from server.model.pmachine import Pmachine
 from server.model.task import TaskMilestone
@@ -32,10 +34,24 @@ class RunJob(TaskAuthHandler):
 
     @property
     def pmachine_pool(self):
-        _pmachines = Pmachine.query.filter_by(
-            locked=False,
-            status="on",
-            description=current_app.config.get("CI_PURPOSE")
+        user= User.query.filter_by(
+            gitee_id=self.user.get("user_id")
+        ).first()
+
+        _pmachines = Pmachine.query.filter(
+            Pmachine.frame==self._body.get("frame"),
+            Pmachine.state=="occupied",
+            Pmachine.locked==False,
+            Pmachine.status=="on",
+            or_(
+                Pmachine.description==current_app.config.get("CI_PURPOSE"),
+                and_(
+                    Pmachine.occupier==user.gitee_name,
+                    Pmachine.description!=current_app.config.get(
+                        "CI_HOST"
+                    )
+                )
+            ),
         ).all()
 
         return PermissionItemsPool(
