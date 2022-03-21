@@ -329,7 +329,7 @@ class DistributeTaskCaseSchema(BaseModel):
     child_task_id: int
 
 
-class DistributeTemplateType(object):
+class DistributeTemplateTypeSchema(object):
     class Add(BaseModel):
         name: str = Field(..., max_length=32)
         executor_id: int
@@ -366,7 +366,7 @@ class DistributeTemplate(object):
     class Add(BaseModel):
         name: str = Field(..., max_length=32)
         group_id: int
-        types: List[DistributeTemplateType.Add] = None
+        types: List[DistributeTemplateTypeSchema.Add] = None
 
     class Query(PageBaseSchema):
         name: str = None

@@ -258,19 +258,19 @@ class DistributeTemplateType(Base, db.Model):
     name = db.Column(db.String(32), nullable=False)
     creator_id = db.Column(db.Integer, nullable=False)
     executor_id = db.Column(db.Integer, db.ForeignKey("user.gitee_id"), nullable=False)
-    suites = db.Column(db.Text, nullable=True, default='')
-    helpers = db.Column(db.Text, nullable=True, default='')
+    suites = db.Column(db.Text, nullable=True)
+    helpers = db.Column(db.Text, nullable=True)
     template_id = db.Column(db.Integer, db.ForeignKey("task_distribute_template.id"))
 
     def to_json(self):
         suites = None
         if self.suites:
-            suites = self.suites.split(',')
-            suites = [item.to_json() for item in Suite.query.filter(Suite.id.in_(suites))]
+            _suites = self.suites.split(',')
+            suites = [item.to_json() for item in Suite.query.filter(Suite.id.in_(_suites))]
         helpers = None
         if self.helpers:
-            helpers = self.helpers.split(',')
-            helpers = [item.to_dict() for item in User.query.filter(User.gitee_id.in_(helpers))]
+            _helpers = self.helpers.split(',')
+            helpers = [item.to_dict() for item in User.query.filter(User.gitee_id.in_(_helpers))]
         return {
             'id': self.id,
             'name': self.name,
@@ -280,14 +280,4 @@ class DistributeTemplateType(Base, db.Model):
             'helpers': helpers,
             'create_time': self.create_time
             # 'template': self.template.to_json()
-        }
-
-    @property
-    def dict(self):
-        return {
-            'id': self.id,
-            'name': self.name,
-            'executor_id': self.executor_id,
-            'suites': self.suites.split(',') if self.suites else None,
-            'helpers': self.helpers.split(',') if self.helpers else None
         }

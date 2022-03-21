@@ -281,19 +281,19 @@ class DistributeType(Resource):
     @auth.login_required()
     @response_collect
     @validate()
-    def get(self, query: DistributeTemplateType.Query):
+    def get(self, query: DistributeTemplateTypeSchema.Query):
         return HandlerTemplateType.get(query)
 
     @auth.login_required()
     @response_collect
     @validate()
-    def post(self, template_id, body: DistributeTemplateType.Add):
+    def post(self, template_id, body: DistributeTemplateTypeSchema.Add):
         return HandlerTemplateType.add(template_id, body)
 
     @auth.login_required()
     @response_collect
     @validate()
-    def put(self, type_id, body: DistributeTemplateType.Update):
+    def put(self, type_id, body: DistributeTemplateTypeSchema.Update):
         return HandlerTemplateType.update(type_id, body)
 
     @auth.login_required()
