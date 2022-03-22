@@ -27,26 +27,34 @@ from server.schema.vmachine import (
 )
 from server.utils.auth_util import auth
 from server.utils.db import Edit, Like, Select
+from server.utils.response_util import response_collect
 from server.model import Vmachine, Vdisk, Vnic
 
 
 class VmachineEventItem(Resource):
+    @auth.login_required
+    @response_collect
     @validate()
     def delete(self, vmachine_id):
         return DeleteVmachine({"id":vmachine_id}).run()
 
+    @auth.login_required
+    @response_collect
     @validate()
     def get(self, vmachine_id):
         return Select(Vmachine, {"id":vmachine_id}).single()
 
+
 class VmachineEvent(Resource):
     @auth.login_required
+    @response_collect
     @validate()
     def post(self, body: VmachineBase):
         body.pm_select_mode = "auto"
         return CreateVmachine(body.__dict__).install()
 
     @auth.login_required
+    @response_collect
     @validate()
     def delete(self, body: DeleteBaseModel):
         return DeleteVmachine(body.__dict__).run()
@@ -71,7 +79,10 @@ class VmachineEvent(Resource):
             return jsonify(list(set(results)))
         return Select(Vmachine, body).fuzz()
 
+
 class VmachineCallbackEvent(Resource):
+    @auth.login_required
+    @response_collect
     def put(self):
         body = request.json
         return VmachineAsyncResultHandler.edit(body)
@@ -82,16 +93,19 @@ class VmachineControl(Resource):
     def put(self, body: Power):
         return Control(body.__dict__).run()
 
+
 class VmachineDelayEvent(Resource):
     @validate()
     def put(self, vmachine_id, body: VmachineDelay):
         body.id = vmachine_id
         return Edit(Vmachine, body.__dict__).single(Vmachine, "/vmachine")
 
+
 class VmachineEventItemForce(Resource):
     @validate()
     def delete(self, vmachine_id):
         return ForceDeleteVmachine({"id":[vmachine_id]}).run()
+
 
 class AttachDevice(Resource):
     @validate()

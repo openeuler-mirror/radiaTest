@@ -43,7 +43,7 @@ class Config(object):
     HEADERS = {"Content-Type": "application/json;charset=utf8"}
 
     # HTTP PROTOCOL
-    PROTOCAL = "http"
+    PROTOCOL = "http"
 
     # 虚拟机
     # 虚拟机创建基础信息

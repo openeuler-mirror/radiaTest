@@ -1,6 +1,6 @@
 from typing import Optional
 from pydantic import BaseModel, root_validator
-from server.schema import RoleType, ActionType, EffectType
+from server.schema import Frame, MachinePurpose, MachineType, RoleType, ActionType, EffectType
 
 
 class RoleBaseSchema(BaseModel):
@@ -57,3 +57,9 @@ class ScopeUpdateSchema(ScopeBaseSchema):
 
 class ScopeQuerySchema(ScopeUpdateSchema):
     pass
+
+
+class AccessableMachinesQuery(BaseModel):
+    machine_purpose: MachinePurpose
+    machine_type: MachineType
+    frame: Frame

@@ -13,7 +13,7 @@ from server.utils.page_util import PageUtil
 from server.utils.response_util import RET
 from server.model.organization import Organization
 from server.model.milestone import Milestone
-from server.schema.milestone import GiteeMilestoneBase, GiteeMilestoneEdit, GiteeMilestoneChangeState
+from server.schema.milestone import GiteeMilestoneBase, GiteeMilestoneEdit
 
 
 class MilestoneHandler:
@@ -92,8 +92,9 @@ class BaseOpenApiHandler:
         )
 
         _resp.encoding = _resp.apparent_encoding
-        
-        if _resp.status_code != 201:
+
+        if (_resp.status_code != 200 and act == "PUT") \
+            or (_resp.status_code != 201 and act == "POST"):
             current_app.logger.error(_resp.text)
             return jsonify(error_code=RET.BAD_REQ_ERR, error_msg="fail to add_update through gitee v8 openAPI")
         
@@ -199,19 +200,6 @@ class MilestoneOpenApiHandler(BaseOpenApiHandler):
             url=_url,
             data=self.body,
             schema=GiteeMilestoneEdit,
-            handler=Edit,
-        )
-    
-    def change_state(self, milestone_id):
-        _url = "https://api.gitee.com/enterprises/{}/milestones/{}".format(
-            self.current_org.enterprise_id,
-            milestone_id,
-        )
-        return self.add_update(
-            act="PUT",
-            url=_url,
-            data=self.body,
-            schema=GiteeMilestoneChangeState,
             handler=Edit,
         )
 

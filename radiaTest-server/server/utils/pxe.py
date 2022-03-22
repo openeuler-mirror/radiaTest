@@ -9,6 +9,7 @@ import time
 
 from flask import current_app, jsonify
 from flask.helpers import send_file
+from paramiko import SSHException
 from .response_util import RET
 
 
@@ -178,13 +179,24 @@ class QueryIp(DHCP):
         self._mac = mac
 
     def query(self):
-        for _ in range(30):
-            ip = ShellCmd(inquire_ip(self._mac), self._conn)._exec()[1]
-            if ip:
-                break
-            time.sleep(1)
+        ip = None
 
-        if ip:
+        try:
+            if not self._mac:
+                raise RuntimeError(
+                    "worker callback error: have not receive mac from worker"
+                )
+
+            for _ in range(30):
+                ip = ShellCmd(inquire_ip(self._mac), self._conn)._exec()[1]
+                if ip is not None:
+                    break
+                time.sleep(1)
+        
+        except (SSHException, RuntimeError) as e:
+            current_app.logger.error(str(e))
+
+        if isinstance(ip, str):
             return ip.strip()
         else:
             return jsonify({"error_code": RET.NET_CONECT_ERR, "error_msg": "未获取到ip."})

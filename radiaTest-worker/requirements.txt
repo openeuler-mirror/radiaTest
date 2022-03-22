@@ -12,3 +12,4 @@ supervisor==4.2.4
 flower==1.0.0
 click==7.1.2
 gevent-websocket==0.10.1
+redis==3.0.0

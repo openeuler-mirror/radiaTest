@@ -10,6 +10,7 @@ from .routes import UserRoleGroupEvent
 from .routes import ScopeRolePublicEvent
 from .routes import ScopeRoleOrgEvent
 from .routes import ScopeRoleGroupEvent
+from .routes import AccessableMachinesEvent
 
 
 def init_api(api: Api):
@@ -23,3 +24,4 @@ def init_api(api: Api):
     api.add_resource(ScopeRolePublicEvent, "/api/v1/scope_role")
     api.add_resource(ScopeRoleOrgEvent, "/api/v1/scope_role/org/<int:org_id>")
     api.add_resource(ScopeRoleGroupEvent, "/api/v1/scope_role/group/<int:group_id>")
+    api.add_resource(AccessableMachinesEvent, "/api/v1/accessable_machines")

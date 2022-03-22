@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-# @Author : lemon.higgins
-# @Date   : 2021-10-05 11:39:18
-# @Email  : lemon.higgins@aliyun.com
-# @License: Mulan PSL v2
-
-
 import shlex
 import datetime
 from typing import Optional
@@ -205,3 +198,4 @@ class PmachineBasic(BaseModel):
     description: str
     status: str
     bmc_ip: str
+    

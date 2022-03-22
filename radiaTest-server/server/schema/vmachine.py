@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-# @Author : lemon.higgins
-# @Date   : 2021-10-05 11:39:33
-# @Email  : lemon.higgins@aliyun.com
-# @License: Mulan PSL v2
-
-
 import time
 import json
 import string
@@ -160,7 +153,7 @@ class VdiskBase(BaseModel):
     @validator("volume")
     def check_volume(cls, v, values):
         vmachine = Precise(Vmachine, {"id": values.get("vmacine_id")})
-        disk = vmachine.vdisk.query.all()
+        disk = Vdisk.query.filter_by(vmachine_id=values.get("vmacine_id")).all()
         sign = len(disk) + 1
         while [True]:
             v = vmachine.name + str()

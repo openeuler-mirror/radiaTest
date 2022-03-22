@@ -2,6 +2,7 @@ import os
 import sys
 import json
 
+import redis
 from flask_socketio import SocketIO
 from celery import current_app as celery
 from celery.utils.log import get_task_logger
@@ -11,7 +12,7 @@ from celery.schedules import crontab
 from server.model.framework import Framework, GitRepo
 from server.model.celerytask import CeleryTask
 from server.utils.db import Insert
-from server import db, redis_client
+from server import db
 from celeryservice import celeryconfig
 from celeryservice.lib.job.handler import RunSuite, RunTemplate
 from celeryservice.lib.repo.handler import RepoTaskHandler
@@ -25,6 +26,12 @@ sys.path.append(BASE_DIR)
 
 logger = get_task_logger('manage')
 socketio = SocketIO(message_queue=celeryconfig.socketio_pubsub)
+
+# 建立redis backend连接池子
+pool = redis.ConnectionPool.from_url(
+    celeryconfig.result_backend, 
+    decode_responses=True
+)
 
 
 @task_postrun.connect
@@ -47,6 +54,10 @@ def setup_periodic_tasks(sender, **kwargs):
 
 @celery.task
 def async_update_celerytask_status():
+    # 创建redis client连接实例
+    redis_client = redis.StrictRedis(connection_pool=pool)
+
+    # 查询数据库持久化存储的celery task
     _tasks = CeleryTask.query.all()
 
     for _task in _tasks:

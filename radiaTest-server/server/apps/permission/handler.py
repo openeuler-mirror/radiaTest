@@ -1,10 +1,14 @@
-from flask import jsonify
+from flask import jsonify, g, request, current_app
+from sqlalchemy import or_, and_
 
 from server import db
 from server.model.organization import Organization
 from server.model.group import Group
 from server.model.user import User
+from server.model.pmachine import Pmachine
+from server.model.vmachine import Vmachine
 from server.model.permission import ReScopeRole, ReUserRole, Role, Scope
+from server.utils.permission_utils import PermissionItemsPool
 from server.utils.response_util import RET
 from server.utils.db import Insert, Delete, collect_sql_error
 
@@ -281,3 +285,72 @@ class ScopeRoleLimitedHandler(RoleLimitedHandler):
                 "id": re.id,
             }
         ).single()
+
+
+class AccessableMachinesHandler:
+    @staticmethod
+    @collect_sql_error
+    def get_all(query):
+        namespace, origin_pool = None, []
+
+        user = User.query.filter_by(gitee_id=g.gitee_id).first()
+
+        if query.machine_type == "physical":
+            namespace = "pmachine"
+            if query.machine_purpose != "create_vmachine":
+                origin_pool = Pmachine.query.filter(
+                    Pmachine.frame==query.frame,
+                    Pmachine.state=="occupied",
+                    Pmachine.locked==False,
+                    Pmachine.status=="on",
+                    or_(
+                        Pmachine.description==current_app.config.get(
+                            "CI_PURPOSE"
+                        ),
+                        and_(
+                            Pmachine.occupier==user.gitee_name,
+                            Pmachine.description!=current_app.config.get(
+                                "CI_HOST"
+                            )
+                        )
+                    ),
+                ).all()
+            else:
+                origin_pool = Pmachine.query.filter(
+                    Pmachine.frame==query.frame,
+                    Pmachine.state=="occupied",
+                    Pmachine.locked==False,
+                    Pmachine.status=="on",
+                    Pmachine.description==current_app.config.get(
+                        "CI_HOST"
+                    ),
+                ).all()
+
+        elif query.machine_type == "kvm":
+            namespace = "vmachine"
+            origin_pool = Vmachine.query.filter(
+                Vmachine.frame==query.frame,
+                Vmachine.status=="running",
+            ).all()
+        
+        if not namespace:
+            return jsonify(
+                error_code=RET.PARMA_ERR,
+                error_msg="unsupported machine type"
+            )
+
+        permission_pool = PermissionItemsPool(
+            origin_pool, 
+            namespace, 
+            "GET", 
+            request.headers.get("authorization"),
+            True,
+        )
+
+        allow_machines = permission_pool.allow_list
+
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+            data=[machine.to_json() for machine in allow_machines]
+        )

@@ -1,9 +1,3 @@
-# @Author : lemon.higgins
-# @Date   : 2021-10-15 17:03:38
-# @Email  : lemon.higgins@aliyun.com
-# @License: Mulan PSL v2
-
-
 from typing_extensions import Literal
 
 # 里程碑
@@ -11,6 +5,8 @@ from typing_extensions import Literal
 MilestoneType = Literal["release", "round", "update"]
 ## 状态
 MilestoneState = Literal["active", "closed"]
+## 状态事件
+MilestoneStateEvent = Literal["activate", "close"]
 
 # 设备
 ## 架构
@@ -57,11 +53,14 @@ DiskCache = Literal[
 ### 播放总线
 VideoBus = Literal["virtio"]
 
-
-# 测试用例
+# 机器
 ## 机器类型
 MachineType = Literal["kvm", "physical"]
+## 机器用途
+MachinePurpose = Literal["create_vmachine", "run_job"]
 
+
+# 测试用例
 ## 测试级别
 TestLevel = Literal["系统测试", "集成测试", "单元测试"]
 
