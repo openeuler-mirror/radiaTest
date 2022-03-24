@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from enum import Enum
 from pydantic import BaseModel, root_validator
 from flask import g
@@ -6,7 +6,7 @@ from server import redis_client
 from server.utils.redis_util import RedisKey
 from . import PermissionType
 from server.utils.db import Precise
-from server.model import User, Group
+from server.model import User, Group, ReUserGroup
 
 class DeleteBaseModel(BaseModel):
     id: List[int]
@@ -30,33 +30,32 @@ class BaseEnum(Enum):
             return None
 
 class PermissionBase(BaseModel):
-    creater_id: int
+    creator_id: int
     permission_type: PermissionType
-    user_id: int
-    group_id: int
+    group_id: Optional[int] = None
     org_id: int
 
     @root_validator
     def check_exist(cls, values):
         user = Precise(
-            User, {"gitee_id": values.get("creater_id"), "id": values.get("user_id")}
+            User, {"gitee_id": values.get("creator_id")}
         ).first()
         if not user:
             raise ValueError("The user does not exist.")
         
-        if values.get("creater_id") != g.gitee_id:
+        if values.get("creator_id") != g.gitee_id:
             raise ValueError("The user is not current login user.")
         
-        if values.get("org_id") != redis_client.hget(RedisKey.user(g.gitee_id), "current_org_id"):
+        if values.get("org_id") != int(redis_client.hget(RedisKey.user(g.gitee_id), "current_org_id")):
             raise ValueError("The org is not current login org.")
 
         if values.get("permission_type") == "group":
             if not values.get("group_id"):
                 raise ValueError("Lack of group_id for a role of group")
             else:
-                group = Precise(
-                    Group, {"id": values.get("group_id"), "org_id": values.get("org_id")}
+                re_user_group = Precise(
+                    ReUserGroup, {"id": values.get("group_id"), "org_id": values.get("org_id"), "user_gitee_id": values.get("creator_id")}
                 ).first()
-                if not group:
+                if not re_user_group:
                     raise ValueError("The group does not exist or does not belong to current org.")
         return values

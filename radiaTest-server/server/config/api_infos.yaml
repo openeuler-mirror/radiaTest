@@ -1,0 +1,8 @@
+- uri: /api/v1/prodcut/%d
+  act: delete
+  alias: 删除Product
+  table: product
+- uri: /api/v1/prodcut/%d
+  act: get
+  alias: 获取Product
+  table: product

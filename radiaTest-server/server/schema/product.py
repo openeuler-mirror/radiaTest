@@ -1,14 +1,13 @@
 from typing import Optional
 
-from pydantic import BaseModel, constr, root_validator
+from pydantic import constr, root_validator
 
 from server.model import Product
 from server.utils.db import Precise
-from server.schema.base import UpdateBaseModel
-from server.schema import PermissionType
+from server.schema.base import UpdateBaseModel, PermissionBase
 
 
-class ProductBase(BaseModel):
+class ProductBase(PermissionBase):
     name: constr(max_length=32)
     version: constr(max_length=32)
     description: Optional[constr(max_length=255)]

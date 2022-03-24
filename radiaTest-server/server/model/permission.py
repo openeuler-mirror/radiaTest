@@ -39,7 +39,7 @@ class Scope(db.Model, BaseModel):
     act = db.Column(db.String(16), nullable=False)
     eft = db.Column(db.String(16), nullable=False)
 
-    re_scope_role = db.relationship("ReScopeRole", backref="scope") 
+    re_scope_role = db.relationship("ReScopeRole", cascade="all, delete, delete-orphan", backref="scope")
 
     def to_json(self):
         return {
