@@ -241,6 +241,7 @@
               label-placement="left"
               label-align="left"
               label-width="100"
+              v-if="requireCLA"
             >
               <n-input
                 v-model:value="loginInfo.claEmail"
@@ -386,7 +387,9 @@ export default {
   text-align: right;
   color: #204295;
 }
-
+.registerContent {
+  padding: 10px 5px;
+}
 .login-page {
   height: 100%;
   position: relative;

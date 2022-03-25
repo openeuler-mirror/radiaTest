@@ -48,8 +48,8 @@ const taskColumns = [
     key: 'status',
     align: 'center',
     render: (row) => {
-      let color = 'grey';
-      if (row.status === 'DONE') {
+      let color = '';
+      if (row.status === 'SUCCESS') {
         color = 'success';
       } else if (row.status === 'FAILURE') {
         color = 'error';

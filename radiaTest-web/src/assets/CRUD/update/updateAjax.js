@@ -15,33 +15,41 @@ const handleFailUpdate = (msg) => {
   });
 };
 const putForm = (url, formValue) => {
-  axios
-    .put(`${url}/${formValue.value.id}`, formValue.value)
-    .then((res) => {
-      if (res.error_code === '2000') {
-        handleSuccessUpdate();
-      } else {
-        handleFailUpdate(res.error_msg);
-      }
-    })
-    .catch((error) => {
-      handleFailUpdate(error);
-    });
+  return new Promise((resolve, reject) => {
+    axios
+      .put(`${url}/${formValue.value.id}`, formValue.value)
+      .then((res) => {
+        if (res.error_code === '2000') {
+          handleSuccessUpdate();
+        } else {
+          handleFailUpdate(res.error_msg);
+        }
+        resolve();
+      })
+      .catch((error) => {
+        handleFailUpdate(error);
+        reject(error);
+      });
+  });
 };
 const putFormEmitClose = (url, formValue, context) => {
-  axios
-    .put(`${url}/${formValue.value.id}`, formValue.value)
-    .then((res) => {
-      if (res.error_code === '2000') {
-        handleSuccessUpdate();
-        context.emit('close');
-      } else {
-        handleFailUpdate(res.error_msg);
-      }
-    })
-    .catch((error) => {
-      handleFailUpdate(error);
-    });
+  return new Promise((resolve, reject) => {
+    axios
+      .put(`${url}/${formValue.value.id}`, formValue.value)
+      .then((res) => {
+        if (res.error_code === '2000') {
+          handleSuccessUpdate();
+          context.emit('close');
+        } else {
+          handleFailUpdate(res.error_msg);
+        }
+        resolve();
+      })
+      .catch((error) => {
+        handleFailUpdate(error);
+        reject(error);
+      });
+  });
 };
 
 export default {

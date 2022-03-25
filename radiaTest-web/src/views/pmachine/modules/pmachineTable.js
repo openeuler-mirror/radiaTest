@@ -15,20 +15,20 @@ const handleExpand = (rowKeys) => {
   expandedRowKeys.value = rowKeys;
 };
 
-
 const sortQuery = (order = 'ascend') => {
   const copiedData = totalData.value.map((v) => v);
-  const orderedData =
-    // eslint-disable-next-line no-nested-ternary
-    order === 'ascend'
-      ? copiedData.sort((rowA, rowB) =>
-        rowA.end_time.localeCompare(rowB.end_time)
-      )
-      : order === 'descend'
-        ? copiedData.sort((rowA, rowB) =>
-          rowB.end_time.localeCompare(rowA.end_time)
-        )
-        : copiedData;
+  let orderedData;
+  if (order === 'ascend') {
+    orderedData = copiedData.sort((rowA, rowB) =>
+      rowA.end_time.localeCompare(rowB.end_time)
+    );
+  } else if (order === 'descend') {
+    orderedData = copiedData.sort((rowA, rowB) =>
+      rowB.end_time.localeCompare(rowA.end_time)
+    );
+  } else {
+    orderedData = copiedData;
+  }
 
   return orderedData;
 };
@@ -52,25 +52,25 @@ const getFilter = (item, filter) => {
 
 const data = computed(() => {
   const filter = store.getters.filterPmState;
-  return totalData.value.filter(
-    (item) => {
-      const macFilter = getFilter(item.mac, filter.mac);
-      const frameFilter = getFilter(item.frame, filter.frame);
-      const occupierFilter = getFilter(item.occupier, filter.occupier);
-      const ipFilter = getFilter(item.ip, filter.ip);
-      const bmcIpFilter = getFilter(item.bmc_ip, filter.bmc_ip);
-      const stateFilter = getFilter(item.state, filter.state);
-      const descriptionFilter = getFilter(item.description, filter.description);
+  return totalData.value.filter((item) => {
+    const macFilter = getFilter(item.mac, filter.mac);
+    const frameFilter = getFilter(item.frame, filter.frame);
+    const occupierFilter = getFilter(item.occupier, filter.occupier);
+    const ipFilter = getFilter(item.ip, filter.ip);
+    const bmcIpFilter = getFilter(item.bmc_ip, filter.bmc_ip);
+    const stateFilter = getFilter(item.state, filter.state);
+    const descriptionFilter = getFilter(item.description, filter.description);
 
-      return macFilter &&
-        frameFilter &&
-        ipFilter &&
-        bmcIpFilter &&
-        occupierFilter &&
-        stateFilter &&
-        descriptionFilter;
-    }
-  );
+    return (
+      macFilter &&
+      frameFilter &&
+      ipFilter &&
+      bmcIpFilter &&
+      occupierFilter &&
+      stateFilter &&
+      descriptionFilter
+    );
+  });
 });
 
 export default {

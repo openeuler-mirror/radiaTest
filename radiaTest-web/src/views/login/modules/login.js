@@ -13,6 +13,7 @@ import { loginInfo } from './claSign';
 
 const loginOrg = ref(null);
 const orgOpts = ref([]);
+const requireCLA = ref(true);
 const hasCLA = ref(false);
 const hasEnterprise = ref(false);
 const loginForm = reactive({
@@ -61,9 +62,18 @@ function handleLoginByForm() {
   });
 }
 
+function requireEnterprise(orgid){
+  const activeOrg = orgOpts.value.find(item=>item.value === orgid);
+  if(activeOrg){
+    return activeOrg.enterprise;
+  }
+  return false;
+}
 function hanleLogin() {
   changeLoadingStatus(true);
   storage.setValue('loginOrgId', Number(loginOrg.value));
+  storage.setValue('hasEnterprise',requireEnterprise(loginOrg.value));
+  console.log(storage.getValue('loginOrgId'));
   axios
     .get('/v1/gitee/oauth/login', { org_id: Number(loginOrg.value) })
     .then((res) => {
@@ -92,6 +102,7 @@ function gotoHome() {
     }));
   });
   if (urlArgs().code) {
+    console.log(storage.getValue('loginOrgId'));
     loginByCode({
       code: urlArgs().code,
       org_id: storage.getValue('loginOrgId'),
@@ -113,6 +124,7 @@ function gotoHome() {
   } else if (urlArgs().isSuccess === 'False') {
     loginInfo.org = urlArgs().org_id;
     registerShow.value = true;
+    requireCLA.value = urlArgs().require_cla === 'True';
     getClaOrg();
   }
 }
@@ -146,6 +158,7 @@ function selectOrg(value) {
 }
 
 export {
+  requireCLA,
   rules,
   hasCLA,
   hasEnterprise,

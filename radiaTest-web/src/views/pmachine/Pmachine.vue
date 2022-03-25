@@ -85,22 +85,22 @@
           @submit="updateFormRef.put()"
         >
           <template #form>
-            <n-tabs type="line" size="large" :tab-padding="20">
+            <n-tabs type="line" size="large" :tab-padding="20" @update:value="(value)=>{updateFormRef.changeTabs(value)}" >
               <n-tab-pane
-                name="基本参数"
-                @click="updateFormRef.changeTabs('basic')"
+                tab="基本参数"
+                name="basic"
               >
                 <div></div>
               </n-tab-pane>
               <n-tab-pane
-                name="BMC参数"
-                @click="updateFormRef.changeTabs('bmc')"
+                tab="BMC参数"
+                name="bmc"
               >
                 <div></div>
               </n-tab-pane>
               <n-tab-pane
-                name="SSH参数"
-                @click="updateFormRef.changeTabs('ssh')"
+                tab="SSH参数"
+                name="ssh"
               >
                 <div></div>
               </n-tab-pane>

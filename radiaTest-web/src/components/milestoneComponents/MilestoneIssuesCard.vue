@@ -39,7 +39,7 @@
       :bordered="false"
       :loading="loading"
       :columns="columns"
-      :data="rowData"
+      :data="rawData"
       :row-props="rowProps"
       :row-key="(row) => row.id"
       :pagination="pagination"

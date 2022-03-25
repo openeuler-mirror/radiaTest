@@ -11,16 +11,18 @@ const formValue = ref({
   type: undefined,
   start_time: undefined,
   end_time: undefined,
+  is_sync: true,
 });
 
 const clean = () => {
   formValue.value = {
-    name: null,
-    product: null,
-    product_id: null,
-    type: null,
+    name: undefined,
+    product: undefined,
+    product_id: undefined,
+    type: undefined,
     start_time: undefined,
     end_time: undefined,
+    is_sync: true,
   };
 };
 
@@ -44,9 +46,8 @@ const rules = ref({
     validator: (rule, value) => {
       if (!value) {
         return new Error('结束日期不可为空');
-      } 
+      }
       return true;
-        
     },
     trigger: ['blur'],
   },

@@ -69,6 +69,12 @@
             style="width: 100%"
           />
         </n-form-item-gi>
+        <n-form-item-gi :span="6" label="是否同步企业仓" v-if="hasEnterprise">
+          <n-switch v-model:value="formValue.is_sync">
+            <template #checked> 是 </template>
+            <template #unchecked> 否 </template>
+          </n-switch>
+        </n-form-item-gi>
       </n-grid>
     </n-form>
   </div>
@@ -81,6 +87,7 @@ import validation from '@/assets/utils/validation.js';
 import { createAjax } from '@/assets/CRUD/create';
 import createForm from '@/views/milestone/modules/createForm.js';
 import { getProductOpts, getVersionOpts } from '@/assets/utils/getOpts';
+import {storage} from '@/assets/utils/storageUtils';
 
 export default defineComponent({
   setup(props, context) {
@@ -103,9 +110,11 @@ export default defineComponent({
         }
       }
     );
+    const hasEnterprise = storage.getValue('hasEnterprise');
 
     return {
       ...createForm,
+      hasEnterprise,
       handlePropsButtonClick: () => validation(createForm.formRef, context),
       post: () => {
         createAjax.postForm('/v2/milestone', createForm.formValue);
