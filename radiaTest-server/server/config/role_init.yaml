@@ -1,0 +1,26 @@
+# 平台角色初始化配置
+
+# 公共角色
+public:
+    # 管理员
+    administrator: admin
+    # 一般用户
+    user:
+        - visitor
+        - member
+
+# 组织角色
+organization:
+    # 管理员
+    administrator: admin
+    # 一般用户
+    user:
+        - member
+
+# 团队角色
+group:
+    # 管理员
+    administrator: admin
+    # 一般用户
+    user:
+        - member

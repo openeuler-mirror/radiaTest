@@ -11,5 +11,6 @@ from server.model.framework import Framework
 from server.model.permission import Role, Scope, ReUserRole, ReScopeRole
 from server.model.celerytask import CeleryTask
 from server.model.user import User
-from server.model.group import Group
-from server.model.organization import Organization
+from server.model.group import Group, ReUserGroup
+from server.model.organization import Organization, ReUserOrganization
+from server.model.message import Message, MsgLevel, MsgType
