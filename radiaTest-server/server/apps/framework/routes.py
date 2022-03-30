@@ -68,6 +68,23 @@ class FrameworkItemEvent(Resource):
 
         return Edit(Framework, _body).single(Framework, "/framework")
 
+    @auth.login_required
+    @response_collect
+    @validate()
+    def get(self, framework_id):
+        framework = Framework.query.filter_by(id=framework_id).first()
+        if not framework:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="the framework does not exist"
+            )
+        
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+            data=framework.to_json()
+        )
+
 
 # TODO 权限归属基表加入后的改动
 class GitRepoEvent(Resource):
@@ -131,3 +148,19 @@ class GitRepoItemEvent(Resource):
         }
 
         return Edit(GitRepo, _body).single(GitRepo, "/git_repo")
+
+    @auth.login_required
+    @response_collect
+    def get(self, git_repo_id):
+        git_repo = GitRepo.query.filter_by(id=git_repo_id).first()
+        if not git_repo:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="the git repo does not exist"
+            )
+        
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+            data=git_repo.to_json()
+        )

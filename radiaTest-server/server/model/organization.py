@@ -27,7 +27,13 @@ class Organization(db.Model, Base):
     roles = db.relationship("Role", cascade="all, delete", backref="organization")
 
     def to_dict(self):
-        return self.__dict__
+        _dict = self.__dict__
+        _dict.update({
+            "create_time": self.create_time.strftime("%Y-%m-%d %H:%M:%S"),
+            "update_time": self.update_time.strftime("%Y-%m-%d %H:%M:%S"),
+        })
+
+        return _dict
 
     @staticmethod
     def create(model):
@@ -45,7 +51,7 @@ class Organization(db.Model, Base):
         new_recode.oauth_client_id = model.oauth_client_id
         new_recode.oauth_client_secret = model.oauth_client_secret
         new_recode.oauth_scope = model.oauth_scope
-        new_id = new_recode.add_flush_commit()
+        new_id = new_recode.add_flush_commit_id()
         if not new_id:
             return None
         new_recode.id = new_id
@@ -65,7 +71,13 @@ class ReUserOrganization(db.Model, Base):
     organization_id = db.Column(db.Integer, db.ForeignKey('organization.id'))
 
     def to_dict(self):
-        return self.__dict__
+        _dict = self.__dict__
+        _dict.update({
+            "create_time": self.create_time.strftime("%Y-%m-%d %H:%M:%S"),
+            "update_time": self.update_time.strftime("%Y-%m-%d %H:%M:%S"),
+        })
+
+        return _dict
 
     @staticmethod
     def create(user_gitee_id, organization_id, cla_info, role_type=0, default=False):

@@ -4,7 +4,7 @@ from subprocess import getoutput, getstatusoutput
 # from flask import current_app
 
 
-def install_base(body, config):
+def install_base(body, storage_pool):
     fixed_mac = ""
     if body.get("mac"):
         fixed_mac = ",mac={}".format(quote(body.get("mac")))
@@ -28,7 +28,7 @@ def install_base(body, config):
             quote(str(body.get("cores"))),
             quote(str(body.get("threads"))),
             quote(body.get("cpu_mode")),
-            quote(config.get("STORAGE_POOL").replace("/$", "")),
+            quote(storage_pool.replace("/$", "")),
             quote(body.get("name")),
             quote(body.get("disk_bus")),
         )
@@ -55,10 +55,10 @@ def get_network_source():
     return "virsh net-list | sed '1,2d;/^$/d' | awk '{print $1}' | shuf -n 1"
 
 
-def rm_disk_image(name, config):
+def rm_disk_image(name, storage_pool):
     return getoutput(
         "rm -rf {}/{}.qcow2".format(
-            quote(config.get("STORAGE_POOL")),
+            quote(storage_pool),
             quote(name),
         )
     )

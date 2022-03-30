@@ -14,7 +14,6 @@ from server.model.celerytask import CeleryTask
 from server.utils.db import Insert
 from server import db
 from celeryservice import celeryconfig
-from celeryservice.lib.job.handler import RunSuite, RunTemplate
 from celeryservice.lib.repo.handler import RepoTaskHandler
 from celeryservice.lib.monitor import LifecycleMonitor
 from celeryservice.lib.testcase import TestcaseHandler
@@ -125,16 +124,6 @@ def async_read_git_repo():
 
                 _ = Insert(CeleryTask, celerytask).single(
                     CeleryTask, '/celerytask')
-
-
-@celery.task(bind=True)
-def run_suite(self, body, user):
-    RunSuite(body, self, user, logger).run()
-
-
-@celery.task(bind=True)
-def run_template(self, body, user):
-    RunTemplate(body, self, user, logger).run()
 
 
 @celery.task(bind=True)

@@ -1,4 +1,4 @@
-from flask import make_response, g
+from flask import make_response, g, jsonify, request
 from functools import wraps
 
 
@@ -36,5 +36,19 @@ def response_collect(func):
         resp = make_response(func_result)
         resp.headers['Authorization'] = g.token
         return resp
+
+    return wrapper
+
+def attribute_error_collect(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            resp= func(*args, **kwargs)   
+            return resp
+        except AttributeError as e:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg=str(e)
+            )
 
     return wrapper

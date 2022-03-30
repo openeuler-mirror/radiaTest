@@ -248,7 +248,7 @@ class TaskDistributeTemplate(Base, db.Model):
             'creator': User.query.get(self.creator_id).to_dict(),
             'group': group.to_dict() if group else None,
             'types': [item.to_json() for item in self.types],
-            'create_time': self.create_time
+            'create_time': self.create_time.strftime("%Y-%m-%d %H:%M:%S")
         }
 
 
@@ -278,6 +278,6 @@ class DistributeTemplateType(Base, db.Model):
             'executor': User.query.get(self.executor_id).to_dict(),
             'suites': suites,
             'helpers': helpers,
-            'create_time': self.create_time
+            'create_time': self.create_time.strftime("%Y-%m-%d %H:%M:%S")
             # 'template': self.template.to_json()
         }

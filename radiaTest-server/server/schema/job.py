@@ -1,19 +1,17 @@
 import datetime
 from typing import Optional, List
 
-from pydantic import BaseModel, constr, root_validator, validator
+from pydantic import BaseModel, HttpUrl, constr, root_validator, validator
 
-from server.schema import Frame, JobDefaultStates, JobSortedBy, MachinePolicy, MachineType
-from server.schema.base import PageBaseSchema
+from server.schema import Frame, JobDefaultStates, JobSortedBy, MachinePolicy
+from server.schema.base import PageBaseSchema, TimeBaseSchema
 from server.utils.db import Precise
 from server.model import Milestone
 
 
-class JobUpdateSchema(BaseModel):
+class JobUpdateSchema(TimeBaseSchema):
     name: Optional[str]
-    start_time: Optional[datetime.datetime]
     running_time: Optional[int]
-    end_time: Optional[datetime.datetime]
     total: Optional[int]
     success_cases: Optional[int]
     fail_cases: Optional[int]
@@ -27,11 +25,19 @@ class JobUpdateSchema(BaseModel):
     tid: Optional[str]
 
 
+class JobCreateSchema(JobUpdateSchema):
+    parent_id: Optional[int]
+    name: str
+    is_suite_job: bool
+
+
 class RunJobBase(BaseModel):
     frame: Frame
     pmachine_list: Optional[List[int]] = []
     vmachine_list: Optional[List[int]] = []
     machine_policy: MachinePolicy
+    # TODO 前端准备好前默认为1
+    machine_group_id: int = 1
 
     @validator("machine_policy")
     def validate_policy(cls, v, values):
@@ -50,8 +56,6 @@ class RunTemplateBase(RunJobBase):
 
     @root_validator
     def assignment(cls, values):
-        values["start_time"] = datetime.datetime.now()
-
         if not values.get("name"):
             values["name"] = "Job-%s-%s-%s" % (
                 values["template_name"].replace(" ", "-"),
@@ -72,8 +76,6 @@ class RunSuiteBase(RunJobBase):
 
     @root_validator
     def assignment(cls, values):
-        values["start_time"] = datetime.datetime.now()
-
         if not values.get("name"):
             milestone = Precise(
                 Milestone, {"id": values.get("milestone_id")}).first()
@@ -85,6 +87,16 @@ class RunSuiteBase(RunJobBase):
             )
         return values
 
+
+class AnalyzedCreateSchema(BaseModel):
+    result: str
+    job_id: int
+    case_id: int
+    master: str
+    log_url: HttpUrl
+    running_time: int
+
+
 class AnalyzedQueryBase(BaseModel):
     job_id: int
 
@@ -92,6 +104,10 @@ class AnalyzedQueryBase(BaseModel):
 class AnalyzedQueryItem(BaseModel):
     fail_type: Optional[str]
     details: Optional[str]
+
+
+class AnalyzedUpdateItem(AnalyzedQueryItem):
+    logs: Optional[List[int]]
 
 
 class AnalyzedQueryRecords(BaseModel):
@@ -102,3 +118,12 @@ class JobQuerySchema(PageBaseSchema):
     name: Optional[str]
     sorted_by: JobSortedBy = "create_time"
     status: Optional[JobDefaultStates]
+
+
+class LogCreateSchema(BaseModel):
+    stage: str
+    checkpoint: str
+    expect_result: int
+    actual_result: int
+    mode: int
+    section_log: str

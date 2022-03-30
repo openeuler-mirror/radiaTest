@@ -28,12 +28,14 @@ def async_illegal_monitor():
     IllegalMonitor(logger).main()
 
 @celery.task(bind=True)
-def create_vmachine(self, body):
+def create_vmachine(self, auth, body):
+    installer = InstallVmachine(logger, auth, body)
+
     if body.get("method") == "auto":
-        InstallVmachine(logger, body).kickstart(self)
+        installer.kickstart(self)
     elif body.get("method") == "import":
-        InstallVmachine(logger, body)._import(self)
+        installer._import(self)
     elif body.get("method") == "cdrom":
-        InstallVmachine(logger,body).cd_rom(self)
+        installer.cd_rom(self)
     else:
         raise ValueError("unsupported create method")

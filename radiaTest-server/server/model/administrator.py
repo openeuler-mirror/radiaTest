@@ -5,7 +5,7 @@ from server import db, casbin_enforcer
 
 class Admin(db.Model, Base):
     __tablename__ = 'administrator'
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    id = db.Column(db.Integer(), primary_key=True, autoincrement=True)
     account = db.Column(db.String(30), unique=True, nullable=False)
     password_hash = db.Column(db.String(256), nullable=False)
 

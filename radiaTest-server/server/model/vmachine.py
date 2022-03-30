@@ -1,11 +1,3 @@
-# -*- coding: utf-8 -*-
-# @Author : lemon.higgins
-# @Date   : 2021-10-05 11:39:27
-# @Email  : lemon.higgins@aliyun.com
-# @License: Mulan PSL v2
-# @Desc   :
-
-
 from server import db
 from server.model import BaseModel
 
@@ -50,6 +42,10 @@ class Vmachine(BaseModel, db.Model):
     )
 
     def to_json(self):
+        _machine_group = None
+        if self.pmachine and self.pmachine.machine_group:
+            _machine_group = self.pmachine.machine_group.to_json()
+
         return {
             "id": self.id,
             "name": self.name,
@@ -67,7 +63,7 @@ class Vmachine(BaseModel, db.Model):
             "vnc_port": self.vnc_port,
             "status": self.status,
             "description": self.description,
-            "end_time": self.end_time,
+            "end_time": self.end_time.strftime("%Y-%m-%d %H:%M:%S"),
             "special_device": self.special_device,
             "prodcut": self.product,
             "milestone": self.milestone,
@@ -75,6 +71,7 @@ class Vmachine(BaseModel, db.Model):
             "host_listen": self.pmachine.listen,
             "vnc_token": self.vnc_token,
             "websockify_listen": self.websockify_listen,
+            "machine_group": _machine_group,
         }
 
 

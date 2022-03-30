@@ -344,7 +344,6 @@ class AccessableMachinesHandler:
             namespace, 
             "GET", 
             request.headers.get("authorization"),
-            True,
         )
 
         allow_machines = permission_pool.allow_list
@@ -352,5 +351,5 @@ class AccessableMachinesHandler:
         return jsonify(
             error_code=RET.OK,
             error_msg="OK",
-            data=[machine.to_json() for machine in allow_machines]
+            data=allow_machines
         )

@@ -7,7 +7,6 @@ class Config(object):
     TESTING = False
 
     # 日志
-    LOG_PATH = "/var/log/radiaTest.log"
     LOG_LEVEL = "INFO"
 
     # 数据库
@@ -31,13 +30,8 @@ class Config(object):
     # 物理机默认占用时间(days)
     DEFAULT_OCUPY_TIME = 1
 
-    # PXE服务器
-    # PXE地址(必须配置免密登录，如果和server为同一台机器，则不需要)
-    # dhcp配置文件
-    DHCP_CONF = "/etc/dhcp/dhcpd.conf"
-
     # tftp-server 文件存储路径
-    TFTP_PATH = "/var/lib/tftpboot"
+    # TFTP_PATH = "/var/lib/tftpboot"
 
     # HTTP请求头
     HEADERS = {"Content-Type": "application/json;charset=utf8"}
@@ -112,8 +106,7 @@ class Config(object):
     }
 
     # 执行任务
-    # 服务端mugen框架存放路径
-    WORKER_DOWNLOAD_PATH = "/opt"
+    # 服务端框架存放路径
     SERVER_DOWNLOAD_PATH = "/tmp"
 
     # 每组测试环境，最大执行时长

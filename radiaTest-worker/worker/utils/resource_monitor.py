@@ -117,10 +117,12 @@ class LocalPsutilMonitor(ResourceMonitor):
 
 
 class RemoteShellMonitor(ResourceMonitor):
-    def __init__(self, namespace, ip) -> None:
+    def __init__(self, namespace, ssh) -> None:
         super().__init__(namespace)
-        self.ip = ip
-        self.event = ip
+        self.ip = ssh.get("ip")
+        self.username = ssh.get("username")
+        self.password = ssh.get("password")
+        self.event = self.ip
         self.ssh_client = None
 
     def _connect(self):
@@ -130,9 +132,9 @@ class RemoteShellMonitor(ResourceMonitor):
         try:
             self.ssh_client.connect(
                 hostname=self.ip,
-                username="root",
+                username=self.username,
                 port=22,
-                password="openEuler12#$",
+                password=self.password,
             )
         except (NoValidConnectionsError, SSHException) as e:
             self.ssh_client = None
@@ -149,8 +151,8 @@ class RemoteShellMonitor(ResourceMonitor):
         if not self.ssh_client:
             return {}
 
-        mem_usage = self._command(CommonCli.mem_cli)
-        cpu_usage= self._command(CommonCli.cpu_cli)
+        mem_usage = self._command(CommonCli.mem_usage_cli)
+        cpu_usage= self._command(CommonCli.cpu_usage_cli)
         os_info = self._command(CommonCli.os_cli)
         kernel_info = self._command(CommonCli.kernel_cli)
 

@@ -11,6 +11,14 @@ class CeleryTaskQuerySchema(BaseModel):
     page_size: int
 
 
+class CeleryTaskCreateSchema(BaseModel):
+    tid: str
+    status: Optional[str]
+    object_type: str
+    vmachine_id: Optional[int]
+    user_id: Optional[int]
+
+
 class CeleryTaskUserInfoSchema(BaseModel):
     auth: str
     user_id: int

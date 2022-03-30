@@ -102,38 +102,6 @@ task_queues = (
         routing_key='case',
     ),
     Queue(
-        'queue_run_suite',
-        exchange=Exchange(
-            'server_exchange',
-            type='direct'
-        ),
-        routing_key='run_suite',
-    ),
-    Queue(
-        'queue_run_template',
-        exchange=Exchange(
-            'server_exchange',
-            type='direct'
-        ),
-        routing_key='run_template',
-    ),
-    Queue(
-        'queue_run_case',
-        exchange=Exchange(
-            'server_exchange',
-            type='direct'
-        ),
-        routing_key='run_case',
-    ),
-    Queue(
-        'queue_job_callback',
-        exchange=Exchange(
-            'server_exchange',
-            type='direct'
-        ),
-        routing_key='job_callback',
-    ),
-    Queue(
         'queue_file_resolution',
         exchange=Exchange(
             'server_exchange',

@@ -152,8 +152,8 @@ class GetAllByPermission:
         )
     
     def fuzz(self, _data):
-        for key, value in _data.items() and key not in ("permission_type","group_id"):
-            if hasattr(self._table, key):
+        for key, value in _data.items():
+            if hasattr(self._table, key) and value is not None and key not in ("permission_type","group_id"):
                 self.filter_params.append(getattr(self._table, key).like("%{}%".format(value)))
         tdata = self._table.query.filter(*self.filter_params).all()
         data=[]
@@ -166,9 +166,25 @@ class GetAllByPermission:
         )
 
     def precise(self, _data):
-        for key, value in _data.items() and key not in ("permission_type","group_id"):
-            if hasattr(self._table, key):
+        for key, value in _data.items():
+            if hasattr(self._table, key) and value is not None and key not in ("permission_type","group_id"):
                 self.filter_params.append(getattr(self._table, key) == value)
+        tdata = self._table.query.filter(*self.filter_params).all()
+        data=[]
+        if tdata:
+            data = [dt.to_json() for dt in tdata]
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK!",
+            data=data
+        )
+    
+    def MultiCondition(self, _data):
+        for key, value in _data.items():
+            if hasattr(self._table, key) and value is not None and key not in ("permission_type","group_id"):
+                if not isinstance(value, list):
+                    value = [value]
+                self.filter_params.append(getattr(self._table, key).in_(value))
         tdata = self._table.query.filter(*self.filter_params).all()
         data=[]
         if tdata:
@@ -182,8 +198,7 @@ class GetAllByPermission:
 
 class PermissionItemsPool:
     def __init__(
-        self, origin_pool, namespace, act, auth, get_query_object=False
-    ):
+        self, origin_pool, namespace, act, auth):
         self.origin_pool = origin_pool
         self._root_url = "api/{}/{}".format(
             current_app.config.get("OFFICIAL_API_VERSION"), 
@@ -191,7 +206,6 @@ class PermissionItemsPool:
         )
         self.act = act
         self.auth = auth
-        self.get_query_object = get_query_object
 
     def _get_items(self, eft):
         return_data = []
@@ -224,10 +238,7 @@ class PermissionItemsPool:
                         raise RuntimeError(str(e))
 
                 if (_output.get("error_code") != RET.UNAUTHORIZE_ERR) == (eft == "allow"):
-                    if not self.get_query_object:
-                        return_data.append(_item.id)
-                    else:
-                        return_data.append(_item)
+                    return_data.append(_item.to_json())
 
             except (SSHException, RuntimeError) as e:
                 current_app.logger.warn(str(e))

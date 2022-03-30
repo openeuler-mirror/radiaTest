@@ -52,3 +52,7 @@ class LoginOrgListSchema(BaseModel):
     org_id: int = Field(alias="id")
     org_name: str = Field(alias="name")
     org_avatar: Optional[str] = Field(alias="avatar_url")
+
+
+class VmachineExistSchema(BaseModel):
+    domain: str

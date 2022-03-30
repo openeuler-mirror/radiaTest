@@ -1,9 +1,7 @@
 import json
 import datetime
 
-from server import db, socketio, redis_client
-from server.utils import DateEncoder
-from server.utils.redis_util import RedisKey
+from server import db, socketio
 
 
 class Base(object):
@@ -18,7 +16,7 @@ class Base(object):
         if table and namespace:
             socketio.emit(
                 "update",
-                json.dumps([item.to_json() for item in table.query.all()], cls=DateEncoder),
+                json.dumps([item.to_json() for item in table.query.all()]),
                 namespace=namespace,
                 broadcast=broadcast,
             )
@@ -29,12 +27,12 @@ class Base(object):
         if table and namespace:
             socketio.emit(
                 "update",
-                json.dumps([item.to_json() for item in table.query.all()], cls=DateEncoder),
+                json.dumps([item.to_json() for item in table.query.all()]),
                 namespace=namespace,
                 broadcast=broadcast,
             )
 
-    def add_flush_commit(self, table=None, namespace=None, broadcast=False):
+    def add_flush_commit_id(self, table=None, namespace=None, broadcast=False):
         db.session.add(self)
         db.session.flush()
         record_id = None
@@ -45,16 +43,40 @@ class Base(object):
         if table and namespace:
             socketio.emit(
                 "update",
-                json.dumps([item.to_json() for item in table.query.all()], cls=DateEncoder),
+                json.dumps([item.to_json() for item in table.query.all()]),
                 namespace=namespace,
                 broadcast=broadcast,
             )
         
         return record_id
+    
+    def add_flush_commit(self, table=None, namespace=None, broadcast=False):
+        db.session.add(self)
+        db.session.flush()
+        record = self
+        db.session.commit()
+
+        if table and namespace:
+            socketio.emit(
+                "update",
+                json.dumps([item.to_json() for item in table.query.all()]),
+                namespace=namespace,
+                broadcast=broadcast,
+            )
+        
+        return record
 
 
 class BaseModel(Base):
     id = db.Column(db.Integer(), primary_key=True)
+
+
+class ServiceBaseModel(BaseModel):
+    name = db.Column(db.String(64))
+    description = db.Column(db.String(256))
+    ip = db.Column(db.String(15), nullable=False)
+    listen = db.Column(db.Integer())
+
 
 class PermissionBaseModel(Base):
     permission_type = db.Column(db.Enum(
@@ -63,3 +85,25 @@ class PermissionBaseModel(Base):
             "org",   # 组织
             "public" #公共
         ),default="person")
+
+
+class CasbinRoleModel(BaseModel):
+    def _get_subject(self, role_name):
+        if self.role.type == "public":
+            return "{}@public".format(
+                role_name, 
+            )
+        elif self.role.type == "person":
+            return "{}@person".format(
+                role_name,
+            )
+        elif self.role.type == "group":
+            return "{}@group_{}".format(
+                role_name,
+                self.role.group.name
+            )
+        else:
+            return "{}@org_{}".format(
+                role_name,
+                self.role.org.name,
+            )

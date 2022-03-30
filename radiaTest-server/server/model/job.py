@@ -65,25 +65,7 @@ class Job(BaseModel, db.Model):
     )
     
     def to_dict(self):
-        return {
-            "id": self.id,
-            "name": self.name,
-            "milestone": self.milestone.name if self.milestone_id else None,
-            "start_time": self.start_time,
-            "running_time": self.running_time,
-            "end_time": self.end_time,
-            "total": self.total,
-            "success_cases": self.success_cases,
-            "fail_cases": self.fail_cases,
-            "result": self.result,
-            "status": self.status,
-            "remark": self.remark,
-            "frame": self.frame,
-            "master": self.master,
-            "multiple": self.multiple,
-            "tid": self.tid,
-            "is_suite_job": self.is_suite_job,
-        }
+        return self.to_json()
 
     def to_json(self):
         success_sum = 0
@@ -97,13 +79,19 @@ class Job(BaseModel, db.Model):
                 masters.append(child.master)
                 running_time = max(running_time, child.running_time)
 
+        _start_time, _end_time = None, None
+        if self.start_time:
+            _start_time = self.start_time.strftime("%Y-%m-%d %H:%M:%S")
+        if self.end_time:
+            _end_time = self.end_time.strftime("%Y-%m-%d %H:%M:%S")
+
         return {
             "id": self.id,
             "name": self.name,
             "milestone": self.milestone.name if self.milestone_id else None,
-            "start_time": self.start_time,
+            "start_time": _start_time,
             "running_time": self.running_time if not self.multiple else running_time,
-            "end_time": self.end_time,
+            "end_time": _end_time,
             "total": self.total,
             "success_cases": self.success_cases if not self.multiple else success_sum,
             "fail_cases": self.fail_cases if  not self.multiple else fail_sum,
@@ -142,7 +130,8 @@ class Analyzed(BaseModel, db.Model):
             "case": self.case.to_json(),
             "job": self.job.name,
             "job_id": self.job_id,
-            "create_time": self.create_time,
+            "create_time": self.create_time.strftime("%Y-%m-%d %H:%M:%S"),
+            "update_time": self.update_time.strftime("%Y-%m-%d %H:%M:%S"),
             "milestone_id": self.job.milestone_id,
             "running_time": self.running_time,
         }

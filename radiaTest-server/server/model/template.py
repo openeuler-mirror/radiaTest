@@ -1,13 +1,3 @@
-# -*- coding: utf-8 -*-
-# @Author : Ethan-Zhang
-# @Date   : 2021-09-10 14:31:00
-# @Email  : ethanzhang55@outlook.com
-# @License: Mulan PSL v2
-# @Desc   :
-
-
-import json
-
 from server import db
 from server.model import BaseModel
 from server.model.milestone import Milestone
@@ -46,23 +36,18 @@ class Template(BaseModel, db.Model):
         db.Integer(), db.ForeignKey("git_repo.id"), nullable=False
     )
 
-    def _get_cases_name(self):
-        cases_name = []
-        for case in self.cases:
-            cases_name.append(Case.query.filter_by(id=case.id).first().name)
-        return cases_name
-
     def to_json(self):
         return {
             "id": self.id,
             "name": self.name,
             "description": self.description,
             "milestone": Milestone.query.filter_by(id=self.milestone_id).first().name,
+            "milestone_id": self.milestone_id,
             "git_repo": self.git_repo.to_json() if self.git_repo_id else {},
-            "cases": self._get_cases_name(),
+            "cases": [case.to_json() for case in self.cases],
             "author": self.author,
             "owner": self.owner,
-            "create_time": self.create_time,
-            "update_time": self.update_time,
+            "create_time": self.create_time.strftime("%Y-%m-%d %H:%M:%S"),
+            "update_time": self.update_time.strftime("%Y-%m-%d %H:%M:%S"),
             "template_type": self.template_type,
         }

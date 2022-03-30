@@ -27,7 +27,18 @@ class MilestoneItemEventV1(Resource):
     @response_collect
     @validate()
     def get(self, milestone_id):
-        return Select(Milestone, {"id":milestone_id}).single()
+        milestone = Milestone.query.filter_by(id=milestone_id).first()
+        if not milestone:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="the milestone does not exist"
+            )
+
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+            data=milestone.to_json()
+        )
 
 
 class MilestoneEventV1(Resource):

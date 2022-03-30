@@ -18,8 +18,8 @@ class Framework(db.Model, BaseModel):
             "url": self.url,
             "logs_path": self.logs_path,
             "adaptive": self.adaptive,
-            "create_time": self.create_time,
-            "update_time": self.update_time,
+            "create_time": self.create_time.strftime("%Y-%m-%d %H:%M:%S"),
+            "update_time": self.update_time.strftime("%Y-%m-%d %H:%M:%S"),
         }
 
 
@@ -38,6 +38,7 @@ class GitRepo(db.Model, BaseModel):
     def to_json(self):
         return {
             "id": self.id,
+            "name": self.name,
             "git_url": self.git_url,
             "sync_rule": self.sync_rule,
             "framework": self.framework.to_json(),

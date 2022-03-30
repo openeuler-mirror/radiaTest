@@ -2,19 +2,17 @@ import re
 import json
 import requests
 
-from flask import current_app, request, jsonify
+from flask import current_app, jsonify
 from flask_restful import Resource
 from flask_pydantic import validate
 
-from server.schema.external import LoginOrgListSchema, OpenEulerUpdateTaskBase, RepoCaseUpdateBase
+from server.schema.external import LoginOrgListSchema, OpenEulerUpdateTaskBase, VmachineExistSchema
 from server.model.group import Group
 from server.model.mirroring import Repo
+from server.model.vmachine import Vmachine
 from server.utils.db import Insert, Edit
 from .handler import UpdateRepo, UpdateTaskHandler, UpdateTaskForm
-from server.model.testcase import Suite, Case
 from server.model.organization import Organization
-from server.schema.testcase import SuiteBase, CaseBase
-from server.utils.db import Select
 from server.utils.response_util import RET
 
 
@@ -119,4 +117,21 @@ class LoginOrgList(Resource):
             error_code=RET.OK,
             error_msg="OK", 
             data=return_data
+        )
+
+
+class VmachineExist(Resource):
+    @validate()
+    def get(self, query: VmachineExistSchema):
+        vmachine = Vmachine.query.filter_by(name=query.domain).first()
+        if not vmachine:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="vmachine does not exist"
+            )
+
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+            data=vmachine.name
         )

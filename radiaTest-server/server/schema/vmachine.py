@@ -1,3 +1,5 @@
+from ipaddress import IPv4Address
+from socket import socket
 import time
 import json
 import string
@@ -22,7 +24,7 @@ from server.schema import (
     PmSelectMode,
     PermissionType
 )
-from server.schema.base import UpdateBaseModel
+from server.schema.base import PageBaseSchema, UpdateBaseModel
 
 from server.utils.db import Precise
 
@@ -30,13 +32,30 @@ from server.model import Vmachine, Vdisk, Pmachine
 from server.config.settings import Config
 
 
-class VmachineBase(BaseModel):
-    method: InstallMethod
+class VmachineQuerySchema(PageBaseSchema):
+    #  TODO 暂时写死
+    machine_group_id: int = 1
+    host_ip: Optional[str]
+    frame: Optional[Frame]
+    ip: Optional[str]
+    description: Optional[str]
+    name: Optional[str]
+
+
+class VmachinePreciseQuerySchema(BaseModel):
+    id: Optional[int]
+    host_ip: Optional[str]
+    frame: Optional[Frame]
+    ip: Optional[str]
+    description: Optional[str]
+    name: Optional[str]
+
+
+class VmachineBaseSchema(BaseModel):
     frame: Frame
     description: constr(min_length=10, max_length=255)
     milestone_id: int
-    pm_select_mode: Optional[PmSelectMode] = "auto"
-    pmachine_id: int = 0
+    pmachine_id: int
     name: Optional[constr(min_length=10, max_length=255)]
     memory: Optional[conint(ge=2048, le=Config.VM_MAX_MEMEORY)] = 4096
     sockets: Optional[conint(ge=1, le=Config.VM_MAX_SOCKET)] = 1
@@ -52,6 +71,31 @@ class VmachineBase(BaseModel):
     end_time: Optional[datetime] = datetime.now() + timedelta(
         days=Config.VM_DEFAULT_DAYS
     )
+
+
+class VmachineDataCreateSchema(VmachineBaseSchema):
+    milestone: str
+    product: str
+    end_time: str
+    status: str 
+
+    @validator("end_time")
+    def check_end_time(cls, v):
+        try:
+            v = datetime.strptime(v, "%Y-%m-%d %H:%M:%S")
+        except:
+            v = datetime.strptime(v, "%Y-%m-%d")
+
+        return v
+
+
+class VmachineCreateSchema(VmachineBaseSchema):
+    password: Optional[str]
+    #  TODO 前端调整前暂时给默认值
+    machine_group_id: Optional[int] = 1
+    pmachine_id: Optional[int]
+    method: InstallMethod
+    pm_select_mode: Optional[PmSelectMode] = "auto"
 
     @root_validator
     def check_name_and_endtime(cls, values):
@@ -83,14 +127,37 @@ class VmachineBase(BaseModel):
 
         return values
 
-    @validator("pmachine_id")
-    def check_pmselect(cls, v, values):
-        if values.get("pm_select_mode") and values.get("pm_select_mode") == "assign":
-            pm = Precise(Pmachine, {"id": v}).first()
-            if not pm:
-                raise ValueError("Must select an existing pysical machine, when pm_select_mode is assign.")
+    @root_validator
+    def check_pmselect(cls, values):
+        if values.get("pm_select_mode") == "assign":
+            if not values.get("pmachine_id"):
+                raise ValueError(
+                    "Must select a physical machine as the host, when select mode is assign."
+                )
+        elif values.get("pm_select_mode") == "auto":
+            if not values.get("machine_group_id"):
+                raise ValueError(
+                    "Must select a machine group to automatically choose a host, when select mode is auto."
+                )
 
-class VmachineUpdate(UpdateBaseModel):
+        return values
+
+
+class VmachineDataUpdateSchema(BaseModel):
+    name: Optional[str]
+    frame: Optional[Frame]
+    mac: Optional[str]
+    ip: Optional[str]
+    password: Optional[str]
+    user: Optional[str]
+    vnc_port: Optional[int]
+    status: Optional[str]
+    vnc_token: Optional[str]
+    websockify_listen: Optional[str]
+    pmachine_id: Optional[str]
+
+
+class VmachineConfigUpdateSchema(BaseModel):
     memory: Optional[conint(ge=2048, le=Config.VM_MAX_MEMEORY)] = 2048
     sockets: Optional[conint(ge=1, le=Config.VM_MAX_SOCKET)] = 1
     cores: Optional[conint(ge=1, le=Config.VM_MAX_CORE)] = 1
@@ -116,7 +183,8 @@ class VmachineUpdate(UpdateBaseModel):
             )
         return v
 
-class VmachineDelay(BaseModel):
+
+class VmachineDelaySchema(BaseModel):
     end_time: Optional[datetime]
 
     @validator("end_time")
@@ -132,41 +200,58 @@ class VmachineDelay(BaseModel):
         return v
 
 
-class Power(UpdateBaseModel):
+class PowerSchema(UpdateBaseModel):
     status: VMStatus
 
 
-class VnicBase(BaseModel):
-    vmachine_id: int
+class VnicBaseSchema(BaseModel):
     mode: Optional[NetMode] = "bridge"
     bus: Optional[NetBus] = "virtio"
     mac: Optional[constr(max_length=48)]
+    source: Optional[str]
 
 
-class VdiskBase(BaseModel):
+class VnicCreateSchema(VnicBaseSchema):
+    vmachine_id: int
+
+
+class VdiskBaseSchema(BaseModel):
+    vmachine_id: int
     bus: Optional[DiskBus] = "virtio"
     capacity: Optional[conint(ge=1, le=Config.VM_MAX_CAPACITY)] = 1
     cache: Optional[DiskCache] = "default"
-    vmachine_id: int
     volume: Optional[str]
 
-    @validator("volume")
-    def check_volume(cls, v, values):
-        vmachine = Precise(Vmachine, {"id": values.get("vmacine_id")})
-        disk = Vdisk.query.filter_by(vmachine_id=values.get("vmacine_id")).all()
-        sign = len(disk) + 1
-        while [True]:
-            v = vmachine.name + str()
-            if not Precise(Vdisk, {"volume": v}).first():
-                break
-            sign += 1
-        return v
+
+class VdiskCreateSchema(VdiskBaseSchema):
+    @root_validator
+    def check_volume(cls, values):
+        if not values.get("volume"):
+            vmachine = Vmachine.query.filter_by(
+                id=values.get("vmachine_id")
+            ).first()
+            disk = Vdisk.query.filter_by(vmachine_id=vmachine.id).all()
+            sign = len(disk) + 1
+            while [True]:
+                values["volume"] = "{}-{}".format(vmachine.name, sign)
+                if not Precise(Vdisk, {"volume": values["volume"]}).first():
+                    break
+                sign += 1
+        
+        return values
 
 
-class DeviceDelete(BaseModel):
+class VdiskUpdateSchema(BaseModel):
+    bus: Optional[DiskBus]
+    capacity: Optional[conint(ge=1, le=Config.VM_MAX_CAPACITY)]
+    cache: Optional[DiskCache]
+    volume: Optional[str]
+
+
+class DeviceDeleteSchema(BaseModel):
     id: int
 
-class DeviceBase(BaseModel):
+class DeviceBaseSchema(BaseModel):
     vmachine_id: int
     device: List[dict]
     
@@ -187,8 +272,8 @@ class DeviceBase(BaseModel):
         return v
 
 
-class VmachineBasic(BaseModel):
-    ip: str
+class VmachineBriefSchema(BaseModel):
+    ip: IPv4Address
     description: str
     milestone: str
     status: str

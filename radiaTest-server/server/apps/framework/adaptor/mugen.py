@@ -5,11 +5,18 @@ import shlex
 import subprocess
 from copy import deepcopy
 
-from server.utils.bash import deploy_mugen_framwork
-
 
 class Mugen:
-    deploy_main_cmd = deploy_mugen_framwork
+    @staticmethod
+    def deploy_main_cmd(path, machine):
+        return "cd {}/mugen && \
+                bash mugen.sh -c --ip {} --password {} --port {} --user {}".format(
+        path,
+        shlex.quote(machine.ip),
+        shlex.quote(machine.password),
+        shlex.quote(str(machine.port)),
+        shlex.quote(machine.user),
+    )
 
     @staticmethod
     def get_case_code(path, case):

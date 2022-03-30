@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import List, Optional
 from enum import Enum
 from pydantic import BaseModel, root_validator
@@ -29,6 +30,33 @@ class BaseEnum(Enum):
         else:
             return None
 
+
+class TimeBaseSchema(BaseModel):
+    start_time: Optional[str]
+    end_time: Optional[str]
+
+    @root_validator
+    def check_time_format(cls, values):
+        try:
+            if values.get("start_time"):
+                values["start_time"] = datetime.strptime(
+                    values["start_time"], 
+                    "%Y-%m-%d %H:%M:%S"
+                )
+            if values.get("end_time"):
+                datetime.strptime(
+                    values["end_time"],
+                    "%Y-%m-%d %H:%M:%S"
+                )
+                
+        except:
+            raise ValueError(
+                "the format of start_time/end_time is not valid, the valid type is: %Y-%m-%d %H:%M:%S"
+            )
+        
+        return values
+
+
 class PermissionBase(BaseModel):
     creator_id: int
     permission_type: PermissionType
@@ -54,7 +82,7 @@ class PermissionBase(BaseModel):
                 raise ValueError("Lack of group_id for a role of group")
             else:
                 re_user_group = Precise(
-                    ReUserGroup, {"id": values.get("group_id"), "org_id": values.get("org_id"), "user_gitee_id": values.get("creator_id")}
+                    ReUserGroup, {"group_id": values.get("group_id"), "org_id": values.get("org_id"), "user_gitee_id": values.get("creator_id")}
                 ).first()
                 if not re_user_group:
                     raise ValueError("The group does not exist or does not belong to current org.")
