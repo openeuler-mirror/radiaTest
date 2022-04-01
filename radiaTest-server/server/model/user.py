@@ -6,7 +6,7 @@ from server.utils.redis_util import RedisKey
 
 class User(db.Model, Base):
     __tablename__ = "user"
-    gitee_id = db.Column(db.Integer, primary_key=True)
+    gitee_id = db.Column(db.Integer(), primary_key=True)
     gitee_login = db.Column(db.String(50), nullable=False)
     gitee_name = db.Column(db.String(50), nullable=False)
     phone = db.Column(db.String(20), nullable=True, default=None)
@@ -57,13 +57,12 @@ class User(db.Model, Base):
         redis_client.hmset(RedisKey.user(self.gitee_id), redis_data)
 
     @staticmethod
-    def create_commit(gitee_user, cla_email=None, re_user_organization=None):
+    def create_commit(gitee_user, cla_email=None):
         new_user = User()
         new_user.gitee_id = gitee_user.get("id")
         new_user.gitee_login = gitee_user.get("login")
         new_user.gitee_name = gitee_user.get("name")
         new_user.avatar_url = gitee_user.get("avatar_url")
         new_user.cla_email = cla_email
-        new_user.re_user_organization = re_user_organization
         new_user.add_update()
         return new_user

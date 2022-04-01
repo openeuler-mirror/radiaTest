@@ -195,20 +195,15 @@ class TestcaseHandler(TaskAuthHandler):
             _title = "用例集"
         else:
             _title = os.path.basename(_filepath)
-
+        
         _name = os.path.basename(_filepath).split('.')[0]
         _ext = os.path.basename(_filepath).split('.')[-1]
 
-        if os.path.isfile(_filepath) and _ext in ['xlsx', 'xls', 'csv']:
-            _file_id = self.create_baseline(
-                BaselineBodyInternalSchema(
-                    title=_name,
-                    type="directory",
-                    group_id=self.user.get("group_id"),
-                    org_id=self.user.get("org_id"),
-                    parent_id=_parent_id,
-                    in_set=True,
-                )
+        if os.path.isfile(_filepath) and _ext in ['xlsx', 'xls', 'csv'] and _name:
+            _file_id = self.get_baseline_id(
+                _name,
+                "directory",
+                _parent_id,
             )
 
             body = {
@@ -254,6 +249,9 @@ class TestcaseHandler(TaskAuthHandler):
             return
 
         if not os.path.isdir(_filepath):
+            self.logger.warning(
+                f"{_filepath} is not a directory or a supported file"
+            )
             return
 
         _this_id = self.get_baseline_id(
@@ -282,7 +280,7 @@ class TestcaseHandler(TaskAuthHandler):
 
             filetype = os.path.splitext(filepath)[-1]
 
-            pattern = r'^([^\.].*)\.(xls|xlsx|csv)$'
+            pattern = r'^([^(\.|~)].*)\.(xls|xlsx|csv)$'
 
             if re.match(pattern, os.path.basename(filepath)) is not None:
                 suites = self.loads_data(
@@ -377,7 +375,7 @@ class TestcaseHandler(TaskAuthHandler):
 
             self.next_period()
             self.promise.update_state(
-                state="DONE",
+                state="SUCCESS",
                 meta={
                     "start_time": self.start_time,
                     "running_time": self.running_time,
@@ -404,4 +402,7 @@ class TestcaseHandler(TaskAuthHandler):
             if os.path.exists(zip_filepath):
                 os.remove(zip_filepath)
                 if unzip_filepath and os.path.exists(unzip_filepath):
-                    shutil.rmtree(unzip_filepath)
+                    if os.path.isdir(unzip_filepath):
+                        shutil.rmtree(unzip_filepath)
+                    else:
+                        os.remove(unzip_filepath)

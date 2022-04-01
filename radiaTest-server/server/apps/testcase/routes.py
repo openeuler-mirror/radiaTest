@@ -80,6 +80,24 @@ class BaselineImportEvent(Resource):
         )
 
 
+class SuiteItemEvent(Resource):
+    @auth.login_required
+    @response_collect
+    def get(self, suite_id):
+        suite = Suite.query.filter_by(id=suite_id).first()
+        if not suite:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="the suite does not exist"
+            )
+        
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+            data=suite.to_json()
+        )
+
+
 class SuiteEvent(Resource):
     @auth.login_required()
     @response_collect
@@ -109,6 +127,32 @@ class SuiteEvent(Resource):
                 body[key] = value
 
         return Select(Suite, body).fuzz()
+
+
+class PreciseSuiteEvent(Resource):
+    @auth.login_required
+    @response_collect
+    def get(self):
+        body = dict()
+
+        for key, value in request.args.to_dict().items():
+            if value:
+                body[key] = value
+
+        return Select(Suite, body).precise()
+
+
+class PreciseCaseEvent(Resource):
+    @auth.login_required
+    @response_collect
+    def get(self):
+        body = dict()
+
+        for key, value in request.args.to_dict().items():
+            if value:
+                body[key] = value
+
+        return Select(Case, body).precise()
 
 
 class CaseEvent(Resource):
@@ -146,7 +190,7 @@ class CaseEvent(Resource):
             if value:
                 body[key] = value
 
-        return Select(Case, body).precise()
+        return Select(Case, body).fuzz()
 
 
 class TemplateCasesQuery(Resource):

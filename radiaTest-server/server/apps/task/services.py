@@ -130,7 +130,7 @@ class UpdateTaskStatusService(object):
                     template.milestone_id = milestone.milestone_id
                     template.template_type = 'task'
                     template.cases = auto_cases
-                    template_id = template.add_flush_commit()
+                    template_id = template.add_flush_commit_id()
                     milestone.template_id = template_id
                     milestone.job_result = 'pending'
                     milestone.add_update()

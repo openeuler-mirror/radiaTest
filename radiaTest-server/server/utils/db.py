@@ -122,56 +122,47 @@ class Insert(FilterBase):
         super().__init__(table, data)
 
     @pdbc
-    def single(self, table=None, namespace=None):
-        self._instance.add_update(table, namespace)
+    def single(self, table=None, namespace=None, broadcast=False):
+        self._instance.add_update(table, namespace, broadcast)
 
-    def insert_id(self, table=None, namespace=None):
-        return self._instance.add_flush_commit(table, namespace)
+    def insert_id(self, table=None, namespace=None, broadcast=False):
+        return self._instance.add_flush_commit_id(table, namespace, broadcast)
+
+    def insert_obj(self, table=None, namespace=None, broadcast=False):
+        return self._instance.add_flush_commit(table, namespace, broadcast)
 
 
 class Delete(DataBase):
     @pdbc
-    def batch(self, table=None, namespace=None):
+    def batch(self, table=None, namespace=None, broadcast=False):
         data = MultipleConditions(self._table, self._data).all()
         if not data:
             raise ValueError("Related data has been deleted.")
 
         for d in data:
-            d.delete(table, namespace)
+            d.delete(table, namespace, broadcast)
 
     @pdbc
-    def single(self, table=None, namespace=None):
+    def single(self, table=None, namespace=None, broadcast=False):
         data = Precise(self._table, self._data).first()
         if not data:
             raise ValueError("Related data has been deleted.")
 
-        data.delete(table, namespace)
+        data.delete(table, namespace, broadcast)
 
 
 class Edit(DataBase):
     @pdbc
-    def single(self, Table=None, namespace=None):
+    def single(self, table=None, namespace=None, broadcast=False):
         data = self._table.query.filter_by(id=self._data.get("id")).first()
         if not data:
             raise ValueError("Related data does not exist.")
 
         for key, value in self._data.items():
-            if value != None:
+            if value is not None:
                 setattr(data, key, value)
 
-        data.add_update(Table, namespace)
-
-    @pdbc
-    def pmachine(self, Table, namespace):
-        data = self._table.query.filter_by(id=self._data.get("id")).first()
-        if not data:
-            raise ValueError("Related data does not exist.")
-
-        for key, value in self._data.items():
-            if value != "":
-                setattr(data, key, value)
-
-        data.add_update(Table, namespace)
+        data.add_update(table, namespace, broadcast)
 
 
 class Select(DataBase):

@@ -48,7 +48,7 @@ def handler_register(body):
     admin = Admin()
     admin.account = body.account
     admin.password = body.password
-    admin_id = admin.add_flush_commit()
+    admin_id = admin.add_flush_commit_id()
     if not admin_id:
         return jsonify(error_code=RET.DB_ERR, error_msg=f'database add error')
 

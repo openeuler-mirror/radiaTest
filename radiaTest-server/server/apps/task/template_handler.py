@@ -205,7 +205,7 @@ class HandlerTaskDistributeCass:
         child_task.organization_id = self.parent_task.organization_id
         child_task.frame = self.parent_task.frame
         child_task.status_id = self.status.id
-        child_task_id = child_task.add_flush_commit()
+        child_task_id = child_task.add_flush_commit_id()
         child_task = Task.query.get(child_task_id)
         return child_task
 

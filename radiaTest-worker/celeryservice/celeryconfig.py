@@ -13,16 +13,6 @@ def loads_config_ini(section, option):
     cfg.read(config_ini)
 
     return cfg.get(section, option)
- 
-def get_current_ip():
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(('8.8.8.8', 80))
-        ip = s.getsockname()[0]
-    finally:
-        s.close()
- 
-    return ip
 
 
 # Broker settings
@@ -61,9 +51,7 @@ task_queues = (
     Queue(
         'queue_create_vmachine', 
         exchange=Exchange(
-            'worker@{}_exchange'.format(
-                get_current_ip()
-            ),
+            'worker_exchange',
             type='direct'
         ),
         routing_key='create_vmachine',
@@ -71,9 +59,7 @@ task_queues = (
     Queue(
         'queue_illegal_monitor', 
         exchange=Exchange(
-            'worker@{}_exchange'.format(
-                get_current_ip()
-            ),
+            'worker_exchange',
             type='direct'
         ),
         routing_key='illegal_monitor',
@@ -81,13 +67,14 @@ task_queues = (
 )
 
 # worker相关配置 
-STORAGE_POOL = loads_config_ini("worker","STORAGE_POOL")
-NETWORK_INTERFACE_SOURCE= loads_config_ini(
+storage_pool = loads_config_ini("worker","STORAGE_POOL")
+network_interface_source= loads_config_ini(
     "worker",
     "NETWORK_INTERFACE_SOURCE"
 )
-SERVER_IP = loads_config_ini("worker","SERVER_IP")
-SERVER_PORT = loads_config_ini("worker","SERVER_PORT")
-PROTOCOL = loads_config_ini("worker","PROTOCOL")
-
-HEADERS = {"Content-Type": "application/json;charset=utf8"}
+server_ip = loads_config_ini("worker","SERVER_IP")
+server_listen = loads_config_ini("worker","SERVER_PORT")
+messenger_ip = loads_config_ini("worker", "MESSENGER_IP")
+messenger_listen = loads_config_ini("worker", "MESSENGER_LISTEN")
+protocol = loads_config_ini("worker","PROTOCOL")
+headers = {"Content-Type": "application/json;charset=utf8"}

@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-# @Author : lemon.higgins
-# @Date   : 2021-10-04 15:50:10
-# @Email  : lemon.higgins@aliyun.com
-# @License: Mulan PSL v2
-
-
 from typing import Optional
 from urllib import request, error
 

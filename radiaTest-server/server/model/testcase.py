@@ -3,7 +3,7 @@ from sqlalchemy.orm import backref
 
 from server import db
 from server.model import BaseModel
-from server.model.framework import Framework, GitRepo
+from server.model.framework import Framework
 
 
 baseline_family = db.Table(
@@ -55,7 +55,13 @@ class Baseline(BaseModel, db.Model):
         }
 
     def to_dict(self):
-        return self.__dict__
+        _dict = self.__dict__
+        _dict.update({
+            "create_time": self.create_time.strftime("%Y-%m-%d %H:%M:%S"),
+            "update_time": self.update_time.strftime("%Y-%m-%d %H:%M:%S"),
+        })
+
+        return _dict
 
 
 class Suite(BaseModel, db.Model):
@@ -178,6 +184,6 @@ class Case(BaseModel, db.Model):
             "org_id": self.suite.org_id,
             "usabled": self.usabled,
             "code": self.code,
-            "create_time": self.create_time,
-            "update_time": self.update_time,
+            "create_time": self.create_time.strftime("%Y-%m-%d %H:%M:%S"),
+            "update_time": self.update_time.strftime("%Y-%m-%d %H:%M:%S"),
         }

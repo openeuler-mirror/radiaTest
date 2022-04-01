@@ -1,117 +1,164 @@
-import time
 import json
 
-from flask import g, current_app, jsonify
-from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from flask import g, current_app, jsonify, request
+from sqlalchemy import or_
 
-from server import redis_client, db
-from server.model import Pmachine, IMirroring
+from server import redis_client
+from server.model.pmachine import Pmachine, MachineGroup
 from server.model.group import Group, ReUserGroup
 from server.utils.response_util import RET
 from server.utils.redis_util import RedisKey
-from server.utils.db import Edit, Insert, Precise
+from server.utils.db import Delete, Edit, Insert, collect_sql_error
 from server.model.message import Message, MsgType, MsgLevel
-from server.utils.shell import ShellCmd
-from server.utils.pssh import Connection
-from server.utils.bash import (
-    pxe_boot,
-    power_on_off,
-)
-from server.utils.pxe import PxeInstall, CheckInstall
+from server.utils.requests_util import do_request
 from server.utils.response_util import RET
+from server.utils.page_util import PageUtil
 
 
-class AutoInstall:
-    def __init__(self, body) -> None:
-        try:
-            self._pmachine = Precise(Pmachine, body).first()
-            self._mirroring = Precise(
-                IMirroring,
-                {
-                    "milestone_id": body.get("milestone_id"),
-                    "frame": self._pmachine.frame,
-                },
-            ).first()
-        except (IntegrityError, SQLAlchemyError) as e:
-            current_app.logger.error(e)
+class ResourcePoolHandler:
+    @staticmethod
+    @collect_sql_error
+    def get_all(query):
+        filter_params = []
+        if query.text:
+            filter_params.append(
+                or_(
+                    MachineGroup.name.like(f"%{query.text}%"),
+                    MachineGroup.ip.like(f"%{query.text}%")
+                )
+            )
+        
+        if query.network_type:
+            filter_params.append(
+                MachineGroup.network_type == query.network_type
+            )
+        
+        machine_groups = MachineGroup.query.filter(*filter_params).all()
+
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+            data=[machine_group.to_json() for machine_group in machine_groups]
+        )
+        
+    @staticmethod
+    @collect_sql_error
+    def get(machine_group_id):
+        machine_group = MachineGroup.query.filter_by(
+            id=machine_group_id
+        ).first()
+        if not machine_group:
             return jsonify(
-                {
-                    "error_code": RET.INSTALL_CONF_ERR,
-                    "error_msg": "The selected machine does not exist or the milestone is not bound to the mirror.",
-                }
+                error_code=RET.NO_DATA_ERR,
+                errror_msg="the machine group does not exist"
             )
 
-    def kickstart(self):
-        if not self._mirroring.efi:
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+            data=machine_group.to_json()
+        )
+
+    @staticmethod
+    @collect_sql_error
+    def create_group(body):
+        return Insert(MachineGroup, body.__dict__).single(
+            MachineGroup, 
+            "/machine_group"
+        )
+
+    @staticmethod
+    @collect_sql_error
+    def update_group(machine_group_id, body):
+        _body = body.__dict__
+        _body.udpate({"id": machine_group_id})
+        return Edit(MachineGroup, _body).single(MachineGroup, "/machine_group")
+
+    @staticmethod
+    @collect_sql_error
+    def delete_group(machine_group_id):
+        return Delete(MachineGroup, {"id": machine_group_id}).single(
+            MachineGroup, 
+            "/machine_group"
+        )
+
+
+class PmachineHandler:
+    @staticmethod
+    def get_all(query):
+        filter_params = [
+            Pmachine.machine_group_id == query.machine_group_id
+        ]
+
+        if query.mac:
+            filter_params.append(Pmachine.mac.like(f"%{query.mac}%"))
+        if query.frame:
+            filter_params.append(Pmachine.frame == query.frame)
+        if query.ip:
+            filter_params.append(Pmachine.ip.like(f"%{query.ip}%"))
+        if query.bmc_ip:
+            filter_params.append(Pmachine.bmc_ip.like(f"%{query.bmc_ip}%"))
+        if query.occupier:
+            filter_params.append(Pmachine.occupier.like(f"%{query.occupier}%"))
+        if query.description:
+            filter_params.append(
+                Pmachine.description.like(f"%{query.description}%")
+            )
+        
+        if query.state:
+            filter_params.append(Pmachine.state == query.state)
+        
+        query_filter = Pmachine.query.filter(*filter_params)
+
+        def page_func(item):
+            return item.to_json()
+
+        page_dict, e = PageUtil.get_page_dict(
+            query_filter, 
+            query.page_num, 
+            query.page_size, 
+            func=page_func
+        )
+        if e:
             return jsonify(
-                {
-                    "error_code": RET.INSTALL_CONF_ERR,
-                    "error_msg": "The milestone image does not provide grub.efi path .",
-                }
+                error_code=RET.SERVER_ERR, 
+                error_msg=f'get group page error {e}'
             )
-
-        if not self._pmachine.mac:
-            return jsonify(
-                {
-                    "error_code": RET.INSTALL_CONF_ERR,
-                    "error_msg": "The physical machine registration information does not exist in the mac address.",
-                }
-            )
-
-        if not self._pmachine.ip:
-            return jsonify(
-                {
-                    "error_code": RET.INSTALL_CONF_ERR,
-                    "error_msg": "The registration information of the physical machine does not have an IP address.",
-                }
-            )
-
-        result = PxeInstall(
-            self._pmachine.mac, self._pmachine.ip, self._mirroring.efi
-        ).bind_efi_mac_ip()
-        if isinstance(result, tuple):
-            return result
-
-        exitcode, output = ShellCmd(
-            pxe_boot(
-                self._pmachine.bmc_ip,
-                self._pmachine.bmc_user,
-                self._pmachine.bmc_password,
-            )
-        )._exec()
-        if exitcode:
-            error_msg = (
-                "Failed to boot pxe to start the physical machine:%s."
-                % self._pmachine.ip
-            )
-            current_app.logger.error(error_msg)
-            current_app.logger.error(output)
-            return jsonify({"error_code": RET.INSTALL_CONF_ERR, "error_msg": error_msg})
-
-        result = CheckInstall(self._pmachine.ip).check()
-        if isinstance(result, tuple):
-            return result
-
-        return jsonify({"error_code": RET.OK, "error_msg": "系统安装成功."})
+        return jsonify(error_code=RET.OK, error_msg="OK", data=page_dict)
 
 
-class OnOff:
-    def __init__(self, body) -> None:
+class PmachineMessenger:
+    def __init__(self, body):
         self._body = body
+        self._body.update({
+            "user_id": int(g.gitee_id),
+        })
 
-    def on_off(self):
-        pmachine = Precise(Pmachine, {"id": self._body.get("id")}).first()
-        exitcode, output = ShellCmd(
-            power_on_off(
-                pmachine.bmc_ip,
-                pmachine.bmc_user,
-                pmachine.bmc_password,
-                self._body.get("status"),
+    def send_request(self, machine_group, api):
+        _resp = dict()
+        _r = do_request(
+            method="put",
+            url="{}://{}:{}{}".format(
+                current_app.config.get("PROTOCOL"),
+                machine_group.ip,
+                machine_group.listen,
+                api
+            ),
+            body=self._body,
+            headers={
+                "content-type": "application/json;charset=utf-8",
+                "authorization": request.headers.get("authorization")
+            },
+            obj=_resp
+        )
+
+        if _r !=0:
+            return jsonify(
+                error_code=RET.RUNTIME_ERROR,
+                error_msg="could not reach messenger of this machine group"
             )
-        )._exec()
-        if exitcode:
-            return jsonify({"error_code": exitcode, "error_msg": output})
-        return Edit(Pmachine, self._body).single(Pmachine, '/pmachine')
+
+        return jsonify(_resp)
 
 
 class StateHandler:

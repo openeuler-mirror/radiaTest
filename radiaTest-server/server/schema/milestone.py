@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime
 from typing import Literal, Optional
 
 from pydantic import BaseModel, Field, constr, root_validator
@@ -7,13 +7,12 @@ from pydantic import BaseModel, Field, constr, root_validator
 from server.model import Product, Milestone
 from server.utils.db import Precise
 from server.schema import MilestoneType, MilestoneState, MilestoneStateEvent
+from server.schema.base import TimeBaseSchema
 
 
-class MilestoneBaseSchema(BaseModel):
-    start_time: Optional[datetime.datetime]
+class MilestoneBaseSchema(TimeBaseSchema):
     description: Optional[constr(max_length=255)]
     name: Optional[constr(max_length=64)]
-    end_time: Optional[datetime.datetime]
     product_id: Optional[int]
     type: Optional[MilestoneType]
     state: Optional[MilestoneState]
@@ -26,19 +25,17 @@ class MilestoneQuerySchema(MilestoneBaseSchema):
     page_size: int = 10
 
 
-class MilestoneUpdateSchema(BaseModel):
-    start_time: Optional[datetime.datetime]
+class MilestoneUpdateSchema(TimeBaseSchema):
     description: Optional[constr(max_length=255)]
     name: Optional[constr(max_length=64)]
-    end_time: Optional[datetime.datetime]
     state_event: Optional[MilestoneStateEvent]
     
 
-class MilestoneCreateSchema(MilestoneBaseSchema):
+class MilestoneCreateSchema(TimeBaseSchema):
     product_id: int
     type: MilestoneType
-    end_time: datetime.datetime
-    start_time: Optional[datetime.datetime] = datetime.datetime.now()
+    end_time: str
+    start_time: Optional[str] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
     @root_validator
     def assign_name(cls, values):
@@ -84,17 +81,40 @@ class MilestoneCreateSchema(MilestoneBaseSchema):
         return values
 
 
-class GiteeMilestoneBase(BaseModel):
+class GiteeTimeBaseModel(BaseModel):
+    due_date: Optional[str] = Field(alias="end_time")
+    start_date: Optional[str] = Field(alias="start_time")
+
+    @root_validator
+    def check_time_format(cls, values):
+        try:
+            if values.get("start_date"):
+                values["start_date"] = datetime.strptime(
+                    values["start_date"], 
+                    "%Y-%m-%d %H:%M:%S"
+                )
+            if values.get("due_date"):
+                datetime.strptime(
+                    values["due_date"],
+                    "%Y-%m-%d %H:%M:%S"
+                )
+                
+        except:
+            raise ValueError(
+                "the format of start_date/due_date is not valid, the valid type is: %Y-%m-%d %H:%M:%S"
+            )
+        
+        return values
+
+
+class GiteeMilestoneBase(GiteeTimeBaseModel):
     access_token: str
     title: str = Field(alias="name")
     due_date: str = Field(alias="end_time")
-    start_date: Optional[str] = Field(alias="start_time")
 
-
+    
 class GiteeMilestoneEdit(GiteeMilestoneBase):
     title: Optional[str] = Field(alias="name")
-    start_date: Optional[str] = Field(alias="start_time")
-    due_date: Optional[str] = Field(alias="end_time")
     state_event:  Optional[Literal["activate", "close"]]
 
 

@@ -12,6 +12,10 @@ MilestoneStateEvent = Literal["activate", "close"]
 ## 架构
 Frame = Literal["aarch64", "x86_64"]
 
+# 资源池
+## 机器组
+MachineGroupNetworkType = Literal["WAN", "LAN"]
+
 ## 物理机
 ### 释放占有
 PmachineState = Literal["idle", "occupied"]
@@ -53,7 +57,6 @@ DiskCache = Literal[
 ### 播放总线
 VideoBus = Literal["virtio"]
 
-# 机器
 ## 机器类型
 MachineType = Literal["kvm", "physical"]
 ## 机器用途

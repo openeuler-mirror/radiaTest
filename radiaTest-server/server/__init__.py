@@ -23,26 +23,16 @@ socketio = SocketIO(
 casbin_enforcer = CasbinEnforcer()
 
 
-from server.sockets.monitor_socket import RemoteMonitorSocket
-from server.sockets.xterm import TerminalSocket
-from server.utils.resource_monitor import RemoteShellMonitor
-from server.utils.resource_monitor import RemoteRestfulMonitor
+from server.sockets.transfer import (
+    XtermTransferSocket, 
+    NormalMonitorTransferSocket,
+    HostMonitorTransferSocket,
+)
 
-socketio.on_namespace(
-    TerminalSocket("/xterm")
-)
-socketio.on_namespace(
-    RemoteMonitorSocket(
-        "/monitor/normal", 
-        RemoteShellMonitor
-    )
-)
-socketio.on_namespace(
-    RemoteMonitorSocket(
-        "/monitor/host", 
-        RemoteRestfulMonitor
-    )
-)
+
+socketio.on_namespace(XtermTransferSocket("/xterm"))
+socketio.on_namespace(NormalMonitorTransferSocket("/monitor/normal"))
+socketio.on_namespace(HostMonitorTransferSocket("/monitor/host"))
 
 
 def create_app(**kwargs):

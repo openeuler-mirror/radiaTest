@@ -123,8 +123,10 @@ def handler_group_page():
     if name:
         filter_params.append(Group.name.like(f"%{name}%"))
 
-    query_filter = ReUserGroup.query.join(Group).filter(*filter_params).order_by(ReUserGroup.create_time.desc(),
-                                                                                 ReUserGroup.id.asc())
+    query_filter = ReUserGroup.query.join(Group).filter(*filter_params).order_by(
+        ReUserGroup.create_time.desc(),
+        ReUserGroup.id.asc()
+    )
 
     def page_func(item):
         re_dict = ReUserGroupSchema(**item.to_dict()).dict()

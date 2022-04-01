@@ -26,7 +26,14 @@ class GiteeApi(object):
             }
             body = dict(client_secret=client_secret)
             resp = {}
-            r = do_request("post", url, params=params, body=body, obj=resp)
+            r = do_request(
+                "post", 
+                url, 
+                params=params, 
+                body=body, 
+                obj=resp,
+                encoder=None
+            )
             if r != 0 or not resp.get("access_token"):
                 return False, {}
             return True, resp
@@ -42,9 +49,19 @@ class GiteeApi(object):
 
             params = {"access_token": access_token}
             resp = {}
-            r = do_request("get", url_v8, params=params, obj=resp)
+            r = do_request(
+                "get", 
+                url_v8, 
+                params=params, 
+                obj=resp,
+            )
             if r != 0 or not resp.get("id"):
-                r = do_request("get", url_v5, params=params, obj=resp)
+                r = do_request(
+                    "get", 
+                    url_v5, 
+                    params=params, 
+                    obj=resp,
+                )
                 if r != 0 or not resp.get("id"):
                     return False, {}
 

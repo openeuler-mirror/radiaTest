@@ -1,11 +1,3 @@
-# -*- coding: utf-8 -*-
-# @Author : lemon.higgins
-# @Date   : 2021-10-25 18:00:27
-# @Email  : lemon.higgins@aliyun.com
-# @License: Mulan PSL v2
-# @Desc   :
-
-
 from subprocess import getstatusoutput
 
 from flask import current_app

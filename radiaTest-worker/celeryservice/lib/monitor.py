@@ -2,12 +2,10 @@ import json
 import shlex
 import requests
 import subprocess
-from time import sleep
 
 from celeryservice import celeryconfig
 from celeryservice.lib import TaskHandlerBase
 
-config = celeryconfig.__dict__
 
 class IllegalMonitor(TaskHandlerBase):
     def _get_virsh_domains(self):
@@ -20,40 +18,33 @@ class IllegalMonitor(TaskHandlerBase):
         return []
 
 
-    def _get_vmachines_from_db(self):
+    def _query_vmachine(self, domain):
+        resp = requests.get(
+            "http://{}:{}/api/v1/vmachine/check_exist".format(
+                celeryconfig.server_ip,
+                celeryconfig.server_listen,
+            ),
+            params={
+                "domain": domain,
+            },
+            headers=celeryconfig.headers,
+        )
+        if resp.status_code != 200:
+            raise RuntimeError("the worker cannot connect to server")
+
         try:
-            times = 0
-            while times < 60:
-                resp = requests.get(
-                    "http://{}:{}/api/v1/vmachine".format(
-                        config.get("SERVER_IP"),
-                        config.get("SERVER_PORT"),
-                    ),
-                    headers=config.get("HEADERS"),
-                )
-                if resp.status_code == 200:
-                    break
+            result = json.loads(resp.text).get("data")
+        except AttributeError:
+            result = resp.json.get("data")
 
-                sleep(10)
-                times += 1
-
-            return list(
-                map(
-                    lambda x: x["name"], 
-                    json.loads(resp.text).get("data")
-                )
-            )
-
-        except Exception as e:
-            self.logger.error(str(e))
-            return []
+        return result
         
     def main(self):
-        v_machines = self._get_vmachines_from_db()
-        if v_machines:
-            domains = self._get_virsh_domains()
-            for domain in domains:
-                if domain not in v_machines:
+        domains = self._get_virsh_domains()
+
+        for domain in domains:
+            try:
+                if not self._query_vmachine(domain):
                     self.logger.warn(
                         domain + " is an illegal vmachine, not established by server"
                     )
@@ -85,8 +76,6 @@ class IllegalMonitor(TaskHandlerBase):
                     self.logger.info(
                         f"the illegal vmachine {domain} has been deleted."
                     )
-
-        else:
-            self.logger.error(
-                "Cannot connect server. Have attempted to connect for 60 times"
-            )
+            except RuntimeError as e:
+                self.logger.warn(str(e))
+                continue

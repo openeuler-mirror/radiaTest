@@ -8,17 +8,60 @@ from flask import current_app
 from dateutil.relativedelta import relativedelta
 from pydantic import BaseModel, constr, validator, root_validator
 
-
-from server.schema import Frame, PmachineState, Power, PermissionType
-from server.schema.base import UpdateBaseModel
-
+from server.schema.base import PageBaseSchema
+from server.schema import (
+    Frame, 
+    PmachineState, 
+    Power, 
+    PermissionType,  
+    MachineGroupNetworkType
+)
 from server.utils.db import Precise
 from server.utils.pssh import Connection
-
 from server.model import Pmachine
 
 
-class PmachineBase(BaseModel):
+class MachineGroupCreateSchema(BaseModel):
+    name: str
+    description: str
+    network_type: MachineGroupNetworkType
+    ip: IPv4Address
+    listen: int
+
+
+class MachineGroupUpdateSchema(PageBaseSchema):
+    name: Optional[str]
+    description: Optional[str]
+    network_type: Optional[MachineGroupNetworkType]
+    ip: Optional[IPv4Address]
+    listen: Optional[int]
+
+
+class MachineGroupQuerySchema(BaseModel):
+    text: Optional[str]
+    network_type: Optional[MachineGroupNetworkType]
+
+
+class HeartbeatUpdateSchema(BaseModel):
+    messenger_ip: IPv4Address
+    messenger_alive: bool
+    pxe_alive: bool
+    dhcp_alive: bool
+
+
+class PmachineQuerySchema(PageBaseSchema):
+    #  TODO 暂时写死
+    machine_group_id: int = 1
+    mac: Optional[constr(max_length=17)]
+    frame: Optional[Frame]
+    bmc_ip: Optional[str]
+    ip: Optional[str]
+    occupier: Optional[str]
+    description: Optional[str]
+    state: Optional[PmachineState]
+
+
+class PmachineBaseSchema(BaseModel):
     mac: constr(max_length=17)
     frame: Frame
     bmc_ip: IPv4Address
@@ -34,6 +77,7 @@ class PmachineBase(BaseModel):
     description: Optional[str]
     state: Optional[PmachineState]
     occupier: Optional[str]
+    locked: Optional[bool] = False
 
     @validator("bmc_password")
     def required_bmc_conditions(cls, v, values):
@@ -144,21 +188,12 @@ class PmachineBase(BaseModel):
         return values
 
 
-class PmachineUpdate(PmachineBase, UpdateBaseModel):
+class PmachineUpdateSchema(PmachineBaseSchema):
     mac: Optional[constr(max_length=17)]
     frame: Optional[Frame]
     bmc_ip: Optional[IPv4Address]
     bmc_user: Optional[constr(max_length=32)]
     bmc_password: Optional[constr(min_length=6, max_length=256)]
-
-    @validator("id", pre=True)
-    def check_id(cls, v, values):
-        pmachine = Precise(Pmachine, {"id": v}).first()
-        if not pmachine:
-            raise ValueError("The selected machine no longer exists.")
-
-        values["pmachine"] = pmachine
-        return v
 
     @validator("description")
     def check_description(cls, v, values):
@@ -183,19 +218,19 @@ class PmachineUpdate(PmachineBase, UpdateBaseModel):
         return v
 
 
-class PmachineInstall(BaseModel):
+class PmachineInstallSchema(BaseModel):
     id: int
     milestone_id: int
 
 
-class PmachinePower(BaseModel):
+class PmachinePowerSchema(BaseModel):
     id: int
     status: Power
 
 
-class PmachineBasic(BaseModel):
-    ip: str
+class PmachineBriefSchema(BaseModel):
+    ip: IPv4Address
     description: str
     status: str
-    bmc_ip: str
+    bmc_ip: IPv4Address
     

@@ -1,7 +1,7 @@
 from flask import jsonify, g
 from sqlalchemy import or_
 
-from server.utils.db import collect_sql_error
+from server.utils.db import collect_sql_error, Insert
 from server.model.celerytask import CeleryTask
 from server.model.administrator import Admin
 from server.utils.page_util import PageUtil
@@ -37,4 +37,11 @@ class CeleryTaskHandler:
         if e:
             return jsonify(error_code=RET.SERVER_ERR, error_msg=f'get celery task page error {e}')
         return jsonify(error_code=RET.OK, error_msg="OK", data=page_dict)
+    
+    @staticmethod
+    @collect_sql_error
+    def create(body):
+        return Insert(CeleryTask, body.__dict__).single(
+            CeleryTask, "/celerytask"
+        )
 

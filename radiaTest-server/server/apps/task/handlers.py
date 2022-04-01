@@ -1049,13 +1049,13 @@ class HandlerTaskExecute(object):
         record.status_id = status.id
         record.start_time = milestone.start_time
         record.deadline = milestone.end_time
-        task_id = record.add_flush_commit()
+        task_id = record.add_flush_commit_id()
         self.task = Task.query.get(task_id)
         task_milestone = TaskMilestone()
         task_milestone.task_id = task_id
         task_milestone.milestone_id = params.milestone_id
         task_milestone.cases = Case.query.filter(Case.id.in_(params.cases), Case.deleted.is_(False)).all()
-        task_milestone_id = task_milestone.add_flush_commit()
+        task_milestone_id = task_milestone.add_flush_commit_id()
         auto_cases, manual_cases = UpdateTaskStatusService._split_cases(task_milestone.cases)
         if not manual_cases:
             self.task.automatic = True

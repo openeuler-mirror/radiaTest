@@ -1,8 +1,11 @@
+import json
 import requests
 from flask import current_app
 
+from server.utils import DateEncoder
 
-def do_request(method, url, params=None, body=None, headers=None, timeout=30, obj=None):
+
+def do_request(method, url, params=None, body=None, headers=None, timeout=30, obj=None, encoder=DateEncoder):
     """
 
     :param headers: dict
@@ -18,10 +21,28 @@ def do_request(method, url, params=None, body=None, headers=None, timeout=30, ob
     try:
         if method.lower() not in ['get', 'post', 'put', 'delete']:
             return -1
-        resp = requests.request(method.lower(), url, params=params, data=body, timeout=timeout, headers=headers)
+        
+        if encoder is not None:
+            body = json.dumps(body, cls=encoder)
+
+        resp = requests.request(
+            method.lower(), 
+            url, 
+            params=params, 
+            data=body,
+            timeout=timeout, 
+            headers=headers
+        )
+        
         if resp.status_code not in [requests.codes.ok, requests.codes.created, requests.codes.no_content]:
-            current_app.logger.info(f'response code error! status_code {resp.status_code}')
+            current_app.logger.warn(
+                'response code error! status_code {}: {}'.format(
+                    resp.status_code,
+                    resp.text,
+                )
+            )
             return 1
+        
         if obj is not None:
             if isinstance(obj, list):
                 obj.extend(resp.json())
@@ -43,7 +64,3 @@ def do_request(method, url, params=None, body=None, headers=None, timeout=30, ob
     except requests.exceptions.RequestException as e:
         current_app.logger.error(f"request exception: {e}")
         return 3
-
-
-if __name__ == "__main__":
-    do_request("get", "https://www.baidu.com")

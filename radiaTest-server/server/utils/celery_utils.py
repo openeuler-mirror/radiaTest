@@ -41,26 +41,6 @@ def make_celery(app_name):
                 'routing_key': 'case',
                 'delivery_mode': 1,
             },
-            'celeryservice.tasks.run_suite': {
-                'queue': 'queue_run_suite',
-                'routing_key': 'run_suite',
-                'delivery_mode': 1,
-            },
-            'celeryservice.tasks.run_template': {
-                'queue': 'queue_run_template',
-                'routing_key': 'run_template',
-                'delivery_mode': 1,
-            },
-            'celeryservice.sub_tasks.job_result_callback': {
-                'queue': 'queue_job_callback',
-                'routing_key': 'job_callback',
-                'delivery_mode': 1,
-            },
-            'celeryservice.sub_tasks.run_case': {
-                'queue': 'queue_run_case',
-                'routing_key': 'run_case',
-                'delivery_mode': 1,
-            },
             'celeryservice.tasks.resolve_testcase_file': {
                 'queue': 'queue_file_resolution',
                 'routing_key': 'file',

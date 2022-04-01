@@ -9,7 +9,16 @@ class ReUserGroupSchema(BaseModel):
     user_add_group_flag: bool = Field(alias='user_add_group_flag')
     re_user_group_is_delete: bool = Field(alias="is_delete")
     re_user_group_role_type: int = Field(alias="role_type")
-    re_user_group_create_time: datetime = Field(alias="create_time")
+    re_user_group_create_time: str = Field(alias="create_time")
+
+    @validator("re_user_group_create_time")
+    def check_time_format(cls, v):
+        try:
+            v = datetime.strptime(v, "%Y-%m-%d %H:%M:%S")
+        except:
+            raise ValueError("the format of create_time is not valid, the valid type is: %Y-%m-%d %H:%M:%S")
+        
+        return v
 
 
 class AddGroupSchema(BaseModel):

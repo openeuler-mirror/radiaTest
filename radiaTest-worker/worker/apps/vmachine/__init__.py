@@ -1,8 +1,7 @@
 from flask import request, jsonify
 from flask_restful import Resource
 
-from worker.apps.vmachine.handle import (
-    # InstallVmachine,
+from worker.apps.vmachine.handlers import (
     domain_cli,
     domain_state,
     attach_device,
@@ -17,7 +16,9 @@ from celeryservice.tasks import *
 class VmachineEvent(Resource):
     def post(self):
         body = request.json
-        _task = create_vmachine.delay(body)
+        auth = request.headers.get("authorization")
+
+        _task = create_vmachine.delay(auth, body)
         return jsonify(
             error_code="2000", 
             error_msg="OK", 

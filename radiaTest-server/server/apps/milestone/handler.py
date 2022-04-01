@@ -147,16 +147,10 @@ class MilestoneOpenApiHandler(BaseOpenApiHandler):
 
     def gitee_2_radia(self, body):
         if isinstance(body.get("start_date"), str):
-            body["start_time"] = datetime.strptime(
-                body.get("start_date"), 
-                "%Y-%m-%d"
-            )
+            body["start_time"] = body.get("start_date")
 
         if isinstance(body.get("due_date"), str):
-            body["end_time"] = datetime.strptime(
-                body.get("due_date"), 
-                "%Y-%m-%d"
-            )
+            body["end_time"] = body.get("due_date")
 
         body.update({
             "name": body.get("title"),
@@ -168,11 +162,11 @@ class MilestoneOpenApiHandler(BaseOpenApiHandler):
         return body
     
     def radia_2_gitee(self, body):
-        if isinstance(body.get("start_time"), datetime):
-            body["start_time"] = body.get("start_time").strftime("%Y-%m-%d")
+        if isinstance(body.get("start_time"), str):
+            body["start_time"] = body.get("start_time")
 
-        if isinstance(body.get("end_time"), datetime):
-            body["end_time"] = body.get("end_time").strftime("%Y-%m-%d")
+        if isinstance(body.get("end_time"), str):
+            body["end_time"] = body.get("end_time")
         
         return body
 

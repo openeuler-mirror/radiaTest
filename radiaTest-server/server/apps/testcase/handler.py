@@ -12,7 +12,7 @@ from server.model.testcase import Baseline, Suite, Case
 from server.model.celerytask import CeleryTask
 from server.schema.testcase import BaselineBaseSchema
 from server.schema.celerytask import CeleryTaskUserInfoSchema
-from server.utils.files_util import ZipImportFile, ExcelImportFile
+from server.utils.file_util import ZipImportFile, ExcelImportFile
 from server.utils.sheet import Excel, SheetExtractor
 from celeryservice.tasks import resolve_testcase_file, resolve_testcase_file_for_baseline, resolve_testcase_set
 
@@ -235,6 +235,8 @@ class BaselineHandler:
         if not parent:
             return jsonify(error_code=RET.NO_DATA_ERR, error_msg="parent node is not exists")
 
+        _body.update({"in_set": parent.in_set})
+
         for child in parent.children:
             if _body["title"] == child.title:
                 return jsonify(
@@ -248,7 +250,7 @@ class BaselineHandler:
         baseline = Baseline.query.filter_by(
             id=Insert(
                 Baseline,
-                body.__dict__
+                _body,
             ).insert_id()
         ).first()
 

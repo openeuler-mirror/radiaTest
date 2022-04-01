@@ -24,8 +24,8 @@ from server.schema.group import ReUserGroupSchema, GroupInfoSchema
 from server.schema.organization import OrgUserInfoSchema, ReUserOrgSchema
 from server.schema.user import UserBaseSchema, UserInfoSchema, UserTaskSchema, UserMachineSchema
 from server.schema.task import TaskInfoSchema
-from server.schema.vmachine import VmachineBasic
-from server.schema.pmachine import PmachineBasic
+from server.schema.vmachine import VmachineBriefSchema
+from server.schema.pmachine import PmachineBriefSchema
 from server.utils.page_util import PageUtil
 
 
@@ -241,6 +241,7 @@ def handler_register(gitee_id, body):
             error_msg=f"database no find data"
         )
 
+    # 若组织需要CLA签署验证，则判断是否已签署CLA
     if org.cla_verify_url and not Cla.is_cla_signed(
         ClaShowAdminSchema(**org.to_dict()).dict(), 
         body.cla_verify_params, 
@@ -251,17 +252,6 @@ def handler_register(gitee_id, body):
             error_msg="user is not pass cla verification, please retry",
             data=gitee_user.get("id")
         )
-    
-    # 生成用户和组织的关系
-    re_user_organization = ReUserOrganization.create(
-        gitee_user.get("id"), 
-        body.organization_id,
-        json.dumps({
-            **body.cla_verify_params, 
-            **body.cla_verify_body
-        }),
-        default=False
-    )
 
     # 提取cla邮箱
     cla_email = None
@@ -278,9 +268,19 @@ def handler_register(gitee_id, body):
         # 用户注册成功保存用户信息、生成token
         user = User.create_commit(
             gitee_user, 
-            cla_email, 
-            [re_user_organization]
+            cla_email,
         )
+    
+    # 生成用户和组织的关系
+    _ = ReUserOrganization.create(
+        user.gitee_id, 
+        body.organization_id,
+        json.dumps({
+            **body.cla_verify_params, 
+            **body.cla_verify_body
+        }),
+        default=False
+    )
 
     # 用户缓存到redis中
     user.save_redis(
@@ -587,7 +587,7 @@ def handler_get_user_machine(body: UserMachineSchema):
     page_dict = None
     if body.machine_type == 'physics':
         def page_func(item: Pmachine):
-            item_dict = PmachineBasic(**item.__dict__).dict()
+            item_dict = PmachineBriefSchema(**item.__dict__).dict()
             return item_dict
 
         filter_params = [or_(Pmachine.user == g.gitee_id, Pmachine.occupier == g.gitee_id)]
@@ -603,7 +603,7 @@ def handler_get_user_machine(body: UserMachineSchema):
             return jsonify(error_code=RET.SERVER_ERR, error_msg=f'get pmachine page error {e}')
     elif body.machine_type == 'virtual':
         def page_func(item: Vmachine):
-            item_dict = VmachineBasic(**item.__dict__).dict()
+            item_dict = VmachineBriefSchema(**item.__dict__).dict()
             return item_dict
 
         filter_params = [Vmachine.user == g.gitee_id]

@@ -18,17 +18,28 @@ class MsgType(Enum):
 
 class Message(db.Model, Base):
     __tablename__ = "message"
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    data = db.Column(db.Text, nullable=False)
-    level = db.Column(db.Integer, nullable=False, default=MsgLevel.user.value)
-    from_id = db.Column(db.Integer, nullable=False)
-    to_id = db.Column(db.Integer, nullable=False)
-    is_delete = db.Column(db.Boolean, default=False, nullable=False)
-    has_read = db.Column(db.Boolean, default=False, nullable=False)
-    type = db.Column(db.Integer, nullable=False, default=MsgType.text.value)
+    id = db.Column(db.Integer(), primary_key=True, autoincrement=True)
+    data = db.Column(db.Text(), nullable=False)
+    level = db.Column(db.Integer(), nullable=False, default=MsgLevel.user.value)
+    from_id = db.Column(db.Integer(), nullable=False)
+    to_id = db.Column(db.Integer(), nullable=False)
+    is_delete = db.Column(db.Boolean(), default=False, nullable=False)
+    has_read = db.Column(db.Boolean(), default=False, nullable=False)
+    type = db.Column(db.Integer(), nullable=False, default=MsgType.text.value)
 
     def to_dict(self):
-        return self.__dict__
+        return {
+            "id": self.id,
+            "data": self.data,
+            "level": self.level,
+            "from_id": self.from_id,
+            "to_id": self.to_id,
+            "is_delete": self.is_delete,
+            "has_read": self.has_read,
+            "type": self.type,
+            "create_time": self.create_time.strftime("%Y-%m-%d %H:%M:%S"),
+            "update_time": self.update_time.strftime("%Y-%m-%d %H:%M:%S"),
+        }
 
     @staticmethod
     def create_instance(data, from_id, to_id, level=MsgLevel.user.value, msg_type=MsgType.text.value):
