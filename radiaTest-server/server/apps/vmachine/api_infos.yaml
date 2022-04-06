@@ -1,0 +1,9 @@
+- uri: /api/v1/vmachine/%d
+  act: delete
+  alias: 删除Vmachine
+- uri: /api/v1/vmachine/%d
+  act: get
+  alias: 获取Vmachine
+- uri: /api/v1/vmachine/%d
+  act: put
+  alias: 修改Vmachine

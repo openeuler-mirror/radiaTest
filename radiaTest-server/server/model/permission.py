@@ -22,8 +22,8 @@ class Role(db.Model, CasbinRoleModel):
     group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
     org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
 
-    re_scope_role = db.relationship("ReScopeRole", backref="role") 
-    re_user_role = db.relationship("ReUserRole", backref="role")
+    re_scope_role = db.relationship("ReScopeRole", cascade="all, delete, delete-orphan", backref="role") 
+    re_user_role = db.relationship("ReUserRole", cascade="all, delete, delete-orphan", backref="role") 
 
     children = db.relationship(
         "Role",
@@ -105,8 +105,8 @@ class ReScopeRole(db.Model, CasbinRoleModel):
         super().add_update(table, namespace)
         casbin_enforcer.adapter.add_policy("p", "p", self._generate_policy())
 
-    def add_flush_commit_id(self, table=None, namespace=None):
-        id = super().add_update(table, namespace)
+    def add_flush_commit_id(self, table=None, namespace=None, broadcast=False):
+        id = super().add_update(table, namespace, broadcast)
         casbin_enforcer.adapter.add_policy("p", "p", self._generate_policy())
         return id
 
@@ -114,6 +114,17 @@ class ReScopeRole(db.Model, CasbinRoleModel):
         _policy = self._generate_policy()
         super().delete(table, namespace)
         casbin_enforcer.adapter.remove_policy("p", "p", _policy)
+    
+    def to_json(self):
+        return {
+            "id": self.id,
+            "scope_id": self.scope_id,
+            "role_id": self.role_id,
+            "role_name": self.role.name,
+            "role_type": self.role.type,
+            "role_group": self.role.group_id,
+            "role_org": self.role.org_id,
+        }
 
 
 class ReUserRole(db.Model, CasbinRoleModel):
@@ -132,8 +143,8 @@ class ReUserRole(db.Model, CasbinRoleModel):
         super().add_update(table, namespace)
         casbin_enforcer.adapter.add_policy("g", "g", self._generate_group())
     
-    def add_flush_commit_id(self, table=None, namespace=None):
-        id = super().add_update(table, namespace)
+    def add_flush_commit_id(self, table=None, namespace=None, broadcast=False):
+        id = super().add_update(table, namespace, broadcast)
         casbin_enforcer.adapter.add_policy("g", "g", self._generate_group())
         return id
 

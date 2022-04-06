@@ -24,4 +24,8 @@ class Product(BaseModel, PermissionBaseModel, db.Model):
             "name": self.name,
             "version": self.version,
             "description": self.description,
+            "creator_id": self.creator_id,
+            "permission_type": self.permission_type,
+            "group_id": self.group_id,
+            "org_id": self.org_id
         }

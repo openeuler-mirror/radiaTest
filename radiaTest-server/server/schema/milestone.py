@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field, constr, root_validator
 from server.model import Product, Milestone
 from server.utils.db import Precise
 from server.schema import MilestoneType, MilestoneState, MilestoneStateEvent
-from server.schema.base import TimeBaseSchema
+from server.schema.base import TimeBaseSchema, PermissionBase
 
 
 class MilestoneBaseSchema(TimeBaseSchema):
@@ -31,7 +31,7 @@ class MilestoneUpdateSchema(TimeBaseSchema):
     state_event: Optional[MilestoneStateEvent]
     
 
-class MilestoneCreateSchema(TimeBaseSchema):
+class MilestoneCreateSchema(TimeBaseSchema, PermissionBase):
     product_id: int
     type: MilestoneType
     end_time: str
@@ -59,7 +59,7 @@ class MilestoneCreateSchema(TimeBaseSchema):
 
             if milestone_type == "update":
                 values["name"] = (
-                    prefix + " update_" + datetime.datetime.now().strftime("%Y%m%d")
+                    prefix + " update_" + datetime.now().strftime("%Y%m%d")
                 )
             elif milestone_type == "round":
                 prefix = prefix + " round-"

@@ -105,5 +105,5 @@ class CasbinRoleModel(BaseModel):
         else:
             return "{}@org_{}".format(
                 role_name,
-                self.role.org.name,
+                self.role.organization.name,
             )

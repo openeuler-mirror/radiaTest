@@ -7,38 +7,36 @@ from server.utils.response_util import response_collect, RET
 from server.model import Milestone
 from server.utils.db import Insert, Delete, Edit, Select
 from server.schema.milestone import GiteeIssueQueryV8, MilestoneBaseSchema, MilestoneCreateSchema, MilestoneQuerySchema, MilestoneUpdateSchema
-from .handler import MilestoneOpenApiHandler, IssueOpenApiHandlerV5, IssueOpenApiHandlerV8, MilestoneHandler
-
+from .handler import MilestoneOpenApiHandler, IssueOpenApiHandlerV5, IssueOpenApiHandlerV8, MilestoneHandler, CreateMilestone, DeleteMilestone
+from server.utils.permission_utils import GetAllByPermission
+from server.utils.resource_utils import ResourceManager
 
 class MilestoneItemEventV1(Resource):
     @auth.login_required()
     @response_collect
     @validate()
     def delete(self, milestone_id):
-        return Delete(Milestone, {"id":milestone_id}).single(Milestone, '/milestone')
+        return ResourceManager("milestone").del_single(milestone_id)
 
     @auth.login_required()
     @response_collect
     @validate()
-    def put(self, body: MilestoneUpdateSchema):
-        return Edit(Milestone, body.__dict__).single(Milestone, '/milestone')
+    def put(self, milestone_id, body: MilestoneUpdateSchema):
+        milestone = Milestone.query.filter_by(id=milestone_id).first()
+        if not milestone:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="milestone {} not exitst".format(milestone_id)
+            )
+        _data = body.__dict__
+        _data["id"] = milestone_id
+        return Edit(Milestone, _data).single(Milestone, '/milestone')
 
     @auth.login_required()
     @response_collect
     @validate()
     def get(self, milestone_id):
-        milestone = Milestone.query.filter_by(id=milestone_id).first()
-        if not milestone:
-            return jsonify(
-                error_code=RET.NO_DATA_ERR,
-                error_msg="the milestone does not exist"
-            )
-
-        return jsonify(
-            error_code=RET.OK,
-            error_msg="OK",
-            data=milestone.to_json()
-        )
+        return Select(Milestone, {"id":milestone_id}).single()
 
 
 class MilestoneEventV1(Resource):
@@ -46,19 +44,14 @@ class MilestoneEventV1(Resource):
     @response_collect
     @validate()
     def post(self, body: MilestoneCreateSchema):
-        return Insert(Milestone, body.__dict__).single(Milestone, '/milestone')
+        return ResourceManager("milestone").add("api_infos.yaml", body.__dict__)
 
     @auth.login_required()
     @response_collect
     @validate()
-    def get(self, query: MilestoneBaseSchema):
-        params = dict()
-        q_dict = query.__dict__
-        for key in q_dict.keys():
-            if q_dict[key] is not None:
-                params[key] = q_dict[key]
-
-        return Select(Milestone, params).fuzz()
+    def get(self):
+        body = request.args.to_dict()
+        return GetAllByPermission(Milestone).fuzz(body)
 
 
 class MilestoneEventV2(Resource):
@@ -66,13 +59,7 @@ class MilestoneEventV2(Resource):
     @response_collect
     @validate()
     def post(self, body: MilestoneCreateSchema):
-        if body.is_sync:
-            return MilestoneOpenApiHandler(body.__dict__).create()
-        else:
-            return Insert(
-                Milestone, 
-                body.__dict__
-            ).single(Milestone, '/milestone')
+        CreateMilestone.run_v2(body.__dict__)
 
     @auth.login_required()
     @response_collect
@@ -117,20 +104,7 @@ class MilestoneItemEventV2(Resource):
     @auth.login_required()
     @response_collect
     def delete(self, milestone_id):
-        milestone = Milestone.query.filter_by(id=milestone_id).first()
-        if not milestone:
-            return jsonify(
-                error_code=RET.NO_DATA_ERR,
-                error_msg="milestone {} not exitst".format(milestone_id)
-            )
-
-        if milestone.is_sync is True:
-            return MilestoneOpenApiHandler().delete(milestone_id)
-        else:
-            return Delete(
-                Milestone, 
-                {"id":milestone_id}
-            ).single(Milestone, '/milestone')
+        return DeleteMilestone.single_v2(milestone_id)
 
 
 class MilestoneItemChangeStateV2(Resource):
@@ -145,7 +119,7 @@ class MilestonePreciseEvent(Resource):
     @auth.login_required()
     @validate()
     def get(self, query: MilestoneBaseSchema):
-        return Select(Milestone, query.__dict__).precise()
+        return GetAllByPermission(Milestone).precise(query.__dict__)
 
 
 class GiteeIssuesV1(Resource):
