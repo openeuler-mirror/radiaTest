@@ -89,6 +89,12 @@ class RoleHandler:
                 name=_body["name"],
                 type="public"
             ).first()
+        
+        if _body["type"] == "person":
+            _role = Role.query.filter_by(
+                name=_body["name"],
+                type="person"
+            ).first()
 
         if not _relation and _body["type"] != "public":
             return jsonify(error_code=RET.NO_DATA_ERR, error_msg="Group/Organization has not been exist")

@@ -1,6 +1,6 @@
 import abc
 from datetime import datetime
-import json
+import json, os
 
 from flask.globals import current_app
 import requests
@@ -14,7 +14,62 @@ from server.utils.response_util import RET
 from server.model.organization import Organization
 from server.model.milestone import Milestone
 from server.schema.milestone import GiteeMilestoneBase, GiteeMilestoneEdit
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from server.utils.permission_utils import PermissionManager
 
+class CreateMilestone:
+    @staticmethod
+    def bind_scope(milestone_id, body, api_info_file):
+        cur_file_dir = os.path.abspath(__file__)
+        cur_dir = cur_file_dir.replace(cur_file_dir.split("/")[-1], "")
+        allow_list, deny_list = PermissionManager().get_api_list(cur_dir + api_info_file, milestone_id)
+        PermissionManager().generate(allow_list, deny_list, body)
+    
+    @staticmethod
+    def run_v2(body):
+        if body.is_sync:
+            MilestoneOpenApiHandler(body).create()
+            milestone =  Milestone.query.filter_by({"name":body.get("name")}).first()
+            CreateMilestone.bind_scope(milestone.id, body, "api_infos_v2.yaml")
+            return jsonify(
+                error_code=RET.OK, error_msg="Request processed successfully."
+            )
+        else:
+            try:
+                milestone_id = Insert(Milestone, body).insert_id(Milestone, '/milestone')
+            except (IntegrityError, SQLAlchemyError) as e:
+                raise RuntimeError(str(e))
+            CreateMilestone.bind_scope(milestone_id, body, "api_infos_v2.yaml")
+            return jsonify(
+                error_code=RET.OK, error_msg="Request processed successfully."
+            )
+
+class DeleteMilestone:
+    @staticmethod
+    def single(milestone_id):
+        Delete(Milestone, {"id":milestone_id}).single(Milestone, '/milestone')
+        PermissionManager().clean("/api/v1/milestone/", [milestone_id])
+        return jsonify(
+            error_code=RET.OK, error_msg="Request processed successfully."
+        )
+    
+    @staticmethod
+    def single_v2(milestone_id):
+        milestone = Milestone.query.filter_by(id=milestone_id).first()
+        if not milestone:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="milestone {} does not exist".format(milestone_id)
+            )
+
+        if milestone.is_sync is True:
+            MilestoneOpenApiHandler().delete(milestone_id)
+        else:
+            Delete(Milestone, {"id":milestone_id}).single(Milestone, '/milestone')
+        PermissionManager().clean("/api/v2/milestone/", [milestone_id])
+        return jsonify(
+            error_code=RET.OK, error_msg="Request processed successfully."
+        )
 
 class MilestoneHandler:
     @staticmethod

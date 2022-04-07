@@ -1,11 +1,11 @@
 from sqlalchemy.dialects.mysql import TINYTEXT
 
 from server import db
-from server.model import BaseModel
+from server.model import BaseModel, PermissionBaseModel
 from server.model.task import TaskMilestone
 
 
-class Milestone(BaseModel, db.Model):
+class Milestone(BaseModel, PermissionBaseModel, db.Model):
     __tablename__ = "milestone"
 
     name = db.Column(db.String(64), unique=True, nullable=False)
@@ -33,6 +33,9 @@ class Milestone(BaseModel, db.Model):
     tasks = db.relationship('TaskMilestone', backref='milestone')
 
     jobs = db.relationship('Job', backref='milestone')
+    creator_id = db.Column(db.Integer(), db.ForeignKey("user.gitee_id"))
+    group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
+    org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
 
     def to_json(self):
         tags = []
@@ -64,5 +67,9 @@ class Milestone(BaseModel, db.Model):
             "task_num": len(self.tasks),
             "state": self.state,
             "is_sync": self.is_sync,
+            "creator_id": self.creator_id,
+            "permission_type": self.permission_type,
+            "group_id": self.group_id,
+            "org_id": self.org_id
         }
 

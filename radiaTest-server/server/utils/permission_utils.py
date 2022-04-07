@@ -40,42 +40,92 @@ class PermissionManager:
 
     def insert_scope(self, scope_datas):
         scope_ids = []
+        get_scope_ids = []
         for sdata in scope_datas:
             try:
                 scope_id = Insert(Scope, sdata).insert_id(Scope, '/scope')
                 scope_ids.append(scope_id)
+                if sdata["act"] == "get":
+                   get_scope_ids.append(scope_id)
             except (IntegrityError, SQLAlchemyError) as e:
                 current_app.logger.error(str(e))
                 continue
-        return scope_ids
-
-    def generate(self, scope_datas_allow, scope_datas_deny, permission_type, group_id = None):
-        if permission_type == "public": role_name = "public_admin"
-        elif permission_type == "person": role_name = permission_type + "_" + str(g.gitee_id)
-        elif permission_type == "group": role_name = permission_type + "_" + str(group_id) + "_admin"
-        elif permission_type == "org": role_name = permission_type + "_" + redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id') + "_admin"
-        role = Precise(
-            Role,
-            {
-                "name": role_name,
-                "type": permission_type
-            },
-        ).first()
-
-        if not role:
-            return jsonify(error_code=RET.NO_DATA_ERR, error_msg="Role has not been exist")
+        return scope_ids, get_scope_ids
     
-        scope_allow_ids = self.insert_scope(scope_datas_allow)
-        _ = self.insert_scope(scope_datas_deny)
+    def generate(self, scope_datas_allow, scope_datas_deny, _data: dict):
+        if _data["permission_type"] == "public":
+            role_filter = [and_(
+                    Role.name == "admin",
+                    Role.type == "public",
+                    )]
+            default_role_filter = [and_(
+                    Role.name == "default",
+                    Role.type == "public",
+                    )]
+        elif _data["permission_type"] == "group":
+            role_filter = [and_(
+                    Role.name == "admin",
+                    Role.type == "group",
+                    Role.group_id == int(_data["group_id"])
+                    )]
+            default_role_filter = [and_(
+                    Role.name == "default",
+                    Role.type == "group",
+                    Role.group_id == int(_data["group_id"])
+                    )]
+        elif _data["permission_type"] == "org":
+            role_filter = [and_(
+                    Role.name == "admin",
+                    Role.type == "org",
+                    Role.org_id == int(redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id'))
+                    )]
+            default_role_filter = [and_(
+                    Role.name == "default",
+                    Role.type == "org",
+                    Role.org_id == int(redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id'))
+                    )]
+        scope_allow_ids, get_scope_allow_ids = self.insert_scope(scope_datas_allow)
+        _, _ = self.insert_scope(scope_datas_deny)
+        if _data["permission_type"] != "person":
+            default_role = Role.query.filter_by(default_role_filter).first()
+            if not default_role:
+                return jsonify(error_code=RET.NO_DATA_ERR, error_msg="Role has not been exist")
+            
+            role = Role.query.filter_by(role_filter).first()
+            if not role:
+                return jsonify(error_code=RET.NO_DATA_ERR, error_msg="Role has not been exist")
+        
+            try:
+                for _id in get_scope_allow_ids:
+                    scope_role_data = {
+                        "scope_id": _id,
+                        "role_id": default_role.id
+                    }
+                    Insert(ReScopeRole, scope_role_data).insert_id()
 
+            except (SQLAlchemyError, IntegrityError) as e:
+                raise RuntimeError(str(e)) from e
+
+            try:
+                for _id in scope_allow_ids:
+                    scope_role_data = {
+                        "scope_id": _id,
+                        "role_id": role.id
+                    }
+                    Insert(ReScopeRole, scope_role_data).insert_id()
+            except (SQLAlchemyError, IntegrityError) as e:
+                raise RuntimeError(str(e)) from e
+
+        _role = Role.query.filter_by(name=str(g.gitee_id), type="person").first()
+        if not _role:
+            return jsonify(error_code=RET.NO_DATA_ERR, error_msg="Role has not been exist")
         try:
             for _id in scope_allow_ids:
-                scope_role_data = {
+                scope_role_data_creator = {
                     "scope_id": _id,
-                    "role_id": role.id
+                    "role_id": _role.id
                 }
-                Insert(ReScopeRole, scope_role_data).insert_id()
-
+                Insert(ReScopeRole, scope_role_data_creator).insert_id()
         except (SQLAlchemyError, IntegrityError) as e:
             raise RuntimeError(str(e)) from e
     

@@ -8,30 +8,37 @@ from server.utils.db import Insert, Delete, Edit, Select
 
 from server.schema.base import DeleteBaseModel
 from server.schema.product import ProductBase, ProductUpdate
-from .handlers import CreateProduct, DeleteProduct
 from server.utils.permission_utils import GetAllByPermission
+from server.utils.resource_utils import ResourceManager
 
 class ProductEventItem(Resource):
     @auth.login_required
     @validate()
     def delete(self, product_id):
-        return DeleteProduct.single(product_id=product_id)
+        return ResourceManager("product").del_single(product_id)
 
     @auth.login_required
     @validate()
     def get(self, product_id):
         return Select(Product, {"id":product_id}).single()
+    
+    @auth.login_required
+    @validate()
+    def put(self, product_id, body: ProductUpdate):
+        _data = body.__dict__
+        _data["id"] = product_id
+        return Edit(Product, _data).single(Product, '/product')
 
 class ProductEvent(Resource):
     @auth.login_required
     @validate()
     def post(self, body: ProductBase):
-        return CreateProduct.run(body.__dict__)
+        return ResourceManager("product").add("api_infos.yaml", body.__dict__)
 
     @auth.login_required
     @validate()
     def delete(self, body: DeleteBaseModel):
-        return DeleteProduct.batch(body.__dict__)
+        return ResourceManager("product").del_batch(body.__dict__.get("id"))
 
     @auth.login_required
     @validate()
@@ -40,4 +47,5 @@ class ProductEvent(Resource):
 
     @auth.login_required
     def get(self):
-        return GetAllByPermission(Product).get()
+        body = request.args.to_dict()
+        return GetAllByPermission(Product).fuzz(body)

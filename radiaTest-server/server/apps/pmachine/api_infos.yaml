@@ -1,0 +1,9 @@
+- uri: /api/v1/pmachine/%d
+  act: delete
+  alias: 删除Pmachine
+- uri: /api/v1/pmachine/%d
+  act: get
+  alias: 获取Pmachine
+- uri: /api/v1/pmachine/%d
+  act: put
+  alias: 修改Pmachine
