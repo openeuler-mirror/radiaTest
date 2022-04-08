@@ -4,11 +4,11 @@ from enum import unique
 from sqlalchemy.dialects.mysql import LONGTEXT
 
 from server import db
-from server.model.base import ServiceBaseModel
+from server.model.base import ServiceBaseModel, PermissionBaseModel
 
 
 
-class MachineGroup(ServiceBaseModel, db.Model):
+class MachineGroup(ServiceBaseModel, PermissionBaseModel, db.Model):
     __tablename__ = "machine_group"
 
     ip = db.Column(db.String(15), unique=True, index=True)
@@ -20,6 +20,9 @@ class MachineGroup(ServiceBaseModel, db.Model):
     dhcp_last_heartbeat = db.Column(db.DateTime())
 
     pmachines = db.relationship("Pmachine", backref="machine_group", cascade="all, delete, delete-orphan")
+    creator_id = db.Column(db.Integer(), db.ForeignKey("user.gitee_id"))
+    group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
+    org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
 
     def check_alive(self, _heartbeat):
         _current_time = datetime.now()  
@@ -58,10 +61,16 @@ class MachineGroup(ServiceBaseModel, db.Model):
             "pxe_last_heartbeat": pxe_last_heartbeat,
             "dhcp_alive": dhcp_alive,
             "dhcp_last_heartbeat": dhcp_last_heartbeat,
+            "creator_id": self.creator_id,
+            "permission_type": self.permission_type,
+            "group_id": self.group_id,
+            "org_id": self.org_id,
+            "listen": self.listen,
+            "ip": self.ip,
         }
 
 
-class Pmachine(ServiceBaseModel, db.Model):
+class Pmachine(ServiceBaseModel, PermissionBaseModel, db.Model):
     __tablename__ = "pmachine"
 
     frame = db.Column(db.String(9), nullable=False)
@@ -89,6 +98,9 @@ class Pmachine(ServiceBaseModel, db.Model):
     celerytasks = db.relationship(
         "CeleryTask", backref="pmachine", cascade="all, delete, delete-orphan"
     )
+    creator_id = db.Column(db.Integer(), db.ForeignKey("user.gitee_id"))
+    group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
+    org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
 
     def to_json(self):
         _start_time = None if not self.start_time else self.start_time.strftime(
@@ -122,4 +134,8 @@ class Pmachine(ServiceBaseModel, db.Model):
             "occupier": self.occupier,
             "locked": self.locked,
             "machine_group": self.machine_group.to_json() if self.machine_group_id else None,
+            "creator_id": self.creator_id,
+            "permission_type": self.permission_type,
+            "group_id": self.group_id,
+            "org_id": self.org_id
         }

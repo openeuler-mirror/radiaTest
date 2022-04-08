@@ -4,7 +4,7 @@ from flask import request, jsonify, current_app
 from flask_restful import Resource
 from flask_pydantic import validate
 
-from server.model import Pmachine, IMirroring
+from server.model import Pmachine, IMirroring, Vmachine
 from server.model.pmachine import MachineGroup
 from server.utils.db import Insert, Delete, Edit, Select, collect_sql_error
 from server.utils.auth_util import auth
@@ -14,6 +14,7 @@ from server.schema.pmachine import (
     MachineGroupQuerySchema,
     MachineGroupUpdateSchema,
     PmachineBaseSchema,
+    PmachineCreateSchema,
     PmachineQuerySchema,
     PmachineUpdateSchema,
     PmachineInstallSchema,
@@ -22,6 +23,7 @@ from server.schema.pmachine import (
     HeartbeatUpdateSchema
 )
 from .handlers import PmachineHandler, PmachineMessenger, ResourcePoolHandler
+from server.utils.resource_utils import ResourceManager
 
 
 class MachineGroupEvent(Resource):
@@ -29,7 +31,7 @@ class MachineGroupEvent(Resource):
     @response_collect
     @validate()
     def post(self, body: MachineGroupCreateSchema):
-        return ResourcePoolHandler.create_group(body)
+        return ResourceManager("machine_group").add_v2("pmachine/api_infos.yaml", body.__dict__)
 
     @auth.login_required
     @response_collect
@@ -47,7 +49,7 @@ class MachineGroupItemEvent(Resource):
             machine_group_id,
             body
         )
-    
+
     @auth.login_required
     @response_collect
     @validate()
@@ -102,7 +104,7 @@ class PmachineItemEvent(Resource):
     @response_collect
     @validate()
     def delete(self, pmachine_id):
-        return Delete(Pmachine, {"id":pmachine_id}).single(Pmachine, "/pmachine")
+        return ResourceManager("pmachine").del_cascade_single(pmachine_id, Vmachine, [Vmachine.pmachine_id==pmachine_id], False)
     
     @auth.login_required
     @response_collect
@@ -127,14 +129,14 @@ class PmachineEvent(Resource):
     @auth.login_required
     @response_collect
     @validate()
-    def post(self, body: PmachineBaseSchema):
-        return Insert(Pmachine, body.__dict__).single(Pmachine, "/pmachine")
+    def post(self, body: PmachineCreateSchema):
+        return ResourceManager("pmachine").add("api_infos.yaml", body.__dict__)
 
     @auth.login_required
     @response_collect
     @validate()
     def delete(self, body: DeleteBaseModel):
-        return Delete(Pmachine, body.__dict__).batch(Pmachine, "/pmachine")
+        return ResourceManager("pmachine").del_batch(body.__dict__.get("id"))
 
     @auth.login_required
     @response_collect

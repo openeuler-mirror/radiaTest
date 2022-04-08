@@ -17,12 +17,13 @@ from server.utils.redis_util import RedisKey
 from server.model import ReUserGroup
 
 class PermissionManager:
-    def get_api_list(self, path, item_id):
+    def get_api_list(self, table_name, path, item_id):
         with open(path, 'r', encoding='utf-8') as f:
             result = yaml.load(f.read(), Loader=yaml.FullLoader)
 
         allow_list = []
         deny_list = []
+        result = result.get(table_name)
         for scope in result:
             allow_list.append({
                 "uri": scope["uri"] % int(item_id),

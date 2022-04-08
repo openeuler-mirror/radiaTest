@@ -27,6 +27,7 @@ class RET(object):
     TASK_WRONG_GROUP_NAME = "60001"
     WRONG_REPO_URL = "60002"
     RUNTIME_ERROR = "60009"
+    CASCADE_OP_ERR = "60010"
 
 
 def response_collect(func):

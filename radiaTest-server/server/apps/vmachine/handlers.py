@@ -5,14 +5,15 @@ from server.utils.response_util import RET
 from server.utils.requests_util import do_request
 from server.model import Vmachine, Pmachine
 from server.utils.page_util import PageUtil
+from server.utils.permission_utils import GetAllByPermission
+from server.utils.resource_utils import ResourceManager
 
 
 class VmachineHandler:
     @staticmethod
     def get_all(query):
-        filter_params = [
-            Pmachine.machine_group_id == query.machine_group_id
-        ]
+        filter_params = GetAllByPermission(Vmachine).get_filter()
+        filter_params.append(Pmachine.machine_group_id == query.machine_group_id)
 
         if query.host_ip:
             filter_params.append(Pmachine.ip.like(f"%{query.host_ip}%"))

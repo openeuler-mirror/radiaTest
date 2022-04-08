@@ -1,8 +1,8 @@
 from server import db
-from server.model import BaseModel
+from server.model import BaseModel, PermissionBaseModel
 
 
-class Vmachine(BaseModel, db.Model):
+class Vmachine(BaseModel, PermissionBaseModel, db.Model):
     __tablename__ = "vmachine"
 
     name = db.Column(db.String(255), unique=True, nullable=False)
@@ -40,6 +40,9 @@ class Vmachine(BaseModel, db.Model):
     celerytasks = db.relationship(
         "CeleryTask", backref="vmachine", cascade="all, delete, delete-orphan"
     )
+    creator_id = db.Column(db.Integer(), db.ForeignKey("user.gitee_id"))
+    group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
+    org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
 
     def to_json(self):
         _machine_group = None
@@ -72,6 +75,10 @@ class Vmachine(BaseModel, db.Model):
             "vnc_token": self.vnc_token,
             "websockify_listen": self.websockify_listen,
             "machine_group": _machine_group,
+            "creator_id": self.creator_id,
+            "permission_type": self.permission_type,
+            "group_id": self.group_id,
+            "org_id": self.org_id
         }
 
 

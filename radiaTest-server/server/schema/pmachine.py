@@ -18,10 +18,11 @@ from server.schema import (
 )
 from server.utils.db import Precise
 from server.utils.pssh import Connection
-from server.model import Pmachine
+from server.model import Pmachine, MachineGroup
+from server.schema.base import PermissionBase
 
 
-class MachineGroupCreateSchema(BaseModel):
+class MachineGroupCreateSchema(PermissionBase):
     name: str
     description: str
     network_type: MachineGroupNetworkType
@@ -29,7 +30,7 @@ class MachineGroupCreateSchema(BaseModel):
     listen: int
 
 
-class MachineGroupUpdateSchema(PageBaseSchema):
+class MachineGroupUpdateSchema(BaseModel):
     name: Optional[str]
     description: Optional[str]
     network_type: Optional[MachineGroupNetworkType]
@@ -37,7 +38,7 @@ class MachineGroupUpdateSchema(PageBaseSchema):
     listen: Optional[int]
 
 
-class MachineGroupQuerySchema(BaseModel):
+class MachineGroupQuerySchema(PageBaseSchema):
     text: Optional[str]
     network_type: Optional[MachineGroupNetworkType]
 
@@ -78,6 +79,7 @@ class PmachineBaseSchema(BaseModel):
     state: Optional[PmachineState]
     occupier: Optional[str]
     locked: Optional[bool] = False
+    machine_group_id: Optional[int]
 
     @validator("bmc_password")
     def required_bmc_conditions(cls, v, values):
@@ -90,6 +92,13 @@ class PmachineBaseSchema(BaseModel):
 
         values["status"] = output.split()[-1]
 
+        return v
+    
+    @validator("machine_group_id")
+    def check_machine_group_id(cls, v):
+        mg = MachineGroup.query.filter_by(id=v).first()
+        if not mg:
+            raise ValueError("The MachineGroup does not exist.")
         return v
 
     @validator("start_time")
@@ -187,6 +196,12 @@ class PmachineBaseSchema(BaseModel):
 
         return values
 
+class PmachineCreateSchema(PmachineBaseSchema, PermissionBase):
+    mac: constr(max_length=17)
+    frame: Frame
+    bmc_ip: IPv4Address
+    bmc_user: constr(max_length=32)
+    bmc_password: constr(min_length=6, max_length=256)
 
 class PmachineUpdateSchema(PmachineBaseSchema):
     mac: Optional[constr(max_length=17)]
