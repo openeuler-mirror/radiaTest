@@ -5,8 +5,8 @@ from flask_pydantic import validate
 
 from server.utils.db import Insert, Delete, Edit, Select
 
-from server.model import IMirroring, QMirroring, Repo
-
+from server.model.mirroring import IMirroring, QMirroring, Repo
+from server.utils.resource_utils import ResourceManager
 from server.schema.base import DeleteBaseModel
 from server.schema.mirroring import (
     IMirroringBase,
@@ -17,6 +17,20 @@ from server.schema.mirroring import (
     RepoUpdate,
 )
 
+class IMirroringItemEvent(Resource):
+    @validate()
+    def delete(self, i_mirroring_id):
+        return ResourceManager("i_mirroring").del_single(i_mirroring_id)
+
+    @validate()
+    def get(self, i_mirroring_id):
+        return Select(IMirroring, {"id":i_mirroring_id}).single()
+
+    @validate()
+    def put(self, i_mirroring_id, body: IMirroringUpdate):
+        _body = body.__dict__
+        _body.update({"id": i_mirroring_id})
+        return Edit(IMirroring, _data).single(IMirroring, '/imirroring')
 
 class IMirroringEvent(Resource):
     @validate()
@@ -41,6 +55,20 @@ class PreciseGetIMirroring(Resource):
         body = request.args.to_dict()
         return Select(IMirroring, body).precise()
 
+class QMirroringItemEvent(Resource):
+    @validate()
+    def delete(self, q_mirroring_id):
+        return ResourceManager("q_mirroring").del_single(q_mirroring_id)
+
+    @validate()
+    def get(self, q_mirroring_id):
+        return Select(QMirroring, {"id":q_mirroring_id}).single()
+
+    @validate()
+    def put(self, q_mirroring_id, body: QMirroringUpdate):
+        _body = body.__dict__
+        _body.update({"id": q_mirroring_id})
+        return Edit(QMirroring, _data).single(QMirroring, '/qmirroring')
 
 class QMirroringEvent(Resource):
     @validate()
