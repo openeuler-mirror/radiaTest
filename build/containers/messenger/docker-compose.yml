@@ -1,0 +1,49 @@
+version: '3.7'
+
+services:
+    queue:
+        image: rabbitmq:3.7.23-management
+        restart: always
+        ports:
+            - 5675:5672
+            - 15675:15672
+        volumes:
+            - /var/lib/rabbitmq
+            - /var/log/rabbitmq
+        environment:
+            RABBITMQ_DEFAULT_USER: radiaTest
+            RABBITMQ_DEFAULT_PASS: 1234
+            RABBITMQ_DEFAULT_VHOST: radiaTest
+
+    websockify:
+        image: messenger/websockify:radiaTest
+        build:
+            context: ./websockify
+            dockerfile: Dockerfile
+        restart: always
+        ports:
+            - 21580:21580
+        volumes:
+            - /var/lib/vnc_tokens:/data/vnc_tokens
+
+    supervisor:
+        image: messenger/supervisor:radiaTest
+        build:
+            context: ./supervisor
+            dockerfile: Dockerfile
+        restart: always
+        ports:
+            - 21510:21510
+        volumes:
+            - /var/lib/vnc_tokens:/opt/radiaTest/radiaTest-messenger/messenger/config/vnc_tokens
+            - /var/log/radiaTest-messenger:/opt/radiaTest/radiaTest-messenger/log
+            - /root/.ssh:/root/.ssh
+            - /tmp/rsync.pass:/tmp/rsync.pass
+        ulimits:
+            nproc: 65535
+            nofile:
+                soft: 10240
+                hard: 20000
+        depends_on:
+            - queue
+            - websockify

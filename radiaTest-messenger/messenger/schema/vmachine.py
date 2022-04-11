@@ -54,8 +54,7 @@ class VmachineCreateSchema(PermissionBase):
         days=Config.VM_DEFAULT_DAYS
     )
     password: Optional[str]
-    #  TODO 前端调整前暂时给默认值
-    machine_group_id: Optional[int] = 1
+    machine_group_id: Optional[int]
     pmachine_id: Optional[int]
     method: InstallMethod = "import"
     pm_select_mode: PmSelectMode = "auto"

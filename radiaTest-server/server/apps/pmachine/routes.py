@@ -136,14 +136,14 @@ class PmachineItemEvent(Resource):
                 vmachine = Vmachine.query.filter_by(pmachine_id=pmachine.id).first()
                 if vmachine:
                     return jsonify(
-                        error_code = RPmachinePowerSchemaY_ERR,
-                        error_msg = "Pmachine has vmmachine, can't release."
-                    )
+                        error_code = RET.NO_DATA_ERR, 
+                        error_msg = "Pmachine has vmmachine, can't released."
+                    )                    
         _body = body.__dict__
         _body.update({"id": pmachine_id})
-
+        
+        
         return Edit(Pmachine, _body).single(Pmachine, "/pmachine")
-
 
 class PmachineEvent(Resource):
     @auth.login_required

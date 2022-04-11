@@ -29,6 +29,7 @@ class RunJob(TaskAuthHandler):
         return query_request(
             "/api/v1/accessable_machines",
             {
+                "machine_group_id": self._body.get("machine_group_id"),
                 "machine_purpose": "run_job",
                 "machine_type": "physical",
                 "frame": self._body.get("frame"),

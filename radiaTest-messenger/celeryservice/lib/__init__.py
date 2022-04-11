@@ -26,6 +26,3 @@ class TaskAuthHandler(TaskHandlerBase):
             "description": description,
             "user_id": self.user.get("user_id"),
         }
-
-        # TODO 通过公共类insert新celerytask入库
-        # _ = Insert(CeleryTask, celerytask).single(CeleryTask, "/celerytask")

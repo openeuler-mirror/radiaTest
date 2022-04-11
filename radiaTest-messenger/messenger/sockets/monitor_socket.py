@@ -61,19 +61,27 @@ class RemoteMonitorSocket(MonitorSocket):
         pass
 
     def on_start(self, ssh_data):
+        ip = ssh_data.get("ip")
+        if not ip:
+            return
+
         with self.monitors_lock:
-            if not self.monitors.get(ssh_data["machine_ip"]):
-                self.monitors[ssh_data["machine_ip"]]= self.Monitor(
+            if not self.monitors.get(ip):
+                self.monitors[ip]= self.Monitor(
                     self.namespace, ssh_data
                 )
 
-            self.monitors[ssh_data["machine_ip"]].watcher_num += 1
-            if not self.monitors[ssh_data["machine_ip"]].thread:
-                self.monitors[ssh_data["machine_ip"]].thread = socketio.start_background_task(
-                    target=self.monitors[ssh_data["machine_ip"]].run
+            self.monitors[ip].watcher_num += 1
+            if not self.monitors[ip].thread:
+                self.monitors[ip].thread = socketio.start_background_task(
+                    target=self.monitors[ip].run
                 )
     
-    def on_end(self, ip):
+    def on_end(self, data):
+        ip = data.get("ip")
+        if not ip:
+            return
+
         with self.monitors_lock:
             if self.monitors.get(ip):
                 self.monitors[ip].watcher_num -= 1

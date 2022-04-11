@@ -1,0 +1,4 @@
+#! /bin/sh
+
+cd ../containers/messenger \
+    && docker-compose down

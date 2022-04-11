@@ -24,7 +24,6 @@ class Vmachine(BaseModel, PermissionBaseModel, db.Model):
     special_device = db.Column(db.String(128))
 
     vnc_token = db.Column(db.String(255))
-    websockify_listen = db.Column(db.Integer())
 
     product = db.Column(db.String(64), nullable=False)
     milestone = db.Column(db.String(64), nullable=False)
@@ -73,7 +72,6 @@ class Vmachine(BaseModel, PermissionBaseModel, db.Model):
             "host_ip": self.pmachine.ip,
             "host_listen": self.pmachine.listen,
             "vnc_token": self.vnc_token,
-            "websockify_listen": self.websockify_listen,
             "machine_group": _machine_group,
             "creator_id": self.creator_id,
             "permission_type": self.permission_type,

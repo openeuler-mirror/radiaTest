@@ -1,5 +1,4 @@
 import { encrypt, decrypt } from './crypto';
-import { } from '@/asstes/';
 class Storage {
   constructor(name) {
     this.name = name;

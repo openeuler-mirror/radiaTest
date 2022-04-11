@@ -1,0 +1,7 @@
+#! /bin/sh
+
+cd ../containers/worker \
+    && docker-compose up -d
+
+cd ../../scripts/worker \
+    && bash setup.sh

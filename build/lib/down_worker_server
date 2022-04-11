@@ -1,0 +1,6 @@
+#! /bin/sh
+
+cd ../containers/worker \
+    && docker-compose down
+
+supervisorctl -u radiaTest -p 1234 shutdown

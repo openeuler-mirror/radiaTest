@@ -34,8 +34,7 @@ from server.config.settings import Config
 
 
 class VmachineQuerySchema(PageBaseSchema):
-    #  TODO 暂时写死
-    machine_group_id: int = 1
+    machine_group_id: int
     host_ip: Optional[str]
     frame: Optional[Frame]
     ip: Optional[str]
@@ -71,7 +70,7 @@ class VmachineBaseSchema(BaseModel):
     video_bus: Optional[VideoBus] = "virtio"
     end_time: Optional[datetime] = datetime.now() + timedelta(
         days=Config.VM_DEFAULT_DAYS
-    )
+    )    
 
 
 class VmachineDataCreateSchema(VmachineBaseSchema, PermissionBase):
@@ -79,6 +78,7 @@ class VmachineDataCreateSchema(VmachineBaseSchema, PermissionBase):
     product: str
     end_time: str
     status: str 
+        
 
     @validator("end_time")
     def check_end_time(cls, v):
@@ -86,20 +86,19 @@ class VmachineDataCreateSchema(VmachineBaseSchema, PermissionBase):
             v = datetime.strptime(v, "%Y-%m-%d %H:%M:%S")
         except:
             v = datetime.strptime(v, "%Y-%m-%d")
-
+            v = v + timedelta(days=Config.VM_DEFAULT_DAYS)
         return v
 
 
 class VmachineCreateSchema(VmachineBaseSchema, PermissionBase):
     password: Optional[str]
-    #  TODO 前端调整前暂时给默认值
-    machine_group_id: Optional[int] = 1
+    machine_group_id: Optional[int]
     pmachine_id: Optional[int]
     method: InstallMethod
     pm_select_mode: Optional[PmSelectMode] = "auto"
 
     @root_validator
-    def check_name_and_endtime(cls, values):
+    def check_name_and_endtime(cls, values):        
         if not values.get("name"):
             values["name"] = (
                 time.strftime("%y-%m-%d-")
@@ -113,8 +112,7 @@ class VmachineCreateSchema(VmachineBaseSchema, PermissionBase):
 
         if not values.get("end_time"):
             values["end_time"] = datetime.now() + timedelta(
-                days=Config.VM_DEFAULT_DAYS
-            )
+                days=Config.VM_DEFAULT_DAYS)           
         
         max_time = datetime.now() + timedelta(
             days=current_app.config.get("VM_MAX_DAYS")
@@ -154,7 +152,6 @@ class VmachineDataUpdateSchema(BaseModel):
     vnc_port: Optional[int]
     status: Optional[str]
     vnc_token: Optional[str]
-    websockify_listen: Optional[str]
     pmachine_id: Optional[str]
 
 

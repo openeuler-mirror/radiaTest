@@ -11,6 +11,9 @@ def loads_config_ini(section, option):
     cfg = configparser.ConfigParser()
     cfg.read(config_ini)
 
+    if not cfg.get(section, option):
+        return None
+
     return cfg.get(section, option)
 
 

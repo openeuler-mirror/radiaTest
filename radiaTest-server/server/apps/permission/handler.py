@@ -305,6 +305,7 @@ class AccessableMachinesHandler:
             namespace = "pmachine"
             if query.machine_purpose != "create_vmachine":
                 origin_pool = Pmachine.query.filter(
+                    Pmachine.machine_group_id==query.machine_group_id,
                     Pmachine.frame==query.frame,
                     Pmachine.state=="occupied",
                     Pmachine.locked==False,
@@ -323,6 +324,7 @@ class AccessableMachinesHandler:
                 ).all()
             else:
                 origin_pool = Pmachine.query.filter(
+                    Pmachine.machine_group_id==query.machine_group_id,
                     Pmachine.frame==query.frame,
                     Pmachine.state=="occupied",
                     Pmachine.locked==False,
@@ -334,7 +336,8 @@ class AccessableMachinesHandler:
 
         elif query.machine_type == "kvm":
             namespace = "vmachine"
-            origin_pool = Vmachine.query.filter(
+            origin_pool = Vmachine.query.join(Pmachine).filter(
+                Pmachine.machine_group_id==query.machine_group_id,
                 Vmachine.frame==query.frame,
                 Vmachine.status=="running",
             ).all()

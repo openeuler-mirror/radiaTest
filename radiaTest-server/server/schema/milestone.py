@@ -36,7 +36,8 @@ class MilestoneCreateSchema(MilestoneBaseSchema, PermissionBase):
     type: MilestoneType
     end_time: str
     start_time: Optional[str] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    
+    is_sync: Optional[bool]
+
     @root_validator
     def assign_name(cls, values):
         if not values.get("name"):
