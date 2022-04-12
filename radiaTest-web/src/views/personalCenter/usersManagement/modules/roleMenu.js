@@ -33,7 +33,7 @@ function getGroups(orgs) {
   Promise.allSettled(requests).then((values) => {
     values?.forEach((res) => {
       if (res.status === 'fulfilled') {
-        res.value.data.items.forEach((item) => {
+        res.value.data?.items?.forEach((item) => {
           roleMenu.value[groupIndex].children.push({
             key: window.btoa(`group-${item.id}`),
             label: item.name,

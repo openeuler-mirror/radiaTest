@@ -1,6 +1,6 @@
 import axios from '@/axios';
 import { any2standard } from '@/assets/utils/dateFormatUtils';
-import { unkonwnErrorMsg } from '@/assets/utils/description.js';
+import { unkonwnErrorMsg } from '@/assets/utils/description';
 
 const list = (url, data, loading, params, page) => {
   loading ? (loading.value = true) : 0;
@@ -13,7 +13,7 @@ const list = (url, data, loading, params, page) => {
       } else {
         resData = res.data.items;
       }
-      resData.forEach((item) => {
+      resData?.forEach((item) => {
         item.start_time ? (item.start_time = any2standard(item.start_time)) : 0;
         item.end_time ? (item.end_time = any2standard(item.end_time)) : 0;
         item.create_time
@@ -21,12 +21,15 @@ const list = (url, data, loading, params, page) => {
           : 0;
         item.update_time ? (item.end_time = any2standard(item.end_time)) : 0;
       });
-      data.value = resData;
+      data.value = resData || [];
       loading ? (loading.value = false) : 0;
       page?.value && (page.value.pageCount = res.data.pages || 1);
     })
     .catch((err) => {
-      window.$message?.error(err.data?.error_msg || unkonwnErrorMsg);
+      console.log(err);
+      window.$message?.error(
+        err.data?.error_msg || err.message || unkonwnErrorMsg
+      );
       loading ? (loading.value = false) : 0;
     });
 };
@@ -42,7 +45,7 @@ const filter = (url, data, loading, filters) => {
   axios
     .get(url, filters)
     .then((res) => {
-      res.data.map((item) => {
+      res.data?.forEach((item) => {
         item.start_time ? (item.start_time = any2standard(item.start_time)) : 0;
         item.end_time ? (item.end_time = any2standard(item.end_time)) : 0;
         item.create_time
@@ -53,8 +56,8 @@ const filter = (url, data, loading, filters) => {
       data.value = res.data;
       loading.value = false;
     })
-    .catch((err) => {
-      window.$message?.error(err.data?.error_msg || unkonwnErrorMsg);
+    .catch(() => {
+      window.$message?.error('发生位置错误，获取数据失败');
       loading.value = false;
     });
 };

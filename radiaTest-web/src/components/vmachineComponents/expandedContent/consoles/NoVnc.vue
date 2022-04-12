@@ -6,8 +6,9 @@
 import RFB from '@novnc/novnc/core/rfb';
 import { useMessage } from 'naive-ui';
 import { ref, onMounted, onUnmounted, defineComponent } from 'vue';
-
-import settings from '@/assets/config/settings.js';
+import { getMachineGroupDetails } from '@/api/get';
+import router from '@/router';
+// import settings from '@/assets/config/settings.js';
 
 export default defineComponent({
   props: {
@@ -18,7 +19,7 @@ export default defineComponent({
     const rfb = ref(null);
     const message = useMessage();
     const url = ref(
-      `ws://${settings.serverIp}:${props.websockifyListen}?token=${props.vncToken}`
+      `ws://${props.ip}:${props.websockifyListen}?token=${props.vncToken}`
     );
 
     const connectedToServer = () => {
@@ -33,7 +34,10 @@ export default defineComponent({
       rfb.value = newRfb;
     };
 
-    onMounted(() => {
+    onMounted(async () => {
+      const group = await getMachineGroupDetails(router.currentRoute.value.params.machineId);
+      const groupId = group.data.messenger_ip;
+      url.value = `ws://${groupId}:${props.websockifyListen}?token=${props.vncToken}`;
       connectVnc();
     });
 

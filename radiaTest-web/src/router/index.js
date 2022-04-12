@@ -29,6 +29,9 @@ import testsuite from '@/views/caseManage/testsuite/testsuite.vue';
 import rulesManagement from '@/views/personalCenter/authorityManagement/rulesManagement/rulesManagement.vue';
 import rolesManagement from '@/views/personalCenter/authorityManagement/rolesManagement/rolesManagement.vue';
 import usersManagement from '@/views/personalCenter/usersManagement/usersManagement.vue';
+import caseReview from '@/views/caseManage/caseReview/caseReview.vue';
+import caseReviewDetail from '@/views/caseManage/caseReviewDetail/caseReviewDetail.vue';
+import resourcePool from '@/views/resourcePool/resourcePool.vue';
 // import test from '@/views/test/Test.vue';
 
 const routerHistory = createWebHistory();
@@ -82,6 +85,26 @@ const router = createRouter({
           component: Blank,
           children: [
             {
+              path: 'management/',
+              component: resourcePool,
+              name: 'resourcePool',
+              children: [
+                {
+                  path: 'pmachine/:machineId',
+                  component: Pmachine,
+                  name: 'pmachine',
+                },
+                {
+                  path: 'vmachine/:machineId',
+                  component: Vmachine,
+                  name: 'vmachine',
+                },
+              ],
+              meta: {
+                title: '资源池管理',
+              },
+            },
+            {
               path: 'pmachine/',
               component: Pmachine,
               meta: {
@@ -126,6 +149,16 @@ const router = createRouter({
             title: '用例管理',
           },
           children: [
+            {
+              path: 'casereview/',
+              component: caseReview,
+              name: 'caseReview',
+            },
+            {
+              path: 'caseReviewDetail/:commitId',
+              component: caseReviewDetail,
+              name: 'caseReviewDetail',
+            },
             {
               path: 'testcase/',
               component: Testcase,

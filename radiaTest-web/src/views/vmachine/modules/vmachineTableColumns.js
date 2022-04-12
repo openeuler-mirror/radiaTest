@@ -166,4 +166,4 @@ function submitDelay() {
   });
 }
 
-export { delay, delayModalRef, createColumns, submitDelay };
+export { delay, delayModalRef, createColumns, submitDelay,ColumnDefault };

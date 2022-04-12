@@ -80,7 +80,7 @@ function deleteRole(row) {
   axios
     .delete(requestUrl, {
       user_id: row.gitee_id,
-      role_id: row.roles[0].id,
+      role_id: row.role.id,
     })
     .then(() => {
       getUserInfo();
@@ -133,7 +133,7 @@ const usersColumns = [
           closable: true,
           onClose: () => deleteRole(row),
         },
-        row.roles[0]?.name
+        row.role?.name
       );
       const dropList = h(
         NDropdown,
@@ -151,7 +151,7 @@ const usersColumns = [
           '添加角色'
         )
       );
-      return row.roles[0] ? tag : dropList;
+      return row.role ? tag : dropList;
     },
   },
 ];

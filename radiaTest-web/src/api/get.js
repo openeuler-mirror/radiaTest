@@ -20,10 +20,16 @@ export function getSuite(data) {
   return getRequest('/v1/suite', data);
 }
 export function getPm(data) {
-  return getRequest('/v1/pmachine', data);
+  return getRequest('/v1/accessable_machines', {
+    machine_type: 'physical',
+    ...data,
+  });
 }
 export function getVm(data) {
-  return getRequest('/v1/vmachine', data);
+  return getRequest('/v1/accessable_machines', {
+    machine_type: 'kvm',
+    ...data,
+  });
 }
 export function getChildrenJob(id, data) {
   return getRequest(`/v1/job/${id}/children`, data);
@@ -45,4 +51,40 @@ export function getAllOrg(data) {
 }
 export function loginByCode(data) {
   return getRequest('/v1/login', data);
+}
+export function getGroup(data) {
+  return getRequest('/v1/groups', data);
+}
+export function getCaseReview(data) {
+  return getRequest('/v1/case/commit/query', data);
+}
+export function getMachineGroup(data) {
+  return getRequest('/v1/machine_group', data);
+}
+export function getCommitHistory (caseId, data) {
+  return getRequest(`/v1/commit/history/${caseId}`,data);
+}
+export function getPmachine(data) {
+  return getRequest('/v1/pmachine', data);
+}
+export function getVmachine(data) {
+  return getRequest('/v1/vmachine', data);
+}
+export function getCaseReviewDetails (id,data) {
+  return getRequest(`/v1/case/commit/${id}`, data);
+}
+export function getCaseReviewComment (id, data) {
+  return getRequest(`/v1/case/${id}/comment`, data);
+}
+export function getCaseDetail (data) {
+  return getRequest('/v1/case', data);
+}
+export function getExtendRole (data) {
+  return getRequest('/v1/role/default', data);
+}
+export function getMilestoneTask (milestoneId,data) {
+  return getRequest(`/v1/milestone/${milestoneId}/tasks`, data);
+}
+export function getMachineGroupDetails(id,data){
+  return getRequest(`/v1/machine_group/${id}`,data);
 }

@@ -13,7 +13,8 @@
           <n-gi :span="6">
             <span class="sub-title">责任人：</span>
             <!--用户信息组件，后续写成公共组件-->
-            <n-popover
+            <userInfo :userInfo="task.executor || {}" />
+            <!-- <n-popover
               placement="right-start"
               trigger="hover"
               :show-arrow="false"
@@ -48,7 +49,7 @@
                   </div>
                 </div>
               </n-card>
-            </n-popover>
+            </n-popover> -->
           </n-gi>
           <!--任务协助人-->
           <n-gi :span="6">
@@ -101,7 +102,7 @@
           <n-tab name="details">详情</n-tab>
           <n-tab name="historicalExec">历史执行</n-tab>
           <n-tab name="auto" :disabled="!caseInfo.code">自动化脚本</n-tab>
-          <n-tab name="historicalVersion" disabled>历史版本</n-tab>
+          <n-tab name="historicalVersion" >历史版本</n-tab>
         </n-tabs>
         <!--存在未完成关联任务时disabled-->
         <n-button
@@ -115,19 +116,24 @@
         >
       </div>
       <n-card size="large">
-        <template v-if="activeTab === 'details'">
-          <collapse-list :list="detailsList" />
-        </template>
-        <template v-else-if="activeTab === 'historicalExec'">
-          <historical-exec :case="caseInfo" />
-        </template>
-        <template v-else-if="activeTab === 'auto'">
-          <auto-script :code="caseInfo.code" />
-        </template>
-        <template v-else>{{ activeTab }}</template>
+        <n-spin stroke="rgba(0, 47, 167, 1)" :show="loading">
+          <template v-if="activeTab === 'details'">
+            <collapse-list :list="detailsList" @edit="edit" />
+          </template>
+          <template v-else-if="activeTab === 'historicalExec'">
+            <historical-exec :case="caseInfo" />
+          </template>
+          <template v-else-if="activeTab === 'auto'">
+            <auto-script :code="caseInfo.code" />
+          </template>
+          <template v-else>
+            <historical-version/>
+          </template>
+        </n-spin>
       </n-card>
     </div>
     <create-drawer ref="createForm" @submit="createRelationTask" />
+    <caseModifyForm ref="modifyModal" :formValue="editInfoValue" @submit="editSubmit" />
     <n-modal
       v-model:show="showReportModal"
       preset="dialog"
@@ -172,15 +178,25 @@ import collapseList from '@/components/collapseList/collapseList.vue';
 import historicalExec from './tabview/historicalExec.vue';
 import autoScript from './tabview/autoScript.vue';
 import createDrawer from '@/components/task/createDrawer.vue';
+import historicalVersion from './tabview/historicalVersion.vue';
+
 import { ref, provide } from 'vue';
 import { formatTime } from '@/assets/utils/dateFormatUtils';
-import {previewWidth,previewHeight} from '@/views/taskManage/task/modules/mdFile';
+import caseModifyForm from '@/components/testcaseComponents/caseModifyForm.vue';
+import {
+  previewWidth,
+  previewHeight,
+} from '@/views/taskManage/task/modules/mdFile';
+import userInfo from '@/components/user/userInfo.vue';
 export default {
   components: {
     collapseList,
     historicalExec,
     autoScript,
     createDrawer,
+    userInfo,
+    historicalVersion,
+    caseModifyForm
   },
   mounted() {
     if (this.$route.params.taskid === 'development') {

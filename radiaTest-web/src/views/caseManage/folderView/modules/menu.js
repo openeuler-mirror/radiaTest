@@ -22,6 +22,7 @@ import { changeLoadingStatus } from '@/assets/utils/loading';
 import { putModalRef, updateModalRef } from './editRef';
 import { getDetail } from '@/views/caseManage/folderView/taskDetails/modules/details.js';
 import store from '@/store';
+import { getCaseDetail } from '@/api/get';
 import {
   NButton,
   NFormItem,
@@ -37,7 +38,7 @@ import {
 import router from '@/router';
 import { createModalRef, createFormRef, importModalRef } from './createRef';
 
-function renderIcon(icon) {
+function renderIcon (icon) {
   return () =>
     h(NIcon, null, {
       default: () => h(icon),
@@ -74,6 +75,21 @@ const createChildrenAction = {
     },
   ],
 };
+const relationChildrenAction = {
+  label: '关联',
+  key: 'newParent',
+  icon: renderIcon(CreateNewFolderOutlined),
+  children: [
+    {
+      label: '子目录',
+      key: 'newDirectory',
+    },
+    {
+      label: '测试套',
+      key: 'newSuite',
+    },
+  ],
+};
 const iconType = {
   org: Organization20Regular,
   group: GroupsFilled,
@@ -95,31 +111,12 @@ const frameworkList = ref([]);
 
 const menuList = ref();
 const expandKeys = ref([]);
-function selectGroup() {
+function selectGroup () {
   if (router.currentRoute.value.name === 'frameWork') {
     expandKeys.value = [`org-${storage.getValue('orgId')}`];
   }
 }
-function getOrg() {
-  axios.get(`/v1/users/${storage.getValue('gitee_id')}`).then((res) => {
-    const { data } = res;
-    menuList.value = data.orgs.map((item) => {
-      if (item.re_user_org_default) {
-        return {
-          label: item.org_name,
-          key: `org-${item.org_id}`,
-          iconColor: 'rgba(0, 47, 167, 1)',
-          isLeaf: false,
-          type: 'org',
-          icon: Organization20Regular,
-        };
-      }
-      selectGroup();
-      return '';
-    });
-  });
-}
-function getGroup(node) {
+function getGroup (node) {
   return new Promise((resolve, reject) => {
     const actions = [...commonAction];
     actions.unshift({
@@ -162,7 +159,7 @@ function getGroup(node) {
   });
 }
 
-function getDirectory(node) {
+function getDirectory (node) {
   return new Promise((resolve, reject) => {
     axios
       .get('/v1/baseline', {
@@ -173,6 +170,7 @@ function getDirectory(node) {
         for (const item of res.data) {
           const actions = [...commonAction];
           if (!item.in_set) {
+            actions.unshift(relationChildrenAction);
             actions.unshift(renameAction);
           } else {
             actions.unshift({
@@ -180,8 +178,8 @@ function getDirectory(node) {
               key: 'importCase',
               icon: renderIcon(FileImport),
             });
+            actions.unshift(createChildrenAction);
           }
-          actions.unshift(createChildrenAction);
           actions.push(deleteAction);
           node.children.push({
             label: item.title,
@@ -203,20 +201,19 @@ function getDirectory(node) {
   });
 }
 
-function getBaseLine(node) {
+function getBaseLine (node) {
   return new Promise((resolve, reject) => {
-    axios
-      .get(`/v1/baseline/${node.info.id}`)
+    axios.get(`/v1/baseline/${node.info.id}`)
       .then((res) => {
         node.children = [];
         for (const item of res.data.children) {
           const actions = [...commonAction];
           if (item.type === 'suite' || item.type === 'case') {
             actions.unshift(editAction);
-          }
-          if (!item.in_set) {
+          } else {
             actions.unshift(renameAction);
-          } else if (item.type === 'directory') {
+          }
+          if (item.in_set && item.type === 'directory') {
             actions.unshift({
               label: '导入用例',
               key: 'importCase',
@@ -231,7 +228,9 @@ function getBaseLine(node) {
               icon: renderIcon(CreateNewFolderOutlined),
             });
           } else if (item.type === 'directory') {
-            actions.unshift(createChildrenAction);
+            actions.unshift(
+              item.in_set ? createChildrenAction : relationChildrenAction
+            );
           }
           node.children.push({
             label: item.title,
@@ -252,7 +251,7 @@ function getBaseLine(node) {
       });
   });
 }
-function loadData(node, callback) {
+function loadData (node, callback) {
   switch (node.type) {
     case 'org':
       getGroup(node)
@@ -283,12 +282,38 @@ function loadData(node, callback) {
       break;
   }
 }
+function getOrg () {
+  axios.get(`/v1/users/${storage.getValue('gitee_id')}`).then((res) => {
+    const { data } = res;
+    menuList.value = [];
+    data.orgs.forEach((item) => {
+      if (item.re_user_org_default) {
+        menuList.value.push({
+          label: item.org_name,
+          key: `org-${item.org_id}`,
+          iconColor: 'rgba(0, 47, 167, 1)',
+          isLeaf: false,
+          type: 'org',
+          icon: Organization20Regular,
+        });
+      }
+    });
+    selectGroup();
+    loadData(menuList.value[0], (status) => {
+      if (status !== 'success') {
+        window.$message?.error('初始加载失败');
+      } else {
+        expandKeys.value = [menuList.value[0].key];
+      }
+    });
+  });
+}
 const info = ref('');
 const inputInfo = ref('');
 const infoRules = {
   trigger: ['input', 'blur', 'change'],
   required: true,
-  validator() {
+  validator () {
     if (info.value === '') {
       return new Error('请填写信息');
     }
@@ -298,7 +323,7 @@ const infoRules = {
 const inputInfoRules = {
   required: true,
   trigger: ['input', 'blur'],
-  validator() {
+  validator () {
     if (inputInfo.value === '') {
       return new Error('必填项');
     }
@@ -306,7 +331,7 @@ const inputInfoRules = {
   },
 };
 const files = ref();
-function validateUploadInfo() {
+function validateUploadInfo () {
   // if (!info.value) {
   //   window.$message?.error('请选择测试框架');
   //   return false;
@@ -319,7 +344,7 @@ function validateUploadInfo() {
   }
   return true;
 }
-function dialogAction(confirmFn, node, d, contentType) {
+function dialogAction (confirmFn, node, d, contentType) {
   const confirmBtn = h(
     NButton,
     {
@@ -369,7 +394,7 @@ function dialogAction(confirmFn, node, d, contentType) {
   );
 }
 
-function newDectoryContent() {
+function newDectoryContent () {
   const form = h('div', null, [
     h(
       NFormItem,
@@ -388,7 +413,7 @@ function newDectoryContent() {
   return form;
 }
 const suiteList = ref([]);
-function getSuite() {
+function getSuite () {
   axios.get('/v1/suite').then((res) => {
     suiteList.value = res.data.map((item) => {
       return {
@@ -398,54 +423,18 @@ function getSuite() {
     });
   });
 }
-function newFormContent(titleTip, selectTip, list) {
-  if (suiteList.value.length === 0) {
-    getSuite();
-  }
-  const form = h('div', null, [
-    h(
-      NFormItem,
-      {
-        label: titleTip,
-        rule: inputInfoRules,
-      },
-      h(NInput, {
-        value: inputInfo.value,
-        onUpdateValue: (value) => {
-          inputInfo.value = value;
-        },
-      })
-    ),
-    h(
-      NFormItem,
-      {
-        label: selectTip,
-        rule: infoRules,
-      },
-      h(NSelect, {
-        value: info.value,
-        options: list,
-        onUpdateValue: (value) => {
-          info.value = value;
-        },
-      })
-    ),
-  ]);
-  return form;
-}
 const caseList = ref();
 let currentCase;
-function getCase(id) {
+function getCase (id) {
   if (currentCase === id) {
     return '';
   }
   currentCase = id;
-  axios
-    .get('/v1/case', {
-      suite_id: id,
-    })
+  getCaseDetail({
+    suite_id: id,
+  })
     .then((res) => {
-      if (Array.isArray(res)) {
+      if (Array.isArray(res.data)) {
         caseList.value = res.data.map((item) => {
           return {
             label: item.name,
@@ -459,6 +448,49 @@ function getCase(id) {
     });
   return '';
 }
+const relationSuiteForm = ref({
+  suiteTitle: '',
+  suiteId: undefined,
+  caseTitle: '',
+  caseId: undefined
+});
+function newFormContent (titleTip, selectTip, list, isSuite) {
+  if (suiteList.value.length === 0) {
+    getSuite();
+  }
+  const formNode = [
+    h(NFormItem, { label: selectTip, rule: infoRules, },
+      h(NSelect, {
+        value: info.value,
+        options: list,
+        onUpdateValue: (value) => {
+          info.value = value;
+          inputInfo.value = list.find(i => i.value === value).label;
+          if (isSuite) {
+            getCase(value);
+          }
+        },
+      })
+    )
+  ];
+  if (isSuite) {
+    formNode.push(
+      h(NFormItem, { label: '测试用例' },
+        h(NSelect, {
+          value: relationSuiteForm.value.caseId,
+          options: caseList.value,
+          onUpdateValue: (value) => {
+            relationSuiteForm.value.caseId = value;
+            relationSuiteForm.value.caseTitle = caseList.value.find(i => i.value === value).label;
+          },
+        })
+      )
+    );
+  }
+  const form = h('div', null, formNode);
+  return form;
+}
+
 const description = h(
   NP,
   {
@@ -467,17 +499,6 @@ const description = h(
   },
   '仅支持zip,rar,tar,gz,xz,bz2压缩文件上传'
 );
-{
-  /* <n-cascader
-v-model:value="value"
-placeholder="没啥用的值"
-:options="options"
-:check-strategy="checkStrategyIsChild ? 'child' : 'all'"
-:show-path="showPath"
-remote
-:on-load="handleLoad"
-/> */
-}
 // function renderSelect(label, list) {
 //   return h(
 //     NFormItem,
@@ -512,7 +533,7 @@ remote
 //     })
 //   );
 // }
-function uploadSet(node) {
+function uploadSet (node) {
   const formData = new FormData();
   formData.append('file', files.value[0]?.file);
   formData.append('group_id', node.info.group_id);
@@ -530,7 +551,7 @@ function uploadSet(node) {
       changeLoadingStatus(false);
     });
 }
-function renderUpload() {
+function renderUpload () {
   const tip = h(NText, null, '点击或者拖动文件到该区域来上传');
   const icon = h(
     'div',
@@ -563,10 +584,10 @@ function renderUpload() {
   );
 }
 
-function uploadContent() {
+function uploadContent () {
   return h('div', null, [renderUpload()]);
 }
-function dialogView(confirmFn, node, contentType = 'directory') {
+function dialogView (confirmFn, node, contentType = 'directory') {
   window.$dialog?.destroyAll();
   const d = window.$dialog?.info({
     title: node.label,
@@ -576,7 +597,7 @@ function dialogView(confirmFn, node, contentType = 'directory') {
         case 'directory':
           return newDectoryContent();
         case 'suite':
-          return newFormContent('名称:', '测试套:', suiteList.value);
+          return newFormContent('名称:', '测试套:', suiteList.value, true);
         case 'case':
           getCase(node.info.suite_id);
           return newFormContent('名称:', '测试用例:', caseList.value);
@@ -594,7 +615,7 @@ function dialogView(confirmFn, node, contentType = 'directory') {
     },
   });
 }
-function newDirectory(node) {
+function newDirectory (node) {
   axios
     .post('/v1/baseline', {
       title: info.value,
@@ -614,7 +635,7 @@ function newDirectory(node) {
       window.$message.error(err.data.error_msg || '未知错误');
     });
 }
-function newSuite(node) {
+function newSuite (node) {
   axios
     .post('/v1/baseline', {
       title: inputInfo.value,
@@ -623,15 +644,27 @@ function newSuite(node) {
       parent_id: node.info.id,
       suite_id: info.value,
     })
-    .then(() => {
+    .then((res) => {
       window.$message.success('创建成功');
       getBaseLine(node);
+      if (relationSuiteForm.value.caseId) {
+        axios
+          .post('/v1/baseline', {
+            type: 'case',
+            group_id: node.info.group_id,
+            parent_id: res.data,
+            case_id: relationSuiteForm.value.caseId,
+            title: relationSuiteForm.value.caseTitle,
+          }).catch(err => {
+            throw err;
+          });
+      }
     })
     .catch((err) => {
       window.$message.error(err.data.error_msg || '未知错误');
     });
 }
-function deleteBaseLine(node) {
+function deleteBaseLine (node) {
   axios
     .delete(`/v1/baseline/${node.info.id}`)
     .then(() => {
@@ -650,7 +683,7 @@ function deleteBaseLine(node) {
       window.$message.error(err.data.error_msg || '未知错误');
     });
 }
-function renameBaseLine(node) {
+function renameBaseLine (node) {
   axios
     .put(`/v1/baseline/${node.info.id}`, {
       title: info.value,
@@ -663,7 +696,7 @@ function renameBaseLine(node) {
       window.$message.error(err.data.error_msg || '未知错误');
     });
 }
-function newCase(node, caseId, title) {
+function newCase (node, caseId, title) {
   axios
     .post('/v1/baseline', {
       type: 'case',
@@ -680,11 +713,11 @@ function newCase(node, caseId, title) {
       window.$message?.error(err.data.error_msg || '未知错误');
     });
 }
-function initDialogViewData() {
+function initDialogViewData () {
   info.value = '';
   inputInfo.value = '';
 }
-function refreshNode(node) {
+function refreshNode (node) {
   switch (node.type) {
     case 'users':
       getDirectory(node);
@@ -698,13 +731,13 @@ let inSetnode;
 let importInfo;
 const actionHandlder = {
   newDirectory: {
-    handler(contextmenu) {
+    handler (contextmenu) {
       initDialogViewData();
       dialogView(newDirectory, contextmenu);
     },
   },
   newSuite: {
-    handler(contextmenu) {
+    handler (contextmenu) {
       if (contextmenu.info.in_set) {
         window.$message?.info('该功能开发中....');
       } else {
@@ -714,18 +747,18 @@ const actionHandlder = {
     },
   },
   deleteBaseline: {
-    handler(contextmenu) {
+    handler (contextmenu) {
       deleteBaseLine(contextmenu);
     },
   },
   renameBaseline: {
-    handler(contextmenu) {
+    handler (contextmenu) {
       initDialogViewData();
       dialogView(renameBaseLine, contextmenu);
     },
   },
   newCase: {
-    handler(contextmenu) {
+    handler (contextmenu) {
       if (contextmenu.info.in_set) {
         createModalRef.value.show();
         inSetnode = contextmenu;
@@ -736,25 +769,25 @@ const actionHandlder = {
     },
   },
   importCaseSet: {
-    handler(contextmenu) {
+    handler (contextmenu) {
       initDialogViewData();
       dialogView(uploadSet, contextmenu, 'caseSet');
     },
   },
   importCase: {
-    handler(contextmenu) {
+    handler (contextmenu) {
       // importForm.model.value.group = contextmenu.info.group_id;
       importInfo = contextmenu;
       importModalRef.value.show();
     },
   },
   refresh: {
-    handler(contextmenu) {
+    handler (contextmenu) {
       refreshNode(contextmenu);
     },
   },
   editBaseline: {
-    handler(contextmenu) {
+    handler (contextmenu) {
       const [key] = contextmenu.key.split('-');
       if (key === 'suite') {
         const id = contextmenu.info.suite_id;
@@ -764,7 +797,7 @@ const actionHandlder = {
         });
       } else if (key === 'case') {
         const id = contextmenu.info.case_id;
-        axios.get('/v1/case', { id }).then((res) => {
+        getCaseDetail({ id }).then((res) => {
           store.commit('rowData/set', res.data[0]);
           updateModalRef.value.show();
         });
@@ -772,11 +805,11 @@ const actionHandlder = {
     },
   },
 };
-function selectAction({ contextmenu, action }) {
+function selectAction ({ contextmenu, action }) {
   actionHandlder[action.key].handler(contextmenu);
 }
 const selectKey = ref();
-function menuClick({ key, options }) {
+function menuClick ({ key, options }) {
   if (!key.length) {
     return;
   }
@@ -800,11 +833,11 @@ function menuClick({ key, options }) {
   }
 }
 
-function findeItem(array, key, value) {
+function findeItem (array, key, value) {
   return array.find((item) => Number(item.info[key]) === Number(value));
 }
 
-function getNode(baselineId) {
+function getNode (baselineId) {
   axios.get(`/v1/baseline/${baselineId}`).then((res) => {
     const treePath = [];
     treePath.push(res.data.group_id);
@@ -840,14 +873,14 @@ function getNode(baselineId) {
     });
   });
 }
-function submitCreateCase() {
+function submitCreateCase () {
   createFormRef.value.post().then((res) => {
     if (res.result.data.id) {
       newCase(inSetnode, res.result.data.id, res.form.name);
     }
   });
 }
-function expandNode(baselineId) {
+function expandNode (baselineId) {
   let timer = null;
   timer = setInterval(() => {
     if (menuList.value[0].key) {
@@ -856,13 +889,13 @@ function expandNode(baselineId) {
     }
   }, 500);
 }
-function expand(option) {
+function expand (option) {
   expandKeys.value = option;
 }
-function clearSelectKey() {
+function clearSelectKey () {
   selectKey.value = '';
 }
-function extendSubmit(value) {
+function extendSubmit (value) {
   if (!value.file.length) {
     window.$message?.error('请上传用例文本');
     return;

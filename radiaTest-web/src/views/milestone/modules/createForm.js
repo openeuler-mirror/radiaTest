@@ -11,7 +11,8 @@ const formValue = ref({
   type: undefined,
   start_time: undefined,
   end_time: undefined,
-  is_sync: true,
+  is_sync: false,
+  permission_type:undefined
 });
 
 const clean = () => {
@@ -22,7 +23,8 @@ const clean = () => {
     type: undefined,
     start_time: undefined,
     end_time: undefined,
-    is_sync: true,
+    is_sync: false,
+    permission_type:undefined
   };
 };
 
@@ -31,6 +33,11 @@ const rules = ref({
     required: true,
     message: '产品名不可为空',
     trigger: ['blur'],
+  },
+  permission_type: {
+    required: true,
+    message: '请选择类型',
+    trigger: ['change', 'blur'],
   },
   product_id: {
     required: true,

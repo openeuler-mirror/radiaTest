@@ -29,6 +29,7 @@ const basicFormValue = ref({
   bmc_password: undefined,
   bmc_repassword: undefined,
   description: undefined,
+  permission_type:undefined,
 });
 
 const sshFormValue = ref({
@@ -48,6 +49,7 @@ const clean = () => {
   basicFormValue.value.bmc_password = undefined;
   basicFormValue.value.bmc_repassword = undefined;
   basicFormValue.value.description = undefined;
+  basicFormValue.value.permission_type = undefined;
   sshFormValue.value.ip = undefined;
   sshFormValue.value.port = undefined;
   sshFormValue.value.user = undefined;
@@ -76,6 +78,11 @@ const basicRules = ref({
     required: true,
     message: '架构不可为空',
     trigger: ['blur'],
+  },
+  permission_type: {
+    required: true,
+    message: '请选择类型',
+    trigger: ['change', 'blur'],
   },
   mac: {
     required: true,

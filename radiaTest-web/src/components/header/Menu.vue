@@ -28,9 +28,13 @@
       </animate-button>
     </template>
   </my-tab>
-  <my-tab url="/home/resource-pool">
+  <my-tab
+    :has-arrow="false"
+    url="/home/resource-pool/management"
+    @click="handlePoolClick"
+  >
     <template #text> <n-text>资源池</n-text> </template>
-    <template #menu>
+    <!-- <template #menu>
       <animate-button url="/home/resource-pool/pmachine" :size="270">
         <template #icon>
           <n-icon class="icon" size="160">
@@ -59,7 +63,7 @@
         </template>
         <template #text> <n-text>Docker</n-text> </template>
       </animate-button>
-    </template>
+    </template> -->
   </my-tab>
   <my-tab url="/home/testing">
     <template #text> <n-text>测试中心</n-text> </template>
@@ -98,15 +102,12 @@
 <script>
 import { defineComponent } from 'vue';
 import { useRouter } from 'vue-router';
-import {
-  ComputerRound,
-  FormatIndentIncreaseRound as Format,
-} from '@vicons/material';
+import { FormatIndentIncreaseRound as Format, } from '@vicons/material';
 import {
   TaskListRtl20Filled as TaskList,
   Board20Filled as Board,
 } from '@vicons/fluent';
-import { LogoFirebase, LogoDocker } from '@vicons/ionicons5';
+import { LogoFirebase } from '@vicons/ionicons5';
 
 import MyTab from './MyTab.vue';
 import AnimateButton from '@/components/public/AnimateButton';
@@ -115,9 +116,7 @@ export default defineComponent({
   components: {
     MyTab,
     AnimateButton,
-    ComputerRound,
     LogoFirebase,
-    LogoDocker,
     TaskList,
     Board,
     Format,
@@ -135,6 +134,9 @@ export default defineComponent({
       handleHomeClick() {
         router.push('/home');
       },
+      handlePoolClick() {
+        router.push({ name: 'resourcePool' });
+      }
     };
   },
 });

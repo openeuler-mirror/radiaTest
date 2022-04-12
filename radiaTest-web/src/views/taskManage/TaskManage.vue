@@ -10,7 +10,7 @@
             height: 80px;
             font-family: 'v-sans';
             padding-top: 40px;
-            background-color: #FAFAFC;
+            background-color: rgb(242,242,242);
         "
     style="height: 100%"
   >
@@ -29,49 +29,29 @@
           </ul>
         </n-gi>
         <n-gi class="nav-footer">
-          <div
-            v-show="isTask"
-            class="footer-wrapper"
-          >
-            <a
-              class="footer-item"
-              v-show="kanban"
-              @click="toggleView"
-            >
+          <div v-show="isTask" class="footer-wrapper">
+            <a class="footer-item" v-show="kanban" @click="toggleView">
               <n-icon size="16">
-                <LayoutKanban />
-              </n-icon>表格视图
+                <LayoutKanban /> </n-icon
+              >表格视图
             </a>
-            <a
-              class="footer-item"
-              v-show="!kanban"
-              @click="toggleView"
-            >
+            <a class="footer-item" v-show="!kanban" @click="toggleView">
               <n-icon size="16">
-                <Table />
-              </n-icon>看板视图
+                <Table /> </n-icon
+              >看板视图
             </a>
-            <a
-              class="footer-item"
-              @click="screen"
-            >
+            <a class="footer-item" @click="screen">
               <n-icon size="16">
-                <Search />
-              </n-icon>筛选
+                <Search /> </n-icon
+              >筛选
             </a>
-            <a
-              class="footer-item"
-              @click="showRecycleBin"
-            >
+            <a class="footer-item" @click="showRecycleBin">
               <n-icon size="16">
-                <Delete48Regular />
-              </n-icon>回收站
+                <Delete48Regular /> </n-icon
+              >回收站
             </a>
             <a class="footer-item">
-              <n-popover
-                trigger="hover"
-                placement="bottom"
-              >
+              <n-popover trigger="hover" placement="bottom">
                 <template #trigger>
                   <n-icon size="18">
                     <QuestionCircle20Regular />
@@ -103,15 +83,8 @@
     </template>
     <template #default>
       <div id="drawer-target"></div>
-      <n-drawer
-        v-model:show="active"
-        to="#drawer-target"
-        width="324px"
-      >
-        <n-drawer-content
-          title="筛选"
-          closable
-        >
+      <n-drawer v-model:show="active" to="#drawer-target" width="324px">
+        <n-drawer-content title="筛选" closable>
           <n-form
             :model="model"
             :rules="rules"
@@ -121,19 +94,13 @@
             size="medium"
             :style="{}"
           >
-            <n-form-item
-              label="名称"
-              path="title"
-            >
+            <n-form-item label="名称" path="title">
               <n-input
                 placeholder="请输入任务名称"
                 v-model:value="model.title"
               />
             </n-form-item>
-            <n-form-item
-              label="类型"
-              path="type"
-            >
+            <n-form-item label="类型" path="type">
               <n-select
                 placeholder="请选择"
                 clearable
@@ -141,10 +108,7 @@
                 v-model:value="model.type"
               />
             </n-form-item>
-            <n-form-item
-              label="创建者"
-              path="originator"
-            >
+            <n-form-item label="创建者" path="originator">
               <n-select
                 clearable
                 placeholder="请选择"
@@ -152,10 +116,7 @@
                 v-model:value="model.originator"
               />
             </n-form-item>
-            <n-form-item
-              label="执行者"
-              path="executor_id"
-            >
+            <n-form-item label="执行者" path="executor_id">
               <n-select
                 placeholder="请选择"
                 clearable
@@ -163,10 +124,7 @@
                 v-model:value="model.executor_id"
               />
             </n-form-item>
-            <n-form-item
-              label="协助人"
-              path="participant_id"
-            >
+            <n-form-item label="协助人" path="participant_id">
               <n-select
                 placeholder="请选择"
                 :options="participants"
@@ -175,10 +133,7 @@
                 multiple
               />
             </n-form-item>
-            <n-form-item
-              label="状态"
-              path="status_id"
-            >
+            <n-form-item label="状态" path="status_id">
               <n-select
                 placeholder="请选择"
                 clearable
@@ -186,37 +141,23 @@
                 v-model:value="model.status_id"
               />
             </n-form-item>
-            <n-form-item
-              label="截止日期"
-              path="deadline"
-            >
-              <n-date-picker
-                type="date"
-                v-model:value="model.deadline"
-              />
+            <n-form-item label="截止日期" path="deadline">
+              <n-date-picker type="date" v-model:value="model.deadline" />
             </n-form-item>
-            <n-form-item
-              label="开始日期"
-              path="start_time"
-            >
-              <n-date-picker
-                type="date"
-                v-model:value="model.start_time"
-              />
+            <n-form-item label="开始日期" path="start_time">
+              <n-date-picker type="date" v-model:value="model.start_time" />
             </n-form-item>
             <div class="searchButtonBox">
-              <n-button
-                class="btn"
-                type="error"
-                ghost
-                @click="clearCondition"
-              >重置</n-button>
+              <n-button class="btn" type="error" ghost @click="clearCondition"
+                >重置</n-button
+              >
               <n-button
                 class="btn"
                 type="info"
                 ghost
                 @click="handleValidateButtonClick"
-              >搜索</n-button>
+                >搜索</n-button
+              >
             </div>
           </n-form>
         </n-drawer-content>
@@ -224,7 +165,7 @@
       <div class="recycleWrap">
         <n-modal v-model:show="showRecycleBinModal">
           <n-card
-            style="width:1200px;"
+            style="width: 1200px"
             title="查看回收站"
             :bordered="false"
             size="huge"
@@ -247,12 +188,14 @@
     </template>
     <template #action>
       <n-divider />
-      <div style="
+      <div
+        style="
           text-align: center;
           color: grey;
           padding-top: 15px;
           padding-bottom: 0;
-        ">
+        "
+      >
         {{ `${config.name} ${config.version}·${config.license}` }}
       </div>
     </template>
@@ -275,7 +218,7 @@ export default defineComponent({
     QuestionCircle20Regular,
     Delete48Regular,
   },
-  setup () {
+  setup() {
     const route = useRoute();
     watch(
       () => route.path,

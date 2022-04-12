@@ -8,6 +8,7 @@ function textDialog(type, title, content, confirm) {
       negativeText: '取消',
       onPositiveClick: () => {
         confirm && confirm();
+        d.destroy();
       },
       onNegativeClick: () => {
         d.destroy();

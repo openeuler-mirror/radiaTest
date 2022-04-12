@@ -7,11 +7,11 @@
       content: 'hard',
     }"
     header-style="
-            font-size: 20px; 
+            font-size: 20px;
             height: 40px;
             padding-top: 10px;
-            padding-bottom: 10px; 
-            font-family: 'v-sans'; 
+            padding-bottom: 10px;
+            font-family: 'v-sans';
             background-color: rgba(250,250,252,1);
         "
   >
@@ -25,7 +25,7 @@
         ref="formRef"
       >
         <n-grid :cols="24" :x-gap="36">
-          <n-form-item-gi :span="25" label="任务名" path="name">
+          <n-form-item-gi :span="24" label="任务名" path="name">
             <n-input
               v-model:value="formValue.name"
               placeholder="默认任务名: Job-{milestone}-{frame}-{Y}-{m}-{d}-{H}-{M}-{S}"
@@ -87,57 +87,12 @@
               filterable
             />
           </n-form-item-gi>
-          <n-form-item-gi :span="6" label="选取策略" path="select_mode">
-            <n-select
-              :options="[
-                {
-                  label: '全自动选取',
-                  value: 'auto',
-                },
-                {
-                  label: '人工干预',
-                  value: 'manual',
-                },
-              ]"
-              v-model:value="formValue.select_mode"
-              placeholder="选取策略"
-            />
-          </n-form-item-gi>
-          <n-form-item-gi
-            v-if="formValue.select_mode === 'manual'"
-            :span="4"
-            label="是否严格模式"
-            path="strict_mode"
-          >
-            <n-switch v-model:value="formValue.strict_mode">
-              <template #checked> 是 </template>
-              <template #unchecked> 否 </template>
-            </n-switch>
-          </n-form-item-gi>
-          <n-form-item-gi
-            :span="8"
-            label="已选机器"
-            path="machine_list"
-            v-if="formValue.select_mode === 'manual'"
-          >
-            <n-select
-              filterable
-              :value="formValue.machine_list"
-              @update:value="selectPm"
-              placeholder="请选择机器"
-              :options="machineOptions"
-              multiple
-            >
-              <template #arrow>
-                {{ formValue.machine_list.length }}/{{ totalMachineCount }}
-              </template>
-            </n-select>
-          </n-form-item-gi>
           <n-form-item-gi :span="6" label="架构" path="frame">
             <n-select
               filterable
               v-model:value="formValue.frame"
               placeholder="请选择架构"
+              @update:value="frameChange"
               :options="[
                 {
                   label: 'aarch64',
@@ -150,6 +105,76 @@
               ]"
             />
           </n-form-item-gi>
+          <n-form-item-gi :span="6" label="机器调度策略" path="select_mode">
+            <n-select
+              :disabled="!formValue.frame"
+              :options="[
+                {
+                  label: '全自动创建',
+                  value: 'auto',
+                },
+                {
+                  label: '人工干预',
+                  value: 'manual',
+                },
+              ]"
+              v-model:value="formValue.select_mode"
+              placeholder="机器调度策略"
+            />
+          </n-form-item-gi>
+          <n-form-item-gi
+            v-if="formValue.select_mode === 'manual'"
+            :span="3"
+            label="是否严格模式"
+            path="strict_mode"
+          >
+            <n-switch v-model:value="formValue.strict_mode">
+              <template #checked> 是 </template>
+              <template #unchecked> 否 </template>
+            </n-switch>
+          </n-form-item-gi>
+          <n-form-item-gi
+            :span="4"
+            label="机器组"
+            path="machine_group_id"
+          >
+            <n-select
+              :options="machineGroups"
+              v-model:value="formValue.machine_group_id"
+              @update:value="changMachineGroup"
+              placeholder="请选择"
+            />
+          </n-form-item-gi>
+          <n-form-item-gi
+            :span="5"
+            label="已选机器"
+            path="machine_list"
+            v-if="
+              formValue.select_mode === 'manual' &&
+              formValue.machine_group_id !== undefined
+            "
+          >
+            <selectMachine
+              :text="renderText(formValue.machine_list) || '请选择'"
+              @checked="selectPm"
+              :data="machineOptions"
+              :checkedMachine="checkedMachine"
+              :machineType="machineType"
+            />
+            {{ formValue.machine_list.length }}/{{ totalMachineCount }}
+            <!-- <n-select
+              filterable
+              :value="formValue.machine_list"
+              @update:value="selectPm"
+              placeholder="请选择机器"
+              :options="machineOptions"
+              multiple
+            >
+              <template #arrow>
+                {{ formValue.machine_list.length }}/{{ totalMachineCount }}
+              </template>
+            </n-select> -->
+          </n-form-item-gi>
         </n-grid>
       </n-form>
     </div>
@@ -158,7 +183,7 @@
 
 <script>
 import { ref, onMounted, onUnmounted, defineComponent } from 'vue';
-
+import selectMachine from '@/components/machine/selectMachine.vue';
 // import { Loading3QuartersOutlined as Loading } from '@vicons/antd';
 // import { Warning } from '@vicons/ionicons5';
 
@@ -167,10 +192,11 @@ import { createAjax } from '@/assets/CRUD/create';
 import createForm from '@/views/job/modules/createForm.js';
 
 export default defineComponent({
-  // components: {
-  //   Loading,
-  //   Warning,
-  // },
+  components: {
+    selectMachine
+    // Loading,
+    // Warning,
+  },
   setup(props, context) {
     onMounted(() => {
       createForm.getProductOptions();
@@ -208,6 +234,7 @@ export default defineComponent({
             git_repo_id: createForm.formValue.value.git_repo_id,
             strict_mode: createForm.formValue.value.strict_mode,
             machine_policy: createForm.formValue.value.select_mode,
+            machine_group_id: createForm.formValue.value.machine_group_id,
           }, machineInfo))
         );
         context.emit('close');

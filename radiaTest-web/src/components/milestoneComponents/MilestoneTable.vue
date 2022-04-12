@@ -31,37 +31,29 @@ export default defineComponent({
     const store = useStore();
     const milestoneSocket = new Socket(`ws://${settings.serverPath}/milestone`);
     milestoneSocket.connect();
+
     onMounted(() => {
-      get.list(
-        '/v2/milestone',
-        milestoneTable.totalData,
-        milestoneTable.loading,
-        milestoneTable.filter.value,
-        milestoneTable.pagination
-      );
+      get.list('/v2/milestone', milestoneTable.totalData, milestoneTable.loading, milestoneTable.filter.value, milestoneTable.pagination);
       milestoneSocket.listen('update', () => {
-        get.list(
-          '/v2/milestone',
-          milestoneTable.totalData,
-          milestoneTable.loading,
-          milestoneTable.filter.value,
-          milestoneTable.pagination
-        );
+        get.list('/v2/milestone', milestoneTable.totalData, milestoneTable.loading, milestoneTable.filter.value, milestoneTable.pagination);
       });
     });
     onUnmounted(() => {
       milestoneSocket.disconnect();
     });
+
     const columns = ref(
       createColumns((row) => {
         let data = JSON.parse(JSON.stringify(row));
         data.start_time = any2stamp(data.start_time);
         data.end_time = any2stamp(data.end_time);
         store.commit('rowData/set', data);
+        console.log(data);
         milestoneTable.isUpdating.value = true;
         context.emit('update', row);
       })
     );
+
     return {
       store,
       columns,
@@ -69,12 +61,7 @@ export default defineComponent({
       showSelection: () => selection.show(columns),
       offSelection: () => selection.off(columns),
       refreshData: () =>
-        get.refresh(
-          '/v2/milestone',
-          milestoneTable.data,
-          milestoneTable.loading,
-          milestoneTable.filter.value
-        ),
+        get.refresh('/v2/milestone', milestoneTable.data, milestoneTable.loading,milestoneTable.filter.value),
     };
   },
 });

@@ -31,28 +31,26 @@
 </template>
 
 <script>
-import { ref, watch, defineComponent, getCurrentInstance } from 'vue';
+import { ref, watch, defineComponent } from 'vue';
 
 import { ArrowLeft32Filled as ArrowLeft } from '@vicons/fluent';
 import TestcaseContent from './TestcaseContent.vue';
 
 import testcaseTable from '@/views/caseManage/testcase/modules/testcaseTable.js';
-
+import { getCaseDetail } from '@/api/get';
 export default defineComponent({
   components: {
     TestcaseContent,
     ArrowLeft,
   },
   setup() {
-    const { proxy } = getCurrentInstance();
     const formValue = ref({});
 
     const getData = () => {
-      proxy.$axios
-        .get('/v1/case', {
-          id: testcaseTable.rowData.value.id,
-          name: testcaseTable.rowData.value.name,
-        })
+      getCaseDetail({
+        id: testcaseTable.rowData.value.id,
+        name: testcaseTable.rowData.value.name,
+      })
         .then((res) => {
           [formValue.value] = res.data;
         })

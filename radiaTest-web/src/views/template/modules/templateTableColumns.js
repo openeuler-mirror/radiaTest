@@ -12,7 +12,7 @@ const ColumnExpand = {
     h(ExpandedCard, {
       data: rowData.cases.map((item) => {
         return {
-          name: item,
+          name: item.name,
         };
       }),
     }),

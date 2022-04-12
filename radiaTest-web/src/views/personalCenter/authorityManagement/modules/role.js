@@ -5,31 +5,17 @@ import { User } from '@vicons/tabler';
 import { Organization20Regular } from '@vicons/fluent';
 import { GroupsFilled } from '@vicons/material';
 import router from '@/router';
+import { storage } from '@/assets/utils/storageUtils';
 
-const roleList = ref([
-  {
-    label: '公共角色',
-    key: 'public',
-    children: [],
-  },
-  {
-    label: '团队角色',
-    key: 'group',
-    children: [],
-  },
-  {
-    label: '组织角色',
-    key: 'org',
-    children: [],
-  },
-]);
+const roleList = ref([]);
 const activeRole = ref('');
 const expandRole = ref([]);
-function setActiveRole(value) {
+function setActiveRole (value) {
   activeRole.value = value;
 }
-function renderGroup(options) {
-  const group = roleList.value[1].children.find(
+function renderGroup (options) {
+  const index = roleList.value.findIndex((item) => item.key === 'group');
+  const group = roleList.value[index].children.find(
     (item) =>
       window
         .atob(item.key)
@@ -44,7 +30,7 @@ function renderGroup(options) {
       label: options.name,
     });
   } else {
-    roleList.value[1].children.push({
+    roleList.value[index].children.push({
       key: window.btoa(`group-${options.group_id}`),
       label: options.group_name,
       prefix: renderIcon(GroupsFilled),
@@ -59,16 +45,9 @@ function renderGroup(options) {
     });
   }
 }
-// function autoSelectRole(key) {
-//   if (key) {
-//     router.push({
-//       name: 'rolesManagement',
-//       params: { roleId: key },
-//     });
-//   }
-// }
-function renderOrg(options) {
-  const org = roleList.value[2].children.find(
+function renderOrg (options) {
+  const index = roleList.value.findIndex((item) => item.key === 'org');
+  const org = roleList.value[index].children.find(
     (item) =>
       window
         .atob(item.key)
@@ -83,7 +62,7 @@ function renderOrg(options) {
       label: options.name,
     });
   } else {
-    roleList.value[2].children.push({
+    roleList.value[index].children.push({
       key: window.btoa(`org-${options.org_id}`),
       label: options.org_name,
       prefix: renderIcon(Organization20Regular),
@@ -98,56 +77,95 @@ function renderOrg(options) {
     });
   }
 }
-function initRoleList() {
-  roleList.value[0].children = [];
-  roleList.value[1].children = [];
-  roleList.value[2].children = [];
+function renderUser (options) {
+  const index = roleList.value.findIndex((item) => item.key === 'person');
+  if (index !== -1) {
+    roleList.value[index].children.push({
+      label: options.name,
+      info: options,
+      key: window.btoa(`person-${options.id}`),
+      prefix: renderIcon(User),
+    });
+  }
 }
-function renderRole() {
-  axios.get('/v1/role').then((res) => {
-    initRoleList();
-    if (Array.isArray(res.data) && res.data.length) {
-      res.data.forEach((item) => {
-        let isActive = false;
-        if (String(item.id) === window.atob(activeRole.value)) {
-          isActive = true;
-        }
-        switch (item.type) {
-          case 'public':
-            if (isActive) {
-              expandRole.value = ['public', window.btoa(item.id)];
-            }
-            roleList.value[0].children.push({
-              info: item,
-              prefix: renderIcon(User),
-              label: item.name,
-              key: window.btoa(item.id),
-            });
-            break;
-          case 'group':
-            if (isActive) {
-              expandRole.value = [
-                'group',
-                window.btoa(`group-${item.group_id}`),
-              ];
-            }
-            renderGroup(item);
-            break;
-          case 'org':
-            if (isActive) {
-              expandRole.value = ['org', window.btoa(`org-${item.org_id}`)];
-            }
-            renderOrg(item);
-            break;
-          default:
-            break;
-        }
-      });
-      // autoSelectRole(activeRole.value);
-    }
+function initRoleList () {
+  if (storage.getValue('role') === 1) {
+    roleList.value = [
+      {
+        label: '平台',
+        key: 'public',
+      },
+      {
+        label: '团队',
+        key: 'group',
+        children: [],
+      },
+      {
+        label: '组织',
+        key: 'org',
+        children: [],
+      },
+    ];
+  } else {
+    roleList.value = [
+      {
+        label: '团队',
+        key: 'group',
+        children: [],
+      },
+      {
+        label: '组织',
+        key: 'org',
+        children: [],
+      },
+    ];
+  }
+  roleList.value.forEach((item) => {
+    item.children = [];
   });
 }
-function getRoleList() {
+function renderOptionByKey (key, isActive, item, renderFn) {
+  if (isActive) {
+    expandRole.value = [key, window.btoa(`${key}-${item[`${key}_id`]}`)];
+  }
+  renderFn(item);
+}
+function renderRole () {
+  axios.get('/v1/role').then((res) => {
+    initRoleList();
+    res.data?.forEach((item) => {
+      let isActive = false;
+      if (String(item.id) === window.atob(activeRole.value)) {
+        isActive = true;
+      }
+      const renderFn = {
+        org: renderOrg,
+        group: renderGroup,
+      };
+      const pubIndex = roleList.value.findIndex((i) => i.key === 'public');
+      if (item.type === 'public') {
+        if (isActive) {
+          expandRole.value = ['public', window.btoa(item.id)];
+        }
+        pubIndex !== -1 &&
+          roleList.value[pubIndex].children.push({
+            info: item,
+            prefix: renderIcon(User),
+            label: item.name,
+            key: window.btoa(item.id),
+          });
+      } else if (item.type === 'person') {
+        if (isActive) {
+          expandRole.value = ['person', window.btoa(`person-${item.id}`)];
+        }
+        renderUser(item);
+      } else {
+        renderOptionByKey(item.type, isActive, item, renderFn[item.type]);
+      }
+    });
+  });
+}
+function getRoleList () {
   if (router.currentRoute.value.name === 'rolesManagement') {
     activeRole.value = router.currentRoute.value.params.roleId;
   } else {
@@ -156,7 +174,7 @@ function getRoleList() {
   renderRole();
 }
 
-function selectRole(key, options) {
+function selectRole (key, options) {
   if (options[0].children) {
     return;
   }
@@ -167,14 +185,14 @@ function selectRole(key, options) {
   });
 }
 
-function expandKey(keys) {
+function expandKey (keys) {
   expandRole.value = keys;
 }
 const roleCreateForm = ref();
-function createRole() {
+function createRole () {
   roleCreateForm.value.show();
 }
-function submitCreateFrom({ data, type }) {
+function submitCreateFrom ({ data, type }) {
   if (type === 'create') {
     axios
       .post('/v1/role', data)

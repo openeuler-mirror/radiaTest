@@ -6,6 +6,7 @@ import { storage } from '@/assets/utils/storageUtils';
 import { showLoading, detailTask, getDetailTask } from './taskDetail.js';
 import { personArray, initData } from './kanbanAndTable.js';
 import { NAvatar } from 'naive-ui';
+import { getGroup as getGroups } from '@/api/get.js';
 
 const showVersionTaskModal = ref(false); // 显示创建版本任务窗口
 const groups = ref([]); // 执行团队选项数组
@@ -154,11 +155,10 @@ function createBaseTask(element) {
 function getGroup() {
   showLoading.value = true;
   groups.value = [];
-  axios
-    .get('/v1/groups', {
-      page_num: 1,
-      page_size: 99999,
-    })
+  getGroups({
+    page_num: 1,
+    page_size: 99999,
+  })
     .then((res) => {
       showLoading.value = false;
       for (const item of res.data.items) {

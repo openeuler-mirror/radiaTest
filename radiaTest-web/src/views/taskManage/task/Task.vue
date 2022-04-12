@@ -435,9 +435,9 @@
                                       modalData.detail.executor?
                                         modalData.detail.executor_type === 'PERSON' ?
                                           modalData.detail.type === 'GROUP'?
-                                            `${modalData.detail.executor_group.name}/${modalData.detail.executor.gitee_name}`
-                                            :modalData.detail.executor.gitee_name
-                                          :`${modalData.detail.executor_group.name}/${modalData.detail.executor.gitee_name}`
+                                            `${modalData.detail.executor_group?.name}/${modalData.detail.executor?.gitee_name}`
+                                            :modalData.detail.executor?.gitee_name
+                                          :`${modalData.detail.executor_group?.name}/${modalData.detail.executor?.gitee_name}`
                                         : '待认领'
                                     }}
                                   </div>
@@ -1382,7 +1382,6 @@ export default defineComponent({
           modules.showLoading.value = false;
         });
     });
-
     return {
       ...modules,
     };

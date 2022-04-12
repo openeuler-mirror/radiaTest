@@ -6,16 +6,14 @@ import {
   getMilestoneOpts,
   createSuiteOptions,
 } from '@/assets/utils/getOpts.js';
-import {
-  createRepoOptions,
-  createPmOptions,
-  createVmOptions,
-} from '@/assets/utils/getOpts';
+import { createRepoOptions } from '@/assets/utils/getOpts';
+import { getVm, getPm,getMachineGroup } from '@/api/get';
 import { NPopover } from 'naive-ui';
+import { unkonwnErrorMsg } from '@/assets/utils/description';
 
 const formRef = ref(null);
-const vmOptions = ref();
-const pmOptions = ref();
+const vmOptions = ref([]);
+const pmOptions = ref([]);
 const totalMachineCount = ref(0);
 const isPmachine = ref(true);
 const formValue = ref({
@@ -28,9 +26,10 @@ const formValue = ref({
   frame: undefined,
   framework: undefined,
   git_repo_id: undefined,
-  select_mode: undefined,
+  select_mode: 'auto',
   machine_list: [],
   strict_mode: false,
+  machine_group_id:undefined,
 });
 // const loading = ref(false);
 // const warning = ref(false);
@@ -76,6 +75,11 @@ const rules = {
     message: '请绑定里程碑',
     trigger: ['blur'],
   },
+  machine_group_id:{
+    required:true,
+    message:'请选择机器组',
+    trigger: ['blur'],
+  },
   machine_list: {
     validator(rule, value) {
       if (value.length === 0) {
@@ -101,8 +105,9 @@ const validateFormData = (context) => {
     }
   });
 };
-
+const checkedMachine = ref([]);
 const clean = () => {
+  checkedMachine.value = [];
   formValue.value = {
     name: '',
     product: undefined,
@@ -113,9 +118,10 @@ const clean = () => {
     frame: undefined,
     framework: undefined,
     git_repo_id: undefined,
-    select_mode: undefined,
+    select_mode: 'auto',
     machine_list: [],
     strict_mode: false,
+    machine_group_id:undefined
   };
   totalMachineCount.value = 0;
 };
@@ -127,13 +133,15 @@ function getFramework() {
     }));
   });
 }
-const machineOptions = ref();
+const machineOptions = ref([]);
+const machineGroups = ref([]);
 const getProductOptions = async () => {
   getProductOpts(productOpts);
   getFramework();
-  vmOptions.value = await createVmOptions();
-  pmOptions.value = await createPmOptions();
   machineOptions.value = pmOptions.value;
+  getMachineGroup().then((res)=>{
+    machineGroups.value = res.data?.map(item=>({label:item.name,value:String(item.id)}));
+  });
 };
 
 const activeProductWatcher = () => {
@@ -154,31 +162,42 @@ const activeVersionWatcher = () => {
   );
 };
 const repoOpts = ref();
+const machineType = ref('pm');
 async function frameworkChange(value) {
   repoOpts.value = await createRepoOptions({ framework_id: value });
 }
 const suiteOpts = ref();
 async function repoChange(value) {
-  suiteOpts.value = await createSuiteOptions({ git_repo_id: value });
+  suiteOpts.value = await createSuiteOptions({
+    git_repo_id: value,
+    usabled: true,
+    auto: true,
+  });
 }
 function changeSuite(value) {
   const suite = suiteOpts.value.find((item) => item.value === value);
   totalMachineCount.value = suite.machineCount;
-  console.log(suite);
   if (suite.machineType === 'kvm') {
     machineOptions.value = vmOptions.value;
     isPmachine.value = false;
+    machineType.value = 'vm';
+    checkedMachine.value = [];
   } else {
     machineOptions.value = pmOptions.value;
     isPmachine.value = true;
+    machineType.value = 'pm';
+    checkedMachine.value = [];
   }
   formValue.value.machine_list = [];
 }
+
 function selectPm(value) {
+  console.log(value);
   if (value.length > totalMachineCount.value) {
     window.$message?.error('超出可选择数量');
   } else {
     formValue.value.machine_list = value;
+    checkedMachine.value = value;
   }
 }
 function renderSuiteOption({ node, option }) {
@@ -196,9 +215,58 @@ function renderSuiteOption({ node, option }) {
     }
   );
 }
+async function setMachineOptions(){
+  try {
+    const vmdata = await getVm({
+      frame: formValue.value.frame,
+      machine_purpose: 'run_job',
+      machine_group_id:formValue.value.machine_group_id
+    });
+    vmOptions.value = vmdata.data;
+    const pmdata = await getPm({
+      frame: formValue.value.frame,
+      machine_purpose: 'run_job',
+      machine_group_id:formValue.value.machine_group_id
+    });
+    pmOptions.value = pmdata.data;
+    if (machineType.value === 'pm') {
+      machineOptions.value = pmOptions.value;
+      checkedMachine.value = [];
+    } else {
+      machineOptions.value = vmOptions.value;
+      checkedMachine.value = [];
+    }
+  } catch (err) {
+    window.$message?.error(
+      err.data?.error_msg || err.message || unkonwnErrorMsg
+    );
+  }
+}
+function changMachineGroup(value){
+  if(value && formValue.value.frame){
+    setMachineOptions();
+  }
+}
+function frameChange(value) {
+  if(value && formValue.value.machine_group_id){
+    setMachineOptions();
+  }
+}
+function renderText(values) {
+  const result = [];
+  if (values.length) {
+    values.forEach((item) => {
+      const element = machineOptions.value.find((i) => i.id === item);
+      result.push(element?.ip);
+    });
+    return result.join(',');
+  }
+  return '';
+}
 
 export default {
   suiteOpts,
+  machineType,
   isPmachine,
   machineOptions,
   totalMachineCount,
@@ -206,13 +274,16 @@ export default {
   versionOpts,
   repoOpts,
   milestoneOpts,
+  checkedMachine,
   frameworkOpts,
   formValue,
   selectPm,
+  renderText,
   rules,
   formRef,
   validateFormData,
   clean,
+  machineGroups,
   getProductOptions,
   activeProductWatcher,
   activeVersionWatcher,
@@ -220,4 +291,6 @@ export default {
   repoChange,
   changeSuite,
   renderSuiteOption,
+  frameChange,
+  changMachineGroup
 };

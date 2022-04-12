@@ -20,3 +20,12 @@ export function deleteRepo(id) {
 export function deleteVm(id){
   return deleteRequest(`/v1/vmachine/${id}/force`);
 }
+export function deleteCommit (id) {
+  return deleteRequest(`/v1/case/commit/${id}`);
+}
+export function deleteComment (id) {
+  return deleteRequest(`/v1/commit/comment/${id}`);
+}
+export function deleteMachineGroup(id){
+  return deleteRequest(`/v1/machine_group/${id}`);
+}

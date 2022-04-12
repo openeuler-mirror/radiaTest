@@ -189,8 +189,23 @@ export default {
     cardPage,
     Add,
   },
+  watch: {
+    fileList: {
+      handler(val) {
+        if (val.length === 1) {
+          document.querySelector(
+            '.n-upload-trigger.n-upload-trigger--image-card'
+          ).style.display = 'none';
+        } else {
+          document.querySelector(
+            '.n-upload-trigger.n-upload-trigger--image-card'
+          ).style.display = 'block';
+        }
+      },
+      deep: true,
+    },
+  },
   setup() {
-    console.log(1);
     modules.getData();
     return modules;
   },

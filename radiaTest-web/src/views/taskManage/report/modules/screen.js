@@ -27,7 +27,7 @@ function disablePreviousDate(ts) {
 function getMilestone () {
   axios.get('/v2/milestone').then(res => {
     milestoneOptions.value = [];
-    for (const item of res) {
+    for (const item of res.data.items) {
       milestoneOptions.value.push({
         value: item.id,
         label: item.name,
