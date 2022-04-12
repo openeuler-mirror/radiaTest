@@ -30,7 +30,7 @@ class Org(Resource):
     def post(self):
         _form = dict()
         for key, value in request.form.items():
-            if not value:
+            if value:
                 _form[key] = value
 
         body = AddSchema(**_form)

@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+# @Author: Your name
+# @Date:   2022-04-07 21:28:45
+# @Last Modified by:   Your name
 import json
 from flask import current_app
 from server.utils.requests_util import do_request
@@ -84,8 +88,8 @@ class ClaSignSchema(ClaBaseSchema):
 class ClaShowUserSchema(ClaBaseSchema):
     organization_id: int = Field(alias='id')
     organization_name: str = Field(alias="name")
-    organization_description: str = Field(alias="description")
-    organization_avatar: str = Field(alias="avatar_url")    
+    organization_description: Optional[str] = Field(alias="description")
+    organization_avatar: Optional[str] = Field(alias="avatar_url")
 
     cla_sign_url: Optional[str]
 
