@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+# @Author: Your name
+# @Date:   2022-04-12 11:23:44
 from datetime import datetime
 from enum import unique
 
@@ -23,6 +26,7 @@ class MachineGroup(ServiceBaseModel, PermissionBaseModel, db.Model):
     creator_id = db.Column(db.Integer(), db.ForeignKey("user.gitee_id"))
     group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
     org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
+    websockify_listen = db.Column(db.Integer(), nullable=False)
 
     def check_alive(self, _heartbeat):
         _current_time = datetime.now()  
@@ -67,6 +71,7 @@ class MachineGroup(ServiceBaseModel, PermissionBaseModel, db.Model):
             "org_id": self.org_id,
             "listen": self.listen,
             "ip": self.ip,
+            "websockify_listen": self.websockify_listen
         }
 
 

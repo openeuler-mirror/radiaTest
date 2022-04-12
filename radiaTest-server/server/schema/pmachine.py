@@ -1,12 +1,16 @@
+# -*- coding: utf-8 -*-
+# @Author: Your name
+# @Date:   2022-04-12 11:25:48
+# @Last Modified by:   Your name
 import shlex
 import datetime
 from typing import Optional
-from ipaddress import IPv4Address
+from ipaddress import IPv4Address, v6_int_to_packed
 from subprocess import getstatusoutput
 
 from flask import current_app
 from dateutil.relativedelta import relativedelta
-from pydantic import BaseModel, constr, validator, root_validator
+from pydantic import conint, BaseModel, constr, validator, root_validator
 
 from server.schema.base import PageBaseSchema
 from server.schema import (
@@ -23,24 +27,36 @@ from server.schema.base import PermissionBase
 
 
 class MachineGroupCreateSchema(PermissionBase):
+    """ 
+    attr: websockify_listen should in range (1000, 99999)
+    """
     name: str
     description: str
     network_type: MachineGroupNetworkType
     ip: IPv4Address
     listen: int
+    websockify_listen: Optional[conint(ge=1000, le=99999)]
 
 
 class MachineGroupUpdateSchema(BaseModel):
+    """ 
+    attr: websockify_listen should in range (1000, 99999)
+    """
     name: Optional[str]
     description: Optional[str]
     network_type: Optional[MachineGroupNetworkType]
     ip: Optional[IPv4Address]
     listen: Optional[int]
+    websockify_listen: Optional[conint(ge=1000, le=99999)]
 
 
 class MachineGroupQuerySchema(PageBaseSchema):
+    """ 
+    attr: websockify_listen should in range (1000, 99999)
+    """
     text: Optional[str]
     network_type: Optional[MachineGroupNetworkType]
+    websockify_listen: Optional[conint(ge=1000, le=99999)]
 
 
 class HeartbeatUpdateSchema(BaseModel):
@@ -110,12 +126,11 @@ class PmachineBaseSchema(BaseModel):
 
     @root_validator
     def check_description(cls, values):
-        if values.get("pmachine"):
-            pmachine = values.get("pmachine").to_json()
-            for key, value in values.items():
-                if value != None:
-                    pmachine.update({key: value})
-            values = pmachine
+        if values["description"] == current_app.config.get("CI_HOST"):
+            if not values.get("listen"):
+                listen = values["listen"]
+                if not listen:
+                    raise ValueError("As a CI host, listen must be provided.")
 
         if values.get("state") == "occupied":
             values["start_time"] = datetime.datetime.now()
@@ -136,15 +151,11 @@ class PmachineBaseSchema(BaseModel):
                 )
 
         elif values.get("state") == "idle":
-            if values.get("pmachine") and values.get(
-                "pmachine"
-            ).description == current_app.config.get("CI_HOST"):
-                if values.get("pmachine").vmachine:
-                    raise ValueError("There are virtual machines used under the host.")
             values["start_time"] = None
             values["end_time"] = None
             values["description"] = None
             values["listen"] = None
+            values["occupier"] = None
 
         if values.get("description") in [
             current_app.config.get("CI_PURPOSE"),
@@ -209,28 +220,6 @@ class PmachineUpdateSchema(PmachineBaseSchema):
     bmc_ip: Optional[IPv4Address]
     bmc_user: Optional[constr(max_length=32)]
     bmc_password: Optional[constr(min_length=6, max_length=256)]
-
-    @validator("description")
-    def check_description(cls, v, values):
-        desc = values.get("pmachine").description
-        if desc == current_app.config.get("CI_HOST"):
-            if desc != v:
-                virtual = values.get("pmachine").virtual.query.filter.all()
-                if virtual:
-                    raise ValueError(
-                        "Some virtual machine on the worker, can't be deleted."
-                    )
-
-            if values.get("state") == "idle":
-                raise ValueError("Worker can't be released.")
-
-        if v == current_app.config.get("CI_HOST"):
-            if not values.get("listen"):
-                listen = values.get("pmachine").listen
-                if not listen:
-                    raise ValueError("As a CI host, listen must be provided.")
-
-        return v
 
 
 class PmachineInstallSchema(BaseModel):
