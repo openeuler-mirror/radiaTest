@@ -15,19 +15,19 @@ from server.model.organization import Organization
 from server.model.milestone import Milestone
 from server.schema.milestone import GiteeMilestoneBase, GiteeMilestoneEdit
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
-from server.utils.permission_utils import PermissionManager
+from server.utils.permission_utils import PermissionManager, GetAllByPermission
 
 class CreateMilestone:
     @staticmethod
     def bind_scope(milestone_id, body, api_info_file):
         cur_file_dir = os.path.abspath(__file__)
         cur_dir = cur_file_dir.replace(cur_file_dir.split("/")[-1], "")
-        allow_list, deny_list = PermissionManager().get_api_list(cur_dir + api_info_file, milestone_id)
+        allow_list, deny_list = PermissionManager().get_api_list("milestone", cur_dir + api_info_file, milestone_id)
         PermissionManager().generate(allow_list, deny_list, body)
     
     @staticmethod
     def run_v2(body):
-        if body.is_sync:
+        if body.get("is_sync"):
             MilestoneOpenApiHandler(body).create()
             milestone =  Milestone.query.filter_by({"name":body.get("name")}).first()
             CreateMilestone.bind_scope(milestone.id, body, "api_infos_v2.yaml")
@@ -75,7 +75,7 @@ class MilestoneHandler:
     @staticmethod
     @collect_sql_error
     def get_all(query):
-        filter_params = []
+        filter_params = GetAllByPermission(Milestone).get_filter()
         
         if query.name:
             filter_params.append(Milestone.name.like(f"%{query.name}%"))

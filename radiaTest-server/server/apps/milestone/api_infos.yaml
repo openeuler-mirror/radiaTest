@@ -1,9 +1,10 @@
-- uri: /api/v1/milestone/%d
-  act: delete
-  alias: 删除Milestone
-- uri: /api/v1/milestone/%d
-  act: get
-  alias: 获取Milestone
-- uri: /api/v1/milestone/%d
-  act: put
-  alias: 修改Milestone
+milestone:
+  - uri: /api/v1/milestone/%d
+    act: delete
+    alias: 删除Milestone
+  - uri: /api/v1/milestone/%d
+    act: get
+    alias: 获取Milestone
+  - uri: /api/v1/milestone/%d
+    act: put
+    alias: 修改Milestone

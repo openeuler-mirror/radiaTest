@@ -59,7 +59,7 @@ class MilestoneEventV2(Resource):
     @response_collect
     @validate()
     def post(self, body: MilestoneCreateSchema):
-        CreateMilestone.run_v2(body.__dict__)
+        return CreateMilestone.run_v2(body.__dict__)
 
     @auth.login_required()
     @response_collect

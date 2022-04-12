@@ -15,7 +15,8 @@ class ProductEventItem(Resource):
     @auth.login_required
     @validate()
     def delete(self, product_id):
-        return ResourceManager("product").del_single(product_id)
+        return ResourceManager("product").del_cascade_single(product_id, "milestone", "product_id", False)
+        #return ResourceManager("product").del_single(product_id)
 
     @auth.login_required
     @validate()

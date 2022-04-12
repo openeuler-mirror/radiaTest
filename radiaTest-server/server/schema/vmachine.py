@@ -10,6 +10,7 @@ from typing import List, Optional
 from flask import current_app
 from pydantic import BaseModel, conint, constr, Field, validator, root_validator
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from server.schema.base import PermissionBase
 
 from server.schema import (
     Frame,
@@ -89,7 +90,7 @@ class VmachineDataCreateSchema(VmachineBaseSchema):
         return v
 
 
-class VmachineCreateSchema(VmachineBaseSchema):
+class VmachineCreateSchema(VmachineBaseSchema, PermissionBase):
     password: Optional[str]
     #  TODO 前端调整前暂时给默认值
     machine_group_id: Optional[int] = 1

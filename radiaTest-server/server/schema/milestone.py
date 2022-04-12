@@ -31,7 +31,7 @@ class MilestoneUpdateSchema(TimeBaseSchema):
     state_event: Optional[MilestoneStateEvent]
     
 
-class MilestoneCreateSchema(TimeBaseSchema, PermissionBase):
+class MilestoneCreateSchema(MilestoneBaseSchema, PermissionBase):
     product_id: int
     type: MilestoneType
     end_time: str

@@ -1,6 +1,7 @@
-- uri: /api/v1/product/%d
-  act: delete
-  alias: 删除Product
-- uri: /api/v1/product/%d
-  act: get
-  alias: 获取Product
+product:
+  - uri: /api/v1/product/%d
+    act: delete
+    alias: 删除Product
+  - uri: /api/v1/product/%d
+    act: get
+    alias: 获取Product

@@ -13,13 +13,15 @@ from server.model.message import Message, MsgType, MsgLevel
 from server.utils.requests_util import do_request
 from server.utils.response_util import RET
 from server.utils.page_util import PageUtil
+from server.utils.permission_utils import GetAllByPermission
+from server.utils.resource_utils import ResourceManager
 
 
 class ResourcePoolHandler:
     @staticmethod
     @collect_sql_error
     def get_all(query):
-        filter_params = []
+        filter_params = GetAllByPermission(MachineGroup).get_filter()
         if query.text:
             filter_params.append(
                 or_(
@@ -56,16 +58,13 @@ class ResourcePoolHandler:
         return jsonify(
             error_code=RET.OK,
             error_msg="OK",
-            data=machine_group.to_json()
+            data=[machine_group.to_json()]
         )
 
     @staticmethod
     @collect_sql_error
     def create_group(body):
-        return Insert(MachineGroup, body.__dict__).single(
-            MachineGroup, 
-            "/machine_group"
-        )
+        return ResourceManager("machine_group").add("mg_api_infos.yaml", body.__dict__)
 
     @staticmethod
     @collect_sql_error
@@ -77,18 +76,13 @@ class ResourcePoolHandler:
     @staticmethod
     @collect_sql_error
     def delete_group(machine_group_id):
-        return Delete(MachineGroup, {"id": machine_group_id}).single(
-            MachineGroup, 
-            "/machine_group"
-        )
-
+        return ResourceManager("machine_group").del_cascade_single(machine_group_id, Pmachine, [Pmachine.machine_group_id==machine_group_id], False)
 
 class PmachineHandler:
     @staticmethod
     def get_all(query):
-        filter_params = [
-            Pmachine.machine_group_id == query.machine_group_id
-        ]
+        filter_params = GetAllByPermission(Pmachine).get_filter()
+        filter_params.append(Pmachine.machine_group_id == query.machine_group_id)
 
         if query.mac:
             filter_params.append(Pmachine.mac.like(f"%{query.mac}%"))

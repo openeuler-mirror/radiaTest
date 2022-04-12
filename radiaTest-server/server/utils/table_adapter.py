@@ -3,6 +3,7 @@ from server.model import (
     Milestone,
     Pmachine,
     Vmachine,
+    MachineGroup,
 )
 
 class TableAdapter:
@@ -10,3 +11,4 @@ class TableAdapter:
     milestone=Milestone
     pmachine=Pmachine
     vmachine=Vmachine
+    machine_group=MachineGroup
