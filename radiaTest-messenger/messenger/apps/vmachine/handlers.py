@@ -416,7 +416,7 @@ class DeleteVmachine(AuthMessageBody):
         if pmachine:
             resp = SyncMessenger(
                 self.auth,
-                vmachine.to_json(),
+                vmachine,
                 pmachine,
                 "virtual/machine",
                 method="delete",

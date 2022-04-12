@@ -15,6 +15,7 @@ from messenger.schema import (
     DiskCache,
     VideoBus,
     PmSelectMode,
+    PermissionType,
 )
 from messenger.config.settings import Config
 
@@ -27,8 +28,13 @@ class VmachineItemSchema(AuthBaseModel):
     vmachine: dict
     pmachine: dict
 
+class PermissionBase(BaseModel):
+    creator_id: int
+    permission_type: PermissionType
+    group_id: Optional[int] = None
+    org_id: int
 
-class VmachineCreateSchema(BaseModel):
+class VmachineCreateSchema(PermissionBase):
     frame: Frame
     description: constr(min_length=10, max_length=255)
     milestone_id: int
@@ -55,7 +61,7 @@ class VmachineCreateSchema(BaseModel):
     pm_select_mode: PmSelectMode = "auto"
 
 
-class VmachineBaseSchema(AuthBaseModel):
+class VmachineBaseSchema(AuthBaseModel, PermissionBase):
     method: InstallMethod
     frame: Frame
     description: constr(min_length=10, max_length=255)

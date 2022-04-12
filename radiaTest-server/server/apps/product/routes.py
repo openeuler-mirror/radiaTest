@@ -2,7 +2,7 @@ from flask import request
 from flask_restful import Resource
 from flask_pydantic import validate
 
-from server.model import Product
+from server.model import Product, Milestone
 from server.utils.auth_util import auth
 from server.utils.db import Insert, Delete, Edit, Select
 
@@ -15,8 +15,7 @@ class ProductEventItem(Resource):
     @auth.login_required
     @validate()
     def delete(self, product_id):
-        return ResourceManager("product").del_cascade_single(product_id, "milestone", "product_id", False)
-        #return ResourceManager("product").del_single(product_id)
+        return ResourceManager("product").del_cascade_single(product_id, Milestone, [Milestone.product_id==product_id], False)
 
     @auth.login_required
     @validate()

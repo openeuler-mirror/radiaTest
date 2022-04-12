@@ -68,6 +68,7 @@ class CasbinEnforcer:
         def wrapper(*args, **kwargs):
             from server.utils.auth_util import RedisKey
             from server import redis_client
+            from server.utils.message_util import MessageManager
             dom =  redis_client.hget(
                 RedisKey.user(g.gitee_id), 
                 'current_org_name'
@@ -159,18 +160,22 @@ class CasbinEnforcer:
                                     )
                                 )
                                 return func(*args, **kwargs)
-
-            self.app.logger.error(
-                "Unauthorized attempt: method: %s resource: %s%s"
-                % (
-                    request.method,
-                    uri,
-                    ""
-                    if not self.user_name_headers and owner_audit != ""
-                    else " by user: %s" % owner_audit,
+            _api = MessageManager().get_cur_api_msg(uri, str(request.method), request.get_json())
+            if not _api:
+                self.app.logger.error(
+                    "Unauthorized attempt: method: %s resource: %s%s"
+                    % (
+                        request.method,
+                        uri,
+                        ""
+                        if not self.user_name_headers and owner_audit != ""
+                        else " by user: %s" % owner_audit,
+                    )
                 )
-            )
-            return jsonify(error_code=RET.UNAUTHORIZE_ERR, error_msg="Unauthorized")
+                return jsonify(error_code=RET.UNAUTHORIZE_ERR, error_msg="Unauthorized")
+            else:
+                MessageManager().run(_api)
+                return jsonify(error_code=RET.UNAUTHORIZE_ERR, error_msg="Unauthorized, Your request has been sent to the administrator for processing.")
 
         return wrapper
 

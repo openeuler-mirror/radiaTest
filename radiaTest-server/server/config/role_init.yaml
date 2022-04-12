@@ -10,7 +10,7 @@ public:
         - member
 
 # 组织角色
-organization:
+org:
     # 管理员
     administrator: admin
     # 一般用户
