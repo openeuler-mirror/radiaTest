@@ -34,6 +34,9 @@ from server.utils.auth_util import auth
 from server.utils.db import Delete, Edit, Like, Select, Insert
 from server.utils.response_util import attribute_error_collect, response_collect, RET
 from server.model import Vmachine, Vdisk, Vnic
+from server.utils.permission_utils import PermissionManager, GetAllByPermission
+import os
+from server.utils.resource_utils import ResourceManager
 
 
 class VmachineItemEvent(Resource):
@@ -73,7 +76,7 @@ class PreciseVmachineEvent(Resource):
     @attribute_error_collect
     @validate()
     def get(self, query: VmachinePreciseQuerySchema):
-        return Select(Vmachine, query.__dict__).precise()
+        return GetAllByPermission(Vmachine).precise(query.__dict__)
 
 
 class VmachineEvent(Resource):
@@ -149,8 +152,7 @@ class VmachineEvent(Resource):
                 error_code=RET.UNAUTHORIZE_ERR,
                 error_msg="the api only serve for messenger service, make sure the request is from valid messenger service"
             )
-        
-        return Delete(Vmachine, body.__dict__).batch(Vmachine, "/vmachine")
+        return ResourceManager("vmachine").del_batch(body.__dict__.get("id"))
 
 
 class VmachineControl(Resource):
@@ -351,6 +353,10 @@ class VmachineData(Resource):
             "/vmachine", 
             True
         )
+        cur_file_dir = os.path.abspath(__file__)
+        cur_dir = cur_file_dir.replace(cur_file_dir.split("/")[-1], "")
+        allow_list, deny_list = PermissionManager().get_api_list("vmachine", cur_dir + "api_infos.yaml", vmachine.id)
+        PermissionManager().generate(allow_list, deny_list, body.__dict__)
         return jsonify(
             error_code=RET.OK,
             error_msg="OK",
@@ -387,13 +393,8 @@ class VmachineItemData(Resource):
                 error_code=RET.UNAUTHORIZE_ERR,
                 error_msg="the api only serve for messenger service, make sure the request is from valid messenger service"
             )
-
-        return Delete(
-            Vmachine, 
-            {
-                "id": vmachine_id
-            }
-        ).single(Vmachine, "/vmachine", True)
+        
+        return ResourceManager("vmachine").del_single(vmachine_id)
 
 
 class VnicData(Resource):

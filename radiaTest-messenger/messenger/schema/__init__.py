@@ -50,3 +50,6 @@ MachinePurpose = Literal["create_vmachine", "run_job"]
 ## Job执行机器选取策略
 MachinePolicy = Literal["auto", "manual"]
 
+#权限归属
+PermissionType = Literal["person", "group", "org", "public"]
+

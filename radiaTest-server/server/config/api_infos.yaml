@@ -1,8 +1,68 @@
-- uri: /api/v1/prodcut/%d
+- uri: /api/v1/product/%d
   act: delete
   alias: 删除Product
   table: product
-- uri: /api/v1/prodcut/%d
+- uri: /api/v1/product/%d
   act: get
   alias: 获取Product
   table: product
+- uri: /api/v1/product/%d
+  act: put
+  alias: 修改Product
+  table: product
+- uri: /api/v1/milestone/%d
+  act: delete
+  alias: 删除Milestone
+  table: milestone
+- uri: /api/v1/milestone/%d
+  act: get
+  alias: 获取Milestone
+  table: milestone
+- uri: /api/v1/milestone/%d
+  act: put
+  alias: 修改Milestone
+  table: milestone
+- uri: /api/v2/milestone/%d
+  act: delete
+  alias: 删除Milestone
+  table: milestone
+- uri: /api/v2/milestone/%d
+  act: put
+  alias: 修改Milestone
+  table: milestone
+- uri: /api/v1/pmachine/%d
+  act: delete
+  alias: 删除Pmachine
+  table: pmachine
+- uri: /api/v1/pmachine/%d
+  act: get
+  alias: 获取Pmachine
+  table: pmachine
+- uri: /api/v1/pmachine/%d
+  act: put
+  alias: 修改Pmachine
+  table: pmachine
+- uri: /api/v1/machine_group/%d
+  act: delete
+  alias: 删除Machine_Group
+  table: machine_group
+- uri: /api/v1/machine_group/%d
+  act: get
+  alias: 获取Machine_Group
+  table: machine_group
+- uri: /api/v1/machine_group/%d
+  act: put
+  alias: 修改Machine_Group
+  table: machine_group
+- uri: /api/v1/vmachine/%d
+  act: delete
+  alias: 删除Vmachine
+  table: vmachine
+- uri: /api/v1/vmachine/%d
+  act: get
+  alias: 获取Vmachine
+  table: vmachine
+- uri: /api/v1/vmachine/%d
+  act: put
+  alias: 修改Vmachine
+  table: vmachine

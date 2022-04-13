@@ -13,10 +13,14 @@ class VmachineHandler:
     @staticmethod
     def get_all(query):
         filter_params = GetAllByPermission(Vmachine).get_filter()
-        filter_params.append(Pmachine.machine_group_id == query.machine_group_id)
-
+        p_filter_params = [Pmachine.machine_group_id==query.machine_group_id]
         if query.host_ip:
-            filter_params.append(Pmachine.ip.like(f"%{query.host_ip}%"))
+            p_filter_params.append(Pmachine.ip.like(f"%{query.host_ip}%"))
+        pmachines = Pmachine.query.filter(*p_filter_params).all()
+        if pmachines:
+            pm_ids = [pm.id for pm in pmachines]
+            filter_params.append(Vmachine.pmachine_id.in_(pm_ids))
+        
         if query.frame:
             filter_params.append(Vmachine.frame == query.frame)
         if query.ip:
@@ -28,7 +32,7 @@ class VmachineHandler:
                 Vmachine.description.like(f"%{query.description}%")
             )
         
-        query_filter = Vmachine.query.join(Pmachine).filter(*filter_params)
+        query_filter = Vmachine.query.filter(*filter_params)
 
         def page_func(item):
             return item.to_json()
@@ -92,8 +96,7 @@ class VmachineForceHandler:
                 error_msg="the vmachine does not exist",
             )
 
-        vmachine.delete(Vmachine, "/vmachine")
-        return jsonify(error_code=RET.OK, error_msg="success to delete.")
+        return ResourceManager("vmachine").del_single(vmachine_id)
 
 
 def search_device(body, table):

@@ -64,13 +64,13 @@ class ResourcePoolHandler:
     @staticmethod
     @collect_sql_error
     def create_group(body):
-        return ResourceManager("machine_group").add("mg_api_infos.yaml", body.__dict__)
+        return ResourceManager("machine_group").add_v2("pmachine/mg_api_infos.yaml", body.__dict__)
 
     @staticmethod
     @collect_sql_error
     def update_group(machine_group_id, body):
         _body = body.__dict__
-        _body.udpate({"id": machine_group_id})
+        _body.update({"id": machine_group_id})
         return Edit(MachineGroup, _body).single(MachineGroup, "/machine_group")
 
     @staticmethod

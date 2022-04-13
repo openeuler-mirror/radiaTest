@@ -41,7 +41,7 @@ class ResourceManager:
         )
     
     def del_single(self, resource_id):
-        Delete(self._table, {"id":resource_id}).single()
+        Delete(self._table, {"id":resource_id}).single(self._table, "/" + self.table_name)
         PermissionManager().clean("/api/v1/"+ self.table_name + "/", [resource_id])
         return jsonify(
             error_code=RET.OK, error_msg="Request processed successfully."
@@ -59,14 +59,14 @@ class ResourceManager:
                 cas_ids = [cas.id for cas in _cascades]
                 PermissionManager().clean("/api/v1/"+ cascade_table.__tablename__ + "/", cas_ids)
 
-        Delete(self._table, {"id":resource_id}).single()
+        Delete(self._table, {"id":resource_id}).single(self._table, "/" + self.table_name)
         PermissionManager().clean("/api/v1/"+ self.table_name + "/", [resource_id])
         return jsonify(
             error_code=RET.OK, error_msg="Request processed successfully."
         )
     
     def del_batch(self, resource_ids: list):
-        Delete(self._table, {"id":resource_ids}).batch()
+        Delete(self._table, {"id":resource_ids}).batch(self._table, "/" + self.table_name)
         PermissionManager().clean("/api/v1/"+ self.table_name + "/", resource_ids)
         return jsonify(
             error_code=RET.OK, error_msg="Request processed successfully."

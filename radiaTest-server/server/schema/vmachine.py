@@ -74,7 +74,7 @@ class VmachineBaseSchema(BaseModel):
     )
 
 
-class VmachineDataCreateSchema(VmachineBaseSchema):
+class VmachineDataCreateSchema(VmachineBaseSchema, PermissionBase):
     milestone: str
     product: str
     end_time: str

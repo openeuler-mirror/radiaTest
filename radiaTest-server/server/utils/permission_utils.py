@@ -88,11 +88,11 @@ class PermissionManager:
         scope_allow_ids, get_scope_allow_ids = self.insert_scope(scope_datas_allow)
         _, _ = self.insert_scope(scope_datas_deny)
         if _data["permission_type"] != "person":
-            default_role = Role.query.filter_by(default_role_filter).first()
+            default_role = Role.query.filter(*default_role_filter).first()
             if not default_role:
                 return jsonify(error_code=RET.NO_DATA_ERR, error_msg="Role has not been exist")
             
-            role = Role.query.filter_by(role_filter).first()
+            role = Role.query.filter(*role_filter).first()
             if not role:
                 return jsonify(error_code=RET.NO_DATA_ERR, error_msg="Role has not been exist")
         
