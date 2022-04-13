@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+# @Author: Your name
+# @Date:   2022-04-12 14:05:57
 import datetime
 
 from flask import request, jsonify, current_app
@@ -116,14 +119,31 @@ class PmachineItemEvent(Resource):
     @response_collect
     @validate()
     def put(self, pmachine_id, body: PmachineUpdateSchema):
-        body = body.__dict__
-        body.update({"id": pmachine_id})
+        pmachine = Pmachine.query.filter_by(id=pmachine_id).first()
+        if not pmachine:
+            return jsonify(
+                error_code = RET.NO_DATA_ERR,
+                error_msg = "The pmachine does not exist. Please check."
+            )
+        if body.state:
+            if pmachine.state == body.state:
+                return jsonify(
+                    error_code = RET.VERIFY_ERR,
+                    error_msg = "Pmachine state has not been modified. Please check."
+                )
 
-        if body.get("state"):
-            if body.get("state") == "idle":
-                body["occupier"]= None
-        
-        return Edit(Pmachine, body).single(Pmachine, "/pmachine")
+            if pmachine.state == "occupied" and pmachine.description == current_app.config.get("CI_HOST"):
+                vmachine = Vmachine.query.filter_by(pmachine_id=pmachine.id).first()
+                if vmachine:
+                    return jsonify(
+                        error_code = RPmachinePowerSchemaY_ERR,
+                        error_msg = "Pmachine has vmmachine, can't release."
+                    )
+        _body = body.__dict__
+        _body.update({"id": pmachine_id})
+
+        return Edit(Pmachine, _body).single(Pmachine, "/pmachine")
+
 
 class PmachineEvent(Resource):
     @auth.login_required
