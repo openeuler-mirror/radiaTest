@@ -7,6 +7,7 @@ from server.utils.response_util import RET
 from server.utils.page_util import PageUtil
 from server.utils.auth_util import verify_token
 from server.utils.db import collect_sql_error
+import json
 
 
 @collect_sql_error
@@ -72,3 +73,22 @@ def handler_user_msg_count(gitee_id):
         'msg_total': len(msg_list) if msg_list else 0
     }
     emit('server_count', send_msg, namespace='/api/v1/msg')
+
+@collect_sql_error
+def handler_msg_callback(body):
+    msg = Message.query.filter_by(id=body.msg_id, is_delete=False).first()
+    if not msg:
+        raise RuntimeError("the msg does not exist.")
+    _data = json.loads(msg.data)
+    info=f'<b>您</b>请求{_data.get("_alias")}<b>{_data.get("_id")}</b>已经被{{}}</b>。'
+    if body.access:
+        info = info.format('管理员处理')
+    else:
+        info = info.format('管理员拒绝')
+    message = Message.create_instance(dict(info=info), g.gitee_id, msg.from_id)
+    msg.has_read = True
+
+    msg.type = 0
+    message.add_update()
+    msg.add_update()
+    return jsonify(error_code=RET.OK, error_msg="OK")
