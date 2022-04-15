@@ -2,6 +2,7 @@ from flask_restful import Api
 
 from .routes import RoleEvent
 from .routes import RoleItemEvent
+from .routes import AllRoleEvent
 from .routes import ScopeEvent
 from .routes import ScopeItemEvent
 from .routes import UserRolePublicEvent
@@ -16,6 +17,7 @@ from .routes import AccessableMachinesEvent
 def init_api(api: Api):
     api.add_resource(RoleEvent, "/api/v1/role")
     api.add_resource(RoleItemEvent, "/api/v1/role/<int:role_id>")
+    api.add_resource(AllRoleEvent, "/api/v1/role/default")
     api.add_resource(ScopeEvent, "/api/v1/scope")
     api.add_resource(ScopeItemEvent, "/api/v1/scope/<int:scope_id>")
     api.add_resource(UserRolePublicEvent, "/api/v1/user_role")
