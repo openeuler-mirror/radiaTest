@@ -78,6 +78,7 @@ class RunJobBase(AuthBaseModel):
     pmachine_list: List[dict]
     vmachine_list: List[dict]
     machine_policy: MachinePolicy
+    machine_group_id: int
 
 
 class RunTemplateBase(RunJobBase):

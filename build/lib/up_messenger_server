@@ -1,0 +1,8 @@
+#! /bin/sh
+
+cd ../containers \
+    && bash ./install_openeuler_2109.sh \
+    && bash ./install_openeuler_2203_lts.sh
+
+cd ./messenger \
+    && docker-compose up -d

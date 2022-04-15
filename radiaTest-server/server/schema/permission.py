@@ -60,6 +60,7 @@ class ScopeQuerySchema(ScopeUpdateSchema):
 
 
 class AccessableMachinesQuery(BaseModel):
+    machine_group_id: int
     machine_purpose: MachinePurpose
     machine_type: MachineType
     frame: Frame

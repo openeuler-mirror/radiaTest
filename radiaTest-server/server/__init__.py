@@ -23,18 +23,6 @@ socketio = SocketIO(
 casbin_enforcer = CasbinEnforcer()
 
 
-from server.sockets.transfer import (
-    XtermTransferSocket, 
-    NormalMonitorTransferSocket,
-    HostMonitorTransferSocket,
-)
-
-
-socketio.on_namespace(XtermTransferSocket("/xterm"))
-socketio.on_namespace(NormalMonitorTransferSocket("/monitor/normal"))
-socketio.on_namespace(HostMonitorTransferSocket("/monitor/host"))
-
-
 def create_app(**kwargs):
     app = Flask(__name__)
 

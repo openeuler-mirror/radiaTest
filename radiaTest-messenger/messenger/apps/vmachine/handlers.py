@@ -34,6 +34,7 @@ class ChoosePmachine(AuthMessageBody):
         self._pmachines = query_request(
             "/api/v1/accessable_machines",
             {
+                "machine_group_id": body.get("machine_group_id"),
                 "machine_purpose": "create_vmachine",
                 "machine_type": "physical",
                 "frame": body.get("frame")
@@ -595,7 +596,6 @@ class VmachineAsyncResultHandler:
         body.update(
             {
                 "vnc_token": _vnc_token,
-                "websockify_listen": current_app.config.get("WEBSOCKIFY_LISTEN"),
             }
         )
 

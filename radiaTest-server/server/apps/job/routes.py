@@ -280,8 +280,6 @@ class AnalyzedLogs(Resource):
     @response_collect
     def get(self, analyzed_id):
         _analyzed = Analyzed.query.filter_by(id=analyzed_id).first()
-        print(_analyzed.id)
-        print(_analyzed.get_logs())
         return jsonify(
             error_code=RET.OK, 
             error_msg="OK", 

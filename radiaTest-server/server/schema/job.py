@@ -36,8 +36,7 @@ class RunJobBase(BaseModel):
     pmachine_list: Optional[List[int]] = []
     vmachine_list: Optional[List[int]] = []
     machine_policy: MachinePolicy
-    # TODO 前端准备好前默认为1
-    machine_group_id: int = 1
+    machine_group_id: int
 
     @validator("machine_policy")
     def validate_policy(cls, v, values):

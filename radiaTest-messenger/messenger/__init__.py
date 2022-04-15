@@ -16,13 +16,9 @@ socketio = SocketIO(
 
 
 from messenger.sockets.monitor_socket import RemoteMonitorSocket
-from messenger.sockets.xterm import TerminalSocket
 from messenger.utils.resource_monitor import RemoteShellMonitor
 from messenger.utils.resource_monitor import RemoteRestfulMonitor
 
-socketio.on_namespace(
-    TerminalSocket("/xterm")
-)
 socketio.on_namespace(
     RemoteMonitorSocket(
         "/monitor/normal", 

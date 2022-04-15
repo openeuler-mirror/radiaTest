@@ -1,0 +1,16 @@
+version: '3.7'
+
+services:
+    queue:
+        image: rabbitmq:3.7.23-management
+        restart: always
+        ports:
+            - 5678:5672
+            - 15678:15672
+        volumes:
+            - /var/lib/rabbitmq
+            - /var/log/rabbitmq
+        environment:
+            RABBITMQ_DEFAULT_USER: radiaTest
+            RABBITMQ_DEFAULT_PASS: 1234
+            RABBITMQ_DEFAULT_VHOST: radiaTest

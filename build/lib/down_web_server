@@ -1,0 +1,4 @@
+#! /bin/sh
+
+cd ../containers/web \
+    && docker-compose down

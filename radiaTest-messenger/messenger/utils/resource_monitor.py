@@ -5,7 +5,7 @@ import abc
 
 from messenger import socketio
 from messenger.utils.pssh import Connection
-from messenger.utils.common_cli import CommonCli
+from messenger.utils.bash import ResourceQueryCli
 
 
 class ResourceMonitor:
@@ -36,8 +36,7 @@ class ResourceMonitor:
 class RemoteShellMonitor(ResourceMonitor):
     def __init__(self, namespace, ssh_data) -> None:
         super().__init__(namespace)
-        self.group_ip = ssh_data["machine_group_ip"]
-        self.ip = ssh_data["machine_ip"]
+        self.ip = ssh_data["ip"]
         self.user = ssh_data["user"]
         self.port = int(ssh_data["port"])
         self.password = ssh_data["password"]
@@ -53,9 +52,10 @@ class RemoteShellMonitor(ResourceMonitor):
 
             if not self.ssh_client:
                 is_conn = self._connect()
-                if is_conn:
-                    resp = self.get_data()
-                    socketio.emit(self.event, resp, namespace=self.namespace)
+            
+            if is_conn:
+                resp = self.get_data()
+                socketio.emit(self.event, resp, namespace=self.namespace)
 
             time.sleep(1)
 
@@ -69,22 +69,21 @@ class RemoteShellMonitor(ResourceMonitor):
         return self.ssh_client._conn()
 
     def get_data(self):
-        mem_total = self.ssh_client._command(CommonCli.mem_total_cli)[1]
-        mem_usage = self.ssh_client._command(CommonCli.mem_usage_cli)[1]
-        cpu_usage = self.ssh_client._command(CommonCli.cpu_usage_cli)[1]
-        cpu_index = self.ssh_client._command(CommonCli.cpu_index_cli)[1]
-        cpu_num = self.ssh_client._command(CommonCli.cpu_num_cli)[1]
-        cpu_physical_cores = self.ssh_client._command(CommonCli.cpu_physical_cores_cli)[1]
-        cpu_logical_cores = self.ssh_client._command(CommonCli.cpu_logical_cores_cli)[1]
-        os_info = self.ssh_client._command(CommonCli.os_cli)[1]
-        kernel_info = self.ssh_client._command(CommonCli.kernel_cli)[1]
-
-        cpu_physical_cores_real = 'unknown'
-        if type(cpu_physical_cores) == int and type(cpu_num) == int:
+        mem_total = self.ssh_client._command(ResourceQueryCli.mem_total_cli)[1]
+        mem_usage = self.ssh_client._command(ResourceQueryCli.mem_usage_cli)[1]
+        cpu_usage = self.ssh_client._command(ResourceQueryCli.cpu_usage_cli)[1]
+        cpu_index = self.ssh_client._command(ResourceQueryCli.cpu_index_cli)[1]
+        cpu_num = self.ssh_client._command(ResourceQueryCli.cpu_num_cli)[1]
+        cpu_physical_cores = self.ssh_client._command(ResourceQueryCli.cpu_physical_cores_cli)[1]
+        cpu_logical_cores = self.ssh_client._command(ResourceQueryCli.cpu_logical_cores_cli)[1]
+        os_info = self.ssh_client._command(ResourceQueryCli.os_cli)[1]
+        kernel_info = self.ssh_client._command(ResourceQueryCli.kernel_cli)[1]
+        
+        cpu_physical_cores_real = cpu_logical_cores
+        if cpu_physical_cores and cpu_num:
             cpu_physical_cores_real = int(cpu_physical_cores) * int(cpu_num)
 
         return {
-            "machine_group_ip": self.group_ip,
             "machine_ip": self.ip,
             "cpu_usage": float(cpu_usage.strip()),
             "mem_usage": float(mem_usage.strip()),
@@ -101,6 +100,7 @@ class RemoteRestfulMonitor(ResourceMonitor):
     def __init__(self, namespace, ssh_data) -> None:
         super().__init__(namespace)
         self.ssh_data = ssh_data
+        self.event = self.ssh_data.get("ip")
     
     def get_data(self):
         resp = requests.get(
@@ -116,9 +116,5 @@ class RemoteRestfulMonitor(ResourceMonitor):
             return {}
         else:
             data = json.loads(resp.text)
+            return data
 
-            return {
-                "machine_group_ip": self.ssh_data.get("machine_group_ip"),
-                "machine_ip": self.ssh_data.get("machine_ip"),
-                **data
-            }

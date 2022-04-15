@@ -67,8 +67,7 @@ class HeartbeatUpdateSchema(BaseModel):
 
 
 class PmachineQuerySchema(PageBaseSchema):
-    #  TODO 暂时写死
-    machine_group_id: int = 1
+    machine_group_id: int
     mac: Optional[constr(max_length=17)]
     frame: Optional[Frame]
     bmc_ip: Optional[str]
@@ -131,7 +130,6 @@ class PmachineBaseSchema(BaseModel):
                 listen = values["listen"]
                 if not listen:
                     raise ValueError("As a CI host, listen must be provided.")
-
         if values.get("state") == "occupied":
             values["start_time"] = datetime.datetime.now()
             if not values.get("description"):
