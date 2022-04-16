@@ -44,14 +44,14 @@ const handleCheck = (rowKeys) => {
   isCheck.value = true;
   store.commit('selected/setSelectedData', rowKeys);
 };
-function getTableData(){
-  get.list('/v2/milestone', totalData, loading,filter.value,pagination);
+function getTableData() {
+  get.list('/v2/milestone', totalData, loading, filter.value, pagination);
 }
-function changePage(page){
+function changePage(page) {
   pagination.value.page = page;
+  filter.value.page_num = page;
   getTableData();
 }
-
 
 export default {
   data,
@@ -68,5 +68,5 @@ export default {
   showIssueDrawer,
   pagination,
   changePage,
-  getTableData
+  getTableData,
 };

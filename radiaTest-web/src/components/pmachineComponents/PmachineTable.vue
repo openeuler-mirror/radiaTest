@@ -12,6 +12,9 @@
     @update:expanded-row-keys="handleExpand"
     @update:checked-row-keys="(keys) => handleCheck(keys, store)"
     @update:sorter="handleSorterChange"
+    :scroll-x="1600"
+    :pagination="pagination"
+    @update:page="handlePageChange"
   />
 </template>
 
@@ -19,26 +22,73 @@
 import { ref, onMounted, onUnmounted, defineComponent } from 'vue';
 import { useStore } from 'vuex';
 import { Socket } from '@/socket';
-
+import { getPmachine } from '@/api/get';
 import settings from '@/assets/config/settings.js';
 import { get, selection } from '@/assets/CRUD/read';
 import pmachineTable from '@/views/pmachine/modules/pmachineTable.js';
 import { createColumns } from '@/views/pmachine/modules/pmachineTableColumns.js';
+import pmachineFilter from '@/views/pmachine/modules/pmachineFilter';
 
 export default defineComponent({
-  setup(props, context) {
-    const store = useStore();
+  methods: {
+    handlePageChange(page) {
+      this.pagination.page = page;
+      this.getData();
+    },
+    getData() {
+      this.loading = true;
+      getPmachine({
+        machine_group_id: this.$route.params.machineId,
+        page_num: this.pagination.page,
+        page_size: this.pagination.pageSize,
+        ...this.pmachineFilter
+      }).then(res => {
+        this.loading = false;
+        this.pagination.pageCount = res.data?.pages || 1;
+        this.totalData = res.data?.items || [];
+      }).catch(() => {
+        this.loading = false;
+      });
+    }
+  },
+  watch: {
+    pmachineFilter: {
+      handler() {
+        this.getData();
+      },
+      deep: true
+    }
+  },
+  mounted() {
     const pmachineSocket = new Socket(`ws://${settings.serverPath}/pmachine`);
     pmachineSocket.connect();
+    pmachineSocket.listen('update', () => {
+      this.getData();
+    });
+    this.getData();
+  },
+  data() {
+    return {
+      pagination: {
+        page: 1,
+        pageCount: 1,
+        pageSize: 10
+      },
+    };
+  },
+  setup(props, context) {
+    const store = useStore();
+    // const pmachineSocket = new Socket(`ws://${settings.serverPath}/pmachine`);
+    // pmachineSocket.connect();
 
     onMounted(() => {
-      get.list('/v1/pmachine', pmachineTable.totalData, pmachineTable.loading);
-      pmachineSocket.listen('update', (res) => {
-        pmachineTable.totalData.value = JSON.parse(res);
-      });
+      // get.list('/v1/pmachine', pmachineTable.totalData, pmachineTable.loading);
+      // pmachineSocket.listen('update', (res) => {
+      //   pmachineTable.totalData.value = JSON.parse(res);
+      // });
     });
     onUnmounted(() => {
-      pmachineSocket.disconnect();
+      // pmachineSocket.disconnect();
     });
 
     const updateHandler = (row) => {
@@ -52,6 +102,7 @@ export default defineComponent({
       store,
       columns,
       ...pmachineTable,
+      pmachineFilter: pmachineFilter.filterValue,
       showSelection: () => selection.show(columns),
       offSelection: () => selection.off(columns),
       refreshData: () =>

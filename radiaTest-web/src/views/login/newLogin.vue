@@ -10,45 +10,52 @@
         borderWidth: `${windowHeight * 0.8}px 0 0 ${windowWidth * 0.6}px`,
       }"
     ></div>
-    <div class="carousel-container">
-      <carousel
-        :sliders="sliders"
-        :duration="6000"
-        :autoplay="true"
-        @change="indexChange"
-        :mouseStop="true"
-      >
-        <template v-slot:imgTop-0>
-          <div :class="{ loginActive: activeIndex === 0 || activeIndex === 5 }">
-            <p class="carousel-description">便捷轻松地管理测试任务，</p>
-            <p class="carousel-description">为团队效率加速</p>
-          </div>
-        </template>
-        <template v-slot:imgTop-1>
-          <div :class="{ loginActive: activeIndex === 1 }">
-            <p class="carousel-description">文本用例集中管理，</p>
-            <p class="carousel-description">更有线上评审功能</p>
-          </div>
-        </template>
-        <template v-slot:imgTop-2>
-          <div :class="{ loginActive: activeIndex === 2 }">
-            <p class="carousel-description">测试环境一键部署，</p>
-            <p class="carousel-description">测试用例自动执行</p>
-          </div>
-        </template>
-        <template v-slot:imgTop-3>
-          <div :class="{ loginActive: activeIndex === 3 }">
-            <p class="carousel-description">测试报告一键生成，</p>
-            <p class="carousel-description">全面助力版本级测试</p>
-          </div>
-        </template>
-        <template v-slot:imgTop-4>
-          <div :class="{ loginActive: activeIndex === 4 }">
-            <p class="carousel-description">资源池分布式管理，</p>
-            <p class="carousel-description">实现高效智能化调度</p>
-          </div>
-        </template>
-      </carousel>
+    <div
+      class="img-box"
+      :style="{ height: `${windowHeight}px`, width: `${windowWidth * 0.6}px` }"
+    >
+      <div class="carousel-container">
+        <carousel
+          :sliders="sliders"
+          :duration="6000"
+          :autoplay="true"
+          @change="indexChange"
+          :mouseStop="true"
+        >
+          <template v-slot:imgTop-0>
+            <div
+              :class="{ loginActive: activeIndex === 0 || activeIndex === 5 }"
+            >
+              <p class="carousel-description">便捷轻松地管理测试任务，</p>
+              <p class="carousel-description">为团队效率加速</p>
+            </div>
+          </template>
+          <template v-slot:imgTop-1>
+            <div :class="{ loginActive: activeIndex === 1 }">
+              <p class="carousel-description">文本用例集中管理，</p>
+              <p class="carousel-description">更有线上评审功能</p>
+            </div>
+          </template>
+          <template v-slot:imgTop-2>
+            <div :class="{ loginActive: activeIndex === 2 }">
+              <p class="carousel-description">测试环境一键部署，</p>
+              <p class="carousel-description">测试用例自动执行</p>
+            </div>
+          </template>
+          <template v-slot:imgTop-3>
+            <div :class="{ loginActive: activeIndex === 3 }">
+              <p class="carousel-description">测试报告一键生成，</p>
+              <p class="carousel-description">全面助力版本级测试</p>
+            </div>
+          </template>
+          <template v-slot:imgTop-4>
+            <div :class="{ loginActive: activeIndex === 4 }">
+              <p class="carousel-description">资源池分布式管理，</p>
+              <p class="carousel-description">实现高效智能化调度</p>
+            </div>
+          </template>
+        </carousel>
+      </div>
     </div>
     <n-card class="login-box" :bordered="false" :segmented="{ footer: 'hard' }">
       <div style="text-align: center">
@@ -317,7 +324,7 @@ export default {
     User,
     Lock,
     carousel,
-    CheckmarkCircleOutline
+    CheckmarkCircleOutline,
   },
   mounted() {
     this.$refs.select.$el.children[0].children[1].style.borderRadius = '20px';
@@ -408,14 +415,22 @@ export default {
       }
     }
   }
-  .carousel-container {
+  .img-box {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 99;
     position: fixed;
-    bottom: 200px;
-    left: 10%;
+    left: 0;
+  }
+  .carousel-container {
+    // position: fixed;
+    // bottom: 200px;
+    // left: 10%;
     width: 800px;
     height: 608px;
     background-color: #fff;
-    z-index: 98;
+    // z-index: 98;
     .carousel {
       .carousel-item {
         .carousel-img {

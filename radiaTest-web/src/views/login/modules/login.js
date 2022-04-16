@@ -34,7 +34,7 @@ const rules = {
 };
 
 const loginFormRef = ref();
-function handleLoginByForm() {
+function handleLoginByForm () {
   loginFormRef.value.validate((error) => {
     if (!error) {
       changeLoadingStatus(true);
@@ -62,17 +62,17 @@ function handleLoginByForm() {
   });
 }
 
-function requireEnterprise(orgid){
-  const activeOrg = orgOpts.value.find(item=>item.value === orgid);
-  if(activeOrg){
+function requireEnterprise (orgid) {
+  const activeOrg = orgOpts.value.find(item => item.value === orgid);
+  if (activeOrg) {
     return activeOrg.enterprise;
   }
   return false;
 }
-function hanleLogin() {
+function hanleLogin () {
   changeLoadingStatus(true);
   storage.setValue('loginOrgId', Number(loginOrg.value));
-  storage.setValue('hasEnterprise',requireEnterprise(loginOrg.value));
+  storage.setValue('hasEnterprise', requireEnterprise(loginOrg.value));
   console.log(storage.getValue('loginOrgId'));
   axios
     .get('/v1/gitee/oauth/login', { org_id: Number(loginOrg.value) })
@@ -93,7 +93,7 @@ function hanleLogin() {
 }
 
 const registerShow = ref(false);
-function gotoHome() {
+function gotoHome () {
   getAllOrg().then((res) => {
     orgOpts.value = res.data.map((item) => ({
       label: item.org_name,
@@ -102,7 +102,6 @@ function gotoHome() {
     }));
   });
   if (urlArgs().code) {
-    console.log(storage.getValue('loginOrgId'));
     loginByCode({
       code: urlArgs().code,
       org_id: storage.getValue('loginOrgId'),
@@ -128,7 +127,7 @@ function gotoHome() {
     getClaOrg();
   }
 }
-function renderLabel(option) {
+function renderLabel (option) {
   return h(
     'div',
     {
@@ -150,7 +149,7 @@ function renderLabel(option) {
     ]
   );
 }
-function selectOrg(value) {
+function selectOrg (value) {
   const org = orgOpts.value.find((item) => item.value === value);
   hasCLA.value = org.cla;
   hasEnterprise.value = org.enterprise;

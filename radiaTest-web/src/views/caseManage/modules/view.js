@@ -18,7 +18,7 @@ function setMenu() {
       {
         id: 2,
         text: '用例评审',
-        name: 'review',
+        name: 'caseReview',
       },
     ];
   } else {
@@ -31,7 +31,7 @@ function setMenu() {
       {
         id: 2,
         text: '用例评审',
-        name: 'review',
+        name: 'caseReview',
       },
     ];
   }

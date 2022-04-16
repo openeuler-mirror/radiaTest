@@ -3,13 +3,19 @@
     <div style="display: flex">
       <div :style="{ width: leftWidth + 'px', flexShrink: 0 }">
         <div class="item-tail"></div>
-        <div class="item-node" :class="[`item-node-${type}`]"></div>
+        <div
+          class="item-node"
+          :class="[type !== 'image' ? `item-node-${type}` : '']"
+          :style="{height:nodeHeght||'',width:nodeWidth||''}"
+        >
+          <slot name="node"> </slot>
+        </div>
         <div class="item-wrapper">
           <div class="item-content">{{ title }}</div>
           <div class="item-process">{{ process }}</div>
           <n-space class="item-result" justify="space-between" align="center">
             {{ content }}
-            <n-tag v-if="tag !== ''" size="small">{{ tag }}</n-tag>
+            <n-tag v-if="tag !== ''" size="small" :type="tagType">{{ tag }}</n-tag>
           </n-space>
           <div class="item-time" ref="time">{{ timestamp }}</div>
         </div>
@@ -36,6 +42,9 @@ export default {
     process: String,
     content: String,
     tag: String,
+    tagType:String,
+    nodeHeght:String,
+    nodeWidth:String
   },
 };
 </script>

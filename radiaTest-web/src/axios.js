@@ -20,10 +20,37 @@ const server = axios.create({
 
 // axios.defaults.withCredentials = true;
 
+function getValueByKey(data, key) {
+  if (!data) {
+    return undefined;
+  }
+  if (data.get) {
+    return data.get(key) === 'undefined' ? undefined : data.get(key);
+  }
+  return data[key];
+}
 //请求拦截器
 server.interceptors.request.use(
   (config) => {
     let token;
+    let keys;
+    if (config.data?.entries) {
+      keys = [];
+      config.data.forEach((i, key) => {
+        keys.push(key);
+      });
+    } else {
+      keys = Object.keys(config.data || {});
+    }
+    for (const key of keys) {
+      if (getValueByKey(config.data, key) === undefined) {
+        if (config.data?.delete) {
+          config.data?.delete(key);
+        } else {
+          delete config.data[key];
+        }
+      }
+    }
     if (config.url.indexOf('login') === -1) {
       try {
         token = storage.getValue('token');
@@ -55,18 +82,18 @@ server.interceptors.response.use(
     return Promise.reject(response);
   },
   (error) => {
-    if (error.response.status === 401) {
+    if (error.response?.status === 401) {
       window.$message?.destroyAll();
       window.$message?.error('请重新登陆');
       router.push({
         name: 'login',
       });
-    } else if (error.response.status === 500) {
+    } else if (error.response?.status === 500) {
       window.$message?.destroyAll();
       error.response.data = {
         error_msg: '服务端错误',
       };
-    } else if (error.response.status === 400) {
+    } else if (error.response?.status === 400) {
       error.response.data = {
         error_msg:
           error.response.data.validation_error.body_params[0]?.msg ||

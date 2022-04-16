@@ -7,6 +7,7 @@ import {
 } from '@/assets/utils/getOpts.js';
 import { getPm } from '@/api/get';
 import { ColumnDefault } from '@/views/pmachine/modules/pmachineTableColumns';
+import router from '@/router';
 
 const size = ref('medium');
 
@@ -40,6 +41,7 @@ const formValue = ref({
   description: undefined,
   method: undefined,
   pmachine_id: undefined,
+  permission_type:undefined
 });
 const checkedPm = ref();
 
@@ -48,6 +50,11 @@ const rules = ref({
     required: true,
     message: '创建方法不可为空',
     trigger: ['blur'],
+  },
+  permission_type: {
+    required: true,
+    message: '请选择类型',
+    trigger: ['change', 'blur'],
   },
   frame: {
     required: true,
@@ -66,8 +73,18 @@ const rules = ref({
   },
   pm_select_mode: {
     required: true,
-    message: '请选择物理机选取策略',
+    message: '请选择物理机机器调度策略',
     trigger: ['blur', 'change'],
+  },
+  capacity: {
+    message: '请填写',
+    validator(rule, value) {
+      if (formValue.value.method === 'auto' && !value) {
+        return false;
+      }
+      return true;
+    },
+    trigger: ['change', 'blur'],
   },
   pmachine_id: {
     required: true,
@@ -124,15 +141,22 @@ const clean = () => {
     threads: 1,
     description: undefined,
     method: undefined,
+    permission_type:undefined
   };
 };
 const pmData = ref();
 const getProductOptions = () => {
   getProductOpts(productOpts);
-  getPm().then((res) => {
+};
+function changeFrame() {
+  getPm({
+    machine_purpose: 'create_vmachine',
+    frame: formValue.value.frame,
+    machine_group_id:router.currentRoute.value.params.machineId
+  }).then((res) => {
     pmData.value = res.data;
   });
-};
+}
 
 const activeMethodWatcher = () => {
   watch(
@@ -193,7 +217,9 @@ const pagination = {
 function handleCheck(check) {
   checkedPm.value = [check?.pop()];
   [formValue.value.pmachine_id] = checkedPm.value;
-  formValue.value.pmachine_name = pmData.value.find(item=>item.id === formValue.value.pmachine_id).ip;
+  formValue.value.pmachine_name = pmData.value.find(
+    (item) => item.id === formValue.value.pmachine_id
+  ).ip;
 }
 export default {
   checkedPm,
@@ -217,4 +243,5 @@ export default {
   activeMethodWatcher,
   activeProductWatcher,
   activeVersionWatcher,
+  changeFrame,
 };

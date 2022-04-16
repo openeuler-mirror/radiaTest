@@ -13,6 +13,7 @@
     :expanded-keys="expandKeys"
     @update:expanded-keys="expand"
     :selected-keys="selectKey"
+    :render-label="renderLabel"
   />
   <n-dropdown
     placement="bottom-start"
@@ -27,7 +28,9 @@
 </template>
 <script>
 import { h, ref } from 'vue';
-import { NIcon } from 'naive-ui';
+import { NIcon, NTag } from 'naive-ui';
+import textDialog from '@/assets/utils/dialog';
+import { modifyCommitStatus } from '@/api/put';
 
 function renderPrefix({ option }) {
   const prefix = h(
@@ -46,9 +49,51 @@ export default {
       required: true,
     },
     expandKeys: Array,
-    selectKey: String
+    selectKey: String,
   },
   methods: {
+    renderLabel({ option }) {
+      const status = {
+        pending: 'default',
+        open: 'success',
+        accepted: 'info',
+        rejected: 'error',
+      };
+      if (option.type === 'case' && option.info.case_status) {
+        return h('div', null, [
+          h(
+            NTag,
+            {
+              round: true,
+              size: 'small',
+              type: status[option.info.case_status],
+              onClick: (e) => {
+                e.stopPropagation();
+                if (option.info.case_status === 'pending') {
+                  textDialog('warning', '提示', '是否提交评审', () => {
+                    modifyCommitStatus(option.info.commit_id, {
+                      status: 'open',
+                    }).then(()=>{
+                      option.info.case_status = 'open';
+                    });
+                  });
+                } else if (option.info.case_status === 'open') {
+                  this.$router.push({
+                    name: 'caseReviewDetail',
+                    params:{
+                      commitId: option.info.commit_id
+                    },
+                  });
+                }
+              },
+            },
+            String(option.info.case_status[0]).toUpperCase()
+          ),
+          option.label,
+        ]);
+      }
+      return option.label;
+    },
     expand(str) {
       this.$emit('expand', str);
     },
@@ -87,7 +132,9 @@ export default {
             parentNode = this.$refs.tree.$el.children[i];
             let count = 0;
             for (let j = index - 1; j >= i; j--) {
-              this.getTreeNodeLevel(this.$refs.tree.$el.children[j]) === level ? count++ : '';
+              this.getTreeNodeLevel(this.$refs.tree.$el.children[j]) === level
+                ? count++
+                : '';
             }
             result.unshift(count);
             break;

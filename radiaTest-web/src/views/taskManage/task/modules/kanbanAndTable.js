@@ -304,6 +304,40 @@ function toggleComplete2($event) {
     });
   }
 }
+// function filterTask (filterValue) {
+//   let listDataTemp;
+//   const temp = JSON.parse(JSON.stringify(filterValue));
+//   console.log(temp);
+//   if (temp.status_id) {
+//     listDataTemp = listData.value;
+//     listData.value = listData.value.filter((item) => {
+//       return item.id === temp.status_id;
+//     });
+//   } else {
+//     listData.value = listDataTemp
+//       ? listDataTemp
+//       : listData.value;
+//   }
+//   if (temp.participant_id?.length) {
+//     temp.participant_id = temp.participant_id.join(',');
+//   }
+//   const allRequest = listData.value.map((item) => {
+//     return axios.get('/v1/tasks', {
+//       ...temp,
+//       status_id: item.id,
+//     });
+//   });
+//   Promise.allSettled(allRequest)
+//     .then((results) => {
+//       results.forEach((item, index) => {
+//         listData.value[index].tasks = [];
+//         if (item?.value?.data?.items?.length) {
+//           listData.value[index].tasks = item.value.data.items;
+//         }
+//         kanban.showTaskList = true;
+//       });
+//     });
+// }
 
 export {
   listData,

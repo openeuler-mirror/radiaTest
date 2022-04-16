@@ -2,13 +2,13 @@
   <n-card
     :title="title"
     size="huge"
-    :segmented="{content: 'hard',}"
+    :segmented="{ content: 'hard' }"
     header-style="
             font-size: 30px;
             height: 80px;
             font-family: 'v-sans';
             padding-top: 40px;
-            background-color: #FAFAFC;
+            background-color: rgb(242,242,242);
           "
     style="height: 100%"
   >
@@ -23,7 +23,7 @@ export default {
       default: ''
     }
   },
-  setup () {
+  setup() {
 
   },
 };

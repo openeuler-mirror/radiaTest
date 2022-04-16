@@ -3,17 +3,17 @@ class Storage {
   constructor(name) {
     this.name = name;
   }
-  getValue (key) {
+  getValue(key) {
     try {
       if (JSON.parse(decrypt(sessionStorage.getItem(this.name)))) {
         return JSON.parse(decrypt(sessionStorage.getItem(this.name)))[key];
       }
-    } catch (err) {
-      window.$message?.error(err.message);
+      return undefined;
+    } catch {
+      return undefined;
     }
-    return undefined;
   }
-  setValue (key, value) {
+  setValue(key, value) {
     let info;
     try {
       info = JSON.parse(decrypt(sessionStorage.getItem(this.name)));

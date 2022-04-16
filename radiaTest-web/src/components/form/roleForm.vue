@@ -12,6 +12,7 @@
         </n-form-item>
         <n-form-item label="角色类型" path="type">
           <n-select
+            @update:value="changeType"
             v-model:value="formValue.type"
             :options="roleType"
             placeholder="请选择"
@@ -39,8 +40,22 @@
           <n-select
             v-model:value="formValue.group_id"
             :options="groups"
+            @update:value="groupChange"
             placeholder="请选择"
           />
+        </n-form-item>
+        <n-form-item label="继承已有角色" v-if="roles.length">
+          <n-radio-group v-model:value="formValue.role_id" name="radiogroup">
+            <n-space>
+              <n-radio
+                v-for="role in roles"
+                :key="role.value"
+                :value="role.value"
+              >
+                {{ role.label }}
+              </n-radio>
+            </n-space>
+          </n-radio-group>
         </n-form-item>
         <n-form-item label="描述">
           <n-input
@@ -55,6 +70,7 @@
 </template>
 <script>
 import modalCard from '@/components/CRUD/ModalCard.vue';
+import { getExtendRole } from '@/api/get';
 export default {
   components: {
     modalCard,
@@ -62,11 +78,27 @@ export default {
   props: {
     type: {
       type: String,
-      default: 'create'
+      default: 'create',
     },
-    formData: Array
+    formData: Array,
   },
   methods: {
+    setRoles(data) {
+      this.roles = [];
+      data.forEach((item) => {
+        this.roles.push({ label: item.name, value: item.id });
+        if (item.default) {
+          this.formValue.role_id = item.id;
+        }
+      });
+    },
+    changeType(value) {
+      if (value === 'public') {
+        getExtendRole({ type: 'public' }).then((res) => {
+          this.setRoles(res.data);
+        });
+      }
+    },
     show() {
       this.$nextTick(() => {
         if (this.type !== 'create') {
@@ -82,17 +114,52 @@ export default {
       if (value) {
         this.formValue.org_id = value;
         this.getGroups();
+        if (this.formValue.type === 'organization') {
+          getExtendRole({ type: 'org', org_id: this.formValue.org_id }).then(
+            (res) => {
+              this.setRoles(res.data);
+            }
+          );
+        }
+      }
+    },
+    groupChange(value) {
+      if (value && this.formValue.type === 'group') {
+        getExtendRole({ type: 'group', group_id: this.formValue.group_id, org_id:this.formValue.org_id }).then(
+          (res) => {
+            this.setRoles(res.data);
+          }
+        );
       }
     },
     getOrg() {
-      this.$axios.get('/v1/orgs/all',{page_size:99999,page_num:1}).then(res => {
-        this.orgs = res.data.items?.map(item => ({ label: item.name, value: String(item.id) }));
-      }).catch(err => window.message?.error(err.data.error_msg || '未知错误'));
+      this.$axios
+        .get('/v1/orgs/all', { page_size: 99999, page_num: 1 })
+        .then((res) => {
+          this.orgs = res.data.items?.map((item) => ({
+            label: item.name,
+            value: String(item.id),
+          }));
+        })
+        .catch((err) =>
+          window.message?.error(err.data.error_msg || '未知错误')
+        );
     },
     getGroups() {
-      this.$axios.get(`/v1/org/${this.formValue.org_id}/groups`, { page_num: 1, page_size: 99999 }).then(res => {
-        this.groups = res.data.items.map(item => ({ label: item.name, value: String(item.id) }));
-      }).catch(err => window.message?.error(err.data.error_msg || '未知错误'));
+      this.$axios
+        .get(`/v1/org/${this.formValue.org_id}/groups`, {
+          page_num: 1,
+          page_size: 99999,
+        })
+        .then((res) => {
+          this.groups = res.data.items.map((item) => ({
+            label: item.name,
+            value: String(item.id),
+          }));
+        })
+        .catch((err) =>
+          window.message?.error(err.data.error_msg || '未知错误')
+        );
     },
     initFormValue() {
       this.formValue = {
@@ -100,7 +167,7 @@ export default {
         type: null,
         org_id: null,
         group_id: null,
-        description: ''
+        description: '',
       };
     },
     submitForm() {
@@ -121,17 +188,19 @@ export default {
   },
   data() {
     return {
+      roles: [],
       formValue: {
         name: '',
         type: null,
         org_id: null,
         group_id: null,
-        description: ''
+        description: '',
+        role_id: '',
       },
       roleType: [
         { label: '公共角色', value: 'public' },
         { label: '团队角色', value: 'group' },
-        { label: '组织角色', value: 'organization' }
+        { label: '组织角色', value: 'organization' },
       ],
       orgs: [],
       groups: [],
@@ -155,7 +224,7 @@ export default {
           trigger: ['change', 'blur'],
           required: true,
           message: '请选择用户组',
-        }
+        },
       },
     };
   },
@@ -175,8 +244,8 @@ export default {
           }
         }
         return style;
-      }
+      },
     };
-  }
+  },
 };
 </script>

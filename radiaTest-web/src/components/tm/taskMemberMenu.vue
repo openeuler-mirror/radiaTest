@@ -9,7 +9,7 @@
       />
     </div>
     <div class="selectable-selection">
-      <n-scrollbar style="max-height: 300px;">
+      <n-scrollbar style="max-height: 300px">
         <ul class="member-list">
           <li class="select-option-group">
             <div class="option-group-label">
@@ -22,7 +22,7 @@
                 :key="index"
                 @click="selectPerson(value)"
               >
-                <span><img :src="value.avatar"/></span>
+                <span><img :src="value.avatar" /></span>
                 <div class="item-content-wrap">
                   <div class="item-content">
                     <div class="item-main">
@@ -40,8 +40,8 @@
                   class="member-menu-item"
                 >
                   <n-checkbox :value="JSON.stringify(value)">
-                    <div style="display:flex">
-                      <span><img :src="value.avatar"/></span>
+                    <div style="display: flex">
+                      <span><img :src="value.avatar" /></span>
                       <div class="item-content-wrap">
                         <div class="item-content">
                           <div class="item-main">
@@ -66,6 +66,7 @@
 </template>
 
 <script>
+import { getGroup } from '@/api/get';
 export default {
   props: [
     'multiple',
@@ -141,11 +142,10 @@ export default {
     },
     getOrgGroup() {
       return new Promise((resolve, reject) => {
-        this.$axios
-          .get('/v1/groups', {
-            page_size: 99999,
-            page_num: 1,
-          })
+        getGroup({
+          page_size: 99999,
+          page_num: 1,
+        })
           .then((res) => {
             for (const item of res.data.items) {
               const element = {

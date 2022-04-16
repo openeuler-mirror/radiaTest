@@ -1,6 +1,7 @@
 import { ref, watch, computed } from 'vue';
 import axios from '@/axios';
 import { any2standard } from '@/assets/utils/dateFormatUtils';
+import { getCaseDetail as getCase } from '@/api/get';
 
 const active = ref(false);
 const title = ref('');
@@ -99,17 +100,15 @@ const getCases = (id) => {
 };
 
 const getCaseDetail = (_case) => {
-  axios
-    .get('/v1/case', { id: _case })
-    .then((res) => {
-      if (res.data?.length === 0) {
-        window.$message?.error(
-          '无法获取本测试用例详细数据，请联系管理员进行处理'
-        );
-      } else {
-        [caseDetail.value] = res.data;
-      }
-    })
+  getCase({ id: _case }).then((res) => {
+    if (res.data?.length === 0) {
+      window.$message?.error(
+        '无法获取本测试用例详细数据，请联系管理员进行处理'
+      );
+    } else {
+      [caseDetail.value] = res.data;
+    }
+  })
     .catch(() => {
       window.$message?.error('无法获取本测试用例详细数据，请检查网络连接');
     });

@@ -13,10 +13,10 @@
             height: 80px; 
             font-family: 'v-sans';
             padding-top: 40px; 
-            background-color: #FAFAFC;
+            background-color:rgb(242,242,242);
         "
   >
-    <div style="display: flex; ">
+    <div style="display: flex">
       <div style="width: 100%">
         <jobs-card type="execute" id="execute" ref="executeRef" />
         <jobs-card type="wait" id="wait" ref="waitRef" />
@@ -103,7 +103,7 @@
 </template>
 
 <script>
-import { ref,provide, onMounted, onUnmounted, defineComponent } from 'vue';
+import { ref, provide, onMounted, onUnmounted, defineComponent } from 'vue';
 
 import ModalCard from '@/components/CRUD/ModalCard.vue';
 import Essential from '@/components/jobComponents';
@@ -134,7 +134,7 @@ export default defineComponent({
 
     onMounted(() => {
 
-      jobSocket.listen('update', () =>{
+      jobSocket.listen('update', () => {
         executeRef.value.getData();
         waitRef.value.getData();
         finishRef.value.getData();

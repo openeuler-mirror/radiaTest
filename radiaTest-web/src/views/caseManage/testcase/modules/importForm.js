@@ -1,5 +1,6 @@
 import { ref } from 'vue';
 import axios from '@/axios';
+import { getGroup } from '@/api/get';
 
 const size = ref('medium');
 
@@ -51,8 +52,10 @@ const getFrameworkOptions = () => {
 };
 
 const getGroupOptions = () => {
-  axios
-    .get('/v1/groups')
+  getGroup({
+    page_size: 99999,
+    page_num: 1,
+  })
     .then((res) => {
       groupOptions.value = res.data.items.map((item) => {
         return {

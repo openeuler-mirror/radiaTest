@@ -12,6 +12,7 @@ import config from '@/assets/config/settings';
 import 'vfonts/Lato.css';
 import 'vfonts/FiraCode.css';
 import 'animate.css';
+import 'xterm/css/xterm.css';
 
 import VMdEditor from '@kangc/v-md-editor';
 import githubTheme from '@kangc/v-md-editor/lib/theme/github';

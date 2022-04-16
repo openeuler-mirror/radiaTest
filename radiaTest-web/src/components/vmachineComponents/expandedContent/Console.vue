@@ -1,8 +1,9 @@
 <template>
   <div id="console-container">
     <no-vnc
-      :websockify-listen="data.websockify_listen"
+      :websockifyListen="data.websockify_listen"
       :vnc-token="data.vnc_token"
+      :ip="data.ip"
     />
   </div>
 </template>

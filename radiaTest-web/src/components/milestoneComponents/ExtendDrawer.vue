@@ -38,7 +38,9 @@
         <n-tab-pane name="issue" tab="Issues列表">
           <milestone-issues-card :form="rowData" />
         </n-tab-pane>
-        <n-tab-pane name="task" tab="任务列表"><div></div></n-tab-pane>
+        <n-tab-pane name="task" tab="任务列表">
+          <MilestoneTaskTable :milestoneId="rowData.id"/>
+        </n-tab-pane>
       </n-tabs>
     </n-drawer-content>
   </n-drawer>
@@ -49,7 +51,8 @@ import { ref, defineComponent } from 'vue';
 
 import MilestoneImageCard from './MilestoneImageCard.vue';
 import MilestoneRepoCard from './MilestoneRepoCard.vue';
-import MilestoneIssuesCard from './MilestoneIssuesCard';
+import MilestoneTaskTable from './MilestoneTaskTable.vue';
+import MilestoneIssuesCard from './MilestoneIssuesCard.vue';
 import { ArrowLeft32Filled as ArrowLeft } from '@vicons/fluent';
 
 import milestoneTable from '@/views/milestone/modules/milestoneTable.js';
@@ -59,6 +62,7 @@ export default defineComponent({
     MilestoneRepoCard,
     MilestoneImageCard,
     MilestoneIssuesCard,
+    MilestoneTaskTable,
     ArrowLeft,
   },
   setup() {

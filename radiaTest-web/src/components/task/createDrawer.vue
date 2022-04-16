@@ -75,7 +75,7 @@
           ></n-select>
         </n-form-item>
         <n-form-item label="截止日期">
-          <n-date-picker   format="yyyy-MM-dd" v-model:value="model.deadline" />
+          <n-date-picker format="yyyy-MM-dd" v-model:value="model.deadline" />
         </n-form-item>
         <n-form-item label="关键词">
           <n-input
@@ -102,7 +102,9 @@
           <n-button class="btn" type="error" ghost @click="close"
             >取消</n-button
           >
-          <n-button class="btn" type="info" ghost @click="submit">创建</n-button>
+          <n-button class="btn" type="info" ghost @click="submit"
+            >创建</n-button
+          >
         </div>
       </n-form>
     </n-drawer-content>
@@ -117,6 +119,7 @@ import {
 } from '@/views/taskManage/task/modules/createTask';
 import { formatTime } from '@/assets/utils/dateFormatUtils';
 import { storage } from '@/assets/utils/storageUtils';
+import { getGroup } from '@/api/get';
 export default {
   setup() {
     const taskTypes = [
@@ -183,13 +186,16 @@ export default {
     this.getMilestone();
   },
   methods: {
-    submit(){
-      this.$refs.formRef.validate(error=>{
-        if(error){
+    submit() {
+      this.$refs.formRef.validate((error) => {
+        if (error) {
           window.$message?.error('信息有误，请检查');
-        }else {
-          this.model.deadline = formatTime(this.model.deadline,'yyyy-MM-dd hh:mm:ss');
-          this.$emit('submit',this.model);
+        } else {
+          this.model.deadline = formatTime(
+            this.model.deadline,
+            'yyyy-MM-dd hh:mm:ss'
+          );
+          this.$emit('submit', this.model);
           this.close();
         }
       });
@@ -211,10 +217,11 @@ export default {
       this.$axios
         .get('/v2/milestone')
         .then((res) => {
-          this.milestones = res.data.map((item) => ({
-            label: item.name,
-            value: String(item.id),
-          }));
+          this.milestones =
+            res.data?.items?.map((item) => ({
+              label: item.name,
+              value: String(item.id),
+            })) || [];
         })
         .catch((err) =>
           window.$message?.error(err.data.error_msg || '未知错误')
@@ -256,11 +263,10 @@ export default {
     },
     getGroup() {
       this.groups = [];
-      this.$axios
-        .get('/v1/groups', {
-          page_num: 1,
-          page_size: 99999,
-        })
+      getGroup({
+        page_num: 1,
+        page_size: 99999,
+      })
         .then((res) => {
           for (const item of res.data.items) {
             this.groups.push({

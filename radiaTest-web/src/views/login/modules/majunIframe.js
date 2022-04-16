@@ -11,7 +11,6 @@ const regCancel = ref(true);
 const isFrame = route.isIftrame;
 function isIframe () {
   if (isFrame) {
-    console.log('iframe');
     regCancel.value = false;
     window.hideLogout = true;
     window.addEventListener('message', e => {

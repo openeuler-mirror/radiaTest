@@ -24,15 +24,17 @@
             @submit="createFormRef.post()"
           >
             <template #form>
-              <n-tabs type="line" size="large" :tab-padding="20">
+              <n-tabs type="line" size="large" :tab-padding="20" @update:value="(value)=>createFormRef.changeTabs(value)">
                 <n-tab-pane
-                  name="基本信息"
+                  name="info"
+                  tab="基本信息"
                   @click="createFormRef.changeTabs('info')"
                 >
                   <div></div>
                 </n-tab-pane>
                 <n-tab-pane
-                  name="详细内容"
+                  name="content"
+                  tab="详细内容"
                   @click="createFormRef.changeTabs('content')"
                 >
                   <div></div>

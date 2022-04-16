@@ -71,7 +71,7 @@
                       </div>
                       <img
                         class="avatar"
-                        :src="element.originator.avatar_url"
+                        :src="element.creator.avatar_url"
                       />
                     </div>
                     <div

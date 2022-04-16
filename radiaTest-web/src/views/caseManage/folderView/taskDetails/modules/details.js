@@ -1,7 +1,12 @@
-import { ref } from 'vue';
+import { ref, h } from 'vue';
 import axios from '@/axios.js';
+import { createCaseReview } from '@/api/post';
 import { formatTime } from '@/assets/utils/dateFormatUtils.js';
 import router from '@/router';
+import { NButton, NFormItem, NInput, NSpace } from 'naive-ui';
+import { getCaseDetail } from '@/api/get';
+import { expandNode } from '@/views/caseManage/folderView/modules/menu';
+const source = ref([]);
 const caseInfo = ref({});
 const task = ref({});
 const detailsList = ref([
@@ -39,13 +44,10 @@ const detailsList = ref([
   {
     title: '用例详情',
     name: 'caseDetails',
+    editTools: true,
     rows: [
-      {
-        cols: [
-          { label: '机器类型', value: '' },
-          { label: '机器数量', value: '' },
-        ],
-      },
+      { cols: [{ label: '机器类型', value: '' }] },
+      { cols: [{ label: '机器数量', value: '' }] },
       { cols: [{ label: '描述', value: '' }] },
       { cols: [{ label: '预置条件', value: '' }] },
       { cols: [{ label: '测试步骤', value: '' }] },
@@ -73,7 +75,7 @@ const detailsList = ref([
   },
 ]);
 const status = ref([]);
-function getStatus() {
+function getStatus () {
   axios.get('/v1/task/status').then((res) => {
     status.value = res.data;
   });
@@ -82,16 +84,8 @@ const report = ref({
   name: '',
   content: '',
 });
-// function getReport() {
-//   axios.get(`/v1/tasks/${task.value.id}/reports`).then((res) => {
-//     if (res.data.title && res.data.content) {
-//       report.value.name = res.data.title;
-//       report.value.content = res.data.content;
-//     }
-//   });
-// }
 // eslint-disable-next-line max-lines-per-function
-function setDataList(Info) {
+function setDataList (Info) {
   detailsList.value = [
     {
       title: '基础信息',
@@ -132,13 +126,10 @@ function setDataList(Info) {
     {
       title: '用例详情',
       name: 'caseDetails',
+      editTools: true,
       rows: [
-        {
-          cols: [
-            { label: '机器类型', value: Info.machine_type },
-            { label: '机器数量', value: Info.machine_num },
-          ],
-        },
+        { cols: [{ label: '机器类型', value: Info.machine_type }] },
+        { cols: [{ label: '机器数量', value: Info.machine_num }] },
         { cols: [{ label: '描述', value: Info.description, type: 'pre' }] },
         { cols: [{ label: '预置条件', value: Info.preset, type: 'pre' }] },
         { cols: [{ label: '测试步骤', value: Info.steps, type: 'pre' }] },
@@ -169,22 +160,22 @@ function setDataList(Info) {
     },
   ];
 }
-function getDetail(caseId) {
+const loading = ref(false);
+function getDetail (caseId) {
+  loading.value = true;
   axios
     .get(`/v1/baseline/${caseId}`)
     .then((res) => {
-      axios
-        .get('/v1/case', {
-          id: res.data.case_id,
-        })
+      source.value = res.data.source;
+      getCaseDetail({
+        id: res.data.case_id,
+      })
         .then((response) => {
           [caseInfo.value] = response.data;
           caseInfo.value.title = res.data.title;
           if (response.data[0].git_repo?.framework?.id) {
             axios
-              .get('/v1/framework', {
-                id: response.data[0].git_repo.framework.id,
-              })
+              .get(`/v1/framework/${response.data[0].git_repo.framework.id}`)
               .then((result) => {
                 [caseInfo.value.framework] = result.data;
                 setDataList(caseInfo.value);
@@ -195,21 +186,19 @@ function getDetail(caseId) {
           if (!caseInfo.value.code) {
             caseInfo.value.code = '';
           }
+          loading.value = false;
         })
         .catch((err) => {
+          loading.value = false;
           window.$message?.error(err.data.error_msg || '未知错误');
         });
     })
     .catch(() => {
       router.push({ name: 'folderview' });
     });
-  // axios.get(`/v1/case/${caseId}/task`).then((res) => {
-  //   task.value = res.data;
-  //   getReport();
-  // });
   getStatus();
 }
-function setStatus(state) {
+function setStatus (state) {
   const index = status.value.findIndex((item) => item.id === state.id);
   const active = status.value.findIndex(
     (item) => item.id === task.value.status_id
@@ -220,14 +209,157 @@ function setStatus(state) {
   return index > active ? 'wait' : 'finish';
 }
 const showReportModal = ref(false);
-
+const editInfo = {
+  machine_type: {
+    index: 0,
+    colsIndex: 0
+  },
+  case_description: {
+    index: 2,
+    colsIndex: 0
+  },
+  machine_num: {
+    index: 1,
+    colsIndex: 0
+  },
+  preset: {
+    index: 3,
+    colsIndex: 0
+  },
+  steps: {
+    index: 4,
+    colsIndex: 0
+  },
+  expectation: {
+    index: 5,
+    colsIndex: 0
+  },
+  remark: {
+    index: 6,
+    colsIndex: 0
+  },
+};
+function getFormData (data) {
+  const result = {};
+  const keys = Object.keys(editInfo);
+  for (const key of keys) {
+    const element = editInfo[key];
+    result[key] = data[element.index].cols[element.colsIndex].value;
+  }
+  return result;
+}
+const caseReviewTitle = ref('');
+const titleRule = {
+  trigger: ['input', 'blur'],
+  message: '请填写标题',
+  validator () {
+    if (caseReviewTitle.value !== '') {
+      return true;
+    }
+    return false;
+  }
+};
+const caseReviewDescription = ref('');
+function dialogContent () {
+  return h('div', null, [
+    h(NFormItem, {
+      label: '标题',
+      rule: titleRule,
+    }, h(NInput, {
+      value: caseReviewTitle.value,
+      onUpdateValue: value => {
+        caseReviewTitle.value = value;
+      },
+    })),
+    h(NFormItem, {
+      label: '描述',
+    }, h(NInput, {
+      value: caseReviewDescription.value,
+      onUpdateValue: value => {
+        caseReviewDescription.value = value;
+      },
+    }))
+  ]);
+}
+function updateDetail ({ data }) {
+  const d = window.$dialog?.info({
+    title: '补充信息',
+    content: dialogContent,
+    action: () => {
+      return h(NSpace, null, [
+        h(NButton, {
+          size: 'large',
+          type: 'error',
+          ghost: true,
+          onClick: () => {
+            d.destroy();
+            getDetail(router.currentRoute.value.params.taskid);
+          }
+        }, '取消'),
+        h(NButton, {
+          size: 'large',
+          type: 'primary',
+          ghost: true,
+          onClick: () => {
+            if (titleRule.validator()) {
+              createCaseReview({
+                ...getFormData(data),
+                title: caseReviewTitle.value,
+                description: caseReviewDescription.value,
+                case_detail_id: router.currentRoute.value.params.taskid,
+                source: source.value
+              }).then(() => d.destroy());
+            } else {
+              window.$message?.error('请检查填写信息!');
+            }
+          }
+        }, '确认')
+      ]);
+    }
+  });
+}
+function cancelDetail () {
+  if (router.currentRoute.value.params.taskid !== 'development') {
+    getDetail(router.currentRoute.value.params.taskid);
+  }
+}
+const editInfoValue = ref();
+const modifyModal = ref();
+function edit (index) {
+  editInfoValue.value = {
+    ...getFormData(detailsList.value[index].rows),
+    description: '',
+    title: '',
+    case_detail_id: caseInfo.value.id,
+  };
+  modifyModal.value.show();
+}
+function editSubmit (formValue) {
+  createCaseReview({
+    ...formValue,
+    source: source.value
+  }).then(() => {
+    modifyModal.value.close();
+    expandNode(router.currentRoute.value.params.taskid);
+  });
+}
 export {
+  editInfoValue,
+  modifyModal,
+  loading,
   report,
   status,
+  caseReviewTitle,
+  caseReviewDescription,
   task,
   caseInfo,
   detailsList,
   showReportModal,
   getDetail,
   setStatus,
+  updateDetail,
+  source,
+  cancelDetail,
+  edit,
+  editSubmit
 };

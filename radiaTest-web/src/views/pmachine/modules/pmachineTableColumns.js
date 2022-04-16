@@ -88,12 +88,15 @@ const ColumnExpand = {
   type: 'expand',
   renderExpand: (rowData) =>
     h(ExpandedCard, {
+      data:rowData,
       SSHUSER: rowData.user,
       SSHPORT: rowData.port,
       SSHPASSWORD: rowData.password,
       LISTEN: rowData.listen,
       DESCRIPTION: rowData.description,
       IP: rowData.ip,
+      machine_group_ip:rowData.machine_group.messenger_ip,
+      messenger_listen:rowData.machine_group.messenger_listen
     }),
 };
 
@@ -111,15 +114,7 @@ const getColumnOperation = (updateHandler) => {
         }),
         h(ConnectButton, {
           disabled: row.locked,
-          data: {
-            id: row.id,
-            state: row.state,
-            ip: row.ip,
-            mac: row.mac,
-            end_time: row.end_time,
-            listen: row.listen,
-            description: row.description,
-          },
+          data: row,
         }),
         h(InstallButton, {
           id: row.id,

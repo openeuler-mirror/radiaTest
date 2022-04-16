@@ -72,8 +72,6 @@ import { ref, onMounted, onUnmounted, defineComponent } from 'vue';
 import { ArrowUp, ArrowDown } from '@vicons/ionicons5';
 import { Socket } from '@/socket';
 import { init } from 'echarts';
-
-import settings from '@/assets/config/settings';
 import resourceCharts from '@/views/pmachine/modules/expandedContent/resourceChart.js';
 
 export default defineComponent({
@@ -85,6 +83,8 @@ export default defineComponent({
   props: {
     ip: String,
     listen: String,
+    machineGroupIp:String,
+    data:Object
   },
   setup(props) {
     let charts = null;
@@ -99,9 +99,8 @@ export default defineComponent({
       memoryTotal: ref(0),
       diskTotal: ref(0),
     };
-
     const resourceMonitorSocket = new Socket(
-      `ws://${settings.serverPath}/monitor/host`
+      `ws://${props.machineGroupIp}:${props.data.machine_group.messenger_listen}/monitor/host`
     );
     resourceMonitorSocket.connect();
 
@@ -115,12 +114,11 @@ export default defineComponent({
         swapPie: init(document.getElementById('swap-pie')),
       };
       resourceCharts.createEcharts(charts);
-
       resourceMonitorSocket.emit('start', {
         ip: props.ip,
         listen: props.listen,
       });
-      resourceMonitorSocket.listen('response', (res) =>
+      resourceMonitorSocket.listen(props.machineGroupIp, (res) =>
         resourceCharts.listenResponse(res, charts, data)
       );
     });

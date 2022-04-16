@@ -38,6 +38,7 @@
     </div>
     <div class="content" ref="content">
       <n-drawer
+        display-directive="show"
         v-model:show="show"
         :width="contentWidth"
         :height="contentWidth"

@@ -2,6 +2,7 @@ import { NButton } from 'naive-ui';
 import { ref, h, reactive } from 'vue';
 import axios from '@/axios';
 import { formatTime } from '@/assets/utils/dateFormatUtils.js';
+import { getGroup } from '@/api/get';
 // import { storage } from '@/assets/utils/storageUtils';
 
 const showNewTemplateDrawer = ref(false);
@@ -49,11 +50,10 @@ const groupSelectLoading = ref(false);
 function getGroupAxios() {
   groupNameOptions.value = [];
   groupSelectLoading.value = true;
-  axios
-    .get('/v1/groups', {
-      page_num: 1,
-      page_size: 99999999,
-    })
+  getGroup({
+    page_num: 1,
+    page_size: 99999999,
+  })
     .then((res) => {
       groupSelectLoading.value = false;
       if (res.data.items) {
@@ -326,7 +326,7 @@ function getTemplateTableRowsData(items) {
     if (item.types) {
       distributionTableData.value[i].children = [];
       item.types.forEach((type, j) => {
-        let helpers = type.helpers.map((helper) => helper.gitee_name).join(',');
+        let helpers = type.helpers?.map((helper) => helper.gitee_name).join(',');
         distributionTableData.value[i].children.push({
           key: index++,
           level: 'templateType',

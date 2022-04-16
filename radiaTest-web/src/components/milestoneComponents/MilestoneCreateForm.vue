@@ -46,7 +46,17 @@
             filterable
           />
         </n-form-item-gi>
-        <n-form-item-gi :span="18" label="里程碑名" path="name">
+        <n-form-item-gi :span="6" label="类型" path="permission_type">
+          <n-cascader
+            v-model:value="formValue.permission_type"
+            placeholder="请选择"
+            :options="typeOptions"
+            check-strategy="child"
+            remote
+            :on-load="handleLoad"
+          />
+        </n-form-item-gi>
+        <n-form-item-gi :span="12" label="里程碑名" path="name">
           <n-input
             v-model:value="formValue.name"
             placeholder="若不填写，将根据已选字段自动生成里程碑名"
@@ -87,7 +97,9 @@ import validation from '@/assets/utils/validation.js';
 import { createAjax } from '@/assets/CRUD/create';
 import createForm from '@/views/milestone/modules/createForm.js';
 import { getProductOpts, getVersionOpts } from '@/assets/utils/getOpts';
-import {storage} from '@/assets/utils/storageUtils';
+import { storage } from '@/assets/utils/storageUtils';
+import { formatTime } from '@/assets/utils/dateFormatUtils';
+import  extendForm from '@/views/product/modules/createForm.js';
 
 export default defineComponent({
   setup(props, context) {
@@ -113,11 +125,23 @@ export default defineComponent({
     const hasEnterprise = storage.getValue('hasEnterprise');
 
     return {
+      typeOptions:extendForm.typeOptions,
+      handleLoad:extendForm.handleLoad,
       ...createForm,
       hasEnterprise,
       handlePropsButtonClick: () => validation(createForm.formRef, context),
       post: () => {
-        createAjax.postForm('/v2/milestone', createForm.formValue);
+        createAjax.postForm('/v2/milestone', {
+          value: {
+            ...createForm.formValue.value,
+            start_time: formatTime(createForm.formValue.value.start_time, 'yyyy-MM-dd hh:mm:ss'),
+            end_time: formatTime(createForm.formValue.value.end_time, 'yyyy-MM-dd hh:mm:ss'),
+            permission_type: createForm.formValue.value.permission_type.split('-')[0],
+            creator_id: Number(storage.getValue('gitee_id')),
+            org_id: storage.getValue('orgId'),
+            group_id: Number(createForm.formValue.value.permission_type.split('-')[1])
+          }
+        });
         context.emit('close');
       }
     };

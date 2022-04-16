@@ -6,6 +6,7 @@ import { NIcon } from 'naive-ui';
 import { Circle, CircleCheck, CircleMinus, CircleX } from '@vicons/tabler';
 import axios from '@/axios';
 import { formatTime } from '@/assets/utils/dateFormatUtils.js';
+import { getCaseCommit } from '@/api/post';
 
 const vmachineClick = (router) => {
   router.push('/home/resource-pool/vmachine');
@@ -184,7 +185,7 @@ function getTaskData() {
     })
     .catch((err) => {
       tasksloading.value = false;
-      window.$message?.error(err.data.error_msg || '未知错误');
+      window.$message?.error(err.data?.error_msg || err.message || '未知错误');
     });
 }
 
@@ -265,11 +266,26 @@ function caseRefreshClick() {
 
 const myCasesCol = ref([
   {
-    title: '用例名称',
-    key: 'caseName',
+    title: '评审标题',
+    key: 'title',
+    align: 'center',
+  },
+  {
+    title: '评审人',
+    key: 'reviewer_name',
+    align: 'center',
+  },
+  {
+    title: '描述',
+    key: 'description',
     align: 'center',
   },
 ]);
+const myCasePagination = ref({
+  page: 1,
+  pageCount: 1, //总页数
+  pageSize: 10,
+});
 
 const myCasesData = ref([]);
 
@@ -277,7 +293,7 @@ const machineActive = ref('0'); // 我的机器活动tab
 
 const myMachineData = ref([]);
 
-function getMachineData () {
+function getMachineData() {
   myMachineData.value = [];
   axios
     .post('/v1/user/machine/info', {
@@ -301,7 +317,7 @@ function getMachineData () {
       }
     })
     .catch((err) => {
-      window.$message?.error(err.data.error_msg || '未知错误');
+      window.$message?.error(err.data?.error_msg || err.message || '未知错误');
     });
 }
 
@@ -434,10 +450,41 @@ function machineRefreshClick() {
   machineRefresh.value.style.transform = `rotate(${angleMachine}deg)`;
   getMachineData();
 }
-
+const caseLoading = ref(false);
+function getMyCase(status = 'open') {
+  caseLoading.value = true;
+  getCaseCommit({
+    page_num: myCasePagination.value.page,
+    page_size: myCasePagination.value.pageSize,
+    status,
+  })
+    .then((res) => {
+      caseLoading.value = false;
+      myCasesData.value = res.data?.items || [];
+      myCasePagination.value.pageCount = res.data.pages;
+      personalDataOverview.value.todayCasesCount = res.data.today_case_count;
+      personalDataOverview.value.weekCasesCount = res.data.week_case_count;
+      personalDataOverview.value.monthCasesCount = res.data.month_case_count;
+    })
+    .catch(() => {
+      caseLoading.value = false;
+    });
+}
+const caseActive = ref('0');
+function caseWorkbenchClick(e) {
+  myCasePagination.value.page = 1;
+  caseActive.value = e.target.dataset.index;
+  const typeArr = ['open', 'accepted', 'rejected', 'all'];
+  getMyCase(typeArr[caseActive.value]);
+}
+function handleCasePageChange(page) {
+  myCasePagination.value.page = page;
+  getMyCase();
+}
 function initData() {
   getTaskData();
   getMachineData();
+  getMyCase();
 }
 
 function resizedEvent(i, newH, newW, newHPx) {
@@ -448,7 +495,7 @@ function resizedEvent(i, newH, newW, newHPx) {
   }
 }
 
-function debounce (func, delay) {
+function debounce(func, delay) {
   let timeout;
   return (...args) => {
     if (args[0].deltaY > 0) {
@@ -512,4 +559,10 @@ export {
   initData,
   taskSearchValue,
   taskSearch,
+  myCasePagination,
+  handleCasePageChange,
+  caseLoading,
+  getMyCase,
+  caseActive,
+  caseWorkbenchClick,
 };

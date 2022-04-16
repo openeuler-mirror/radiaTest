@@ -1,7 +1,12 @@
 <template>
   <div class="home">
     <transition name="mode-fade" mode="out-in">
-      <div class="home-container" style="height: 100%" v-if="!showWorkbench" @wheel="handleWheelDown">
+      <div
+        class="home-container"
+        style="height: 100%"
+        v-if="!showWorkbench"
+        @wheel="handleWheelDown"
+      >
         <div class="homeContent">
           <div style="margin-top: -30px">
             <div class="title">radiaTest</div>
@@ -334,7 +339,7 @@
                       <DragIndicatorFilled />
                     </n-icon>
                     <h2 class="header flex-1">
-                      我的用例
+                      我的用例状态
                     </h2>
                   </div>
                   <div
@@ -344,7 +349,7 @@
                       class="action-item mr-2 refresh"
                       title="刷新"
                       ref="caseRefresh"
-                      @click="caseRefreshClick"
+                      @click="getMyCase"
                       ><n-icon size="24"> <Refresh /> </n-icon
                     ></span>
                   </div>
@@ -354,13 +359,31 @@
                     <div
                       class="ge-dashboard-module-collection-view-header mb-3 "
                     >
-                      <div class="searchWrap ml-auto">
-                        <n-icon size="22" class="search"> <Search /> </n-icon>
-                        <n-input
-                          type="text"
-                          placeholder="搜索..."
-                          class="input"
-                        />
+                      <div class="ge-tabs" @click="caseWorkbenchClick">
+                        <a
+                          class="item"
+                          :class="{ active: caseActive === '0' }"
+                          data-index="0"
+                          >开启的</a
+                        >
+                        <a
+                          class="item"
+                          :class="{ active: caseActive === '1' }"
+                          data-index="1"
+                          >已合并</a
+                        >
+                        <a
+                          class="item"
+                          :class="{ active: caseActive === '2' }"
+                          data-index="2"
+                          >已关闭</a
+                        >
+                        <a
+                          class="item"
+                          :class="{ active: caseActive === '3' }"
+                          data-index="3"
+                          >全部</a
+                        >
                       </div>
                     </div>
                     <div class="ge-dashboard-module-collection-view-content ">
@@ -368,7 +391,11 @@
                         <n-data-table
                           :columns="myCasesCol"
                           :data="myCasesData"
+                          remote
+                          :loading="caseLoading"
+                          :pagination="myCasePagination"
                           :bordered="false"
+                          @update:page="handleCasePageChange"
                         />
                       </div>
                     </div>
@@ -407,7 +434,7 @@ export default defineComponent({
 
     return Object.assign(modules, {
       handleVmachineClick() {
-        modules.vmachineClick(router);
+        router.push({ name: 'resourcePool' });
       },
       handleJobClick() {
         modules.jobClick(router);

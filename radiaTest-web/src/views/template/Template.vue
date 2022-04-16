@@ -10,7 +10,7 @@
             height: 80px; 
             font-family: 'v-sans';
             padding-top: 40px; 
-            background-color: #FAFAFC;
+            background-color: rgb(242,242,242);
         "
   >
     <div style="display: flex; flex-wrap: nowrap">

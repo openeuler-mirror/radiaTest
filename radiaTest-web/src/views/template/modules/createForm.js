@@ -10,6 +10,7 @@ import { currentOrg } from '@/components/header/profileMenu/modules/orgInfo';
 import { createRepoOptions } from '@/assets/utils/getOpts';
 import createAjax from '@/views/template/modules/createAjax.js';
 import casesForm from '@/views/template/modules/casesForm.js';
+import { getGroup } from '@/api/get';
 
 const formRef = ref(null);
 const formValue = ref({
@@ -48,8 +49,7 @@ const typeOpts = ref([
 ]);
 
 const getTeamOptions = () => {
-  axios
-    .get('/v1/groups')
+  getGroup({ page_num: 1, page_size: 99999 })
     .then((res) => {
       ownerOpts.value = res.data.items.map((item) => {
         return {

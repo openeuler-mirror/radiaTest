@@ -107,27 +107,36 @@ class ConnectState {
 const handleSendRequest = (dOccupy, connect) => {
   dOccupy.content = '占用请求已发送';
   if (connect.formValue.value.description === 'used for ci') {
-    return axios.put('/v1/pmachine', {
-      id: connect.formValue.value.id,
+    return axios.put(`/v1/pmachine/${connect.formValue.value.id}`, {
       description: connect.formValue.value.description,
       occupier: storage.getValue('gitee_name'),
       state: 'occupied',
+      user: connect.formValue.value.user,
+      ip: connect.formValue.value.ip,
+      port: connect.formValue.value.port,
+      password: connect.formValue.value.password,
     });
   } else if (connect.formValue.value.description !== 'as the host of ci') {
-    return axios.put('/v1/pmachine', {
-      id: connect.formValue.value.id,
+    return axios.put(`/v1/pmachine/${connect.formValue.value.id}`, {
       description: connect.formValue.value.description,
       end_time: any2standard(connect.datetime.value),
       occupier: storage.getValue('gitee_name'),
       state: 'occupied',
+      user: connect.formValue.value.user,
+      ip: connect.formValue.value.ip,
+      port: connect.formValue.value.port,
+      password: connect.formValue.value.password,
     });
   }
-  return axios.put('/v1/pmachine', {
-    id: connect.formValue.value.id,
+  return axios.put(`/v1/pmachine/${connect.formValue.value.id}`, {
     description: connect.formValue.value.description,
     listen: connect.formValue.value.listen,
     occupier: storage.getValue('gitee_name'),
     state: 'occupied',
+    user: connect.formValue.value.user,
+    ip: connect.formValue.value.ip,
+    port: connect.formValue.value.port,
+    password: connect.formValue.value.password,
   });
 };
 
@@ -138,16 +147,11 @@ const handleOccupy = async (dOccupy, connect) => {
       .then((res) => {
         if (res.error_code === '2000') {
           dOccupy.content = '物理机已成功占用';
-          return new Promise((resolveWaitResv) =>
-            setTimeout(() => {
-              resolveWaitResv();
-            }, 2 * 1000)
-          );
+          return Promise.resolve(res);
         }
         return Promise.reject(new Error('请检查参数或检查该物理机是否存在'));
       })
       .catch((err) => {
-        console.log(err);
         if (!err.message && !err.data.validation_error) {
           window.$message?.error('发生未知错误，请联系管理员进行处理');
         } else if (err.data.validation_error) {
@@ -165,9 +169,12 @@ const handleRelease = (dRelease, connect) => {
   return new Promise((resolve, reject) => {
     dRelease.content = '释放请求已发送';
     axios
-      .put('/v1/pmachine', {
-        id: connect.formValue.value.id,
+      .put(`/v1/pmachine/${connect.formValue.value.id}`, {
         state: 'idle',
+        user: connect.formValue.value.user,
+        ip: connect.formValue.value.ip,
+        port: connect.formValue.value.port,
+        password: connect.formValue.value.password,
       })
       .then((res) => {
         if (res.error_code === '2000') {
@@ -219,8 +226,8 @@ const renderOccupy = (connect) => {
       value: connect.formValue.value.description,
       onUpdateValue: connect.updateDescription,
       options: getDesOptions(connect.formValue),
-      inputProps:{
-        focus:false
+      inputProps: {
+        focus: false,
       },
       placeholder: '请输入使用说明',
     }),

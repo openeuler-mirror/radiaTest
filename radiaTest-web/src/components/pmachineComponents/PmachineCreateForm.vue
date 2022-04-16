@@ -9,7 +9,7 @@
       ref="basicFormRef"
     >
       <n-grid :cols="24" :x-gap="24">
-        <n-form-item-gi :span="5" label="架构" path="frame" ref="frameRef">
+        <n-form-item-gi :span="6" label="架构" path="frame" ref="frameRef">
           <n-select
             v-model:value="basicFormValue.frame"
             :options="[
@@ -26,6 +26,16 @@
             placeholder="输入物理机MAC地址"
             @input="handleMacInput"
             @keydown.enter.prevent
+          />
+        </n-form-item-gi>
+        <n-form-item-gi :span="6" label="类型" path="permission_type">
+          <n-cascader
+            v-model:value="basicFormValue.permission_type"
+            placeholder="请选择"
+            :options="typeOptions"
+            check-strategy="child"
+            remote
+            :on-load="handleLoad"
           />
         </n-form-item-gi>
         <n-gi :span="6">
@@ -163,7 +173,8 @@ import { storage } from '@/assets/utils/storageUtils';
 import { createAjax } from '@/assets/CRUD/create';
 import createForm from '@/views/pmachine/modules/createForm.js';
 import { removeKey } from '@/assets/utils/objectUtils.js';
-
+import extendForm from '@/views/product/modules/createForm.js';
+import router from '@/router';
 export default defineComponent({
   setup(props, context) {
     onUnmounted(() => {
@@ -172,6 +183,8 @@ export default defineComponent({
 
     return {
       ...createForm,
+      typeOptions: extendForm.typeOptions,
+      handleLoad: extendForm.handleLoad,
       handlePropsButtonClick: () => createForm.validateFormData(context),
       changeTabs: (tabValue) => {
         createForm.tab.value = tabValue;
@@ -182,9 +195,7 @@ export default defineComponent({
           'bmc_repassword'
         );
         const ssh = removeKey(createForm.sshFormValue.value, 'repassword');
-
         const formValue = ref(undefined);
-
         if (
           basic.description !== 'as the host of ci' &&
           basic.description !== 'used for ci'
@@ -200,7 +211,16 @@ export default defineComponent({
             occupier: storage.getValue('gitee_name'),
           };
         }
-        createAjax.postForm('/v1/pmachine', formValue);
+        createAjax.postForm('/v1/pmachine', {
+          value: {
+            ...formValue.value,
+            permission_type: createForm.basicFormValue.value.permission_type.split('-')[0],
+            creator_id: Number(storage.getValue('gitee_id')),
+            org_id: storage.getValue('orgId'),
+            group_id: Number(createForm.basicFormValue.value.permission_type.split('-')[1]),
+            machine_group_id:router.currentRoute.value.params.machineId
+          }
+        });
         context.emit('close');
       },
     };

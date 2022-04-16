@@ -2,11 +2,15 @@
 import socketIO from 'socket.io-client';
 
 class Socket {
-  constructor(url) {
+  constructor(url, query) {
     this.url = url;
+    this.query = query;
   }
   connect() {
-    this.socket = socketIO.connect(this.url, { transports: ['websocket'] });
+    this.socket = socketIO.connect(this.url, {
+      transports: ['websocket'],
+      query: this.query,
+    });
   }
   disconnect() {
     this.socket.close();

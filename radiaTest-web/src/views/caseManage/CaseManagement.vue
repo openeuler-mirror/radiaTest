@@ -10,7 +10,7 @@
             font-size: 30px;
             height: 80px;
             font-family: 'v-sans';
-            background-color: #FAFAFC;
+            background-color: rgb(242,242,242);
         "
   >
     <template #header>

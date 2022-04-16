@@ -6,6 +6,7 @@ import { storage } from '@/assets/utils/storageUtils';
 import { ref, toRef, h } from 'vue';
 import { NButton } from 'naive-ui';
 import { editTask } from '../task/modules/taskDetail.js';
+import { getGroup } from '@/api/get';
 
 const menuSelect = ref(null); // 当前页面索引值
 const isTask = ref(true); // 是否是任务页面
@@ -29,7 +30,7 @@ const recycleBinTaskPagination = ref({
 });
 
 // 确认弹框
-function warning(title, content, cb) {
+function warning (title, content, cb) {
   const d = window.$dialog?.warning({
     title,
     content,
@@ -68,7 +69,7 @@ function warning(title, content, cb) {
 const recycleBinTaskData = ref([]);
 
 // 任务类型英转中
-function typeNameTrans(type) {
+function typeNameTrans (type) {
   switch (type) {
     case 'PERSON':
       return '个人任务';
@@ -84,12 +85,12 @@ function typeNameTrans(type) {
 }
 
 // 查询回收站任务
-function query(page) {
+function query (page) {
   axios
     .get('/v1/tasks/recycle_bin', { page_num: page })
     .then((res) => {
       recycleBinTaskLoading.value = false;
-      if(res.data.items){
+      if (res.data.items) {
         recycleBinTaskData.value = res.data.items.map((task, index) => {
           return {
             key: index,
@@ -103,7 +104,7 @@ function query(page) {
         recycleBinTaskPagination.value.pageCount = res.data.pages;
         recycleBinTaskPagination.value.pageSize = res.data.page_size;
         recycleBinTaskPagination.value.page = res.data.current_page;
-      }else{
+      } else {
         recycleBinTaskData.value = [];
       }
     })
@@ -138,7 +139,7 @@ const recycleBinTaskColumns = [
   {
     title: '操作',
     align: 'center',
-    render(row) {
+    render (row) {
       return [
         h(
           NButton,
@@ -215,14 +216,14 @@ const menu = ref([
 ]);
 
 // 初始化
-function initCondition() {
+function initCondition () {
   const allRequest = [
     axios.get('/v1/task/status'),
     axios.get(`/v1/org/${storage.getValue('orgId')}/users`, {
       page_num: 1,
       page_size: 9999,
     }),
-    axios.get('/v1/groups', { page_size: 99999, page_num: 1 }),
+    getGroup({ page_size: 99999, page_num: 1 }),
   ];
   Promise.allSettled(allRequest).then((responses) => {
     if (responses[0].value?.data) {
@@ -262,25 +263,26 @@ function initCondition() {
 }
 
 // 筛选
-function handleValidateButtonClick(e) {
+function handleValidateButtonClick (e) {
   e.preventDefault();
   formRef.value.validate((errors) => {
     if (!errors) {
+      const formData = JSON.parse(JSON.stringify(model.value));
       if (model.value.deadline > 0) {
-        model.value.deadline = formatTime(
+        formData.deadline = formatTime(
           model.value.deadline,
           'yyyy-MM-dd hh:mm:ss'
         );
       }
       if (model.value.start_time > 0) {
-        model.value.start_time = formatTime(
+        formData.start_time = formatTime(
           model.value.start_time,
           'yyyy-MM-dd hh:mm:ss'
         );
       }
       document.dispatchEvent(
         new CustomEvent('searchTask', {
-          detail: model.value,
+          detail: formData,
         })
       );
       active.value = false;
@@ -291,24 +293,24 @@ function handleValidateButtonClick(e) {
 }
 
 // 页面切换
-function menuClick(item, index) {
+function menuClick (item, index) {
   menuSelect.value = index;
   router.push(`/home/tm/${item.name}`);
   item.name === 'task' ? (isTask.value = true) : (isTask.value = false);
 }
 
 // 视图切换
-function toggleView() {
+function toggleView () {
   store.commit('taskManage/toggleView');
 }
 
 // 显示筛选框
-function screen() {
+function screen () {
   active.value = true;
 }
 
 // 重置筛选条件
-function clearCondition(e) {
+function clearCondition (e) {
   model.value = {
     title: null,
     executor_id: null,
@@ -323,14 +325,14 @@ function clearCondition(e) {
 }
 
 // 显示回收站按钮
-function showRecycleBin() {
+function showRecycleBin () {
   showRecycleBinModal.value = true;
   recycleBinTaskLoading.value = true;
   query(1);
 }
 
 // 回收站表格页数变动
-function recycleBinTablePageChange(currentPage) {
+function recycleBinTablePageChange (currentPage) {
   if (!recycleBinTaskLoading.value) {
     recycleBinTaskLoading.value = true;
     query(currentPage);

@@ -58,6 +58,12 @@ const themeOverrides = {
     primaryColorPressed: 'rgba(0, 47, 167, 1)',
     primaryColorSuppl: 'rgba(0, 47, 167, 1)',
   },
+  Card:{
+    actionColor:'rgb(242,242,242)'
+  },
+  DataTable: {
+    thColor: 'rgb(242,242,242)'
+  }
 };
 
 export default {
@@ -153,6 +159,10 @@ export default {
   color: #abb2bf !important;
   background: #282c34 !important;
   padding: 3px 5px !important;
+}
+.bounceIn {
+  animation: bounceIn;
+  animation-duration: 1s;
 }
 .hljs {
   color: #abb2bf !important;

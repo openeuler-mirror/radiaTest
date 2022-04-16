@@ -176,7 +176,7 @@ const menu = ref([
   {
     id: 2,
     text: '用例评审',
-    name: 'review',
+    name: 'caseReview',
   },
 ]);
 

@@ -4,12 +4,13 @@
       <n-thing>
         <template #header>用例描述 </template>
         <template #header-extra>
-          <n-button text @click="() => updateModalRef.show()">
+          <n-button :disabled="true" text @click="() => updateModalRef.show()">
             <template #icon>
               <edit />
             </template>
           </n-button>
-          <modal-card
+          <caseModifyForm @submit="submit" ref="updateModalRef" :formValue="formValue" />
+          <!-- <modal-card
             :initY="100"
             :initX="300"
             title="编辑文本用例内容"
@@ -30,7 +31,7 @@
                 "
               />
             </template>
-          </modal-card>
+          </modal-card> -->
         </template>
         <pre>{{ form.description }}</pre>
       </n-thing>
@@ -59,24 +60,53 @@
 <script>
 import { ref, defineComponent } from 'vue';
 
-import ModalCard from '@/components/CRUD/ModalCard.vue';
-import TestcaseUpdateContentForm from './TestcaseUpdateContentForm.vue';
+// import ModalCard from '@/components/CRUD/ModalCard.vue';
+// import TestcaseUpdateContentForm from './TestcaseUpdateContentForm.vue';
 import { Edit } from '@vicons/fa';
+import caseModifyForm from '@/components/testcaseComponents/caseModifyForm.vue';
+// import { createCaseReview } from '@/api/post';
 
 export default defineComponent({
   components: {
-    TestcaseUpdateContentForm,
-    ModalCard,
+    // TestcaseUpdateContentForm,
+    // ModalCard,
     Edit,
+    caseModifyForm,
   },
   props: {
     form: Object,
   },
+  watch: {
+    form: {
+      handler(value) {
+        console.log(1,value);
+        this.formValue = ref({
+          machine_type: undefined,
+          machine_num: undefined,
+          description: undefined,
+          steps: this.form.steps,
+          preset: this.form.preset,
+          expectation: this.form.expection,
+          case_description: this.form.description,
+          title: '',
+        });
+      },
+      deep: true,
+    },
+  },
+  methods:{
+    // submit(value){
+    //   createCaseReview({...value,case_detail_id:this.form.id}).then(()=>{
+    //     this.$refs.updateModalRef.close();
+    //   });
+    // }
+  },
   setup(props, context) {
     const updateFormRef = ref(null);
     const updateModalRef = ref(null);
-
+    const formValue = ref({});
     return {
+      formValue,
       updateFormRef,
       updateModalRef,
       emitUpdateEvent() {

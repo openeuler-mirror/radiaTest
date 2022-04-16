@@ -219,7 +219,6 @@ import { Socket } from '@/socket';
 import ModalCard from '@/components/CRUD/ModalCard.vue';
 import EditModal from '@/components/vmachineComponents/expandedContent/EditModal.vue';
 
-import settings from '@/assets/config/settings.js';
 import { specialDevice } from '@/assets/config/vmachineSpecialDevice.js';
 import expandedContent from './expandedContent';
 import expanded from '@/views/vmachine/modules/expanded.js';
@@ -236,7 +235,7 @@ export default defineComponent({
   // eslint-disable-next-line max-lines-per-function
   setup(props, context) {
     const vmachineResourceSocket = new Socket(
-      `ws://${settings.serverPath}/monitor/normal`
+      `ws://${props.data.machine_group.messenger_ip}:${props.data.machine_group.messenger_listen}/monitor/normal`
     );
     vmachineResourceSocket.connect();
     const memoryPercentage = ref('');
@@ -253,7 +252,6 @@ export default defineComponent({
         });
       }
       vmachineResourceSocket.listen(props.data.ip, (data) => {
-        console.log(data.mem_usage);
         data.mem_usage
           ? (memoryPercentage.value = data.mem_usage.toFixed(2))
           : 0;

@@ -10,16 +10,16 @@
             height: 80px; 
             font-family: 'v-sans';
             padding-top: 40px; 
-            background-color: #FAFAFC;
+            background-color: rgb(242,242,242);
         "
     style="height: 100%"
   >
-    <selection-button
+    <!-- <selection-button
       @show="tableRef.showSelection()"
       @off="tableRef.offSelection()"
-    />
+    /> -->
     <n-grid x-gap="24" y-gap="6">
-      <n-gi :span="8">
+      <n-gi :span="6">
         <n-space>
           <create-button title="注册产品版本" @click="createModalRef.show()" />
           <modal-card
@@ -41,11 +41,13 @@
               />
             </template>
           </modal-card>
-          <delete-button title="产品版本" url="/v1/product" />
+          <!-- <delete-button title="产品版本" url="/v1/product" /> -->
         </n-space>
       </n-gi>
-      <n-gi :span="3"></n-gi>
-      <n-gi :span="13">
+      <n-gi :span="16">
+        <product-filter style="position: relative" />
+      </n-gi>
+      <n-gi :span="2">
         <n-space justify="end">
           <refresh-button @refresh="tableRef.refreshData()">
             刷新版本列表
@@ -55,7 +57,6 @@
       <n-gi :span="24"></n-gi>
       <n-gi :span="24"></n-gi>
       <n-gi :span="24">
-        <product-filter style="position: relative" />
       </n-gi>
       <n-gi :span="24">
         <product-table ref="tableRef" @update="() => updateModalRef.show()" />
