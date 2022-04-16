@@ -16,6 +16,7 @@ from server.utils.db import Insert, Precise, Like
 from server.utils.redis_util import RedisKey
 from server.model import ReUserGroup
 
+
 class PermissionManager:
     def get_api_list(self, table_name, path, item_id):
         with open(path, 'r', encoding='utf-8') as f:
@@ -44,58 +45,64 @@ class PermissionManager:
         get_scope_ids = []
         for sdata in scope_datas:
             try:
-                scope_id = Insert(Scope, sdata).insert_id(Scope, '/scope')
-                scope_ids.append(scope_id)
-                if sdata["act"] == "get":
-                   get_scope_ids.append(scope_id)
+                _scope = Scope.query.filter_by(alias=sdata['alias']).first()
+                if not _scope:
+                    scope_id = Insert(Scope, sdata).insert_id(Scope, '/scope')
+                    scope_ids.append(scope_id)
+                    if sdata["act"] == "get":
+                        get_scope_ids.append(scope_id)
             except (IntegrityError, SQLAlchemyError) as e:
                 current_app.logger.error(str(e))
                 continue
         return scope_ids, get_scope_ids
-    
+
     def generate(self, scope_datas_allow, scope_datas_deny, _data: dict):
+        default_role_filter = []
+        role_filter = []
         if _data["permission_type"] == "public":
             role_filter = [and_(
-                    Role.name == "admin",
-                    Role.type == "public",
-                    )]
+                Role.name == "admin",
+                Role.type == "public",
+            )]
             default_role_filter = [and_(
-                    Role.name == "default",
-                    Role.type == "public",
-                    )]
+                Role.name == "default",
+                Role.type == "public",
+            )]
         elif _data["permission_type"] == "group":
             role_filter = [and_(
-                    Role.name == "admin",
-                    Role.type == "group",
-                    Role.group_id == int(_data["group_id"])
-                    )]
+                Role.name == "admin",
+                Role.type == "group",
+                Role.group_id == int(_data["group_id"])
+            )]
             default_role_filter = [and_(
-                    Role.name == "default",
-                    Role.type == "group",
-                    Role.group_id == int(_data["group_id"])
-                    )]
+                Role.name == "default",
+                Role.type == "group",
+                Role.group_id == int(_data["group_id"])
+            )]
         elif _data["permission_type"] == "org":
+            org_id = int(redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')) if redis_client.hget(
+                RedisKey.user(g.gitee_id), 'current_org_id') else int(_data["org_id"])
             role_filter = [and_(
-                    Role.name == "admin",
-                    Role.type == "org",
-                    Role.org_id == int(redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id'))
-                    )]
+                Role.name == "admin",
+                Role.type == "org",
+                Role.org_id == org_id
+            )]
             default_role_filter = [and_(
-                    Role.name == "default",
-                    Role.type == "org",
-                    Role.org_id == int(redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id'))
-                    )]
+                Role.name == "default",
+                Role.type == "org",
+                Role.org_id == org_id
+            )]
         scope_allow_ids, get_scope_allow_ids = self.insert_scope(scope_datas_allow)
         _, _ = self.insert_scope(scope_datas_deny)
         if _data["permission_type"] != "person":
             default_role = Role.query.filter(*default_role_filter).first()
             if not default_role:
                 return jsonify(error_code=RET.NO_DATA_ERR, error_msg="Role has not been exist")
-            
+
             role = Role.query.filter(*role_filter).first()
             if not role:
                 return jsonify(error_code=RET.NO_DATA_ERR, error_msg="Role has not been exist")
-        
+
             try:
                 for _id in get_scope_allow_ids:
                     scope_role_data = {
@@ -129,7 +136,7 @@ class PermissionManager:
                 Insert(ReScopeRole, scope_role_data_creator).insert_id()
         except (SQLAlchemyError, IntegrityError) as e:
             raise RuntimeError(str(e)) from e
-    
+
     def clean(self, uri_part, item_ids: List[int]):
         try:
             for item_id in item_ids:
@@ -140,9 +147,10 @@ class PermissionManager:
                 for scope in scopes:
                     db.session.delete(scope)
                     db.session.commit()
-                    
+
         except (SQLAlchemyError, IntegrityError) as e:
             raise RuntimeError(str(e)) from e
+
 
 class GetAllByPermission:
     def __init__(self, _table) -> None:
@@ -154,12 +162,12 @@ class GetAllByPermission:
                 and_(
                     self._table.permission_type == "org",
                     self._table.org_id == int(current_org_id)
-                    ),
+                ),
                 and_(
                     self._table.permission_type == "person",
                     self._table.org_id == int(current_org_id),
                     self._table.creator_id == int(g.gitee_id)
-                    )
+                )
             )
         ]
 
@@ -174,7 +182,7 @@ class GetAllByPermission:
                     and_(
                         self._table.permission_type == "org",
                         self._table.org_id == int(current_org_id)
-                        ),
+                    ),
                     and_(
                         self._table.permission_type == "group",
                         self._table.org_id == int(current_org_id),
@@ -183,17 +191,17 @@ class GetAllByPermission:
                         self._table.permission_type == "person",
                         self._table.org_id == int(current_org_id),
                         self._table.creator_id == int(g.gitee_id)
-                        )
+                    )
 
                 )
             ]
 
     def get_filter(self):
         return self.filter_params
-        
+
     def get(self):
         tdata = self._table.query.filter(*self.filter_params).all()
-        data=[]
+        data = []
         if tdata:
             data = [dt.to_json() for dt in tdata]
         return jsonify(
@@ -201,13 +209,13 @@ class GetAllByPermission:
             error_msg="OK!",
             data=data
         )
-    
+
     def fuzz(self, _data):
         for key, value in _data.items():
-            if hasattr(self._table, key) and value is not None and key not in ("permission_type","group_id"):
+            if hasattr(self._table, key) and value is not None and key not in ("permission_type", "group_id"):
                 self.filter_params.append(getattr(self._table, key).like("%{}%".format(value)))
         tdata = self._table.query.filter(*self.filter_params).all()
-        data=[]
+        data = []
         if tdata:
             data = [dt.to_json() for dt in tdata]
         return jsonify(
@@ -218,10 +226,10 @@ class GetAllByPermission:
 
     def precise(self, _data):
         for key, value in _data.items():
-            if hasattr(self._table, key) and value is not None and key not in ("permission_type","group_id"):
+            if hasattr(self._table, key) and value is not None and key not in ("permission_type", "group_id"):
                 self.filter_params.append(getattr(self._table, key) == value)
         tdata = self._table.query.filter(*self.filter_params).all()
-        data=[]
+        data = []
         if tdata:
             data = [dt.to_json() for dt in tdata]
         return jsonify(
@@ -229,15 +237,15 @@ class GetAllByPermission:
             error_msg="OK!",
             data=data
         )
-    
+
     def MultiCondition(self, _data):
         for key, value in _data.items():
-            if hasattr(self._table, key) and value is not None and key not in ("permission_type","group_id"):
+            if hasattr(self._table, key) and value is not None and key not in ("permission_type", "group_id"):
                 if not isinstance(value, list):
                     value = [value]
                 self.filter_params.append(getattr(self._table, key).in_(value))
         tdata = self._table.query.filter(*self.filter_params).all()
-        data=[]
+        data = []
         if tdata:
             data = [dt.to_json() for dt in tdata]
         return jsonify(
@@ -249,10 +257,10 @@ class GetAllByPermission:
 
 class PermissionItemsPool:
     def __init__(
-        self, origin_pool, namespace, act, auth):
+            self, origin_pool, namespace, act, auth):
         self.origin_pool = origin_pool
         self._root_url = "api/{}/{}".format(
-            current_app.config.get("OFFICIAL_API_VERSION"), 
+            current_app.config.get("OFFICIAL_API_VERSION"),
             namespace
         )
         self.act = act
@@ -294,7 +302,7 @@ class PermissionItemsPool:
             except (SSHException, RuntimeError) as e:
                 current_app.logger.warn(str(e))
                 continue
-        
+
         return return_data
 
     @property

@@ -66,14 +66,8 @@ class CasbinEnforcer:
     def enforcer(self, func=None, delimiter=","):
         @wraps(func)
         def wrapper(*args, **kwargs):
-            from server.utils.auth_util import RedisKey
-            from server import redis_client
             from server.utils.message_util import MessageManager
-            dom =  redis_client.hget(
-                RedisKey.user(g.gitee_id), 
-                'current_org_name'
-            )
-
+            self.e.load_policy()
             if self.e.watcher and self.e.watcher.should_reload():
                 self.e.watcher.update_callback()
             # String used to hold the owners user name for audit logging
@@ -93,7 +87,7 @@ class CasbinEnforcer:
                 for owner in self._owner_loader():
                     owner = owner.strip('"') if isinstance(owner, str) else owner
                     
-                    if self.e.enforce(owner, uri, request.method, dom):
+                    if self.e.enforce(owner, uri, request.method):
                         return func(*args, **kwargs)
 
             for header in list(map(str.lower, self.app.config.get("CASBIN_OWNER_HEADERS"))):
@@ -121,7 +115,7 @@ class CasbinEnforcer:
                             str.lower, self.user_name_headers
                         ):
                             owner_audit = owner
-                        if self.e.enforce(owner, uri, request.method, dom):
+                        if self.e.enforce(owner, uri, request.method):
                             self.app.logger.info(
                                 "access granted: method: %s resource: %s%s"
                                 % (
@@ -147,7 +141,7 @@ class CasbinEnforcer:
                                 str.lower, self.user_name_headers
                             ):
                                 owner_audit = owner
-                            if self.e.enforce(owner.strip('"'), uri, request.method, dom):
+                            if self.e.enforce(owner.strip('"'), uri, request.method):
                                 self.app.logger.info(
                                     "access granted: method: %s resource: %s%s"
                                     % (
@@ -160,7 +154,13 @@ class CasbinEnforcer:
                                     )
                                 )
                                 return func(*args, **kwargs)
-            _api = MessageManager().get_cur_api_msg(uri, str(request.method), request.get_json())
+
+            if request.get_data().decode() == '':
+                _api = MessageManager().get_cur_api_msg(uri, str(request.method), request.get_json(),
+                                                        request.get_data().decode())
+            else:
+                _api = MessageManager().get_cur_api_msg(uri, str(request.method), request.get_json(),
+                                                        request.get_json())
             if not _api:
                 self.app.logger.error(
                     "Unauthorized attempt: method: %s resource: %s%s"

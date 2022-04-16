@@ -13,21 +13,22 @@ from server.schema.permission import (
     ScopeUpdateSchema,
     ScopeQuerySchema,
     UserRoleBaseSchema,
-    ScopeRoleBaseSchema
+    ScopeRoleBaseSchema,
+    AllRoleQuerySchema
 )
 from .handler import AccessableMachinesHandler, RoleHandler, ScopeHandler, UserRoleLimitedHandler, ScopeRoleLimitedHandler
 
 
 class RoleEvent(Resource):
     @auth.login_required
-    # @casbin_enforcer.enforcer
+    @casbin_enforcer.enforcer
     @response_collect
     @validate()
     def get(self, query: RoleQuerySchema):
         return RoleHandler.get_all(query)
 
     @auth.login_required
-    # @casbin_enforcer.enforcer
+    @casbin_enforcer.enforcer
     @response_collect
     @validate()
     def post(self, body: RoleBaseSchema):
@@ -36,35 +37,43 @@ class RoleEvent(Resource):
 
 class RoleItemEvent(Resource):
     @auth.login_required
-    # @casbin_enforcer.enforcer
+    @casbin_enforcer.enforcer
     @response_collect
     @validate()
     def put(self, role_id, body: RoleUpdateSchema):
         return RoleHandler.update(role_id, body)
     
     @auth.login_required
-    # @casbin_enforcer.enforcer
+    @casbin_enforcer.enforcer
     @response_collect
     def delete(self, role_id):
         return RoleHandler.delete(role_id)
 
     @auth.login_required
-    # @casbin_enforcer.enforcer
+    @casbin_enforcer.enforcer
     @response_collect
     def get(self, role_id):
         return RoleHandler.get(role_id)
 
 
+class AllRoleEvent(Resource):
+    @auth.login_required
+    @response_collect
+    @validate()
+    def get(self, query: AllRoleQuerySchema):
+        return RoleHandler.get_role(query)
+
+
 class ScopeEvent(Resource):
     @auth.login_required
-    # @casbin_enforcer.enforcer
+    @casbin_enforcer.enforcer
     @response_collect
     @validate()
     def get(self, query: ScopeQuerySchema):
         return ScopeHandler.get_all(query)
 
     @auth.login_required
-    # @casbin_enforcer.enforcer
+    @casbin_enforcer.enforcer
     @response_collect
     @validate()
     def post(self, body: ScopeBaseSchema):
@@ -73,14 +82,14 @@ class ScopeEvent(Resource):
 
 class ScopeItemEvent(Resource):
     @auth.login_required
-    # @casbin_enforcer.enforcer
+    @casbin_enforcer.enforcer
     @response_collect
     @validate()
     def put(self, scope_id, body: ScopeUpdateSchema):
         return ScopeHandler.update(scope_id, body)
     
     @auth.login_required
-    # @casbin_enforcer.enforcer
+    @casbin_enforcer.enforcer
     @response_collect
     def delete(self, scope_id):
         return ScopeHandler.delete(scope_id)
@@ -88,7 +97,7 @@ class ScopeItemEvent(Resource):
 
 class UserRolePublicEvent(Resource):
     @auth.login_required
-    # @casbin_enforcer.enforcer
+    @casbin_enforcer.enforcer
     @response_collect
     @validate()
     def post(self, body: UserRoleBaseSchema):
@@ -97,7 +106,7 @@ class UserRolePublicEvent(Resource):
         ).bind_user()
     
     @auth.login_required
-    # @casbin_enforcer.enforcer
+    @casbin_enforcer.enforcer
     @response_collect
     @validate()
     def delete(self, body: UserRoleBaseSchema):
@@ -108,23 +117,23 @@ class UserRolePublicEvent(Resource):
 
 class UserRoleOrgEvent(Resource):
     @auth.login_required
-    # @casbin_enforcer.enforcer
+    @casbin_enforcer.enforcer
     @response_collect
     @validate()
     def post(self, org_id, body: UserRoleBaseSchema):
         return  UserRoleLimitedHandler(
-            type='org', 
+            _type='org',
             org_id=org_id, 
             body=body
         ).bind_user()
     
     @auth.login_required
-    # @casbin_enforcer.enforcer
+    @casbin_enforcer.enforcer
     @response_collect
     @validate()
     def delete(self, org_id, body: UserRoleBaseSchema):
         return  UserRoleLimitedHandler(
-            type='org', 
+            _type='org',
             org_id=org_id, 
             body=body
         ).unbind_user()
@@ -132,31 +141,31 @@ class UserRoleOrgEvent(Resource):
 
 class UserRoleGroupEvent(Resource):
     @auth.login_required
-    # @casbin_enforcer.enforcer
+    @casbin_enforcer.enforcer
     @response_collect
     @validate()
     def post(self, group_id, body: UserRoleBaseSchema):
         return  UserRoleLimitedHandler(
-            type='group', 
+            _type='group',
             group_id=group_id, 
             body=body
         ).bind_user()
 
     @auth.login_required
-    # @casbin_enforcer.enforcer
+    @casbin_enforcer.enforcer
     @response_collect
     @validate()
     def delete(self, group_id, body: UserRoleBaseSchema):
         return  UserRoleLimitedHandler(
-            type='group', 
-            group_id=group_id, 
+            _type='group',
+            group_id=group_id,
             body=body
         ).unbind_user()
 
 
 class ScopeRolePublicEvent(Resource):
     @auth.login_required
-    # @casbin_enforcer.enforcer
+    @casbin_enforcer.enforcer
     @response_collect
     @validate()
     def post(self, body: ScopeRoleBaseSchema):
@@ -165,7 +174,7 @@ class ScopeRolePublicEvent(Resource):
         ).bind_scope()
     
     @auth.login_required
-    # @casbin_enforcer.enforcer
+    @casbin_enforcer.enforcer
     @response_collect
     @validate()
     def delete(self, body: ScopeRoleBaseSchema):
@@ -176,23 +185,23 @@ class ScopeRolePublicEvent(Resource):
 
 class ScopeRoleOrgEvent(Resource):
     @auth.login_required
-    # @casbin_enforcer.enforcer
+    @casbin_enforcer.enforcer
     @response_collect
     @validate()
     def post(self, org_id, body: ScopeRoleBaseSchema):
         return  ScopeRoleLimitedHandler(
-            type='org', 
+            _type='org',
             org_id=org_id, 
             body=body
         ).bind_scope()
 
     @auth.login_required
-    # @casbin_enforcer.enforcer
+    @casbin_enforcer.enforcer
     @response_collect
     @validate()
     def delete(self, org_id, body: ScopeRoleBaseSchema):
         return  ScopeRoleLimitedHandler(
-            type='org', 
+            _type='org',
             org_id=org_id, 
             body=body
         ).unbind_scope()
@@ -200,23 +209,23 @@ class ScopeRoleOrgEvent(Resource):
 
 class ScopeRoleGroupEvent(Resource):
     @auth.login_required
-    # @casbin_enforcer.enforcer
+    @casbin_enforcer.enforcer
     @response_collect
     @validate()
     def post(self, group_id, body: ScopeRoleBaseSchema):
         return  ScopeRoleLimitedHandler(
-            type='group', 
+            _type='group',
             group_id=group_id, 
             body=body
         ).bind_scope()
     
     @auth.login_required
-    # @casbin_enforcer.enforcer
+    @casbin_enforcer.enforcer
     @response_collect
     @validate()
     def delete(self, group_id, body: ScopeRoleBaseSchema):
         return  ScopeRoleLimitedHandler(
-            type='group', 
+            _type='group',
             group_id=group_id, 
             body=body
         ).unbind_scope()

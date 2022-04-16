@@ -11,6 +11,7 @@ from server.model.permission import ReScopeRole, ReUserRole, Role, Scope
 from server.utils.permission_utils import PermissionItemsPool
 from server.utils.response_util import RET
 from server.utils.db import Insert, Delete, collect_sql_error
+from server.utils.read_from_yaml import get_default_suffix
 
 
 class RoleHandler:
@@ -46,6 +47,24 @@ class RoleHandler:
     @collect_sql_error
     def get_all(query):
         filter_params = []
+        if 'admin' not in str(g.gitee_id):
+            _filter = [and_(ReUserRole.user_id == g.gitee_id,
+                            Role.name == 'admin',
+                            or_(
+                                Role.type == 'group',
+                                Role.type == 'org'
+                                )
+                            )
+                       ]
+            _roles = Role.query.join(ReUserRole).filter(*_filter).all()
+            group_id = []
+            org_id = []
+            for _ in _roles:
+                if _.type == 'group':
+                    group_id.append(_.group_id)
+                else:
+                    org_id.append(_.org_id)
+            filter_params.append(or_(Role.group_id.in_(group_id), Role.org_id.in_(org_id)))
         for key, value in query.dict().items():
             if not value:
                 continue
@@ -103,6 +122,12 @@ class RoleHandler:
             return jsonify(error_code=RET.DATA_EXIST_ERR, error_msg="This role is already exist")
 
         _ = Insert(Role, _body).insert_id(Role, '/role')
+
+        role = Role.query.get(_body["role_id"])
+        _origin = [_ for _ in role.children]
+        role.children.append(Role.query.get(_))
+        _after = [_ for _ in role.children]
+        role.add_update(difference=list(set(_after) - set(_origin)))
         return jsonify(error_code=RET.OK, error_msg="OK")
 
     @staticmethod
@@ -111,10 +136,18 @@ class RoleHandler:
         role = Role.query.filter_by(id=role_id).first()
         if not role:
             return jsonify(error_code=RET.NO_DATA_ERR, error_msg="The role to delete is not exist")
-        
-        db.session.delete(role)
-        db.session.commit()
-
+        if role.necessary:
+            return jsonify(error_code=RET.OTHER_REQ_ERR, error_msg="The role is not allowed to delete")
+        roles = [_.name for _ in role.children]
+        if roles:
+            return jsonify(error_code=RET.OTHER_REQ_ERR, error_msg=f"The role is related to sub-role(s):{str(roles)}")
+        _urs = ReUserRole.query.filter_by(role_id=role.id).all()
+        _srs = ReScopeRole.query.filter_by(role_id=role.id).all()
+        for _re in _urs:
+            Delete(ReUserRole, {"id": _re.id}).single()
+        for _re in _srs:
+            Delete(ReScopeRole, {"id": _re.id}).single()
+        role.delete()
         return jsonify(error_code=RET.OK, error_msg="OK")
         
     @staticmethod
@@ -129,6 +162,25 @@ class RoleHandler:
         role.add_update()
 
         return jsonify(error_code=RET.OK, error_msg="OK")
+
+    @staticmethod
+    @collect_sql_error
+    def get_role(query):
+        suffix = get_default_suffix(query.type)
+        all_filter = [Role.type == query.type]
+        if query.type != 'public':
+            all_filter.append(Role.org_id == query.org_id)
+            if query.type == 'group':
+                all_filter.append(Role.group_id == query.group_id)
+
+        _all = Role.query.filter(*all_filter).all()
+        role_list = []
+        for _role in _all:
+            role_dict = _role.to_json()
+            if _role.name == suffix:
+                role_dict['default'] = True
+            role_list.append(role_dict)
+        return jsonify(error_code=RET.OK, error_msg="OK", data=role_list)
 
 
 class ScopeHandler:
@@ -213,17 +265,19 @@ class BindingHandler:
 
 
 class RoleLimitedHandler:
-    def __init__(self, type='public', org_id=None, group_id=None, role_id=None):
+    def __init__(self, _type='public', org_id=None, group_id=None, role_id=None):
         self.role_id = None
         
         _role = Role.query.filter_by(id=role_id).first()
-        if _role and _role.type == type and _role.org_id == org_id and _role.group_id == group_id:
+        if _role and _role.type == _type and _role.group_id == group_id and (
+                _type == 'public' or _type == 'group' or _type == 'org' and _role.org_id == org_id):
             self.role_id = _role.id
 
 
 class UserRoleLimitedHandler(RoleLimitedHandler):
-    def __init__(self, type='public', org_id=None, group_id=None, body=None):
-        super().__init__(type, org_id, group_id, body.role_id)
+    def __init__(self, _type='public', org_id=None, group_id=None, body=None):
+        super().__init__(_type, org_id, group_id, body.role_id)
+        self.org_id = org_id
         self.user_id = None
         _user = User.query.filter_by(gitee_id=body.user_id).first()
         if _user:
@@ -232,7 +286,7 @@ class UserRoleLimitedHandler(RoleLimitedHandler):
     def bind_user(self):
         if not self.role_id or not self.user_id:
             return jsonify(error_code=RET.VERIFY_ERR, error_msg="permission denied")
-        
+
         return Insert(
             ReUserRole, 
             {
@@ -258,8 +312,8 @@ class UserRoleLimitedHandler(RoleLimitedHandler):
 
 
 class ScopeRoleLimitedHandler(RoleLimitedHandler):
-    def __init__(self, type='public', org_id=None, group_id=None, body=None):
-        super().__init__(type, org_id, group_id, body.role_id)
+    def __init__(self, _type='public', org_id=None, group_id=None, body=None):
+        super().__init__(_type, org_id, group_id, body.role_id)
         self.scope_id = None
         _scope = Scope.query.filter_by(id=body.scope_id).first()
         if _scope:

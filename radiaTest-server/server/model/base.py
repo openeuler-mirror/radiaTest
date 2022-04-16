@@ -49,7 +49,7 @@ class Base(object):
             )
         
         return record_id
-    
+
     def add_flush_commit(self, table=None, namespace=None, broadcast=False):
         db.session.add(self)
         db.session.flush()
@@ -63,7 +63,7 @@ class Base(object):
                 namespace=namespace,
                 broadcast=broadcast,
             )
-        
+
         return record
 
 
@@ -88,16 +88,16 @@ class PermissionBaseModel(Base):
 
 
 class CasbinRoleModel(BaseModel):
-    def _get_subject(self, role_name):
-        if self.role.type == "public":
+    def _get_subject(self, role_type, role_name):
+        if role_type == "public":
             return "{}@public".format(
-                role_name, 
-            )
-        elif self.role.type == "person":
-            return "{}@person".format(
                 role_name,
             )
-        elif self.role.type == "group":
+        elif role_type == "person":
+            return "{}".format(
+                role_name,
+            )
+        elif role_type == "group":
             return "{}@group_{}".format(
                 role_name,
                 self.role.group.name
@@ -105,5 +105,25 @@ class CasbinRoleModel(BaseModel):
         else:
             return "{}@org_{}".format(
                 role_name,
-                self.role.organization.name,
+                self.role.organization.name
+            )
+
+    def _get_subject_(self, role_type, role_name):
+        if role_type == "public":
+            return "{}@public".format(
+                role_name,
+            )
+        elif role_type == "person":
+            return "{}".format(
+                role_name,
+            )
+        elif role_type == "group":
+            return "{}@group_{}".format(
+                role_name,
+                self.group.name
+            )
+        else:
+            return "{}@org_{}".format(
+                role_name,
+                self.organization.name,
             )

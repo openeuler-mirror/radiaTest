@@ -18,12 +18,13 @@ class Role(db.Model, CasbinRoleModel):
     name = db.Column(db.String(64), nullable=False)
     type = db.Column(db.String(16), nullable=False)
     description = db.Column(db.Text(), nullable=True)
+    necessary = db.Column(db.Boolean, default=False, nullable=False)
 
     group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
     org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
 
-    re_scope_role = db.relationship("ReScopeRole", cascade="all, delete, delete-orphan", backref="role") 
-    re_user_role = db.relationship("ReUserRole", cascade="all, delete, delete-orphan", backref="role") 
+    re_scope_role = db.relationship("ReScopeRole", cascade="all, delete, delete-orphan", backref="role")
+    re_user_role = db.relationship("ReUserRole", cascade="all, delete, delete-orphan", backref="role")
 
     children = db.relationship(
         "Role",
@@ -45,27 +46,37 @@ class Role(db.Model, CasbinRoleModel):
             "group_name": self.group.name if self.group else None,
             "org_id": self.org_id,
             "org_name": self.organization.name if self.organization else None,
-            "children": [child.to_json for child in self.children]
         }
 
     def _generate_groups(self):
         groups = []
         for child in self.children:
-            _sub = self._get_subject(child.name)
-            _role = self._get_subject(self.name)
+            _sub = super()._get_subject_(child.type, child.name)
+            _role = self._get_subject_(self.type, self.name)
             groups.append([_sub, _role])
 
         return groups
 
-    def add_update(self, table=None, namespace=None):
-        super().add_update(table, namespace)
-        for group in self._generate_groups():
-            casbin_enforcer.adapter.add_policy("g", "g", group)
+    def _get_update(self, difference):
+        groups = []
+        for child in difference:
+            _sub = super()._get_subject_(child.type, child.name)
+            _role = self._get_subject_(self.type, self.name)
+            groups.append([_sub, _role])
 
-    def delete(self, table, namespace):
-        super().delete(table, namespace)
+        return groups
+
+    def add_update(self, table=None, namespace=None, broadcast=False, difference=None):
+        super().add_update(table, namespace)
+        if difference:
+            _update = self._get_update(difference)
+            for group in _update:
+                casbin_enforcer.adapter.add_policy("g", "g", group)
+
+    def delete(self, table=None, namespace=None, broadcast=False):
         for group in self._generate_groups():
             casbin_enforcer.adapter.remove_policy("g", "g", group)
+        super().delete(table, namespace, broadcast)
 
 
 class Scope(db.Model, BaseModel):
@@ -95,14 +106,14 @@ class ReScopeRole(db.Model, CasbinRoleModel):
     role_id = db.Column(db.Integer(), db.ForeignKey("role.id"))
 
     def _generate_policy(self):
-        _sub = self._get_subject(self.role.name)
+        _sub = self._get_subject(self.role.type, self.role.name)
         _obj = self.scope.uri
         _act = self.scope.act.upper()
         _eft = self.scope.eft
         return [_sub, _obj, _act, _eft]
 
-    def add_update(self, table=None, namespace=None):
-        super().add_update(table, namespace)
+    def add_update(self, table=None, namespace=None, broadcast=False):
+        super().add_update(table, namespace, broadcast)
         casbin_enforcer.adapter.add_policy("p", "p", self._generate_policy())
 
     def add_flush_commit_id(self, table=None, namespace=None, broadcast=False):
@@ -110,11 +121,11 @@ class ReScopeRole(db.Model, CasbinRoleModel):
         casbin_enforcer.adapter.add_policy("p", "p", self._generate_policy())
         return id
 
-    def delete(self, table, namespace):
+    def delete(self, table, namespace, broadcast=False):
         _policy = self._generate_policy()
-        super().delete(table, namespace)
+        super().delete(table, namespace, broadcast)
         casbin_enforcer.adapter.remove_policy("p", "p", _policy)
-    
+
     def to_json(self):
         return {
             "id": self.id,
@@ -135,22 +146,22 @@ class ReUserRole(db.Model, CasbinRoleModel):
 
     def _generate_group(self):
         _sub = str(self.user_id)
-        _role = self._get_subject(self.role.name)
+        _role = self._get_subject(self.role.type, self.role.name)
 
         return [_sub, _role]
 
-    def add_update(self, table=None, namespace=None):
-        super().add_update(table, namespace)
+    def add_update(self, table=None, namespace=None, broadcast=False):
+        super().add_update(table, namespace, broadcast)
         casbin_enforcer.adapter.add_policy("g", "g", self._generate_group())
-    
+
     def add_flush_commit_id(self, table=None, namespace=None, broadcast=False):
         id = super().add_update(table, namespace, broadcast)
         casbin_enforcer.adapter.add_policy("g", "g", self._generate_group())
         return id
 
-    def delete(self, table, namespace):
+    def delete(self, table, namespace, broadcast=False):
         _policy = self._generate_group()
-        super().delete(table, namespace)
+        super().delete(table, namespace, broadcast)
         casbin_enforcer.adapter.remove_policy("g", "g", _policy)
 
     def to_json(self):
