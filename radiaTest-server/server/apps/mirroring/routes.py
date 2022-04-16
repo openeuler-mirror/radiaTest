@@ -30,7 +30,7 @@ class IMirroringItemEvent(Resource):
     def put(self, i_mirroring_id, body: IMirroringUpdate):
         _body = body.__dict__
         _body.update({"id": i_mirroring_id})
-        return Edit(IMirroring, _data).single(IMirroring, '/imirroring')
+        return Edit(IMirroring, _body).single(IMirroring, '/imirroring')
 
 class IMirroringEvent(Resource):
     @validate()
@@ -68,7 +68,7 @@ class QMirroringItemEvent(Resource):
     def put(self, q_mirroring_id, body: QMirroringUpdate):
         _body = body.__dict__
         _body.update({"id": q_mirroring_id})
-        return Edit(QMirroring, _data).single(QMirroring, '/qmirroring')
+        return Edit(QMirroring, _body).single(QMirroring, '/qmirroring')
 
 class QMirroringEvent(Resource):
     @validate()
