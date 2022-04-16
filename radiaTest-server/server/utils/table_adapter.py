@@ -4,6 +4,8 @@ from server.model import (
     Pmachine,
     Vmachine,
     MachineGroup,
+    IMirroring,
+    QMirroring,
 )
 
 class TableAdapter:
@@ -12,3 +14,5 @@ class TableAdapter:
     pmachine=Pmachine
     vmachine=Vmachine
     machine_group=MachineGroup
+    i_mirroring=IMirroring
+    q_mirroring=QMirroring
