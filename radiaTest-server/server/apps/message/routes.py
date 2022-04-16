@@ -3,6 +3,8 @@ from server import socketio
 from server.utils.auth_util import auth
 from server.utils.response_util import response_collect
 from .handlers import *
+from server.schema.message import MessageCallBack
+from flask_pydantic import validate
 
 
 @socketio.on('count', namespace='/api/v1/msg')
@@ -23,3 +25,10 @@ class MsgBatch(Resource):
     @response_collect
     def put(self):
         return handler_update_msg()
+
+class MsgCallBack(Resource):
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def put(self, body: MessageCallBack):
+        return handler_msg_callback(body)

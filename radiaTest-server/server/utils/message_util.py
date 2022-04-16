@@ -33,6 +33,11 @@ class MessageManager:
                 uri_t2 = uri_s[1] if len(uri_s) > 1 else ""
                 indx = uri.index(uri_t1)
                 _api["id"] = uri[indx:].replace(uri_t1, "").replace(uri_t2, "")
+                _instance =  Precise(
+                    getattr(TableAdapter, _api["table"]), {"id": int(_api["id"])},
+                ).first()
+                if _instance.permission_type == "person":
+                    return None
                 _api["body"] = body
                 return _api
             continue
@@ -82,6 +87,8 @@ class MessageManager:
                     info=f'<b>{redis_client.hget(RedisKey.user(g.gitee_id), "gitee_name")}</b>请求{_api.get("alias")}<b>{_api["id"]}</b>。',
                     script=_api.get("uri") % int(_api["id"]), #“/api/v1/product/%d” % instance_id
                     method=_api.get("act"), #"delete"
+                    _alias=_api.get("alias"),
+                    _id=_api.get("id"),
                     body=_api["body"]
                 )
             ),

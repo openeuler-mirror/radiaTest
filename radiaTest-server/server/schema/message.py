@@ -22,3 +22,7 @@ class MessageModel(BaseModel):
             return json.loads(v)
         except:
             return None
+
+class MessageCallBack(BaseModel):
+    msg_id: int
+    access: bool
