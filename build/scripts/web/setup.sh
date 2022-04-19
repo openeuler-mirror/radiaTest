@@ -2,12 +2,12 @@
 
 GIT_REPO=https://gitee.com/openeuler/radiaTest
 
+bash ./install_nodejs.sh
+
 cd /tmp/ || exit
 
 dnf install -y git &&
-    dnf install -y nginx &&
-    dnf install -y nodejs
-# 后续采用单独wget node-v14.17的二进制包
+    dnf install -y nginx
 
 git clone "$GIT_REPO" ||
     git pull "$GIT_REPO" ||
@@ -16,7 +16,9 @@ git clone "$GIT_REPO" ||
 
 cd /tmp/radiaTest/radiaTest-web/ || exit
 
-npm install && npm run build &&
-    cat ./deploy/nginx.conf >/etc/nginx/nginx.conf &&
-    mkdir /usr/share/radiaTest &&
-    cp -r ./dist /usr/share/radiaTest/
+mkdir /usr/share/radiaTest
+
+npm install --force \
+    && npm run build \
+    && cat ./deploy/nginx.conf >/etc/nginx/nginx.conf \
+    && cp -r ./dist /usr/share/radiaTest/
