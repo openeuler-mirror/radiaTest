@@ -1,8 +1,9 @@
-from server.model.base import Base
+from server.model.base import Base, PermissionBaseModel
+from server.model.permission import Role, ReUserRole
 from server import db
 
 
-class Organization(db.Model, Base):
+class Organization(db.Model, PermissionBaseModel):
     __tablename__ = "organization"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(50), nullable=False)
@@ -72,9 +73,13 @@ class ReUserOrganization(db.Model, Base):
 
     def to_dict(self):
         _dict = self.__dict__
+        _filter = [ReUserRole.user_id == self.user_gitee_id, Role.type == 'org', Role.org_id == self.organization_id]
+        _role = Role.query.join(ReUserRole).filter(*_filter).first()
+
         _dict.update({
             "create_time": self.create_time.strftime("%Y-%m-%d %H:%M:%S"),
             "update_time": self.update_time.strftime("%Y-%m-%d %H:%M:%S"),
+            "role": _role.to_json() if _role else None
         })
 
         return _dict

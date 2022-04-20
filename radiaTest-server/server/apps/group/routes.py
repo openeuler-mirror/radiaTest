@@ -15,6 +15,7 @@
 
 #####################################
 
+from server import casbin_enforcer
 from flask_restful import Resource
 from flask_pydantic import validate
 from server.utils.auth_util import auth
@@ -35,6 +36,7 @@ class Group(Resource):
 
     @auth.login_required()
     @response_collect
+    @casbin_enforcer.enforcer
     def put(self, group_id):
         """
         编辑用户组
@@ -75,6 +77,7 @@ class User(Resource):
     @auth.login_required()
     @response_collect
     @validate()
+    @casbin_enforcer.enforcer
     def get(self, group_id, query: QueryGroupUserSchema):
         """
         获取某一用户组下的所有用户
@@ -86,6 +89,7 @@ class User(Resource):
     @auth.login_required()
     @response_collect
     @validate()
+    @casbin_enforcer.enforcer
     def post(self, group_id, body: AddGroupUserSchema):
         """
         添加用户组成员
@@ -98,6 +102,7 @@ class User(Resource):
     @auth.login_required()
     @response_collect
     @validate()
+    @casbin_enforcer.enforcer
     def put(self, group_id, body: UpdateGroupUserSchema):
         """
         编辑用户组的用户状态

@@ -52,7 +52,7 @@ class AddSchema(BaseModel):
         if values.get("cla_verify_url"):
             if not values["cla_sign_url"] or not values["cla_request_type"] or not values["cla_pass_flag"]:
                 raise TypeError("lack of cla info to create this organization")
-        
+
         return values
 
 
@@ -86,6 +86,7 @@ class ReUserOrgSchema(BaseModel):
     re_user_org_role_type: int = Field(alias="role_type")
     re_user_org_create_time: datetime = Field(alias="create_time")
     re_user_org_default: bool = Field(alias="default")
+    role: dict = None
 
     @validator("re_user_org_cla_info")
     def validator_cla_info(cls, v):
