@@ -24,7 +24,7 @@ import multiprocessing
 
 bind = '0.0.0.0:21500'      #绑定ip和端口号
 backlog = 10240                #监听队列
-chdir = '../'  #gunicorn要切换到的目的工作目录
+chdir = '/opt/radiaTest/radiaTest-server'  #gunicorn要切换到的目的工作目录
 timeout = 30      #超时
 worker_class = 'geventwebsocket.gunicorn.workers.GeventWebSocketWorker'
 

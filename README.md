@@ -9,8 +9,7 @@
 - 多元化测试引擎，满足社区差异化测试能力需求，灵活选用
 - 任务管理管理能力，实现测试活动全流程承载
 
-#### 软件架构
-软件架构说明
+#### 架构简介
 radiaTest-web & radiaTest-server: web服务的前后端
 - 若需要本地化部署测试管理平台web服务，则需部署（推荐使用radiatest.openeuler.org提供的公共服务）
 
@@ -24,22 +23,32 @@ radiaTest-worker: 动态资源(虚机资源)管理服务
 - 可部署于机器组内网，仅与messenger节点通信（推荐）
 - 若部署于公网机器，则需保证属于公网机器组，且可于对应机器组的messenger节点通信
 
-部署视图
-
 
 #### 安装教程
-除radiaTest-worker会直接部署在服务器物理环境外，其余服务将以容器部署
+radiaTest-worker必须部署在服务器物理环境
 
-1.  安装web服务前后端（radiaTest-web & radiaTest-server）
-    - 1) 待部署宿主机安装docker以及docker-compose软件包
-    - 2) 执行 build/lib/up_web_server 脚本
-2.  安装messenger服务端（radiaTest-messenger）
-    - 1) 待部署宿主机安装docker以及docker-compose软件包
-    - 2) 执行 build/lib/up_messenger_server 脚本
-3.  安装worker服务端（radiaTest-worker）
-    - 1) 执行 build/lib/up_worker_server 脚本
+一、 基于裸金属/虚拟机节点容器化部署
+    1.  安装web服务前后端（radiaTest-web & radiaTest-server）
+        - 1) 待部署宿主机安装docker以及docker-compose软件包
+        - 2) 执行 build/direct/lib/up_web_server 脚本
+    2.  安装messenger服务端（radiaTest-messenger）
+        - 1) 待部署宿主机安装docker以及docker-compose软件包
+        - 2) 执行 build/direct/lib/up_messenger_server 脚本
+    3.  安装worker服务端（radiaTest-worker）
+        - 1) 执行 build/direct/lib/up_worker_server 脚本
 
-#### 使用说明
+二、基于k8s，部署节点为k8s-pod（目前仅覆盖radiaTest-web & radiaTest-server）
+    1. 通过 build/k8s-pod/web/nginx & build/k8s-pod/web/supervisor 构建docker镜像
+    2. 准备 redis、rabbitmq、数据库，此部署模式需要人为准备中间件及数据库服务
+    3. 通过 挂载目录卷，将nginx、flask-app、gunicorn等所需的完整配置文件应用于相应容器
+    4. 运行 相应容器，检查日志和运行状态
+
+    P.S.
+        1）因采用配置文件初始化flask应用，中间件及数据库密码中不允许直接出现 # % 等歧义字符，若需使用必须使用转义
+        2）配置文件中，不建议ip字段采用集群的域主机名，建议直接使用0.0.0.0，由外部保证访问安全
+        3）日志均处于容器工作目录下的log中，可采取挂载目录卷的形式或同步存储于OBS桶的形式进行管理
+
+#### 基于裸金属/虚拟机节点容器化部署的运维说明
 若需要更改服务端口，或者docker的端口映射，请自行修改dockerfile或者docker-compose.yml
 ./gunicorn/gunicorn.conf.py决定了flask实际在docker中监听的端口
 supervisor控制的进程日志均在./log中

@@ -1,4 +1,4 @@
-FROM openeuler-21.09
+FROM openeuler/openeuler:21.09
 LABEL maintainer="ethanzhang55@outlook.com"
 
 ENV websockify_listen 21580
