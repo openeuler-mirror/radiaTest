@@ -17,6 +17,7 @@
 
 from flask_restful import Resource
 from flask_pydantic import validate
+from server import casbin_enforcer
 from server.schema.administrator import LoginSchema, RegisterSchema
 from server.schema.organization import AddSchema, UpdateSchema
 from server.utils.auth_util import auth
@@ -39,11 +40,13 @@ class Register(Resource):
 class Org(Resource):
     @auth.login_required()
     @response_collect
+    @casbin_enforcer.enforcer
     def get(self):
         return handler_read_org_list()
 
     @auth.login_required()
     @response_collect
+    @casbin_enforcer.enforcer
     def post(self):
         _form = dict()
         for key, value in request.form.items():
@@ -59,5 +62,6 @@ class OrgItem(Resource):
     @auth.login_required()
     @response_collect
     @validate()
+    @casbin_enforcer.enforcer
     def put(self, org_id, body: UpdateSchema):
         return handler_update_org(org_id, body)

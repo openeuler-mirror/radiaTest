@@ -5,11 +5,13 @@ from server import redis_client
 from server.model.organization import Organization, ReUserOrganization
 from server.model.user import User
 from server.model.group import ReUserGroup
+from server.model.permission import Role, ReUserRole
 from server.utils.response_util import RET
 from server.utils.page_util import PageUtil
-from server.utils.db import collect_sql_error
+from server.utils.db import collect_sql_error, Insert
 from server.utils.redis_util import RedisKey
 from server.utils.cla_util import ClaShowUserSchema, Cla, ClaShowAdminSchema
+from server.utils.read_from_yaml import get_default_suffix
 from server.schema.organization import OrgBaseSchema, ReUserOrgSchema
 from server.schema.user import UserBaseSchema
 from server.schema.base import PageBaseSchema
@@ -32,13 +34,13 @@ def handler_show_org_cla_list():
 @collect_sql_error
 def handler_org_cla(org_id, body):
     re = ReUserOrganization.query.filter_by(
-        is_delete=False, 
-        user_gitee_id=g.gitee_id, 
+        is_delete=False,
+        user_gitee_id=g.gitee_id,
         organization_id=org_id
     ).first()
     if re:
         return jsonify(
-            error_code=RET.DATA_EXIST_ERR, 
+            error_code=RET.DATA_EXIST_ERR,
             error_msg="relationship has exist"
         )
 
@@ -46,30 +48,39 @@ def handler_org_cla(org_id, body):
     org = Organization.query.filter_by(id=org_id, is_delete=False).first()
     if not org:
         return jsonify(
-            error_code=RET.NO_DATA_ERR, 
+            error_code=RET.NO_DATA_ERR,
             error_msg=f"database no find data"
         )
 
     org_info = org.to_dict()
 
     if org.cla_verify_url and not Cla.is_cla_signed(
-        ClaShowAdminSchema(**org_info).dict(), 
-        body.cla_verify_params, 
+        ClaShowAdminSchema(**org_info).dict(),
+        body.cla_verify_params,
         body.cla_verify_body
     ):
         return jsonify(
-            error_code=RET.CLA_VERIFY_ERR, 
+            error_code=RET.CLA_VERIFY_ERR,
             error_msg="user is not pass cla verification, please retry",
             data=g.gitee_id
         )
-    
+
     # 生成用户和组织的关系
     ReUserOrganization.create(
-        g.gitee_id, 
+        g.gitee_id,
         org_id,
         json.dumps({**body.cla_verify_params, **body.cla_verify_body}),
         default=False
     ).add_update()
+    # 绑定用户和组织基础角色
+    org_suffix = get_default_suffix('org')
+    filter_params = [
+            Role.org_id == org_id,
+            Role.type == 'org',
+            Role.name == org_suffix
+    ]
+    _role = Role.query.filter(*filter_params).first()
+    Insert(ReUserRole, {"user_id": g.gitee_id, "role_id": _role.id}).single()
 
     return jsonify(error_code=RET.OK, error_msg="OK")
 
@@ -132,14 +143,14 @@ def handler_get_all_org(query):
         filter_params.append(Organization.name.like(f'%{query.org_name}%'))
     if query.org_description:
         filter_params.append(Organization.description.like(f'%{query.org_description}%'))
-    
+
     query_filter = Organization.query.filter(*filter_params)
 
     def page_func(item):
         if item.is_delete:
             return None
         return OrgBaseSchema(**item.to_dict()).dict()
-    
+
     page_dict, e = PageUtil.get_page_dict(query_filter, query.page_num, query.page_size, func=page_func)
     if e:
         return jsonify(error_code=RET.SERVER_ERR, error_msg=f'get organization page error {e}')

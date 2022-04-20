@@ -22,12 +22,16 @@ from flask import request, g, current_app, jsonify
 from server import redis_client, db
 from server.utils.response_util import RET
 from server.utils.redis_util import RedisKey
-from server.utils.db import collect_sql_error
+from server.utils.db import collect_sql_error, Insert, Delete
 from server.utils.file_util import FileUtil
 from server.utils.page_util import PageUtil
+from server.utils.permission_utils import PermissionManager
+from server.utils.read_from_yaml import create_role, get_default_suffix, get_api
 from server.model.group import Group, ReUserGroup, GroupRole
 from server.model.administrator import Admin
 from server.model.message import Message, MsgType, MsgLevel
+from server.model.organization import Organization
+from server.model.permission import ReUserRole, Role, ReScopeRole
 from server.schema.group import ReUserGroupSchema, GroupInfoSchema, QueryGroupUserSchema
 
 
@@ -51,9 +55,21 @@ def handler_add_group():
     avatar_url = FileUtil.flask_save_file(avatar, FileUtil.generate_filepath('avatar'))
     description = request.form.get('description')
     # 创建一个group
-    group_id = Group.create(name, description, avatar_url)
+    group_id, group = Group.create(name, description, avatar_url, g.gitee_id, org_id, 'org')
     # 创建用户和著之间的关系
     ReUserGroup.create(True, 1, g.gitee_id, group_id, org_id)
+
+    # 初始化角色
+    org = Organization.query.get(org_id)
+    role_admin, role_list = create_role(_type='group', group=group, org=org)
+    Insert(ReUserRole, {"user_id": g.gitee_id, "role_id": role_admin.id}).single()
+    _data = {
+        "permission_type": "group",
+        "group_id": group_id
+    }
+    scope_data_allow, scope_data_deny = get_api("group", "group.yaml", "group", group_id)
+    PermissionManager().generate(scope_datas_allow=scope_data_allow, scope_datas_deny=scope_data_deny,
+                                 _data=_data)
     return jsonify(error_code=RET.OK, error_msg="OK")
 
 
@@ -102,6 +118,25 @@ def handler_delete_group(group_id):
         Group.query.filter_by(is_delete=False, id=group_id).update({'is_delete': True}, synchronize_session=False)
         ReUserGroup.query.filter_by(is_delete=False, group_id=group_id).update({'is_delete': True},
                                                                                synchronize_session=False)
+
+        _roles = Role.query.filter_by(type='group', group_id=group_id).all()
+        suffix = get_default_suffix('group')
+        sort_list = []
+        for _role in _roles:
+            if _role.name == suffix:
+                sort_list.insert(0, _role)
+            else:
+                sort_list.append(_role)
+        for _role in sort_list:
+            _urs = ReUserRole.query.filter_by(role_id=_role.id).all()
+            _srs = ReScopeRole.query.filter_by(role_id=_role.id).all()
+            for _re in _urs:
+                Delete(ReUserRole, {"id": _re.id}).single()
+            for _re in _srs:
+                Delete(ReScopeRole, {"id": _re.id}).single()
+        for _role in sort_list:
+            _role.delete()
+
     # 用户组成员退出用户组
     elif re.role_type in [GroupRole.admin.value, GroupRole.user.value]:
         res = ReUserGroup.query.filter(ReUserGroup.is_delete == False, ReUserGroup.group_id == group_id,
@@ -117,6 +152,14 @@ def handler_delete_group(group_id):
                                              f'</b>组织下的<b>{re.group.name}</b>用户组'))
             })
         re.add_update()
+
+        # 解除组内角色和用户的绑定
+        _filter = [ReUserRole.user_id == g.gitee_id,
+            Role.group_id == group_id,
+            Role.type == 'group']
+        re_list = ReUserRole.query.join(Role).filter(*_filter).all()
+        for re in re_list:
+            Delete(ReUserRole, {"id": re.id}).single()
     else:
         return jsonify(error_code=RET.VERIFY_ERR, error_msg="user has not right")
     db.session.execute(Message.__table__.insert(), msg_list)
@@ -159,7 +202,7 @@ def handler_group_page():
 @collect_sql_error
 def handler_group_user_page(group_id, query: QueryGroupUserSchema):
     filter_params = [
-        ReUserGroup.is_delete.is_(False), 
+        ReUserGroup.is_delete.is_(False),
         ReUserGroup.group_id == group_id,
         ReUserGroup.user_add_group_flag.is_(True),
     ]
