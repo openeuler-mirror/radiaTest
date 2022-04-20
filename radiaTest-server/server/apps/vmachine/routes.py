@@ -37,6 +37,7 @@ from server.model import Vmachine, Vdisk, Vnic
 from server.utils.permission_utils import PermissionManager, GetAllByPermission
 import os
 from server.utils.resource_utils import ResourceManager
+from server import casbin_enforcer
 
 
 class VmachineItemEvent(Resource):
@@ -44,6 +45,7 @@ class VmachineItemEvent(Resource):
     @response_collect
     @attribute_error_collect
     @validate()
+    @casbin_enforcer.enforcer
     def delete(self, vmachine_id):
         _vmachine = Vmachine.query.filter_by(id=vmachine_id).first()
         vmachine = _vmachine.to_json()
@@ -62,6 +64,7 @@ class VmachineItemEvent(Resource):
     @auth.login_required
     @response_collect
     @validate()
+    @casbin_enforcer.enforcer
     def get(self, vmachine_id):
         return Select(Vmachine, {"id":vmachine_id}).single()
     
@@ -139,20 +142,6 @@ class VmachineEvent(Resource):
     @validate()
     def get(self, query: VmachineQuerySchema):
         return VmachineHandler.get_all(query)
-
-    @auth.login_required
-    @response_collect
-    @validate()
-    def delete(self, body: DeleteBaseModel):
-        from_ip = request.remote_addr
-        
-        machine_group = MachineGroup.query.filter_by(ip=from_ip).first()
-        if not machine_group:
-            return jsonify(
-                error_code=RET.UNAUTHORIZE_ERR,
-                error_msg="the api only serve for messenger service, make sure the request is from valid messenger service"
-            )
-        return ResourceManager("vmachine").del_batch(body.__dict__.get("id"))
 
 
 class VmachineControl(Resource):

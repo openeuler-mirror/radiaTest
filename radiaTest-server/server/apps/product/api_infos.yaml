@@ -5,3 +5,6 @@ product:
   - uri: /api/v1/product/%d
     act: get
     alias: 获取Product
+  - uri: /api/v1/product/%d
+    act: put
+    alias: 修改Product

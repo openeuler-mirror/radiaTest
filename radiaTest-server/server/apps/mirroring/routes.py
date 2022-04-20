@@ -54,19 +54,6 @@ class IMirroringEvent(Resource):
     def post(self, body: IMirroringBase):
         return Insert(IMirroring, body.__dict__).single(IMirroring, '/imirroring')
 
-    @validate()
-    def delete(self, body: DeleteBaseModel):
-        return Delete(IMirroring, body.__dict__).batch(IMirroring, '/imirroring')
-
-    @validate()
-    def put(self, body: IMirroringUpdate):
-        return Edit(IMirroring, body.__dict__).single(IMirroring, '/imirroring')
-
-    def get(self):
-        body = request.args.to_dict()
-        return Select(IMirroring, body).fuzz()
-
-
 class PreciseGetIMirroring(Resource):
     def get(self):
         body = request.args.to_dict()
@@ -91,19 +78,6 @@ class QMirroringEvent(Resource):
     @validate()
     def post(self, body: QMirroringBase):
         return Insert(QMirroring, body.__dict__).single(QMirroring, '/qmirroring')
-
-    @validate()
-    def delete(self, body: DeleteBaseModel):
-        return Delete(QMirroring, body.__dict__).batch(QMirroring, '/qmirroring')
-
-    @validate()
-    def put(self, body: QMirroringUpdate):
-        return Edit(QMirroring, body.__dict__).single(QMirroring, '/qmirroring')
-
-    def get(self):
-        body = request.args.to_dict()
-        return Select(QMirroring, body).fuzz()
-
 
 class PreciseGetQMirroring(Resource):
     def get(self):

@@ -10,15 +10,7 @@
   act: put
   alias: 修改Product
   table: product
-- uri: /api/v1/milestone/%d
-  act: delete
-  alias: 删除Milestone
-  table: milestone
-- uri: /api/v1/milestone/%d
-  act: get
-  alias: 获取Milestone
-  table: milestone
-- uri: /api/v1/milestone/%d
+- uri: /api/v2/milestone/%d
   act: put
   alias: 修改Milestone
   table: milestone
