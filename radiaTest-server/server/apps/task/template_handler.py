@@ -15,7 +15,10 @@ from server.utils.page_util import PageUtil
 from server.utils.response_util import RET
 from server.utils.db import collect_sql_error
 from server.utils.redis_util import RedisKey
+from server.utils.permission_utils import PermissionManager
+from server.utils.read_from_yaml import get_api
 from .services import judge_task_automatic
+from .handlers import HandlerTask
 
 
 class HandlerTemplate:
@@ -44,17 +47,32 @@ class HandlerTemplate:
     @staticmethod
     @collect_sql_error
     def add(body):
-        template = TaskDistributeTemplate(name=body.name, creator_id=g.gitee_id, group_id=body.group_id)
+        org_id = redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')
+        template = TaskDistributeTemplate(name=body.name, creator_id=g.gitee_id,
+                                          group_id=body.group_id, permission_type='group', org_id=org_id)
         if body.types:
             for item in body.types:
                 dtt = DistributeTemplateType()
                 dtt.name = item.name
                 dtt.executor_id = item.executor_id
                 dtt.creator_id = g.gitee_id
+                dtt.group_id = template.group_id
+                dtt.permission_type = template.permission_type
                 dtt.suites = ','.join(item.suites)
                 dtt.helpers = ','.join(item.helpers) if item.helpers else ''
                 template.types.append(dtt)
         template.add_update()
+        _data = {
+            "permission_type": template.permission_type,
+            "group_id": template.group_id,
+        }
+        scope_data_allow, scope_data_deny = get_api("task", "template.yaml", "template", template.id)
+        PermissionManager().generate(scope_datas_allow=scope_data_allow, scope_datas_deny=scope_data_deny,
+                                     _data=_data)
+        for _type in template.types:
+            scope_data_allow, scope_data_deny = get_api("task", "type.yaml", "type", _type.id)
+            PermissionManager().generate(scope_datas_allow=scope_data_allow, scope_datas_deny=scope_data_deny,
+                                         _data=_data)
         return jsonify(error_code=RET.OK, error_msg="OK")
 
     @staticmethod
@@ -71,8 +89,11 @@ class HandlerTemplate:
     @collect_sql_error
     def delete(template_id):
         template = TaskDistributeTemplate.query.get(template_id)
-        _ = [db.session.delete(item) for item in template.types]
+        for item in template.types:
+            HandlerTask.unbind_role_table("task", "type", item)
+            db.session.delete(item)
         db.session.commit()
+        HandlerTask.unbind_role_table("task", "template", template)
         db.session.delete(template)
         db.session.commit()
         return jsonify(error_code=RET.OK, error_msg="OK")
@@ -119,10 +140,20 @@ class HandlerTemplateType:
         dtt.name = body.name
         dtt.creator_id = g.gitee_id
         dtt.executor_id = body.executor_id
+        dtt.group_id = template.group_id
+        dtt.permission_type = template.permission_type
         dtt.suites = ','.join(body.suites)
         dtt.helpers = ','.join(body.helpers)
+        dtt_id = dtt.add_flush_commit_id()
         template.types.append(dtt)
         template.add_update()
+        _data = {
+            "permission_type": template.permission_type,
+            "group_id": template.group_id,
+        }
+        scope_data_allow, scope_data_deny = get_api("task", "type.yaml", "type", dtt_id)
+        PermissionManager().generate(scope_datas_allow=scope_data_allow, scope_datas_deny=scope_data_deny,
+                                     _data=_data)
         return jsonify(error_code=RET.OK, error_msg="OK")
 
     @staticmethod
@@ -141,6 +172,7 @@ class HandlerTemplateType:
         dtt = DistributeTemplateType.query.get(type_id)
         db.session.delete(dtt)
         db.session.commit()
+        HandlerTask.unbind_role_table("task", "type", dtt)
         return jsonify(error_code=RET.OK, error_msg="OK")
 
 
@@ -159,6 +191,7 @@ class HandlerTaskDistributeCass:
         if not task or not task.group_id or task.type == 'PERSON':
             return jsonify(error_code=RET.PARMA_ERR, error_msg='task can not use template distribute cases')
         self.parent_task = task
+        _origin = [_ for _ in self.parent_task.children]
         task_milestone = TaskMilestone.query.filter_by(task_id=task_id, milestone_id=body.milestone_id).first()
         if not task_milestone:
             return jsonify(error_code=RET.PARMA_ERR, error_msg='task milestone relationship no find')
@@ -191,18 +224,29 @@ class HandlerTaskDistributeCass:
         for item in template.types:
             if item.name in null_case_type:
                 self.create_no_case_task(item, template.group_id, body.milestone_id)
+        _after = [_ for _ in self.parent_task.children]
+        for _task in list(set(_after) - set(_origin)):
+            _data = {
+                "permission_type": _task.permission_type,
+                "org_id": _task.org_id,
+                "group_id": _task.group_id,
+            }
+            scope_data_allow, scope_data_deny = get_api("task", "task.yaml", "task", _task.id)
+            PermissionManager().generate(scope_datas_allow=scope_data_allow, scope_datas_deny=scope_data_deny,
+                                         _data=_data)
         return jsonify(error_code=RET.OK, error_msg="OK")
 
     def child_task(self, title, group_id, executor_id):
         child_task = Task()
         child_task.title = title
         child_task.type = 'GROUP'
+        child_task.permission_type = 'group'
         child_task.group_id = group_id
-        child_task.originator = g.gitee_id
+        child_task.creator_id = g.gitee_id
         child_task.start_time = self.parent_task.start_time
         child_task.executor_id = executor_id
         child_task.deadline = self.parent_task.deadline
-        child_task.organization_id = self.parent_task.organization_id
+        child_task.org_id = self.parent_task.org_id
         child_task.frame = self.parent_task.frame
         child_task.status_id = self.status.id
         child_task_id = child_task.add_flush_commit_id()

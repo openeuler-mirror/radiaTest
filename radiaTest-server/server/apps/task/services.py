@@ -268,7 +268,7 @@ def send_message(task: Task, msg, from_id=1):
             if re:
                 to_id.append(re.user_gitee_id)
     to_id.append(task.executor_id)
-    to_id.append(task.originator)
+    to_id.append(task.creator_id)
     to_id = set(to_id)
     insert_data = [{
         "data": json.dumps({'info': msg}),
