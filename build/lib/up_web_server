@@ -1,6 +1,9 @@
 #! /bin/sh
 
-cd ../containers \
+cd ../scripts/web \
+    && bash ./setup.sh
+
+cd ../../containers \
     && bash ./install_openeuler_2203_lts.sh
 
 cd ./web \
