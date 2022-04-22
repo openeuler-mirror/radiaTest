@@ -33,6 +33,7 @@ from server.utils.response_util import RET
 from server.schema.user import UserBaseSchema
 from server.schema.group import GroupInfoSchema
 from server.schema.task import TaskInfoSchema
+from server.utils.resource_utils import ResourceManager
 
 
 class UpdateTaskStatusService(object):
@@ -142,12 +143,17 @@ class UpdateTaskStatusService(object):
                 if not template_id or old_cases != auto_cases:
                     template = Template()
                     template.name = template_name
-                    template.author = redis_client.hget(RedisKey.user(g.gitee_id), 'gitee_name')
-                    template.owner = redis_client.hget(RedisKey.user(g.gitee_id), 'gitee_name')
+                    template.creator_id = int(g.gitee_id)
+                    template.org_id = int(redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id'))
                     template.milestone_id = milestone.milestone_id
-                    template.template_type = 'task'
+                    template.permission_type = 'person'
                     template.cases = auto_cases
                     template_id = template.add_flush_commit_id()
+                    ResourceManager("template").add_permission(
+                        "api_infos.yaml",
+                        {"creator_id":template.creator_id, "org_id":template.org_id,"permission_type":template.permission_type},
+                        template_id
+                    )
                     milestone.template_id = template_id
                     milestone.job_result = 'pending'
                     milestone.add_update()

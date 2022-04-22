@@ -13,9 +13,11 @@ from server.utils.page_util import PageUtil
 from server.utils.response_util import RET
 from server.model.organization import Organization
 from server.model.milestone import Milestone
+from server.model.template import Template
 from server.schema.milestone import GiteeMilestoneBase, GiteeMilestoneEdit
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from server.utils.permission_utils import PermissionManager, GetAllByPermission
+from server.utils.resource_utils import ResourceManager
 
 class CreateMilestone:
     @staticmethod
@@ -26,11 +28,11 @@ class CreateMilestone:
         PermissionManager().generate(allow_list, deny_list, body)
     
     @staticmethod
-    def run_v2(body):
+    def run(body):
         if body.get("is_sync"):
             MilestoneOpenApiHandler(body).create()
             milestone =  Milestone.query.filter_by({"name":body.get("name")}).first()
-            CreateMilestone.bind_scope(milestone.id, body, "api_infos_v2.yaml")
+            CreateMilestone.bind_scope(milestone.id, body, "api_infos.yaml")
             return jsonify(
                 error_code=RET.OK, error_msg="Request processed successfully."
             )
@@ -39,7 +41,7 @@ class CreateMilestone:
                 milestone_id = Insert(Milestone, body).insert_id(Milestone, '/milestone')
             except (IntegrityError, SQLAlchemyError) as e:
                 raise RuntimeError(str(e))
-            CreateMilestone.bind_scope(milestone_id, body, "api_infos_v2.yaml")
+            CreateMilestone.bind_scope(milestone_id, body, "api_infos.yaml")
             return jsonify(
                 error_code=RET.OK, error_msg="Request processed successfully."
             )
@@ -47,14 +49,6 @@ class CreateMilestone:
 class DeleteMilestone:
     @staticmethod
     def single(milestone_id):
-        Delete(Milestone, {"id":milestone_id}).single(Milestone, '/milestone')
-        PermissionManager().clean("/api/v1/milestone/", [milestone_id])
-        return jsonify(
-            error_code=RET.OK, error_msg="Request processed successfully."
-        )
-    
-    @staticmethod
-    def single_v2(milestone_id):
         milestone = Milestone.query.filter_by(id=milestone_id).first()
         if not milestone:
             return jsonify(
@@ -65,8 +59,7 @@ class DeleteMilestone:
         if milestone.is_sync is True:
             MilestoneOpenApiHandler().delete(milestone_id)
         else:
-            Delete(Milestone, {"id":milestone_id}).single(Milestone, '/milestone')
-        PermissionManager().clean("/api/v2/milestone/", [milestone_id])
+            ResourceManager("milestone").del_cascade_single(milestone_id, Template, [Template.milestone_id==milestone_id], False)
         return jsonify(
             error_code=RET.OK, error_msg="Request processed successfully."
         )
@@ -269,10 +262,7 @@ class MilestoneOpenApiHandler(BaseOpenApiHandler):
                     error_msg="you should delete this milestone in e.gitee.com first"
                 )
         
-        return Delete(
-            Milestone, 
-            {"id": milestone_id}
-        ).single(Milestone, "/milestone")
+        return ResourceManager("milestone").del_cascade_single(milestone_id, Template, [Template.milestone_id==milestone_id], False)
 
 
 class IssueOpenApiHandlerV5:

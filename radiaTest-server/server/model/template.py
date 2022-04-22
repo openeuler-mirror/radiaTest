@@ -1,6 +1,9 @@
 from server import db
-from server.model import BaseModel
+from server.model import BaseModel, PermissionBaseModel
 from server.model.milestone import Milestone
+from server.model.user import User
+from server.model.group import Group
+from server.model.organization import Organization
 from sqlalchemy.dialects.mysql import LONGTEXT
 from server.model.testcase import Case
 
@@ -12,15 +15,12 @@ template_case = db.Table(
 )
 
 
-class Template(BaseModel, db.Model):
+class Template(BaseModel, PermissionBaseModel, db.Model):
     __tablename__ = "template"
 
     id = db.Column(db.Integer(), primary_key=True)
     name = db.Column(db.String(255), nullable=False, unique=True)
     description = db.Column(LONGTEXT(), nullable=True)
-    author = db.Column(db.String(32))
-    owner = db.Column(db.String(32))
-    template_type = db.Column(db.String(32))
 
     cases = db.relationship(
         "Case",
@@ -36,7 +36,21 @@ class Template(BaseModel, db.Model):
         db.Integer(), db.ForeignKey("git_repo.id"), nullable=False
     )
 
+    creator_id = db.Column(db.Integer(), db.ForeignKey("user.gitee_id"))
+    group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
+    org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
+
     def to_json(self):
+        author = User.query.filter_by(gitee_id=self.creator_id).first().gitee_name
+        if self.permission_type == "person":
+            owner = User.query.filter_by(gitee_id=self.creator_id).first().gitee_name
+        elif self.permission_type == "group":
+            owner = Group.query.filter_by(id=self.group_id).first().name
+        elif self.permission_type == "org":
+            owner = Organization.query.filter_by(id=self.org_id).first().name
+        elif self.permission_type == "public":
+            owner = "public"
+
         return {
             "id": self.id,
             "name": self.name,
@@ -45,9 +59,9 @@ class Template(BaseModel, db.Model):
             "milestone_id": self.milestone_id,
             "git_repo": self.git_repo.to_json() if self.git_repo_id else {},
             "cases": [case.to_json() for case in self.cases],
-            "author": self.author,
-            "owner": self.owner,
+            "author": author,
+            "owner": owner,
             "create_time": self.create_time.strftime("%Y-%m-%d %H:%M:%S"),
             "update_time": self.update_time.strftime("%Y-%m-%d %H:%M:%S"),
-            "template_type": self.template_type,
+            "template_type": self.permission_type,
         }

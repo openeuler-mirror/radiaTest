@@ -11,6 +11,16 @@ class ResourceManager:
     def __init__(self, table_name) -> None:
         self._table = getattr(TableAdapter, table_name)
         self.table_name = table_name
+    
+    def add_permission(self, file_name, body, item_id):
+        cur_file_dir = os.path.abspath(__file__)
+        cur_dir = cur_file_dir.replace(cur_file_dir.split(os.sep)[-1], "").replace("utils"+os.sep, "")
+        allow_list, deny_list = PermissionManager().get_api_list(
+            self.table_name,
+            cur_dir + "apps" + os.sep + self.table_name + os.sep + file_name,
+            item_id
+        )
+        PermissionManager().generate(allow_list, deny_list, body)
 
     def add(self, file_name, body):
         try:
@@ -19,7 +29,11 @@ class ResourceManager:
             raise RuntimeError(str(e))
         cur_file_dir = os.path.abspath(__file__)
         cur_dir = cur_file_dir.replace(cur_file_dir.split(os.sep)[-1], "").replace("utils"+os.sep, "")
-        allow_list, deny_list = PermissionManager().get_api_list(self.table_name, cur_dir + "apps" + os.sep + self.table_name + os.sep + file_name, item_id)
+        allow_list, deny_list = PermissionManager().get_api_list(
+            self.table_name,
+            cur_dir + "apps" + os.sep + self.table_name + os.sep + file_name,
+            item_id
+        )
         PermissionManager().generate(allow_list, deny_list, body)
         
         return jsonify(
@@ -33,7 +47,11 @@ class ResourceManager:
             raise RuntimeError(str(e))
         cur_file_dir = os.path.abspath(__file__)
         cur_dir = cur_file_dir.replace(cur_file_dir.split(os.sep)[-1], "").replace("utils"+os.sep, "")
-        allow_list, deny_list = PermissionManager().get_api_list(self.table_name, cur_dir + "apps" + os.sep + file_name, item_id)
+        allow_list, deny_list = PermissionManager().get_api_list(
+            self.table_name,
+            cur_dir + "apps" + os.sep + file_name,
+            item_id
+        )
         PermissionManager().generate(allow_list, deny_list, body)
         
         return jsonify(
