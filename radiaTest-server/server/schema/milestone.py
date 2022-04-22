@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Literal, Optional
 
-from pydantic import BaseModel, Field, constr, root_validator
+from pydantic import BaseModel, Field, constr, root_validator, validator
 
 
 from server.model import Product, Milestone
@@ -10,7 +10,7 @@ from server.schema import MilestoneType, MilestoneState, MilestoneStateEvent
 from server.schema.base import TimeBaseSchema, PermissionBase
 
 
-class MilestoneBaseSchema(TimeBaseSchema):
+class MilestoneBaseSchema(BaseModel):
     description: Optional[constr(max_length=255)]
     name: Optional[constr(max_length=64)]
     product_id: Optional[int]
@@ -85,28 +85,6 @@ class MilestoneCreateSchema(MilestoneBaseSchema, PermissionBase):
 class GiteeTimeBaseModel(BaseModel):
     due_date: Optional[str] = Field(alias="end_time")
     start_date: Optional[str] = Field(alias="start_time")
-
-    @root_validator
-    def check_time_format(cls, values):
-        try:
-            if values.get("start_date"):
-                values["start_date"] = datetime.strptime(
-                    values["start_date"], 
-                    "%Y-%m-%d %H:%M:%S"
-                )
-            if values.get("due_date"):
-                datetime.strptime(
-                    values["due_date"],
-                    "%Y-%m-%d %H:%M:%S"
-                )
-                
-        except:
-            raise ValueError(
-                "the format of start_date/due_date is not valid, the valid type is: %Y-%m-%d %H:%M:%S"
-            )
-        
-        return values
-
 
 class GiteeMilestoneBase(GiteeTimeBaseModel):
     access_token: str

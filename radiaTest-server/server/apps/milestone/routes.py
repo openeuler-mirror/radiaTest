@@ -99,6 +99,13 @@ class GiteeIssuesV2(Resource):
     def get(self, query: GiteeIssueQueryV8):
         return IssueOpenApiHandlerV8().get_all(query.__dict__)
 
+class GiteeIssuesItemV2(Resource):
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def get(self, issue_id):
+        return IssueOpenApiHandlerV8().get(issue_id)
+
 
 class GiteeIssuesTypeV2(Resource):
     @auth.login_required
