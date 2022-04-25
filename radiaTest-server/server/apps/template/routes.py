@@ -128,7 +128,7 @@ class TemplateCloneEvent(Resource):
         _nowstr = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
         _body = {
             "name": _template.name + _nowstr,
-            "description": _template.description + _nowstr,
+            "description": _template.description + _nowstr if _template.description else _nowstr,
             "milestone_id": _template.milestone_id,
             "git_repo_id": _template.git_repo_id,
             "permission_type": body.permission_type,

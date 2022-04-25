@@ -31,7 +31,7 @@ class CreateMilestone:
     def run(body):
         if body.get("is_sync"):
             MilestoneOpenApiHandler(body).create()
-            milestone =  Milestone.query.filter_by({"name":body.get("name")}).first()
+            milestone =  Milestone.query.filter_by(name=body.get("name")).first()
             CreateMilestone.bind_scope(milestone.id, body, "api_infos.yaml")
             return jsonify(
                 error_code=RET.OK, error_msg="Request processed successfully."
@@ -194,20 +194,21 @@ class MilestoneOpenApiHandler(BaseOpenApiHandler):
         super().__init__(Milestone, "/milestone")
 
     def gitee_2_radia(self, body):
+        _body = self.body
         if isinstance(body.get("start_date"), str):
-            body["start_time"] = body.get("start_date")
+            _body["start_time"] = body.get("start_date")
 
         if isinstance(body.get("due_date"), str):
-            body["end_time"] = body.get("due_date")
+            _body["end_time"] = body.get("due_date")
 
-        body.update({
+        _body.update({
             "name": body.get("title"),
             "type": self.type,
             "product_id": self.product_id,
             "is_sync": True,
         })
 
-        return body
+        return _body
     
     def radia_2_gitee(self, body):
         if isinstance(body.get("start_time"), str):
@@ -341,6 +342,12 @@ class IssueOpenApiHandlerV8(BaseOpenApiHandler):
             self.current_org.enterprise_id,
         )
         return self.query(url=_url,params=params)
+    
+    def get(self, issue_id):
+        _url = "https://api.gitee.com/enterprises/{}/issues/{}".format(
+            self.current_org.enterprise_id, issue_id
+        )
+        return self.query(url=_url)
     
     def get_issue_types(self):
         _url = "https://api.gitee.com/enterprises/{}/issue_types".format(

@@ -156,11 +156,9 @@ class CasbinEnforcer:
                                 return func(*args, **kwargs)
 
             if request.get_data().decode() == '':
-                _api = MessageManager().get_cur_api_msg(uri, str(request.method), request.get_json(),
-                                                        request.get_data().decode())
+                _api = MessageManager().get_cur_api_msg(uri, str(request.method), request.get_data().decode())
             else:
-                _api = MessageManager().get_cur_api_msg(uri, str(request.method), request.get_json(),
-                                                        request.get_json())
+                _api = MessageManager().get_cur_api_msg(uri, str(request.method), request.get_json())
             if not _api:
                 self.app.logger.error(
                     "Unauthorized attempt: method: %s resource: %s%s"
