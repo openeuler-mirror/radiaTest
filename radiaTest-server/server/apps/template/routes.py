@@ -27,6 +27,7 @@ from server.utils.response_util import RET
 from server.schema.template import TemplateUpdate, TemplateCloneBase, TemplateCreateBase
 from server.utils.permission_utils import GetAllByPermission
 from server.utils.resource_utils import ResourceManager
+from server import casbin_enforcer
 
 
 class TemplateEvent(Resource):
@@ -67,6 +68,7 @@ class TemplateEvent(Resource):
 class TemplateItemEvent(Resource):
     @auth.login_required
     @validate()
+    @casbin_enforcer.enforcer
     def put(self, template_id, body: TemplateUpdate):
         template = Template.query.filter_by(name=body.name).first()
         if template and template.id != template_id:
@@ -92,6 +94,7 @@ class TemplateItemEvent(Resource):
         return resp
 
     @auth.login_required
+    @casbin_enforcer.enforcer
     def get(self, template_id):
         template = Template.query.filter_by(id=template_id).first()
         if not template:
@@ -115,6 +118,7 @@ class TemplateItemEvent(Resource):
     
     @auth.login_required
     @validate()
+    @casbin_enforcer.enforcer
     def delete(self, template_id):
         return ResourceManager("template").del_single(template_id)
 
