@@ -54,7 +54,7 @@ class AddTaskSchema(BaseModel):
     group_id: int = None
     executor_type: EnumsTaskExecutorType
     executor_id: int
-    deadline: datetime = None
+    deadline: str = None
     is_version_task: bool = False
     parent_id: List[int] = None
     child_id: List[int] = None
@@ -79,11 +79,11 @@ class QueryTaskSchema(PageBaseSchema):
     title: str = None
     type: EnumsTaskType = None
     executor_id: int = None
-    originator: int = None
+    creator_id: int = None
     participant_id: str = None
     status_id: int = None
-    deadline: datetime = None
-    start_time: datetime = None
+    deadline: str = None
+    start_time: str = None
     is_delete: bool = False
 
     @validator('participant_id')
@@ -100,14 +100,19 @@ class TaskBaseSchema(BaseModel):
     type: EnumsTaskType = None
     deadline: datetime = None
 
+    @validator('deadline')
+    def validate(cls, v):
+        if v:
+            return v.strftime("%Y-%m-%d %H:%M:%S")
+
 
 class TaskInfoSchema(TaskBaseSchema):
-    originator: int = None
+    creator_id: int = None
     start_time: datetime = None
     content: str = None
     executor_type: EnumsTaskExecutorType = None
     status_id: int = None
-    organization_id: int = None
+    org_id: int = None
     group_id: int = None
     priority: Literal[1, 2, 3] = 1
     is_version_task: bool = False
@@ -121,12 +126,27 @@ class TaskInfoSchema(TaskBaseSchema):
     is_manage_task: bool = False
 
     @validator('priority')
-    def validate(cls, v):
+    def validate_priority(cls, v):
         return PriorityEnum(v).name
+
+    @validator('start_time')
+    def validate_deadline(cls, v):
+        if v:
+            return v.strftime("%Y-%m-%d %H:%M:%S")
+
+    @validator('accomplish_time')
+    def validate_accomplish_time(cls, v):
+        if v:
+            return v.strftime("%Y-%m-%d %H:%M:%S")
 
 
 class TaskRecycleBinInfo(TaskInfoSchema):
     update_time: datetime = None
+
+    @validator('update_time')
+    def validate_update_time(cls, v):
+        if v:
+            return v.strftime("%Y-%m-%d %H:%M:%S")
 
 
 class ParticipantSchema(BaseModel):
@@ -136,8 +156,8 @@ class ParticipantSchema(BaseModel):
 
 class UpdateTaskSchema(BaseModel):
     title: str = None
-    start_time: datetime = None
-    deadline: datetime = None
+    start_time: str = None
+    deadline: str = None
     status_id: int = None
     status_name: str = None
     executor_type: EnumsTaskExecutorType = None
@@ -384,4 +404,8 @@ class DistributeTemplate(object):
 
 class DeleteTaskList(BaseModel):
     task_ids: List[int] = None
+
+
+class MilestoneTaskSchema(PageBaseSchema):
+    title: str = None
 

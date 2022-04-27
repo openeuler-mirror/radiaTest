@@ -12,14 +12,17 @@ from server.model.user import User
 from server.model.organization import Organization
 from server.model.milestone import Milestone
 from server.model.testcase import Case
+from server.model.permission import Scope, ReScopeRole
 from server.schema.task import *
 from server.schema.milestone import GiteeIssueQueryV8
 from server.schema.user import UserBaseSchema
 from server.schema.group import GroupInfoSchema
-from server.utils.db import collect_sql_error, Insert
+from server.utils.db import collect_sql_error, Insert, Delete
 from server.utils.redis_util import RedisKey
 from server.utils.response_util import RET
 from server.utils.page_util import PageUtil
+from server.utils.read_from_yaml import get_api
+from server.utils.permission_utils import PermissionManager, GetAllByPermission
 from server.apps.milestone.handler import IssueOpenApiHandlerV5, IssueOpenApiHandlerV8
 from .services import UpdateTaskStatusService, get_family_member, update_task_display, AnalysisTaskInfo, send_message, \
     judge_task_automatic
@@ -45,7 +48,7 @@ class HandlerTaskStatus(object):
     def add(body):
         status = TaskStatus.query.order_by(TaskStatus.order.desc()).first()
         new_order = (status.order + 1) if status else 1
-        status = TaskStatus(name=body.name, order=new_order)
+        status = TaskStatus(name=body.name, order=new_order, creator_id=g.gitee_id)
         status.add_update()
         return jsonify(error_code=RET.OK, error_msg='OK')
 
@@ -103,9 +106,10 @@ class HandlerTask(object):
             return jsonify(error_code=RET.DATA_EXIST_ERR, error_msg="task has exist")
 
         insert_dict = body.dict()
-        insert_dict['originator'] = g.gitee_id
-        insert_dict['organization_id'] = redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')
+        insert_dict['creator_id'] = g.gitee_id
+        insert_dict['org_id'] = redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')
         executor_id = body.executor_id
+        insert_dict['permission_type'] = body.type.lower() if body.type in ['PERSON', 'GROUP'] else 'org'
 
         if body.executor_type == EnumsTaskExecutorType.GROUP.value and (
                 body.type == 'ORGANIZATION' or body.type == 'VERSION'):
@@ -138,6 +142,13 @@ class HandlerTask(object):
             HandlerTask.update(task.id, update_task_schema)
             add_task_case_schema = AddTaskCaseSchema(case_id=[body.case_id])
             HandlerTaskCase.add(task.id, body.milestone_id, add_task_case_schema)
+        scope_data_allow, scope_data_deny = get_api("task", "task.yaml", "task", task.id)
+        _data = {
+            "permission_type": task.permission_type,
+            "org_id": task.org_id,
+            "group_id": task.group_id,
+        }
+        PermissionManager().generate(scope_datas_allow=scope_data_allow, scope_datas_deny=scope_data_deny, _data=_data)
 
         return jsonify(error_code=RET.OK, error_msg="OK")
 
@@ -145,7 +156,7 @@ class HandlerTask(object):
     @collect_sql_error
     def get_all(gitee_id, query):
         """获取任务列表"""
-        filter_params = [Task.organization_id == redis_client.hget(RedisKey.user(gitee_id), 'current_org_id')]
+        filter_params = GetAllByPermission(Task).get_filter()
         for key, value in query.dict().items():
             if not value and key != 'is_delete':
                 continue
@@ -164,8 +175,8 @@ class HandlerTask(object):
 
         def page_func(item):
             item_dict = TaskBaseSchema(**item.__dict__).dict()
-            originator = User.query.get(item.originator)
-            item_dict['originator'] = UserBaseSchema(**originator.__dict__).dict()
+            creator = User.query.get(item.creator_id)
+            item_dict['creator'] = UserBaseSchema(**creator.__dict__).dict()
             executor = User.query.get(item.executor_id)
             item_dict['executor'] = UserBaseSchema(**executor.__dict__).dict()
             item_dict['has_milestone'] = True if item.milestones else False
@@ -193,9 +204,6 @@ class HandlerTask(object):
         task = Task.query.filter_by(id=task_id, is_delete=True).first()
         if not task:
             return jsonify(error_code=RET.NO_DATA_ERR, error_msg="task is not exists")
-        if task.originator != g.gitee_id:
-            return jsonify(error_code=RET.VERIFY_ERR, error_msg="user no right")
-
         for attr_key in ['participants', 'comments', 'milestones']:
             attr = getattr(task, attr_key)
             if attr_key == 'milestones':
@@ -215,14 +223,32 @@ class HandlerTask(object):
             db.session.commit()
         db.session.delete(task)
         db.session.commit()
+        HandlerTask.unbind_role_table("task", "task", task)
         return jsonify(error_code=RET.OK, error_msg='OK')
 
     @staticmethod
     @collect_sql_error
+    def unbind_role_table(path, file_prefix, table):
+        scope_data_allow, scope_data_deny = get_api(path, file_prefix+".yaml", file_prefix, table.id)
+        uri_list = []
+        for scope in scope_data_allow:
+            uri_list.append(scope['uri'])
+
+        filter_params = [Scope.uri.in_(uri_list)]
+        _scopes = Scope.query.filter(*filter_params).all()
+        for _scope in _scopes:
+            _srs = ReScopeRole.query.filter_by(scope_id=_scope.id).all()
+            for _re in _srs:
+                Delete(ReScopeRole, {"id": _re.id}).single()
+            db.session.delete(_scope)
+        db.session.commit()
+
+    @staticmethod
+    @collect_sql_error
     def update(task_id, body: UpdateTaskSchema):
-        task = Task.query.filter_by(id=task_id, originator=g.gitee_id).first()
+        task = Task.query.get(task_id)
         if not task:
-            return jsonify(error_code=RET.NO_DATA_ERR, error_msg="task is not exists / user is no right")
+            return jsonify(error_code=RET.NO_DATA_ERR, error_msg="task does not exist")
         if task.task_status.name == '已完成':
             return jsonify(error_code=RET.SERVER_ERR, error_msg="task has accomplished, not allowed edit !")
         for key, value in body.dict().items():
@@ -303,7 +329,7 @@ class HandlerTask(object):
             return jsonify(error_code=RET.NO_DATA_ERR, error_msg="task is not exists")
 
         return_data = TaskInfoSchema(**task.__dict__).dict()
-        return_data['originator'] = UserBaseSchema(**User.query.get(task.originator).__dict__).dict()
+        return_data['originator'] = UserBaseSchema(**User.query.get(task.creator_id).__dict__).dict()
         return_data['executor'] = UserBaseSchema(**User.query.get(task.executor_id).__dict__).dict()
 
         group = Group.query.filter_by(is_delete=False, id=task.group_id).first() if task.group_id else None
@@ -320,19 +346,34 @@ class HandlerTask(object):
 
     @staticmethod
     @collect_sql_error
+    def get_milestone_tasks(milestone_id, query):
+        def page_func(task: Task):
+            item_dict = TaskInfoSchema(**task.__dict__).dict()
+            return item_dict
+        _filter = [TaskMilestone.milestone_id == milestone_id, Task.is_delete.is_(False)]
+        if query.title:
+            _filter.append(Task.title.like(f'%{query.title}%'))
+        query_filter = Task.query.join(TaskMilestone).filter(*_filter).order_by(Task.create_time)
+        page_dict, e = PageUtil.get_page_dict(query_filter, query.page_num, query.page_size, func=page_func)
+        if e:
+            return jsonify(error_code=RET.SERVER_ERR, error_msg=f'get task page error {e}')
+        return jsonify(error_code=RET.OK, error_msg='OK', data=page_dict)
+
+    @staticmethod
+    @collect_sql_error
     def get_recycle_bin(query: PageBaseSchema):
         """
         获取回收站中的任务列表
         @return:
         """
         query_filter = Task.query.filter_by(is_delete=True,
-                                            organization_id=redis_client.hget(RedisKey.user(g.gitee_id),
-                                                                              'current_org_id')).order_by(
+                                            org_id=redis_client.hget(RedisKey.user(g.gitee_id),
+                                                                     'current_org_id')).order_by(
             Task.update_time.desc(), Task.id.asc())
 
         def page_func(item: Task):
             item_dict = TaskRecycleBinInfo(**item.__dict__).dict()
-            item_dict['originator'] = UserBaseSchema(**User.query.get(item.originator).__dict__).dict()
+            item_dict['originator'] = UserBaseSchema(**User.query.get(item.creator_id).__dict__).dict()
             return item_dict
 
         page_info, e = PageUtil.get_page_dict(query_filter, query.page_num, query.page_size,
@@ -347,7 +388,7 @@ class HandlerTask(object):
     def delete_task_list(body: DeleteTaskList):
         if body.task_ids:
             for task_id in body.task_ids:
-                task = Task.query.filter_by(id=task_id, originator=g.gitee_id).first()
+                task = Task.query.filter_by(id=task_id, creator_id=g.gitee_id).first()
                 if not task:
                     continue
                 if task and task.task_status.name == '待办中':
@@ -368,7 +409,7 @@ class HandlerTaskParticipant(object):
         """
         if query_task:
             current_org = int(redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id'))
-            participants = TaskParticipant.query.join(Task).filter(Task.organization_id == current_org).all()
+            participants = TaskParticipant.query.join(Task).filter(Task.org_id == current_org).all()
         else:
             participants = TaskParticipant.query.filter_by(task_id=task_id).all()
         return_data = []
@@ -393,7 +434,7 @@ class HandlerTaskParticipant(object):
     @collect_sql_error
     def update(task_id, body):
         task = Task.query.filter(Task.id == task_id, Task.is_delete == False,
-                                 or_(Task.originator == g.gitee_id, Task.executor_id == g.gitee_id)).first()
+                                 or_(Task.creator_id == g.gitee_id, Task.executor_id == g.gitee_id)).first()
         if not task:
             return jsonify(error_code=RET.NO_DATA_ERR, error_msg="task is not exists / user is no right")
 
@@ -411,7 +452,7 @@ class HandlerTaskComment(object):
     @staticmethod
     @collect_sql_error
     def add(task_id, body):
-        comment = TaskComment(task_id=task_id, content=body.content, user_id=g.gitee_id)
+        comment = TaskComment(task_id=task_id, content=body.content, creator_id=g.gitee_id)
         comment.add_update()
         return jsonify(error_code=RET.OK, error_msg='OK')
 
@@ -419,7 +460,7 @@ class HandlerTaskComment(object):
     @collect_sql_error
     def delete(task_id, query):
         task = Task.query.filter(Task.id == task_id, Task.is_delete == False,
-                                 or_(Task.originator == g.gitee_id, Task.executor_id == g.gitee_id)).first()
+                                 or_(Task.creator_id == g.gitee_id, Task.executor_id == g.gitee_id)).first()
         if not task:
             return jsonify(error_code=RET.NO_DATA_ERR, error_msg="task is not exists / user is no right")
         if query.is_all:
@@ -443,10 +484,10 @@ class HandlerTaskComment(object):
         comments = TaskComment.query.filter_by(task_id=task_id).all()
         return_data = []
         for item in comments:
-            comment = UserBaseSchema(**User.query.get(item.user_id).__dict__).dict()
+            comment = UserBaseSchema(**User.query.get(item.creator_id).__dict__).dict()
             comment["content"] = item.content
             comment["id"] = item.id
-            comment["create_time"] = item.create_time
+            comment["create_time"] = item.create_time.strftime("%Y-%m-%d %H:%M:%S")
             return_data.append(comment)
         return jsonify(error_code=RET.OK, error_msg='OK', data=return_data)
 
@@ -463,7 +504,7 @@ class HandlerTaskTag(object):
     @collect_sql_error
     def add(body: AddTaskTagSchema):
         task = Task.query.get(body.task_id)
-        if not task or g.gitee_id not in [task.originator, task.executor_id]:
+        if not task or g.gitee_id not in [task.creator_id, task.executor_id]:
             return jsonify(error_code=RET.NO_DATA_ERR, error_msg="task is not exists / user is no right")
         if body.id:
             tag = TaskTag.query.get(body.id)
@@ -483,7 +524,7 @@ class HandlerTaskTag(object):
         tag = TaskTag.query.get(query.id)
         if query.task_id:
             task = Task.query.get(query.task_id)
-            if not task or g.gitee_id not in [task.originator, task.executor_id]:
+            if not task or g.gitee_id not in [task.creator_id, task.executor_id]:
                 return jsonify(error_code=RET.NO_DATA_ERR, error_msg="task is not exists / user is no right")
             task.tags.remove(tag)
             task.add_update()
@@ -501,7 +542,7 @@ class HandlerTaskFamily(object):
         if not any([body.parent_id, body.child_id]):
             return jsonify(error_code=RET.PARMA_ERR, error_msg='params is error')
         task = Task.query.filter(Task.id == task_id, Task.is_delete == False,
-                                 or_(Task.originator == g.gitee_id, Task.executor_id == g.gitee_id)).first()
+                                 or_(Task.creator_id == g.gitee_id, Task.executor_id == g.gitee_id)).first()
         if not task:
             return jsonify(error_code=RET.NO_DATA_ERR, error_msg="task is not exists / user is no right")
         if task.task_status.name in ['执行中', '已执行', '已完成']:
@@ -531,10 +572,13 @@ class HandlerTaskFamily(object):
         @param query:
         @return:
         """
+        permission_filter = GetAllByPermission(Task).get_filter()
         if not task_id:
-            tasks = Task.query.filter(Task.is_delete == False,
-                                      Task.organization_id == redis_client.hget(RedisKey.user(g.gitee_id),
-                                                                                'current_org_id')).all()
+            _filter = [Task.is_delete == False,
+                                      Task.org_id == redis_client.hget(RedisKey.user(g.gitee_id),
+                                                                       'current_org_id')]
+            _filter.extend(permission_filter)
+            tasks = Task.query.filter(*_filter).all()
             return_data = [TaskBaseSchema(**item.__dict__).dict() for item in tasks]
             return jsonify(error_code=RET.OK, error_msg='OK', data=return_data)
 
@@ -565,6 +609,7 @@ class HandlerTaskFamily(object):
             family_member = get_family_member(children, return_set=set(), is_parent=query.is_parent).union(parents)
         filter_params.append(Task.id.notin_(family_member))
         filter_params.append(TaskMilestone.milestone_id.in_([item.milestone_id for item in task.milestones]))
+        filter_params.extend(permission_filter)
         tasks = Task.query.join(TaskMilestone).filter(*filter_params).all()
         return_data = [TaskBaseSchema(**item.__dict__).dict() for item in tasks]
         return jsonify(error_code=RET.OK, error_msg='OK', data=return_data)
@@ -575,7 +620,7 @@ class HandlerTaskFamily(object):
         if not any([query.parent_id, query.child_id]):
             return jsonify(error_code=RET.PARMA_ERR, error_msg='params is error')
         task = Task.query.filter(Task.id == task_id, Task.is_delete == False,
-                                 or_(Task.originator == g.gitee_id, Task.executor_id == g.gitee_id)).first()
+                                 or_(Task.creator_id == g.gitee_id, Task.executor_id == g.gitee_id)).first()
         if not task:
             return jsonify(error_code=RET.NO_DATA_ERR, error_msg="task is not exists / user is no right")
         if task.task_status.name in ['执行中', '已执行', '已完成']:
@@ -603,7 +648,7 @@ class HandlerTaskReport(object):
     @collect_sql_error
     def update(task_id, body: TaskReportContentSchema):
         task = Task.query.filter(Task.id == task_id, Task.is_delete == False,
-                                 or_(Task.originator == g.gitee_id, Task.executor_id == g.gitee_id)).first()
+                                 or_(Task.creator_id == g.gitee_id, Task.executor_id == g.gitee_id)).first()
         if not task:
             return jsonify(error_code=RET.NO_DATA_ERR, error_msg="task is not exists / user is no right")
         if task.report:
@@ -670,7 +715,7 @@ class HandlerTaskCase(object):
         task_milestone = TaskMilestone.query.join(Task).filter(TaskMilestone.task_id == task_id,
                                                                Task.is_delete == False,
                                                                TaskMilestone.milestone_id == milestone_id,
-                                                               or_(Task.originator == g.gitee_id,
+                                                               or_(Task.creator_id == g.gitee_id,
                                                                    Task.executor_id == g.gitee_id)).first()
         if not task_milestone:
             return jsonify(error_code=RET.NO_DATA_ERR, error_msg="task or template is not exists / user is no right")
@@ -694,7 +739,7 @@ class HandlerTaskCase(object):
         task_milestone = TaskMilestone.query.join(Task).filter(TaskMilestone.task_id == task_id,
                                                                Task.is_delete == False,
                                                                TaskMilestone.milestone_id == milestone_id,
-                                                               or_(Task.originator == g.gitee_id,
+                                                               or_(Task.creator_id == g.gitee_id,
                                                                    Task.executor_id == g.gitee_id)).first()
         if not task_milestone:
             return jsonify(error_code=RET.NO_DATA_ERR, error_msg="task or template is not exists / user is no right")
@@ -824,11 +869,11 @@ class HandlerTaskMilestone(object):
 
     @staticmethod
     @collect_sql_error
-    def update_manual_cases_result(taskmilestone_id, case_id, body: TaskCaseResultSchema):
+    def update_manual_cases_result(task_id, taskmilestone_id, case_id, body: TaskCaseResultSchema):
         task_milestone = TaskMilestone.query.get(taskmilestone_id)
         task = task_milestone.task
-        if not task or g.gitee_id not in [task.originator, task.executor_id]:
-            return jsonify(error_code=RET.NO_DATA_ERR, error_msg="task is not exists / user is no right")
+        if not task or task_id != task.id:
+            return jsonify(error_code=RET.NO_DATA_ERR, error_msg="task is not exists")
         manual_case = TaskManualCase.query.filter_by(task_milestone_id=taskmilestone_id, case_id=case_id).first()
         if not manual_case:
             manual_case = TaskManualCase(task_milestone_id=taskmilestone_id, case_id=case_id, case_result=body.result)
@@ -1042,14 +1087,23 @@ class HandlerTaskExecute(object):
         record.group_id = params.group_id
         record.executor_type = "GROUP"
         record.executor_id = executor.user.gitee_id
-        record.originator = executor.user.gitee_id
+        record.creator_id = executor.user.gitee_id
         record.type = "VERSION"
-        record.organization_id = executor.org_id
+        record.permission_type = "org"
+        record.org_id = executor.org_id
         record.frame = params.frame
         record.status_id = status.id
         record.start_time = milestone.start_time
         record.deadline = milestone.end_time
         task_id = record.add_flush_commit_id()
+        _data = {
+            "permission_type": record.permission_type,
+            "org_id": record.org_id,
+            "group_id": record.group_id,
+        }
+        scope_data_allow, scope_data_deny = get_api("task", "task.yaml", "task", task_id)
+        PermissionManager().generate(scope_datas_allow=scope_data_allow, scope_datas_deny=scope_data_deny,
+                                     _data=_data)
         self.task = Task.query.get(task_id)
         task_milestone = TaskMilestone()
         task_milestone.task_id = task_id

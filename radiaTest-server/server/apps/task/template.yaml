@@ -1,0 +1,12 @@
+- alias: 删除分配模板
+  uri: /api/v1/tasks/distribute_templates/{template_id}
+  act: delete
+- alias: 修改分配模板名
+  uri: /api/v1/tasks/distribute_templates/{template_id}
+  act: put
+- alias: 新增子模版
+  uri: /api/v1/tasks/distribute_templates/{template_id}/types
+  act: post
+- alias: 按照模板分配用例
+  uri: /api/v1/tasks/{task_id}/distribute_templates/{template_id}
+  act: put

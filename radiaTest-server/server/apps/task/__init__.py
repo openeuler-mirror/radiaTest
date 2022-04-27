@@ -2,7 +2,7 @@ from flask_restful import Api
 from .routes import Status, StatusOrder, Task, TaskItem, ParticipantItem, Cases, Family, TaskStatistics
 from .routes import Comment, Participants, RecycleBin, Tag, FamilyItem, Report, TaskMilestones, CasesResult
 from .routes import TaskMilestonesCases, TaskExecute, TaskList, CaseTask, TaskFrame
-from .routes import TaskDistributeTemplate, DistributeType, DistributeCaseByTemplate
+from .routes import TaskDistributeTemplate, DistributeType, DistributeCaseByTemplate, MileStoneTask
 
 
 def init_api(api: Api):
@@ -24,7 +24,7 @@ def init_api(api: Api):
     api.add_resource(CasesResult, '/api/v1/tasks/<int:task_id>/cases/result', endpoint='task_cases_result')
     api.add_resource(TaskStatistics, '/api/v1/task/count/total', endpoint='task_statistics')
     api.add_resource(TaskMilestones, '/api/v1/task/milestones/<int:taskmilestone_id>', endpoint='task_milestones')
-    api.add_resource(TaskMilestonesCases, '/api/v1/task/milestones/<int:taskmilestone_id>/cases/<int:case_id>',
+    api.add_resource(TaskMilestonesCases, '/api/v1/task/<int:task_id>/milestones/<int:taskmilestone_id>/cases/<int:case_id>',
                      endpoint='task_milestone_cases')
     api.add_resource(TaskExecute, '/api/v1/tasks/execute', endpoint='out_task')
     api.add_resource(TaskDistributeTemplate, '/api/v1/tasks/distribute_templates',
@@ -39,4 +39,5 @@ def init_api(api: Api):
     api.add_resource(TaskList, '/api/v1/tasks/list', endpoint='task_list')
     api.add_resource(CaseTask, "/api/v1/case/<int:case_id>/task")
     api.add_resource(TaskFrame, "/api/v1/task/frame")
+    api.add_resource(MileStoneTask, "/api/v1/milestone/<int:milestone_id>/tasks")
 

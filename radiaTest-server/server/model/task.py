@@ -1,7 +1,7 @@
 import pandas as pd
 
 from server import db
-from server.model.base import Base
+from server.model.base import Base, PermissionBaseModel
 from .group import Group
 from .job import Analyzed
 from .testcase import Suite
@@ -129,12 +129,12 @@ class TaskParticipant(Base, db.Model):
         default="PERSON")
 
 
-class Task(db.Model, Base):
+class Task(db.Model, PermissionBaseModel):
     """任务表"""
     __tablename__ = "task"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     title = db.Column(db.String(100), nullable=False, unique=True)
-    originator = db.Column(db.Integer, nullable=True)  # 任务发起人id
+    creator_id = db.Column(db.Integer, db.ForeignKey("user.gitee_id"))  # 任务发起人id
     type = db.Column(db.Enum("ORGANIZATION", "GROUP", "PERSON", "VERSION"), default="PERSON")
     start_time = db.Column(db.DateTime(), nullable=True)
     content = db.Column(db.Text, nullable=True)
@@ -144,8 +144,8 @@ class Task(db.Model, Base):
     priority = db.Column(db.Integer, nullable=False, default=1)
     deadline = db.Column(db.DateTime(), nullable=True)
     accomplish_time = db.Column(db.DateTime(), nullable=True)
-    organization_id = db.Column(db.Integer, nullable=False)
-    group_id = db.Column(db.Integer, nullable=True)
+    org_id = db.Column(db.Integer, db.ForeignKey("organization.id"))
+    group_id = db.Column(db.Integer, db.ForeignKey("group.id"), nullable=True)
     keywords = db.Column(db.Text, nullable=True)
     abstract = db.Column(db.Text, nullable=True)
     abbreviation = db.Column(db.Text, nullable=True)
@@ -177,23 +177,28 @@ class Task(db.Model, Base):
             return False
 
 
-class TaskComment(Base, db.Model):
+class TaskComment(PermissionBaseModel, db.Model):
     """评论"""
 
     __tablename__ = "task_comment"
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     content = db.Column(db.Text, nullable=True)  # 内容
-    user_id = db.Column(db.Integer, nullable=False)  # 填写人id
+    creator_id = db.Column(db.Integer(), db.ForeignKey("user.gitee_id"))
+    group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
+    org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
 
     task_id = db.Column(db.Integer, db.ForeignKey("task.id"), nullable=False)  # 归属任务id
 
 
-class TaskStatus(Base, db.Model):
+class TaskStatus(PermissionBaseModel, db.Model):
     __tablename__ = "task_status"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(32), nullable=False, unique=True)
     order = db.Column(db.Integer, nullable=False)
+    creator_id = db.Column(db.Integer(), db.ForeignKey("user.gitee_id"))
+    group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
+    org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
 
     tasks = db.relationship("Task", backref="task_status")
 
@@ -230,15 +235,19 @@ class TaskReportContent(Base, db.Model):
     # model_id = db.Column(db.Integer, db.ForeignKey("task_report_model.id"), primary_key=True)
     title = db.Column(db.String(50), nullable=False)
     content = db.Column(db.Text, nullable=False)
+    creator_id = db.Column(db.Integer(), db.ForeignKey("user.gitee_id"))
+    group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
+    org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
 
 
-class TaskDistributeTemplate(Base, db.Model):
+class TaskDistributeTemplate(PermissionBaseModel, db.Model):
     __tablename__ = 'task_distribute_template'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(32), nullable=False, unique=True)
     creator_id = db.Column(db.Integer, nullable=False)
     group_id = db.Column(db.Integer, nullable=False)
     types = db.relationship("DistributeTemplateType", backref="template")
+    org_id = db.Column(db.Integer, db.ForeignKey("organization.id"))
 
     def to_json(self):
         group = Group.query.filter_by(id=self.group_id, is_delete=False).first()
@@ -252,14 +261,16 @@ class TaskDistributeTemplate(Base, db.Model):
         }
 
 
-class DistributeTemplateType(Base, db.Model):
+class DistributeTemplateType(PermissionBaseModel, db.Model):
     __tablename__ = 'distribute_template_type'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(32), nullable=False)
-    creator_id = db.Column(db.Integer, nullable=False)
+    creator_id = db.Column(db.Integer, db.ForeignKey("user.gitee_id"), nullable=False)
     executor_id = db.Column(db.Integer, db.ForeignKey("user.gitee_id"), nullable=False)
     suites = db.Column(db.Text, nullable=True)
     helpers = db.Column(db.Text, nullable=True)
+    group_id = db.Column(db.Integer, db.ForeignKey("group.id"))
+    org_id = db.Column(db.Integer, db.ForeignKey("organization.id"))
     template_id = db.Column(db.Integer, db.ForeignKey("task_distribute_template.id"))
 
     def to_json(self):
