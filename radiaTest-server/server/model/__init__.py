@@ -7,7 +7,7 @@ from server.model.vmachine import Vmachine, Vdisk, Vnic
 from server.model.testcase import Suite, Case
 from server.model.template import Template
 from server.model.job import Job, Analyzed, Logs
-from server.model.framework import Framework
+from server.model.framework import Framework, GitRepo
 from server.model.permission import Role, Scope, ReUserRole, ReScopeRole
 from server.model.celerytask import CeleryTask
 from server.model.user import User
