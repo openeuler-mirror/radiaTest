@@ -72,9 +72,8 @@ network_interface_source= loads_config_ini(
     "worker",
     "NETWORK_INTERFACE_SOURCE"
 )
-server_ip = loads_config_ini("worker","SERVER_IP")
-server_listen = loads_config_ini("worker","SERVER_PORT")
+server_addr = loads_config_ini("worker", "SERVER_ADDR")
 messenger_ip = loads_config_ini("worker", "MESSENGER_IP")
 messenger_listen = loads_config_ini("worker", "MESSENGER_LISTEN")
-protocol = loads_config_ini("worker","PROTOCOL")
+protocol = loads_config_ini("worker", "PROTOCOL")
 headers = {"Content-Type": "application/json;charset=utf8"}

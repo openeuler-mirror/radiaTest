@@ -98,8 +98,7 @@ task_queues = (
 task_default_exchange_type = 'direct'
 
 # server confg
-server_ip = loads_config_ini("server", "SERVER_IP")
-server_listen = loads_config_ini("server", "SERVER_PORT")
+server_addr = loads_config_ini("server", "SERVER_ADDR")
 
 # messenger config
 messenger_ip = loads_config_ini("messenger", "MESSENGER_IP")
