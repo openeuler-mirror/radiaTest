@@ -24,7 +24,6 @@ class Org(Resource):
     @auth.login_required()
     @response_collect
     @validate()
-    @casbin_enforcer.enforcer
     def get(self, query: OrgQuerySchema):
         return handler_get_all_org(query)
 
@@ -41,6 +40,5 @@ class Group(Resource):
     @auth.login_required()
     @response_collect
     @validate()
-    @casbin_enforcer.enforcer
     def get(self, org_id, query: PageBaseSchema):
         return handler_org_group_page(org_id, query)

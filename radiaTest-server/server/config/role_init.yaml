@@ -8,6 +8,8 @@ public:
     user:
         - visitor
         - member
+    # 公共基础角色
+    default: default
 
 # 组织角色
 org:
@@ -16,6 +18,8 @@ org:
     # 一般用户
     user:
         - member
+    # 默认用户:用户加入组织时,绑定的最基础用户角色
+    default: default
 
 # 团队角色
 group:
@@ -24,3 +28,5 @@ group:
     # 一般用户
     user:
         - member
+    # 默认用户:用户加入用户组时,绑定的最基础用户角色
+    default: default

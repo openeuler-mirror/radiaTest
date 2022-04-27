@@ -296,10 +296,16 @@ def handler_update_user(group_id, body):
 
         update_params = dict()
         if body.is_delete:
-            update_params["is_delete"] = body.is_delete
             res = ReUserGroup.query.filter(*filter_params).all()
             msg_list = list()
             for item in res:
+                user_id = item.user_gitee_id
+                _filter = [ReUserRole.user_id == user_id,
+                           Role.group_id == group_id,
+                           Role.type == 'group']
+                re_list = ReUserRole.query.join(Role).filter(*_filter).all()
+                for _re in re_list:
+                    Delete(ReUserRole, {"id": _re.id}).single()
                 msg_list.append(dict(
                     data=json.dumps(
                         dict(info=f'<b>{re.user.gitee_name}</b>将您请出'
@@ -310,13 +316,14 @@ def handler_update_user(group_id, body):
                     to_id=item.user_gitee_id,
                     type=MsgType.text.value
                 ))
+                item.delete()
             db.session.execute(Message.__table__.insert(), msg_list)
             db.session.commit()
-
-        if body.role_type in [GroupRole.admin.value, GroupRole.user.value]:
-            update_params["role_type"] = body.role_type
-        ReUserGroup.query.filter(*filter_params).update(update_params, synchronize_session=False)
-        db.session.commit()
+        else:
+            if body.role_type in [GroupRole.admin.value, GroupRole.user.value]:
+                update_params["role_type"] = body.role_type
+            ReUserGroup.query.filter(*filter_params).update(update_params, synchronize_session=False)
+            db.session.commit()
     else:
         return jsonify(error_code=RET.VERIFY_ERR, error_msg="user has not right")
     return jsonify(error_code=RET.OK, error_msg="OK")
