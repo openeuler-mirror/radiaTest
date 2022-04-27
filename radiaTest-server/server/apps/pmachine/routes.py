@@ -27,6 +27,7 @@ from server.schema.pmachine import (
 )
 from .handlers import PmachineHandler, PmachineMessenger, ResourcePoolHandler
 from server.utils.resource_utils import ResourceManager
+from server import casbin_enforcer
 
 
 class MachineGroupEvent(Resource):
@@ -47,6 +48,7 @@ class MachineGroupItemEvent(Resource):
     @auth.login_required
     @response_collect
     @validate()
+    @casbin_enforcer.enforcer
     def put(self, machine_group_id, body: MachineGroupUpdateSchema):
         return ResourcePoolHandler.update_group(
             machine_group_id,
@@ -56,11 +58,13 @@ class MachineGroupItemEvent(Resource):
     @auth.login_required
     @response_collect
     @validate()
+    @casbin_enforcer.enforcer
     def delete(self, machine_group_id):
         return ResourcePoolHandler.delete_group(machine_group_id)
 
     @auth.login_required
     @response_collect
+    @casbin_enforcer.enforcer
     @validate()
     def get(self, machine_group_id):
         return ResourcePoolHandler.get(machine_group_id)
@@ -106,18 +110,21 @@ class PmachineItemEvent(Resource):
     @auth.login_required
     @response_collect
     @validate()
+    @casbin_enforcer.enforcer
     def delete(self, pmachine_id):
         return ResourceManager("pmachine").del_cascade_single(pmachine_id, Vmachine, [Vmachine.pmachine_id==pmachine_id], False)
     
     @auth.login_required
     @response_collect
     @validate()
+    @casbin_enforcer.enforcer
     def get(self, pmachine_id):
         return Select(Pmachine, {"id":pmachine_id}).single()
 
     @auth.login_required
     @response_collect
     @validate()
+    @casbin_enforcer.enforcer
     def put(self, pmachine_id, body: PmachineUpdateSchema):
         pmachine = Pmachine.query.filter_by(id=pmachine_id).first()
         if not pmachine:
@@ -151,12 +158,6 @@ class PmachineEvent(Resource):
     @validate()
     def post(self, body: PmachineCreateSchema):
         return ResourceManager("pmachine").add("api_infos.yaml", body.__dict__)
-
-    @auth.login_required
-    @response_collect
-    @validate()
-    def delete(self, body: DeleteBaseModel):
-        return ResourceManager("pmachine").del_batch(body.__dict__.get("id"))
 
     @auth.login_required
     @response_collect
