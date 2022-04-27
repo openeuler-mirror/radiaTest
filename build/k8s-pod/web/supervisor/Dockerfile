@@ -21,5 +21,5 @@ RUN cp -r ./conf/supervisor/* /etc/
 
 RUN pip3 install -r requirements.txt -i $PIP_REPO
 
-CMD bash ./build/k8s-pod/web/supervisor/init_db.sh \
+CMD bash ../build/k8s-pod/web/supervisor/init_db.sh \
     && supervisord -n
