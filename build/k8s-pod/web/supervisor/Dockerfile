@@ -1,9 +1,12 @@
-FROM openeuler-22.03-lts
+FROM openeuler/openeuler:22.03-lts
 LABEL maintainer="ethanzhang55@outlook.com"
+
+ENV username radiaTest
+ENV password 1234
 
 WORKDIR /opt/
 
-ENV GIT_REPO https://gitee.com/Ethan-Zhang/radiaTest
+ENV GIT_REPO https://gitee.com/openeuler/radiaTest
 ENV PIP_REPO https://pypi.tuna.tsinghua.edu.cn/simple
 
 RUN dnf install -y git \
@@ -14,9 +17,9 @@ RUN dnf install -y git \
 
 WORKDIR /opt/radiaTest/radiaTest-server/
 
-RUN mkdir /etc/radiaTest && cp -r ./conf/app/* /etc/radiaTest/
 RUN cp -r ./conf/supervisor/* /etc/
 
 RUN pip3 install -r requirements.txt -i $PIP_REPO
 
-CMD supervisord
+CMD bash ./build/k8s-pod/web/supervisor/init_db.sh \
+    && supervisord -n

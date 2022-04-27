@@ -1,4 +1,4 @@
-FROM openeuler-22.03-lts
+FROM openeuler/openeuler:22.03-lts
 LABEL maintainer="ethanzhang55@outlook.com"
 
 WORKDIR /opt/
@@ -20,4 +20,4 @@ RUN cp -r ./conf/supervisor/* /etc/
 
 RUN pip3 install -r requirements.txt -i $PIP_REPO
 
-CMD supervisord
+CMD supervisord -n

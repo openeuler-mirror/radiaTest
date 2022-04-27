@@ -38,7 +38,7 @@ services:
             - /var/lib/vnc_tokens:/opt/radiaTest/radiaTest-messenger/messenger/config/vnc_tokens
             - /var/log/radiaTest-messenger:/opt/radiaTest/radiaTest-messenger/log
             - /root/.ssh:/root/.ssh
-            - /tmp/rsync.pass:/tmp/rsync.pass
+            - /tmp:/tmp
         ulimits:
             nproc: 65535
             nofile:

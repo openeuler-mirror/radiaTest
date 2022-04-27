@@ -66,6 +66,7 @@ services:
             - 21500:21500
         volumes:
             - /var/log/radiaTest-server:/opt/radiaTest/radiaTest-server/log
+            - /etc/radiaTest:/etc/radiaTest
         ulimits:
             nproc: 65535
             nofile:

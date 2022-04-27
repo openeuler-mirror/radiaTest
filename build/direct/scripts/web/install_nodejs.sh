@@ -57,10 +57,13 @@ fi
 # prepare nodejs
 cd "${workdir}"
 
-if [ "{$basearch}" = "x86_64" ];then
+if [ "${basearch}" = "x86_64" ];then
     basearch="x64"
-else
+elif [ "${basearch}" = "aarch64" ];then
     basearch="arm64"
+else
+    echo "Error: Unsupported Arch"
+    exit
 fi
 
 dnf install -y tar || exit
