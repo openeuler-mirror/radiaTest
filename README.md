@@ -28,25 +28,27 @@ radiaTest-worker: 动态资源(虚机资源)管理服务
 radiaTest-worker必须部署在服务器物理环境
 
 一、 基于裸金属/虚拟机节点容器化部署
-    1.  安装web服务前后端（radiaTest-web & radiaTest-server）
-        - 1) 待部署宿主机安装docker以及docker-compose软件包
-        - 2) 执行 build/direct/lib/up_web_server 脚本
-    2.  安装messenger服务端（radiaTest-messenger）
-        - 1) 待部署宿主机安装docker以及docker-compose软件包
-        - 2) 执行 build/direct/lib/up_messenger_server 脚本
-    3.  安装worker服务端（radiaTest-worker）
-        - 1) 执行 build/direct/lib/up_worker_server 脚本
+1.  安装web服务前后端（radiaTest-web & radiaTest-server）
+    1) 待部署宿主机安装docker以及docker-compose软件包
+    2) 执行 build/direct/lib/up_web_server 脚本
+
+2.  安装messenger服务端（radiaTest-messenger）
+    1) 待部署宿主机安装docker以及docker-compose软件包
+    2) 执行 build/direct/lib/up_messenger_server 脚本
+
+3.  安装worker服务端（radiaTest-worker）
+    1) 执行 build/direct/lib/up_worker_server 脚本
 
 二、基于k8s，部署节点为k8s-pod（目前仅覆盖radiaTest-web & radiaTest-server）
-    1. 通过 build/k8s-pod/web/nginx & build/k8s-pod/web/supervisor 构建docker镜像
-    2. 准备 redis、rabbitmq、数据库，此部署模式需要人为准备中间件及数据库服务
-    3. 通过 挂载目录卷，将nginx、flask-app、gunicorn等所需的完整配置文件应用于相应容器
-    4. 运行 相应容器，检查日志和运行状态
+1. 通过 build/k8s-pod/web/nginx & build/k8s-pod/web/supervisor 构建docker镜像
+2. 准备 redis、rabbitmq、数据库，此部署模式需要人为准备中间件及数据库服务
+3. 通过 挂载目录卷，将nginx、flask-app、gunicorn等所需的完整配置文件应用于相应容器
+4. 运行 相应容器，检查日志和运行状态
 
     P.S.
-        1）因采用配置文件初始化flask应用，中间件及数据库密码中不允许直接出现 # % 等歧义字符，若需使用必须使用转义
-        2）配置文件中，不建议ip字段采用集群的域主机名，建议直接使用0.0.0.0，由外部保证访问安全
-        3）日志均处于容器工作目录下的log中，可采取挂载目录卷的形式或同步存储于OBS桶的形式进行管理
+    - 因采用配置文件初始化flask应用，中间件及数据库密码中不允许直接出现 # % 等歧义字符，若需使用必须使用转义
+    - 配置文件中，不建议ip字段采用集群的域主机名，建议直接使用0.0.0.0，由外部保证访问安全
+    - 日志均处于容器工作目录下的log中，可采取挂载目录卷的形式或同步存储于OBS桶的形式进行管理
 
 #### 基于裸金属/虚拟机节点容器化部署的运维说明
 若需要更改服务端口，或者docker的端口映射，请自行修改dockerfile或者docker-compose.yml
@@ -54,18 +56,18 @@ radiaTest-worker必须部署在服务器物理环境
 supervisor控制的进程日志均在./log中
 
 1.  使用web服务前后端（radiaTest-web & radiaTest-server）
-    - 1) docker exec -ti web_supervisor_1 bash
-    - 2) 修改 /etc/radiaTest/server.ini 配置文件
-    - 3) 执行supervisorctl交互式管理服务
-    - 4) nginx配置文件位于宿主机/etc/nginx/nginx.conf，默认http监听8080，https监听443
+    1) docker exec -ti web_supervisor_1 bash
+    2) 修改 /etc/radiaTest/server.ini 配置文件
+    3) 执行supervisorctl交互式管理服务
+    4) nginx配置文件位于宿主机/etc/nginx/nginx.conf，默认http监听8080，https监听443
 
 2.  使用messenger服务端（radiaTest-messenger）
-    - 1) docker exec -ti messenger_supervisor_1 bash
-    - 2) 修改 /etc/radiaTest/messenger.ini 配置文件
-    - 3) 执行supervisorctl交互式管理服务
+    1) docker exec -ti messenger_supervisor_1 bash
+    2) 修改 /etc/radiaTest/messenger.ini 配置文件
+    3) 执行supervisorctl交互式管理服务
 
 3.  使用worker服务端（radiaTest-worker）
-    - 1) 执行supervisorctl交互式管理服务
+    1) 执行supervisorctl交互式管理服务
 
 #### 参与贡献
 
