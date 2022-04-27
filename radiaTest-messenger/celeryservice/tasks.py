@@ -80,10 +80,8 @@ def async_check_alive():
     _resp = dict()
     _r = do_request(
         method="put",
-        url="{}://{}:{}/api/v1/machine_group/heartbeat".format(
-            celeryconfig.protocol,
-            celeryconfig.server_ip,
-            celeryconfig.server_listen,
+        url="https://{}/api/v1/machine_group/heartbeat".format(
+            celeryconfig.server_addr,
         ),
         body=heartbeat_status,
         headers={

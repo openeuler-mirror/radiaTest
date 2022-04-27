@@ -513,10 +513,8 @@ class RunCaseHandler(TaskAuthHandler):
             if self._body.get("result") == "success" and len(self._new_vmachines["id"]) > 0:
                 r = do_request(
                     method="delete",
-                    url="{}://{}:{}/api/v1/vmachine".format(
-                        celeryconfig.protocol,
-                        celeryconfig.server_ip,
-                        celeryconfig.server_listen,
+                    url="https://{}/api/v1/vmachine".format(
+                        celeryconfig.server_addr,
                     ),
                     body=self._new_vmachines,
                     headers={
