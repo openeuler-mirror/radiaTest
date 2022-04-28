@@ -24,7 +24,7 @@ casbin_enforcer = CasbinEnforcer()
 
 
 def create_app(**kwargs):
-    app = Flask(__name__)
+    app = Flask(__name__, static_folder="assets", static_url_path='/assets')
 
     app.config.from_object("server.config.settings.Config")
 
