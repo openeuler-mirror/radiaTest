@@ -9,7 +9,7 @@ function putRequest (url, data) {
         resolve(res);
       })
       .catch((err) => {
-        window.$message?.error(err.data.error_msg || unkonwnErrorMsg);
+        window.$notification?.error({ content: err.data.error_msg || unkonwnErrorMsg, duration: 2000 });
         reject(err);
       });
   });
@@ -31,4 +31,7 @@ export function modifyCommitInfo (id,data) {
 }
 export function modifyMachineGroup(id,data){
   return putRequest(`/v1/machine_group/${id}`,data);
+}
+export function modifyGroupUserRole (id, data) {
+  return putRequest(`/v1/user_role/group/${id}`, data);
 }

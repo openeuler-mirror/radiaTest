@@ -45,7 +45,7 @@
         </a>
       </div>
     </div>
-    <n-scrollbar style="max-height: 840px;">
+    <n-scrollbar style="max-height: 840px">
       <div class="main">
         <div class="stage-tasks">
           <draggable
@@ -71,7 +71,10 @@
                       </div>
                       <img
                         class="avatar"
-                        :src="element.creator.avatar_url"
+                        :src="
+                          element.creator?.avatar_url ||
+                          element.originator?.avatar_url
+                        "
                       />
                     </div>
                     <div
@@ -109,15 +112,15 @@
         :bordered="false"
         size="huge"
       >
-        <div style="display:flex;">
+        <div style="display: flex">
           <n-select
             placeholder="请选择任务"
-            style="width:70%"
+            style="width: 70%"
             multiple
             v-model:value="deleteTasksValue"
             :options="deleteTasksOption"
           />
-          <div style="width:30%;display:flex;justify-content:space-evenly;">
+          <div style="width: 30%; display: flex; justify-content: space-evenly">
             <n-button type="error" ghost @click="cancelDeleteTasks"
               >取消</n-button
             >

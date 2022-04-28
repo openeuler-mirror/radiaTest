@@ -1,21 +1,23 @@
 import { ref } from 'vue';
-import { getPendingReview } from '@/api/post';
+import { getPendingReview } from '@/api/get';
 const pendingModal = ref();
 const pendingData = ref([]);
 const pendingPage = ref(1);
 const pendingPageCount = ref(1);
 const pendingRef = ref();
-function getPendingData () {
-  getPendingReview({page_num:pendingPage.value,page_size:10}).then(res => {
-    pendingData.value = res.data.items;
-    pendingPageCount.value = res.data.pages;
-  });
+function getPendingData() {
+  getPendingReview({ page_num: pendingPage.value, page_size: 10 }).then(
+    (res) => {
+      pendingData.value = res.data.items;
+      pendingPageCount.value = res.data.pages;
+    }
+  );
 }
-function pendingPageChange (page) {
+function pendingPageChange(page) {
   pendingPage.value = page;
   getPendingData();
 }
-function showPendingModal () {
+function showPendingModal() {
   pendingModal.value.show();
   getPendingData();
 }
@@ -27,5 +29,5 @@ export {
   pendingRef,
   showPendingModal,
   pendingPageChange,
-  getPendingData
+  getPendingData,
 };

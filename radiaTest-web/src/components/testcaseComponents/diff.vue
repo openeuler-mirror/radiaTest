@@ -14,8 +14,5 @@ export default {
   components: {
     CodeDiff,
   },
-  mounted(){
-    console.log(this.info);
-  }
 };
 </script>

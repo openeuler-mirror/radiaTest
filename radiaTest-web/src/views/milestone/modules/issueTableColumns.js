@@ -10,7 +10,7 @@ import { IncompleteCircleRound, PauseCircleFilled } from '@vicons/material';
 import { any2standard, any2stamp } from '@/assets/utils/dateFormatUtils';
 import IssueState from '@/components/public/IssueState.vue';
 
-const issueStateDict = {
+export const issueStateDict = {
   修复中: {
     color: 'rgba(74,144,226)',
     size: 24,
@@ -58,10 +58,10 @@ const columns = [
         IssueState,
         {
           color: row.issue_state.color,
-          size: issueStateDict[row.issue_state.title].size,
+          size: issueStateDict[row.issue_state.title]?.size || 24,
           tip: row.issue_state.title,
         },
-        h(issueStateDict[row.issue_state.title].icon, null)
+        h(issueStateDict[row.issue_state.title]?.icon || SyncCircle, null)
       );
     },
     // filterOptions: [

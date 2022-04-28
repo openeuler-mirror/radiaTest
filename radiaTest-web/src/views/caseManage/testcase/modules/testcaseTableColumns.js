@@ -1,10 +1,10 @@
-import { h, ref } from 'vue';
+import { h } from 'vue';
 import { NIcon, NButton, NSpace } from 'naive-ui';
 import { Construct } from '@vicons/ionicons5';
-import { Delete24Regular as Delete } from '@vicons/fluent';
+// import { Delete24Regular as Delete } from '@vicons/fluent';
 import { renderTooltip } from '@/assets/render/tooltip';
-import { updateAjax } from '@/assets/CRUD/update';
-import testcaseTable from './testcaseTable';
+// import { updateAjax } from '@/assets/CRUD/update';
+// import testcaseTable from './testcaseTable';
 
 const defaultColumns = [
   {
@@ -46,7 +46,7 @@ const defaultColumns = [
         return h('p', null, '是');
       }
       return h('p', null, '否');
-    }
+    },
   },
   {
     title: '备注',
@@ -88,22 +88,22 @@ const createColumns = (handler) => {
               ),
               '修改'
             ),
-            renderTooltip(
-              h(
-                NButton,
-                {
-                  size: 'medium',
-                  type: 'error',
-                  circle: true,
-                  onClick: () => {
-                    testcaseTable.isDelete.value = true;
-                    updateAjax.putForm('/v1/case', ref({id: row.id, deleted: true}));
-                  },
-                },
-                h(NIcon, { size: '20' }, h(Delete))
-              ),
-              '删除'
-            ),
+            // renderTooltip(
+            //   h(
+            //     NButton,
+            //     {
+            //       size: 'medium',
+            //       type: 'error',
+            //       circle: true,
+            //       onClick: () => {
+            //         testcaseTable.isDelete.value = true;
+            //         updateAjax.putForm('/v1/case', ref({id: row.id, deleted: true}));
+            //       },
+            //     },
+            //     h(NIcon, { size: '20' }, h(Delete))
+            //   ),
+            //   '删除'
+            // ),
           ]
         );
       },

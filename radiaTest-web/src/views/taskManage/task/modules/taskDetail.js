@@ -77,17 +77,17 @@ const init = {
   resize: false, // 禁止改变大小
   statusbar: false, // 隐藏底部状态栏
   // 图片上传
-  images_upload_handler (blobInfo, success) {
+  images_upload_handler(blobInfo, success) {
     let reader = new FileReader();
     reader.readAsDataURL(blobInfo.blob());
-    reader.onload = function () {
+    reader.onload = function() {
       success(this.result);
     };
   },
 };
 
 // 渲染图标
-function renderIcon (icon) {
+function renderIcon(icon) {
   return () => {
     return h(NIcon, null, {
       default: () => h(icon),
@@ -103,7 +103,7 @@ const detailTask = reactive({
 });
 
 // 父子任务关联、查询
-function familyTaskOperator (option) {
+function familyTaskOperator(option) {
   return new Promise((resolve, reject) => {
     axios
       .get(`/v1/tasks/${detailTask.taskId}/family`, option)
@@ -115,14 +115,16 @@ function familyTaskOperator (option) {
       .catch((err) => {
         fatherTaskLoading.value = false;
         childTaskLoading.value = false;
-        window.$message?.error(err.data.error_msg || err.message || unkonwnErrorMsg);
+        window.$message?.error(
+          err.data.error_msg || err.message || unkonwnErrorMsg
+        );
         reject(err);
       });
   });
 }
 
 //用例查询操作
-function caseOperator (option) {
+function caseOperator(option) {
   return new Promise((resolve, reject) => {
     axios
       .get(`/v1/tasks/${detailTask.taskId}/cases`, option)
@@ -136,26 +138,30 @@ function caseOperator (option) {
 }
 
 //获取评论
-function getTaskComment () {
+function getTaskComment() {
   axios
     .get(`/v1/tasks/${detailTask.taskId}/comment`)
     .then((res) => {
       modalData.value.comments = res.data;
     })
     .catch((errors) => {
-      window.$message?.error(errors.data.error_msg || errors.message || '未知错误');
+      window.$message?.error(
+        errors.data.error_msg || errors.message || '未知错误'
+      );
     });
 }
 
 //获取协助人
-function getTaskHelper () {
+function getTaskHelper() {
   axios
     .get(`/v1/tasks/${detailTask.taskId}/participants`)
     .then((res) => {
       modalData.value.helper = res.data;
     })
     .catch((errors) => {
-      window.$message?.error(errors.data.error_msg || errors.message || '未知错误');
+      window.$message?.error(
+        errors.data.error_msg || errors.message || '未知错误'
+      );
     });
 }
 
@@ -188,7 +194,7 @@ const editRole = computed(() => {
 });
 
 // 获取任务详情数据
-function getDetailTask () {
+function getDetailTask() {
   return new Promise((resolve, reject) => {
     showLoading.value = true;
     axios
@@ -203,7 +209,9 @@ function getDetailTask () {
       })
       .catch((errors) => {
         showLoading.value = false;
-        window.$message?.error(errors.data.error_msg || errors.message || '未知错误');
+        window.$message?.error(
+          errors.data.error_msg || errors.message || '未知错误'
+        );
         reject(new Error('false'));
       });
   });
@@ -247,7 +255,7 @@ const tempCases = ref([]);
 const casesData = ref([]);
 let tempArray = [];
 
-function getTempCases (data) {
+function getTempCases(data) {
   data.forEach((v, i) => {
     if (v.manual_cases.length || v.auto_cases.length) {
       v.manual_cases.forEach((c) => {
@@ -281,7 +289,7 @@ function getTempCases (data) {
   });
 }
 
-function getCasesData () {
+function getCasesData() {
   let index2 = 0;
   if (tempCases.value) {
     tempCases.value.forEach((v) => {
@@ -328,7 +336,7 @@ function getCasesData () {
 }
 
 //查询用例
-function getTaskCases () {
+function getTaskCases() {
   caseOperator({ is_contain: true })
     .then((res) => {
       [tempCases.value, casesData.value, tempArray] = [[], [], []];
@@ -360,7 +368,7 @@ let suiteTemp = [];
 let tempSuiteId;
 
 // 获取测试套
-function getCaseSuite () {
+function getCaseSuite() {
   axios
     .get('/v1/suite')
     .then((res) => {
@@ -381,7 +389,7 @@ function getCaseSuite () {
 }
 
 // 测试套搜索回调
-function suiteHandleSearch (query) {
+function suiteHandleSearch(query) {
   if (!query.length) {
     suiteOptions.value = suiteTemp;
     return;
@@ -391,7 +399,7 @@ function suiteHandleSearch (query) {
 
 let activeMilestoneId = '';
 // 获取测试用例数据
-function getCase () {
+function getCase() {
   loadingRef.value = true;
   caseOperator({
     is_contain: false,
@@ -415,7 +423,7 @@ function getCase () {
 const caseStr = ref('');
 
 // 查询用例
-function queryCase () {
+function queryCase() {
   checkedRowKeys.value = [];
   tempSuiteId = suiteId.value;
   casePagination.page = 1;
@@ -423,7 +431,7 @@ function queryCase () {
   getCase();
 }
 // 删除测试用例
-function deleteCase (rowData) {
+function deleteCase(rowData) {
   caseLoading.value = true;
   if (rowData.children) {
     const allRequest = rowData.children.map((caseItem) => {
@@ -469,7 +477,7 @@ const associatedMilestone = ref(null);
 const associatedMilestoneOptions = ref([]);
 
 // 显示关联测试弹窗
-function addCase (milestoneId) {
+function addCase(milestoneId) {
   if (milestoneId) {
     if (!suiteOptions.value.length) {
       getCaseSuite();
@@ -483,7 +491,7 @@ function addCase (milestoneId) {
   }
 }
 
-function clickAssociatedCases () {
+function clickAssociatedCases() {
   if (modalData.value.detail.is_single_case && modalData.value.cases.length) {
     window.$message?.error('只允许关联一个测试用例!');
     return;
@@ -519,7 +527,7 @@ const distributeTaskMilestoneValue = ref(null); // 分配任务里程碑
 const distributeTaskMilestoneOption = ref([]); // 可分配里程碑
 
 // 获取里程碑选项
-function getDistributeMilestone () {
+function getDistributeMilestone() {
   distributeTaskMilestoneValue.value = null;
   distributeTaskMilestoneOption.value = [];
   if (modalData.value.detail.milestones) {
@@ -539,12 +547,12 @@ function getDistributeMilestone () {
 }
 
 // 取消分配测试用例
-function cancelDistributeCase () {
+function cancelDistributeCase() {
   distributeCaseModal.value = false;
 }
 
 // 确认分配测试用例
-function distributeCaseBtn (item) {
+function distributeCaseBtn(item) {
   if (distributeCaseModalData.value.children) {
     const allRequest = distributeCaseModalData.value.children.map(
       (caseItem) => {
@@ -587,14 +595,14 @@ function distributeCaseBtn (item) {
 }
 
 // 取消分配模板
-function cancelDistributeTask () {
+function cancelDistributeTask() {
   distributeTaskModal.value = false;
   distributeTaskValue.value = null;
   distributeTaskOption.value = [];
 }
 
 // 确认分配模板
-function distributeTaskBtn (value) {
+function distributeTaskBtn(value) {
   axios
     .put(
       `/v1/tasks/${modalData.value.detail.id}/distribute_templates/${value}`,
@@ -642,7 +650,7 @@ const caseViewColumns = [
     title: '用例类型',
     align: 'center',
     key: 'type',
-    render (rowData) {
+    render(rowData) {
       let result = '';
       if (rowData.type === 'auto') {
         result = '自动';
@@ -656,7 +664,7 @@ const caseViewColumns = [
     title: '用例状态',
     align: 'center',
     key: 'status',
-    render (rowData) {
+    render(rowData) {
       let textColor = '';
       const options = [
         { label: 'running', key: 'running' },
@@ -684,7 +692,7 @@ const caseViewColumns = [
           onSelect: (key) => {
             axios
               .put(
-                `/v1/task/milestones/${rowData.taskMilestoneId}/cases/${rowData.id}`,
+                `/v1/task/${detailTask.taskId}/milestones/${rowData.taskMilestoneId}/cases/${rowData.id}`,
                 { result: key }
               )
               .then(() => {
@@ -711,7 +719,7 @@ const caseViewColumns = [
     title: '可获取',
     align: 'center',
     key: 'available',
-    render (rowData) {
+    render(rowData) {
       let result = '';
       if (rowData.usabled === true) {
         result = '是';
@@ -725,7 +733,7 @@ const caseViewColumns = [
     title: '操作',
     align: 'center',
     key: 'operate',
-    render (rowData) {
+    render(rowData) {
       if (rowData.suite) {
         return [
           h(
@@ -750,7 +758,8 @@ const caseViewColumns = [
             {
               type: 'primary',
               text: true,
-              disabled: !editStatus.value || modalData.value.detail.is_single_case,
+              disabled:
+                !editStatus.value || modalData.value.detail.is_single_case,
               onClick: () => {
                 if (editStatus.value) {
                   deleteCase(rowData);
@@ -818,7 +827,7 @@ const fatherTaskArray = ref([
   },
 ]);
 
-function getMdFiles () {
+function getMdFiles() {
   axios
     .get(`/v1/tasks/${detailTask.taskId}/reports`)
     .then((res) => {
@@ -837,7 +846,7 @@ function getMdFiles () {
 
 let timer; // 父子任务搜索防抖
 
-function transTaskType (type) {
+function transTaskType(type) {
   switch (type) {
     case 'PERSON':
       return '个人任务';
@@ -853,7 +862,7 @@ function transTaskType (type) {
 }
 
 // 合并父子任务；获取分配子任务列表
-function mergeFamilyTask (response) {
+function mergeFamilyTask(response) {
   modalData.value.relationFatherTask = response.data.parents.map((item) => {
     return {
       id: item.id,
@@ -900,7 +909,7 @@ function mergeFamilyTask (response) {
 }
 
 // 点击任务获取任务详情
-function getDetail (detailData) {
+function getDetail(detailData) {
   detailTask.taskId = detailData.id;
   detailTask.level = detailData.level;
   getDetailTask().then(() => {
@@ -915,7 +924,7 @@ function getDetail (detailData) {
 }
 
 // 编辑任务选项
-function editTask (id, editInfo) {
+function editTask(id, editInfo) {
   showLoading.value = true;
   axios
     .put(`/v1/tasks/${id}`, editInfo)
@@ -935,12 +944,12 @@ function editTask (id, editInfo) {
 }
 
 // 测试用例表格行id设置
-function caseRowKey (row) {
+function caseRowKey(row) {
   return row.id;
 }
 
 // 测试用例页码变更
-function handleCasePageChange (currentPage) {
+function handleCasePageChange(currentPage) {
   if (!loadingRef.value) {
     casePagination.page = currentPage;
     getCase();
@@ -948,13 +957,13 @@ function handleCasePageChange (currentPage) {
 }
 
 // 取消关联测试用例
-function cancelCaseBtn () {
+function cancelCaseBtn() {
   checkedRowKeys.value = [];
   showCaseModal.value = false;
 }
 
 // 新增关联用例
-function addTaskCase () {
+function addTaskCase() {
   axios
     .post(
       `/v1/tasks/${modalData.value.detail.id}/milestones/${activeMilestoneId}/cases`,
@@ -976,13 +985,13 @@ function addTaskCase () {
 }
 
 // 关联测试用例按钮
-function addCaseBtn () {
+function addCaseBtn() {
   // handleCase('add', checkedRowKeys.value);
   addTaskCase();
 }
 
 // 跳转子任务
-function jumpChildTask (jumpTask) {
+function jumpChildTask(jumpTask) {
   detailTask.taskId = jumpTask.id;
   detailTask.level = jumpTask.level;
   detailTask.parentId = jumpTask.parent_id;
@@ -994,18 +1003,18 @@ function jumpChildTask (jumpTask) {
 }
 
 // 显示关联父任务
-function associatedTask () {
+function associatedTask() {
   showAssociatedTask.value = false;
 }
 
 // 取消关联父任务
-function cancelAssociatedTask () {
+function cancelAssociatedTask() {
   fatherTaskArrayTemp.value = [];
   showAssociatedTask.value = true;
 }
 
 // 关联任务
-function relationTask (option) {
+function relationTask(option) {
   return new Promise((resolve, reject) => {
     axios
       .post(`/v1/tasks/${modalData.value.detail.id}/family`, option)
@@ -1019,7 +1028,7 @@ function relationTask (option) {
 }
 
 // 确认关联父任务
-function associatedTaskBtn (value) {
+function associatedTaskBtn(value) {
   if (modalData.value.detail.milestone || modalData.value.detail.milestones) {
     relationTask({ parent_id: value }).then(() => {
       familyTaskOperator({ not_in: false }).then((response) => {
@@ -1034,7 +1043,7 @@ function associatedTaskBtn (value) {
 }
 
 // 取消关联任务
-function editRelationTask (option) {
+function editRelationTask(option) {
   axios
     .delete(`/v1/tasks/${modalData.value.detail.id}/family`, option)
     .then(() => {
@@ -1049,18 +1058,18 @@ function editRelationTask (option) {
 }
 
 // 显示关联子任务
-function associatedChildTask () {
+function associatedChildTask() {
   showAssociatedChildTask.value = false;
 }
 
 // 取消关联子任务
-function cancelAssociatedChildTask () {
+function cancelAssociatedChildTask() {
   childTaskArrayTemp.value = [];
   showAssociatedChildTask.value = true;
 }
 
 // 确认关联子任务
-function associatedChildTaskBtn (value) {
+function associatedChildTaskBtn(value) {
   if (modalData.value.detail.milestone || modalData.value.detail.milestones) {
     relationTask({ child_id: value })
       .then(() => {
@@ -1079,7 +1088,7 @@ function associatedChildTaskBtn (value) {
 }
 
 // 关联父任务选择框搜索
-function handleSearchFatherTask (query) {
+function handleSearchFatherTask(query) {
   fatherTaskLoading.value = true;
   if (timer) {
     clearTimeout(timer);
@@ -1099,12 +1108,12 @@ function handleSearchFatherTask (query) {
 }
 
 // 聚焦关联父任务选择框回调
-function handleFocusFatherTask () {
+function handleFocusFatherTask() {
   handleSearchFatherTask();
 }
 
 // 关联子任务选择框搜索
-function handleSearchChildTask (query) {
+function handleSearchChildTask(query) {
   childTaskLoading.value = true;
   if (timer) {
     clearTimeout(timer);
@@ -1124,7 +1133,7 @@ function handleSearchChildTask (query) {
 }
 
 // 聚焦子任务搜索回调
-function handleFocusChildTask () {
+function handleFocusChildTask() {
   handleSearchChildTask();
 }
 
@@ -1173,7 +1182,7 @@ const familyColumns = ref([
     title: '操作',
     key: 'operation',
     align: 'center',
-    render (row) {
+    render(row) {
       return h(
         NButton,
         {
@@ -1225,7 +1234,7 @@ const familyColumns = ref([
   },
 ]);
 
-function familyRowProps (rowData) {
+function familyRowProps(rowData) {
   return {
     style: 'cursor: pointer;',
     onClick: () => {
@@ -1238,7 +1247,7 @@ function familyRowProps (rowData) {
 }
 
 // 拖动任务改变状态
-function changeStatus ($event, status) {
+function changeStatus($event, status) {
   axios
     .put(`/v1/tasks/${$event.id}`, { status_id: status.id })
     .then(() => {
@@ -1255,7 +1264,7 @@ function changeStatus ($event, status) {
     });
 }
 
-function getTemplateName () {
+function getTemplateName() {
   distributeTaskValue.value = null;
   distributeTaskOption.value = [];
   axios
@@ -1278,7 +1287,7 @@ function getTemplateName () {
 }
 
 // 任务详情右上角菜单选择：删除任务、生成报告
-function handleSelect (key) {
+function handleSelect(key) {
   if (key === 'deleteTask') {
     const d = window.$dialog?.warning({
       title: '删除任务',
@@ -1324,12 +1333,12 @@ function handleSelect (key) {
 }
 
 // 关闭遮罩按钮
-function closeModal () {
+function closeModal() {
   showModal.value = false;
 }
 
 // 任务名称显示/编辑切换
-function showTitleInput () {
+function showTitleInput() {
   if (showTaskTitleInput.value === false) {
     if (editStatus.value) {
       showTaskTitleInput.value = true;
@@ -1347,7 +1356,7 @@ function showTitleInput () {
 }
 
 // 任务详情页关闭回调
-function leaveModal () {
+function leaveModal() {
   showBackMenu.value = false;
   editStatus.value = false;
   showEditTaskDetailBtn.value = true;
@@ -1357,7 +1366,7 @@ function leaveModal () {
 }
 
 // 添加子任务
-function createChildTask () {
+function createChildTask() {
   store.commit('taskManage/toggleNewTaskDrawer');
   detailTask.statusId = modalData.value.detail.status_id;
   showRelation.value = false;
@@ -1366,7 +1375,7 @@ function createChildTask () {
 }
 
 // 发表评论
-function commentFn (str) {
+function commentFn(str) {
   if (str) {
     showLoading.value = true;
     axios
@@ -1386,7 +1395,7 @@ function commentFn (str) {
 }
 
 // 返回父任务
-function jumpBack (data) {
+function jumpBack(data) {
   detailTask.level = data.level - 1;
   detailTask.taskId = detailTask.parentId;
   getDetailTask().then(() => {
@@ -1399,17 +1408,17 @@ function jumpBack (data) {
 }
 
 // 任务详情页改变状态回调
-function statusChange (value) {
+function statusChange(value) {
   editTask(modalData.value.detail.id, { status_id: value });
 }
 
 // 任务详情页执行机架构改变回调
-function frameChange (value) {
+function frameChange(value) {
   editTask(modalData.value.detail.id, { frame: value });
 }
 
 // 选择协助人
-function getHelper (value) {
+function getHelper(value) {
   showPopoverHelper.value = false;
   const data = [];
   for (const item of value) {
@@ -1434,26 +1443,26 @@ function getHelper (value) {
 }
 
 // 选择里程碑
-function getMilepost (value) {
+function getMilepost(value) {
   showMilepost.value = false;
   editTask(modalData.value.detail.id, { milestone_id: value.id });
 }
 
 // 组织任务获取里程碑数组
-function getMileposts (groupValue) {
+function getMileposts(groupValue) {
   editTask(modalData.value.detail.id, { milestones: groupValue });
   showMilepost.value = false;
 }
 
 // 设置截止时间
-function updateClosingTime (value) {
+function updateClosingTime(value) {
   editTask(modalData.value.detail.id, {
     deadline: formatTime(value, 'yyyy-MM-dd hh:mm:ss'),
   });
 }
 
 // 切换内容选项编辑/显示模式
-function showContent () {
+function showContent() {
   if (showContentInput.value === false) {
     if (editStatus.value) {
       showContentInput.value = true;
@@ -1470,12 +1479,12 @@ function showContent () {
 }
 
 // 切换显示内容：关联用例 评论 关联任务
-function toggleContent (option) {
+function toggleContent(option) {
   showFooterContent.value = option;
 }
 
 // 获取责任人
-function getExecutors (value) {
+function getExecutors(value) {
   showPopoverExecutors.value = false;
   const options = {};
   options.executor_id = value.id;
@@ -1484,7 +1493,7 @@ function getExecutors (value) {
 }
 
 // 获取责任人
-function getExecutor (value, type) {
+function getExecutor(value, type) {
   showPopoverExecutor.value = false;
   const options = {};
   if (type === 'ORGANIZATION') {
@@ -1500,7 +1509,7 @@ function getExecutor (value, type) {
   editTask(modalData.value.detail.id, options);
 }
 
-function showReport (file) {
+function showReport(file) {
   md.name = file.title;
   md.content = file.content;
   md.taskId = modalData.value.detail.id;
@@ -1508,7 +1517,7 @@ function showReport (file) {
 }
 
 // 编辑任务详情
-function editTaskDetail () {
+function editTaskDetail() {
   if (showEditTaskDetailBtn.value) {
     if (editRole.value) {
       window.$message?.success('进入编辑模式');
@@ -1537,18 +1546,17 @@ const autocompleteArray = ref([
 ]);
 
 // 任务详情页自动完成变回调
-function autocompleteChange (value) {
+function autocompleteChange(value) {
   editTask(modalData.value.detail.id, { automatic_finish: value });
 }
-function changeManage (value) {
+function changeManage(value) {
   editTask(modalData.value.detail.id, { is_manage_task: value });
 }
-function getFrame () {
-  axios.get('/v1/task/frame').then(res => {
-    frameArray.value = res.data.map(item => ({ label: item, value: item }));
+function getFrame() {
+  axios.get('/v1/task/frame').then((res) => {
+    frameArray.value = res.data.map((item) => ({ label: item, value: item }));
   });
 }
-
 
 export {
   getFrame,
@@ -1677,5 +1685,5 @@ export {
   distributeTaskMilestoneOption,
   getDistributeMilestone,
   distributeAllCases,
-  changeManage
+  changeManage,
 };

@@ -6,7 +6,7 @@ import { NIcon } from 'naive-ui';
 import { Circle, CircleCheck, CircleMinus, CircleX } from '@vicons/tabler';
 import axios from '@/axios';
 import { formatTime } from '@/assets/utils/dateFormatUtils.js';
-import { getCaseCommit } from '@/api/post';
+import { getCaseCommit } from '@/api/get';
 
 const vmachineClick = (router) => {
   router.push('/home/resource-pool/vmachine');
@@ -145,7 +145,7 @@ function getTaskData() {
   myTasksData.value = [];
   tasksloading.value = true;
   axios
-    .post('/v1/user/task/info', {
+    .get('/v1/user/task/info', {
       task_type: taskType,
       task_title: taskTitle,
       page_num: tasksPagination.value.page,
@@ -296,7 +296,7 @@ const myMachineData = ref([]);
 function getMachineData() {
   myMachineData.value = [];
   axios
-    .post('/v1/user/machine/info', {
+    .get('/v1/user/machine/info', {
       machine_type: machineType,
       machine_name: machineName,
       page_num: 1,

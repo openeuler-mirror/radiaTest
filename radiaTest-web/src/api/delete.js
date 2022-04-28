@@ -9,7 +9,7 @@ function deleteRequest(url, data) {
         resolve(res);
       })
       .catch((err) => {
-        window.$message?.error(err.data.error_msg || unkonwnErrorMsg);
+        window.$notification?.error({ content: err.data.error_msg || unkonwnErrorMsg, duration:2000 });
         reject(err);
       });
   });
@@ -28,4 +28,10 @@ export function deleteComment (id) {
 }
 export function deleteMachineGroup(id){
   return deleteRequest(`/v1/machine_group/${id}`);
+}
+export function deleteGroupUserRole (id,data) {
+  return deleteRequest(`/v1/user_role/group/${id}`,data);
+}
+export function deleteOrgUserRole (id, data) {
+  return deleteRequest(`/v1/user_role/org/${id}`, data);
 }

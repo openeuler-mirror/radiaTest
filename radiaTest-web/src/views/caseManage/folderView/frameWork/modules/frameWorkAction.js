@@ -1,6 +1,8 @@
 import { ref } from 'vue';
 import axios from '@/axios';
 import { getFramework } from './frameworkTable';
+import { storage } from '@/assets/utils/storageUtils';
+import router from '@/router';
 
 const isCreate = ref(true);
 const showModal = ref(false);
@@ -64,7 +66,14 @@ function submitForm() {
       const url = isCreate.value
         ? '/v1/framework'
         : `/v1/framework/${editFramework}`;
-      axios[isCreate.value ? 'post' : 'put'](url, frameworkForm.value)
+      const formData = JSON.parse(JSON.stringify(frameworkForm.value));
+      if (isCreate.value) {
+        formData.creator_id = storage.getValue('gitee_id');
+        formData.permission_type = 'group';
+        formData.group_id = router.currentRoute.value.query.id;
+        formData.org_id = storage.getValue('loginOrgId');
+      }
+      axios[isCreate.value ? 'post' : 'put'](url, formData)
         .then(() => {
           getFramework();
           window.$message?.success(isCreate.value ? '创建成功' : '修改成功');

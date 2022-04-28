@@ -73,7 +73,6 @@ function hanleLogin () {
   changeLoadingStatus(true);
   storage.setValue('loginOrgId', Number(loginOrg.value));
   storage.setValue('hasEnterprise', requireEnterprise(loginOrg.value));
-  console.log(storage.getValue('loginOrgId'));
   axios
     .get('/v1/gitee/oauth/login', { org_id: Number(loginOrg.value) })
     .then((res) => {

@@ -9,7 +9,10 @@ function getRequest(url, data) {
       })
       .catch((err) => {
         reject(err);
-        window.$message?.error(err.data.error_msg || unkonwnErrorMsg);
+        window.$notification?.error({
+          content: err.data.error_msg || unkonwnErrorMsg,
+          duration: 2000,
+        });
       });
   });
 }
@@ -61,8 +64,8 @@ export function getCaseReview(data) {
 export function getMachineGroup(data) {
   return getRequest('/v1/machine_group', data);
 }
-export function getCommitHistory (caseId, data) {
-  return getRequest(`/v1/commit/history/${caseId}`,data);
+export function getCommitHistory(caseId, data) {
+  return getRequest(`/v1/commit/history/${caseId}`, data);
 }
 export function getPmachine(data) {
   return getRequest('/v1/pmachine', data);
@@ -70,21 +73,42 @@ export function getPmachine(data) {
 export function getVmachine(data) {
   return getRequest('/v1/vmachine', data);
 }
-export function getCaseReviewDetails (id,data) {
+export function getCaseReviewDetails(id, data) {
   return getRequest(`/v1/case/commit/${id}`, data);
 }
-export function getCaseReviewComment (id, data) {
+export function getCaseReviewComment(id, data) {
   return getRequest(`/v1/case/${id}/comment`, data);
 }
-export function getCaseDetail (data) {
+export function getCaseDetail(data) {
   return getRequest('/v1/case', data);
 }
-export function getExtendRole (data) {
+export function getExtendRole(data) {
   return getRequest('/v1/role/default', data);
 }
-export function getMilestoneTask (milestoneId,data) {
+export function getMilestoneTask(milestoneId, data) {
   return getRequest(`/v1/milestone/${milestoneId}/tasks`, data);
 }
-export function getMachineGroupDetails(id,data){
-  return getRequest(`/v1/machine_group/${id}`,data);
+export function getMachineGroupDetails(id, data) {
+  return getRequest(`/v1/machine_group/${id}`, data);
+}
+export function getCaseCommit(data) {
+  return getRequest('/v1/user/case/commit', data);
+}
+export function getIssueDetails(id, data) {
+  return getRequest(`/v2/milestone/issues/${id}`, data);
+}
+export function getPendingReview(data) {
+  return getRequest('/v1/case/commit/status', data);
+}
+export function getAllRole(data) {
+  return getRequest('/v1/role', data);
+}
+export function getOrgUser(id, data) {
+  return getRequest(`/v1/org/${id}/users`, data);
+}
+export function getProduct(data) {
+  return getRequest('/v1/product', data);
+}
+export function getBaselineTask(id, data) {
+  return getRequest(`/v1/baseline/${id}/task`, data);
 }

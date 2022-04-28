@@ -89,11 +89,11 @@ export default defineComponent({
       filterValue: filterValue.filterValue,
       vmachineSocket: null,
       columns,
-      pagination: {
+      pagination: ref({
         page: 1,
         pageCount: 1,
-        pageSize: 10
-      },
+        pageSize: 10,
+      }),
       ...vmachineTable,
       showSelection: () => selection.show(columns),
       offSelection: () => selection.off(columns),

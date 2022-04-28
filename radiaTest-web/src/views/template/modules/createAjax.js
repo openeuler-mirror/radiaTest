@@ -3,26 +3,23 @@ import { createAjax } from '@/assets/CRUD/create';
 import axios from '@/axios';
 import { storage } from '@/assets/utils/storageUtils';
 
-const getData = (options,id) => {
+const getData = (options, id) => {
   axios
     .get(`/v1/template/cases/${id}`)
     .then((res) => {
       const suites = new Map();
       res.data.forEach((item) => {
         if (!suites.has(item.suite_id)) {
-          suites.set(
-            item.suite_id,
-            {
-              key: item.suite_id,
-              label: item.suite,
-              children: [
-                {
-                  key: item.id,
-                  label: item.name,
-                }
-              ]
-            }
-          );
+          suites.set(item.suite_id, {
+            key: item.suite_id,
+            label: item.suite,
+            children: [
+              {
+                key: item.id,
+                label: item.name,
+              },
+            ],
+          });
         } else {
           suites.get(item.suite_id).children.push({
             key: item.id,
@@ -30,7 +27,7 @@ const getData = (options,id) => {
           });
         }
       });
-      for ( let suite of suites.values() ) {
+      for (let suite of suites.values()) {
         options.value.push(suite);
       }
     })
@@ -42,13 +39,15 @@ const getData = (options,id) => {
 const postForm = (formValue, casesValue) => {
   const postData = ref({
     name: formValue.value.name,
-    template_type: formValue.value.template_type,
-    owner: formValue.value.owner,
     milestone_id: formValue.value.milestone,
     description: formValue.value.description,
     cases: casesValue.value,
-    author: storage.getValue('gitee_name')
+    permission_type: formValue.value.permission_type.split('-')[0],
+    creator_id: Number(storage.getValue('gitee_id')),
+    org_id: storage.getValue('orgId'),
+    group_id: Number(formValue.value.permission_type.split('-')[1]),
   });
+  console.log(postData.value, formValue.value);
   createAjax.postForm('/v1/template', postData);
 };
 
