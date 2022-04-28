@@ -6,7 +6,7 @@ from server.schema.base import PermissionBase
 from server.schema import PermissionType
 
 
-class FrameworkBase(BaseModel, PermissionBase):
+class FrameworkBase(PermissionBase):
     name: str
     url: HttpUrl
     logs_path: str
@@ -26,7 +26,7 @@ class FrameworkQuery(BaseModel):
     adaptive: Optional[bool]
 
 
-class GitRepoBase(BaseModel, PermissionBase):
+class GitRepoBase(PermissionBase):
     name: str
     git_url: HttpUrl
     sync_rule: bool = True
