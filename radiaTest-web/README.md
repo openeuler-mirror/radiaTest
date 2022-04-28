@@ -1,8 +1,8 @@
-# mugen-front
+# radiaTest测试管理平台web前端源码
 
 ## Project setup
 ```
-npm install
+npm install --force
 ```
 
 ### Compiles and hot-reloads for development

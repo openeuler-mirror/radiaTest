@@ -1,6 +1,6 @@
 #! /bin/sh
 
-if [ ! -d "./migrations" & ! -f "./migrations/env.py" ];then
+if [[ ! -d "./migrations" || ! -f "./migrations/env.py" ]];then
     python3 manage.py db init || exit 
 fi
 
