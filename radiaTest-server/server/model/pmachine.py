@@ -11,22 +11,31 @@ from server.model.base import ServiceBaseModel, PermissionBaseModel
 
 
 
-class MachineGroup(ServiceBaseModel, PermissionBaseModel, db.Model):
+class MachineGroup(PermissionBaseModel, db.Model):
     __tablename__ = "machine_group"
 
+    id = db.Column(db.Integer(), primary_key=True)
+    name = db.Column(db.String(64))
+    description = db.Column(db.String(256))
     ip = db.Column(db.String(15), unique=True, index=True)
 
     network_type = db.Column(db.Enum("WAN", "LAN"), nullable=False, default="WAN")
+
+    messenger_ip = db.Column(db.String(15))
+    messenger_listen = db.Column(db.Integer(), nullable=False)
+
+    websockify_ip = db.Column(db.String(15))
+    websockify_listen = db.Column(db.Integer(), nullable=False)
 
     messenger_last_heartbeat = db.Column(db.DateTime())
     pxe_last_heartbeat = db.Column(db.DateTime())
     dhcp_last_heartbeat = db.Column(db.DateTime())
 
     pmachines = db.relationship("Pmachine", backref="machine_group", cascade="all, delete, delete-orphan")
+
     creator_id = db.Column(db.Integer(), db.ForeignKey("user.gitee_id"))
     group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
     org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
-    websockify_listen = db.Column(db.Integer(), nullable=False)
 
     def check_alive(self, _heartbeat):
         _current_time = datetime.now()  
@@ -56,9 +65,10 @@ class MachineGroup(ServiceBaseModel, PermissionBaseModel, db.Model):
             "id": self.id,
             "name": self.name,
             "description": self.description,
+            "ip": self.ip,
             "network_type": self.network_type,
-            "messenger_ip": self.ip,
-            "messenger_listen": self.listen,
+            "messenger_ip": self.messenger_ip,
+            "messenger_listen": self.messenger_listen,
             "messenger_alive": messenger_alive,
             "messenger_last_heartbeat": messenger_last_heartbeat,
             "pxe_alive": pxe_alive,
@@ -69,8 +79,7 @@ class MachineGroup(ServiceBaseModel, PermissionBaseModel, db.Model):
             "permission_type": self.permission_type,
             "group_id": self.group_id,
             "org_id": self.org_id,
-            "listen": self.listen,
-            "ip": self.ip,
+            "websockify_ip": self.websockify_ip,
             "websockify_listen": self.websockify_listen
         }
 

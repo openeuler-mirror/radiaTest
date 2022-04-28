@@ -2,13 +2,13 @@ const name = 'radiaTest';
 const version = '1.1.0';
 const license = 'Mulan PSL v2';
 
-const serverIp = '123.60.114.22';
+// const serverIp = ;
 
-const serverPort = 1401;
+// const serverPort = ;
 
-const serverPath = `${serverIp}:${serverPort}`;
+const serverPath = "radiatest.openeuler.org";
 
-const newsSocketPath = `ws://${serverIp}:${serverPort}/api/v1/msg`;
+const newsSocketPath = `ws://${serverPath}/api/v1/msg`;
 
 export default {
   name,

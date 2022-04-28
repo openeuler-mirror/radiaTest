@@ -10,46 +10,52 @@
         borderWidth: `${windowHeight * 0.8}px 0 0 ${windowWidth * 0.6}px`,
       }"
     ></div>
-    <div class="carousel-container">
-      <carousel
-        :sliders="sliders"
-        :duration="6000"
-        :autoplay="true"
-        @change="indexChange"
-        :mouseStop="true"
-      >
-        <template v-slot:imgTop-0>
-          <div :class="{ loginActive: activeIndex === 0 || activeIndex === 5 }">
-            <p class="carousel-description">便捷轻松地管理测试任务，</p>
-            <p class="carousel-description">为团队效率加速</p>
-          </div>
-        </template>
-        <template v-slot:imgTop-1>
-          <div :class="{ loginActive: activeIndex === 1 }">
-            <p class="carousel-description">文本用例集中管理，</p>
-            <p class="carousel-description">支持线上用例评审</p>
-          </div>
-        </template>
-        <template v-slot:imgTop-2>
-          <div :class="{ loginActive: activeIndex === 2 }">
-            <p class="carousel-description">测试引擎多元接入，</p>
-            <p class="carousel-description">支持多元化调度部署执行</p>
-          </div>
-        </template>
-        <template v-slot:imgTop-3>
-          <div :class="{ loginActive: activeIndex === 3 }">
-            <p class="carousel-description">构建版本级质量看板，</p>
-            <p class="carousel-description">全面助力社区质量看护</p>
-          </div>
-        </template>
-        <template v-slot:imgTop-4>
-          <div :class="{ loginActive: activeIndex === 4 }">
-            <p class="carousel-description">资源池分布式管理多元化接入，</p>
-            <p class="carousel-description">支撑差异化测试需求</p>
-          </div>
-        </template>
-      </carousel>
-    </div>
+    <div
+      class="img-box"
+      :style="{ height: `${windowHeight}px`, width: `${windowWidth * 0.6}px` }"
+    >
+      <div class="carousel-container">
+        <carousel
+          :sliders="sliders"
+          :duration="6000"
+          :autoplay="true"
+          @change="indexChange"
+          :mouseStop="true"
+        >
+          <template v-slot:imgTop-0>
+            <div
+              :class="{ loginActive: activeIndex === 0 || activeIndex === 5 }"
+            >
+              <p class="carousel-description">便捷轻松地管理测试任务，</p>
+              <p class="carousel-description">为团队效率加速</p>
+            </div>
+          </template>
+          <template v-slot:imgTop-1>
+            <div :class="{ loginActive: activeIndex === 1 }">
+              <p class="carousel-description">文本用例集中管理，</p>
+              <p class="carousel-description">支持线上用例评审</p>
+            </div>
+          </template>
+          <template v-slot:imgTop-2>
+            <div :class="{ loginActive: activeIndex === 2 }">
+              <p class="carousel-description">测试引擎多元接入，</p>
+              <p class="carousel-description">支持多元化调度部署执行</p>
+            </div>
+          </template>
+          <template v-slot:imgTop-3>
+            <div :class="{ loginActive: activeIndex === 3 }">
+              <p class="carousel-description">构建版本级质量看板，</p>
+              <p class="carousel-description">全面助力社区质量看护</p>
+            </div>
+          </template>
+          <template v-slot:imgTop-4>
+            <div :class="{ loginActive: activeIndex === 4 }">
+              <p class="carousel-description">资源池分布式管理多元化接入，</p>
+              <p class="carousel-description">支撑差异化测试需求</p>
+            </div>
+          </template>
+        </carousel>
+      </div>
     <n-card class="login-box" :bordered="false" :segmented="{ footer: 'hard' }">
       <div style="text-align: center">
         <span id="radiaTest">

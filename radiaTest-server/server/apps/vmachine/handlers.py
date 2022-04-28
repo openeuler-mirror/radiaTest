@@ -64,8 +64,8 @@ class VmachineMessenger:
             method=method,
             url="{}://{}:{}{}".format(
                 current_app.config.get("PROTOCOL"),
-                machine_group.ip,
-                machine_group.listen,
+                machine_group.messenger_ip,
+                machine_group.messenger_listen,
                 api
             ),
             body=self._body,

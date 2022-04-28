@@ -12,6 +12,7 @@ import router from '@/router';
 
 export default defineComponent({
   props: {
+    websockifyIp: String,
     websockifyListen: Number,
     vncToken: String,
   },
@@ -19,7 +20,7 @@ export default defineComponent({
     const rfb = ref(null);
     const message = useMessage();
     const url = ref(
-      `ws://${props.ip}:${props.websockifyListen}?token=${props.vncToken}`
+      `ws://${props.websockifyIp}:${props.websockifyListen}?token=${props.vncToken}`
     );
 
     const connectedToServer = () => {

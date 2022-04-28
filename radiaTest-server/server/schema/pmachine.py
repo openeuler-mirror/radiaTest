@@ -34,7 +34,9 @@ class MachineGroupCreateSchema(PermissionBase):
     description: str
     network_type: MachineGroupNetworkType
     ip: IPv4Address
-    listen: int
+    messenger_ip: IPv4Address
+    messenger_listen: int
+    websockify_ip: Optional[IPv4Address]
     websockify_listen: Optional[conint(ge=1000, le=99999)]
 
 
@@ -46,7 +48,9 @@ class MachineGroupUpdateSchema(BaseModel):
     description: Optional[str]
     network_type: Optional[MachineGroupNetworkType]
     ip: Optional[IPv4Address]
-    listen: Optional[int]
+    messenger_ip: Optional[IPv4Address]
+    messenger_listen: Optional[int]
+    websockify_ip: Optional[IPv4Address]
     websockify_listen: Optional[conint(ge=1000, le=99999)]
 
 
@@ -56,6 +60,9 @@ class MachineGroupQuerySchema(PageBaseSchema):
     """
     text: Optional[str]
     network_type: Optional[MachineGroupNetworkType]
+    messenger_ip: Optional[IPv4Address]
+    messenger_listen: Optional[int]
+    websockify_ip: Optional[IPv4Address]
     websockify_listen: Optional[conint(ge=1000, le=99999)]
 
 
