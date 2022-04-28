@@ -26,7 +26,7 @@ class FileUtil(object):
             file_path_temp = file_path.split(current_app.static_url_path, 1)[1]
             file_suffix = os.path.splitext(secure_filename(file_storage.filename))[-1]
             file_storage.save(f'{current_app.static_folder}{file_path_temp}{file_suffix}')
-            return f'http://{get_local_ip()}:{current_app.config.get("NGINX_LISTEN")}' \
+            return f'https://{current_app.config.get("DOMAIN_NAME")}' \
                    f'{current_app.static_url_path}{file_path_temp}{file_suffix}'.replace(os.path.sep, '/')
         except Exception as e:
             current_app.logger.error(f'file save error{e}')
