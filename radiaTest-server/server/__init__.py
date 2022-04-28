@@ -66,7 +66,8 @@ def create_app(**kwargs):
     apps = import_module('server.apps')
     apps.init_api(app)
 
-    from .utils.read_from_yaml import init_role, init_scope
+    from .utils.read_from_yaml import init_role, init_scope, init_admin
+    init_admin(db, app)
     init_scope(db, app)
     init_role(db, app)
 
