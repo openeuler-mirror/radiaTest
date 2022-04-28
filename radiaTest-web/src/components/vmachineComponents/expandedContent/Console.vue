@@ -3,7 +3,7 @@
     <no-vnc
       :websockifyListen="data.websockify_listen"
       :vnc-token="data.vnc_token"
-      :ip="data.ip"
+      :ip="data.websockify_ip"
     />
   </div>
 </template>

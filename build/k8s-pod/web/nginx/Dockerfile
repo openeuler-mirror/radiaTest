@@ -18,10 +18,8 @@ RUN bash ./build/k8s-pod/web/nginx/install_nodejs.sh
 
 WORKDIR /opt/radiaTest/radiaTest-web
 
-RUN mkdir /usr/share/radiaTest
-
 RUN npm install --force \
-    && npm run build \
     && cat ./deploy/nginx.conf > /etc/nginx/nginx.conf
 
-CMD nginx
+CMD npm run build \
+    && nginx
