@@ -22,6 +22,7 @@ const formValue = ref({
   milestone: undefined,
   description: undefined,
   git_repo: undefined,
+  permission_type: undefined,
 });
 
 const loading = ref(false);
@@ -118,6 +119,11 @@ const rules = {
     message: '请绑定里程碑',
     trigger: ['blur'],
   },
+  permission_type: {
+    required: true,
+    message: '请选择类型',
+    trigger: ['blur'],
+  },
 };
 
 const validateFormData = (context) => {
@@ -140,6 +146,7 @@ const clean = () => {
     milestone: undefined,
     description: undefined,
     git_repo: undefined,
+    permission_type: undefined,
   };
 };
 const gitRepoOpts = ref();

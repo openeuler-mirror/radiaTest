@@ -2,8 +2,10 @@ import { ref } from 'vue';
 const repoModal = ref(false);
 const isRepoCreate = ref(false);
 import { createRepo } from '@/api/post';
-import {modifyRepo} from '@/api/put';
-import {getRepo} from './frameworkTable';
+import { modifyRepo } from '@/api/put';
+import { getRepo } from './frameworkTable';
+import { storage } from '@/assets/utils/storageUtils';
+import router from '@/router';
 const repoRef = ref();
 const repoRules = {
   name: {
@@ -28,7 +30,7 @@ const repoRules = {
 };
 let modifyRepoId;
 let modifyRepoInfo;
-function setModifyRepo(id,info){
+function setModifyRepo(id, info) {
   modifyRepoId = id;
   modifyRepoInfo = info;
 }
@@ -41,7 +43,7 @@ const repoForm = ref({
 function showRepoModal() {
   repoModal.value = true;
 }
-function clearRepoForm(){
+function clearRepoForm() {
   repoForm.value = {
     name: '',
     git_url: '',
@@ -56,13 +58,19 @@ function closeRepoForm() {
 function submitRepoForm() {
   repoRef.value?.validate((errors) => {
     if (!errors) {
-      if(isRepoCreate.value){
-        createRepo(repoForm.value).then(()=>{
+      if (isRepoCreate.value) {
+        createRepo({
+          ...repoForm.value,
+          creator_id: storage.getValue('gitee_id'),
+          permission_type: 'group',
+          group_id: router.currentRoute.value.query.id,
+          org_id: storage.getValue('loginOrgId'),
+        }).then(() => {
           getRepo(modifyRepoInfo);
           closeRepoForm();
         });
-      }else {
-        modifyRepo(modifyRepoId,repoForm.value).then(()=>{
+      } else {
+        modifyRepo(modifyRepoId, repoForm.value).then(() => {
           getRepo(modifyRepoInfo);
           closeRepoForm();
         });
@@ -83,5 +91,5 @@ export {
   showRepoModal,
   submitRepoForm,
   clearRepoForm,
-  setModifyRepo
+  setModifyRepo,
 };

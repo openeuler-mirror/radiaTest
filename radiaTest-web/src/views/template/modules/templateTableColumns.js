@@ -86,10 +86,11 @@ const getColumns = () => [
             {
               text: true,
               color: 'rgba(242,93,93,1)',
-              onClick: () =>
+              onClick: () => {
                 textDialog('warning', '警告', '你确定要删除吗?', () =>
-                  deleteAjax.postDelete('/v1/template', [row.id])
-                ),
+                  deleteAjax.postDelete(`/v1/template/${row.id}`)
+                );
+              },
             },
             '删除'
           ),
