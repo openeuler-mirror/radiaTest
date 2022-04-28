@@ -6,7 +6,7 @@ const license = 'Mulan PSL v2';
 
 // const serverPort = ;
 
-const serverPath = "radiatest.openeuler.org";
+const serverPath = 'radiatest.openeuler.org';
 
 const newsSocketPath = `ws://${serverPath}/api/v1/msg`;
 
@@ -15,6 +15,6 @@ export default {
   version,
   license,
   serverPath,
-  serverIp,
+  // serverIp,
   newsSocketPath,
 };

@@ -56,6 +56,7 @@
           </template>
         </carousel>
       </div>
+    </div>
     <n-card class="login-box" :bordered="false" :segmented="{ footer: 'hard' }">
       <div style="text-align: center">
         <span id="radiaTest">
