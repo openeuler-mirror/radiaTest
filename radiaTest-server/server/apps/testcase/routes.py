@@ -3,13 +3,13 @@ from flask import request, g, jsonify
 from flask_restful import Resource
 from flask_pydantic import validate
 
-from server import redis_client
+from server import redis_client, casbin_enforcer
 from server.utils.redis_util import RedisKey
 from server.utils.auth_util import auth
 from server.utils.response_util import RET, response_collect
-from server.model.testcase import Suite, Case
-from server.utils.db import Edit, Select, Delete, collect_sql_error
-from server.schema.base import DeleteBaseModel
+from server.model.testcase import Suite, Case, CommitComment
+from server.utils.db import Insert, Edit, Select, Delete, collect_sql_error
+from server.schema.base import DeleteBaseModel, PageBaseSchema
 from server.schema.celerytask import CeleryTaskUserInfoSchema
 from server.schema.testcase import (
     BaselineBodySchema,
@@ -20,13 +20,21 @@ from server.schema.testcase import (
     SuiteUpdate,
     CaseBase,
     CaseUpdate,
+    AddCaseCommitSchema,
+    UpdateCaseCommitSchema,
+    CommitQuerySchema,
+    AddCommitCommentSchema,
+    CaseCommitBatch,
+    QueryHistorySchema
 )
 from server.apps.testcase.handler import (
     CaseImportHandler,
     BaselineHandler,
     SuiteHandler,
     CaseHandler,
-    TemplateCasesHandler
+    TemplateCasesHandler,
+    HandlerCaseReview,
+    HandlerCommitComment
 )
 
 
@@ -79,6 +87,11 @@ class BaselineImportEvent(Resource):
             request.form.get("group_id"),
         )
 
+    @auth.login_required()
+    @response_collect
+    def get(self, baseline_id: int):
+        return BaselineHandler.get_all_case(baseline_id)
+
 
 class SuiteItemEvent(Resource):
     @auth.login_required
@@ -90,7 +103,7 @@ class SuiteItemEvent(Resource):
                 error_code=RET.NO_DATA_ERR,
                 error_msg="the suite does not exist"
             )
-        
+
         return jsonify(
             error_code=RET.OK,
             error_msg="OK",
@@ -201,7 +214,6 @@ class TemplateCasesQuery(Resource):
         return TemplateCasesHandler.get_all(git_repo_id)
 
 
-
 class CaseRecycleBin(Resource):
     @auth.login_required()
     @response_collect
@@ -253,3 +265,81 @@ class ResolveTestcaseByFilepath(Resource):
                 "tid": _task.task_id
             }
         )
+
+
+class CaseCommit(Resource):
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def post(self, body: AddCaseCommitSchema):
+        """
+        发起用例评审
+        :return:
+        """
+        return HandlerCaseReview.create(body)
+
+    @auth.login_required()
+    @response_collect
+    @validate()
+    # @casbin_enforcer.enforcer
+    def put(self, commit_id, body: UpdateCaseCommitSchema):
+        return HandlerCaseReview.update(commit_id, body)
+
+    @auth.login_required()
+    @response_collect
+    # @casbin_enforcer.enforcer
+    def get(self, commit_id):
+        return HandlerCaseReview.handler_case_detail(commit_id)
+
+
+class CommitHistory(Resource):
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def get(self, case_id, query: QueryHistorySchema):
+        return HandlerCaseReview.handler_get_history(case_id, query)
+
+
+class CaseCommitInfo(Resource):
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def get(self, query: CommitQuerySchema):
+        return HandlerCaseReview.handler_get_all(query)
+
+
+class CaseCommitComment(Resource):
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def post(self, commit_id, body: AddCommitCommentSchema):
+        return HandlerCommitComment.add(commit_id, body)
+
+    @auth.login_required()
+    @response_collect
+    # @casbin_enforcer.enforcer
+    def get(self, commit_id):
+        return HandlerCommitComment.get(commit_id)
+
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def delete(self, comment_id):
+        return HandlerCommitComment.delete(comment_id)
+
+
+class CommitStatus(Resource):
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def get(self, query: PageBaseSchema):
+        return HandlerCommitComment.get_pending_status(query)
+
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def put(self, body: CaseCommitBatch):
+        """
+        用例评审批量提交
+        """
+        return HandlerCaseReview.update_batch(body)

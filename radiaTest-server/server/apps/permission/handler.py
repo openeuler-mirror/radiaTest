@@ -2,8 +2,9 @@ from flask import jsonify, g, request, current_app
 from sqlalchemy import or_, and_
 
 from server import db
-from server.model.organization import Organization
-from server.model.group import Group
+from server.model.administrator import Admin
+from server.model.organization import Organization, ReUserOrganization, OrganizationRole
+from server.model.group import Group, ReUserGroup, GroupRole
 from server.model.user import User
 from server.model.pmachine import Pmachine
 from server.model.vmachine import Vmachine
@@ -21,7 +22,7 @@ class RoleHandler:
         role = Role.query.filter_by(id=role_id).first()
         if not role:
             return jsonify(error_code=RET.NO_DATA_ERR, error_msg="The role is not exist")
-        
+
         return_data = role.to_json()
 
         scopes = []
@@ -29,7 +30,7 @@ class RoleHandler:
         for re in role.re_scope_role:
             scope = Scope.query.filter_by(id=re.scope_id).first()
             scopes.append(scope.to_json())
-        
+
         return_data.update({"scopes": scopes})
 
         users = []
@@ -42,12 +43,12 @@ class RoleHandler:
 
         return jsonify(error_code=RET.OK, error_msg="OK", data=return_data)
 
-
     @staticmethod
     @collect_sql_error
     def get_all(query):
         filter_params = []
-        if 'admin' not in str(g.gitee_id):
+        admin = Admin.query.filter_by(account=g.gitee_login).first()
+        if not admin:
             _filter = [and_(ReUserRole.user_id == g.gitee_id,
                             Role.name == 'admin',
                             or_(
@@ -76,8 +77,8 @@ class RoleHandler:
         roles = Role.query.filter(*filter_params).all()
         return_data = [role.to_json() for role in roles]
 
-        return  jsonify(error_code=RET.OK, error_msg="OK", data=return_data)
-    
+        return jsonify(error_code=RET.OK, error_msg="OK", data=return_data)
+
     @staticmethod
     @collect_sql_error
     def create(body):
@@ -108,7 +109,7 @@ class RoleHandler:
                 name=_body["name"],
                 type="public"
             ).first()
-        
+
         if _body["type"] == "person":
             _role = Role.query.filter_by(
                 name=_body["name"],
@@ -149,7 +150,7 @@ class RoleHandler:
             Delete(ReScopeRole, {"id": _re.id}).single()
         role.delete()
         return jsonify(error_code=RET.OK, error_msg="OK")
-        
+
     @staticmethod
     @collect_sql_error
     def update(role_id, body):
@@ -203,8 +204,8 @@ class ScopeHandler:
         scopes = Scope.query.filter(*filter_params).all()
         return_data = [scope.to_json() for scope in scopes]
 
-        return  jsonify(error_code=RET.OK, error_msg="OK", data=return_data)
-    
+        return jsonify(error_code=RET.OK, error_msg="OK", data=return_data)
+
     @staticmethod
     @collect_sql_error
     def create(body):
@@ -217,12 +218,12 @@ class ScopeHandler:
         scope = Scope.query.filter_by(id=role_id).first()
         if not scope:
             return jsonify(error_code=RET.NO_DATA_ERR, error_msg="The scope to delete is not exist")
-        
+
         db.session.delete(scope)
         db.session.commit()
 
         return jsonify(error_code=RET.OK, error_msg="OK")
-        
+
     @staticmethod
     @collect_sql_error
     def update(role_id, body):
@@ -240,7 +241,7 @@ class ScopeHandler:
         return jsonify(error_code=RET.OK, error_msg="OK")
 
 
-class BindingHandler:  
+class BindingHandler:
     @staticmethod
     @collect_sql_error
     def bind_scope_role(body):
@@ -267,7 +268,7 @@ class BindingHandler:
 class RoleLimitedHandler:
     def __init__(self, _type='public', org_id=None, group_id=None, role_id=None):
         self.role_id = None
-        
+
         _role = Role.query.filter_by(id=role_id).first()
         if _role and _role.type == _type and _role.group_id == group_id and (
                 _type == 'public' or _type == 'group' or _type == 'org' and _role.org_id == org_id):
@@ -278,6 +279,7 @@ class UserRoleLimitedHandler(RoleLimitedHandler):
     def __init__(self, _type='public', org_id=None, group_id=None, body=None):
         super().__init__(_type, org_id, group_id, body.role_id)
         self.org_id = org_id
+        self.group_id = group_id
         self.user_id = None
         _user = User.query.filter_by(gitee_id=body.user_id).first()
         if _user:
@@ -287,10 +289,28 @@ class UserRoleLimitedHandler(RoleLimitedHandler):
         if not self.role_id or not self.user_id:
             return jsonify(error_code=RET.VERIFY_ERR, error_msg="permission denied")
 
+        _role = Role.query.get(self.role_id)
+
+        if _role.type == 'group':
+            rug = ReUserGroup.query.filter_by(group_id=self.group_id, user_gitee_id=self.user_id).first()
+            if _role.name == 'admin':
+                rug.role_type = GroupRole.admin.value
+            else:
+                rug.role_type = GroupRole.user.value
+            rug.add_update()
+        elif _role.type == 'org':
+            ruo = ReUserOrganization.query.filter_by(organization_id=self.org_id,
+                                                     user_gitee_id=self.user_id).first()
+            if _role.name == 'admin':
+                ruo.role_type = OrganizationRole.admin.value
+            else:
+                ruo.role_type = OrganizationRole.user.value
+            ruo.add_update()
+
         return Insert(
-            ReUserRole, 
+            ReUserRole,
             {
-                "user_id": self.user_id, 
+                "user_id": self.user_id,
                 "role_id": self.role_id
             }
         ).single()
@@ -298,11 +318,13 @@ class UserRoleLimitedHandler(RoleLimitedHandler):
     def unbind_user(self):
         if not self.role_id or not self.user_id:
             return jsonify(error_code=RET.VERIFY_ERR, error_msg="permission denied")
-        
+
         re = ReUserRole.query.filter_by(role_id=self.role_id, user_id=self.user_id).first()
         if not re:
             return jsonify(error_code=RET.DATA_EXIST_ERR, error_msg="This Binding is already not exist")
-
+        rug = ReUserGroup.query.filter_by(user_gitee_id=self.user_id, group_id=re.role.group_id).first()
+        if re.role.name == 'admin' and rug.role_type == GroupRole.create_user.value:
+            return jsonify(error_code=RET.VERIFY_ERR, error_msg="group creator user-role bind is not allowed to untie")
         return Delete(
             ReUserRole,
             {
@@ -322,11 +344,11 @@ class ScopeRoleLimitedHandler(RoleLimitedHandler):
     def bind_scope(self):
         if not self.role_id or not self.scope_id:
             return jsonify(error_code=RET.VERIFY_ERR, error_msg="permission denied")
-        
+
         return Insert(
-            ReScopeRole, 
+            ReScopeRole,
             {
-                "scope_id": self.scope_id, 
+                "scope_id": self.scope_id,
                 "role_id": self.role_id
             }
         ).single()
@@ -334,7 +356,7 @@ class ScopeRoleLimitedHandler(RoleLimitedHandler):
     def unbind_scope(self):
         if not self.role_id or not self.scope_id:
             return jsonify(error_code=RET.VERIFY_ERR, error_msg="permission denied")
-        
+
         re = ReScopeRole.query.filter_by(role_id=self.role_id, scope_id=self.scope_id).first()
         if not re:
             return jsonify(error_code=RET.NO_DATA_ERR, error_msg="This Binding is already not exist")
@@ -395,7 +417,7 @@ class AccessableMachinesHandler:
                 Vmachine.frame==query.frame,
                 Vmachine.status=="running",
             ).all()
-        
+
         if not namespace:
             return jsonify(
                 error_code=RET.PARMA_ERR,
@@ -403,9 +425,9 @@ class AccessableMachinesHandler:
             )
 
         permission_pool = PermissionItemsPool(
-            origin_pool, 
-            namespace, 
-            "GET", 
+            origin_pool,
+            namespace,
+            "GET",
             request.headers.get("authorization"),
         )
 

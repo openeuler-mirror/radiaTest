@@ -24,6 +24,12 @@ class User(db.Model, Base):
             roles.append(role.to_json())
         return roles
 
+    def _get_public_role(self):
+        from server.model.permission import Role, ReUserRole
+        _filter = [ReUserRole.user_id == self.gitee_id, Role.type == 'public']
+        _role = Role.query.join(ReUserRole).filter(*_filter).first()
+        return _role.to_json() if _role else None
+
     def to_dict(self):
         return {
             "gitee_id": self.gitee_id,
@@ -34,6 +40,19 @@ class User(db.Model, Base):
             "cla_email": self.cla_email,
             "roles": self._get_roles()
         }
+
+    def to_json(self):
+        return {
+            "gitee_id": self.gitee_id,
+            "gitee_login": self.gitee_login,
+            "gitee_name": self.gitee_name,
+            "phone": self.phone,
+            "avatar_url": self.avatar_url,
+            "cla_email": self.cla_email,
+            "roles": self._get_roles(),
+            "role": self._get_public_role()
+        }
+
 
     @staticmethod
     def synchronize_gitee_info(gitee_user, user=None):

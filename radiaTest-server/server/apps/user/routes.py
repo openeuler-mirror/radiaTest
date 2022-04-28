@@ -7,6 +7,7 @@ from server.utils.auth_util import auth
 from server.utils.response_util import response_collect
 from server.schema.user import UpdateUserSchema, JoinGroupSchema, UserQuerySchema, UserTaskSchema, UserMachineSchema
 from server.schema.user import GiteeLoginSchema, LoginSchema, UpdateUserSchema, JoinGroupSchema, UserQuerySchema
+from server.schema.user import UserCaseCommitSchema
 from .handlers import handler_gitee_callback
 from .handlers import handler_gitee_login
 from .handlers import handler_register
@@ -19,6 +20,7 @@ from .handlers import handler_get_all
 from .handlers import handler_get_user_task
 from .handlers import handler_get_user_machine
 from .handlers import handler_login_callback
+from .handlers import handler_get_user_case_commit
 
 gitee = Blueprint('gitee', __name__)
 
@@ -96,13 +98,21 @@ class UserTask(Resource):
     @auth.login_required()
     @response_collect
     @validate()
-    def post(self, body: UserTaskSchema):
-        return handler_get_user_task(body)
+    def get(self, query: UserTaskSchema):
+        return handler_get_user_task(query)
 
 
 class UserMachine(Resource):
     @auth.login_required()
     @response_collect
     @validate()
-    def post(self, body: UserMachineSchema):
-        return handler_get_user_machine(body)
+    def get(self, query: UserMachineSchema):
+        return handler_get_user_machine(query)
+
+
+class UserCaseCommit(Resource):
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def get(self, query: UserCaseCommitSchema):
+        return handler_get_user_case_commit(query)

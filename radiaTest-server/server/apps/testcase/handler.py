@@ -1,19 +1,35 @@
 import os
 import re
+import json
 import shutil
+import datetime
+import uuid
 
 from flask import jsonify, g, current_app, request
+from sqlalchemy import or_, and_
 
 from server import db, redis_client
 from server.utils.redis_util import RedisKey
 from server.utils.response_util import RET
 from server.utils.db import Edit, Insert, collect_sql_error
-from server.model.testcase import Baseline, Suite, Case
+from server.utils.page_util import PageUtil
+from server.utils.permission_utils import GetAllByPermission
+from server.model.testcase import Baseline, Suite, Case, Commit, CaseDetailHistory, CommitComment
+from server.model.task import Task, TaskMilestone, TaskManualCase
 from server.model.celerytask import CeleryTask
-from server.schema.testcase import BaselineBaseSchema
+from server.model.message import Message, MsgType, MsgLevel
+from server.model.user import User
+from server.model.milestone import Milestone
+from server.model.job import Analyzed
+from server.schema.base import PageBaseSchema
+from server.schema.testcase import BaselineBaseSchema, AddCaseCommitSchema, \
+    UpdateCaseCommitSchema, CommitQuerySchema, CaseCommitBatch, \
+    QueryHistorySchema
 from server.schema.celerytask import CeleryTaskUserInfoSchema
 from server.utils.file_util import ZipImportFile, ExcelImportFile
 from server.utils.sheet import Excel, SheetExtractor
+from server.utils.read_from_yaml import get_api
+from server.utils.permission_utils import PermissionManager, GetAllByPermission
 from celeryservice.tasks import resolve_testcase_file, resolve_testcase_file_for_baseline, resolve_testcase_set
 
 
@@ -30,7 +46,8 @@ class CaseImportHandler:
         suites = set()
 
         for case in cases:
-            if not case.get("name") or not case.get("suite") or not case.get("steps") or not case.get("expection") or not case.get("description"):
+            if not case.get("name") or not case.get("suite") or not case.get("steps") \
+                    or not case.get("expection") or not case.get("description"):
                 continue
 
             if case.get("automatic") == '是' or case.get("automatic") == 'Y':
@@ -403,7 +420,255 @@ class TemplateCasesHandler:
         ).all()
         data = [case.to_json() for case in cases]
         return jsonify(
-            error_code = RET.OK,
+            error_code=RET.OK,
             error_msg="OK",
             data=data,
         )
+
+
+class HandlerCaseReview(object):
+    @staticmethod
+    @collect_sql_error
+    def create(body: AddCaseCommitSchema):
+        """发起"""
+        _commit = Commit.query.filter(Commit.case_detail_id == body.case_detail_id,
+                                      Commit.creator_id == g.gitee_id,
+                                      Commit.status.in_(['pending', 'open'])).first()
+        if _commit:
+            return jsonify(error_code=RET.OTHER_REQ_ERR, error_msg="has no right")
+        insert_data = body.__dict__
+
+        insert_data['status'] = 'pending'
+        insert_data['creator_id'] = g.gitee_id
+        case = Case.query.get(body.case_detail_id)
+        insert_data['permission_type'] = case.permission_type
+        insert_data['org_id'] = case.org_id
+        insert_data['group_id'] = case.group_id
+        insert_data['version'] = str(uuid.uuid4()).replace('-', '')
+
+        _source = body.source
+        _source.reverse()
+        source = ''
+        for _s in _source:
+            source += Baseline.query.get(_s).title + '>'
+        source += case.name
+        insert_data['source'] = source
+        commit_id = Insert(Commit, insert_data).insert_id(Commit, '/commit')
+        return jsonify(error_code=RET.OK, error_msg="OK")
+
+    @staticmethod
+    @collect_sql_error
+    def send_massage(commit, _commits):
+        message_list = list()
+        creator = User.query.get(commit.creator_id)
+        for _commit in _commits:
+            _commit.status = 'pending'
+            _commit.add_update()
+            message_list.append(dict(
+                data=json.dumps(
+                    dict(info=f'您提交的名为<b>{_commit.title}</b>的用例评审因已合入<b>{creator.gitee_name}</b>提交版本,故已退回,请知悉')),
+                level=MsgLevel.user.value,
+                from_id=g.gitee_id,
+                to_id=_commit.creator_id,
+                type=MsgType.text.value
+            ))
+        if message_list:
+            db.session.execute(Message.__table__.insert(), message_list)
+
+    @staticmethod
+    @collect_sql_error
+    def update(commit_id, body: UpdateCaseCommitSchema):
+        commit = Commit.query.filter_by(id=commit_id).first()
+        if not commit:
+            return jsonify(error_code=RET.NO_DATA_ERR, error_msg="commit not exists/has no right")
+        if body.open_edit:
+            comment = CommitComment(content='creator re-edit', creator_id=g.gitee_id, parent_id=0, reply_id=0,
+                                    commit_id=commit.id)
+            comment.add_update()
+
+        for key, value in body.dict().items():
+            if value and hasattr(commit, key):
+                setattr(commit, key, value)
+            commit.add_update()
+
+        if body.status == 'accepted':
+            commit.reviewer_id = g.gitee_id
+            commit.review_time = datetime.datetime.now()
+            commits = Commit.query.filter_by(case_detail_id=commit.case_detail_id, status='open').all()
+            HandlerCaseReview.send_massage(commit, commits)
+            for _commit in commits:
+                _commit.status = 'pending'
+                _commit.add_update()
+
+            #  存进历史记录表
+            case_history = CaseDetailHistory(creator_id=commit.creator_id,
+                                             machine_type=commit.machine_type,
+                                             title=commit.title,
+                                             machine_num=commit.machine_num,
+                                             preset=commit.preset,
+                                             case_description=commit.case_description,
+                                             steps=commit.steps,
+                                             expectation=commit.expectation,
+                                             remark=commit.remark,
+                                             version=commit.version,
+                                             commit_id=commit.id,
+                                             case_id=commit.case_detail_id)
+            case_history.add_flush_commit()
+            case = Case.query.get(commit.case_detail_id)
+            if not case:
+                return jsonify(error_code=RET.NO_DATA_ERR, error_msg="case not exists")
+            case.machine_type = commit.machine_type
+            case.machine_num = commit.machine_num
+            case.preset = commit.preset
+            case.description = commit.case_description
+            case.steps = commit.steps
+            case.expectation = commit.expectation
+            case.remark = commit.remark
+            case.version = case_history.version
+            case.add_update()
+        if body.status == 'rejected':
+            commit.reviewer_id = g.gitee_id
+            commit.review_time = datetime.datetime.now()
+        commit.add_update()
+
+        return jsonify(error_code=RET.OK, error_msg="OK")
+
+    @staticmethod
+    @collect_sql_error
+    def update_batch(body: CaseCommitBatch):
+        if body.commit_ids:
+            for commit_id in body.commit_ids:
+                commit = Commit.query.filter_by(id=commit_id, creator_id=g.gitee_id).first()
+                if not commit:
+                    continue
+                if commit and commit.status == 'pending':
+                    setattr(commit, 'status', 'open')
+                    commit.add_update()
+        return jsonify(error_code=RET.OK, error_msg='OK')
+
+    @staticmethod
+    @collect_sql_error
+    def delete(commit_id):
+        commit = Commit.query.filter_by(id=commit_id).first()
+        if not commit or commit.status == 'pending':
+            return jsonify(error_code=RET.NO_DATA_ERR, error_msg="commit not exists/not allowed to update")
+        commit.delete()
+
+    @staticmethod
+    @collect_sql_error
+    def handler_case_detail(commit_id):
+        _commit = Commit.query.get(commit_id).to_json()
+        return jsonify(error_code=RET.OK, error_msg="OK", data=_commit)
+
+    @staticmethod
+    @collect_sql_error
+    def handler_get_history(case_id, query: QueryHistorySchema):
+        _filter = [Commit.status == 'accepted', Commit.case_detail_id == case_id]
+        if query.title:
+            _filter.append(Commit.title.like(f'%{query.title}%'))
+        if query.start_time:
+            _filter.append(Commit.create_time >= query.start_time)
+        if query.end_time:
+            _filter.append(Commit.create_time <= query.end_time)
+
+        all = Commit.query.filter(*_filter).order_by(Commit.create_time.desc()).all()
+        commit_list = []
+
+        for item in all:
+            dict_item = {'commit_id': item.id, 'version': item.version, 'title': item.title}
+            commit_list.append(dict_item)
+        return jsonify(error_code=RET.OK, error_msg="OK", data=commit_list)
+
+    @staticmethod
+    @collect_sql_error
+    def handler_get_all(query: CommitQuerySchema):
+        query_type_list = ['all', 'open', 'accepted', 'rejected']
+        return_data = {}
+        _filter = []
+        if query.user_type == 'all':
+            permission_filter = GetAllByPermission(Commit).get_filter()
+            _filter.extend(permission_filter)
+        elif query.user_type == 'creator':
+            _filter.append(Commit.creator_id == g.gitee_id)
+        if query.title:
+            _filter.append(Commit.title.like(f'%{query.title}%'))
+
+        for query_type in query_type_list:
+            type_filter = _filter.copy()
+            if query_type == 'all':
+                type_filter.append(Commit.status != 'pending')
+                all_commits = Commit.query.filter(*type_filter).all()
+                return_data['all_count'] = len(all_commits)
+                filter_chain = Commit.query.filter(*type_filter).order_by(Commit.create_time.desc())
+                page_dict, e = PageUtil.get_page_dict(filter_chain, query.page_num, query.page_size,
+                                                      func=lambda x: x.to_json())
+                return_data['all_commit'] = page_dict
+            else:
+                type_filter.append(Commit.status == query_type)
+                _commits = Commit.query.filter(*type_filter).all()
+                return_data[query_type + '_count'] = len(_commits)
+                filter_chain = Commit.query.filter(*type_filter).order_by(Commit.create_time.desc())
+                page_dict, e = PageUtil.get_page_dict(filter_chain, query.page_num, query.page_size,
+                                                      func=lambda x: x.to_json())
+                return_data[query_type + '_commit'] = page_dict
+
+        return jsonify(error_code=RET.OK, error_msg="OK", data=return_data)
+
+
+class HandlerCommitComment(object):
+    @staticmethod
+    @collect_sql_error
+    def add(commit_id, body):
+        if not body.content:
+            return jsonify(error_code=RET.NO_DATA_ERR, error_msg="no data")
+        comment = CommitComment(commit_id=commit_id,
+                                content=body.content,
+                                parent_id=body.parent_id,
+                                reply_id=body.reply_id,
+                                creator_id=g.gitee_id)
+        comment.add_update()
+        return jsonify(error_code=RET.OK, error_msg='OK')
+
+    @staticmethod
+    @collect_sql_error
+    def get(commit_id):
+        """
+        获取评论信息
+        @param commit_id:
+        @return:
+        """
+        # 第一层评论
+        comment_list = []
+        comments = CommitComment.query.filter_by(commit_id=commit_id, parent_id=0, reply_id=0).order_by(
+            CommitComment.create_time).all()
+        for comment in comments:
+            # 回复的评论
+            children_comments = CommitComment.query.filter_by(commit_id=commit_id, parent_id=comment.id).order_by(
+                CommitComment.create_time).all()
+            _comment = comment.to_json()
+            child_list = []
+            for child in children_comments:
+                child_list.append(child.to_json())
+            _comment['child_list'] = child_list
+            comment_list.append(_comment)
+        return jsonify(error_code=RET.OK, error_msg='OK', data=comment_list)
+
+    @staticmethod
+    @collect_sql_error
+    def delete(comment_id):
+        comment = CommitComment.query.filter_by(id=comment_id, creator_id=g.gitee_id).first()
+        if not comment:
+            return jsonify(error_code=RET.NO_DATA_ERR, error_msg="Comment not exist/has no right")
+        comment.delete()
+        return jsonify(error_code=RET.OK, error_msg='OK')
+
+    @staticmethod
+    @collect_sql_error
+    def get_pending_status(query: PageBaseSchema):
+        filter_chain = Commit.query.filter_by(status='pending', creator_id=g.gitee_id).order_by(
+            Commit.create_time.desc())
+        page_dict, e = PageUtil.get_page_dict(filter_chain, query.page_num, query.page_size,
+                                              func=lambda x: x.to_json())
+        if e:
+            return jsonify(error_code=RET.SERVER_ERR, error_msg=f'get case commit page error {e}')
+        return jsonify(error_code=RET.OK, error_msg='OK', data=page_dict)

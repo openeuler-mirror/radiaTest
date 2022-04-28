@@ -1,5 +1,6 @@
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, Literal
+from server.schema.base import PageBaseSchema
 
 
 class GiteeLoginSchema(BaseModel):
@@ -57,3 +58,8 @@ class UserInfoSchema(UserBaseSchema):
 class JoinGroupSchema(BaseModel):
     msg_id: int
     access: bool
+
+
+class UserCaseCommitSchema(PageBaseSchema):
+    title: str = None
+    status: Literal['all', 'open', 'accepted', 'rejected']
