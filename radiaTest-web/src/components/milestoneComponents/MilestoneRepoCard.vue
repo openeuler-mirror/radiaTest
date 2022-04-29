@@ -132,7 +132,7 @@ export default defineComponent({
     },
   },
   setup(props) {
-    const repoSocket = new Socket(`ws://${settings.serverPath}/repo`);
+    const repoSocket = new Socket(`wss://${settings.serverPath}/repo`);
     repoSocket.connect();
 
     watch(repoCard.tabValue, () => {

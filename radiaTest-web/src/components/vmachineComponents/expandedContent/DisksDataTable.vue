@@ -21,7 +21,7 @@ export default defineComponent({
     id: Number,
   },
   setup(props) {
-    const vdiskSocket = new Socket(`ws://${settings.serverPath}/vdisk`);
+    const vdiskSocket = new Socket(`wss://${settings.serverPath}/vdisk`);
     vdiskSocket.connect();
 
     const data = ref([]);

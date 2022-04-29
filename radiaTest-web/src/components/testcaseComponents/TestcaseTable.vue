@@ -26,7 +26,7 @@ import createColumns from '@/views/caseManage/testcase/modules/testcaseTableColu
 export default defineComponent({
   setup(props, context) {
     const store = useStore();
-    const testcaseSocket = new Socket(`ws://${settings.serverPath}/case`);
+    const testcaseSocket = new Socket(`wss://${settings.serverPath}/case`);
     testcaseSocket.connect();
     onMounted(() => {
       get.filter('/v1/case', testcaseTable.totalData, testcaseTable.loading, {
