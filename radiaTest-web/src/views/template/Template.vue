@@ -6,10 +6,10 @@
       content: 'hard',
     }"
     header-style="
-            font-size: 30px; 
-            height: 80px; 
+            font-size: 30px;
+            height: 80px;
             font-family: 'v-sans';
-            padding-top: 40px; 
+            padding-top: 40px;
             background-color: rgb(242,242,242);
         "
   >
@@ -187,7 +187,7 @@ export default defineComponent({
     execTemplate
   },
   setup() {
-    const templateSocket = new Socket(`ws://${settings.serverPath}/template`);
+    const templateSocket = new Socket(`wss://${settings.serverPath}/template`);
     templateSocket.connect();
 
     provide('personal', template.personalData);

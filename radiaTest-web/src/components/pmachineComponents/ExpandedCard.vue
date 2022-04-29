@@ -133,7 +133,7 @@ export default defineComponent({
     return {
       term: null,
       fitAddon: null,
-      termSocket: new Socket(`ws://${settings.serverPath}/xterm?machine_group_ip=${this.machine_group_ip}&messenger_listen=${this.messenger_listen}&machine_ip=${this.IP}`),
+      termSocket: new Socket(`wss://${settings.serverPath}/xterm?machine_group_ip=${this.machine_group_ip}&messenger_listen=${this.messenger_listen}&machine_ip=${this.IP}`),
     };
   },
   methods: {

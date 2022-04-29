@@ -58,7 +58,7 @@ export default defineComponent({
     }
   },
   mounted() {
-    this.vmachineSocket = new Socket(`ws://${settings.serverPath}/vmachine`);
+    this.vmachineSocket = new Socket(`wss://${settings.serverPath}/vmachine`);
     this.vmachineSocket.connect();
     this.vmachineSocket.listen('update', () => {
       this.getData();

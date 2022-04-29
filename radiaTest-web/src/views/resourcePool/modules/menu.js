@@ -31,7 +31,7 @@ const menuOptions = ref([
   },
 ]);
 const expandeds = ref(['pool']);
-const socket = new Socket(`${config.serverPath}/machine_group`);
+const socket = new Socket(`wss://${config.serverPath}/machine_group`);
 const selectKey = ref('');
 function renderPrefix({ option }) {
   return h(

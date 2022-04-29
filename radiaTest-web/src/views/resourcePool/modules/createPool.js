@@ -10,7 +10,7 @@ const createMachinesForm = ref({
   description: undefined,
   network_type: undefined,
   ip: undefined,
-  listen: undefined,
+  messenger_listen: undefined,
   permission_type: undefined,
   websockify_listen: undefined,
   messenger_ip: undefined,
@@ -63,7 +63,14 @@ const machinesRules = {
     required: true,
     trigger: ['blur', 'input'],
   },
-  listen: {
+  messenger_listen: {
+    message: '端口必填',
+    validator (rule, value) {
+      return value > 0;
+    },
+    trigger: ['blur', 'input'],
+  },
+  websockify_listen: {
     message: '端口必填',
     validator(rule, value) {
       return value > 0;
@@ -115,7 +122,7 @@ function modifyMachines() {
       description: undefined,
       network_type: undefined,
       ip: undefined,
-      listen: undefined,
+      messenger_listen: undefined,
       permission_type: undefined,
       websockify_listen:undefined
     };

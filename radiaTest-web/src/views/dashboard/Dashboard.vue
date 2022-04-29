@@ -13,7 +13,7 @@
             <div class="subtitle">版本级一站式测试平台</div>
             <n-space class="quickSpace">
               <home-button class="quickButton" @click="handleVmachineClick">
-                虚拟机资源池
+                工作台
               </home-button>
               <home-button
                 class="quickButton"
@@ -427,15 +427,17 @@ export default defineComponent({
     Refresh,
     Search,
   },
+  methods: {
+    handleVmachineClick() {
+      this.showWorkbench = true;
+    },
+  },
   setup() {
     const router = useRouter();
 
     modules.initData();
 
     return Object.assign(modules, {
-      handleVmachineClick() {
-        router.push({ name: 'resourcePool' });
-      },
       handleJobClick() {
         modules.jobClick(router);
       },

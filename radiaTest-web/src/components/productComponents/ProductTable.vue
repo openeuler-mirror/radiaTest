@@ -26,7 +26,7 @@ import createColumns from '@/views/product/modules/productTableColumns.js';
 export default defineComponent({
   setup(props, context) {
     const store = useStore();
-    const productSocket = new Socket(`ws://${settings.serverPath}/product`);
+    const productSocket = new Socket(`wss://${settings.serverPath}/product`);
     productSocket.connect();
 
     onMounted(() => {

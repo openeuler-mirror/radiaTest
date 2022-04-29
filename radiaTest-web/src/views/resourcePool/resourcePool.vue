@@ -77,9 +77,9 @@
                   placeholder="请输入messenger IP地址"
                 />
               </n-form-item-gi>
-              <n-form-item-gi :span="6" label="messenger监听" path="listen">
+              <n-form-item-gi :span="6" label="messenger监听" path="messenger_listen">
                 <n-input
-                  v-model:value="createMachinesForm.listen"
+                  v-model:value="createMachinesForm.messenger_listen"
                   :input-props="{ min: 0 }"
                   placeholder="请输入"
                   type="number"
