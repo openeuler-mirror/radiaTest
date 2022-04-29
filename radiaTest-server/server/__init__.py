@@ -5,7 +5,6 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from flask_socketio import SocketIO
-import casbin_sqlalchemy_adapter
 
 from .utils.redis_util import RedisClient
 from importlib import import_module
@@ -57,18 +56,12 @@ def create_app(**kwargs):
     auth_util.init(app)
 
     # casbin
-    adapter = casbin_sqlalchemy_adapter.Adapter(
-        app.config.get("SQLALCHEMY_DATABASE_URI")
-    )
+    from .plugins.casbin_sqlalchemy_adapter import Adapter
+    adapter = Adapter()
     casbin_enforcer.init_app(app, adapter)
 
     # apps
     apps = import_module('server.apps')
     apps.init_api(app)
-
-    from .utils.read_from_yaml import init_role, init_scope, init_admin
-    init_admin(db, app)
-    init_scope(db, app)
-    init_role(db, app)
 
     return app

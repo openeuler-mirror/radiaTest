@@ -3,5 +3,5 @@
 cd ../scripts/web \
     && bash ./setup.sh
 
-cd ./web \
+cd ../../containers/web \
     && docker-compose up -d

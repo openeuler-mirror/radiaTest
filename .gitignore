@@ -11,15 +11,12 @@ radiaTest-server/celeryservice/flower/*
 radiaTest-server/celeryservice/celerymain/*
 radiaTest-server/celeryservice/celerybeat/*
 radiaTest-server/server/static/avatar/*
-radiaTest-server/log/*
 radiaTest-messenger/celeryservice/celerymain/*
 radiaTest-messenger/celeryservice/celerybeat/*
 radiaTest-messenger/messenger/config/vnc_tokens/*
 radiaTest-messenger/celeryservice/flower/*
-radiaTest-messenger/log/*
 radiaTest-web/src/assets/config/settings.js
 radiaTest-worker/celeryservice/flower/*
 radiaTest-worker/celeryservice/celerymain/*
 radiaTest-worker/celeryservice/celerybeat/*
-radiaTest-worker/log/*
 !**/.gitkeep

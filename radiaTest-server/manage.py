@@ -49,6 +49,13 @@ def run_gevent():
     )
     server.serve_forever()
 
+@manager.command
+def init_asr():
+    from server.utils.read_from_yaml import init_role, init_scope, init_admin
+    init_admin(db, app)
+    init_scope(db, app)
+    init_role(db, app)
+
 
 if __name__ == "__main__":
     manager.run()
