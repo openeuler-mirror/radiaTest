@@ -25,7 +25,7 @@ class Adapter(persist.Adapter, persist.adapters.UpdateAdapter):
 
     def load_policy(self, model):
         """loads all policy rules from the storage."""
-        lines = CasbinRule.query().all()
+        lines = CasbinRule.query.all()
         for line in lines:
             persist.load_policy_line(str(line), model)
 
@@ -34,7 +34,7 @@ class Adapter(persist.Adapter, persist.adapters.UpdateAdapter):
 
     def load_filtered_policy(self, model, filter) -> None:
         """loads all policy rules from the storage."""
-        query = CasbinRule.query()
+        query = CasbinRule.query
         filters = self.filter_query(query, filter)
         filters = filters.all()
 
@@ -58,7 +58,7 @@ class Adapter(persist.Adapter, persist.adapters.UpdateAdapter):
 
     def save_policy(self, model):
         """saves all policy rules to the storage."""
-        query = CasbinRule.query()
+        query = CasbinRule.query
         query.delete()
         db.session.commit()
 
@@ -81,7 +81,7 @@ class Adapter(persist.Adapter, persist.adapters.UpdateAdapter):
 
     def remove_policy(self, sec, ptype, rule):
         """removes a policy rule from the storage."""
-        query = CasbinRule.query()
+        query = CasbinRule.query
         query = query.filter(CasbinRule.ptype == ptype)
         for i, v in enumerate(rule):
             query = query.filter(getattr(CasbinRule, "v{}".format(i)) == v)
@@ -95,7 +95,7 @@ class Adapter(persist.Adapter, persist.adapters.UpdateAdapter):
         if not rules:
             return
         
-        query = CasbinRule.query()
+        query = CasbinRule.query
         query = query.filter(CasbinRule.ptype == ptype)
         rules = zip(*rules)
         for i, rule in enumerate(rules):
@@ -111,7 +111,7 @@ class Adapter(persist.Adapter, persist.adapters.UpdateAdapter):
         This is part of the Auto-Save feature.
         """
   
-        query = CasbinRule.query().filter(CasbinRule.ptype == ptype)
+        query = CasbinRule.query.filter(CasbinRule.ptype == ptype)
 
         if not (0 <= field_index <= 5):
             return False
@@ -140,7 +140,7 @@ class Adapter(persist.Adapter, persist.adapters.UpdateAdapter):
         :return: None
         """
 
-        query = CasbinRule.query().filter(CasbinRule.ptype == ptype)
+        query = CasbinRule.query.filter(CasbinRule.ptype == ptype)
 
         # locate the old rule
         for index, value in enumerate(old_rule):
