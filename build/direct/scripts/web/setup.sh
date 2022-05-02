@@ -1,20 +1,16 @@
 #! /bin/sh
 
-GIT_REPO=https://gitee.com/openeuler/radiaTest
+bash ./install_nodejs.sh || exit 1
 
-bash ./install_nodejs.sh
+if [[ -d "${OET_PATH}/../../radiaTest-web" ]]; then
+    cd "${OET_PATH}/../../radiaTest-web"
+else
+    echo "lack of radiaTest-web, please update radiaTest"
+    exit 1
+fi
 
-cd /tmp/ || exit
-
-dnf install -y git &&
-    dnf install -y nginx
-
-git clone "$GIT_REPO" ||
-    git pull "$GIT_REPO" ||
-    rm -rf ./radiaTest && git clone "$GIT_REPO" ||
-    exit
-
-cd /tmp/radiaTest/radiaTest-web/ || exit
+"$PKG_MNG" install -y git &&
+    "$PKG_MNG" install -y nginx
 
 mkdir /usr/share/radiaTest
 

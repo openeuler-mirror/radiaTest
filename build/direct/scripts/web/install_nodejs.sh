@@ -11,7 +11,7 @@ nodejs_version=$(node -v 2>/dev/null)
 # check nodejs
 if [[ -n "${nodejs_version}" && "${nodejs_version}" = "${node_req_v}" ]];then
     echo "nodejs ${node_req_v} has been prepared"
-    exit
+    exit 0
 elif [[ -n "${nodejs_version}" ]]; then
     n=3
     while [ $n -ge 0 ];do
@@ -20,15 +20,15 @@ elif [[ -n "${nodejs_version}" ]]; then
         if [[ "${REPLY}" != [YyNn] ]];then
             echo "you should enter Y/y or N/n"
         elif [[ "${REPLY}" == [Nn] ]];then
-            exit
+            exit 1
         else
-            dnf remove -y nodejs || ( echo "remove nodejs ${nodejs_version} failed" && exit )
+            "$PKG_MNG" remove -y nodejs || ( echo "remove nodejs ${nodejs_version} failed" && exit 1 )
             echo "nodjs ${nodejs_version} has been removed"
             break
         fi
 
         if [ $n = 0 ];then
-            exit
+            exit 1
         fi
 
         let n--
@@ -41,13 +41,13 @@ else
         if [[ "${REPLY}" != [YyNn] ]];then
             echo "you should enter Y/y or N/n"
         elif [[ "${REPLY}" == [Nn] ]];then
-            exit
+            exit 1
         else
             break
         fi
         
         if [ $n = 0 ];then
-            exit
+            exit 1
         fi
 
         let n--
@@ -63,14 +63,14 @@ elif [ "${basearch}" = "aarch64" ];then
     basearch="arm64"
 else
     echo "Error: Unsupported Arch"
-    exit
+    exit 1
 fi
 
-dnf install -y tar || exit
+"$PKG_MNG" install -y tar || exit 1
 
-wget https://npmmirror.com/mirrors/node/"${node_req_v}"/node-"${node_req_v}"-linux-"${basearch}".tar.xz || exit \
-    && tar -xJf node-"${node_req_v}"-linux-"${basearch}".tar.xz || exit \
-    && rm -rf node-"${node_req_v}"-linux-"${basearch}".tar.xz || exit
+wget https://npmmirror.com/mirrors/node/"${node_req_v}"/node-"${node_req_v}"-linux-"${basearch}".tar.xz || exit 1 \
+    && tar -xJf node-"${node_req_v}"-linux-"${basearch}".tar.xz || exit 1 \
+    && rm -rf node-"${node_req_v}"-linux-"${basearch}".tar.xz || exit 1
 
 ln -s "${workdir}"/node-"${node_req_v}"-linux-"${basearch}"/bin/node "${workdir}"/node
 ln -s "${workdir}"/node-"${node_req_v}"-linux-"${basearch}"/bin/npm "${workdir}"/npm
@@ -88,6 +88,7 @@ if [[ "${node}" != "${node_req_v}" && "${npm}" != "${npm_req_v}" && "${npx}" != 
         && rm -rf "${workdir}"/npm \
         && rm -rf "${workdir}"/npx \
         && rm -rf "${workdir}"/node-"${node_req_v}"-linux-"${basearch}"
+    exit 1
 else
     echo "nodejs ${node_req_v} has been prepared"
 fi

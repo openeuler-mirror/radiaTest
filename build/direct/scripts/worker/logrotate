@@ -1,0 +1,59 @@
+/opt/radiaTest/radiaTest-worker/log/worker/stderr.log {
+    missingok
+    daily
+    rotate 90
+    maxsize 1M
+    dateyesterday
+    copytruncate
+    notifempty
+    nocompress
+    dateext
+}
+
+/opt/radiaTest/radiaTest-worker/log/gunicorn/error.log {
+    missingok
+    daily
+    rotate 30
+    maxsize 1M
+    dateyesterday
+    copytruncate
+    notifempty
+    nocompress
+    dateext
+}
+
+/opt/radiaTest/radiaTest-worker/log/celerybeat/stderr.log {
+    missingok
+    daily
+    rotate 30
+    maxsize 1M
+    dateyesterday
+    copytruncate
+    notifempty
+    nocompress
+    dateext
+}
+
+/opt/radiaTest/radiaTest-worker/log/create_vmachine/stderr.log {
+    missingok
+    daily
+    rotate 30
+    maxsize 1M
+    dateyesterday
+    copytruncate
+    notifempty
+    nocompress
+    dateext
+}
+
+/opt/radiaTest/radiaTest-worker/log/illegal_monitor/stderr.log {
+    missingok
+    daily
+    rotate 30
+    maxsize 1M
+    dateyesterday
+    copytruncate
+    notifempty
+    nocompress
+    dateext
+}

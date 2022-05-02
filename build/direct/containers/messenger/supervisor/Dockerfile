@@ -10,10 +10,15 @@ RUN dnf install -y git \
     && git clone $GIT_REPO \
     && dnf install -y ipmitool \
     && dnf install -y rsync \
+    && dnf install -y logrotate \
     && dnf install -y python3-pip \
     && dnf install -y python3-devel
 
 WORKDIR /opt/radiaTest/radiaTest-messenger/
+
+COPY ./logrotate /etc/logrotate.d/supervisor
+
+RUN logrotate /etc/logrotate.d/supervisor
 
 RUN mkdir /etc/radiaTest && cp -r ./conf/app/* /etc/radiaTest/
 RUN cp -r ./conf/supervisor/* /etc/
