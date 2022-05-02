@@ -67,6 +67,45 @@ while getopts "u:d:" option; do
         }
 
         node=$OPTARG
+
+        case $OPTARG in
+        web)
+            if [ ! -d /etc/radiaTest ]; then
+                mkdir /etc/radiaTest
+            fi
+
+            if [ ! -f /etc/radiaTest/casbinmodel.conf ]; then
+                cp ${OET_PATH}/conf/casbinmodel.conf /etc/radiaTest/
+            fi
+
+            if [ ! -f /etc/radiaTest/server.ini ]; then
+                cp ${OET_PATH}/conf/server.ini /etc/radiaTest/
+            fi
+            ;;
+        messenger)
+            if [ ! -d /etc/radiaTest ]; then
+                mkdir /etc/radiaTest
+            fi
+
+            if [ ! -f /etc/radiaTest/messenger.ini ]; then
+                cp ${OET_PATH}/conf/messenger.ini /etc/radiaTest/
+            fi
+            ;;
+        worker)
+            if [ ! -d /etc/radiaTest ]; then
+                mkdir /etc/radiaTest
+            fi
+
+            if [ ! -f /etc/radiaTest/worker.ini ]; then
+                cp ${OET_PATH}/conf/worker.ini /etc/radiaTest/
+            fi
+            ;;
+        *)
+            usage
+            exit 1
+            ;;
+        esac
+
         ${OET_PATH}/lib/up_${node}_server
         ;;
     d)

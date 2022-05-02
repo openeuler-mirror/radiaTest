@@ -34,8 +34,7 @@ logrotate ./logrotate
 
 mkdir /etc/radiaTest
 
-cp -r ./conf/app/* /etc/radiaTest/ &&
-    cp -r ./conf/supervisor/* /etc/ || exit 1
+cp -r ./conf/supervisor/* /etc/ || exit 1
 
 pip3 install -r requirements.txt -i "$PIP_REPO" &&
     supervisord
