@@ -1,0 +1,131 @@
+/opt/radiaTest/radiaTest-server/log/server/stderr.log {
+    missingok
+    daily
+    rotate 90
+    maxsize 1M
+    dateyesterday
+    copytruncate
+    notifempty
+    nocompress
+    dateext
+}
+
+/opt/radiaTest/radiaTest-server/log/gunicorn/error.log {
+    missingok
+    daily
+    rotate 30
+    maxsize 1M
+    dateyesterday
+    copytruncate
+    notifempty
+    nocompress
+    dateext
+}
+
+/opt/radiaTest/radiaTest-server/log/celerybeat/stderr.log {
+    missingok
+    daily
+    rotate 30
+    maxsize 1M
+    dateyesterday
+    copytruncate
+    notifempty
+    nocompress
+    dateext
+}
+
+/opt/radiaTest/radiaTest-server/log/lifecycle_monitor/stderr.log {
+    missingok
+    daily
+    rotate 30
+    maxsize 1M
+    dateyesterday
+    copytruncate
+    notifempty
+    nocompress
+    dateext
+}
+
+/opt/radiaTest/radiaTest-server/log/load_scripts/stderr.log {
+    missingok
+    daily
+    rotate 30
+    maxsize 1M
+    dateyesterday
+    copytruncate
+    notifempty
+    nocompress
+    dateext
+}
+
+/opt/radiaTest/radiaTest-server/log/read_git_repo/stderr.log {
+    missingok
+    daily
+    rotate 30
+    maxsize 1M
+    dateyesterday
+    copytruncate
+    notifempty
+    nocompress
+    dateext
+}
+
+/opt/radiaTest/radiaTest-server/log/resovle_case/stderr.log {
+    missingok
+    daily
+    rotate 30
+    maxsize 1M
+    dateyesterday
+    copytruncate
+    notifempty
+    nocompress
+    dateext
+}
+
+/opt/radiaTest/radiaTest-server/log/resolve_set/stderr.log {
+    missingok
+    daily
+    rotate 30
+    maxsize 1M
+    dateyesterday
+    copytruncate
+    notifempty
+    nocompress
+    dateext
+}
+
+/opt/radiaTest/radiaTest-server/log/update_case/stderr.log {
+    missingok
+    daily
+    rotate 30
+    maxsize 1M
+    dateyesterday
+    copytruncate
+    notifempty
+    nocompress
+    dateext
+}
+
+/opt/radiaTest/radiaTest-server/log/update_suite/stderr.log {
+    missingok
+    daily
+    rotate 30
+    maxsize 1M
+    dateyesterday
+    copytruncate
+    notifempty
+    nocompress
+    dateext
+}
+
+/opt/radiaTest/radiaTest-server/log/update_tasks/stderr.log {
+    missingok
+    daily
+    rotate 30
+    maxsize 1M
+    dateyesterday
+    copytruncate
+    notifempty
+    nocompress
+    dateext
+}

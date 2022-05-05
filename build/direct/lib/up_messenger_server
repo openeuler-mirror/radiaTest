@@ -1,4 +1,4 @@
 #! /bin/sh
 
-cd ./messenger \
+cd ../containers/messenger \
     && docker-compose up -d
