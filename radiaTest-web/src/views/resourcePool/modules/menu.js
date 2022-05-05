@@ -171,7 +171,7 @@ function handleLoad(node) {
           key: String(item.id),
           value: item.id,
           info:item,
-          suffix: item.messenger_ip,
+          suffix: item.ip,
           children: [
             {
               label: 'messenger服务',

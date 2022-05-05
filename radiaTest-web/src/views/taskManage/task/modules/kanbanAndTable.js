@@ -1,4 +1,4 @@
-import { ref, computed, nextTick, toRef, h } from 'vue';
+import { ref, computed, nextTick, h } from 'vue';
 import store from '@/store/index';
 import { showLoading, getDetail } from './taskDetail.js';
 import { NAvatar } from 'naive-ui';
@@ -8,7 +8,7 @@ import { storage } from '@/assets/utils/storageUtils';
 
 const listData = ref([]); // 看板数据
 const personArray = ref([]); // 执行者
-const kanban = toRef(store.state.taskManage, 'kanban'); // 获取看板、表格视图显示状态
+const kanban = computed(() => store.state.taskManage.kanban); // 获取看板、表格视图显示状态
 const showCreate = ref(true); // 显示新建任务状态
 const inputInstRef = ref(null); // 新建任务状态文本框名称
 const statusValue = ref(null); // 新建任务状态数据
