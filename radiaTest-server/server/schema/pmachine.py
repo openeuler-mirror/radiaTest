@@ -39,6 +39,14 @@ class MachineGroupCreateSchema(PermissionBase):
     websockify_ip: Optional[IPv4Address]
     websockify_listen: Optional[conint(ge=1000, le=99999)]
 
+    @validator("ip")
+    def check_ip_exist(cls, v):
+        machine_group = MachineGroup.query_by(ip=v).first()
+        if machine_group is not None:
+            raise ValueError("this ip of machine group is exist, duplication is not allowed")
+        
+        return v
+
 
 class MachineGroupUpdateSchema(BaseModel):
     """ 

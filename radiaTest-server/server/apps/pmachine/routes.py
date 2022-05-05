@@ -74,15 +74,7 @@ class MachineGroupHeartbeatEvent(Resource):
     @collect_sql_error
     @validate()
     def put(self, body: HeartbeatUpdateSchema):
-        from_ip = request.remote_addr
-
-        if str(body.messenger_ip) != from_ip:
-            return jsonify(
-                error_code=RET.UNAUTHORIZE_ERR,
-                error_msg="the api only serve for messenger service, make sure the request is from valid messenger service"
-            )
-        
-        machine_group = MachineGroup.query.filter_by(ip=from_ip).first()
+        machine_group = MachineGroup.query.filter_by(messenger_ip=body.messenger_ip).first()
         if not machine_group:
             return jsonify(
                 error_code=RET.NO_DATA_ERR,

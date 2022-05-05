@@ -328,15 +328,6 @@ class VmachineData(Resource):
     @response_collect
     @validate()
     def post(self, body: VmachineDataCreateSchema):
-        from_ip = request.remote_addr
-        
-        machine_group = MachineGroup.query.filter_by(ip=from_ip).first()
-        if not machine_group:
-            return jsonify(
-                error_code=RET.UNAUTHORIZE_ERR,
-                error_msg="the api only serve for messenger service, make sure the request is from valid messenger service"
-            )
-
         vmachine = Insert(Vmachine, body.__dict__).insert_obj(
             Vmachine, 
             "/vmachine", 
@@ -358,31 +349,13 @@ class VmachineItemData(Resource):
     @response_collect
     @validate()
     def put(self, vmachine_id, body: VmachineDataUpdateSchema):
-        from_ip = request.remote_addr
-        
-        machine_group = MachineGroup.query.filter_by(ip=from_ip).first()
-        if not machine_group:
-            return jsonify(
-                error_code=RET.UNAUTHORIZE_ERR,
-                error_msg="the api only serve for messenger service, make sure the request is from valid messenger service"
-            )
-
         _body = body.__dict__
         _body.update({"id": vmachine_id})
         return Edit(Vmachine, _body).single(Vmachine, "/vmachine", True)
 
     @auth.login_required
     @response_collect
-    def delete(self, vmachine_id):
-        from_ip = request.remote_addr
-        
-        machine_group = MachineGroup.query.filter_by(ip=from_ip).first()
-        if not machine_group:
-            return jsonify(
-                error_code=RET.UNAUTHORIZE_ERR,
-                error_msg="the api only serve for messenger service, make sure the request is from valid messenger service"
-            )
-        
+    def delete(self, vmachine_id):    
         return ResourceManager("vmachine").del_single(vmachine_id)
 
 
@@ -391,15 +364,6 @@ class VnicData(Resource):
     @response_collect
     @validate()
     def post(self, body: VnicCreateSchema):
-        from_ip = request.remote_addr
-        
-        machine_group = MachineGroup.query.filter_by(ip=from_ip).first()
-        if not machine_group:
-            return jsonify(
-                error_code=RET.UNAUTHORIZE_ERR,
-                error_msg="the api only serve for messenger service, make sure the request is from valid messenger service"
-            )
-
         vnic = Insert(Vnic, body.__dict__).insert_obj(
             Vnic, 
             "/vnic", 
@@ -418,15 +382,6 @@ class VnicItemData(Resource):
     @response_collect
     @validate()
     def put(self, vnic_id, body: VnicBaseSchema):
-        from_ip = request.remote_addr
-        
-        machine_group = MachineGroup.query.filter_by(ip=from_ip).first()
-        if not machine_group:
-            return jsonify(
-                error_code=RET.UNAUTHORIZE_ERR,
-                error_msg="the api only serve for messenger service, make sure the request is from valid messenger service"
-            )
-
         _body = body.__dict__
         _body.update({"id": vnic_id})
         return Edit(Vnic, _body).single(Vnic, "/vnic", True)
@@ -434,15 +389,6 @@ class VnicItemData(Resource):
     @auth.login_required
     @response_collect
     def delete(self, vnic_id):
-        from_ip = request.remote_addr
-        
-        machine_group = MachineGroup.query.filter_by(ip=from_ip).first()
-        if not machine_group:
-            return jsonify(
-                error_code=RET.UNAUTHORIZE_ERR,
-                error_msg="the api only serve for messenger service, make sure the request is from valid messenger service"
-            )
-
         return Delete(
             Vnic, 
             {
@@ -456,15 +402,6 @@ class VdiskData(Resource):
     @response_collect
     @validate()
     def post(self, body: VdiskCreateSchema):
-        from_ip = request.remote_addr
-        
-        machine_group = MachineGroup.query.filter_by(ip=from_ip).first()
-        if not machine_group:
-            return jsonify(
-                error_code=RET.UNAUTHORIZE_ERR,
-                error_msg="the api only serve for messenger service, make sure the request is from valid messenger service"
-            )
-
         vdisk = Insert(Vdisk, body.__dict__).insert_obj(
             Vdisk, 
             "/vdisk", 
@@ -482,15 +419,6 @@ class VdiskItemData(Resource):
     @response_collect
     @validate()
     def put(self, vdisk_id, body: VdiskUpdateSchema):
-        from_ip = request.remote_addr
-        
-        machine_group = MachineGroup.query.filter_by(ip=from_ip).first()
-        if not machine_group:
-            return jsonify(
-                error_code=RET.UNAUTHORIZE_ERR,
-                error_msg="the api only serve for messenger service, make sure the request is from valid messenger service"
-            )
-
         _body = body.__dict__
         _body.update({"id": vdisk_id})
         return Edit(Vdisk, _body).single(Vdisk, "/vdisk", True)
@@ -498,15 +426,6 @@ class VdiskItemData(Resource):
     @auth.login_required
     @response_collect
     def delete(self, vdisk_id):
-        from_ip = request.remote_addr
-        
-        machine_group = MachineGroup.query.filter_by(ip=from_ip).first()
-        if not machine_group:
-            return jsonify(
-                error_code=RET.UNAUTHORIZE_ERR,
-                error_msg="the api only serve for messenger service, make sure the request is from valid messenger service"
-            )
-
         return Delete(
             Vdisk, 
             {
