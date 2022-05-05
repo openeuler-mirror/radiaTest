@@ -5,6 +5,8 @@ import { formatTime } from '@/assets/utils/dateFormatUtils.js';
 import { storage } from '@/assets/utils/storageUtils';
 import { state } from './userInfo';
 import { changeLoadingStatus } from '@/assets/utils/loading';
+import { NTag } from 'naive-ui';
+import { setActiveOrgInfo } from './orgDrawer';
 
 const showAddModal = ref(false);
 const addInfo = reactive({ org: '', claEmail: '' });
@@ -107,11 +109,36 @@ const orgColumns = [
     render (row) {
       return h('span', null, [row.re_user_org_cla_info.email]);
     }
-  }
+  },
+  {
+    title: '角色',
+    key: 'role',
+    align: 'center',
+    render (row) {
+      const tag = h(
+        NTag,
+        {
+          type: 'info',
+        },
+        row.role?.name
+      );
+      return tag;
+    },
+  },
 ];
 const pagination = {
   pagesize: 5
 };
+function orgRowProps (row) {
+  return {
+    style: row.re_user_org_role_type === 2 ? 'cursor: pointer;' : 'cursor: not-allowed;',
+    onClick: () => {
+      if (row.re_user_org_role_type === 2) {
+        setActiveOrgInfo(row);
+      }
+    },
+  };
+}
 
 export {
   showAddModal,
@@ -124,4 +151,5 @@ export {
   submitAddOrg,
   init,
   handleAddOrg,
+  orgRowProps
 };

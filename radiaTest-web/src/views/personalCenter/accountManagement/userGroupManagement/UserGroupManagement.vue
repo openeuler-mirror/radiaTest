@@ -39,7 +39,7 @@
       />
       <n-drawer
         :show="groupInfo.show"
-        :width="600"
+        :width="800"
         placement="right"
         :on-update:show="drawerUpdateShow"
       >
@@ -49,6 +49,7 @@
             remote
             :columns="usersColumns"
             :data="groupInfo.usersData"
+            :loading="tableLoading"
             :pagination="groupPagination"
             @update:page="groupTurnPages"
           />
@@ -206,6 +207,7 @@ export default {
   name: 'userGroupManagement',
   setup () {
     modules.getDataList();
+    modules.getGroupRole();
     return modules;
   },
   watch: {

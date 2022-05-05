@@ -85,9 +85,28 @@
           :columns="orgColumns"
           :data="state.userInfo.orgs"
           :pagination="pagination"
+          :row-props="orgRowProps"
         />
       </div>
     </div>
+    <n-drawer
+      :show="showOrgDrawer"
+      :width="800"
+      placement="right"
+      :on-update:show="drawerUpdateShow"
+    >
+      <n-drawer-content>
+        <template #header>{{ activeOrg.org_name }}</template>
+        <n-data-table
+          remote
+          :columns="orgDrawerColumns"
+          :data="orgUsers"
+          :loading="orgDrawerLoading"
+          :pagination="orgDrawerPagination"
+          @update:page="orgDrawerTurnPages"
+        />
+      </n-drawer-content>
+    </n-drawer>
     <n-modal
       v-model:show="showAddModal"
       preset="dialog"
