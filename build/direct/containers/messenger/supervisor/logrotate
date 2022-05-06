@@ -1,0 +1,95 @@
+/opt/radiaTest/radiaTest-messenger/log/messenger/stderr.log {
+    missingok
+    daily
+    rotate 90
+    maxsize 1M
+    dateyesterday
+    copytruncate
+    notifempty
+    nocompress
+    dateext
+}
+
+/opt/radiaTest/radiaTest-messenger/log/gunicorn/error.log {
+    missingok
+    daily
+    rotate 30
+    maxsize 1M
+    dateyesterday
+    copytruncate
+    notifempty
+    nocompress
+    dateext
+}
+
+/opt/radiaTest/radiaTest-messenger/log/celerybeat/stderr.log {
+    missingok
+    daily
+    rotate 30
+    maxsize 1M
+    dateyesterday
+    copytruncate
+    notifempty
+    nocompress
+    dateext
+}
+
+/opt/radiaTest/radiaTest-messenger/log/check_alive/stderr.log {
+    missingok
+    daily
+    rotate 30
+    maxsize 1M
+    dateyesterday
+    copytruncate
+    notifempty
+    nocompress
+    dateext
+}
+
+/opt/radiaTest/radiaTest-messenger/log/job_callback/stderr.log {
+    missingok
+    daily
+    rotate 30
+    maxsize 1M
+    dateyesterday
+    copytruncate
+    notifempty
+    nocompress
+    dateext
+}
+
+/opt/radiaTest/radiaTest-messenger/log/run_case/stderr.log {
+    missingok
+    daily
+    rotate 30
+    maxsize 1M
+    dateyesterday
+    copytruncate
+    notifempty
+    nocompress
+    dateext
+}
+
+/opt/radiaTest/radiaTest-messenger/log/run_suite/stderr.log {
+    missingok
+    daily
+    rotate 30
+    maxsize 1M
+    dateyesterday
+    copytruncate
+    notifempty
+    nocompress
+    dateext
+}
+
+/opt/radiaTest/radiaTest-messenger/log/run_template/stderr.log {
+    missingok
+    daily
+    rotate 30
+    maxsize 1M
+    dateyesterday
+    copytruncate
+    notifempty
+    nocompress
+    dateext
+}

@@ -1,4 +1,4 @@
 #! /bin/sh
 
-cd ../containers/web \
-    && docker-compose down
+cd "${OET_PATH}"/containers/web \
+    && docker-compose down || exit 1

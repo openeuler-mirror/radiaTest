@@ -65,7 +65,17 @@ services:
         ports:
             - 21500:21500
         volumes:
-            - /var/log/radiaTest-server:/opt/radiaTest/radiaTest-server/log
+            - /var/log/radiaTest-server/server:/opt/radiaTest/radiaTest-server/log/server
+            - /var/log/radiaTest-server/gunicorn:/opt/radiaTest/radiaTest-server/log/gunicorn
+            - /var/log/radiaTest-server/read_git_repo:/opt/radiaTest/radiaTest-server/log/read_git_repo
+            - /var/log/radiaTest-server/lifecycle_monitor:/opt/radiaTest/radiaTest-server/log/lifecycle_monitor
+            - /var/log/radiaTest-server/load_scripts:/opt/radiaTest/radiaTest-server/log/load_scripts
+            - /var/log/radiaTest-server/resolve_case:/opt/radiaTest/radiaTest-server/log/resolve_case
+            - /var/log/radiaTest-server/resolve_set:/opt/radiaTest/radiaTest-server/log/resolve_set
+            - /var/log/radiaTest-server/update_case:/opt/radiaTest/radiaTest-server/log/update_case
+            - /var/log/radiaTest-server/update_suite:/opt/radiaTest/radiaTest-server/log/update_suite
+            - /var/log/radiaTest-server/update_tasks:/opt/radiaTest/radiaTest-server/log/update_tasks
+            - /var/log/radiaTest-server/celerybeat:/opt/radiaTest/radiaTest-server/log/celerybeat
             - /etc/radiaTest:/etc/radiaTest
         ulimits:
             nproc: 65535

@@ -1,4 +1,4 @@
 #! /bin/sh
 
-cd ../containers/messenger \
-    && docker-compose down
+cd "${OET_PATH}"/containers/messenger \
+    && docker-compose down || exit 1
