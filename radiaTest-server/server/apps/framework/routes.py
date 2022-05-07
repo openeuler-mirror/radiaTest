@@ -41,7 +41,7 @@ class FrameworkEvent(Resource):
     @response_collect
     @validate()
     def get(self, query: FrameworkQuery):
-        filter_params = GetAllByPermission("framework").get_filter()
+        filter_params = GetAllByPermission(Framework).get_filter()
         if query.name:
             filter_params.append(
                 Framework.name.like(f'%{query.name}%')
@@ -119,7 +119,7 @@ class GitRepoEvent(Resource):
     @response_collect
     @validate()
     def get(self, query: GitRepoQuery):
-        filter_params = GetAllByPermission("git_repo").get_filter()
+        filter_params = GetAllByPermission(GitRepo).get_filter()
         if query.name:
             filter_params.append(
                 GitRepo.name.like(f'%{query.name}%')

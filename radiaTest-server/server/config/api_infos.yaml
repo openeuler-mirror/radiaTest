@@ -58,3 +58,39 @@
   act: put
   alias: 修改Vmachine
   table: vmachine
+- uri: /api/v1/template/%d
+  act: delete
+  alias: 删除Template
+  table: template
+- uri: /api/v1/template/%d
+  act: get
+  alias: 获取Template
+  table: template
+- uri: /api/v1/template/%d
+  act: put
+  alias: 修改Template
+  table: template
+- uri: /api/v1/framework/%d
+  act: delete
+  alias: 删除Framework
+  table: framework
+- uri: /api/v1/framework/%d
+  act: get
+  alias: 获取Framework
+  table: framework
+- uri: /api/v1/framework/%d
+  act: put
+  alias: 修改Framework
+  table: framework
+- uri: /api/v1/git_repo/%d
+  act: delete
+  alias: 删除GitRepo
+  table: git_repo
+- uri: /api/v1/git_repo/%d
+  act: get
+  alias: 获取GitRepo
+  table: git_repo
+- uri: /api/v1/git_repo/%d
+  act: put
+  alias: 修改GitRepo
+  table: git_repo
