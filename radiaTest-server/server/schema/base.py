@@ -44,7 +44,7 @@ class TimeBaseSchema(BaseModel):
                     "%Y-%m-%d %H:%M:%S"
                 )
             if values.get("end_time"):
-                datetime.strptime(
+                values["end_time"] = datetime.strptime(
                     values["end_time"],
                     "%Y-%m-%d %H:%M:%S"
                 )

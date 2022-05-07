@@ -39,7 +39,12 @@ class MilestoneItemEventV2(Resource):
             )
 
         if milestone.is_sync is True:
-            return MilestoneOpenApiHandler(body.__dict__).edit(milestone_id)
+            _data = body.__dict__
+            if _data.get("start_time"):
+                _data["start_time"] = _data.get("start_time").strftime("%Y-%m-%d")
+            if _data.get("end_time"):
+                _data["end_time"] = _data.get("end_time").strftime("%Y-%m-%d")
+            return MilestoneOpenApiHandler(_data).edit(milestone_id)
         else:
             _body = body.__dict__
             _body.update({
