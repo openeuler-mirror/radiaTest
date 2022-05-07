@@ -49,6 +49,7 @@ const handleSuccessSubmit = (title, target, data) => {
 const handleFailureSubmit = (title, target, mesg) => {
   return {
     content: `${title + target}修改失败`,
+    duration: 2000,
     meta: () => {
       return h(
         'div', null, `原因：${mesg}`

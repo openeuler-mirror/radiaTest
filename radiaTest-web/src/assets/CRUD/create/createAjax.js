@@ -15,6 +15,7 @@ const handleFailCreate = (mesg) => {
 const handleSuccessCreate = () => {
   window.$notification?.success({
     content: '注册成功',
+    duration: 2000
   });
 };
 
