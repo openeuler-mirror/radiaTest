@@ -61,7 +61,6 @@ class Org(Resource):
 class OrgItem(Resource):
     @auth.login_required()
     @response_collect
-    @validate()
     @casbin_enforcer.enforcer
-    def put(self, org_id, body: UpdateSchema):
-        return handler_update_org(org_id, body)
+    def put(self, org_id):
+        return handler_update_org(org_id)

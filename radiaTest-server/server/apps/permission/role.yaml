@@ -1,0 +1,9 @@
+- alias: 获取角色信息
+  uri: /api/v1/role/{role_id}
+  act: get
+- alias: 编辑角色信息
+  uri: /api/v1/role/{role_id}
+  act: put
+- alias: 删除角色
+  uri: /api/v1/role/{role_id}
+  act: delete

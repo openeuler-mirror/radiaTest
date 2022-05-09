@@ -102,9 +102,9 @@ def create_role(_type, group=None, org=None):
             _role = Role.query.filter(*_filter).first()
             if not _role:
                 role.add_flush_commit()
+                return_list.append(role)
                 if role_type == 'administrator':
                     admin_role = role
-                    return_list.append(role)
                 else:
                     # 角色继承
                     not_default_roles = Role.query.filter(*_not_default_filter).all()
@@ -123,6 +123,7 @@ def create_role(_type, group=None, org=None):
                 if not _role:
                     role.name = _
                     role.add_flush_commit()
+                    return_list.append(role)
 
     return admin_role, return_list
 
