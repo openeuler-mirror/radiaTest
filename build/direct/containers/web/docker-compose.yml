@@ -5,8 +5,7 @@ services:
         image: redis:4.0.11
         restart: always
         command: redis-server --requirepass radiaTest1234 --bind 0.0.0.0 --protected-mode no
-        ports:
-            - 6379:6379
+        network_mode: "host"
         volumes:
             - /data
             - /var/lib/redis
@@ -15,8 +14,9 @@ services:
     queue:
         image: rabbitmq:3.7.23-management
         restart: always
+        expose:
+            - 5672
         ports:
-            - 5672:5672
             - 15672:15672
         volumes:
             - /var/lib/rabbitmq
@@ -29,8 +29,12 @@ services:
     db:
         image: mariadb:10.5.10
         restart: always
-        ports:
-            - 3306:3306
+        command: 
+            --max_connections=10240
+            --character-set-server=utf8mb4
+            --collation-server=utf8mb4_general_ci
+            --default-authentication-plugin=mysql_native_password
+        network_mode: "host"
         volumes:
             - /var/lib/mysql
             - /var/log/mysql
@@ -64,6 +68,8 @@ services:
         restart: always
         ports:
             - 21500:21500
+        links:
+            - queue
         volumes:
             - /var/log/radiaTest-server/server:/opt/radiaTest/radiaTest-server/log/server
             - /var/log/radiaTest-server/gunicorn:/opt/radiaTest/radiaTest-server/log/gunicorn

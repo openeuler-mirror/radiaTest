@@ -20,7 +20,6 @@ COPY ./logrotate /etc/logrotate.d/supervisor
 
 RUN logrotate /etc/logrotate.d/supervisor
 
-RUN mkdir /etc/radiaTest && cp -r ./conf/app/* /etc/radiaTest/
 RUN cp -r ./conf/supervisor/* /etc/
 
 RUN pip3 install -r requirements.txt -i $PIP_REPO
