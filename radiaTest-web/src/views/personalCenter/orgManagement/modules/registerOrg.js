@@ -3,9 +3,12 @@ import { ref, reactive } from 'vue';
 import { changeLoadingStatus } from '@/assets/utils/loading';
 import axios from '@/axios';
 import { getData } from './orgTable';
+import { organizationInfo } from '@/api/put';
 
 const showRegisterOrgWindow = ref(false);
+const isCreate = ref(true);
 function openRegisterOrgWindow() {
+  isCreate.value = true;
   showRegisterOrgWindow.value = true;
 }
 const requireEnterprise = ref(false);
@@ -23,6 +26,8 @@ const registerModel = reactive({
   oauth_client_secret: '',
   oauth_client_scope: [],
   description: '',
+  org_id:'',
+  organization_avatar:'',
 });
 const rules = {
   name: {
@@ -109,6 +114,55 @@ const fileList = ref([]);
 //   oauth_client_secret: registerModel.oauth_client_secret,
 //   oauth_scope: registerModel.oauth_client_scope.join(','),
 // };
+
+function closeOrgFrom() {
+  showRegisterOrgWindow.value = false;
+  fileList.value = [];
+
+  registerModel.name = '';
+  registerModel.claVerifyUrl = '';
+  registerModel.claSignUrl = '';
+  registerModel.claRequestMethod = '';
+  registerModel.claPassFlag = '';
+  registerModel.enterprise = '';
+  registerModel.urlParams = [];
+  registerModel.bodyParams = [];
+  registerModel.oauth_client_id = '';
+  registerModel.oauth_client_secret = '';
+  registerModel.oauth_client_scope = [];
+  registerModel.description = '';
+  registerModel.org_id = ''; 
+  registerModel.organization_avatar ='';
+}
+
+function handleCreateOrg(formData) {
+  axios
+    .post('/v1/admin/org', formData)
+    .then((res) => {
+      changeLoadingStatus(false);
+      getData();
+      if (res.error_code === '2000') {
+        window.$message?.success('注册成功!');
+      }
+    })
+    .catch((err) => {
+      window.$message?.error(err.data.error_msg || '未知错误');
+      changeLoadingStatus(false);
+    })
+    .finally(() => {
+      closeOrgFrom();
+    });
+}
+
+function handleUpdateOrg(id, formData) {
+  organizationInfo(id, formData)
+    .finally(() => {
+      changeLoadingStatus(false);
+      getData();
+      closeOrgFrom();
+    });
+}
+
 function submitOrgInfo() {
   const [claVerifyBody, claVerifyParams] = [{}, {}];
   registerModel.urlParams.forEach((item) => {
@@ -131,28 +185,22 @@ function submitOrgInfo() {
   formData.append('oauth_client_secret', registerModel.oauth_client_secret);
   formData.append('oauth_scope', registerModel.oauth_client_scope.join(','));
   formData.append('description', registerModel.description);
+
   regirsterRef.value.validate((errors) => {
     if (!errors) {
       changeLoadingStatus(true);
-      axios
-        .post('/v1/admin/org', formData)
-        .then((res) => {
-          changeLoadingStatus(false);
-          getData();
-          if (res.error_code === '2000') {
-            window.$message?.success('注册成功!');
-          }
-          showRegisterOrgWindow.value = false;
-        })
-        .catch((err) => {
-          window.$message?.error(err.data.error_msg || '未知错误');
-          changeLoadingStatus(false);
-        });
+      if(isCreate.value){
+        handleCreateOrg(formData);
+      }else{
+        formData.append('org_id', registerModel.org_id);
+        handleUpdateOrg(registerModel.org_id, formData);
+      }
     } else {
       window.$message?.error('请完善信息!');
     }
   });
 }
+
 function uploadFinish(options) {
   fileList.value = options;
 }
@@ -167,6 +215,10 @@ export {
   submitOrgInfo,
   requireEnterprise,
   fileList,
+  closeOrgFrom,
+  handleCreateOrg,
+  handleUpdateOrg,
   uploadFinish,
   requireCla,
+  isCreate,
 };

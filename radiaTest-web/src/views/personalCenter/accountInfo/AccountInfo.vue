@@ -71,14 +71,14 @@
           style="justify-content: space-between; display: flex"
         >
           <h3>我的组织</h3>
-          <n-button type="primary" @click="handleAddOrg">
+          <!-- <n-button type="primary" @click="handleAddOrg">
             <template #icon>
               <n-icon>
                 <add />
               </n-icon>
             </template>
             添加组织
-          </n-button>
+          </n-button> -->
         </div>
         <n-data-table
           remote
@@ -152,11 +152,11 @@
   </n-spin>
 </template>
 <script>
-import { Add } from '@vicons/ionicons5';
+// import { Add } from '@vicons/ionicons5';
 import { modules } from './modules/index.js';
 
 export default {
-  components: { Add },
+  // components: { Add },
   setup() {
     modules.init();
 

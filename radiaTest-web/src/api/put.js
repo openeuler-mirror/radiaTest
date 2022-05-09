@@ -35,3 +35,6 @@ export function modifyMachineGroup(id,data){
 export function modifyGroupUserRole (id, data) {
   return putRequest(`/v1/user_role/group/${id}`, data);
 }
+export function organizationInfo (id, data) {
+  return putRequest(`/v1/admin/org/${id}`, data);
+}
