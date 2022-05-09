@@ -58,6 +58,17 @@
       :showConfirm="false"
     >
       <template #form>
+        <n-input
+          style="margin:5px 0;width:800px"
+          round
+          placeholder="请输入名称"
+          v-model:value="ruleSearch"
+          @change="filterRules"
+        >
+          <template #suffix>
+            <n-icon :component="Search" />
+          </template>
+        </n-input>
         <n-data-table
           :columns="relationRuleColumns"
           :data="relationRuleData"
@@ -71,7 +82,7 @@
 import { modules } from './modules';
 import breadcrumb from '@/components/breadcrumb/breadcrumb.vue';
 // import { UserAddOutlined } from '@vicons/antd';
-// import { Add } from '@vicons/ionicons5';
+import { Search } from '@vicons/ionicons5';
 import { Settings } from '@vicons/carbon';
 import modalCard from '@/components/CRUD/ModalCard.vue';
 
@@ -79,12 +90,12 @@ export default {
   components: {
     breadcrumb,
     Settings,
-    modalCard
+    modalCard,
   },
   setup() {
     modules.getRoleInfo();
-    return { ...modules };
-  }
+    return { ...modules, Search };
+  },
 };
 </script>
 <style lang="less" scoped>

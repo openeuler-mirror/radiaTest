@@ -15,6 +15,7 @@ const handleDeleteFail = (mesg) => {
 const handleDeleteSuccess = () => {
   window.$notification?.success({
     content: ' 删除成功',
+    duration: 2000,
   });
 };
 

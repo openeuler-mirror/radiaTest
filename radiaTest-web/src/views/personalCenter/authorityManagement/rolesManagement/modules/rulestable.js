@@ -176,6 +176,7 @@ const relationRuleColumns = [
   },
 ];
 const relationRuleData = ref();
+const rulesData = ref();
 const relationRulePagination = {
   pageSize: 5,
 };
@@ -186,6 +187,7 @@ function getRelationRules() {
       item.allow = ruleData.value.findIndex((i) => i.id === item.id) !== -1;
       return { ...item };
     });
+    rulesData.value = relationRuleData.value.map(item => item);
     changeLoadingStatus(false);
   });
 }
@@ -196,11 +198,17 @@ function relationRule() {
 const rulePagination = {
   pageSize: 5,
 };
+const ruleSearch = ref('');
+function filterRules () {
+  relationRuleData.value = rulesData.value.filter(item => item.alias.indexOf(ruleSearch.value) !== -1);
+}
 export {
+  ruleSearch,
   relationRulePagination,
   relationRuleData,
   relationRuleColumns,
   rulePagination,
+  filterRules,
   showDrawer,
   setDrawerStatus,
   setRoleInfo,

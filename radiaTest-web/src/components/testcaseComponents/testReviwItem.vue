@@ -8,17 +8,17 @@
           @click="gotoDetail"
           text
           class="title"
-          style="font-size: 20px; font-weight: bold; margin-right: 20px"
+          style="font-size:20px;font-weight:bold;margin-right:20px"
         >
           {{ info.title }}
         </n-button>
-        <span style="margin: 0 5px" v-if="info.org_name">
+        <span style="margin:0 5px;" v-if="info.org_name">
           <n-icon>
             <Organization20Regular />
           </n-icon>
           {{ info.org_name }}
         </span>
-        <span style="margin: 0 5px" v-if="info.group_name">
+        <span style="margin:0 5px" v-if="info.group_name">
           <n-icon>
             <GroupsOutlined />
           </n-icon>
@@ -39,9 +39,6 @@
             <User />
           </n-icon>
           <userInfo :userInfo="info.creator">
-            <template #username>
-              {{ info.creator?.gitee_name }}
-            </template>
           </userInfo>
         </div>
         <div class="chat item">
@@ -52,24 +49,23 @@
         </div>
         <div class="date item">
           创建于
-          <span style="margin-left: 10px">{{
+          <span style="margin-left:10px">{{
             formatTime(info.create_time, 'yyyy-MM-dd hh:mm:ss')
           }}</span>
         </div>
       </div>
       <div class="action-item">
         <div class="item">
-          <div style="display: flex; align-items: center">
-            <span class="label"> 审查人: </span>
+          <div style="display:flex;align-items:center">
+            <span class="label">
+              审查人:
+            </span>
             <userInfo :userInfo="info.reviewer">
-              <template #username>
-                {{ info.reviewer?.gitee_name }}
-              </template>
             </userInfo>
           </div>
         </div>
         <div class="item">
-          <span style="margin-left: 10px">{{
+          <span style="margin-left:10px">{{
             formatTime(info.review_time, 'yyyy-MM-dd hh:mm:ss')
           }}</span>
         </div>
@@ -78,15 +74,15 @@
   </div>
 </template>
 <script>
-import { Organization20Regular, } from '@vicons/fluent';
+import {Organization20Regular,} from '@vicons/fluent';
 
 import { User } from '@vicons/tabler';
-import userInfo from '@/components/user/userInfo.vue';
 import { Chat } from '@vicons/carbon';
 import { GroupsOutlined } from '@vicons/material';
 import { formatTime } from '@/assets/utils/dateFormatUtils';
+import userInfo from '@/components/user/userInfo.vue';
 export default {
-  props: ['info', 'options'],
+  props: ['info','options'],
   components: {
     User,
     Chat,
@@ -95,8 +91,8 @@ export default {
     Organization20Regular,
   },
   methods: {
-    selectAction(key) {
-      this.$emit('selectAction', { key, info: this.info });
+    selectAction(key){
+      this.$emit('selectAction',{key,info:this.info});
     },
     gotoDetail() {
       this.$router.push({
@@ -130,7 +126,7 @@ export default {
   }
   .item-content {
     padding: 20px 0px;
-    color: #ccc;
+    color:#ccc;
   }
   .item-action {
     display: flex;

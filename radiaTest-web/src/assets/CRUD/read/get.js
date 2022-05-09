@@ -27,9 +27,9 @@ const list = (url, data, loading, params, page) => {
     })
     .catch((err) => {
       console.log(err);
-      window.$message?.error(
-        err.data?.error_msg || err.message || unkonwnErrorMsg
-      );
+      window.$notification?.error({
+        content: err.data?.error_msg || err.message || unkonwnErrorMsg,
+      });
       loading ? (loading.value = false) : 0;
     });
 };
@@ -57,7 +57,9 @@ const filter = (url, data, loading, filters) => {
       loading.value = false;
     })
     .catch(() => {
-      window.$message?.error('发生位置错误，获取数据失败');
+      window.$notification?.error({
+        content: '发生未知错误，获取数据失败',
+      });
       loading.value = false;
     });
 };

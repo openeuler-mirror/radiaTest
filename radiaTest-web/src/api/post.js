@@ -9,7 +9,7 @@ function postRequest (url, data) {
       })
       .catch((err) => {
         if (data.webMessage !== 'manual') {
-          window.$notification?.error({ content: err.data.error_msg || unkonwnErrorMsg, duration: 2000 });
+          window.$notification?.error({ content: err.data.error_msg || unkonwnErrorMsg });
         }
         reject(err);
       });

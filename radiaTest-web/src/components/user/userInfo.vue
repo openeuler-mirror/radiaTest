@@ -1,17 +1,13 @@
 <template>
   <n-popover placement="right-start" trigger="hover" :show-arrow="false" raw>
-    <template #trigger>
+    <template #trigger >
       <slot name="username">
-        <span class="sub-content user">{{ userInfo.gitee_name }}</span>
+        <span class="sub-content user">{{ userInfo?.gitee_name }}</span>
       </slot>
     </template>
     <n-card>
       <div
-        style="
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                  "
+        style="display: flex;flex-direction: column;align-items: center;"
       >
         <n-avatar round :size="96" :src="userInfo.avatar_url" />
         <div style="padding-top: 20px">
@@ -33,9 +29,8 @@
 </template>
 <script>
 export default {
-  props:['userInfo'],
-  setup(){
-  }
+  props: ['userInfo'],
+  setup() {},
 };
 </script>
 <style scoped>
