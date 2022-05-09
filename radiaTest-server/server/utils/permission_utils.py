@@ -56,7 +56,7 @@ class PermissionManager:
                 continue
         return scope_ids, get_scope_ids
 
-    def generate(self, scope_datas_allow, scope_datas_deny, _data: dict):
+    def generate(self, scope_datas_allow, scope_datas_deny, _data: dict, admin_only=False):
         default_role_filter = []
         role_filter = []
         if _data["permission_type"] == "public":
@@ -103,16 +103,17 @@ class PermissionManager:
             if not role:
                 return jsonify(error_code=RET.NO_DATA_ERR, error_msg="Role has not been exist")
 
-            try:
-                for _id in get_scope_allow_ids:
-                    scope_role_data = {
-                        "scope_id": _id,
-                        "role_id": default_role.id
-                    }
-                    Insert(ReScopeRole, scope_role_data).insert_id()
+            if not admin_only:
+                try:
+                    for _id in get_scope_allow_ids:
+                        scope_role_data = {
+                            "scope_id": _id,
+                            "role_id": default_role.id
+                        }
+                        Insert(ReScopeRole, scope_role_data).insert_id()
 
-            except (SQLAlchemyError, IntegrityError) as e:
-                raise RuntimeError(str(e)) from e
+                except (SQLAlchemyError, IntegrityError) as e:
+                    raise RuntimeError(str(e)) from e
 
             try:
                 for _id in scope_allow_ids:

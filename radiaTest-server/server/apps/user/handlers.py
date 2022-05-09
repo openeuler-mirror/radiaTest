@@ -530,11 +530,16 @@ def handler_get_all(query):
 
 @collect_sql_error
 def handler_get_user_task(query: UserTaskSchema):
+    current_org_id = int(redis_client.hget(
+        RedisKey.user(g.gitee_id),
+        'current_org_id'
+    ))
     now = datetime.now()
     # 全部任务
     basic_filter_params = [Task.is_delete.is_(False),
                            Task.executor_type == 'PERSON',
-                           Task.executor_id == g.gitee_id]
+                           Task.executor_id == g.gitee_id,
+                           Task.org_id == current_org_id]
 
     # 今日任务总数
     today_filter_params = [extract('year', Task.create_time) == now.year,
@@ -624,13 +629,18 @@ def handler_get_user_task(query: UserTaskSchema):
 
 @collect_sql_error
 def handler_get_user_machine(query: UserMachineSchema):
+    current_org_id = int(redis_client.hget(
+        RedisKey.user(g.gitee_id),
+        'current_org_id'
+    ))
     page_dict = None
     if query.machine_type == 'physics':
         def page_func(item: Pmachine):
             item_dict = PmachineBriefSchema(**item.__dict__).dict()
             return item_dict
 
-        filter_params = [or_(Pmachine.user == g.gitee_id, Pmachine.occupier == g.gitee_id)]
+        filter_params = [Pmachine.org_id == current_org_id,
+                         or_(Pmachine.user == g.gitee_id, Pmachine.occupier == g.gitee_id)]
         if query.machine_name:
             filter_params.append(or_(
                 Pmachine.ip.like(f'%{query.machine_name}%'),
@@ -646,7 +656,7 @@ def handler_get_user_machine(query: UserMachineSchema):
             item_dict = VmachineBriefSchema(**item.__dict__).dict()
             return item_dict
 
-        filter_params = [Vmachine.user == g.gitee_id]
+        filter_params = [Vmachine.org_id == current_org_id, Vmachine.user == g.gitee_id]
         if query.machine_name:
             filter_params.append(or_(
                 Vmachine.ip.like(f'%{query.machine_name}%'),
@@ -662,9 +672,13 @@ def handler_get_user_machine(query: UserMachineSchema):
 
 @collect_sql_error
 def handler_get_user_case_commit(query: UserCaseCommitSchema):
+    current_org_id = int(redis_client.hget(
+        RedisKey.user(g.gitee_id),
+        'current_org_id'
+    ))
     now = datetime.now()
     # 全部
-    basic_filter_params = [Commit.creator_id == g.gitee_id, Commit.status == 'accepted']
+    basic_filter_params = [Commit.creator_id == g.gitee_id, Commit.status == 'accepted', Commit.org_id == current_org_id]
 
     # 今日贡献
     today_filter_params = [extract('year', Commit.create_time) == now.year,
