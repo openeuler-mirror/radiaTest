@@ -22,10 +22,13 @@
       <n-modal
         v-model:show="showRegisterOrgWindow"
         preset="dialog"
+        :on-close="closeOrgFrom"
+        :onMaskClick="closeOrgFrom"
+        :closeOnEsc="false"
         style="width: 700px"
       >
         <template #header>
-          <h3>注册新组织</h3>
+          <h3>{{isCreate ? '注册新组织' : '修改组织信息'}}</h3>
         </template>
         <n-form
           :label-width="150"
@@ -41,6 +44,7 @@
               list-type="image-card"
               @update:file-list="uploadFinish"
               accept=".png,.jpg,.gif"
+              :file-list="fileList"
             >
               点击上传
             </n-upload>
@@ -166,7 +170,7 @@
               type="error"
               size="large"
               ghost
-              @click="showRegisterOrgWindow = false"
+              @click="closeOrgFrom"
             >
               取消
             </n-button>
@@ -192,15 +196,17 @@ export default {
   watch: {
     fileList: {
       handler(val) {
-        if (val.length === 1) {
-          document.querySelector(
-            '.n-upload-trigger.n-upload-trigger--image-card'
-          ).style.display = 'none';
-        } else {
-          document.querySelector(
-            '.n-upload-trigger.n-upload-trigger--image-card'
-          ).style.display = 'block';
-        }
+        this.$nextTick(()=>{
+          if (val.length === 1 && document.querySelector('.n-upload-trigger.n-upload-trigger--image-card')) {
+            document.querySelector(
+              '.n-upload-trigger.n-upload-trigger--image-card'
+            ).style.display = 'none';
+          } else {
+            document.querySelector(
+              '.n-upload-trigger.n-upload-trigger--image-card'
+            ).style.display = 'block';
+          }
+        });
       },
       deep: true,
     },

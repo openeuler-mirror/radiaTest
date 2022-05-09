@@ -18,6 +18,7 @@ import { FileImport, DatabaseImport, File } from '@vicons/tabler';
 import { Database } from '@vicons/fa';
 import { ExportOutlined, EditOutlined } from '@vicons/antd';
 import { ArchiveOutline } from '@vicons/ionicons5';
+import { ChartRelationship } from '@vicons/carbon';
 import { changeLoadingStatus } from '@/assets/utils/loading';
 import { putModalRef, updateModalRef } from './editRef';
 import { getDetail } from '@/views/caseManage/folderView/taskDetails/modules/details.js';
@@ -222,11 +223,10 @@ function getBaseLine(node) {
           }
           actions.push(deleteAction);
           if (item.type === 'suite') {
-            actions.unshift({
-              label: '新建测试用例',
-              key: 'newCase',
-              icon: renderIcon(CreateNewFolderOutlined),
-            });
+            actions.unshift(
+              { label: '关联测试用例', key: 'relationCase', icon: renderIcon(ChartRelationship),},
+              { label: '新建测试用例', key: 'newCase', icon: renderIcon(CreateNewFolderOutlined),},
+            );
           } else if (item.type === 'directory') {
             actions.unshift(
               item.in_set ? createChildrenAction : relationChildrenAction
@@ -505,40 +505,7 @@ const description = h(
   },
   '仅支持zip,rar,tar,gz,xz,bz2压缩文件上传'
 );
-// function renderSelect(label, list) {
-//   return h(
-//     NFormItem,
-//     {
-//       label,
-//       rule: infoRules,
-//     },
-//     h(NCascader, {
-//       value: info.value,
-//       options: list,
-//       remote: true,
-//       checkStrategy: 'child',
-//       showPath: false,
-//       onLoad(options) {
-//         return new Promise((resolve, reject) => {
-//           axios
-//             .get('/v1/git_repo', { framework_id: options.value })
-//             .then((res) => {
-//               options.children = res.data?.map((item) => ({
-//                 label: item.git_url,
-//                 value: String(item.id),
-//                 isLeaf: true,
-//               }));
-//               resolve();
-//             })
-//             .catch((err) => reject(err));
-//         });
-//       },
-//       onUpdateValue: (value) => {
-//         info.value = value;
-//       },
-//     })
-//   );
-// }
+
 function uploadSet(node) {
   const formData = new FormData();
   formData.append('file', files.value[0]?.file);
@@ -766,13 +733,14 @@ const actionHandlder = {
   },
   newCase: {
     handler(contextmenu) {
-      if (contextmenu.info.in_set) {
-        createModalRef.value.show();
-        inSetnode = contextmenu;
-      } else {
-        initDialogViewData();
-        dialogView(newCase, contextmenu, 'case');
-      }
+      createModalRef.value.show();
+      inSetnode = contextmenu;
+    },
+  },
+  relationCase: {
+    handler(contextmenu) {
+      initDialogViewData();
+      dialogView(newCase, contextmenu, 'case');
     },
   },
   importCaseSet: {
