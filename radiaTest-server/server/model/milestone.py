@@ -1,3 +1,4 @@
+import datetime
 from sqlalchemy.dialects.mysql import TINYTEXT
 
 from server import db
@@ -37,6 +38,12 @@ class Milestone(BaseModel, PermissionBaseModel, db.Model):
     group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
     org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
 
+    def convert_time_format(self, t):
+        if isinstance(t, datetime.date):
+            return t.strftime("%Y-%m-%d")
+        else:
+            return t
+
     def to_json(self):
         tags = []
         for mirroring in self.imirroring:
@@ -59,8 +66,8 @@ class Milestone(BaseModel, PermissionBaseModel, db.Model):
             "id": self.id,
             "name": self.name,
             "type": self.type,
-            "start_time": self.start_time.strftime("%Y-%m-%d"),
-            "end_time": self.end_time.strftime("%Y-%m-%d"),
+            "start_time": self.convert_time_format(self.start_time),
+            "end_time": self.convert_time_format(self.end_time),
             "product_name": self.product.name,
             "product_version": self.product.version,
             "tags": tags,

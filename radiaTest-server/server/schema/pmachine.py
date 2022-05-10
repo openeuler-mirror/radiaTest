@@ -41,7 +41,7 @@ class MachineGroupCreateSchema(PermissionBase):
 
     @validator("ip")
     def check_ip_exist(cls, v):
-        machine_group = MachineGroup.query_by(ip=v).first()
+        machine_group = MachineGroup.query.filter_by(ip=v).first()
         if machine_group is not None:
             raise ValueError("this ip of machine group is exist, duplication is not allowed")
         
