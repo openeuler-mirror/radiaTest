@@ -1,7 +1,7 @@
 <template>
   <div class="fix-container">
     <vue3-draggable-resizable :draggable="true" :resizable="false">
-      <div style="overflow: hidden">
+      <div style="overflow: hidden;width:50px">
         <div ref="expandContainer">
           <n-tooltip trigger="hover" placement="right">
             <template #trigger>

@@ -3,6 +3,7 @@ import { NTag, NDropdown, NText, NAvatar } from 'naive-ui';
 import { setOrgUserRole } from '@/api/post';
 import { getAllRole, getOrgUser } from '@/api/get';
 import { deleteOrgUserRole } from '@/api/delete';
+import { createAvatar } from '@/assets/utils/createImg';
 const activeOrg = ref({});
 const showOrgDrawer = ref(false);
 const orgDrawerLoading = ref(false);
@@ -69,7 +70,7 @@ const orgDrawerColumns = [
     key: 'avatar_url',
     align: 'center',
     render (row) {
-      return h(NAvatar, { size: 'small', src: row.avatar_url });
+      return h(NAvatar, { size: 'small', src: row.avatar_url, fallbackSrc: createAvatar(row.gitee_name.slice(0,1))});
     }
   },
   {

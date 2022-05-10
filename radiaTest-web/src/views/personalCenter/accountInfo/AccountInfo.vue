@@ -7,6 +7,7 @@
           circle
           :size="100"
           :src="state.userInfo.avatar_url"
+          :fallback-src="createAvatar(state.userInfo.gitee_name.slice(0,1))"
         />
       </div>
       <div class="container">
@@ -153,6 +154,7 @@
 </template>
 <script>
 // import { Add } from '@vicons/ionicons5';
+import { createAvatar } from '@/assets/utils/createImg';
 import { modules } from './modules/index.js';
 
 export default {
@@ -163,7 +165,7 @@ export default {
     document.addEventListener('reloadInfo', () => {
       modules.init();
     });
-    return modules;
+    return { ...modules, createAvatar };
   },
 };
 </script>
