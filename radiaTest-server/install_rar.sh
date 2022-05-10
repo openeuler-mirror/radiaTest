@@ -38,6 +38,8 @@ wget https://www.rarlab.com/rar/rarlinux-${basearch}-612.tar.gz \
     && make \
     && make install
 
+RAR=$(which unrar 2>/dev/null)
+
 if [ -z "${RAR}" ]; then
     exit 1
 else
