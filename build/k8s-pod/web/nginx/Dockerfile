@@ -33,8 +33,9 @@ RUN bash ./build/k8s-pod/web/nginx/install_nodejs.sh
 
 WORKDIR /opt/radiaTest/radiaTest-web
 
-RUN npm install --force \
+RUN npm cache clean --force \
+    && npm install --force --registry=https://registry.npm.taobao.org \
+    && npm run build \
     && cat ./deploy/nginx.conf > /etc/nginx/nginx.conf
 
-CMD npm run build \
-    && nginx
+ENTRYPOINT [ "nginx", "-g", "daemon off;" ]
