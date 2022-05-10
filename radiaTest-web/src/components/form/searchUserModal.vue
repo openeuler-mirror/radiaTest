@@ -21,7 +21,7 @@
         :key="index"
         style="text-align: center; width: 80px; margin: 3px"
       >
-        <n-avatar round size="small" :src="item.avatar_url" />
+        <n-avatar round size="small" :src="item.avatar_url" :fallback-src="createAvatar(item.gitee_name.slice(0,1))" />
         <p style="max-width: 80px">
           <n-ellipsis style="max-width: 80px">
             {{ item.gitee_name }}
@@ -43,6 +43,7 @@
 </template>
 <script>
 import deleteItem from '@/components/common/deleteItem.vue';
+import { createAvatar } from '@/assets/utils/createImg';
 export default {
   components: { deleteItem },
   props: ['userList'],
@@ -50,6 +51,11 @@ export default {
     return {
       showModal: false,
       name: ''
+    };
+  },
+  setup(){
+    return {
+      createAvatar
     };
   },
   methods: {

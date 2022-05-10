@@ -28,6 +28,7 @@
         <n-avatar
           style="position: relative; left: 10px; cursor: pointer"
           circle
+          :fallback-src="createAvatar(accountName.slice(0,1))"
           :size="60"
           :src="avatarUrl"
         />
@@ -67,7 +68,7 @@
 import { defineComponent, getCurrentInstance, inject, watch } from 'vue';
 import { BellOutlined } from '@vicons/antd';
 import { modules } from './modules/index.js';
-
+import { createAvatar } from '@/assets/utils/createImg';
 export default defineComponent({
   components: {
     BellOutlined
@@ -94,6 +95,7 @@ export default defineComponent({
     return {
       msgCount,
       msgCountUpdate,
+      createAvatar,
       ...modules,
     };
   },
