@@ -13,28 +13,35 @@
 # @License : Mulan PSL v2
 #####################################
 
-FROM openeuler/openeuler:22.03-lts
-LABEL maintainer="ethanzhang55@outlook.com"
+# /bin/sh
 
-ENV GIT_REPO https://gitee.com/openeuler/radiaTest
+basearch=$(uname -m)
 
-WORKDIR /opt
+if [[ "${basearch}" == "x86_64" || "${basearch}" == "aarch64" ]];then
+    basearch="x64"
+else
+    echo "Error: Unsupported Arch"
+    exit 1
+fi
 
-RUN dnf install -y git \
-    && git clone $GIT_REPO \
-    && dnf install -y nginx \
-    && dnf install -y wget \
-    && dnf install -y tar \
-    && dnf install -y xz
+RAR=$(which unrar 2>/dev/null)
 
-WORKDIR /opt/radiaTest
+if [ ! -z "${RAR}" ]; then
+    exit 0
+fi
 
-RUN bash ./build/k8s-pod/web/nginx/install_nodejs.sh
+dnf install -y wget
 
-WORKDIR /opt/radiaTest/radiaTest-web
+wget https://www.rarlab.com/rar/rarlinux-${basearch}-612.tar.gz \
+    && tar -xzf rarlinux-x64-612.tar.gz \
+    && cd rar \
+    && make \
+    && make install
 
-RUN npm install --force \
-    && cat ./deploy/nginx.conf > /etc/nginx/nginx.conf
-
-CMD npm run build \
-    && nginx
+if [ -z "${RAR}" ]; then
+    exit 1
+else
+    cd ../ \
+    && rm -rf rar/ \
+    && rm rarlinux-x64-612.tar.gz
+fi
