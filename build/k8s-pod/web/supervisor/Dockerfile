@@ -36,8 +36,6 @@ WORKDIR /opt/radiaTest/radiaTest-server/
 
 COPY ./logrotate /etc/logrotate.d/supervisor
 
-RUN logrotate /etc/logrotate.d/supervisor
-
 RUN cp -r ./conf/supervisor/* /etc/
 
 RUN bash ./install_rar.sh \

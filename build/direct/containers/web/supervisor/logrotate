@@ -4,11 +4,11 @@
     daily
     rotate 90
     maxsize 1M
-    dateyesterday
     copytruncate
     notifempty
     nocompress
     dateext
+    dateformat -%Y%m%d.%s
 }
 
 /opt/radiaTest/radiaTest-server/log/gunicorn/error.log {
@@ -17,11 +17,11 @@
     daily
     rotate 30
     maxsize 1M
-    dateyesterday
     copytruncate
     notifempty
     nocompress
     dateext
+    dateformat -%Y%m%d.%s
 }
 
 /opt/radiaTest/radiaTest-server/log/celerybeat/stderr.log {
@@ -30,11 +30,11 @@
     daily
     rotate 30
     maxsize 1M
-    dateyesterday
     copytruncate
     notifempty
     nocompress
     dateext
+    dateformat -%Y%m%d.%s
 }
 
 /opt/radiaTest/radiaTest-server/log/lifecycle_monitor/stderr.log {
@@ -43,11 +43,11 @@
     daily
     rotate 30
     maxsize 1M
-    dateyesterday
     copytruncate
     notifempty
     nocompress
     dateext
+    dateformat -%Y%m%d.%s
 }
 
 /opt/radiaTest/radiaTest-server/log/load_scripts/stderr.log {
@@ -56,11 +56,11 @@
     daily
     rotate 30
     maxsize 1M
-    dateyesterday
     copytruncate
     notifempty
     nocompress
     dateext
+    dateformat -%Y%m%d.%s
 }
 
 /opt/radiaTest/radiaTest-server/log/read_git_repo/stderr.log {
@@ -69,11 +69,11 @@
     daily
     rotate 30
     maxsize 1M
-    dateyesterday
     copytruncate
     notifempty
     nocompress
     dateext
+    dateformat -%Y%m%d.%s
 }
 
 /opt/radiaTest/radiaTest-server/log/resovle_case/stderr.log {
@@ -82,11 +82,11 @@
     daily
     rotate 30
     maxsize 1M
-    dateyesterday
     copytruncate
     notifempty
     nocompress
     dateext
+    dateformat -%Y%m%d.%s
 }
 
 /opt/radiaTest/radiaTest-server/log/resolve_set/stderr.log {
@@ -95,11 +95,11 @@
     daily
     rotate 30
     maxsize 1M
-    dateyesterday
     copytruncate
     notifempty
     nocompress
     dateext
+    dateformat -%Y%m%d.%s
 }
 
 /opt/radiaTest/radiaTest-server/log/update_case/stderr.log {
@@ -108,11 +108,11 @@
     daily
     rotate 30
     maxsize 1M
-    dateyesterday
     copytruncate
     notifempty
     nocompress
     dateext
+    dateformat -%Y%m%d.%s
 }
 
 /opt/radiaTest/radiaTest-server/log/update_suite/stderr.log {
@@ -121,11 +121,11 @@
     daily
     rotate 30
     maxsize 1M
-    dateyesterday
     copytruncate
     notifempty
     nocompress
     dateext
+    dateformat -%Y%m%d.%s
 }
 
 /opt/radiaTest/radiaTest-server/log/update_tasks/stderr.log {
@@ -134,9 +134,9 @@
     daily
     rotate 30
     maxsize 1M
-    dateyesterday
     copytruncate
     notifempty
     nocompress
     dateext
+    dateformat -%Y%m%d.%s
 }

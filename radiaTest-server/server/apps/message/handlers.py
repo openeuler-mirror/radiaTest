@@ -1,13 +1,15 @@
-from flask_socketio import emit
-from server import db
+import json
+
 from flask import g, jsonify, request
+from flask_socketio import emit
+
+from server import db
 from server.model.message import Message
 from server.schema.message import MessageModel
 from server.utils.response_util import RET
 from server.utils.page_util import PageUtil
 from server.utils.auth_util import verify_token
 from server.utils.db import collect_sql_error
-import json
 
 
 @collect_sql_error
@@ -72,7 +74,11 @@ def handler_user_msg_count(gitee_id):
         'error_msg': 'OK',
         'msg_total': len(msg_list) if msg_list else 0
     }
-    emit('server_count', send_msg, namespace='/api/v1/msg')
+    emit(
+        'server_count', 
+        send_msg, 
+        namespace='/api/v1/msg'
+    )
 
 @collect_sql_error
 def handler_msg_callback(body):
