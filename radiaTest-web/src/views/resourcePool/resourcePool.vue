@@ -21,6 +21,9 @@
                 <n-input
                   v-model:value="createMachinesForm.name"
                   placeholder="请输入机器组名"
+                  maxlength="25"
+                  show-count
+                  clearable
                 />
               </n-form-item-gi>
               <n-form-item-gi :span="10" label="描述" path="description">
@@ -126,7 +129,7 @@
           <n-tree
             block-line
             :data="menuOptions"
-            :on-load="handleLoad"
+            :on-load="handleTreeLoad"
             :node-props="nodeProps"
             :render-prefix="renderPrefix"
             :render-suffix="renderSuffix"

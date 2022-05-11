@@ -74,7 +74,7 @@
             v-model:value="model.milestone_id"
           ></n-select>
         </n-form-item>
-        <n-form-item label="截止日期">
+        <n-form-item label="截止日期" v-if="!isCase">
           <n-date-picker format="yyyy-MM-dd" v-model:value="model.deadline" />
         </n-form-item>
         <n-form-item label="关键词">
@@ -121,6 +121,12 @@ import { formatTime } from '@/assets/utils/dateFormatUtils';
 import { storage } from '@/assets/utils/storageUtils';
 import { getGroup } from '@/api/get';
 export default {
+  props:{
+    isCase:{
+      default:false,
+      type:Boolean
+    }
+  },
   setup() {
     const taskTypes = [
       ...taskType.value,
@@ -195,7 +201,9 @@ export default {
             this.model.deadline,
             'yyyy-MM-dd hh:mm:ss'
           );
-          this.$emit('submit', this.model);
+          const formData = JSON.parse(JSON.stringify(this.model));
+          formData.group_id = this.model.type === 'GROUP' ? Number(this.model.group) : null;
+          this.$emit('submit', formData);
           this.close();
         }
       });

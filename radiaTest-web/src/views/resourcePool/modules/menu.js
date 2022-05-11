@@ -162,7 +162,7 @@ function renderSuffix({ option }) {
   }
   return '';
 }
-function handleLoad(node) {
+function handleTreeLoad (node) {
   return new Promise((resolve, reject) => {
     getMachineGroup()
       .then((res) => {
@@ -226,7 +226,7 @@ export {
   showDropdown,
   menuOptions,
   menuOption,
-  handleLoad,
+  handleTreeLoad,
   options,
   nodeProps,
   handleSelect,

@@ -3,8 +3,9 @@ export function getCookieValByKey (key) {
   const cookies = cookieStr.split(';');
   const cookieObj = {};
   for (const item of cookies) {
-    const element = item.split('=');
-    [, cookieObj[element[0].trim()]] = element;
+    const _key = item.slice(0, item.indexOf('=')).trim();
+    const value = item.slice(item.indexOf('=')+1);
+    cookieObj[_key] = value;
   }
   return cookieObj[key]?.trim();
 }

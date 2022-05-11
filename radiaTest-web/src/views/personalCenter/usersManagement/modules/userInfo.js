@@ -31,7 +31,7 @@ function getUserTableData() {
       loading.value = false;
     });
 }
-function getRoleList() {
+function getRoleList () {
   axios.get('/v1/role').then((res) => {
     roleList.value = [];
     if (selectdRole.value === 'public') {
@@ -44,7 +44,7 @@ function getRoleList() {
         }
       });
     } else {
-      const [key,id] = window.atob(selectdRole.value).split('-');
+      const [key, id] = window.atob(selectdRole.value).split('-');
       res.data.forEach((item) => {
         if (item.type === key && item[`${key}_id`] === Number(id)) {
           roleList.value.push({
@@ -56,7 +56,7 @@ function getRoleList() {
     }
   });
 }
-function getUserInfo() {
+function getUserInfo () {
   if (selectdRole.value === 'public') {
     requestUrl = '/v1/user_role';
     actionUrl.value = '/v1/users';
