@@ -75,11 +75,9 @@ function turnPages(page) {
 }
 function groupRowProps(row, rowIndex) {
   return {
-    style: row.rule ? 'cursor: pointer;' : 'cursor: not-allowed;',
+    style: 'cursor: pointer;',
     onClick: () => {
-      if (row.rule) {
-        editGroupUsers(rowIndex);
-      }
+      editGroupUsers(rowIndex);
     },
   };
 }

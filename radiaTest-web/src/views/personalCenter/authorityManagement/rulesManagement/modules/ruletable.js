@@ -6,6 +6,7 @@ import { renderTooltip } from '@/assets/render/tooltip';
 import axios from '@/axios';
 // import { setFormType, createRef, setEditData } from './ruleForm';
 import { changeLoadingStatus } from '@/assets/utils/loading';
+import { unkonwnErrorMsg } from '@/assets/utils/description';
 
 const data = ref();
 const pagination = {
@@ -15,6 +16,9 @@ function getRules() {
   changeLoadingStatus(true);
   axios.get('/v1/scope').then((res) => {
     data.value = res.data;
+    changeLoadingStatus(false);
+  }).catch((err) => {
+    window.$notification?.error({ content: err.data.error_msg || unkonwnErrorMsg, duration:2000 });
     changeLoadingStatus(false);
   });
 }
