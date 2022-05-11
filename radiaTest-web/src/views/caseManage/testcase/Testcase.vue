@@ -91,14 +91,21 @@
         </n-space>
       </n-gi>
       <n-gi :span="12">
+        <!-- <n-space justify="end">
+          <refresh-button @refresh="tableRef.refreshData()">
+            刷新版本列表
+          </refresh-button>
+        </n-space> -->
+      </n-gi>
+      <n-gi :span="23">
+        <testcase-filter style="position: relative" />
+      </n-gi>
+      <n-gi :span="1">
         <n-space justify="end">
           <refresh-button @refresh="tableRef.refreshData()">
             刷新版本列表
           </refresh-button>
         </n-space>
-      </n-gi>
-      <n-gi :span="24">
-        <testcase-filter style="position: relative" />
       </n-gi>
       <n-gi :span="24">
         <testcase-table ref="tableRef" @update="() => updateModalRef.show()" />

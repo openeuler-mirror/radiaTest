@@ -1,7 +1,7 @@
 <template>
   <n-grid :cols="64" style="align-items: center;height:100%">
     <n-gi :span="1" />
-    <n-gi :span="8" class="myLogo">
+    <n-gi :span="9" class="myLogo">
       <n-space align="center">
         <div class="title" @click="router.push('/home')">
           <img src="/rediation.svg" style="height:50px" />
@@ -11,7 +11,7 @@
         </div>
       </n-space>
     </n-gi>
-    <n-gi :span="39" class="myMenu">
+    <n-gi :span="38" class="myMenu">
       <header-menu v-if="showMenu" />
     </n-gi>
     <n-gi :span="4" class="menu">
