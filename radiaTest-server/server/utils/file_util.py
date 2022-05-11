@@ -1,6 +1,7 @@
 import os
 import re
 import socket
+import datetime
 from uuid import uuid1
 from shutil import rmtree
 from shlex import quote
@@ -67,7 +68,7 @@ class ImportFile:
             dir, 
             secure_filename(
                 ''.join(
-                    lazy_pinyin("{}.{}".format(self.filename, self.filetype))
+                    lazy_pinyin("{}{}.{}".format(self.filename, datetime.datetime.now().strftime("%Y%m%d%H%M%S"), self.filetype))
                 )
             )
         )
