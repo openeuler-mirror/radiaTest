@@ -98,6 +98,7 @@ function createMachines() {
     group_id: Number(createMachinesForm.value.permission_type.split('-')[1]),
   }).then(() => {
     createModalRef.value.close();
+    refreshData();
     createMachinesForm.value = {
       name: undefined,
       description: undefined,

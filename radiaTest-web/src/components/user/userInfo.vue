@@ -9,7 +9,7 @@
       <div
         style="display: flex;flex-direction: column;align-items: center;"
       >
-        <n-avatar round :size="96" :src="userInfo.avatar_url" />
+        <n-avatar round :size="96" :src="userInfo.avatar_url" :fallback-src="createAvatar(userInfo.gitee_name.slice(0,1))" />
         <div style="padding-top: 20px">
           <p style="text-align: center">
             <span>{{ userInfo.gitee_name }}</span>
@@ -28,9 +28,14 @@
   </n-popover>
 </template>
 <script>
+import { createAvatar } from '@/assets/utils/createImg';
 export default {
   props: ['userInfo'],
-  setup() {},
+  setup() {
+    return {
+      createAvatar
+    };
+  },
 };
 </script>
 <style scoped>

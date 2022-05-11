@@ -87,6 +87,7 @@
                   width: 100%;
                   display: flex;
                   justify-content: space-around;
+                  height:40px
                 "
               >
                 <p style="display: flex; align-items: center">
