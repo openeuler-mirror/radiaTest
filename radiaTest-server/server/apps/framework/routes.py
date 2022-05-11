@@ -113,7 +113,7 @@ class GitRepoEvent(Resource):
     @response_collect
     @validate()
     def post(self, body: GitRepoBase):
-        return ResourceManager("git_repo").add("api_infos.yaml", body.__dict__)
+        return ResourceManager("git_repo").add_v2("framework/api_infos.yaml", body.__dict__)
 
     @auth.login_required()
     @response_collect
