@@ -44,21 +44,14 @@
               <warning />
             </n-icon>
           </n-form-item-gi>
-          <n-gi :span="2"></n-gi>
-          <n-form-item-gi :span="6" label="模板类型" path="template_type">
-            <n-select
-              :options="typeOpts"
-              v-model:value="formValue.template_type"
-              placeholder="选择模板类型"
-            />
-          </n-form-item-gi>
-          <n-form-item-gi :span="6" label="权限归属" path="owner">
-            <n-select
-              :disabled="disabled"
-              filterable
-              v-model:value="formValue.owner"
-              placeholder="请选择待测对象类型"
-              :options="ownerOpts"
+          <n-form-item-gi :span="6" label="类型" path="permission_type">
+            <n-cascader
+              v-model:value="formValue.permission_type"
+              placeholder="请选择"
+              :options="typeOptions"
+              check-strategy="child"
+              remote
+              :on-load="handleLoad"
             />
           </n-form-item-gi>
           <n-form-item-gi :span="6" label="产品" path="product">
@@ -69,7 +62,7 @@
               filterable
             />
           </n-form-item-gi>
-          <n-gi :span="6">
+          <n-gi :span="8">
             <n-form-item label="版本" path="version">
               <n-select
                 :options="versionOpts"
@@ -79,7 +72,7 @@
               />
             </n-form-item>
           </n-gi>
-          <n-form-item-gi :span="12" label="里程碑" path="milestone">
+          <n-form-item-gi :span="16" label="里程碑" path="milestone">
             <n-select
               :options="milestoneOpts"
               v-model:value="formValue.milestone"
@@ -143,6 +136,7 @@ import { createTitle } from '@/assets/utils/createTitle';
 import createForm from '@/views/template/modules/createForm.js';
 import casesForm from '@/views/template/modules/casesForm.js';
 import createAjax from '@/views/template/modules/createAjax.js';
+import extendForm from '@/views/product/modules/createForm.js';
 
 export default defineComponent({
   components: {
@@ -164,6 +158,8 @@ export default defineComponent({
     });
 
     return {
+      typeOptions: extendForm.typeOptions,
+      handleLoad: extendForm.handleLoad,
       createTitle,
       ...createAjax,
       ...createForm,

@@ -1,0 +1,128 @@
+# Copyright (c) [2022] Huawei Technologies Co.,Ltd.ALL rights reserved.
+# This program is licensed under Mulan PSL v2.
+# You can use it according to the terms and conditions of the Mulan PSL v2.
+#          http://license.coscl.org.cn/MulanPSL2
+# THIS PROGRAM IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+# EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+# MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+# See the Mulan PSL v2 for more details.
+####################################
+# @Author  : Ethan-Zhang
+# @email   : ethanzhang55@outlook.com
+# @Date    : 2022/05/06 14:13:00
+# @License : Mulan PSL v2
+#####################################
+
+# /bin/sh
+
+GIT_REPO=https://gitee.com/openeuler/radiaTest
+PIP_REPO=https://pypi.tuna.tsinghua.edu.cn/simple
+
+export GIT_REPO
+export PIP_REPO
+
+OET_PATH=$(
+    cd "$(dirname "$0")" || exit 1
+    pwd
+)
+export OET_PATH
+
+if dnf update -y 2>/dev/null; then
+    PKG_MNG=dnf
+elif yum update -y 2>/dev/null; then
+    PKG_MNG=yum
+elif sudo apt update -y 2>/dev/null; then
+    PKG_MNG=apt
+else
+    printf "the package management tool of this system is not supported\n"
+    exit 1
+fi
+
+export PKG_MNG
+
+function usage() {
+    printf "Usage:  \n
+    -u: build up composed dockers of web/messenger/worker node\n
+    -d: end the composed containers of web/messenger/worker node\n
+    \n
+    Example: 
+        build up images and run dockers for web node:
+            radiatestctl -u web
+
+        build up images and run dockers for messenger:
+            radiatestctl -u messenger
+
+        close down containers for web node:
+            radiatestctl -d web
+        \n
+    "
+}
+
+while getopts "u:d:" option; do
+    case $option in 
+    u)
+        echo "$@" | grep -q -e '*-u *-d *\|*-d *-u *' && {
+            usage
+            exit 1
+        }
+
+        node=$OPTARG
+
+        case $OPTARG in
+        web)
+            if [ ! -d /etc/radiaTest ]; then
+                mkdir /etc/radiaTest
+            fi
+
+            if [ ! -f /etc/radiaTest/casbinmodel.conf ]; then
+                cp ${OET_PATH}/conf/casbinmodel.conf /etc/radiaTest/
+            fi
+
+            if [ ! -f /etc/radiaTest/server.ini ]; then
+                cp ${OET_PATH}/conf/server.ini /etc/radiaTest/
+            fi
+            ;;
+        messenger)
+            if [ ! -d /etc/radiaTest ]; then
+                mkdir /etc/radiaTest
+            fi
+
+            if [ ! -f /etc/radiaTest/messenger.ini ]; then
+                cp ${OET_PATH}/conf/messenger.ini /etc/radiaTest/
+            fi
+            ;;
+        worker)
+            if [ ! -d /etc/radiaTest ]; then
+                mkdir /etc/radiaTest
+            fi
+
+            if [ ! -f /etc/radiaTest/worker.ini ]; then
+                cp ${OET_PATH}/conf/worker.ini /etc/radiaTest/
+            fi
+            ;;
+        *)
+            usage
+            exit 1
+            ;;
+        esac
+
+        ${OET_PATH}/lib/up_${node}_server
+        ;;
+    d)
+        echo "$@" | grep -q -e '*-u *-d *\|*-d *-u *' && {
+            usage
+            exit 1
+        }
+
+        node=$OPTARG
+        ${OET_PATH}//lib/down_${node}_server
+        ;;
+    *)
+        usage
+        exit 1
+        ;;
+    esac
+done
+    
+
+

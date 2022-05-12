@@ -7,6 +7,7 @@ from .routes import Logout
 from .routes import Group
 from .routes import UserTask
 from .routes import UserMachine
+from .routes import UserCaseCommit
 # from .routes import Token
 
 
@@ -20,4 +21,5 @@ def init_api(api: Api):
     api.add_resource(Group, '/api/v1/users/groups/<int:group_id>', endpoint='user_group')
     api.add_resource(UserTask, '/api/v1/user/task/info', endpoint='user_task')
     api.add_resource(UserMachine, '/api/v1/user/machine/info', endpoint='user_machine')
+    api.add_resource(UserCaseCommit, '/api/v1/user/case/commit', endpoint='user_case_commit')
     # api.add_resource(Token, '/api/v1/auth/token', endpoint='token')

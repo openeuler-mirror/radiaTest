@@ -10,10 +10,14 @@ const createMachinesForm = ref({
   description: undefined,
   network_type: undefined,
   ip: undefined,
-  listen: undefined,
+  messenger_listen: undefined,
   permission_type: undefined,
-  websockify_listen:undefined
+  websockify_listen: undefined,
+  messenger_ip: undefined,
+  websockify_ip:undefined
 });
+const syncWebsockifyIP = ref(true);
+const syncMessengerIP = ref(true);
 const machinesRules = {
   name: {
     required: true,
@@ -38,12 +42,35 @@ const machinesRules = {
     },
     trigger: ['blur', 'input'],
   },
+  messenger_ip: {
+    message: 'IP有误',
+    validator (rule, value) {
+      const reg = /^(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])$/;
+      return reg.test(value);
+    },
+    trigger: ['blur', 'input'],
+  },
+  websockify_ip: {
+    message: 'IP有误',
+    validator (rule, value) {
+      const reg = /^(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])$/;
+      return reg.test(value);
+    },
+    trigger: ['blur', 'input'],
+  },
   permission_type: {
     message: '请选择类型',
     required: true,
     trigger: ['blur', 'input'],
   },
-  listen: {
+  messenger_listen: {
+    message: '端口必填',
+    validator (rule, value) {
+      return value > 0;
+    },
+    trigger: ['blur', 'input'],
+  },
+  websockify_listen: {
     message: '端口必填',
     validator(rule, value) {
       return value > 0;
@@ -51,6 +78,14 @@ const machinesRules = {
     trigger: ['blur', 'input'],
   }
 };
+function changeValue (value) {
+  if (syncMessengerIP.value) {
+    createMachinesForm.value.messenger_ip = value;
+  }
+  if (syncWebsockifyIP.value) {
+    createMachinesForm.value.websockify_ip = value;
+  }
+}
 function showCreateModal() {
   createModalRef.value.show();
 }
@@ -63,6 +98,7 @@ function createMachines() {
     group_id: Number(createMachinesForm.value.permission_type.split('-')[1]),
   }).then(() => {
     createModalRef.value.close();
+    refreshData();
     createMachinesForm.value = {
       name: undefined,
       description: undefined,
@@ -70,7 +106,9 @@ function createMachines() {
       ip: undefined,
       listen: undefined,
       permission_type: undefined,
-      websockify_listen:undefined
+      websockify_listen: undefined,
+      messenger_ip: undefined,
+      websockify_ip: undefined
     };
   });
 }
@@ -85,7 +123,7 @@ function modifyMachines() {
       description: undefined,
       network_type: undefined,
       ip: undefined,
-      listen: undefined,
+      messenger_listen: undefined,
       permission_type: undefined,
       websockify_listen:undefined
     };
@@ -106,9 +144,12 @@ function submitCreateForm() {
 }
 export {
   machinesRules,
+  syncMessengerIP,
+  syncWebsockifyIP,
   createMachinesForm,
   createModalRef,
   showCreateModal,
   machinesFormRef,
   submitCreateForm,
+  changeValue
 };

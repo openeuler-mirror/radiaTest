@@ -7,6 +7,8 @@ from server.model import (
     Template,
     IMirroring,
     QMirroring,
+    Framework,
+    GitRepo,
 )
 
 class TableAdapter:
@@ -18,3 +20,5 @@ class TableAdapter:
     template=Template
     i_mirroring=IMirroring
     q_mirroring=QMirroring
+    framework=Framework
+    git_repo=GitRepo

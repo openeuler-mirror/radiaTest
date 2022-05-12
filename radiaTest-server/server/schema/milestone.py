@@ -78,6 +78,9 @@ class MilestoneCreateSchema(MilestoneBaseSchema, PermissionBase):
                 values["name"] = prefix + _max_round
             elif milestone_type == "release":
                 values["name"] = prefix + " release"
+            milestone = Precise(Milestone, {"name": values.get("name")}).first()
+            if milestone:
+                raise ValueError("The milestone has existed.")
 
         return values
 

@@ -10,7 +10,6 @@ function createRelationTask (form) {
   axios.post('/v1/tasks', formData).then(() => {
     window.$message?.success('任务创建成功');
   }).catch(err => window.$message?.error(err.data.error_msg || '未知错误'));
-  console.log(formData);
 }
 export {
   createForm,

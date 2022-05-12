@@ -5,6 +5,20 @@ from server.model.administrator import Admin
 from server.model.permission import Role
 
 
+def init_admin(db, app):
+    with app.app_context():
+        _admin = Admin.query.all()
+        for _ in _admin:
+            if not (_.account == app.config.get('ADMIN_USERNAME')
+                    and Admin.check_password_hash(_, app.config.get('ADMIN_PASSWORD'))):
+                db.session.delete(_)
+                _admin.remove(_)
+        db.session.commit()
+        if not _admin:
+            admin = Admin(account=app.config.get('ADMIN_USERNAME'), password=app.config.get('ADMIN_PASSWORD'))
+            admin.add_flush_commit()
+
+
 def init_scope(db, app):
     with app.app_context():
         with open('server/config/scope_init.yaml', 'r', encoding='utf-8') as f:
@@ -33,15 +47,6 @@ def init_scope(db, app):
 
 def init_role(db, app):
     with app.app_context():
-        _admin = Admin.query.all()
-        for _ in _admin:
-            db.session.delete(_)
-        db.session.commit()
-        admin = Admin()
-        admin.account = app.config.get('ADMIN_USERNAME')
-        admin.password = app.config.get('ADMIN_PASSWORD')
-        admin.add_flush_commit()
-
         _role = Role.query.filter_by(name='admin', type='public').first()
         if not _role:
             role = Role(name='admin', type='public', necessary=True)
@@ -97,9 +102,9 @@ def create_role(_type, group=None, org=None):
             _role = Role.query.filter(*_filter).first()
             if not _role:
                 role.add_flush_commit()
+                return_list.append(role)
                 if role_type == 'administrator':
                     admin_role = role
-                    return_list.append(role)
                 else:
                     # 角色继承
                     not_default_roles = Role.query.filter(*_not_default_filter).all()
@@ -118,6 +123,7 @@ def create_role(_type, group=None, org=None):
                 if not _role:
                     role.name = _
                     role.add_flush_commit()
+                    return_list.append(role)
 
     return admin_role, return_list
 

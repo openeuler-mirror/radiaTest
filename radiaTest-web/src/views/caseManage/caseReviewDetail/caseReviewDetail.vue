@@ -22,11 +22,6 @@
         <div style="display:flex;justify-content:space-between;margin:20px 0;">
           <div>
             <userInfo :userInfo="detailInfo.creator">
-              <template #username>
-                <span style="cursor:pointer">{{
-                  detailInfo.creator?.gitee_name
-                }}</span>
-              </template>
             </userInfo>
             <span>
               创建于

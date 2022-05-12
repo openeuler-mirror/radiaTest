@@ -1,9 +1,9 @@
 <template>
-  <div style="padding:28px 40px">
+  <div style="padding: 28px 40px">
     <n-grid x-gap="24" y-gap="6">
       <n-gi :span="12">
         <n-space>
-          <n-button
+          <!-- <n-button
             @click="createModalRef.show()"
             size="large"
             type="primary"
@@ -14,7 +14,7 @@
               <file-plus />
             </template>
             创建用例
-          </n-button>
+          </n-button> -->
           <modal-card
             :initY="100"
             :initX="300"
@@ -24,7 +24,12 @@
             @submit="createFormRef.post()"
           >
             <template #form>
-              <n-tabs type="line" size="large" :tab-padding="20" @update:value="(value)=>createFormRef.changeTabs(value)">
+              <n-tabs
+                type="line"
+                size="large"
+                :tab-padding="20"
+                @update:value="(value) => createFormRef.changeTabs(value)"
+              >
                 <n-tab-pane
                   name="info"
                   tab="基本信息"
@@ -51,7 +56,7 @@
               />
             </template>
           </modal-card>
-          <n-button
+          <!-- <n-button
             @click="importModalRef.show()"
             size="large"
             type="info"
@@ -62,7 +67,7 @@
               <file-import />
             </template>
             导入用例
-          </n-button>
+          </n-button> -->
           <modal-card
             :initY="200"
             :initX="600"
@@ -86,14 +91,21 @@
         </n-space>
       </n-gi>
       <n-gi :span="12">
+        <!-- <n-space justify="end">
+          <refresh-button @refresh="tableRef.refreshData()">
+            刷新版本列表
+          </refresh-button>
+        </n-space> -->
+      </n-gi>
+      <n-gi :span="23">
+        <testcase-filter style="position: relative" />
+      </n-gi>
+      <n-gi :span="1">
         <n-space justify="end">
           <refresh-button @refresh="tableRef.refreshData()">
             刷新版本列表
           </refresh-button>
         </n-space>
-      </n-gi>
-      <n-gi :span="24">
-        <testcase-filter style="position: relative" />
       </n-gi>
       <n-gi :span="24">
         <testcase-table ref="tableRef" @update="() => updateModalRef.show()" />
@@ -128,14 +140,12 @@ import { ref, defineComponent } from 'vue';
 import settings from '@/assets/config/settings.js';
 import Common from '@/components/CRUD';
 import Essential from '@/components/testcaseComponents';
-import { FileImport, FilePlus } from '@vicons/tabler';
+// import { FileImport, FilePlus } from '@vicons/tabler';
 
 export default defineComponent({
   components: {
     ...Common,
     ...Essential,
-    FileImport,
-    FilePlus,
   },
   setup() {
     const tableRef = ref(null);

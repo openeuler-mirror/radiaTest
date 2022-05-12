@@ -1,4 +1,4 @@
-# Copyright (c) [2021] Huawei Technologies Co.,Ltd.ALL rights reserved.
+# Copyright (c) [2022] Huawei Technologies Co.,Ltd.ALL rights reserved.
 # This program is licensed under Mulan PSL v2.
 # You can use it according to the terms and conditions of the Mulan PSL v2.
 #          http://license.coscl.org.cn/MulanPSL2
@@ -27,6 +27,7 @@ from server.utils.permission_utils import PermissionManager
 from server.utils.read_from_yaml import create_role, get_api
 from server.model.administrator import Admin
 from server.model.organization import Organization
+from server.schema.organization import AddSchema
 
 
 @collect_sql_error
@@ -154,7 +155,7 @@ def handler_save_org(body, avatar=None):
             error_msg="database add error"
         )
     # 角色初始化
-    create_role(_type='org', org=org)
+    role_admin, role_list = create_role(_type='org', org=org)
     _data = {
         "permission_type": "org",
         "org_id": org.id
@@ -162,6 +163,11 @@ def handler_save_org(body, avatar=None):
     scope_data_allow, scope_data_deny = get_api("organization", "org.yaml", "org", org.id)
     PermissionManager().generate(scope_datas_allow=scope_data_allow, scope_datas_deny=scope_data_deny,
                                  _data=_data)
+
+    for role in role_list:
+        scope_data_allow, scope_data_deny = get_api("permission", "role.yaml", "role", role.id)
+        PermissionManager().generate(scope_datas_allow=scope_data_allow, scope_datas_deny=scope_data_deny,
+                                     _data=_data, admin_only=True)
     return jsonify(
         error_code=RET.OK,
         error_msg="OK"
@@ -169,7 +175,7 @@ def handler_save_org(body, avatar=None):
 
 
 @collect_sql_error
-def handler_update_org(org_id, body):
+def handler_update_org(org_id):
     # 判断用户是否为管理员
     admin = Admin.query.filter_by(account=g.gitee_login).first()
     if not admin:
@@ -183,9 +189,23 @@ def handler_update_org(org_id, body):
             error_code=RET.NO_DATA_ERR,
             error_msg="no find organization"
         )
-    for key, value in body.dict().items():
-        if hasattr(org, key) and (value or value is False):
-            setattr(org, key, value)
+
+    _form = dict()
+    if request.form.get('is_delete'):
+        org.is_delete = True
+    else:
+        for key, value in request.form.items():
+            if value:
+                _form[key] = value
+        body = AddSchema(**_form)
+        avatar = request.files.get("avatar_url")
+        if avatar:
+            org.avatar_url = FileUtil.flask_save_file(avatar, org.avatar_url if org.avatar_url else FileUtil.generate_filepath('avatar'))
+        else:
+            org.avatar_url = None
+        for key, value in body.dict().items():
+            if hasattr(org, key) and (value or value is False):
+                setattr(org, key, value)
     org.add_update()
     return jsonify(
         error_code=RET.OK,

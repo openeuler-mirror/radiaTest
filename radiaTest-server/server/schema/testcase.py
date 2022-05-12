@@ -2,9 +2,11 @@ from typing import Optional
 
 from pydantic import BaseModel, constr, validator
 from pydantic.class_validators import root_validator
+from typing_extensions import Literal
+from typing import List
 
 from server.model.testcase import Suite, Case
-from server.schema.base import UpdateBaseModel
+from server.schema.base import UpdateBaseModel, PageBaseSchema
 from server.schema import MachineType, TestType, TestLevel, BaselineType
 
 
@@ -145,3 +147,81 @@ class CaseUpdateSchemaWithSuiteId(CaseBaseSchemaWithSuiteId, UpdateBaseModel):
     steps: Optional[str]
     expection: Optional[str]
     automatic: Optional[bool]
+
+
+class AddCaseCommitSchema(BaseModel):
+    title: str
+    creator_id: int = None
+    description: str = None  # 提交commit时的description
+    case_description: str = None  # case本身的description
+    case_detail_id: int
+    machine_type: str = None
+    machine_num: int = None
+    preset: str = None
+    steps: str = None
+    expectation: str = None
+    remark: str = None
+    status: str = None
+    permission_type: str = None
+    source: List
+
+
+class UpdateCaseCommitSchema(BaseModel):
+    title: str = None
+    description: str = None
+    machine_type: str = None
+    machine_num: int = None
+    preset: str = None
+    steps: str = None
+    expectation: str = None
+    remark: str = None
+    status: str = None
+    open_edit: bool = False
+
+
+class CaseCommitBasic(AddCaseCommitSchema):
+    id: int
+    reviewer_id: int
+    reviewer_name: int
+    case_detail_id: int
+    creator_name: str
+
+
+class CommitQuerySchema(PageBaseSchema):
+    title: str = None
+    user_type: Literal['creator', 'all']
+    user_type: str = None
+    query_type: str = None
+
+
+class AddCommitCommentSchema(BaseModel):
+    parent_id: int
+    reply_id: int
+    content: str
+
+
+class CaseCommitBatch(BaseModel):
+    commit_ids: List[int] = None
+
+
+class QueryHistorySchema(PageBaseSchema):
+    start_time: str = None
+    end_time: str = None
+    title: str = None
+
+
+class AddCaseCommitSchema(BaseModel):
+    title: str
+    creator_id: int = None
+    description: str = None  # 提交commit时的description
+    case_description: str = None  # case本身的description
+    case_detail_id: int
+    machine_type: str = None
+    machine_num: int = None
+    preset: str = None
+    steps: str = None
+    expectation: str = None
+    remark: str = None
+    status: str = None
+    permission_type: str = None
+    source: List

@@ -1,4 +1,4 @@
-# Copyright (c) [2021] Huawei Technologies Co.,Ltd.ALL rights reserved.
+# Copyright (c) [2022] Huawei Technologies Co.,Ltd.ALL rights reserved.
 # This program is licensed under Mulan PSL v2.
 # You can use it according to the terms and conditions of the Mulan PSL v2.
 #          http://license.coscl.org.cn/MulanPSL2
@@ -151,8 +151,8 @@ class PmachineMessenger:
             method="put",
             url="{}://{}:{}{}".format(
                 current_app.config.get("PROTOCOL"),
-                machine_group.ip,
-                machine_group.listen,
+                machine_group.messenger_ip,
+                machine_group.messenger_listen,
                 api
             ),
             body=self._body,

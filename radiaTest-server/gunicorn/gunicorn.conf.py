@@ -1,4 +1,4 @@
-# Copyright (c) [2021] Huawei Technologies Co.,Ltd.ALL rights reserved.
+# Copyright (c) [2022] Huawei Technologies Co.,Ltd.ALL rights reserved.
 # This program is licensed under Mulan PSL v2.
 # You can use it according to the terms and conditions of the Mulan PSL v2.
 #          http://license.coscl.org.cn/MulanPSL2
@@ -29,7 +29,7 @@ timeout = 30      #超时
 worker_class = 'geventwebsocket.gunicorn.workers.GeventWebSocketWorker'
 
 # workers = multiprocessing.cpu_count() * 2 + 1    #进程数
-workers = 32
+workers = 8
 # threads = 32 #指定每个进程开启的线程数
 loglevel = 'info' #日志级别，这个日志级别指的是错误日志的级别，而访问日志的级别无法设置
 access_log_format = '%(t)s %(p)s %(h)s "%(r)s" %(s)s %(L)s %(b)s %(f)s" "%(a)s"'    #设置gunicorn访问日志格式，错误日志无法设置
@@ -50,5 +50,5 @@ D          request time in microseconds
 L          request time in decimal seconds
 p          process ID
 """
-accesslog = "log/gunicorn_access.log"      #访问日志文件
-errorlog = "log/gunicorn_error.log"        #错误日志文件
+accesslog = "log/gunicorn/access.log"      #访问日志文件
+errorlog = "log/gunicorn/error.log"        #错误日志文件

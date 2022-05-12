@@ -10,6 +10,7 @@ import { getClaOrg } from './org';
 import { getAllOrg, loginByCode } from '@/api/get';
 import { NAvatar } from 'naive-ui';
 import { loginInfo } from './claSign';
+import { createAvatar } from '@/assets/utils/createImg';
 
 const loginOrg = ref(null);
 const orgOpts = ref([]);
@@ -73,7 +74,6 @@ function hanleLogin () {
   changeLoadingStatus(true);
   storage.setValue('loginOrgId', Number(loginOrg.value));
   storage.setValue('hasEnterprise', requireEnterprise(loginOrg.value));
-  console.log(storage.getValue('loginOrgId'));
   axios
     .get('/v1/gitee/oauth/login', { org_id: Number(loginOrg.value) })
     .then((res) => {
@@ -144,6 +144,7 @@ function renderLabel (option) {
         round: true,
         size: 'small',
         style: 'margin-right:10px',
+        fallbackSrc: createAvatar(option.label.slice(0, 1))
       }),
       option.label,
     ]

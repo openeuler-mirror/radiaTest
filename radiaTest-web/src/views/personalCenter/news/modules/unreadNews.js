@@ -10,7 +10,7 @@ const unreadPageInfo = reactive({
   page: 1,
   pageCount: 1,
   pageSize: 7,
-  total: 1,
+  total: 0,
 });
 const unreadNewsList = ref([]);
 function getUnreadNews () {

@@ -1,4 +1,4 @@
-# Copyright (c) [2021] Huawei Technologies Co.,Ltd.ALL rights reserved.
+# Copyright (c) [2022] Huawei Technologies Co.,Ltd.ALL rights reserved.
 # This program is licensed under Mulan PSL v2.
 # You can use it according to the terms and conditions of the Mulan PSL v2.
 #          http://license.coscl.org.cn/MulanPSL2
@@ -48,6 +48,13 @@ def run_gevent():
         handler_class=WebSocketHandler,
     )
     server.serve_forever()
+
+@manager.command
+def init_asr():
+    from server.utils.read_from_yaml import init_role, init_scope, init_admin
+    init_admin(db, app)
+    init_scope(db, app)
+    init_role(db, app)
 
 
 if __name__ == "__main__":

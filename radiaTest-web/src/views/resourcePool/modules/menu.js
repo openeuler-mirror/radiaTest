@@ -31,7 +31,7 @@ const menuOptions = ref([
   },
 ]);
 const expandeds = ref(['pool']);
-const socket = new Socket(`${config.serverPath}/machine_group`);
+const socket = new Socket(`wss://${config.serverPath}/machine_group`);
 const selectKey = ref('');
 function renderPrefix({ option }) {
   return h(
@@ -162,7 +162,7 @@ function renderSuffix({ option }) {
   }
   return '';
 }
-function handleLoad(node) {
+function handleTreeLoad (node) {
   return new Promise((resolve, reject) => {
     getMachineGroup()
       .then((res) => {
@@ -171,7 +171,7 @@ function handleLoad(node) {
           key: String(item.id),
           value: item.id,
           info:item,
-          suffix: item.messenger_ip,
+          suffix: item.ip,
           children: [
             {
               label: 'messenger服务',
@@ -226,7 +226,7 @@ export {
   showDropdown,
   menuOptions,
   menuOption,
-  handleLoad,
+  handleTreeLoad,
   options,
   nodeProps,
   handleSelect,

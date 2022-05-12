@@ -10,7 +10,7 @@ import { Organization24Regular } from '@vicons/fluent';
 import { ManageAccountsOutlined } from '@vicons/material';
 import { Users as faUsers } from '@vicons/fa';
 
-function renderIcon(icon) {
+function renderIcon (icon) {
   return () =>
     h(NIcon, null, {
       default: () => h(icon),
@@ -63,19 +63,14 @@ const userMenu = [
     icon: renderIcon(ManageAccountsOutlined),
   },
   {
-    label: '成员管理',
-    key: 'usersManagement',
-    icon: renderIcon(faUsers),
-  },
-  {
     label: '安全设置',
     key: 'setting',
     icon: renderIcon(LockClosedOutline),
     disabled: true,
   },
 ];
-function initRoleOptions(roleType) {
-  if (roleType === 1 || roleType === 2) {
+function initRoleOptions (roleType) {
+  if (roleType === 1) {
     menuOptions.value = adminMenu;
     showHeader.value = false;
   } else {
@@ -84,7 +79,7 @@ function initRoleOptions(roleType) {
   }
 }
 
-function handleUpdateValue(key) {
+function handleUpdateValue (key) {
   router.push({
     name: key,
   });

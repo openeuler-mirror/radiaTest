@@ -92,6 +92,7 @@
         />
       </template>
     </modal-card>
+    <create-drawer :isCase="true" ref="createTaskForm" @submit="createRelationTask" />
     <n-layout has-sider>
       <n-layout-sider
         bordered
@@ -128,10 +129,12 @@ import Common from '@/components/CRUD';
 import Essential from '@/components/testcaseComponents';
 import { ref } from 'vue';
 import testsuiteCreate from '@/components/testsuiteComponents/testsuiteCreate.vue';
+import createDrawer from '@/components/task/createDrawer.vue';
 export default {
   components: {
     ...Common,
     ...Essential,
+    createDrawer,
     tree,
     testsuiteCreate
   },

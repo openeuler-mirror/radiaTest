@@ -9,10 +9,10 @@
       content: 'hard',
     }"
     header-style="
-            font-size: 30px; 
-            height: 80px; 
+            font-size: 30px;
+            height: 80px;
             font-family: 'v-sans';
-            padding-top: 40px; 
+            padding-top: 40px;
             background-color:rgb(242,242,242);
         "
   >
@@ -122,7 +122,7 @@ export default defineComponent({
     LogsDrawer,
   },
   setup() {
-    const jobSocket = new Socket(`ws://${settings.serverPath}/job`);
+    const jobSocket = new Socket(`wss://${settings.serverPath}/job`);
     jobSocket.connect();
     const finishRef = ref();
     const waitRef = ref();

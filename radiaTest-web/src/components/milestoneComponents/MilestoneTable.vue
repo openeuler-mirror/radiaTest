@@ -8,7 +8,7 @@
     :data="data"
     :loading="loading"
     :row-key="(row) => row.id"
-    :row-props="(row) => rowProps(row)"
+    :row-props="rowProps"
     @update:checked-row-keys="(keys) => handleCheck(keys)"
     :pagination="pagination"
     @update:page="changePage"
@@ -29,7 +29,7 @@ import createColumns from '@/views/milestone/modules/milestoneTableColumns.js';
 export default defineComponent({
   setup(props, context) {
     const store = useStore();
-    const milestoneSocket = new Socket(`ws://${settings.serverPath}/milestone`);
+    const milestoneSocket = new Socket(`wss://${settings.serverPath}/milestone`);
     milestoneSocket.connect();
 
     onMounted(() => {
@@ -61,7 +61,7 @@ export default defineComponent({
       showSelection: () => selection.show(columns),
       offSelection: () => selection.off(columns),
       refreshData: () =>
-        get.refresh('/v2/milestone', milestoneTable.data, milestoneTable.loading,milestoneTable.filter.value),
+        get.refresh('/v2/milestone', milestoneTable.data, milestoneTable.loading, milestoneTable.filter.value),
     };
   },
 });

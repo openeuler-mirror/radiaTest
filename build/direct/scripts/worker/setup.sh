@@ -1,31 +1,43 @@
+# Copyright (c) [2022] Huawei Technologies Co.,Ltd.ALL rights reserved.
+# This program is licensed under Mulan PSL v2.
+# You can use it according to the terms and conditions of the Mulan PSL v2.
+#          http://license.coscl.org.cn/MulanPSL2
+# THIS PROGRAM IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+# EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+# MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+# See the Mulan PSL v2 for more details.
+####################################
+# @Author  : Ethan-Zhang
+# @email   : ethanzhang55@outlook.com
+# @Date    : 2022/05/06 14:13:00
+# @License : Mulan PSL v2
+#####################################
+
 #! /bin/sh
 
-GIT_REPO=https://gitee.com/openeuler/radiaTest
-PIP_REPO=https://pypi.tuna.tsinghua.edu.cn/simple
+"$PKG_MNG" install -y git &&
+    "$PKG_MNG" install -y libvirt &&
+    "$PKG_MNG" install -y virt-install &&
+    "$PKG_MNG" install -y rsync &&
+    "$PSK_MNG" install -y cronie &&
+    "$PKG_MNG" install -y logrotate &&
+    "$PKG_MNG" install -y python3-pip &&
+    "$PKG_MNG" install -y python3-devel
 
-cd /opt || exit
+if [[ -d "${OET_PATH}/../../radiaTest-worker" ]]; then
+    cd "${OET_PATH}/../../radiaTest-worker"
+else
+    echo "lack of radiaTest-worker, please update radiaTest"
+    exit 1
+fi
 
-dnf install -y git &&
-    dnf install -y libvirt &&
-    dnf install -y virt-install &&
-    dnf install -y rsync &&
-    dnf install -y python3-pip &&
-    dnf install -y python3-devel
-
-git clone "$GIT_REPO" ||
-    git pull "$GIT_REPO" ||
-    rm -rf ./radiaTest && git clone "$GIT_REPO" ||
-    exit
-
-cd /opt/radiaTest/radiaTest-worker/ || exit
+crond || exit 1 \
+    && echo "* 1 * * * root run-parts /etc/cron.daily" >> /etc/crontab \
+    && crontab /etc/crontab
 
 mkdir /etc/radiaTest
 
-cp -r ./conf/app/* /etc/radiaTest/ &&
-    cp -r ./conf/supervisor/* /etc/ ||
-    echo fail
-
-mkdir log
+cp -r ./conf/supervisor/* /etc/ || exit 1
 
 pip3 install -r requirements.txt -i "$PIP_REPO" &&
     supervisord

@@ -70,7 +70,7 @@
     <n-select
       v-model:value="filterValue.machine_type"
       size="large"
-      :style="{ width: '5%' }"
+      :style="{ width: '6%' }"
       placeholder="节点类型"
       :options="[
         { label: '虚拟机', value: 'kvm' },

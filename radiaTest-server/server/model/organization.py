@@ -1,6 +1,12 @@
 from server.model.base import Base, PermissionBaseModel
 from server.model.permission import Role, ReUserRole
 from server import db
+from enum import Enum
+
+
+class OrganizationRole(Enum):
+    admin = 2
+    user = 0
 
 
 class Organization(db.Model, PermissionBaseModel):

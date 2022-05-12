@@ -4,6 +4,7 @@ import axios from '@/axios';
 const handleSuccessUpdate = () => {
   window.$notification?.success({
     content: '修改成功',
+    duration: 2000
   });
 };
 const handleFailUpdate = (msg) => {

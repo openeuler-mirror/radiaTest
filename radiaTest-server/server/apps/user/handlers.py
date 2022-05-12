@@ -9,8 +9,9 @@ from server.utils.response_util import RET
 from server.utils.gitee_util import GiteeApi
 from server.utils.auth_util import generate_token
 from server.utils.redis_util import RedisKey
-from server.utils.db import collect_sql_error
+from server.utils.db import collect_sql_error, Insert
 from server.utils.cla_util import Cla, ClaShowAdminSchema, ClaShowUserSchema
+from server.utils.read_from_yaml import get_default_suffix
 from server.utils.page_util import PageUtil
 from server.model.user import User
 from server.model.message import Message
@@ -20,9 +21,11 @@ from server.model.pmachine import Pmachine
 from server.model.milestone import Milestone
 from server.model.organization import Organization, ReUserOrganization
 from server.model.group import ReUserGroup, GroupRole
+from server.model.testcase import Commit
+from server.model.permission import Role, ReUserRole
 from server.schema.group import ReUserGroupSchema, GroupInfoSchema
 from server.schema.organization import OrgUserInfoSchema, ReUserOrgSchema
-from server.schema.user import UserBaseSchema, UserInfoSchema, UserTaskSchema, UserMachineSchema
+from server.schema.user import UserBaseSchema, UserInfoSchema, UserTaskSchema, UserMachineSchema, UserCaseCommitSchema
 from server.schema.task import TaskInfoSchema
 from server.schema.vmachine import VmachineBriefSchema
 from server.schema.pmachine import PmachineBriefSchema
@@ -33,15 +36,15 @@ def handler_gitee_login(query):
     org = Organization.query.filter_by(id=query.org_id).first()
     if not org:
         return jsonify(
-            error_code=RET.NO_DATA_ERR, 
+            error_code=RET.NO_DATA_ERR,
             error_msg="the organization not exist"
         )
 
     if not org.enterprise_id:
         gitee_oauth_login_url = "https://gitee.com/oauth/authorize?" \
-        "client_id={}" \
-        "&redirect_uri={}" \
-        "&response_type=code&scope={}".format(
+                                "client_id={}" \
+                                "&redirect_uri={}" \
+                                "&response_type=code&scope={}".format(
             current_app.config.get(
                 'GITEE_OAUTH_CLIENT_ID'
             ),
@@ -55,41 +58,43 @@ def handler_gitee_login(query):
             ),
         )
         return jsonify(
-            error_code=RET.OK, 
-            error_msg='OK', 
+            error_code=RET.OK,
+            error_msg='OK',
             data=gitee_oauth_login_url
         )
 
     else:
         gitee_oauth_login_url = "https://gitee.com/oauth/authorize?" \
-        "client_id={}" \
-        "&redirect_uri={}" \
-        "&response_type=code&scope={}".format(
+                                "client_id={}" \
+                                "&redirect_uri={}" \
+                                "&response_type=code&scope={}".format(
             org.oauth_client_id,
             current_app.config.get("GITEE_OAUTH_REDIRECT_URI"),
             org.oauth_scope.replace(',', '%20'),
         )
         return jsonify(
-            error_code=RET.OK, 
-            error_msg='OK', 
+            error_code=RET.OK,
+            error_msg='OK',
             data=gitee_oauth_login_url
         )
+
 
 def handler_gitee_callback():
     # 校验参数
     code = request.args.get('code')
     if not code:
         return jsonify(
-            error_code=RET.PARMA_ERR, 
+            error_code=RET.PARMA_ERR,
             error_msg="user code should not be null"
         )
-    
+
     return redirect(
         '{}?code={}'.format(
             current_app.config["GITEE_OAUTH_HOME_URL"],
             code
         )
     )
+
 
 def handler_login_callback(query):
     # 校验参数
@@ -99,7 +104,7 @@ def handler_login_callback(query):
             error_code=RET.NO_DATA_ERR,
             error_msg="the organization not exist"
         )
-    
+
     oauth_flag, gitee_token = None, None
     if not org.enterprise_id:
         oauth_flag, gitee_token = GiteeApi.Oauth.callback(
@@ -118,7 +123,7 @@ def handler_login_callback(query):
 
     if not oauth_flag:
         return jsonify(
-            error_code=RET.OTHER_REQ_ERR, 
+            error_code=RET.OTHER_REQ_ERR,
             error_msg="gitee oauth request error"
         )
 
@@ -169,7 +174,7 @@ def handler_login(gitee_token, org_id):
     )
     if not user_flag:
         return jsonify(
-            error_code=RET.OTHER_REQ_ERR, 
+            error_code=RET.OTHER_REQ_ERR,
             error_msg="gitee api request error"
         )
 
@@ -177,8 +182,8 @@ def handler_login(gitee_token, org_id):
     gitee_user["access_token"] = gitee_token.get("access_token")
     gitee_user["refresh_token"] = gitee_token.get("refresh_token")
     redis_client.hmset(
-        RedisKey.gitee_user(gitee_user.get("id")), 
-        gitee_user, 
+        RedisKey.gitee_user(gitee_user.get("id")),
+        gitee_user,
         ex=600
     )
 
@@ -189,7 +194,7 @@ def handler_login(gitee_token, org_id):
         user = User.synchronize_gitee_info(gitee_user, user)
         # 用户缓存到redis中
         user.save_redis(
-            gitee_token.get("access_token"), 
+            gitee_token.get("access_token"),
             gitee_token.get("refresh_token")
         )
         # 生成token值
@@ -210,7 +215,7 @@ def handler_login(gitee_token, org_id):
                     _r = _resp.json
                     if _r.get("error_code") != RET.OK:
                         return False, gitee_user.get("id")
-                
+
                 except (AttributeError, TypeError) as e:
                     raise RuntimeError(str(e)) from e
 
@@ -226,29 +231,29 @@ def handler_register(gitee_id, body):
     gitee_user = redis_client.hgetall(RedisKey.gitee_user(gitee_id))
     if not gitee_user:
         return jsonify(
-            error_code=RET.VERIFY_ERR, 
+            error_code=RET.VERIFY_ERR,
             error_msg="user gitee info expired"
         )
 
     # 从数据库中获取cla信息
     org = Organization.query.filter_by(
-        id=body.organization_id, 
+        id=body.organization_id,
         is_delete=False
     ).first()
     if not org:
         return jsonify(
-            error_code=RET.NO_DATA_ERR, 
+            error_code=RET.NO_DATA_ERR,
             error_msg=f"database no find data"
         )
 
     # 若组织需要CLA签署验证，则判断是否已签署CLA
     if org.cla_verify_url and not Cla.is_cla_signed(
-        ClaShowAdminSchema(**org.to_dict()).dict(), 
-        body.cla_verify_params, 
-        body.cla_verify_body
+            ClaShowAdminSchema(**org.to_dict()).dict(),
+            body.cla_verify_params,
+            body.cla_verify_body
     ):
         return jsonify(
-            error_code=RET.CLA_VERIFY_ERR, 
+            error_code=RET.CLA_VERIFY_ERR,
             error_msg="user is not pass cla verification, please retry",
             data=gitee_user.get("id")
         )
@@ -256,7 +261,7 @@ def handler_register(gitee_id, body):
     # 提取cla邮箱
     cla_email = None
     for key, value in {
-        **body.cla_verify_params, 
+        **body.cla_verify_params,
         **body.cla_verify_body
     }.items():
         if 'email' in key:
@@ -267,33 +272,58 @@ def handler_register(gitee_id, body):
     if not user:
         # 用户注册成功保存用户信息、生成token
         user = User.create_commit(
-            gitee_user, 
+            gitee_user,
             cla_email,
         )
-    
+
     # 生成用户和组织的关系
     _ = ReUserOrganization.create(
-        user.gitee_id, 
+        user.gitee_id,
         body.organization_id,
         json.dumps({
-            **body.cla_verify_params, 
+            **body.cla_verify_params,
             **body.cla_verify_body
         }),
         default=False
     )
+    _role = Role.query.filter_by(name=user.gitee_id, type='person').first()
+    if not _role:
+        role = Role(name=user.gitee_id, type='person')
+        role_id = role.add_flush_commit_id()
+        Insert(ReUserRole, {"user_id": user.gitee_id, "role_id": role_id}).single()
+
+    # 绑定用户和组织基础角色、公共基础角色的关系
+    org_suffix = get_default_suffix('org')
+    public_suffix = get_default_suffix('public')
+    filter_params = [
+        or_(
+            and_(
+                Role.org_id == org.id,
+                Role.type == 'org',
+                Role.name == org_suffix
+            ),
+            and_(
+                Role.type == 'public',
+                Role.name == public_suffix
+            )
+        )
+    ]
+    roles = Role.query.filter(*filter_params).all()
+    for _role in roles:
+        Insert(ReUserRole, {"user_id": user.gitee_id, "role_id": _role.id}).single()
 
     # 用户缓存到redis中
     user.save_redis(
-        gitee_user.get("access_token"), 
-        gitee_user.get("refresh_token"), 
+        gitee_user.get("access_token"),
+        gitee_user.get("refresh_token"),
         body.organization_id
     )
     redis_client.hset(
-        RedisKey.user(gitee_user.get("id")), 
-        'current_org_name', 
+        RedisKey.user(gitee_user.get("id")),
+        'current_org_name',
         org.name
     )
-    
+
     # 生成token值
     token = generate_token(user.gitee_id, user.gitee_login)
     return_data = {
@@ -306,10 +336,10 @@ def handler_register(gitee_id, body):
         _r = _resp.json
         if _r.get("error_code") != RET.OK:
             raise RuntimeError(_r.get("error_msg"))
-    
+
     except (AttributeError, RuntimeError) as e:
         return jsonify(
-            error_code=RET.SERVER_ERR, 
+            error_code=RET.SERVER_ERR,
             error_msg=f"SERVER ERROR: {str(e)}"
         )
 
@@ -320,7 +350,7 @@ def handler_register(gitee_id, body):
 def handler_update_user(gitee_id, body):
     if g.gitee_id != gitee_id:
         return jsonify(
-            error_code=RET.VERIFY_ERR, 
+            error_code=RET.VERIFY_ERR,
             error_msg="user token and user id do not match"
         )
 
@@ -341,7 +371,7 @@ def handler_update_user(gitee_id, body):
 def handler_user_info(gitee_id):
     if g.gitee_id != gitee_id:
         return jsonify(
-            error_code=RET.VERIFY_ERR, 
+            error_code=RET.VERIFY_ERR,
             error_msg="user token and user id do not match"
         )
 
@@ -359,7 +389,7 @@ def handler_user_info(gitee_id):
             group = GroupInfoSchema(**item.group.to_dict())
             group_list.append({**re_user_group.dict(), **group.dict()})
     user_dict["groups"] = group_list
-    
+
     # 组织信息
     org_list = []
     orgs = user.re_user_organization
@@ -387,30 +417,30 @@ def handler_select_default_org(org_id, gitee_id=None):
         user_gitee_id = g.gitee_id
     else:
         user_gitee_id = gitee_id
-    
+
     re = ReUserOrganization.query.filter_by(
-        user_gitee_id=user_gitee_id, 
-        organization_id=org_id, 
+        user_gitee_id=user_gitee_id,
+        organization_id=org_id,
         is_delete=False
     ).first()
 
     if not re:
         return jsonify(
-            error_code=RET.NO_DATA_ERR, 
+            error_code=RET.NO_DATA_ERR,
             error_msg="relationship no find"
         )
 
     # 切换数据
     re_old = ReUserOrganization.query.filter_by(
-        user_gitee_id=user_gitee_id, 
-        default=True, 
+        user_gitee_id=user_gitee_id,
+        default=True,
         is_delete=False
     ).first()
 
     if re_old:
         re_old.default = False
         re_old.add_update()
-    
+
     re.default = True
     cla_email = None
     for key, value in json.loads(re.cla_info).items():
@@ -422,13 +452,13 @@ def handler_select_default_org(org_id, gitee_id=None):
     re.add_update()
     user.add_update()
     redis_client.hset(
-        RedisKey.user(user_gitee_id), 
-        'current_org_id', 
+        RedisKey.user(user_gitee_id),
+        'current_org_id',
         org_id
     )
     redis_client.hset(
-        RedisKey.user(user_gitee_id), 
-        'current_org_name', 
+        RedisKey.user(user_gitee_id),
+        'current_org_name',
         re.organization.name
     )
     return jsonify(error_code=RET.OK, error_msg="OK")
@@ -450,6 +480,16 @@ def handler_add_group(group_id, body):
         info = info.format('已加入')
         message = Message.create_instance(dict(info=info), g.gitee_id, msg.from_id)
         message1 = Message.create_instance(dict(info=info), g.gitee_id, g.gitee_id)
+
+        # 绑定用户和用户组基础角色关系
+        group_suffix = get_default_suffix('group')
+        filter_params = [
+            Role.group_id == group_id,
+            Role.type == 'group',
+            Role.name == group_suffix
+        ]
+        role = Role.query.filter(*filter_params).first()
+        Insert(ReUserRole, {"user_id": g.gitee_id, "role_id": role.id}).single()
     else:
         re.is_delete = True
         info = info.format('拒绝加入')
@@ -478,7 +518,7 @@ def handler_get_all(query):
 
     # 获取用户组下的所有用户
     def page_func(item):
-        user_dict = item.to_dict()
+        user_dict = item.to_json()
         return user_dict
 
     # 返回结果
@@ -489,12 +529,17 @@ def handler_get_all(query):
 
 
 @collect_sql_error
-def handler_get_user_task(body: UserTaskSchema):
+def handler_get_user_task(query: UserTaskSchema):
+    current_org_id = int(redis_client.hget(
+        RedisKey.user(g.gitee_id),
+        'current_org_id'
+    ))
     now = datetime.now()
     # 全部任务
     basic_filter_params = [Task.is_delete.is_(False),
                            Task.executor_type == 'PERSON',
-                           Task.executor_id == g.gitee_id]
+                           Task.executor_id == g.gitee_id,
+                           Task.org_id == current_org_id]
 
     # 今日任务总数
     today_filter_params = [extract('year', Task.create_time) == now.year,
@@ -531,29 +576,29 @@ def handler_get_user_task(body: UserTaskSchema):
             item_dict['milestones'] = [item.to_json() for item in milestones]
         return item_dict
 
-    if body.task_title:
+    if query.task_title:
         basic_filter_params.append(Task.title.like(f'%{body.task_title}%'))
 
     filter_param = []
-    if body.task_type == 'all':
+    if query.task_type == 'all':
         # 任务总数、分页
         basic_filter = Task.query.filter(*basic_filter_params).order_by(Task.update_time.desc())
         filter_param = basic_filter
 
-    elif body.task_type == 'month':
+    elif query.task_type == 'month':
         # 本月任务
         month_filter_params.extend(basic_filter_params)
         month_filter = Task.query.filter(*month_filter_params).order_by(Task.update_time.desc())
         filter_param = month_filter
-    elif body.task_type == 'week':
+    elif query.task_type == 'week':
         week_filter_params.extend(basic_filter_params)
         week_filter = Task.query.filter(*week_filter_params).order_by(Task.update_time.desc())
         filter_param = week_filter
-    elif body.task_type == 'today':
+    elif query.task_type == 'today':
         today_filter_params.extend(basic_filter_params)
         today_filter = Task.query.filter(*today_filter_params).order_by(Task.update_time.desc())
         filter_param = today_filter
-    elif body.task_type == 'overtime':
+    elif query.task_type == 'overtime':
         overtime_filter_params = [
             or_(
                 and_(
@@ -566,13 +611,13 @@ def handler_get_user_task(body: UserTaskSchema):
         overtime_filter_params.extend(basic_filter_params)
         overtime_filter = Task.query.filter(*overtime_filter_params).order_by(Task.update_time.desc())
         filter_param = overtime_filter
-    elif body.task_type == 'not_accomplish':
+    elif query.task_type == 'not_accomplish':
         not_accomplish_filter_params = [Task.accomplish_time.is_(None)]
         not_accomplish_filter_params.extend(basic_filter_params)
         not_accomplish_filter = Task.query.filter(*not_accomplish_filter_params).order_by(Task.update_time.desc())
         filter_param = not_accomplish_filter
 
-    page_dict, e = PageUtil.get_page_dict(filter_param, body.page_num, body.page_size, func=page_func)
+    page_dict, e = PageUtil.get_page_dict(filter_param, query.page_num, query.page_size, func=page_func)
     if e:
         return jsonify(error_code=RET.SERVER_ERR, error_msg=f'get task page error {e}')
 
@@ -583,38 +628,145 @@ def handler_get_user_task(body: UserTaskSchema):
 
 
 @collect_sql_error
-def handler_get_user_machine(body: UserMachineSchema):
+def handler_get_user_machine(query: UserMachineSchema):
+    current_org_id = int(redis_client.hget(
+        RedisKey.user(g.gitee_id),
+        'current_org_id'
+    ))
     page_dict = None
-    if body.machine_type == 'physics':
+    if query.machine_type == 'physics':
         def page_func(item: Pmachine):
             item_dict = PmachineBriefSchema(**item.__dict__).dict()
             return item_dict
 
-        filter_params = [or_(Pmachine.user == g.gitee_id, Pmachine.occupier == g.gitee_id)]
-        if body.machine_name:
+        filter_params = [Pmachine.org_id == current_org_id,
+                         or_(Pmachine.user == g.gitee_id, Pmachine.occupier == g.gitee_id)]
+        if query.machine_name:
             filter_params.append(or_(
-                Pmachine.ip.like(f'%{body.machine_name}%'),
-                Pmachine.description.like(f'%{body.machine_name}%'),
-                Pmachine.bmc_ip.like(f'%{body.machine_name}%')
+                Pmachine.ip.like(f'%{query.machine_name}%'),
+                Pmachine.description.like(f'%{query.machine_name}%'),
+                Pmachine.bmc_ip.like(f'%{query.machine_name}%')
             ))
         filter_chain = Pmachine.query.filter(*filter_params).order_by(Pmachine.create_time.desc())
-        page_dict, e = PageUtil.get_page_dict(filter_chain, body.page_num, body.page_size, func=page_func)
+        page_dict, e = PageUtil.get_page_dict(filter_chain, query.page_num, query.page_size, func=page_func)
         if e:
             return jsonify(error_code=RET.SERVER_ERR, error_msg=f'get pmachine page error {e}')
-    elif body.machine_type == 'virtual':
+    elif query.machine_type == 'virtual':
         def page_func(item: Vmachine):
             item_dict = VmachineBriefSchema(**item.__dict__).dict()
             return item_dict
 
-        filter_params = [Vmachine.user == g.gitee_id]
-        if body.machine_name:
+        filter_params = [Vmachine.org_id == current_org_id, Vmachine.user == g.gitee_id]
+        if query.machine_name:
             filter_params.append(or_(
-                Vmachine.ip.like(f'%{body.machine_name}%'),
-                Vmachine.description.like(f'%{body.machine_name}%'),
-                Vmachine.milestone.like(f'%{body.machine_name}%')
+                Vmachine.ip.like(f'%{query.machine_name}%'),
+                Vmachine.description.like(f'%{query.machine_name}%'),
+                Vmachine.milestone.like(f'%{query.machine_name}%')
             ))
         filter_chain = Vmachine.query.filter(*filter_params).order_by(Vmachine.create_time.desc())
-        page_dict, e = PageUtil.get_page_dict(filter_chain, body.page_num, body.page_size, func=page_func)
+        page_dict, e = PageUtil.get_page_dict(filter_chain, query.page_num, query.page_size, func=page_func)
         if e:
             return jsonify(error_code=RET.SERVER_ERR, error_msg=f'get vmachine page error {e}')
+    return jsonify(error_code=RET.OK, error_msg="OK", data=page_dict)
+
+
+@collect_sql_error
+def handler_get_user_case_commit(query: UserCaseCommitSchema):
+    current_org_id = int(redis_client.hget(
+        RedisKey.user(g.gitee_id),
+        'current_org_id'
+    ))
+    now = datetime.now()
+    # 全部
+    basic_filter_params = [Commit.creator_id == g.gitee_id, Commit.status == 'accepted', Commit.org_id == current_org_id]
+
+    # 今日贡献
+    today_filter_params = [extract('year', Commit.create_time) == now.year,
+                           extract('month', Commit.create_time) == now.month,
+                           extract('day', Commit.create_time) == now.day]
+    today_filter_params.extend(basic_filter_params)
+    today_count = Commit.query.filter(*today_filter_params).count()
+
+    # 本周贡献
+    today = datetime(now.year, now.month, now.day, 0, 0, 0)
+    this_week_start = today - timedelta(days=now.weekday())
+    this_week_end = today + timedelta(days=7 - now.weekday())
+    week_filter_params = [Commit.create_time >= this_week_start,
+                          Commit.create_time < this_week_end]
+    week_filter_params.extend(basic_filter_params)
+    week_count = Commit.query.filter(*week_filter_params).count()
+
+    # 本月贡献
+    this_month_start = datetime(now.year, now.month, 1)
+    next_month_start = datetime(now.year, now.month + 1, 1)
+    month_filter_params = [Commit.create_time >= this_month_start,
+                           Commit.create_time < next_month_start]
+    month_filter_params.extend(basic_filter_params)
+    month_count = Commit.query.filter(*month_filter_params).count()
+
+    filter_params = [Commit.creator_id == g.gitee_id]
+    if query.title:
+        filter_params.append(Commit.title.like(f'%{query.title}%'))
+
+    if query.status != 'all':
+        filter_params.append(Commit.status == query.status)
+    else:
+        filter_params.append(Commit.status != 'pending')
+    filter_chain = Commit.query.filter(*filter_params).order_by(Commit.create_time.desc())
+    page_dict, e = PageUtil.get_page_dict(filter_chain, query.page_num, query.page_size, func=lambda x: x.to_json())
+    if e:
+        return jsonify(error_code=RET.SERVER_ERR, error_msg=f'get case commit page error {e}')
+
+    page_dict["today_case_count"] = today_count
+    page_dict["week_case_count"] = week_count
+    page_dict["month_case_count"] = month_count
+    return jsonify(error_code=RET.OK, error_msg="OK", data=page_dict)
+
+
+@collect_sql_error
+def handler_get_user_case_commit(query: UserCaseCommitSchema):
+    now = datetime.now()
+    # 全部
+    basic_filter_params = [Commit.creator_id == g.gitee_id, Commit.status == 'accepted']
+
+    # 今日贡献
+    today_filter_params = [extract('year', Commit.create_time) == now.year,
+                           extract('month', Commit.create_time) == now.month,
+                           extract('day', Commit.create_time) == now.day]
+    today_filter_params.extend(basic_filter_params)
+    today_count = Commit.query.filter(*today_filter_params).count()
+
+    # 本周贡献
+    today = datetime(now.year, now.month, now.day, 0, 0, 0)
+    this_week_start = today - timedelta(days=now.weekday())
+    this_week_end = today + timedelta(days=7 - now.weekday())
+    week_filter_params = [Commit.create_time >= this_week_start,
+                          Commit.create_time < this_week_end]
+    week_filter_params.extend(basic_filter_params)
+    week_count = Commit.query.filter(*week_filter_params).count()
+
+    # 本月贡献
+    this_month_start = datetime(now.year, now.month, 1)
+    next_month_start = datetime(now.year, now.month + 1, 1)
+    month_filter_params = [Commit.create_time >= this_month_start,
+                           Commit.create_time < next_month_start]
+    month_filter_params.extend(basic_filter_params)
+    month_count = Commit.query.filter(*month_filter_params).count()
+
+    filter_params = [Commit.creator_id == g.gitee_id]
+    if query.title:
+        filter_params.append(Commit.title.like(f'%{query.title}%'))
+
+    if query.status != 'all':
+        filter_params.append(Commit.status == query.status)
+    else:
+        filter_params.append(Commit.status != 'pending')
+    filter_chain = Commit.query.filter(*filter_params).order_by(Commit.create_time.desc())
+    page_dict, e = PageUtil.get_page_dict(filter_chain, query.page_num, query.page_size, func=lambda x: x.to_json())
+    if e:
+        return jsonify(error_code=RET.SERVER_ERR, error_msg=f'get case commit page error {e}')
+
+    page_dict["today_case_count"] = today_count
+    page_dict["week_case_count"] = week_count
+    page_dict["month_case_count"] = month_count
     return jsonify(error_code=RET.OK, error_msg="OK", data=page_dict)

@@ -1,4 +1,4 @@
-# Copyright (c) [2021] Huawei Technologies Co.,Ltd.ALL rights reserved.
+# Copyright (c) [2022] Huawei Technologies Co.,Ltd.ALL rights reserved.
 # This program is licensed under Mulan PSL v2.
 # You can use it according to the terms and conditions of the Mulan PSL v2.
 #          http://license.coscl.org.cn/MulanPSL2
@@ -61,7 +61,6 @@ class Org(Resource):
 class OrgItem(Resource):
     @auth.login_required()
     @response_collect
-    @validate()
     @casbin_enforcer.enforcer
-    def put(self, org_id, body: UpdateSchema):
-        return handler_update_org(org_id, body)
+    def put(self, org_id):
+        return handler_update_org(org_id)

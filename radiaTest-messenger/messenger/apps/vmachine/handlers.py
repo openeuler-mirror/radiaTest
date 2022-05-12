@@ -437,7 +437,8 @@ class DeleteVmachine(AuthMessageBody):
 
         _r = do_request(
             method="delete",
-            url="https://{}/api/v1/vmachine/{}/force".format(
+            url="{}://{}/api/v1/vmachine/{}/force".format(
+                current_app.config.get("PROTOCOL_TO_SERVER"),
                 current_app.config.get("SERVER_ADDR"),
                 vmachine.get("id")
             ),
@@ -517,7 +518,8 @@ class DeviceManager(SyncMessenger):
 
         _r = do_request(
             method="delete",
-            url="https://{}{}".format(
+            url="{}://{}{}".format(
+                current_app.config.get("PROTOCOL_TO_SERVER"),
                 current_app.config.get("SERVER_ADDR"),
                 _url
             ),
@@ -616,7 +618,8 @@ class VmachineAsyncResultHandler:
             if isinstance(ip, Response):
                 _r = do_request(
                     method="delete",
-                    url="https://{}/api/v1/vmachine/{}/force".format(
+                    url="{}://{}/api/v1/vmachine/{}/force".format(
+                        current_app.config.get("PROTOCOL_TO_SERVER"),
                         current_app.config.get("SERVER_ADDR"),
                         body.get("id")
                     ),

@@ -37,6 +37,16 @@ class CreateMilestone:
                 error_code=RET.OK, error_msg="Request processed successfully."
             )
         else:
+            if body.get("start_time"):
+                body["start_time"] = datetime.strptime(
+                    body["start_time"], 
+                    "%Y-%m-%d %H:%M:%S"
+                )
+            if body.get("end_time"):
+                body["end_time"] = datetime.strptime(
+                    body["end_time"],
+                    "%Y-%m-%d %H:%M:%S"
+                )
             try:
                 milestone_id = Insert(Milestone, body).insert_id(Milestone, '/milestone')
             except (IntegrityError, SQLAlchemyError) as e:

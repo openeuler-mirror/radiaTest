@@ -21,6 +21,9 @@
                 <n-input
                   v-model:value="createMachinesForm.name"
                   placeholder="请输入机器组名"
+                  maxlength="25"
+                  show-count
+                  clearable
                 />
               </n-form-item-gi>
               <n-form-item-gi :span="10" label="描述" path="description">
@@ -42,23 +45,8 @@
               <n-form-item-gi :span="6" label="公网IP地址" path="ip">
                 <n-input
                   v-model:value="createMachinesForm.ip"
+                  @update:value="changeValue"
                   placeholder="请输入公网IP地址"
-                />
-              </n-form-item-gi>
-              <n-form-item-gi :span="6" label="messenger监听" path="listen">
-                <n-input
-                  v-model:value="createMachinesForm.listen"
-                  :input-props="{ min: 0 }"
-                  placeholder="请输入"
-                  type="number"
-                />
-              </n-form-item-gi>
-              <n-form-item-gi :span="6" label="websockify服务端口">
-                <n-input
-                  v-model:value="createMachinesForm.websockify_listen"
-                  placeholder="请输入公网IP地址"
-                  :input-props="{ min: 0 }"
-                  type="number"
                 />
               </n-form-item-gi>
               <n-form-item-gi
@@ -74,6 +62,54 @@
                   check-strategy="child"
                   remote
                   :on-load="handleLoad"
+                />
+              </n-form-item-gi>
+              <n-form-item-gi :span="6" label="messenger IP">
+                <n-switch v-model:value="syncMessengerIP">
+                  <template #checked>
+                    messenger IP同步公网IP
+                  </template>
+                  <template #unchecked>
+                    messenger IP不同步公网IP
+                  </template>
+                </n-switch>
+              </n-form-item-gi>
+              <n-form-item-gi :span="6" label="messenger IP" path="messenger_ip">
+                <n-input
+                  v-model:value="createMachinesForm.messenger_ip"
+                  placeholder="请输入messenger IP地址"
+                />
+              </n-form-item-gi>
+              <n-form-item-gi :span="6" label="messenger监听" path="messenger_listen">
+                <n-input
+                  v-model:value="createMachinesForm.messenger_listen"
+                  :input-props="{ min: 0 }"
+                  placeholder="请输入"
+                  type="number"
+                />
+              </n-form-item-gi>
+              <n-form-item-gi :span="6" label="websockify IP">
+                <n-switch v-model:value="syncWebsockifyIP">
+                  <template #checked>
+                    websockify IP同步公网IP
+                  </template>
+                  <template #unchecked>
+                    websockify IP不同步公网IP
+                  </template>
+                </n-switch>
+              </n-form-item-gi>
+              <n-form-item-gi :span="6" label="websockify IP" path="websockify_ip">
+                <n-input
+                  v-model:value="createMachinesForm.websockify_ip"
+                  placeholder="请输入websockify IP"
+                />
+              </n-form-item-gi>
+              <n-form-item-gi :span="6" label="websockify服务端口">
+                <n-input
+                  v-model:value="createMachinesForm.websockify_listen"
+                  placeholder="请输入websockify服务端口"
+                  :input-props="{ min: 0 }"
+                  type="number"
                 />
               </n-form-item-gi>
             </n-grid>
@@ -93,7 +129,7 @@
           <n-tree
             block-line
             :data="menuOptions"
-            :on-load="handleLoad"
+            :on-load="handleTreeLoad"
             :node-props="nodeProps"
             :render-prefix="renderPrefix"
             :render-suffix="renderSuffix"
@@ -163,7 +199,7 @@ export default {
     },
     key() {
       return this.$route.params.machineId;
-    }
+    },
   },
   unmounted() {
     this.socket.disconnect();
@@ -175,10 +211,14 @@ export default {
     this.socket.listen('update', (data) => {
       const updateData = JSON.parse(data);
       if (Array.isArray(updateData)) {
-        updateData.forEach(item => {
-          const it = this.menuOptions[0].children.find(i => i.key === String(item.id));
-          const pxeHeartbeat = new Date(item.pxe_last_heartbeat).getTime() - Date.now();
-          const messenger = new Date(item.messenger_last_heartbeat).getTime() - Date.now();
+        updateData.forEach((item) => {
+          const it = this.menuOptions[0].children.find(
+            (i) => i.key === String(item.id)
+          );
+          const pxeHeartbeat =
+            new Date(item.pxe_last_heartbeat).getTime() - Date.now();
+          const messenger =
+            new Date(item.messenger_last_heartbeat).getTime() - Date.now();
           const dhcp = new Date(item.dhcp_last_heartbeat) - Date.now();
           it.children[0].suffix = this.getTimeDiff(Math.abs(messenger));
           it.children[0].label = 'messenger服务';
@@ -214,5 +254,4 @@ export default {
   },
 };
 </script>
-<style>
-</style>
+<style></style>

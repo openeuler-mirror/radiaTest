@@ -58,7 +58,7 @@ export default defineComponent({
     }
   },
   mounted() {
-    this.vmachineSocket = new Socket(`ws://${settings.serverPath}/vmachine`);
+    this.vmachineSocket = new Socket(`wss://${settings.serverPath}/vmachine`);
     this.vmachineSocket.connect();
     this.vmachineSocket.listen('update', () => {
       this.getData();
@@ -89,11 +89,11 @@ export default defineComponent({
       filterValue: filterValue.filterValue,
       vmachineSocket: null,
       columns,
-      pagination: {
+      pagination: ref({
         page: 1,
         pageCount: 1,
-        pageSize: 10
-      },
+        pageSize: 10,
+      }),
       ...vmachineTable,
       showSelection: () => selection.show(columns),
       offSelection: () => selection.off(columns),

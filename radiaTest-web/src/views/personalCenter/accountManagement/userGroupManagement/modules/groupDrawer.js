@@ -1,11 +1,15 @@
 import { reactive, h, ref } from 'vue';
-import { NAvatar, NButton, NSpace } from 'naive-ui';
+import { NAvatar, NButton, NSpace, NTag, NDropdown, NText } from 'naive-ui';
 
 import { changeLoadingStatus } from '@/assets/utils/loading';
-import { state, activeIndex } from './groupTable';
+import { state } from './groupTable';
 import { storage } from '@/assets/utils/storageUtils';
 import axios from '@/axios';
+import { getAllRole } from '@/api/get';
+import { setGroupUserRole } from '@/api/post';
+import { deleteGroupUserRole } from '@/api/delete';
 
+const tableLoading = ref(false);
 //drawer base information
 const groupInfo = reactive({
   name: '',
@@ -23,22 +27,33 @@ const groupPagination = reactive({
 
 // get table data
 function getGroupUsers () {
-  changeLoadingStatus(true);
+  tableLoading.value = true;
   axios.get(`/v1/groups/${groupInfo.id}/users`, {
     page_num: groupPagination.page,
     page_size: groupPagination.pageSize
   }).then(res => {
-    changeLoadingStatus(false);
+    tableLoading.value = false;
     groupInfo.usersData = res.data.items;
     groupInfo.show = true;
     groupPagination.pageCount = res.data.pages;
     groupPagination.itemCount = res.data.total;
   }).catch((err) => {
     window.$message?.error(err.data.error_msg || '未知错误');
-    changeLoadingStatus(false);
+    tableLoading.value = false;
   });
 }
-
+const allRole = ref({});
+function getGroupRole () {
+  getAllRole().then(res => {
+    res.data.forEach(item => {
+      if (item.type === 'group') {
+        allRole.value[item.group_id] ?
+          allRole.value[item.group_id].push({ label: item.name, value: String(item.id) }) :
+          allRole.value[item.group_id] = [{ label: item.name, value: String(item.id) }];
+      }
+    });
+  });
+}
 
 function editGroupUsers (rowIndex) {
   groupInfo.name = state.dataList[rowIndex].groupName;
@@ -97,9 +112,19 @@ function groupUserDel (rowIndex) {
       );
     }
   });
-  state.dataList[activeIndex].users.splice(rowIndex, 1);
 }
 
+function selectRole (row, item) {
+  setGroupUserRole(groupInfo.id, {
+    role_id: Number(item.value),
+    user_id: row.gitee_id
+  }).then(() => {
+    getGroupUsers();
+  });
+}
+function deleteRole (row) {
+  deleteGroupUserRole(groupInfo.id, { user_id: row.gitee_id, role_id: row.role.id }).then(() => getGroupUsers());
+}
 //drawer-table columns
 const usersColumns = [
   {
@@ -124,6 +149,39 @@ const usersColumns = [
     align: 'center'
   },
   {
+    title: '角色',
+    key: 'role',
+    align: 'center',
+    render (row) {
+      const tag = h(
+        NTag,
+        {
+          type: 'info',
+          closable: true,
+          onClose: () => deleteRole(row),
+        },
+        row.role?.name
+      );
+      const dropList = h(
+        NDropdown,
+        {
+          trigger: 'click',
+          options: allRole.value[groupInfo.id],
+          onSelect: (index, item) => selectRole(row, item),
+        },
+        h(
+          NText,
+          {
+            type: 'info',
+            style: `cursor:${allRole.value[groupInfo.id] ? 'pointer' : 'no-allowed'};color:${allRole.value[groupInfo.id] ? '' : 'grey'}`,
+          },
+          '添加角色'
+        )
+      );
+      return row.role ? tag : dropList;
+    },
+  },
+  {
     title: '操作',
     align: 'center',
     render (row, rowIndex) {
@@ -133,9 +191,9 @@ const usersColumns = [
           tag: 'span',
           text: true,
           type: 'primary',
-          disabled: storage.getValue('gitee_id') === String(row.gitee_id),
+          disabled: storage.getValue('gitee_id') === String(row.gitee_id) || groupInfo.re_user_group_role_type !== 1,
           onClick: () => {
-            if (storage.getValue('gitee_id') !== String(row.gitee_id)) {
+            if (storage.getValue('gitee_id') !== String(row.gitee_id) && groupInfo.re_user_group_role_type === 1) {
               groupUserDel(rowIndex);
             }
           },
@@ -159,10 +217,13 @@ function addUser () {
 }
 
 export {
+  tableLoading,
   showAddUser,
   usersColumns,
   groupInfo,
   groupPagination,
+  allRole,
+  getGroupRole,
   editGroupUsers,
   drawerUpdateShow,
   groupTurnPages,

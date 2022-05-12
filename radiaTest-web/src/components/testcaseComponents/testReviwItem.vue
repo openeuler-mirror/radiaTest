@@ -39,9 +39,6 @@
             <User />
           </n-icon>
           <userInfo :userInfo="info.creator">
-            <template #username>
-              {{ info.creator?.gitee_name }}
-            </template>
           </userInfo>
         </div>
         <div class="chat item">
@@ -64,9 +61,6 @@
               审查人:
             </span>
             <userInfo :userInfo="info.reviewer">
-              <template #username>
-                {{ info.reviewer?.gitee_name }}
-              </template>
             </userInfo>
           </div>
         </div>

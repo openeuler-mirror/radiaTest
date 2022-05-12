@@ -6,10 +6,10 @@
       content: 'hard',
     }"
     header-style="
-            font-size: 30px; 
-            height: 80px; 
+            font-size: 30px;
+            height: 80px;
             font-family: 'v-sans';
-            padding-top: 40px; 
+            padding-top: 40px;
             background-color: rgb(242,242,242);
         "
   >
@@ -124,6 +124,40 @@
         {{ settings.name }} {{ settings.version }} · {{ settings.license }}
       </div>
     </template>
+    <n-modal
+      v-model:show="showCloneModal"
+      preset="dialog"
+      title="Dialog"
+      :showIcon="false"
+      positiveText="提交"
+      negativeText="关闭"
+      @negativeClick="showCloneModal = false"
+      @positiveClick="handleCloneSubmit"
+    >
+      <template #header>
+        <div>克隆模板</div>
+      </template>
+      <div>
+        <n-form ref="cloneForm" :model="cloneFormValue" :rules="cloneFormRule">
+          <n-form-item label="模板" path="cloneTemplateRule">
+            <n-select
+              :options="templateList"
+              v-model:value="cloneFormValue.cloneTemplateId"
+            />
+          </n-form-item>
+          <n-form-item label="类型" path="permissionRule">
+            <n-cascader
+              v-model:value="cloneFormValue.permissionType"
+              placeholder="请选择"
+              :options="typeOptions"
+              check-strategy="child"
+              remote
+              :on-load="handleLoad"
+            />
+          </n-form-item>
+        </n-form>
+      </div>
+    </n-modal>
   </n-card>
 </template>
 
@@ -142,6 +176,7 @@ import { Socket } from '@/socket.js';
 import settings from '@/assets/config/settings.js';
 import template from './modules/template.js';
 import { execModalRef, postExecData } from './modules/execTemplate';
+import extendForm from '@/views/product/modules/createForm.js';
 
 export default defineComponent({
   components: {
@@ -152,7 +187,7 @@ export default defineComponent({
     execTemplate
   },
   setup() {
-    const templateSocket = new Socket(`ws://${settings.serverPath}/template`);
+    const templateSocket = new Socket(`wss://${settings.serverPath}/template`);
     templateSocket.connect();
 
     provide('personal', template.personalData);
@@ -173,13 +208,15 @@ export default defineComponent({
     });
 
     return {
+      typeOptions: extendForm.typeOptions,
+      handleLoad: extendForm.handleLoad,
       settings,
       ...template,
       postExecData,
       execModalRef,
-      handleCloneClick() {
-        window.$message?.info('克隆功能将于下一个版本更新');
-      },
+      // handleCloneClick() {
+      //   window.$message?.info('克隆功能将于下一个版本更新');
+      // },
     };
   },
 });

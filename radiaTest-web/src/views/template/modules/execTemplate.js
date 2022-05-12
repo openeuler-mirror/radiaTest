@@ -44,6 +44,7 @@ const postExecData = () => {
         window.$notification?.success({
           content: '测试任务已成功执行',
           meta: `模板：${formValue.value.name}`,
+          duration: 2000
         });
         formValue.value.frame = null;
         execModalRef.value.close();

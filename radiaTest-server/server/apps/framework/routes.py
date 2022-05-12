@@ -1,4 +1,4 @@
-# Copyright (c) [2021] Huawei Technologies Co.,Ltd.ALL rights reserved.
+# Copyright (c) [2022] Huawei Technologies Co.,Ltd.ALL rights reserved.
 # This program is licensed under Mulan PSL v2.
 # You can use it according to the terms and conditions of the Mulan PSL v2.
 #          http://license.coscl.org.cn/MulanPSL2
@@ -25,21 +25,23 @@ from server.utils.response_util import response_collect
 from server.model.framework import Framework, GitRepo
 from server.utils.db import Insert, Delete, Edit, Select
 from server.schema.framework import FrameworkBase, FrameworkQuery, GitRepoBase, GitRepoQuery
+from server.utils.resource_utils import ResourceManager
+from server.utils.permission_utils import GetAllByPermission
+from server import casbin_enforcer
 
 
-# TODO 权限归属基表加入后的改动
 class FrameworkEvent(Resource):
     @auth.login_required()
     @response_collect
     @validate()
     def post(self, body: FrameworkBase):
-        return Insert(Framework, body.__dict__).single(Framework, '/framework')
+        return ResourceManager("framework").add("api_infos.yaml", body.__dict__)
 
     @auth.login_required()
     @response_collect
     @validate()
     def get(self, query: FrameworkQuery):
-        filter_params = []
+        filter_params = GetAllByPermission(Framework).get_filter()
         if query.name:
             filter_params.append(
                 Framework.name.like(f'%{query.name}%')
@@ -71,12 +73,14 @@ class FrameworkItemEvent(Resource):
     @auth.login_required
     @response_collect
     @validate()
+    @casbin_enforcer.enforcer
     def delete(self, framework_id):
-        return Delete(Framework, {"id": framework_id}).single(Framework, "/framework")
+        return ResourceManager("framework").del_cascade_single(framework_id, GitRepo, [GitRepo.framework_id==framework_id], False)
     
     @auth.login_required
     @response_collect
     @validate()
+    @casbin_enforcer.enforcer
     def put(self, framework_id, body: FrameworkQuery):
         _body = {
             **body.__dict__,
@@ -88,6 +92,7 @@ class FrameworkItemEvent(Resource):
     @auth.login_required
     @response_collect
     @validate()
+    @casbin_enforcer.enforcer
     def get(self, framework_id):
         framework = Framework.query.filter_by(id=framework_id).first()
         if not framework:
@@ -103,19 +108,18 @@ class FrameworkItemEvent(Resource):
         )
 
 
-# TODO 权限归属基表加入后的改动
 class GitRepoEvent(Resource):
     @auth.login_required()
     @response_collect
     @validate()
     def post(self, body: GitRepoBase):
-        return Insert(GitRepo, body.__dict__).single(GitRepo, '/git_repo')
+        return ResourceManager("git_repo").add_v2("framework/api_infos.yaml", body.__dict__)
 
     @auth.login_required()
     @response_collect
     @validate()
     def get(self, query: GitRepoQuery):
-        filter_params = []
+        filter_params = GetAllByPermission(GitRepo).get_filter()
         if query.name:
             filter_params.append(
                 GitRepo.name.like(f'%{query.name}%')
@@ -152,12 +156,14 @@ class GitRepoItemEvent(Resource):
     @auth.login_required
     @response_collect
     @validate()
+    @casbin_enforcer.enforcer
     def delete(self, git_repo_id):
-        return Delete(GitRepo, {"id": git_repo_id}).single(GitRepo, "/git_repo")
+        return ResourceManager("git_repo").del_single(git_repo_id)
     
     @auth.login_required
     @response_collect
     @validate()
+    @casbin_enforcer.enforcer
     def put(self, git_repo_id, body: GitRepoQuery):
         _body = {
             **body.__dict__,
@@ -168,6 +174,7 @@ class GitRepoItemEvent(Resource):
 
     @auth.login_required
     @response_collect
+    @casbin_enforcer.enforcer
     def get(self, git_repo_id):
         git_repo = GitRepo.query.filter_by(id=git_repo_id).first()
         if not git_repo:

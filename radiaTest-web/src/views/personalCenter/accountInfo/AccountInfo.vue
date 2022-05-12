@@ -7,6 +7,7 @@
           circle
           :size="100"
           :src="state.userInfo.avatar_url"
+          :fallback-src="createAvatar(state.userInfo.gitee_name.slice(0,1))"
         />
       </div>
       <div class="container">
@@ -71,23 +72,42 @@
           style="justify-content: space-between; display: flex"
         >
           <h3>我的组织</h3>
-          <n-button type="primary" @click="handleAddOrg">
+          <!-- <n-button type="primary" @click="handleAddOrg">
             <template #icon>
               <n-icon>
                 <add />
               </n-icon>
             </template>
             添加组织
-          </n-button>
+          </n-button> -->
         </div>
         <n-data-table
           remote
           :columns="orgColumns"
           :data="state.userInfo.orgs"
           :pagination="pagination"
+          :row-props="orgRowProps"
         />
       </div>
     </div>
+    <n-drawer
+      :show="showOrgDrawer"
+      :width="800"
+      placement="right"
+      :on-update:show="drawerUpdateShow"
+    >
+      <n-drawer-content>
+        <template #header>{{ activeOrg.org_name }}</template>
+        <n-data-table
+          remote
+          :columns="orgDrawerColumns"
+          :data="orgUsers"
+          :loading="orgDrawerLoading"
+          :pagination="orgDrawerPagination"
+          @update:page="orgDrawerTurnPages"
+        />
+      </n-drawer-content>
+    </n-drawer>
     <n-modal
       v-model:show="showAddModal"
       preset="dialog"
@@ -133,18 +153,19 @@
   </n-spin>
 </template>
 <script>
-import { Add } from '@vicons/ionicons5';
+// import { Add } from '@vicons/ionicons5';
+import { createAvatar } from '@/assets/utils/createImg';
 import { modules } from './modules/index.js';
 
 export default {
-  components: { Add },
+  // components: { Add },
   setup() {
     modules.init();
 
     document.addEventListener('reloadInfo', () => {
       modules.init();
     });
-    return modules;
+    return { ...modules, createAvatar };
   },
 };
 </script>

@@ -18,15 +18,15 @@ module.exports = {
   },
   productionSourceMap: false,
   devServer: {
-    host: '172.168.131.14',
-    port: 1400,
+    host: '0.0.0.0',
+    port: 8080,
     open: true,
     https: false,
     hot: false,
     compress: true,
     proxy: {
       '/api': {
-        target: 'http://172.168.131.14:1401/',
+        target: 'http://0.0.0.0:21500/',
         changeOrigin: true,
         secure: false,
       }
