@@ -286,14 +286,19 @@ function getOrg() {
   axios.get(`/v1/users/${storage.getValue('gitee_id')}`).then((res) => {
     const { data } = res;
     menuList.value = [];
+    const actions = [
+      { label: '刷新', key: 'refresh', icon: renderIcon(MdRefresh) }
+    ];
     data.orgs.forEach((item) => {
       if (item.re_user_org_default) {
         menuList.value.push({
           label: item.org_name,
           key: `org-${item.org_id}`,
+          actions,
           iconColor: 'rgba(0, 47, 167, 1)',
           isLeaf: false,
           type: 'org',
+          root: true,
           icon: Organization20Regular,
         });
       }
@@ -302,6 +307,12 @@ function getOrg() {
     loadData(menuList.value[0], (status) => {
       if (status !== 'success') {
         window.$message?.error('初始加载失败');
+      } else if(
+        router.currentRoute.value.name === 'taskDetails' &&
+        router.currentRoute.value.params.taskid &&
+        router.currentRoute.value.params.taskid !== 'development'
+      ) {
+        expandKeys.value.push(router.currentRoute.value.params.taskid);
       } else {
         expandKeys.value = [menuList.value[0].key];
       }
@@ -697,7 +708,7 @@ function refreshNode(node) {
       getDirectory(node);
       break;
     default:
-      getBaseLine(node);
+      node.root ? getOrg() : getBaseLine(node);
       break;
   }
 }
@@ -785,6 +796,7 @@ function selectAction({ contextmenu, action }) {
 }
 const selectKey = ref();
 function menuClick({ key, options }) {
+  console.log(key,options);
   if (!key.length) {
     return;
   }
@@ -794,7 +806,7 @@ function menuClick({ key, options }) {
     router.push({
       path: `/home/tcm/folderview/taskDetail/${id}`,
     });
-  } else if (itemkey === 'users') {
+  } else if (itemkey === 'org') {
     router.push({
       name: 'frameWork',
       params: {

@@ -18,7 +18,7 @@ function getRules() {
     data.value = res.data;
     changeLoadingStatus(false);
   }).catch((err) => {
-    window.$notification?.error({ content: err.data.error_msg || unkonwnErrorMsg, duration:2000 });
+    window.$notification?.error({ content: err.data.error_msg || unkonwnErrorMsg });
     changeLoadingStatus(false);
   });
 }
@@ -146,8 +146,13 @@ const filters = [
 ];
 
 function filterChange(options) {
+  changeLoadingStatus(true);
   axios.get('/v1/scope', options).then((res) => {
     data.value = res.data;
+    changeLoadingStatus(false);
+  }).catch((err) => {
+    window.$notification?.error({ content: err.data.error_msg || unkonwnErrorMsg });
+    changeLoadingStatus(false);
   });
 }
 
