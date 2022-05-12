@@ -31,8 +31,7 @@ else
     exit 1
 fi
 
-crond || exit 1 \
-    && echo "* 1 * * * root run-parts /etc/cron.daily" >> /etc/crontab \
+echo "* 1 * * * root run-parts /etc/cron.daily" >> /etc/crontab \
     && crontab /etc/crontab
 
 mkdir /etc/radiaTest
