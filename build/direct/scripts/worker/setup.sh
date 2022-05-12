@@ -19,6 +19,7 @@
     "$PKG_MNG" install -y libvirt &&
     "$PKG_MNG" install -y virt-install &&
     "$PKG_MNG" install -y rsync &&
+    "$PSK_MNG" install -y cronie &&
     "$PKG_MNG" install -y logrotate &&
     "$PKG_MNG" install -y python3-pip &&
     "$PKG_MNG" install -y python3-devel
@@ -30,7 +31,9 @@ else
     exit 1
 fi
 
-logrotate ./logrotate
+crond || exit 1 \
+    && echo "* 1 * * * root run-parts /etc/cron.daily" >> /etc/crontab \
+    && crontab /etc/crontab
 
 mkdir /etc/radiaTest
 
