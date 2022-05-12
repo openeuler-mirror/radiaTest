@@ -25,6 +25,7 @@ RUN dnf install -y git \
     && git clone $GIT_REPO \
     && dnf install -y ipmitool \
     && dnf install -y rsync \
+    && dnf install -y cronie \
     && dnf install -y logrotate \
     && dnf install -y python3-pip \
     && dnf install -y python3-devel
@@ -33,7 +34,9 @@ WORKDIR /opt/radiaTest/radiaTest-messenger/
 
 COPY ./logrotate /etc/logrotate.d/supervisor
 
-RUN logrotate /etc/logrotate.d/supervisor
+RUN crond \
+    && echo "* 1 * * * root run-parts /etc/cron.daily" >> /etc/crontab \
+    && crontab /etc/crontab
 
 RUN cp -r ./conf/supervisor/* /etc/
 
