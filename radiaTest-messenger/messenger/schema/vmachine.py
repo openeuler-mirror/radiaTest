@@ -77,7 +77,7 @@ class VmachineBaseSchema(AuthBaseModel, PermissionBase):
     disk_cache: DiskCache
     video_bus: VideoBus
     end_time: str
-
+    machine_group_id: Optional[int]
     # password: Optional[str]
 
     product: dict
