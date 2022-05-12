@@ -26,7 +26,8 @@ class VmachineBaseSchema(AuthTaskHandler):
     
     def delete_vmachine(self):
         _ = requests.delete(
-            url="https://{}/api/v1/vmachine".format(
+            url="{}://{}/api/v1/vmachine".format(
+                celeryconfig.protocol_to_server,
                 celeryconfig.server_addr,
             ),
             data={

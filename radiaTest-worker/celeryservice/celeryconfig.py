@@ -77,3 +77,4 @@ messenger_ip = loads_config_ini("worker", "MESSENGER_IP")
 messenger_listen = loads_config_ini("worker", "MESSENGER_LISTEN")
 protocol = loads_config_ini("worker", "PROTOCOL")
 headers = {"Content-Type": "application/json;charset=utf8"}
+protocol_to_server = "https"

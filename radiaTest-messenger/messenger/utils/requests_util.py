@@ -82,7 +82,8 @@ def query_request(api, params, auth):
     _resp = dict()
     _r = do_request(
         method="get",
-        url="https://{}{}".format(
+        url="{}://{}{}".format(
+            current_app.config.get("PROTOCOL_TO_SERVER"),
             current_app.config.get("SERVER_ADDR"),
             api,
         ),
@@ -104,7 +105,8 @@ def update_request(api, body, auth):
     _resp = dict()
     _r = do_request(
         method="put",
-        url="https://{}{}".format(
+        url="{}://{}{}".format(
+            current_app.config.get("PROTOCOL_TO_SERVER"),
             current_app.config.get("SERVER_ADDR"),
             api,
         ),
@@ -124,7 +126,8 @@ def create_request(api, body, auth):
     _resp = dict()
     _r = do_request(
         method="post",
-        url="https://{}{}".format(
+        url="{}://{}{}".format(
+            current_app.config.get("PROTOCOL_TO_SERVER"),
             current_app.config.get("SERVER_ADDR"),
             api,
         ),

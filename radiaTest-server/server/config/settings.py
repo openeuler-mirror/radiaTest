@@ -38,7 +38,7 @@ class Config(object):
 
     # HTTP PROTOCOL
     PROTOCOL = "http"
-
+    PROTOCOL_TO_SERVER = "https"
     # 虚拟机
     # 虚拟机创建基础信息
     # 最大内存
