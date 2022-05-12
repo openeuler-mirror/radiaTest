@@ -5,6 +5,7 @@ import { Prohibited24Regular } from '@vicons/fluent';
 import { changeLoadingStatus } from '@/assets/utils/loading';
 import axios from '@/axios';
 import { roleId, getRoleInfo } from './roleInfo';
+import { unkonwnErrorMsg } from '@/assets/utils/description';
 
 const showDrawer = ref(false);
 const roleInfo = ref({});
@@ -188,6 +189,9 @@ function getRelationRules() {
       return { ...item };
     });
     rulesData.value = relationRuleData.value.map(item => item);
+    changeLoadingStatus(false);
+  }).catch((err) => {
+    window.$notification?.error({ content: err.data.error_msg || unkonwnErrorMsg });
     changeLoadingStatus(false);
   });
 }
