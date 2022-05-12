@@ -24,7 +24,8 @@ def _callback_task_job_result(job_id, auth, taskmilestone_id, status):
             _resp = dict()
             _r = do_request(
                 method="put",
-                url="https://{}/api/v1/task/milestones/{}".format(
+                url="{}://{}/api/v1/task/milestones/{}".format(
+                    celeryconfig.protocol_to_server,
                     celeryconfig.server_addr,
                     taskmilestone_id
                 ),

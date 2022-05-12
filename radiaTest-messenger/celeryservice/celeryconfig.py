@@ -115,3 +115,4 @@ dhcp_ip = loads_config_ini("dhcp", "DHCP_IP")
 
 #  requests config
 protocol = loads_config_ini("common", "PROTOCOL")
+protocol_to_server = "https"
