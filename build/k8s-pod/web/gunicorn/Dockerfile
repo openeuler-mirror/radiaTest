@@ -16,35 +16,21 @@
 FROM openeuler/openeuler:22.03-lts
 LABEL maintainer="ethanzhang55@outlook.com"
 
-ENV username radiaTest
-ENV password 1234
-
-WORKDIR /opt/
-
 ENV GIT_REPO https://gitee.com/openeuler/radiaTest
 ENV PIP_REPO https://pypi.tuna.tsinghua.edu.cn/simple
+
+WORKDIR /opt
 
 RUN dnf install -y git \
     && git clone $GIT_REPO \
     && dnf install -y make \
-    && dnf install -y rsync \
-    && dnf install -y cronie \
-    && dnf install -y logrotate \
     && dnf install -y python3-pip \
     && dnf install -y python3-devel
 
 WORKDIR /opt/radiaTest/radiaTest-server/
 
-COPY ./logrotate /etc/logrotate.d/supervisor
-
-RUN crond \
-    && echo "* 1 * * * root run-parts /etc/cron.daily" >> /etc/crontab \
-    && crontab /etc/crontab
-
-RUN cp -r ./conf/supervisor/* /etc/
-
 RUN bash ./install_rar.sh \
     && pip3 install -r requirements.txt -i $PIP_REPO
 
 CMD bash /opt/radiaTest/build/k8s-pod/web/supervisor/init_db.sh \
-    && supervisord -n
+    && gunicorn -c gunicorn/gunicorn.conf.py manage:app
