@@ -52,17 +52,19 @@ function renderTitles (option) {
     titles.value.push('组织角色', option.org_name, option.name);
   }
 }
-function getRoleInfo () {
+function getRoleInfo (options = {}) {
   roleId.value = window
     .atob(router.currentRoute.value.params.roleId)
     .split('-')
     .pop();
-  axios.get(`/v1/role/${roleId.value}`).then((res) => {
+  axios.get(`/v1/role/${roleId.value}`, options).then((res) => {
     renderTitles(res.data);
     description.value = res.data.description;
     data.value = res.data.users;
     setRoleInfo(res.data);
     setRuleData(res.data.scopes);
+  }).catch(err => {
+    window.$message?.error(err.data?.error_msg || err.message || unkonwnErrorMsg);
   });
 }
 function deleteRole () {
