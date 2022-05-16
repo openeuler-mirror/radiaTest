@@ -114,7 +114,7 @@ export default {
           this.$newsSocket.emit('count', this.$storage.getValue('gitee_id'));
         }
       }
-    }, 1000);
+    }, 10000);
   },
   watch: {
     $route(to, from) {
