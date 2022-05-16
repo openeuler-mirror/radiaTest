@@ -206,6 +206,34 @@ const ruleSearch = ref('');
 function filterRules () {
   relationRuleData.value = rulesData.value.filter(item => item.alias.indexOf(ruleSearch.value) !== -1);
 }
+const filters = [
+  { key: 'alias', placeholder: '请输入名称', type: 'input' },
+  { key: 'uri', placeholder: '请输入路由', type: 'input' },
+  {
+    key: 'act',
+    placeholder: '请选择请求方式',
+    type: 'select',
+    options: [
+      { label: 'get', value: 'get' },
+      { label: 'post', value: 'post' },
+      { label: 'delete', value: 'delete' },
+      { label: 'put', value: 'put' },
+    ],
+  },
+  {
+    key: 'eft',
+    placeholder: '请选择规则类型',
+    type: 'select',
+    options: [
+      { label: '允许', value: 'allow' },
+      { label: '拒绝', value: 'deny' },
+    ],
+  },
+];
+
+function filterChange(options) {
+  getRoleInfo(options);
+}
 export {
   ruleSearch,
   relationRulePagination,
@@ -222,4 +250,6 @@ export {
   ruleModal,
   ruleData,
   relationRule,
+  filters,
+  filterChange
 };

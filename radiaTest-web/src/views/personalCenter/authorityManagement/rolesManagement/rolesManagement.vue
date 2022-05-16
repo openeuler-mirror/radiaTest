@@ -23,6 +23,7 @@
         规则设置
       </n-button>
     </div>
+    <table-filter :filters="filters" @filterchange="filterChange" />
     <n-data-table
       :columns="ruleColumns"
       :data="ruleData"
@@ -85,12 +86,14 @@ import breadcrumb from '@/components/breadcrumb/breadcrumb.vue';
 import { Search } from '@vicons/ionicons5';
 import { Settings } from '@vicons/carbon';
 import modalCard from '@/components/CRUD/ModalCard.vue';
+import tableFilter from '@/components/filter/tableFilter.vue';
 
 export default {
   components: {
     breadcrumb,
     Settings,
     modalCard,
+    tableFilter
   },
   setup() {
     modules.getRoleInfo();
