@@ -27,8 +27,15 @@ class FileUtil(object):
             file_path_temp = file_path.split(current_app.static_url_path, 1)[1]
             file_suffix = os.path.splitext(secure_filename(file_storage.filename))[-1]
             file_storage.save(f'{current_app.static_folder}{file_path_temp}{file_suffix}')
-            return f'{current_app.config.get("PROTOCOL_TO_SERVER")}://{current_app.config.get("DOMAIN_NAME")}' \
-                   f'{current_app.static_url_path}{file_path_temp}{file_suffix}'.replace(os.path.sep, '/')
+
+            if current_app.config.get("DOMAIN_NAME"):
+                return f'{current_app.config.get("PROTOCOL_TO_SERVER")}://{current_app.config.get("DOMAIN_NAME")}' \
+                    f'{current_app.static_url_path}{file_path_temp}{file_suffix}'.replace(os.path.sep, '/')
+            else:
+                return f'{current_app.config.get("PROTOCOL_TO_SERVER")}://{current_app.config.get("SERVER_IP")}' \
+                    f':{current_app.config.get("NGINX_LISTEN")}' \
+                    f'{current_app.static_url_path}{file_path_temp}{file_suffix}'.replace(os.path.sep, '/')
+
         except Exception as e:
             current_app.logger.error(f'file save error{e}')
         return None
