@@ -5,11 +5,33 @@ from server.utils.response_util import response_collect
 from .handlers import *
 from server.schema.message import MessageCallBack
 from flask_pydantic import validate
+from server.utils.auth_util import verify_token
 
 
 @socketio.on('count', namespace='/api/v1/msg')
 def get_msg_count(gitee_id):
     return handler_user_msg_count(gitee_id)
+
+
+@socketio.on('connect')
+def on_connect(sid, token):
+    """
+    与客户端建立连接后执行
+    """
+    flag, gitee_id = verify_token(token)
+    # 若检验出user_id，将此客户端添加到user_id的room中
+    if flag and gitee_id:
+        socketio.enter_room(sid, str(gitee_id))
+
+
+@socketio.on('disconnect')
+def on_disconnect(sid):
+    """
+    与客户端断开连接时执行,将客户端从所有房间中移除
+    """
+    rooms = socketio.rooms(sid)
+    for room in rooms:
+        socketio.leave_room(sid, room)
 
 
 class Msg(Resource):
@@ -25,6 +47,7 @@ class MsgBatch(Resource):
     @response_collect
     def put(self):
         return handler_update_msg()
+
 
 class MsgCallBack(Resource):
     @auth.login_required()
