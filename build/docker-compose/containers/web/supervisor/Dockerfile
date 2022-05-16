@@ -43,5 +43,5 @@ RUN cp -r ./conf/supervisor/* /etc/
 RUN bash ./install_rar.sh \
     && pip3 install -r requirements.txt -i $PIP_REPO
 
-CMD bash /opt/radiaTest/build/k8s-pod/web/supervisor/init_db.sh \
+CMD bash /opt/radiaTest/build/docker-compose/containers/web/supervisor/init_db.sh \
     && supervisord -n
