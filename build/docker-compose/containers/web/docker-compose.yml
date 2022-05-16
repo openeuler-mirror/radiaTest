@@ -43,31 +43,14 @@ services:
             MYSQL_ROOT_PASSWORD: 1234
             MYSQL_DATABASE: radiaTest
 
-    nginx:
-        image: nginx:1.21.5
-        restart: always
-        ports:
-            - 8080:8080
-            - 443:443
-        volumes:
-            - /var/lib/nginx
-            - /var/log/nginx
-            - /usr/share/radiaTest/dist:/usr/share/nginx/html
-            - /etc/nginx:/etc/nginx
-        ulimits:
-            nproc: 65535
-            nofile:
-                soft: 10240
-                hard: 20000
-
     supervisor:
         image: supervisor:radiaTest
         build:
             context: ./supervisor
             dockerfile: Dockerfile
         restart: always
-        ports:
-            - 21500:21500
+        expose:
+            - 21500
         links:
             - queue
         volumes:
@@ -92,3 +75,22 @@ services:
             - queue
             - cache
             - db
+        
+    nginx:
+        image: nginx:1.21.5
+        restart: always
+        ports:
+            - 8080:8080
+            - 443:443
+        links:
+            - supervisor
+        volumes:
+            - /var/lib/nginx
+            - /var/log/nginx
+            - /usr/share/radiaTest/dist:/usr/share/nginx/html
+            - /etc/nginx:/etc/nginx
+        ulimits:
+            nproc: 65535
+            nofile:
+                soft: 10240
+                hard: 20000

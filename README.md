@@ -30,14 +30,14 @@ radiaTest-worker必须部署在服务器物理环境
 一、 基于裸金属/虚拟机节点容器化部署
 1.  安装web服务前后端（radiaTest-web & radiaTest-server）
     1) 待部署宿主机安装docker以及docker-compose软件包
-    2) 执行 build/direct/lib/up_web_server 脚本
+    2) 执行 build/docker-compose/lib/up_web_server 脚本
 
 2.  安装messenger服务端（radiaTest-messenger）
     1) 待部署宿主机安装docker以及docker-compose软件包
-    2) 执行 build/direct/lib/up_messenger_server 脚本
+    2) 执行 build/docker-compose/lib/up_messenger_server 脚本
 
 3.  安装worker服务端（radiaTest-worker）
-    1) 执行 build/direct/lib/up_worker_server 脚本
+    1) 执行 build/docker-compose/lib/up_worker_server 脚本
 
 二、基于k8s，部署节点为k8s-pod（目前仅覆盖radiaTest-web & radiaTest-server）
 1. 通过 build/k8s-pod/web/nginx & build/k8s-pod/web/supervisor 构建docker镜像
