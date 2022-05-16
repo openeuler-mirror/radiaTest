@@ -59,7 +59,7 @@ def verify_token(token):
                 g.gitee_id = data.get("gitee_id")
             g.gitee_login = data.get("gitee_login")
             g.token = token
-            return True
+            return True, data.get("gitee_id")
     return False
 
 
