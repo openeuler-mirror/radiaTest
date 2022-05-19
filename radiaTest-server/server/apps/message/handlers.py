@@ -8,7 +8,6 @@ from server.model.message import Message
 from server.schema.message import MessageModel
 from server.utils.response_util import RET
 from server.utils.page_util import PageUtil
-from server.utils.auth_util import verify_token
 from server.utils.db import collect_sql_error
 
 
@@ -58,27 +57,17 @@ def handler_update_msg():
         return jsonify(error_code=RET.PARMA_ERR, error_msg='no params need update')
     Message.query.filter(*filter_params).update(update_dict, synchronize_session=False)
     db.session.commit()
+    msg_count = Message.query.filter(Message.to_id == g.gitee_id,
+                                     Message.is_delete == False,
+                                     Message.has_read == False).count()
+    emit(
+        "count",
+        {"num": msg_count},
+        namespace='message',
+        room=str(g.gitee_id)
+    )
     return jsonify(error_code=RET.OK, error_msg='OK')
 
-
-def handler_user_msg_count(gitee_id):
-    # 到数据库中获取用户数据
-    filter_params = [
-        Message.to_id == gitee_id,
-        Message.is_delete == False,
-        Message.has_read == False
-    ]
-    msg_list = Message.query.filter(*filter_params).order_by(Message.create_time.desc()).all()
-    send_msg = {
-        'error_code': RET.OK,
-        'error_msg': 'OK',
-        'msg_total': len(msg_list) if msg_list else 0
-    }
-    emit(
-        'server_count', 
-        send_msg, 
-        namespace='/api/v1/msg'
-    )
 
 @collect_sql_error
 def handler_msg_callback(body):

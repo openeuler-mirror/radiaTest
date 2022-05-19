@@ -26,7 +26,8 @@ from server.model.task import Task, TaskStatus, TaskManualCase, TaskMilestone
 from server.model.testcase import Case
 from server.model.group import Group, ReUserGroup
 from server.model.user import User
-from server.model.message import Message
+from server.model.message import Message, MsgType, MsgLevel
+from server.utils.db import Insert
 from server.utils.redis_util import RedisKey
 from server.utils.requests_util import do_request
 from server.utils.response_util import RET
@@ -276,13 +277,16 @@ def send_message(task: Task, msg, from_id=1):
     to_id.append(task.executor_id)
     to_id.append(task.creator_id)
     to_id = set(to_id)
-    insert_data = [{
-        "data": json.dumps({'info': msg}),
-        "from_id": from_id,
-        "to_id": item,
-        "level": 0
-    } for item in to_id]
-    db.session.execute(Message.__table__.insert(), insert_data)
+    for item in to_id:
+        Insert(
+            Message,
+            {
+                "data": json.dumps({"info": msg}),
+                "from_id": from_id,
+                "to_id": item,
+                "level": MsgLevel.system.value,
+            }
+        ).insert_id()
 
 
 def judge_task_automatic(task_milestone: TaskMilestone):
