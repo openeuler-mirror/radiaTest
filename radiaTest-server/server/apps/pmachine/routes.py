@@ -118,6 +118,10 @@ class PmachineItemEvent(Resource):
     @validate()
     @casbin_enforcer.enforcer
     def put(self, pmachine_id, body: PmachineUpdateSchema):
+        __body = body.__dict__
+        messenger = PmachineMessenger(__body)
+        messenger.send_request(machine_group, "/api/v1/pmachine/checkbmcinfo")
+
         pmachine = Pmachine.query.filter_by(id=pmachine_id).first()
         if not pmachine:
             return jsonify(
@@ -149,6 +153,10 @@ class PmachineEvent(Resource):
     @response_collect
     @validate()
     def post(self, body: PmachineCreateSchema):
+        _body = body.__dict__
+        messenger = PmachineMessenger(_body)
+        messenger.send_request(machine_group, "/api/v1/pmachine/checkbmcinfo")
+
         return ResourceManager("pmachine").add("api_infos.yaml", body.__dict__)
 
     @auth.login_required

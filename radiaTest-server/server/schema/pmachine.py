@@ -110,19 +110,6 @@ class PmachineBaseSchema(BaseModel):
     occupier: Optional[str]
     locked: Optional[bool] = False
     machine_group_id: Optional[int]
-
-    @validator("bmc_password")
-    def required_bmc_conditions(cls, v, values):
-        exitcode, output = getstatusoutput(
-            "ipmitool -I lanplus -H %s -U %s  -P %s power status"
-            % (values.get("bmc_ip"), values.get("bmc_user"), v)
-        )
-        if exitcode != 0:
-            raise ValueError("The infomation of BMC provided is wrong.")
-
-        values["status"] = output.split()[-1]
-
-        return v
     
     @validator("machine_group_id")
     def check_machine_group_id(cls, v):

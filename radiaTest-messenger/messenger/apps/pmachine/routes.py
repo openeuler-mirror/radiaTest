@@ -6,6 +6,7 @@ from messenger.apps.pmachine.handlers import AutoInstall, OnOff
 from messenger.schema.pmachine import (
     PmachineInstallSchema,
     PmachinePowerSchema,
+    PmachineBaseSchema,
 )
 
 
@@ -27,3 +28,17 @@ class Power(Resource):
             "auth": request.headers.get("authorization")
         })
         return OnOff(_body).on_off()
+
+
+class CheckBmcInfo(Resource):
+    @validate()
+    def put(self, body: PmachineBaseSchema):
+        _body = body.__dict__
+        _body.update({
+            "auth": request.headers.get("authorization")
+        })
+
+        return jsonify(
+            error_code=RET.OK, 
+            error_msg="succeed in check bmc info."
+        )
