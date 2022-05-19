@@ -41,6 +41,44 @@ class Message(db.Model, Base):
             "update_time": self.update_time.strftime("%Y-%m-%d %H:%M:%S"),
         }
 
+    def add_update(self, table=None, namespace=None, broadcast=False):
+        super().add_update(table, namespace, broadcast)
+        if not self.id:
+            self.emit_notify()
+        self.emit_count()
+
+    def add_flush_commit_id(self, table=None, namespace=None, broadcast=False):
+        id = super().add_flush_commit_id(table, namespace, broadcast)
+        self.emit_count()
+        self.emit_notify()
+        return id
+
+    def add_flush_commit(self, table=None, namespace=None, broadcast=False):
+        message = super().add_flush_commit(table, namespace, broadcast)
+        self.emit_count()
+        self.emit_notify()
+        return message
+
+    def emit_count(self):
+        from flask_socketio import emit
+        emit(
+            "count",
+            {"num": Message.query.filter(Message.to_id == self.to_id,
+                                         Message.is_delete == False,
+                                         Message.has_read == False).count()},
+            namespace='message',
+            room=str(self.to_id)
+        )
+
+    def emit_notify(self):
+        from flask_socketio import emit
+        emit(
+            "notify",
+            {"content": json.loads(self.data).get('info')},
+            namespace='message',
+            room=str(self.to_id)
+        )
+
     @staticmethod
     def create_instance(data, from_id, to_id, level=MsgLevel.user.value, msg_type=MsgType.text.value):
         new_recode = Message()

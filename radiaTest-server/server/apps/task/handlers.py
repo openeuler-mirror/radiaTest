@@ -856,12 +856,15 @@ class HandlerTaskMilestone(object):
             elif item.job_result != 'done':
                 done = False
         status = None
+        msg = None
         if done and not block and automatic:
             status = TaskStatus.query.filter_by(name='已执行').first()
-            send_message(task, msg=f'{task.title}中的自动测试用例执行结束，执行完成，请注意查看！')
+            msg = f'{task.title}中的自动测试用例执行结束，执行完成，请注意查看！'
         elif not done and block:
             status = TaskStatus.query.filter_by(name='进行中').first()
-            send_message(task, msg=f'{task.title}中的自动测试用例执行结束，执行受阻，请注意查看！')
+            msg = f'{task.title}中的自动测试用例执行结束，执行受阻，请注意查看！'
+        if msg:
+            send_message(task, msg=msg)
         task.status_id = status.id if status else task.status_id
         task.automatic = automatic
         task.add_update()

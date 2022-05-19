@@ -459,21 +459,21 @@ class HandlerCaseReview(object):
     @staticmethod
     @collect_sql_error
     def send_massage(commit, _commits):
-        message_list = list()
         creator = User.query.get(commit.creator_id)
         for _commit in _commits:
             _commit.status = 'pending'
             _commit.add_update()
-            message_list.append(dict(
-                data=json.dumps(
-                    dict(info=f'您提交的名为<b>{_commit.title}</b>的用例评审因已合入<b>{creator.gitee_name}</b>提交版本,故已退回,请知悉')),
-                level=MsgLevel.user.value,
-                from_id=g.gitee_id,
-                to_id=_commit.creator_id,
-                type=MsgType.text.value
-            ))
-        if message_list:
-            db.session.execute(Message.__table__.insert(), message_list)
+            Insert(
+                Message,
+                {
+                    "data": json.dumps({"info": f'您提交的名为<b>{_commit.title}</b>的用例评审因已合入'
+                                                f'<b>{creator.gitee_name}</b>提交版本,故已退回,请知悉'}),
+                    "level": MsgLevel.user.value,
+                    "from_id": g.gitee_id,
+                    "to_id": _commit.creator_id,
+                    "type": MsgType.text.value
+                }
+            ).insert_id()
 
     @staticmethod
     @collect_sql_error

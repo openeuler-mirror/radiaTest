@@ -8,12 +8,7 @@ from flask_pydantic import validate
 from server.utils.auth_util import verify_token
 
 
-@socketio.on('count', namespace='/api/v1/msg')
-def get_msg_count(gitee_id):
-    return handler_user_msg_count(gitee_id)
-
-
-@socketio.on('connect')
+@socketio.on('after_connect')
 def on_connect(sid, token):
     """
     与客户端建立连接后执行
@@ -22,9 +17,18 @@ def on_connect(sid, token):
     # 若检验出user_id，将此客户端添加到user_id的room中
     if flag and gitee_id:
         socketio.enter_room(sid, str(gitee_id))
+        msg_count = Message.query.filter(Message.to_id == g.gitee_id,
+                                         Message.is_delete == False,
+                                         Message.has_read == False).count()
+        emit(
+            "count",
+            {"num": msg_count},
+            namespace='message',
+            room=str(g.gitee_id)
+        )
 
 
-@socketio.on('disconnect')
+@socketio.on('before_disconnect')
 def on_disconnect(sid):
     """
     与客户端断开连接时执行,将客户端从所有房间中移除

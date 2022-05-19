@@ -108,19 +108,21 @@ def handler_delete_group(group_id):
     if not re or re.group.is_delete:
         return jsonify(error_code=RET.NO_DATA_ERR, error_msg="user group no find")
 
-    msg_list = list()
-
     # 创建者解散用户组
     if re.role_type == GroupRole.create_user.value:
         res = ReUserGroup.query.filter_by(is_delete=False, group_id=group_id).all()
         for item in res:
-            msg_list.append({
-                'from_id': group_id,
-                'to_id': item.user.gitee_id,
-                'data': json.dumps(dict(info=f'<b>{redis_client.hget(RedisKey.user(g.gitee_id), "current_org_name")}'
-                                             f'</b>组织下的<b>{re.group.name}</b>用户组已解散')),
-                'level': MsgLevel.group.value
-            })
+            Insert(
+                Message,
+                {
+                    "data": json.dumps({"info": f'<b>{redis_client.hget(RedisKey.user(g.gitee_id), "current_org_name")}'
+                                                f'</b>组织下的<b>{re.group.name}</b>用户组已解散'}),
+                    "level": MsgLevel.group.value,
+                    "from_id": group_id,
+                    "to_id": item.user.gitee_id,
+                    "type": MsgType.text.value
+                }
+            ).insert_id()
         Group.query.filter_by(is_delete=False, id=group_id).update({'is_delete': True}, synchronize_session=False)
         ReUserGroup.query.filter_by(is_delete=False, group_id=group_id).update({'is_delete': True},
                                                                                synchronize_session=False)
@@ -150,13 +152,18 @@ def handler_delete_group(group_id):
                                        ReUserGroup.user_gitee_id != g.gitee_id).all()
         re.is_delete = True
         for item in res:
-            msg_list.append({
-                'from_id': g.gitee_id,
-                'to_id': item.user.gitee_id,
-                'data': json.dumps(dict(info=f'<b>{re.user.gitee_name}</b>退出'
-                                             f'<b>{redis_client.hget(RedisKey.user(g.gitee_id), "current_org_name")}'
-                                             f'</b>组织下的<b>{re.group.name}</b>用户组'))
-            })
+            Insert(
+                Message,
+                {
+                    "data": json.dumps({"info": f'<b>{re.user.gitee_name}</b>退出'
+                                                f'<b>{redis_client.hget(RedisKey.user(g.gitee_id), "current_org_name")}'
+                                                f'</b>组织下的<b>{re.group.name}</b>用户组'}),
+                    "level": MsgLevel.group.value,
+                    "from_id": g.gitee_id,
+                    "to_id": item.user.gitee_id,
+                    "type": MsgType.text.value
+                }
+            ).insert_id()
         re.add_update()
 
         # 解除组内角色和用户的绑定
@@ -168,8 +175,6 @@ def handler_delete_group(group_id):
             Delete(ReUserRole, {"id": re.id}).single()
     else:
         return jsonify(error_code=RET.VERIFY_ERR, error_msg="user has not right")
-    db.session.execute(Message.__table__.insert(), msg_list)
-    db.session.commit()
     return jsonify(error_code=RET.OK, error_msg="OK")
 
 
@@ -254,7 +259,6 @@ def handler_add_user(group_id, body):
     has_gitee_ids = [item.user.gitee_id for item in relations]
     # 创建新纪录但是不要添加到数据库
     add_list = list()
-    message_list = list()
     for gitee_id in body.gitee_ids:
         if gitee_id in has_gitee_ids:
             continue
@@ -265,19 +269,20 @@ def handler_add_user(group_id, body):
             group_id=int(group_id),
             org_id=redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')
         ))
-        message_list.append(dict(
-            data=json.dumps(
-                dict(group_id=group_id,
-                     info=f'<b>{re.user.gitee_name}</b>邀请您加入'
-                          f'<b>{redis_client.hget(RedisKey.user(g.gitee_id), "current_org_name")}</b>组织下的'
-                          f'<b>{re.group.name}</b>用户组。')),
-            level=MsgLevel.user.value,
-            from_id=re.user.gitee_id,
-            to_id=gitee_id,
-            type=MsgType.script.value
-        ))
+        Insert(
+            Message,
+            {
+                "data": json.dumps({"group_id": group_id,
+                                    "info": f'<b>{re.user.gitee_name}</b>邀请您加入'
+                                            f'<b>{redis_client.hget(RedisKey.user(g.gitee_id), "current_org_name")}</b>组织下的'
+                                            f'<b>{re.group.name}</b>用户组。'}),
+                "level": MsgLevel.user.value,
+                "from_id": re.user.gitee_id,
+                "to_id": gitee_id,
+                "type": MsgType.script.value
+            }
+        ).insert_id()
     db.session.execute(ReUserGroup.__table__.insert(), add_list)
-    db.session.execute(Message.__table__.insert(), message_list)
     db.session.commit()
     return jsonify(error_code=RET.OK, error_msg="OK")
 
@@ -303,7 +308,6 @@ def handler_update_user(group_id, body):
         update_params = dict()
         if body.is_delete:
             res = ReUserGroup.query.filter(*filter_params).all()
-            msg_list = list()
             for item in res:
                 user_id = item.user_gitee_id
                 _filter = [ReUserRole.user_id == user_id,
@@ -312,19 +316,19 @@ def handler_update_user(group_id, body):
                 re_list = ReUserRole.query.join(Role).filter(*_filter).all()
                 for _re in re_list:
                     Delete(ReUserRole, {"id": _re.id}).single()
-                msg_list.append(dict(
-                    data=json.dumps(
-                        dict(info=f'<b>{re.user.gitee_name}</b>将您请出'
-                                  f'<b>{redis_client.hget(RedisKey.user(g.gitee_id), "current_org_name")}</b>组织下的'
-                                  f'<b>{re.group.name}</b>用户组！')),
-                    level=MsgLevel.user.value,
-                    from_id=g.gitee_id,
-                    to_id=item.user_gitee_id,
-                    type=MsgType.text.value
-                ))
+                Insert(
+                    Message,
+                    {
+                        "data": json.dumps({'info': f'<b>{re.user.gitee_name}</b>将您请出'
+                                                    f'<b>{redis_client.hget(RedisKey.user(g.gitee_id), "current_org_name")}</b>组织下的'
+                                                    f'<b>{re.group.name}</b>用户组！'}),
+                        "level": MsgLevel.user.value,
+                        "from_id": g.gitee_id,
+                        "to_id": item.user_gitee_id,
+                        "type": MsgType.text.value
+                    }
+                ).insert_id()
                 item.delete()
-            db.session.execute(Message.__table__.insert(), msg_list)
-            db.session.commit()
         else:
             if body.role_type in [GroupRole.admin.value, GroupRole.user.value]:
                 update_params["role_type"] = body.role_type
