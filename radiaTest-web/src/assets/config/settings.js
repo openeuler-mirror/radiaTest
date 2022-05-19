@@ -6,7 +6,7 @@ const license = 'Mulan PSL v2';
 const serverPath = 'radiatest.openeuler.org';
 // const serverPath = '0.0.0.0:8080'
 
-const newsSocketPath = `wss://${serverPath}/api/v1/msg`;
+const newsSocketPath = `wss://${serverPath}/message`;
 // const newsSocketPath = `ws://${serverPath}/api/v1/msg`;
 
 export default {

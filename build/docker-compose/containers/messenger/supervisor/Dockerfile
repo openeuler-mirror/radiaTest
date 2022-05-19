@@ -24,6 +24,7 @@ ENV PIP_REPO https://pypi.tuna.tsinghua.edu.cn/simple
 RUN dnf install -y git \
     && git clone $GIT_REPO \
     && dnf install -y ipmitool \
+    && dnf install -y iputils \
     && dnf install -y rsync \
     && dnf install -y cronie \
     && dnf install -y logrotate \

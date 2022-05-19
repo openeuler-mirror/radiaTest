@@ -92,23 +92,11 @@ export default defineComponent({
         menuValue.value = item.key;
       }
     });
-    const msgCount = inject('msgCount');
-    const msgCountUpdate = inject('msgCountUpdate');
+
     provide('showMenu', true);
-    watch(msgCount, (newVal, oldVal) => {
-      if (newVal > oldVal) {
-        notification.info({
-          content: '您有新的消息',
-          duration: 1000,
-        });
-      }
-    }, {
-      deep: true,
-    });
+
     return {
       menuValue,
-      msgCount,
-      msgCountUpdate,
       ...modules,
     };
   },

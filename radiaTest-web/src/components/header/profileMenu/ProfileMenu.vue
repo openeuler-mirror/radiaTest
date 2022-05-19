@@ -35,33 +35,6 @@
       </n-dropdown>
     </n-gi>
   </n-grid>
-  <n-modal
-    v-model:show="showOrgModal"
-    preset="dialog"
-    :showIcon="false"
-    title="Dialog"
-  >
-    <template #header>
-      <div>切换组织</div>
-    </template>
-    <n-form-item
-      label="组织"
-      label-placement="left"
-      :lable-width="80"
-      :rule="orgRule"
-    >
-      <n-select
-        v-model:value="activeOrg"
-        :options="orgOptions"
-        placeholder="请选择组织"
-      ></n-select>
-    </n-form-item>
-    <template #action>
-      <n-button @click="switchOrg" type="primary" ghost size="large"
-        >确定</n-button
-      >
-    </template>
-  </n-modal>
 </template>
 
 <script>
@@ -77,24 +50,21 @@ export default defineComponent({
     const { proxy } = getCurrentInstance();
     modules.getOrg();
     const msgCount = inject('msgCount');
-    const msgCountUpdate = inject('msgCountUpdate');
+
     watch(msgCount, (newVal, oldVal) => {
-      if (newVal > oldVal) {
-        document.dispatchEvent(new CustomEvent('reloadNews'));
-        proxy.$axios.get('/v1/msg', { has_read: 0, page_num: 1, page_size: 10 }).then(res => {
-          proxy.$store.commit('news/setUnreadNewsList', res.data.items);
-        });
-        proxy.$axios.get('/v1/msg', { has_read: 1, page_num: 1, page_size: 10 }).then(res => {
-          proxy.$store.commit('news/setReadNewsList', res.data.items);
-        });
-      }
+      document.dispatchEvent(new CustomEvent('reloadNews'));
+      proxy.$axios.get('/v1/msg', { has_read: 0, page_num: 1, page_size: 10 }).then(res => {
+        proxy.$store.commit('news/setUnreadNewsList', res.data.items);
+      });
+      proxy.$axios.get('/v1/msg', { has_read: 1, page_num: 1, page_size: 10 }).then(res => {
+        proxy.$store.commit('news/setReadNewsList', res.data.items);
+      });
     }, {
       deep: true,
     });
 
     return {
       msgCount,
-      msgCountUpdate,
       createAvatar,
       ...modules,
     };
