@@ -230,7 +230,7 @@ class CreateVmachine(AuthMessageBody):
             mirror = ChooseMirror(
                 self.auth,
                 self._body, 
-                "/api/v1/qmirroring"
+                "/api/v1/qmirroring/preciseget"
             ).run(self._milestone)
 
             if mirror is None:
@@ -247,7 +247,7 @@ class CreateVmachine(AuthMessageBody):
             mirror = ChooseMirror(
                 self.auth,
                 self._body, 
-                "/api/v1/imirroring"
+                "/api/v1/imirroring/preciseget"
             ).run(self._milestone)
 
             if mirror is None:
@@ -264,7 +264,7 @@ class CreateVmachine(AuthMessageBody):
             mirror = ChooseMirror(
                 self.auth,
                 self._body, 
-                "/api/v1/imirroring"
+                "/api/v1/imirroring/preciseget"
             ).run(self._milestone)
 
             if mirror is None:

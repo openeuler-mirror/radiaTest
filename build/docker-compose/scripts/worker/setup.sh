@@ -19,7 +19,7 @@
     "$PKG_MNG" install -y libvirt &&
     "$PKG_MNG" install -y virt-install &&
     "$PKG_MNG" install -y rsync &&
-    "$PSK_MNG" install -y cronie &&
+    "$PKG_MNG" install -y cronie &&
     "$PKG_MNG" install -y logrotate &&
     "$PKG_MNG" install -y python3-pip &&
     "$PKG_MNG" install -y python3-devel
