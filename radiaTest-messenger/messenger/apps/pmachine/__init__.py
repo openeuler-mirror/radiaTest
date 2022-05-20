@@ -2,6 +2,7 @@ from flask_restful import Api
 
 from .routes import Power
 from .routes import Install
+from .routes import CheckBmcInfo
 
 
 def init_api(api: Api):
