@@ -35,7 +35,7 @@
 
 <script>
 import { ref, getCurrentInstance, provide, readonly } from 'vue';
-import { zhCN, dateZhCN, useNotification } from 'naive-ui';
+import { zhCN, dateZhCN } from 'naive-ui';
 import hljs from 'highlight.js/lib/core';
 import bash from 'highlight.js/lib/languages/bash';
 import python from 'highlight.js/lib/languages/python';
@@ -81,20 +81,15 @@ export default {
   },
   setup() {
     const transitionName = ref('');
-    const notification = useNotification();
     const { proxy } = getCurrentInstance();
 
     const msgCount = ref(0);
     provide('msgCount', readonly(msgCount));
 
+    proxy.$newsSocket.connect();
+
     proxy.$newsSocket.listen('count', (data) => {
       msgCount.value = data.num;
-    });
-    proxy.$newsSocket.listen('notify', (data) => {
-      notification.info({
-        content: data.content,
-        duration: 10000,
-      });
     });
 
     const routerClass = ref('');
@@ -120,8 +115,8 @@ export default {
         this.$newsSocket.emit(
           'after_connect', 
           {
-            "sid": this.$newsSocket.sessionID,
-            "token": this.$storage.getValue('token')
+            'sid': this.$newsSocket.sessionID,
+            'token': this.$storage.getValue('token')
           }
         );
       }
@@ -133,7 +128,7 @@ export default {
       {
         'sid': this.$newsSocket.sessionID
       }
-    )
+    );
   },
   watch: {
     $route(to, from) {

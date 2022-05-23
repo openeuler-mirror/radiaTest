@@ -51,7 +51,7 @@ export default defineComponent({
     modules.getOrg();
     const msgCount = inject('msgCount');
 
-    watch(msgCount, (newVal, oldVal) => {
+    watch(msgCount, () => {
       document.dispatchEvent(new CustomEvent('reloadNews'));
       proxy.$axios.get('/v1/msg', { has_read: 0, page_num: 1, page_size: 10 }).then(res => {
         proxy.$store.commit('news/setUnreadNewsList', res.data.items);
