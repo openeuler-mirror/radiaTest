@@ -13,7 +13,7 @@
 # @License : Mulan PSL v2
 #####################################
 
-FROM radia-test/gunicorn:1.1.0
+FROM radia-test/gunicorn
 LABEL maintainer="ethanzhang55@outlook.com"
 
 CMD celery -A manage.my_celery beat -s celeryservice/celerybeat/celerybeat-schedule -l info

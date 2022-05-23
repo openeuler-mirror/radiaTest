@@ -32,5 +32,5 @@ WORKDIR /opt/radiaTest/radiaTest-server/
 RUN bash ./install_rar.sh \
     && pip3 install -r requirements.txt -i $PIP_REPO
 
-CMD bash /opt/radiaTest/build/k8s-pod/web/supervisor/init_db.sh \
+CMD bash /opt/radiaTest/build/k8s-pod/web/gunicorn/init_db.sh \
     && gunicorn -c gunicorn/gunicorn.conf.py manage:app

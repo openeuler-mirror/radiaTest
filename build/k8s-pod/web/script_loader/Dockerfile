@@ -13,7 +13,7 @@
 # @License : Mulan PSL v2
 #####################################
 
-FROM radia-test/gunicorn:1.1.0
+FROM radia-test/gunicorn
 LABEL maintainer="ethanzhang55@outlook.com"
 
 CMD celery -A manage.my_celery worker --loglevel=info --hostname=celery_worker_load_scripts --pidfile=celeryservice/celerymain/celery_worker_load_scripts.pid --statedb=celeryservice/celerymain/celery_worker_load_scripts_db --queues=queue_load_scripts
