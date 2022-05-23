@@ -4,6 +4,10 @@ from typing_extensions import Literal
 ## 架构
 Frame = Literal["aarch64", "x86_64"]
 
+## 物理机
+### 释放占有
+PmachineState = Literal["idle", "occupied"]
+
 ### 电源状态
 Power = Literal["on", "off", "reset"]
 
@@ -18,6 +22,7 @@ PmSelectMode = Literal["auto", "assign"]
 VMStatus = Literal[
     "start", "destroy", "shutdown", "reset", "reboot", "suspend", "resume"
 ]
+
 
 ### cpu模式
 CPUMode = Literal["host-passthrough", "host-model", "custom"]
