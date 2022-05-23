@@ -21,7 +21,7 @@ export default defineComponent({
     id: Number,
   },
   setup(props) {
-    const vnicSocket = new Socket(`wss://${settings.serverPath}/vnic`);
+    const vnicSocket = new Socket(`${settings.websocketProtocol}://${settings.serverPath}/vnic`);
     vnicSocket.connect();
 
     const data = ref([]);

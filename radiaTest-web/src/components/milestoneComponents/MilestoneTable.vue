@@ -29,7 +29,7 @@ import createColumns from '@/views/milestone/modules/milestoneTableColumns.js';
 export default defineComponent({
   setup(props, context) {
     const store = useStore();
-    const milestoneSocket = new Socket(`wss://${settings.serverPath}/milestone`);
+    const milestoneSocket = new Socket(`${settings.websocketProtocol}://${settings.serverPath}/milestone`);
     milestoneSocket.connect();
 
     onMounted(() => {
