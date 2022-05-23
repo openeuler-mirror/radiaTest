@@ -122,7 +122,7 @@ export default defineComponent({
     LogsDrawer,
   },
   setup() {
-    const jobSocket = new Socket(`wss://${settings.serverPath}/job`);
+    const jobSocket = new Socket(`${settings.websocketProtocol}://${settings.serverPath}/job`);
     jobSocket.connect();
     const finishRef = ref();
     const waitRef = ref();

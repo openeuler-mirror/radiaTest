@@ -60,7 +60,7 @@ export default defineComponent({
     }
   },
   mounted() {
-    const pmachineSocket = new Socket(`wss://${settings.serverPath}/pmachine`);
+    const pmachineSocket = new Socket(`${settings.websocketProtocol}://${settings.serverPath}/pmachine`);
     pmachineSocket.connect();
     pmachineSocket.listen('update', () => {
       this.getData();

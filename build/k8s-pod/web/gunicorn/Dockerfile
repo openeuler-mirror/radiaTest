@@ -24,6 +24,7 @@ WORKDIR /opt
 RUN dnf install -y git \
     && git clone $GIT_REPO \
     && dnf install -y make \
+    && dnf install -y iputils \
     && dnf install -y python3-pip \
     && dnf install -y python3-devel
 

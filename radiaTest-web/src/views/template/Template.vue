@@ -187,7 +187,7 @@ export default defineComponent({
     execTemplate
   },
   setup() {
-    const templateSocket = new Socket(`wss://${settings.serverPath}/template`);
+    const templateSocket = new Socket(`${settings.websocketProtocol}://${settings.serverPath}/template`);
     templateSocket.connect();
 
     provide('personal', template.personalData);

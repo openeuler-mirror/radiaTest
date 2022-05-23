@@ -236,8 +236,8 @@ export default defineComponent({
   },
   setup(props) {
     const { form } = toRefs(props);
-    const isoSocket = new Socket(`wss://${settings.serverPath}/imirroring`);
-    const qcow2Socket = new Socket(`wss://${settings.serverPath}/qmirroring`);
+    const isoSocket = new Socket(`${settings.websocketProtocol}://${settings.serverPath}/imirroring`);
+    const qcow2Socket = new Socket(`${settings.websocketProtocol}://${settings.serverPath}/qmirroring`);
     isoSocket.connect();
     qcow2Socket.connect();
 
