@@ -55,7 +55,7 @@
   </div>
 </template>
 <script>
-import { ref, defineComponent, provide, getCurrentInstance, watch, inject } from 'vue';
+import { ref, defineComponent, provide, getCurrentInstance } from 'vue';
 import { useNotification, useDialog, useMessage } from 'naive-ui';
 import { Exit } from '@vicons/ionicons5';
 

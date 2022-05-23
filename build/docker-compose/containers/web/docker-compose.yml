@@ -66,6 +66,7 @@ services:
             - /var/log/radiaTest-server/update_tasks:/opt/radiaTest/radiaTest-server/log/update_tasks
             - /var/log/radiaTest-server/celerybeat:/opt/radiaTest/radiaTest-server/log/celerybeat
             - /etc/radiaTest:/etc/radiaTest
+            - /var/lib/radiaTest/migrations:/opt/radiaTest/radiaTest-server/migrations
         ulimits:
             nproc: 65535
             nofile:
