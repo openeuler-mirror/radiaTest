@@ -13,7 +13,7 @@
 # @License : Mulan PSL v2
 #####################################
 
-FROM radia-test/gunicorn:1.1.0
+FROM radia-test/gunicorn
 LABEL maintainer="ethanzhang55@outlook.com"
 
 CMD celery -A manage.my_celery worker --loglevel=info --hostname=celery_worker_update_tasks --pidfile=celeryservice/celerymain/celery_worker_update_tasks.pid --statedb=celeryservice/celerymain/celery_revokes_state_update_tasks_db --queues=queue_update_celerytask_status 
