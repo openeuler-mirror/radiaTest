@@ -3,6 +3,7 @@ import { reactive, ref, h } from 'vue';
 import axios from '@/axios';
 import router from '@/router/index';
 import { storage } from '@/assets/utils/storageUtils';
+import { addRoom } from '@/assets/utils/socketUtils';
 import { getCookieValByKey } from '@/assets/utils/cookieUtils';
 import { urlArgs } from '@/assets/utils/urlUtils';
 import { changeLoadingStatus } from '@/assets/utils/loading';
@@ -118,7 +119,12 @@ function gotoHome () {
       storage.setValue('token', getCookieValByKey('token'));
       storage.setValue('refresh_token', getCookieValByKey('refresh_token'));
       storage.setValue('gitee_id', getCookieValByKey('gitee_id'));
-      router.push({ name: 'home' });
+      router.push({ name: 'home' })
+        .then(
+          () => {
+            addRoom(storage.getValue('token'));
+          }
+        );
     }, 1000);
   } else if (urlArgs().isSuccess === 'False') {
     loginInfo.org = urlArgs().org_id;

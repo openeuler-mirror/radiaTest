@@ -109,26 +109,16 @@ export default {
         sessionStorage.setItem('refresh', 1);
       }
     });
-
-    if (this.$route.name !== 'login' && this.$route.path) {
-      if (this.$newsSocket.isConnect()) {
-        this.$newsSocket.emit(
-          'after_connect', 
-          {
-            'sid': this.$newsSocket.sessionID,
-            'token': this.$storage.getValue('token')
-          }
-        );
-      }
-    }
   },
   unmounted() {
-    this.$newsSocket.emit(
-      'before_disconnect',
-      {
-        'sid': this.$newsSocket.sessionID
-      }
-    );
+    if (this.$newsSocket.isConnect()) {
+      this.$newsSocket.emit(
+        'before_disconnect',
+        {
+          'sid': this.$newsSocket.sessionID
+        }
+      );
+    }
   },
   watch: {
     $route(to, from) {

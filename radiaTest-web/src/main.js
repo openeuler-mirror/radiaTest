@@ -5,9 +5,8 @@ import store from '@/store';
 import router from '@/router/index';
 import axios from '@/axios';
 import moment from 'moment';
-import { Socket } from './socket';
 import { storage } from '@/assets/utils/storageUtils';
-import config from '@/assets/config/settings';
+import { newsSocket } from '@/assets/utils/socketUtils';
 
 import 'vfonts/Lato.css';
 import 'vfonts/FiraCode.css';
@@ -43,7 +42,7 @@ const app = createApp(App);
 app.config.globalProperties.$axios = axios;
 app.config.globalProperties.$moment = moment;
 app.config.globalProperties.$storage = storage;
-app.config.globalProperties.$newsSocket = new Socket(config.newsSocketPath);
+app.config.globalProperties.$newsSocket = newsSocket;
 
 //应用插件
 app

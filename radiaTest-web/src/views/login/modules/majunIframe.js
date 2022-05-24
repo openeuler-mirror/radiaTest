@@ -2,6 +2,7 @@ import { ref } from 'vue';
 
 import axios from '@/axios';
 import router from '@/router/index';
+import { addRoom } from '@/assets/utils/socketUtils';
 import { storage } from '@/assets/utils/storageUtils';
 import { urlArgs } from '@/assets/utils/urlUtils';
 
@@ -25,7 +26,12 @@ function isIframe () {
             storage.setValue('token', res.data.token);
             storage.setValue('refresh_token', res.data.refresh_token);
             storage.setValue('gitee_id', res.data.gitee_id);
-            router.push({ name: 'home' });
+            router.push({ name: 'home' })
+              .then(
+                () => {
+                  addRoom(storage.getValue('token'));
+                }
+              );
           }
         });
       }

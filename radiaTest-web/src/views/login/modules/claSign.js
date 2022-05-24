@@ -4,6 +4,7 @@ import { orgList } from './org';
 import axios from '@/axios';
 import router from '@/router/index';
 import { openChildWindow, urlArgs } from '@/assets/utils/urlUtils';
+import { addRoom } from '@/assets/utils/socketUtils';
 import { storage } from '@/assets/utils/storageUtils';
 import { registerShow, requireCLA } from './login';
 
@@ -72,7 +73,8 @@ function perfectInfo() {
         contentName.value = stepList.value[current.value - 1].name;
         setTimeout(() => {
           registerShow.value = false;
-          router.push({ name: 'home' });
+          router.push({ name: 'home' })
+            .then(() => {addRoom(storage.getValue('token'));});
         }, 1000);
       })
       .catch((err) => {
@@ -81,14 +83,10 @@ function perfectInfo() {
           stepList.value = [
             { title: 'Gitee授权', status: 'finish' },
             {
-              title: 'CLA签署',
-              name: 'signCLA',
-              status: 'wait',
+              title: 'CLA签署', name: 'signCLA', status: 'wait',
             },
             {
-              title: '信息完善',
-              name: 'perfectInfo',
-              status: 'wait',
+              title: '信息完善', name: 'perfectInfo', status: 'wait',
             },
             { title: '注册成功', name: 'success', status: 'wait' },
           ];
