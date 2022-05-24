@@ -577,7 +577,7 @@ def handler_get_user_task(query: UserTaskSchema):
         return item_dict
 
     if query.task_title:
-        basic_filter_params.append(Task.title.like(f'%{body.task_title}%'))
+        basic_filter_params.append(Task.title.like(f'%{query.task_title}%'))
 
     filter_param = []
     if query.task_type == 'all':

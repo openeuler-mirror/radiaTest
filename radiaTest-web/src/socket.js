@@ -11,7 +11,6 @@ class Socket {
       transports: ['websocket'],
       query: this.query,
     });
-    this.sessionID = this.socket.sessionId;
   }
   disconnect() {
     this.socket.close();
