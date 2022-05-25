@@ -109,15 +109,14 @@ export default {
         sessionStorage.setItem('refresh', 1);
       }
     });
-  },
-  unmounted() {
-    if (this.$newsSocket.isConnect()) {
-      this.$newsSocket.emit(
-        'before_disconnect',
-        {
-          'sid': this.$newsSocket.sessionID
-        }
-      );
+
+    if (this.$route.name !== 'login' && this.$route.path) {
+      if (this.$newsSocket.isConnect()) {
+        this.newsSocket.emit(
+          'after connect', 
+          this.$storage.getValues('token'),
+        );
+      }
     }
   },
   watch: {
