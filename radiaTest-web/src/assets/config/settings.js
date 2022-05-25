@@ -16,4 +16,5 @@ export default {
   license,
   serverPath,
   newsSocketPath,
+  websocketProtocol,
 };
