@@ -537,7 +537,6 @@ def handler_get_user_task(query: UserTaskSchema):
     now = datetime.now()
     # 全部任务
     basic_filter_params = [Task.is_delete.is_(False),
-                           Task.executor_type == 'PERSON',
                            Task.executor_id == g.gitee_id,
                            Task.org_id == current_org_id]
 

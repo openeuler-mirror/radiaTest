@@ -52,8 +52,9 @@ class RoleItemEvent(Resource):
     @auth.login_required
     @casbin_enforcer.enforcer
     @response_collect
-    def get(self, role_id):
-        return RoleHandler.get(role_id)
+    @validate()
+    def get(self, role_id, query: ScopeQuerySchema):
+        return RoleHandler.get(role_id, query)
 
 
 class AllRoleEvent(Resource):

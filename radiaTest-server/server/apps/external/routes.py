@@ -121,7 +121,7 @@ class UpdateTaskEvent(Resource):
 class LoginOrgList(Resource):
     def get(self):
         return_data = []
-        orgs = Organization.query.all()
+        orgs = Organization.query.filter_by(is_delete=False).all()
         for org in orgs:
             org_dict = LoginOrgListSchema(**org.__dict__).__dict__
             org_dict.update({
