@@ -16,6 +16,9 @@
 FROM openeuler/openeuler:22.03-lts
 LABEL maintainer="ethanzhang55@outlook.com"
 
+ENV TZ Asia/Shanghai
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
 ENV GIT_REPO https://gitee.com/openeuler/radiaTest
 
 WORKDIR /opt

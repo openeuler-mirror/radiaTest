@@ -16,6 +16,9 @@
 FROM openeuler/openeuler:21.09
 LABEL maintainer="ethanzhang55@outlook.com"
 
+ENV TZ Asia/Shanghai
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
 ENV websockify_listen 21580
 WORKDIR /data/vnc_tokens
 
