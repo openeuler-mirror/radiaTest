@@ -3,14 +3,11 @@ import config from '@/assets/config/settings';
 
 const newsSocket = new Socket(config.newsSocketPath);
 
-const addRoom = (_token) => {
+const addRoom = (token) => {
   if (newsSocket.isConnect()) {
     newsSocket.emit(
-      'after_connect', 
-      {
-        'sid': newsSocket.socket.id,
-        'token': _token,
-      }
+      'after connect', 
+      token,
     );
   }
 };
