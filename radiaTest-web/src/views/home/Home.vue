@@ -9,7 +9,7 @@
   </div>
 </template>
 <script>
-import { ref, defineComponent, getCurrentInstance } from 'vue';
+import { ref, defineComponent } from 'vue';
 import { useMessage, useNotification, useDialog } from 'naive-ui';
 import MugenHeader from '@/components/header/Header';
 import modules from './index';
@@ -19,7 +19,6 @@ export default defineComponent({
     MugenHeader,
   },
   setup() {
-    const { proxy } = getCurrentInstance();
     const message = useMessage();
     const notification = useNotification();
     const dialog = useDialog();
@@ -28,13 +27,6 @@ export default defineComponent({
     window.$dialog = dialog;
 
     const home = ref(null);
-
-    proxy.$newsSocket.listen('notify', (data) => {
-      notification.info({
-        content: data.content,
-        duration: 10000,
-      });
-    });
 
     return {
       home,

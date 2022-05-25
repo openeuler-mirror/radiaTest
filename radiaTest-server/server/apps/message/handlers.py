@@ -63,7 +63,7 @@ def handler_update_msg():
     emit(
         "count",
         {"num": msg_count},
-        namespace='message',
+        namespace='/message',
         room=str(g.gitee_id)
     )
     return jsonify(error_code=RET.OK, error_msg='OK')
