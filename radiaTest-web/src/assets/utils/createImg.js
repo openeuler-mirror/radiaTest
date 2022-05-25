@@ -1,4 +1,4 @@
-export function createAvatar (text, size = 40, textColor = 'rgba(0, 47, 167, 1)', backgoundColor = '#fff') {
+export function createAvatar (text, size = 40, textColor = '#fff', backgoundColor = 'rgba(0, 47, 167, 1)') {
   const canvas = document.createElement('canvas');
   canvas.width = size;
   canvas.height = size;

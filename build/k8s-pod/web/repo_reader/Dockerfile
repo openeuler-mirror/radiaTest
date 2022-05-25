@@ -16,4 +16,4 @@
 FROM radia-test/gunicorn
 LABEL maintainer="ethanzhang55@outlook.com"
 
-CMD celery -A manage.my_celery worker --loglevel=info --hostname=celery_worker_read_git_repo --pidfile=celeryservice/celerymain/celery_worker_read_git_repo.pid --statedb=celeryservice/celerymain/celery_revokes_state_read_git_repo_db --queues=queue_read_git_repo
+CMD celery -A manage.my_celery worker --loglevel=info --hostname=celery_worker_read_git_repo --pidfile=celeryservice/celerymain/celery_worker_read_git_repo.pid --statedb=celeryservice/celerymain/celery_revokes_state_read_git_repo_db --queues=queue_read_git_repo --pool=prefork --concurrency=4

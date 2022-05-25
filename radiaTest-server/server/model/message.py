@@ -42,9 +42,9 @@ class Message(db.Model, Base):
         }
 
     def add_update(self, table=None, namespace=None, broadcast=False):
-        super().add_update(table, namespace, broadcast)
         if not self.id:
             self.emit_notify()
+        super().add_update(table, namespace, broadcast)
         self.emit_count()
 
     def add_flush_commit_id(self, table=None, namespace=None, broadcast=False):
@@ -63,10 +63,13 @@ class Message(db.Model, Base):
         from flask_socketio import emit
         emit(
             "count",
-            {"num": Message.query.filter(Message.to_id == self.to_id,
-                                         Message.is_delete == False,
-                                         Message.has_read == False).count()},
-            namespace='message',
+            {
+                "num": Message.query.filter(
+                    Message.to_id == self.to_id,
+                    Message.is_delete == False,
+                    Message.has_read == False).count()
+            },
+            namespace='/message',
             room=str(self.to_id)
         )
 
@@ -74,8 +77,10 @@ class Message(db.Model, Base):
         from flask_socketio import emit
         emit(
             "notify",
-            {"content": json.loads(self.data).get('info')},
-            namespace='message',
+            {
+                "content": json.loads(self.data).get('info')
+            },
+            namespace='/message',
             room=str(self.to_id)
         )
 

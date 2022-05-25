@@ -7,7 +7,7 @@
           circle
           :size="100"
           :src="state.userInfo.avatar_url"
-          :fallback-src="createAvatar(state.userInfo.gitee_name.slice(0,1))"
+          :fallback-src="createAvatar(String(state.userInfo.gitee_name).slice(0,1))"
         />
       </div>
       <div class="container">

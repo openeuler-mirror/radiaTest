@@ -34,7 +34,7 @@
 </template>
 
 <script>
-import { ref, getCurrentInstance, provide, readonly } from 'vue';
+import { h, ref, getCurrentInstance, provide, readonly } from 'vue';
 import { zhCN, dateZhCN } from 'naive-ui';
 import hljs from 'highlight.js/lib/core';
 import bash from 'highlight.js/lib/languages/bash';
@@ -45,6 +45,7 @@ import { theme } from '@/assets/config/theme.js';
 import fixNavigation from '@/components/fixNavigation/fixNavgation.vue';
 import collapseNDrawer from '@/components/collapseDrawer/collapseNDrawer.vue';
 import backendTask from '@/views/backendTask/backendTask.vue';
+import vHtml from '@/components/common/vHtml.vue';
 
 hljs.registerLanguage('bash', bash);
 hljs.registerLanguage('python', python);
@@ -91,6 +92,15 @@ export default {
     proxy.$newsSocket.listen('count', (data) => {
       msgCount.value = data.num;
     });
+    proxy.$newsSocket.listen('notify', (msg) => {
+      window.$notification.info({
+        content: '通知',
+        meta: () => {
+          return h(vHtml, {domString: msg.content});
+        },
+        duration: 10000,
+      });
+    });
 
     const routerClass = ref('');
     return {
@@ -106,18 +116,19 @@ export default {
   mounted() {
     window.addEventListener('beforeunload', () => {
       if (this.$route.name === 'taskDetails') {
-        sessionStorage.setItem('refresh', 1);
+        sessionStorage.setItem('refresh', 1); 
+      } 
+    });
+    window.addEventListener('load', () => {
+      if (this.$route.name !== 'login' && this.$route.path) {
+        if (this.$newsSocket.isConnect()) {
+          this.$newsSocket.emit(
+            'after connect', 
+            this.$storage.getValue('token'),
+          );
+        }
       }
     });
-
-    if (this.$route.name !== 'login' && this.$route.path) {
-      if (this.$newsSocket.isConnect()) {
-        this.newsSocket.emit(
-          'after connect', 
-          this.$storage.getValues('token'),
-        );
-      }
-    }
   },
   watch: {
     $route(to, from) {

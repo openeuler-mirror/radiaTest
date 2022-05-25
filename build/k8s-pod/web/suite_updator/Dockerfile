@@ -16,4 +16,4 @@
 FROM radia-test/gunicorn
 LABEL maintainer="ethanzhang55@outlook.com"
 
-CMD celery -A manage.my_celery worker --loglevel=info --hostname=celery_worker_update_suite --pidfile=celeryservice/celerymain/celery_worker_update_suite.pid --statedb=celeryservice/celerymain/celery_worker_update_suite_db --queues=queue_update_suite
+CMD celery -A manage.my_celery worker --loglevel=info --hostname=celery_worker_update_suite --pidfile=celeryservice/celerymain/celery_worker_update_suite.pid --statedb=celeryservice/celerymain/celery_worker_update_suite_db --queues=queue_update_suite --pool=gevent --concurrency=20
