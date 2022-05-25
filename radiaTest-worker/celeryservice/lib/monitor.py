@@ -1,11 +1,10 @@
 import json
 import shlex
 import requests
-import subprocess
-
+from subprocess import getoutput, getstatusoutput
+import time
 from celeryservice import celeryconfig
-from celeryservice.lib import TaskHandlerBase
-
+from celeryservice.lib import TaskHandlerBase, AuthTaskHandler
 
 class IllegalMonitor(TaskHandlerBase):
     def _get_virsh_domains(self):
@@ -79,3 +78,68 @@ class IllegalMonitor(TaskHandlerBase):
             except RuntimeError as e:
                 self.logger.warn(str(e))
                 continue
+
+
+
+class VmStatusMonitor(AuthTaskHandler):
+    def __init__(self, logger, auth, body):
+        self._body = body
+        self._user = body.get("user_id", "unknown")
+        super().__init__(logger, auth)
+
+    def main(self, promise):
+        try:
+            self.logger.info(
+                "user {0} attempt to create vmachine by cd_rom from {1}".format(
+                    self._user,
+                    self._body.get("url"),
+                )
+            )
+            
+            self.next_period()
+            promise.update_state(
+                state="_STARTING",
+                meta={
+                    "start_time": self.start_time,
+                    "running_time": self.running_time,
+                },
+            )
+            for _ in range(celeryconfig.wait_vm_install):
+                exitcode = getstatusoutput(
+                    "export LANG=en_US.utf-8 ; test \"$(eval echo $(virsh list --all | grep '{}' | awk -F '{} *' ".format(
+                    shlex.quote(self._body.get("name")), shlex.quote(self._body.get("name"))
+                    )
+                    + "'{print $NF}'))\" == 'shut off'"
+                    )[0]
+                if exitcode == 0:
+                    time.sleep(celeryconfig.wait_vm_shutdown)
+                    exitcode, output = getstatusoutput(
+                        "virsh start {}".format(shlex.quote(self._body.get("name")))
+                    )
+                    break
+                time.sleep(1)
+
+            exitcode, output = getstatusoutput(
+                "export LANG=en_US.utf-8 ; eval echo $(virsh list --all | grep '{}' ".format(
+                    shlex.quote(self._body.get("name"))
+                )
+                + " | awk -F '  ' '{print $NF}')"
+            )
+
+            self.next_period()
+            promise.update_state(
+                state="_SUCCESS",
+                meta={
+                    "start_time": self.start_time,
+                    "running_time": self.running_time,
+                },
+            )
+
+        except (RuntimeError, TypeError, KeyError, AttributeError):
+            promise.update_state(
+                state="FAILURE",
+                meta={
+                    "start_time": self.start_time,
+                    "running_time": self.running_time,
+                },
+            )

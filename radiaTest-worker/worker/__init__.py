@@ -24,6 +24,11 @@ celery = Celery(
             'routing_key': 'illegal_monitor',
             'delivery_mode': 1,
         },
+        'celeryservice.sub_tasks.async_vmstatus_monitor': {
+            'queue': 'queue_vmstatus_monitor',
+            'routing_key': 'vmstatus_monitor',
+            'delivery_mode': 1,
+        },
     }
 )
 

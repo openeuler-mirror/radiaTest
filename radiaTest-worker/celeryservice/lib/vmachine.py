@@ -5,7 +5,8 @@ import json
 from subprocess import getoutput, getstatusoutput
 
 from celeryservice import celeryconfig
-from . import AuthTaskHandler
+from celeryservice.lib import AuthTaskHandler
+from celeryservice.sub_tasks import async_vmstatus_monitor
 from worker.utils.bash import (
     get_bridge_source,
     get_network_source,
@@ -349,6 +350,134 @@ class InstallVmachine(VmachineBaseSchema):
             )
 
     def cd_rom(self, promise):
-        # TODO @lemon-higgins
-        # nfs + fstab 实现
-        pass
+        try:
+            self.logger.info(
+                "user {0} attempt to create vmachine by cd_rom from {1}".format(
+                    self._user,
+                    self._body.get("url"),
+                )
+            )
+            
+            self.next_period()
+            promise.update_state(
+                state="CREATING",
+                meta={
+                    "start_time": self.start_time,
+                    "running_time": self.running_time,
+                },
+            )
+
+            self._body.update(
+                {"source": celeryconfig.network_interface_source}
+            )
+
+            exitcode, output = getstatusoutput(
+                "qemu-img create -f qcow2 {}/{}.qcow2 {}G".format(
+                    shlex.quote(celeryconfig.storage_pool.replace("/$", "")),
+                    shlex.quote(self._body.get("name")),
+                    shlex.quote(str(self._body.get("capacity"))),
+                )
+            )
+
+            if exitcode:
+                self.logger.error(
+                    "user {0} fail to create vmachine by cd_rom from {1}, because {2}".format(
+                        self._user,
+                        self._body.get("url"),
+                        output,
+                    )
+                )
+                rm_disk_image(
+                    self._body.get("name"),
+                    celeryconfig.storage_pool,
+                )
+                raise output
+
+            self.next_period()
+            promise.update_state(
+                state="CDROMMING",
+                meta={
+                    "start_time": self.start_time,
+                    "running_time": self.running_time,
+                },
+            )
+            cmd = " {} --cdrom {} -d --noreboot".format(
+                install_base(self._body, celeryconfig.storage_pool),
+                shlex.quote(self._body.get("url")),
+            )
+
+            exitcode, output = getstatusoutput(cmd)
+            if exitcode:
+                self.logger.error(
+                    "user {0} fail to create vmachine cdromming by cd_rom from {1}, because {2}".format(
+                        self._user,
+                        self._body["url"],
+                        output,
+                    )
+                )
+                rm_disk_image(
+                    self._body.get("name"),
+                    celeryconfig.storage_pool,
+                )
+                self.delete_vmachine()
+                raise RuntimeError(output)
+
+
+            exitcode, output = getstatusoutput(
+                "export LANG=en_US.utf-8 ; eval echo $(virsh list --all | grep '{}' ".format(
+                    shlex.quote(self._body.get("name"))
+                )
+                + " | awk -F '  ' '{print $NF}')"
+            )
+            self._body.update(
+                {
+                    "mac": getoutput(
+                        "virsh dumpxml %s | grep -Pzo  \"<interface type='bridge'>[\s\S] *<mac address.*\" |grep -Pzo '<mac address.*' | awk -F\\' '{print $2}' | head -1"
+                        % self._body.get("name")
+                    ).strip(),
+                    "status": output,
+                    "vnc_port": domain_cli("vncdisplay", self._body.get("name"))[1]
+                    .strip("\n")
+                    .split(":")[-1],
+                }
+            )
+
+            self.update_vmachine(self._body)
+
+            self.next_period()
+            promise.update_state(
+                state="INSTALLING",
+                meta={
+                    "start_time": self.start_time,
+                    "running_time": self.running_time,
+                    
+                },
+            )
+
+            _task = async_vmstatus_monitor.delay(self.auth, self._body)
+
+            self.next_period()
+            promise.update_state(
+                state="SUCCESS",
+                meta={
+                    "start_time": self.start_time,
+                    "running_time": self.running_time,
+                },
+            )
+
+            self.logger.info(
+                "user {0} finish to create vmachine by cd-rom with {1}.qcow2 from {2}".format(
+                    self._user,
+                    self._body.get("name"),
+                    self._body.get("url"),
+                )
+            )
+
+        except (RuntimeError, TypeError, KeyError, AttributeError):
+            promise.update_state(
+                state="FAILURE",
+                meta={
+                    "start_time": self.start_time,
+                    "running_time": self.running_time,
+                },
+            )
