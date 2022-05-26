@@ -204,7 +204,7 @@ export default defineComponent({
     const memoryUse = ref('');
     const cpuPercentage = ref('');
     const resourceMonitorSocket = new Socket(
-      `ws://${props.machine_group_ip}:${props.messenger_listen}/monitor/normal`
+      `${settings.websocketProtocol}://${props.machine_group_ip}:${props.messenger_listen}/monitor/normal`
     );
     onMounted(() => {
       resourceMonitorSocket.connect();

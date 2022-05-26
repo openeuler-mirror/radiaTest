@@ -72,6 +72,7 @@ import { ref, onMounted, onUnmounted, defineComponent } from 'vue';
 import { ArrowUp, ArrowDown } from '@vicons/ionicons5';
 import { Socket } from '@/socket';
 import { init } from 'echarts';
+import { settings } from '@/assets/config/settings.js';
 import resourceCharts from '@/views/pmachine/modules/expandedContent/resourceChart.js';
 
 export default defineComponent({
@@ -100,7 +101,7 @@ export default defineComponent({
       diskTotal: ref(0),
     };
     const resourceMonitorSocket = new Socket(
-      `ws://${props.machineGroupIp}:${props.data.machine_group.messenger_listen}/monitor/host`
+      `${settings.websocketProtocol}://${props.machineGroupIp}:${props.data.machine_group.messenger_listen}/monitor/host`
     );
     resourceMonitorSocket.connect();
 
