@@ -137,7 +137,13 @@ class PmachineItemEvent(Resource):
                     return jsonify(
                         error_code = RET.NO_DATA_ERR, 
                         error_msg = "Pmachine has vmmachine, can't released."
-                    )                    
+                    )
+            if pmachine.state == "occupied":
+                 _body = body.__dict__
+                 _body.update({
+                     "description": "",
+                     "occupier": "",
+                 })
         _body = body.__dict__
         _body.update({"id": pmachine_id})
         
@@ -153,7 +159,7 @@ class PmachineEvent(Resource):
         if not machine_group:
             return jsonify(
                 error_code=RET.NO_DATA_ERR,
-                error_mesg="the machine group of this machine does not exist"
+                error_msg="the machine group of this machine does not exist"
             )
 
         messenger = PmachineMessenger(body.__dict__)
@@ -225,7 +231,7 @@ class Power(Resource):
         if not machine_group:
             return jsonify(
                 error_code=RET.NO_DATA_ERR,
-                error_mesg="the machine group of this machine does not exist"
+                error_msg="the machine group of this machine does not exist"
             )
         _body = body.__dict__
         _body.update(

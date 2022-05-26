@@ -40,7 +40,7 @@ class VmachinePower(Resource):
 
         exitcode, output = domain_cli(body.get("status"), body.get("name"))
         if exitcode:
-            return jsonify({"error_code": exitcode, "error_mesg": output})
+            return jsonify({"error_code": exitcode, "error_msg": output})
 
         while [True]:
             exitcode, output = domain_state(body.get("name"))
@@ -49,7 +49,7 @@ class VmachinePower(Resource):
 
         exitcode, output = domain_state(body.get("name"))
         if exitcode:
-            return jsonify({"error_code": exitcode, "error_mesg": output})
+            return jsonify({"error_code": exitcode, "error_msg": output})
 
         return jsonify({"status": output})
 

@@ -507,7 +507,7 @@ class RunCaseHandler(TaskAuthHandler):
                 resp = DeleteVmachine(self._new_vmachines).run()
 
                 if resp.get("error_code") != RET.OK:
-                    raise RuntimeError(resp.get("error_mesg"))
+                    raise RuntimeError(resp.get("error_msg"))
 
         finally:
             if self._body.get("result") == "success" and len(self._new_vmachines["id"]) > 0:

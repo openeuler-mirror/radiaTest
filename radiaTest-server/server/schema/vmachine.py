@@ -277,6 +277,6 @@ class VmachineBriefSchema(BaseModel):
 
     @validator("ip")
     def check_ip_format(cls, v):
-        if ip_type(v) is not None:
+        if not ip_type(v):
             raise ValueError("this ip of machine group format error")
         return v

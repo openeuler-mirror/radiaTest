@@ -45,19 +45,19 @@ class MachineGroupCreateSchema(PermissionBase):
         if machine_group is not None:
             raise ValueError("this ip of machine group is exist, duplication is not allowed")
         
-        if ip_type(v) is not None:
+        if not ip_type(v):
             raise ValueError("this ip of machine group format error")
         return v
 
     @validator("messenger_ip")
     def check_messenger_ip_format(cls, v):
-        if ip_type(v) is not None:
+        if not ip_type(v):
             raise ValueError("this messenger_ip of machine group format error")
         return v
 
     @validator("websockify_ip")
     def check_websockify_ip_format(cls, v):
-        if ip_type(v) is not None:
+        if not ip_type(v):
             raise ValueError("this websockify_ip of machine group format error")
         return v
 
@@ -76,19 +76,19 @@ class MachineGroupUpdateSchema(BaseModel):
 
     @validator("ip")
     def check_ip_format(cls, v):
-        if ip_type(v) is not None:
+        if not ip_type(v):
             raise ValueError("this ip of machine group format error")
         return v
 
     @validator("messenger_ip")
     def check_messenger_ip_format(cls, v):
-        if ip_type(v) is not None:
+        if not ip_type(v):
             raise ValueError("this messenger_ip of machine group format error")
         return v
 
     @validator("websockify_ip")
     def check_websockify_ip_format(cls, v):
-        if ip_type(v) is not None:
+        if not ip_type(v):
             raise ValueError("this websockify_ip of machine group format error")
         return v
 
@@ -105,13 +105,13 @@ class MachineGroupQuerySchema(PageBaseSchema):
 
     @validator("messenger_ip")
     def check_messenger_ip_format(cls, v):
-        if ip_type(v) is not None:
+        if not ip_type(v):
             raise ValueError("this messenger_ip of machine group format error")
         return v
 
     @validator("websockify_ip")
     def check_websockify_ip_format(cls, v):
-        if ip_type(v) is not None:
+        if not ip_type(v):
             raise ValueError("this websockify_ip of machine group format error")
         return v
 
@@ -123,7 +123,7 @@ class HeartbeatUpdateSchema(BaseModel):
 
     @validator("messenger_ip")
     def check_messenger_ip_format(cls, v):
-        if ip_type(v) is not None:
+        if not ip_type(v):
             raise ValueError("this messenger_ip of machine group format error")
         return v
 
@@ -160,13 +160,13 @@ class PmachineBaseSchema(BaseModel):
     
     @validator("ip")
     def check_ip_format(cls, v):
-        if ip_type(v) is not None:
+        if not ip_type(v):
             raise ValueError("this ip of machine group format error")
         return v
 
     @validator("bmc_ip")
     def check_bmc_ip_format(cls, v):
-        if ip_type(v) is not None:
+        if not ip_type(v):
             raise ValueError("this bmc_ip of machine group format error")
         return v
 
@@ -250,7 +250,7 @@ class PmachineCreateSchema(PmachineBaseSchema, PermissionBase):
 
     @validator("bmc_ip")
     def check_bmc_ip_format(cls, v):
-        if ip_type(v) is not None:
+        if not ip_type(v):
             raise ValueError("this bmc_ip of machine group format error")
         return v
 
@@ -263,7 +263,7 @@ class PmachineUpdateSchema(PmachineBaseSchema):
 
     @validator("bmc_ip")
     def check_bmc_ip_format(cls, v):
-        if ip_type(v) is not None:
+        if not ip_type(v):
             raise ValueError("this bmc_ip of machine group format error")
         return v
 
@@ -285,12 +285,12 @@ class PmachineBriefSchema(BaseModel):
     
     @validator("ip")
     def check_ip_format(cls, v):
-        if ip_type(v) is not None:
+        if not ip_type(v):
             raise ValueError("this ip of machine group format error")
         return v
 
     @validator("bmc_ip")
     def check_bmc_ip_format(cls, v):
-        if ip_type(v) is not None:
+        if not ip_type(v):
             raise ValueError("this bmc_ip of machine group format error")
         return v
