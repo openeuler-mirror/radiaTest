@@ -38,7 +38,7 @@ class MachineGroup(PermissionBaseModel, db.Model):
     org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
 
     def _change_format(self, last_heartbeat):
-        if isinstance(last_heartbeat, datetime.date):
+        if isinstance(last_heartbeat, datetime):
             return last_heartbeat.strftime("%Y-%m-%d %H:%M:%S")
         return None
 

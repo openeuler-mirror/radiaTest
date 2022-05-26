@@ -577,7 +577,7 @@
                             >
                               {{
                                 formatTime(
-                                  modalData.detail.milestone?.start_time,
+                                  modalData.detail.start_time,
                                   'yyyy-MM-dd hh:mm:ss'
                                 )
                               }}
@@ -595,7 +595,7 @@
                             </div>
                             <div class="field-right">
                               <div
-                                v-show="!showClosingTime"
+                                v-show="!showClosingTime&&modalData.detail.deadline"
                                 :class="{'editable':editStatus}"
                                 @click="
                                   editStatus
@@ -700,20 +700,6 @@
                               </n-popselect>
                             </div>
                           </div>
-                          <!-- <div class="field">
-                            <div class="field-left">
-                              <n-icon
-                                size="14"
-                                class="task-icon"
-                              >
-                                <CheckSquareOutlined />
-                              </n-icon>
-                              <span class="field-name">是否单测试用例</span>
-                            </div>
-                            <div class="field-right" >
-                              <span>{{modalData.detail.test_strategy?'是':'否'}}</span>
-                            </div>
-                          </div> -->
                           <div class="field">
                             <div class="field-left">
                               <n-icon
@@ -784,11 +770,6 @@
                 <template #header>
                   <div class="titleWrap">
                     <span
-                      v-if="!modalData.detail.is_manage_task"
-                      @click="toggleContent('case')"
-                      :class="{ active: showFooterContent == 'case' }"
-                    >关联用例</span>
-                    <span
                       @click="toggleContent('comment')"
                       :class="{ active: showFooterContent == 'comment' }"
                     >评论</span>
@@ -796,6 +777,11 @@
                       @click="toggleContent('task')"
                       :class="{ active: showFooterContent == 'task' }"
                     >关联任务</span>
+                    <span
+                      v-if="!modalData.detail.is_manage_task"
+                      @click="toggleContent('case')"
+                      :class="{ active: showFooterContent == 'case' }"
+                    >关联用例</span>
                   </div>
                 </template>
                 <div
