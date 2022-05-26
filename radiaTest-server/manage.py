@@ -56,6 +56,10 @@ def init_asr():
     init_scope(db, app)
     init_role(db, app)
 
+@manager.command
+def prepare_recv_id():
+    from server.utils.read_from_yaml import get_recv_id
+    get_recv_id(db, app)
 
 if __name__ == "__main__":
     manager.run()
