@@ -610,7 +610,7 @@
                                   )
                                 }}
                               </div>
-                              <div v-show="showClosingTime">
+                              <div v-show="showClosingTime||!modalData.detail.deadline">
                                 <n-date-picker
                                   type="datetime"
                                   clearable
