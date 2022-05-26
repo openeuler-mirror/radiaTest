@@ -784,6 +784,7 @@
                 <template #header>
                   <div class="titleWrap">
                     <span
+                      v-if="!modalData.detail.is_manage_task"
                       @click="toggleContent('case')"
                       :class="{ active: showFooterContent == 'case' }"
                     >关联用例</span>
@@ -852,7 +853,7 @@
                   </div>
                 </template>
                 <div
-                  v-if="showFooterContent == 'case'"
+                  v-if="showFooterContent == 'case'&&!modalData.detail.is_manage_task"
                 >
                   <div>
                     <div>

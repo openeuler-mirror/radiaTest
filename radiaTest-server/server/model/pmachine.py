@@ -37,30 +37,12 @@ class MachineGroup(PermissionBaseModel, db.Model):
     group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
     org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
 
-    def check_alive(self, _heartbeat):
-        _current_time = datetime.now()  
-        alive = False
-        heartbeat = None
-
-        if _heartbeat:
-            if abs((_current_time - _heartbeat).seconds) < 60:
-                alive = True                
-            
-            heartbeat = _heartbeat.strftime("%Y-%m-%d %H:%M:%S")
-
-        return alive, heartbeat
+    def _change_format(self, last_heartbeat):
+        if isinstance(last_heartbeat, datetime.date):
+            return last_heartbeat.strftime("%Y-%m-%d %H:%M:%S")
+        return None
 
     def to_json(self):
-        messenger_alive, messenger_last_heartbeat = self.check_alive(
-            self.messenger_last_heartbeat
-        )
-        pxe_alive, pxe_last_heartbeat = self.check_alive(
-            self.pxe_last_heartbeat
-        )
-        dhcp_alive, dhcp_last_heartbeat = self.check_alive(
-            self.dhcp_last_heartbeat
-        )
-
         return {
             "id": self.id,
             "name": self.name,
@@ -69,12 +51,9 @@ class MachineGroup(PermissionBaseModel, db.Model):
             "network_type": self.network_type,
             "messenger_ip": self.messenger_ip,
             "messenger_listen": self.messenger_listen,
-            "messenger_alive": messenger_alive,
-            "messenger_last_heartbeat": messenger_last_heartbeat,
-            "pxe_alive": pxe_alive,
-            "pxe_last_heartbeat": pxe_last_heartbeat,
-            "dhcp_alive": dhcp_alive,
-            "dhcp_last_heartbeat": dhcp_last_heartbeat,
+            "messenger_last_heartbeat": self._change_format(self.messenger_last_heartbeat),
+            "pxe_last_heartbeat": self._change_format(self.pxe_last_heartbeat),
+            "dhcp_last_heartbeat": self._change_format(self.dhcp_last_heartbeat),
             "creator_id": self.creator_id,
             "permission_type": self.permission_type,
             "group_id": self.group_id,
