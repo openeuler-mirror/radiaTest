@@ -3,6 +3,7 @@ import os
 from server.model.permission import Scope
 from server.model.administrator import Admin
 from server.model.permission import Role
+from server.model.alembic_version import AlembicVersion
 
 
 def init_admin(db, app):
@@ -168,3 +169,16 @@ def get_default_suffix(role_type):
         if role_type == 'default':
             suffix = role_list[role_type]
     return suffix
+
+def get_recv_id(db,app):
+    with app.app_context():
+        try:
+            recv_version = AlembicVersion.query.first()
+            version_num = recv_version.version_num
+        except Exception as e:
+            version_num=None
+        if version_num:
+            import os.path as op
+            manage_file = op.join(op.dirname(op.dirname(op.dirname(op.abspath(__file__)))), 'manage.py')
+            cmd = "python3 {} db revision --rev-id {}".format(manage_file, version_num)
+            os.system(cmd)
