@@ -5,7 +5,6 @@
 import shlex
 import datetime
 from typing import Optional
-from ipaddress import IPv4Address, v6_int_to_packed
 from subprocess import getstatusoutput
 
 from flask import current_app
@@ -24,7 +23,7 @@ from server.utils.db import Precise
 from server.utils.pssh import Connection
 from server.model import Pmachine, MachineGroup
 from server.schema.base import PermissionBase
-
+from server.utils.iptype_util import ip_type
 
 class MachineGroupCreateSchema(PermissionBase):
     """ 
@@ -33,11 +32,12 @@ class MachineGroupCreateSchema(PermissionBase):
     name: str
     description: str
     network_type: MachineGroupNetworkType
-    ip: IPv4Address
-    messenger_ip: IPv4Address
+    ip: str
+    messenger_ip: str
     messenger_listen: int
-    websockify_ip: Optional[IPv4Address]
+    websockify_ip: Optional[str]
     websockify_listen: Optional[conint(ge=1000, le=99999)]
+
 
     @validator("ip")
     def check_ip_exist(cls, v):
@@ -45,8 +45,21 @@ class MachineGroupCreateSchema(PermissionBase):
         if machine_group is not None:
             raise ValueError("this ip of machine group is exist, duplication is not allowed")
         
+        if ip_type(v) is not None:
+            raise ValueError("this ip of machine group format error")
         return v
 
+    @validator("messenger_ip")
+    def check_messenger_ip_format(cls, v):
+        if ip_type(v) is not None:
+            raise ValueError("this messenger_ip of machine group format error")
+        return v
+
+    @validator("websockify_ip")
+    def check_websockify_ip_format(cls, v):
+        if ip_type(v) is not None:
+            raise ValueError("this websockify_ip of machine group format error")
+        return v
 
 class MachineGroupUpdateSchema(BaseModel):
     """ 
@@ -55,12 +68,29 @@ class MachineGroupUpdateSchema(BaseModel):
     name: Optional[str]
     description: Optional[str]
     network_type: Optional[MachineGroupNetworkType]
-    ip: Optional[IPv4Address]
-    messenger_ip: Optional[IPv4Address]
+    ip: Optional[str]
+    messenger_ip: Optional[str]
     messenger_listen: Optional[int]
-    websockify_ip: Optional[IPv4Address]
+    websockify_ip: Optional[str]
     websockify_listen: Optional[conint(ge=1000, le=99999)]
 
+    @validator("ip")
+    def check_ip_format(cls, v):
+        if ip_type(v) is not None:
+            raise ValueError("this ip of machine group format error")
+        return v
+
+    @validator("messenger_ip")
+    def check_messenger_ip_format(cls, v):
+        if ip_type(v) is not None:
+            raise ValueError("this messenger_ip of machine group format error")
+        return v
+
+    @validator("websockify_ip")
+    def check_websockify_ip_format(cls, v):
+        if ip_type(v) is not None:
+            raise ValueError("this websockify_ip of machine group format error")
+        return v
 
 class MachineGroupQuerySchema(PageBaseSchema):
     """ 
@@ -68,17 +98,34 @@ class MachineGroupQuerySchema(PageBaseSchema):
     """
     text: Optional[str]
     network_type: Optional[MachineGroupNetworkType]
-    messenger_ip: Optional[IPv4Address]
+    messenger_ip: Optional[str]
     messenger_listen: Optional[int]
-    websockify_ip: Optional[IPv4Address]
+    websockify_ip: Optional[str]
     websockify_listen: Optional[conint(ge=1000, le=99999)]
 
+    @validator("messenger_ip")
+    def check_messenger_ip_format(cls, v):
+        if ip_type(v) is not None:
+            raise ValueError("this messenger_ip of machine group format error")
+        return v
+
+    @validator("websockify_ip")
+    def check_websockify_ip_format(cls, v):
+        if ip_type(v) is not None:
+            raise ValueError("this websockify_ip of machine group format error")
+        return v
 
 class HeartbeatUpdateSchema(BaseModel):
-    messenger_ip: IPv4Address
+    messenger_ip: str
     messenger_alive: bool
     pxe_alive: bool
     dhcp_alive: bool
+
+    @validator("messenger_ip")
+    def check_messenger_ip_format(cls, v):
+        if ip_type(v) is not None:
+            raise ValueError("this messenger_ip of machine group format error")
+        return v
 
 
 class PmachineQuerySchema(PageBaseSchema):
@@ -95,10 +142,10 @@ class PmachineQuerySchema(PageBaseSchema):
 class PmachineBaseSchema(BaseModel):
     mac: constr(max_length=17)
     frame: Frame
-    bmc_ip: IPv4Address
+    bmc_ip: str
     bmc_user: constr(max_length=32)
     bmc_password: constr(min_length=6, max_length=256)
-    ip: Optional[IPv4Address]
+    ip: Optional[str]
     user: Optional[constr(max_length=32)]
     port: Optional[int]
     password: Optional[constr(min_length=6, max_length=256)]
@@ -111,6 +158,19 @@ class PmachineBaseSchema(BaseModel):
     locked: Optional[bool] = False
     machine_group_id: Optional[int]
     
+    @validator("ip")
+    def check_ip_format(cls, v):
+        if ip_type(v) is not None:
+            raise ValueError("this ip of machine group format error")
+        return v
+
+    @validator("bmc_ip")
+    def check_bmc_ip_format(cls, v):
+        if ip_type(v) is not None:
+            raise ValueError("this bmc_ip of machine group format error")
+        return v
+
+
     @validator("machine_group_id")
     def check_machine_group_id(cls, v):
         mg = MachineGroup.query.filter_by(id=v).first()
@@ -179,48 +239,33 @@ class PmachineBaseSchema(BaseModel):
                     "As a CI host, ip、user、port、password must be provided."
                 )
 
-        if values.get("description") == current_app.config.get("CI_HOST"):
-            if not values.get("listen"):
-                raise ValueError("As a CI host, listen must be provided.")
-
-            if (
-                getstatusoutput(
-                    "ping -nq -c 3 -w 5 {}".format(shlex.quote(str(values.get("ip"))))
-                )[0]
-                != 0
-            ):
-                raise ValueError("ip address is not available.")
-
-            conn = Connection(
-                str(values.get("ip")),
-                str(values.get("password")),
-                values.get("port"),
-                str(values.get("user")),
-            )._conn()
-            if not conn:
-                raise ValueError(
-                    "The information provided cannot be used in normal login using SSH."
-                )
-            conn.close()
-
-            # TODO 发送消息到worker节点，确保server和worker正常通信 (lemon.higgins)
-
         return values
 
 class PmachineCreateSchema(PmachineBaseSchema, PermissionBase):
     mac: constr(max_length=17)
     frame: Frame
-    bmc_ip: IPv4Address
+    bmc_ip: str
     bmc_user: constr(max_length=32)
     bmc_password: constr(min_length=6, max_length=256)
+
+    @validator("bmc_ip")
+    def check_bmc_ip_format(cls, v):
+        if ip_type(v) is not None:
+            raise ValueError("this bmc_ip of machine group format error")
+        return v
 
 class PmachineUpdateSchema(PmachineBaseSchema):
     mac: Optional[constr(max_length=17)]
     frame: Optional[Frame]
-    bmc_ip: Optional[IPv4Address]
+    bmc_ip: Optional[str]
     bmc_user: Optional[constr(max_length=32)]
     bmc_password: Optional[constr(min_length=6, max_length=256)]
 
+    @validator("bmc_ip")
+    def check_bmc_ip_format(cls, v):
+        if ip_type(v) is not None:
+            raise ValueError("this bmc_ip of machine group format error")
+        return v
 
 class PmachineInstallSchema(BaseModel):
     id: int
@@ -233,8 +278,19 @@ class PmachinePowerSchema(BaseModel):
 
 
 class PmachineBriefSchema(BaseModel):
-    ip: IPv4Address
+    ip: str
     description: str
     status: str
-    bmc_ip: IPv4Address
+    bmc_ip: str
     
+    @validator("ip")
+    def check_ip_format(cls, v):
+        if ip_type(v) is not None:
+            raise ValueError("this ip of machine group format error")
+        return v
+
+    @validator("bmc_ip")
+    def check_bmc_ip_format(cls, v):
+        if ip_type(v) is not None:
+            raise ValueError("this bmc_ip of machine group format error")
+        return v

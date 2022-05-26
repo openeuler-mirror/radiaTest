@@ -118,16 +118,6 @@ class PmachineItemEvent(Resource):
     @validate()
     @casbin_enforcer.enforcer
     def put(self, pmachine_id, body: PmachineUpdateSchema):
-        machine_group = MachineGroup.query.filter_by(id=body.machine_group_id).first()
-        if not machine_group:
-            return jsonify(
-                error_code=RET.NO_DATA_ERR,
-                error_mesg="the machine group of this machine does not exist"
-            )
-
-        messenger = PmachineMessenger(body.__dict__)
-        messenger.send_request(machine_group, "/api/v1/pmachine/checkbmcinfo")
-
         pmachine = Pmachine.query.filter_by(id=pmachine_id).first()
         if not pmachine:
             return jsonify(
@@ -167,7 +157,7 @@ class PmachineEvent(Resource):
             )
 
         messenger = PmachineMessenger(body.__dict__)
-        messenger.send_request(machine_group, "/api/v1/pmachine/checkbmcinfo")
+        messenger.send_request(machine_group, "/api/v1/pmachine/checkpmachineinfo")
 
         return ResourceManager("pmachine").add("api_infos.yaml", body.__dict__)
 
@@ -193,6 +183,8 @@ class Install(Resource):
             )
 
         machine_group = pmachine.machine_group
+        messenger = PmachineMessenger(body.__dict__)
+        messenger.send_request(machine_group, "/api/v1/pmachine/checkbmcinfo")
 
         imirroring = IMirroring.query.filter_by(
             milestone_id=body.milestone_id
@@ -230,13 +222,20 @@ class Power(Resource):
             )
 
         machine_group = pmachine.machine_group
-
+        if not machine_group:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_mesg="the machine group of this machine does not exist"
+            )
         _body = body.__dict__
         _body.update(
             {
                 "pmachine": pmachine.to_json()
             }
         )
+
+        messenger = PmachineMessenger(body.__dict__)
+        messenger.send_request(machine_group, "/api/v1/pmachine/checkbmcinfo")
 
         messenger = PmachineMessenger(_body)
         return messenger.send_request(machine_group, "/api/v1/pmachine/")

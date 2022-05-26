@@ -1,4 +1,3 @@
-from ipaddress import IPv4Address
 from socket import socket
 import time
 import json
@@ -271,7 +270,13 @@ class DeviceBaseSchema(BaseModel):
 
 
 class VmachineBriefSchema(BaseModel):
-    ip: IPv4Address
+    ip: str
     description: str
     milestone: str
     status: str
+
+    @validator("ip")
+    def check_ip_format(cls, v):
+        if ip_type(v) is not None:
+            raise ValueError("this ip of machine group format error")
+        return v
