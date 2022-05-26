@@ -43,13 +43,13 @@ class PmachineBaseSchema(BaseModel):
 
     @validator("ip")
     def check_ip_format(cls, v):
-        if ip_type(v) is not None:
+        if not ip_type(v):
             raise ValueError("this ip of machine group format error")
         return v
 
     @validator("bmc_ip")
     def check_bmc_ip_format(cls, v):
-        if ip_type(v) is not None:
+        if not ip_type(v):
             raise ValueError("this bmc_ip of machine group format error")
         return v
 

@@ -44,7 +44,7 @@ def attach_device(name, xml):
         )
     )
     
-    return jsonify({"error_code": exitcode, "error_mesg": output})
+    return jsonify({"error_code": exitcode, "error_msg": output})
     
 
 
@@ -141,23 +141,23 @@ class InstallVmachine(VmachineBaseSchema):
         if exitcode:
             current_app.logger.error(output)
             rm_disk_image(self._body.get("name"))
-            return jsonify({"error_code": exitcode, "error_mesg": output})
+            return jsonify({"error_code": exitcode, "error_msg": output})
 
         exitcode, output = getstatusoutput(
             "{} --import --noreboot".format(install_base(self._body))
         )
         if exitcode:
             rm_disk_image(self._body.get("name"))
-            return jsonify({"error_code": 31000, "error_mesg": output})
+            return jsonify({"error_code": 31000, "error_msg": output})
 
         exitcode, output = domain_cli("start", self._body.get("name"))
         if exitcode:
             exitcode, result = undefine_domain(self._body.get("name"))
             if not exitcode:
                 return jsonify(
-                    {"error_code": 31002, "error_mesg": output + " & " + result}
+                    {"error_code": 31002, "error_msg": output + " & " + result}
                 )
-            return jsonify({"error_code": 31001, "error_mesg": output})
+            return jsonify({"error_code": 31001, "error_msg": output})
 
         self._body.update(
             {
@@ -190,7 +190,7 @@ class InstallVmachine(VmachineBaseSchema):
         )
         if exitcode:
             rm_disk_image(self._body.get("name"))
-            return jsonify({"error_code": 31000, "error_mesg": output})
+            return jsonify({"error_code": 31000, "error_msg": output})
         
         self._body.update(
             {
@@ -212,7 +212,7 @@ class OperateVmachine(VmachineBaseSchema):
     def delete(self):
         domain_cli("destroy", self._body.get("name"))
         exitcode, output = undefine_domain(self._body.get("name"))
-        return jsonify({"error_code": exitcode, "error_mesg": output})
+        return jsonify({"error_code": exitcode, "error_msg": output})
 
     def edit(self):
         pass
@@ -260,7 +260,7 @@ class OperateVnic(VmachineBaseSchema):
             )
         )
         if exitcode:
-            return jsonify({"error_code": exitcode, "error_mesg": output})
+            return jsonify({"error_code": exitcode, "error_msg": output})
 
         self._body.update(
             {
@@ -270,7 +270,7 @@ class OperateVnic(VmachineBaseSchema):
         )
 
         if exitcode:
-            return jsonify({"error_code": exitcode, "error_mesg": output})
+            return jsonify({"error_code": exitcode, "error_msg": output})
 
         return self._body
 
@@ -282,7 +282,7 @@ class OperateVnic(VmachineBaseSchema):
                 shlex.quote(self._body.get("mac")),
             )
         )
-        return jsonify({"error_code": exitcode, "error_mesg": output})
+        return jsonify({"error_code": exitcode, "error_msg": output})
 
 
 class OperateVdisk(VmachineBaseSchema):
@@ -325,7 +325,7 @@ class OperateVdisk(VmachineBaseSchema):
         current_app.logger.info(output)
         
         if exitcode:
-            return jsonify({"error_code": exitcode, "error_mesg": output})
+            return jsonify({"error_code": exitcode, "error_msg": output})
 
         self._body.update({"volume": self._body.get("volume")})
 
@@ -343,7 +343,7 @@ class OperateVdisk(VmachineBaseSchema):
         current_app.logger.info(output)
 
         if exitcode:
-            return jsonify({"error_code": exitcode, "error_mesg": output})
+            return jsonify({"error_code": exitcode, "error_msg": output})
 
         exitcode, output = getstatusoutput(
             "rm -rf {}/{}.qcow2".format(
@@ -354,4 +354,4 @@ class OperateVdisk(VmachineBaseSchema):
 
         current_app.logger.info(output)
 
-        return jsonify({"error_code": exitcode, "error_mesg": output})
+        return jsonify({"error_code": exitcode, "error_msg": output})

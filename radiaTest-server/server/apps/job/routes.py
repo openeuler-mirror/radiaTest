@@ -133,7 +133,7 @@ class JobEvent(Resource):
 
         return jsonify(
             error_code=RET.OK,
-            error_mesg="OK",
+            error_msg="OK",
             data=job.to_json()
         )
 

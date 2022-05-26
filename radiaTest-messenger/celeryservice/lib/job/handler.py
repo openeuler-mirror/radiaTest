@@ -248,7 +248,7 @@ class RunTemplate(RunJob):
                 resp = self._callback_task_job_init()
                 if resp.get("error_code") != RET.OK:
                     self.logger.warn(
-                        "cannot callback job_id to taskmilestone table: " + resp.get("error_mesg")
+                        "cannot callback job_id to taskmilestone table: " + resp.get("error_msg")
                     )
 
             self._update_job(
