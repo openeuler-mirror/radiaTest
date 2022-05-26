@@ -43,7 +43,7 @@ class MachineGroup(PermissionBaseModel, db.Model):
         heartbeat = None
 
         if _heartbeat:
-            if (_current_time - _heartbeat).seconds < 60:
+            if abs((_current_time - _heartbeat).seconds) < 60:
                 alive = True                
             
             heartbeat = _heartbeat.strftime("%Y-%m-%d %H:%M:%S")

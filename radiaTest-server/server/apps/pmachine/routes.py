@@ -118,8 +118,14 @@ class PmachineItemEvent(Resource):
     @validate()
     @casbin_enforcer.enforcer
     def put(self, pmachine_id, body: PmachineUpdateSchema):
-        __body = body.__dict__
-        messenger = PmachineMessenger(__body)
+        machine_group = MachineGroup.query.filter_by(id=body.machine_group_id).first()
+        if not machine_group:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_mesg="the machine group of this machine does not exist"
+            )
+
+        messenger = PmachineMessenger(body.__dict__)
         messenger.send_request(machine_group, "/api/v1/pmachine/checkbmcinfo")
 
         pmachine = Pmachine.query.filter_by(id=pmachine_id).first()
@@ -153,8 +159,14 @@ class PmachineEvent(Resource):
     @response_collect
     @validate()
     def post(self, body: PmachineCreateSchema):
-        _body = body.__dict__
-        messenger = PmachineMessenger(_body)
+        machine_group = MachineGroup.query.filter_by(id=body.machine_group_id).first()
+        if not machine_group:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_mesg="the machine group of this machine does not exist"
+            )
+
+        messenger = PmachineMessenger(body.__dict__)
         messenger.send_request(machine_group, "/api/v1/pmachine/checkbmcinfo")
 
         return ResourceManager("pmachine").add("api_infos.yaml", body.__dict__)
