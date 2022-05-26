@@ -1,3 +1,4 @@
+from celery import current_app
 import requests
 import json
 import time
@@ -104,7 +105,8 @@ class RemoteRestfulMonitor(ResourceMonitor):
     
     def get_data(self):
         resp = requests.get(
-            url='http://{}:{}/monitor'.format(
+            url='{}://{}:{}/monitor'.format(
+                current_app.config.get("PROTOCOL"),
                 self.ssh_data["ip"], 
                 self.ssh_data["listen"]
             ),

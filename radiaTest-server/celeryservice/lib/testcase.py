@@ -10,6 +10,7 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from celeryservice.lib import TaskAuthHandler
 from server.utils.sheet import Excel, SheetExtractor
 from server.utils.response_util import RET
+from server.utils.requests_util import gen_path_by_protocol
 from server.utils.db import Insert, Edit
 from server.schema.testcase import BaselineBodyInternalSchema
 from server.model.testcase import Suite, Case, Baseline
@@ -213,11 +214,10 @@ class TestcaseHandler(TaskAuthHandler):
                 "user_id": self.user.get("user_id"),
             }
 
+            request_path = gen_path_by_protocol(current_app.config.get("PROTOCOL"), "/api/v1/testcase/resolve_by_filepath")
+
             _resp = requests.post(
-                url='http://{}:{}/api/v1/testcase/resolve_by_filepath'.format(
-                    current_app.config.get("SERVER_IP"),
-                    current_app.config.get("SERVER_PORT"),
-                ),
+                url=request_path,
                 data=json.dumps(body),
                 headers={
                     'Content-Type': 'application/json;charset=utf8',

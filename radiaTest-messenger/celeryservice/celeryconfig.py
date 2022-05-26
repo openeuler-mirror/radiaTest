@@ -103,6 +103,8 @@ server_addr = loads_config_ini("server", "SERVER_ADDR")
 # messenger config
 messenger_ip = loads_config_ini("messenger", "MESSENGER_IP")
 messenger_listen = loads_config_ini("messenger", "MESSENGER_LISTEN")
+protocol = loads_config_ini("messenger", "PROTOCOL")
+protocol_to_server = loads_config_ini("messenger", "PROTOCOL_TO_SERVER")
 
 # pxe config
 pxe_ip = loads_config_ini("pxe", "PXE_IP")
@@ -113,6 +115,3 @@ pxe_pkey = loads_config_ini("pxe", "PRIVATE_KEY")
 # dhcp config
 dhcp_ip = loads_config_ini("dhcp", "DHCP_IP")
 
-#  requests config
-protocol = loads_config_ini("common", "PROTOCOL")
-protocol_to_server = "https"

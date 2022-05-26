@@ -25,6 +25,7 @@ services:
         network_mode: "host"
         volumes:
             - /var/lib/vnc_tokens:/data/vnc_tokens
+            - /etc/radiaTest/websockify_ssl:/etc/radiaTest/websockify_ssl
 
     supervisor:
         image: messenger/supervisor:radiaTest
@@ -32,8 +33,8 @@ services:
             context: ./supervisor
             dockerfile: Dockerfile
         restart: always
-        ports:
-            - 21510:21510
+        expose:
+            - 21510
         links:
             - queue
         volumes:
@@ -57,3 +58,22 @@ services:
         depends_on:
             - queue
             - websockify
+
+    nginx:
+        image: nginx:1.21.5
+        restart: always
+        ports:
+            - 21510:21510
+            - 21520:21520
+        links:
+            - supervisor
+        volumes:
+            - /var/lib/nginx
+            - /var/log/nginx
+            - /etc/nginx:/etc/nginx
+            - /etc/radiaTest/messenger_ssl:/etc/radiaTest/messenger_ssl
+        ulimits:
+            nproc: 65535
+            nofile:
+                soft: 10240
+                hard: 20000

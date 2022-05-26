@@ -31,6 +31,7 @@ from server.utils.db import Insert, Edit
 from .handler import UpdateRepo, UpdateTaskHandler, UpdateTaskForm
 from server.model.organization import Organization
 from server.utils.response_util import RET
+from server.utils.requests_util import gen_path_by_protocol
 
 
 class UpdateTaskEvent(Resource):
@@ -99,11 +100,10 @@ class UpdateTaskEvent(Resource):
                     }
                 ).single(Repo, "/repo")
 
+            request_path = gen_path_by_protocol(current_app.config.get("PROTOCOL"), "/api/v1/tasks/execute")
+
             requests.post(
-                url="http://{}:{}/api/v1/tasks/execute".format(
-                    current_app.config.get("SERVER_IP"),
-                    current_app.config.get("SERVER_PORT"),
-                ),
+                url=request_path,
                 data=json.dumps({
                     "title": "{} {}".format(form.title, frame),
                     "milestone_id": form.milestone_id,
