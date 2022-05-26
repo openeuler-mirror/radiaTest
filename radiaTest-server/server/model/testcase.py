@@ -18,7 +18,7 @@ baseline_family = db.Table(
 )
 
 
-class Baseline(BaseModel, db.Model):
+class Baseline(BaseModel, PermissionBaseModel, db.Model):
     __tablename__ = "baseline"
 
     id = db.Column(db.Integer(), primary_key=True)
@@ -30,6 +30,7 @@ class Baseline(BaseModel, db.Model):
     group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
 
     org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
+    creator_id = db.Column(db.Integer(), db.ForeignKey("user.gitee_id"))
 
     suite_id = db.Column(db.Integer(), db.ForeignKey("suite.id"))
 
@@ -46,7 +47,6 @@ class Baseline(BaseModel, db.Model):
     )
 
     def to_json(self):
-        from flask import g
         return_data = {
             "id": self.id,
             "title": self.title,
@@ -59,7 +59,7 @@ class Baseline(BaseModel, db.Model):
             "is_root": self.is_root
         }
         if self.type == 'case' and self.case_id:
-            _commit = Commit.query.filter_by(creator_id=g.gitee_id, case_detail_id=self.case_id) \
+            _commit = Commit.query.filter_by(case_detail_id=self.case_id) \
                 .order_by(Commit.create_time.desc()).first()
             if _commit:
                 return_data['case_status'] = _commit.status
@@ -76,7 +76,7 @@ class Baseline(BaseModel, db.Model):
         return _dict
 
 
-class Suite(BaseModel, db.Model):
+class Suite(PermissionBaseModel, BaseModel, db.Model):
     __tablename__ = "suite"
 
     id = db.Column(db.Integer(), primary_key=True)
@@ -94,6 +94,7 @@ class Suite(BaseModel, db.Model):
     group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
 
     org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
+    creator_id = db.Column(db.Integer(), db.ForeignKey("user.gitee_id"))
 
     case = db.relationship(
         "Case", backref="suite", cascade="all, delete, delete-orphan"
@@ -158,6 +159,7 @@ class Case(PermissionBaseModel, db.Model):
     version = db.Column(db.String(32))
     group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
     org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
+    creator_id = db.Column(db.Integer(), db.ForeignKey("user.gitee_id"))
 
     analyzeds = db.relationship('Analyzed', backref='case')
 
@@ -222,12 +224,13 @@ class Commit(PermissionBaseModel, db.Model):
     version = db.Column(db.String(32))
     status = db.Column(db.Enum("pending", "open", "accepted", "rejected"), default="pending", nullable=False)
     case_detail_id = db.Column(db.Integer, db.ForeignKey("case.id"), nullable=False)  # 归属case
+    case_mod_type = db.Column(db.Enum("add", "edit"), default="edit", nullable=False)
     source = db.Column(db.String(255))
     creator_id = db.Column(db.Integer(), db.ForeignKey("user.gitee_id"))
     group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
     org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
 
-    comments = db.relationship("CommitComment", backref="task")  # 评论表关联
+    comments = db.relationship("CommitComment", backref="commit", cascade="all, delete, delete-orphan")  # 评论表关联
 
     def to_json(self):
         reviewer_name = None
@@ -257,6 +260,7 @@ class Commit(PermissionBaseModel, db.Model):
             "source": self.source,
             "status": self.status,
             "case_detail_id": self.case_detail_id,
+            "case_mod_type": self.case_mod_type,
             "group_name": Group.query.get(self.group_id).name if self.group_id else None,
             "org_id": self.org_id,
             "group_id": self.group_id,

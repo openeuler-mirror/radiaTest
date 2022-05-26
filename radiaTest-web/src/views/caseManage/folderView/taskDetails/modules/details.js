@@ -307,7 +307,8 @@ function updateDetail ({ data }) {
                 title: caseReviewTitle.value,
                 description: caseReviewDescription.value,
                 case_detail_id: router.currentRoute.value.params.taskid,
-                source: source.value
+                source: source.value,
+                case_mod_type: 'edit'
               }).then(() => d.destroy());
             } else {
               window.$message?.error('请检查填写信息!');
@@ -337,7 +338,8 @@ function edit (index) {
 function editSubmit (formValue) {
   createCaseReview({
     ...formValue,
-    source: source.value
+    source: source.value,
+    case_mod_type: 'edit'
   }).then(() => {
     modifyModal.value.close();
     expandNode(router.currentRoute.value.params.taskid);

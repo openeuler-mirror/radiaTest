@@ -255,6 +255,12 @@ class GetAllByPermission:
             data=data
         )
 
+    def single(self, _data):
+        for key, value in _data.items():
+            if hasattr(self._table, key) and value is not None and key not in ("permission_type", "group_id"):
+                self.filter_params.append(getattr(self._table, key) == value)
+        tdata = self._table.query.filter(*self.filter_params).first()
+        return tdata
 
 class PermissionItemsPool:
     def __init__(

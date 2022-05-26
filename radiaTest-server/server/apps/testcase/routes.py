@@ -7,6 +7,7 @@ from server import redis_client, casbin_enforcer
 from server.utils.redis_util import RedisKey
 from server.utils.auth_util import auth
 from server.utils.response_util import RET, response_collect
+from server.utils.permission_utils import GetAllByPermission
 from server.model.testcase import Suite, Case, CommitComment
 from server.utils.db import Insert, Edit, Select, Delete, collect_sql_error
 from server.schema.base import DeleteBaseModel, PageBaseSchema
@@ -17,13 +18,17 @@ from server.schema.testcase import (
     BaselineItemQuerySchema,
     BaselineUpdateSchema,
     SuiteBase,
+    SuiteCreate,
     SuiteUpdate,
     CaseBase,
+    CaseCreate,
+    CaseBaselineCommitCreate,
     CaseUpdate,
     AddCaseCommitSchema,
     UpdateCaseCommitSchema,
     CommitQuerySchema,
     AddCommitCommentSchema,
+    UpdateCommitCommentSchema,
     CaseCommitBatch,
     QueryHistorySchema
 )
@@ -110,25 +115,33 @@ class SuiteItemEvent(Resource):
             data=suite.to_json()
         )
 
-
-class SuiteEvent(Resource):
     @auth.login_required()
     @response_collect
     @validate()
-    def post(self, body: SuiteBase):
-        return SuiteHandler.create(body)
-
-    @auth.login_required()
-    @response_collect
-    @validate()
-    def put(self, body: SuiteUpdate):
+    def put(self, suite_id, body: SuiteUpdate):
+        suite = Suite.query.filter_by(id=suite_id).first()
+        if not suite:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="the suite does not exist"
+            )
+        _data = body.__dict__
+        _data.update({"id": suite_id})
         return Edit(Suite, body.__dict__).single(Suite, "/suite")
 
     @auth.login_required()
     @response_collect
     @validate()
-    def delete(self, body: DeleteBaseModel):
-        return Delete(Suite, body.__dict__).batch(Suite, "/suite")
+    def delete(self, suite_id):
+        return Delete(Suite, {"id": suite_id}).single(Suite, "/suite")
+
+
+class SuiteEvent(Resource):
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def post(self, body: SuiteCreate):
+        return SuiteHandler.create(body)
 
     @auth.login_required()
     @response_collect
@@ -165,21 +178,44 @@ class PreciseCaseEvent(Resource):
             if value:
                 body[key] = value
 
-        return Select(Case, body).precise()
+        return GetAllByPermission(Case).precise(body)
 
+class CaseBaselineCommitEvent(Resource):
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def post(self, body: CaseBaselineCommitCreate):
+        return CaseHandler.create_case_baseline_commit(body)
 
 class CaseEvent(Resource):
     @auth.login_required()
     @response_collect
     @validate()
-    def post(self, body: CaseBase):
+    def post(self, body: CaseCreate):
         return CaseHandler.create(body)
 
     @auth.login_required()
     @response_collect
+    def get(self):
+        body = dict()
+
+        for key, value in request.args.to_dict().items():
+            if value:
+                body[key] = value
+        return GetAllByPermission(Case).precise(body)
+
+class CaseItemEvent(Resource):
+    @auth.login_required()
+    @response_collect
     @validate()
-    def put(self, body: CaseUpdate):
+    def put(self, case_id, body: CaseUpdate):
         _body = body.__dict__
+        _case = Case.query.filter_by(id=case_id).first()
+        if not _case:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="the case does not exist"
+            )
 
         if _body["suite"]:
             _body["suite_id"] = Suite.query.filter_by(
@@ -191,20 +227,13 @@ class CaseEvent(Resource):
     @auth.login_required()
     @response_collect
     @validate()
-    def delete(self, body: DeleteBaseModel):
-        return Delete(Case, body.__dict__).batch(Case, "/case")
+    def delete(self, case_id):
+        return Delete(Case, {"id": case_id}).single(Case, "/case")
 
     @auth.login_required()
     @response_collect
-    def get(self):
-        body = dict()
-
-        for key, value in request.args.to_dict().items():
-            if value:
-                body[key] = value
-
-        return Select(Case, body).fuzz()
-
+    def get(self, case_id):
+        return GetAllByPermission(Case).precise({"id": case_id})
 
 class TemplateCasesQuery(Resource):
     @auth.login_required()
@@ -218,7 +247,7 @@ class CaseRecycleBin(Resource):
     @auth.login_required()
     @response_collect
     def get(self):
-        return Select(Case, {"deleted": 1}).precise()
+        return GetAllByPermission(Case).precise({"deleted": 1})
 
 
 class CaseImport(Resource):
@@ -291,6 +320,11 @@ class CaseCommit(Resource):
     def get(self, commit_id):
         return HandlerCaseReview.handler_case_detail(commit_id)
 
+    @auth.login_required()
+    @response_collect
+    # @casbin_enforcer.enforcer
+    def delete(self, commit_id):
+        return HandlerCaseReview.delete(commit_id)
 
 class CommitHistory(Resource):
     @auth.login_required()
@@ -323,10 +357,14 @@ class CaseCommitComment(Resource):
 
     @auth.login_required()
     @response_collect
-    @validate()
     def delete(self, comment_id):
         return HandlerCommitComment.delete(comment_id)
 
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def put(self, comment_id, body: UpdateCommitCommentSchema):
+        return HandlerCommitComment.update(comment_id, body)
 
 class CommitStatus(Resource):
     @auth.login_required()

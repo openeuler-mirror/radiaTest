@@ -14,8 +14,8 @@ class FrameworkBase(PermissionBase):
 
     @validator("permission_type")
     def check_permission_type(cls, v):
-        if v != "group":
-            raise ValueError("framework's permission_type must be group.")
+        if v != "public":
+            raise ValueError("framework's permission_type must be public.")
         return v
 
 
