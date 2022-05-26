@@ -71,7 +71,7 @@ export default defineComponent({
   setup() {
     const store = useStore();
     const columns = ref(createColumns());
-    // const vmachineSocket = new Socket(`ws://${settings.serverPath}/vmachine`);
+    // const vmachineSocket = new Socket(`${settings.websocketProtocol}://${settings.serverPath}/vmachine`);
     // vmachineSocket.connect();
 
     onMounted(() => {

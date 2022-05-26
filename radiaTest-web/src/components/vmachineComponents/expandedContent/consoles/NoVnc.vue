@@ -4,6 +4,7 @@
 
 <script>
 import RFB from '@novnc/novnc/core/rfb';
+import { settings } from '@/assets/config/settings.js';
 import { useMessage } from 'naive-ui';
 import { ref, onMounted, onUnmounted, defineComponent } from 'vue';
 
@@ -17,7 +18,7 @@ export default defineComponent({
     const rfb = ref(null);
     const message = useMessage();
     const url = ref(
-      `ws://${props.websockifyIp}:${props.websockifyListen}?token=${props.vncToken}`
+      `${settings.websocketProtocol}://${props.websockifyIp}:${props.websockifyListen}?token=${props.vncToken}`
     );
 
     const connectedToServer = () => {

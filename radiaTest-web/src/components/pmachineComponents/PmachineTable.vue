@@ -78,7 +78,7 @@ export default defineComponent({
   },
   setup(props, context) {
     const store = useStore();
-    // const pmachineSocket = new Socket(`ws://${settings.serverPath}/pmachine`);
+    // const pmachineSocket = new Socket(`${settings.websocketProtocol}://${settings.serverPath}/pmachine`);
     // pmachineSocket.connect();
 
     onMounted(() => {

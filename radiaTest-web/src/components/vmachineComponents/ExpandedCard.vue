@@ -215,6 +215,7 @@
 <script>
 import { ref, watch, onMounted, onBeforeUnmount, defineComponent } from 'vue';
 import { Socket } from '@/socket';
+import { settings } from '@/assets/config/settings.js'; 
 
 import ModalCard from '@/components/CRUD/ModalCard.vue';
 import EditModal from '@/components/vmachineComponents/expandedContent/EditModal.vue';
@@ -235,7 +236,7 @@ export default defineComponent({
   // eslint-disable-next-line max-lines-per-function
   setup(props, context) {
     const vmachineResourceSocket = new Socket(
-      `ws://${props.data.machine_group.messenger_ip}:${props.data.machine_group.messenger_listen}/monitor/normal`
+      `${settings.websocketProtocol}://${props.data.machine_group.messenger_ip}:${props.data.machine_group.messenger_listen}/monitor/normal`
     );
     vmachineResourceSocket.connect();
     const memoryPercentage = ref('');
