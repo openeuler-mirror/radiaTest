@@ -18,19 +18,29 @@ from server.utils.read_from_yaml import get_default_suffix
 class RoleHandler:
     @staticmethod
     @collect_sql_error
-    def get(role_id):
+    def get(role_id, query):
         role = Role.query.filter_by(id=role_id).first()
         if not role:
             return jsonify(error_code=RET.NO_DATA_ERR, error_msg="The role is not exist")
 
         return_data = role.to_json()
 
-        scopes = []
+        scope_ids = [re.scope_id for re in role.re_scope_role]
+        filter_params = [Scope.id.in_(scope_ids)]
+        for key, value in query.dict().items():
+            if not value:
+                continue
+            if key == 'alias':
+                filter_params.append(Scope.alias.like(f'%{value}%'))
+            if key == 'uri':
+                filter_params.append(Scope.uri.like(f'%{value}%'))
+            if key == 'act':
+                filter_params.append(Scope.act == value)
+            if key == 'eft':
+                filter_params.append(Scope.eft == value)
 
-        for re in role.re_scope_role:
-            scope = Scope.query.filter_by(id=re.scope_id).first()
-            scopes.append(scope.to_json())
-
+        _scopes = Scope.query.filter(*filter_params).all()
+        scopes = [scope.to_json() for scope in _scopes]
         return_data.update({"scopes": scopes})
 
         users = []
@@ -49,23 +59,23 @@ class RoleHandler:
         filter_params = []
         admin = Admin.query.filter_by(account=g.gitee_login).first()
         if not admin:
-            _filter = [and_(ReUserRole.user_id == g.gitee_id,
-                            Role.name == 'admin',
-                            or_(
-                                Role.type == 'group',
-                                Role.type == 'org'
-                                )
-                            )
-                       ]
-            _roles = Role.query.join(ReUserRole).filter(*_filter).all()
-            group_id = []
-            org_id = []
-            for _ in _roles:
-                if _.type == 'group':
-                    group_id.append(_.group_id)
-                else:
-                    org_id.append(_.org_id)
-            filter_params.append(or_(Role.group_id.in_(group_id), Role.org_id.in_(org_id)))
+            filter_params = [
+                and_(
+                     ReUserGroup.user_gitee_id == g.gitee_id,
+                     or_(
+                         and_(
+                             ReUserGroup.group_id == Role.group_id,
+                             ReUserGroup.user_add_group_flag == True,
+                             ReUserGroup.is_delete == False,
+                             Role.type == 'group'
+                         ),
+                         and_(
+                             ReUserGroup.org_id == Role.org_id,
+                             Role.type == 'org'
+                         )
+                     )
+                )
+            ]
         for key, value in query.dict().items():
             if not value:
                 continue
@@ -74,7 +84,7 @@ class RoleHandler:
             if key == 'description':
                 filter_params.append(Role.description.like(f'%{value}%'))
 
-        roles = Role.query.filter(*filter_params).all()
+        roles = Role.query.select_from(ReUserGroup).filter(*filter_params).all()
         return_data = [role.to_json() for role in roles]
 
         return jsonify(error_code=RET.OK, error_msg="OK", data=return_data)
@@ -322,9 +332,20 @@ class UserRoleLimitedHandler(RoleLimitedHandler):
         re = ReUserRole.query.filter_by(role_id=self.role_id, user_id=self.user_id).first()
         if not re:
             return jsonify(error_code=RET.DATA_EXIST_ERR, error_msg="This Binding is already not exist")
-        rug = ReUserGroup.query.filter_by(user_gitee_id=self.user_id, group_id=re.role.group_id).first()
-        if re.role.name == 'admin' and rug.role_type == GroupRole.create_user.value:
-            return jsonify(error_code=RET.VERIFY_ERR, error_msg="group creator user-role bind is not allowed to untie")
+        if re.role.type == 'group':
+            rug = ReUserGroup.query.filter_by(user_gitee_id=self.user_id, group_id=re.role.group_id).first()
+            if not rug:
+                return jsonify(error_code=RET.VERIFY_ERR,
+                               error_msg="user-group binding not exist")
+            if re.role.name == 'admin' and rug.role_type == GroupRole.create_user.value:
+                return jsonify(error_code=RET.VERIFY_ERR,
+                               error_msg="group creator user-role bind is not allowed to untie")
+        elif re.role.type == 'org':
+            rug = ReUserOrganization.query.filter_by(user_gitee_id=self.user_id, organization_id=re.role.org_id).first()
+            if not rug:
+                return jsonify(error_code=RET.VERIFY_ERR,
+                               error_msg="user-organization binding not exist")
+
         return Delete(
             ReUserRole,
             {
@@ -381,18 +402,18 @@ class AccessableMachinesHandler:
             namespace = "pmachine"
             if query.machine_purpose != "create_vmachine":
                 origin_pool = Pmachine.query.filter(
-                    Pmachine.machine_group_id==query.machine_group_id,
-                    Pmachine.frame==query.frame,
-                    Pmachine.state=="occupied",
-                    Pmachine.locked==False,
-                    Pmachine.status=="on",
+                    Pmachine.machine_group_id == query.machine_group_id,
+                    Pmachine.frame == query.frame,
+                    Pmachine.state == "occupied",
+                    Pmachine.locked == False,
+                    Pmachine.status == "on",
                     or_(
-                        Pmachine.description==current_app.config.get(
+                        Pmachine.description == current_app.config.get(
                             "CI_PURPOSE"
                         ),
                         and_(
-                            Pmachine.occupier==user.gitee_name,
-                            Pmachine.description!=current_app.config.get(
+                            Pmachine.occupier == user.gitee_name,
+                            Pmachine.description != current_app.config.get(
                                 "CI_HOST"
                             )
                         )
@@ -400,12 +421,12 @@ class AccessableMachinesHandler:
                 ).all()
             else:
                 origin_pool = Pmachine.query.filter(
-                    Pmachine.machine_group_id==query.machine_group_id,
-                    Pmachine.frame==query.frame,
-                    Pmachine.state=="occupied",
-                    Pmachine.locked==False,
-                    Pmachine.status=="on",
-                    Pmachine.description==current_app.config.get(
+                    Pmachine.machine_group_id == query.machine_group_id,
+                    Pmachine.frame == query.frame,
+                    Pmachine.state == "occupied",
+                    Pmachine.locked == False,
+                    Pmachine.status == "on",
+                    Pmachine.description == current_app.config.get(
                         "CI_HOST"
                     ),
                 ).all()
@@ -413,9 +434,9 @@ class AccessableMachinesHandler:
         elif query.machine_type == "kvm":
             namespace = "vmachine"
             origin_pool = Vmachine.query.join(Pmachine).filter(
-                Pmachine.machine_group_id==query.machine_group_id,
-                Vmachine.frame==query.frame,
-                Vmachine.status=="running",
+                Pmachine.machine_group_id == query.machine_group_id,
+                Vmachine.frame == query.frame,
+                Vmachine.status == "running",
             ).all()
 
         if not namespace:

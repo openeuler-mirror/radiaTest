@@ -31,8 +31,9 @@ from server.model.group import Group, ReUserGroup, GroupRole
 from server.model.administrator import Admin
 from server.model.message import Message, MsgType, MsgLevel
 from server.model.organization import Organization
-from server.model.permission import ReUserRole, Role, ReScopeRole
+from server.model.permission import ReUserRole, Role
 from server.schema.group import ReUserGroupSchema, GroupInfoSchema, QueryGroupUserSchema
+from server.apps.administrator.handlers import delete_role
 
 
 @collect_sql_error
@@ -74,7 +75,7 @@ def handler_add_group():
     for role in role_list:
         scope_data_allow, scope_data_deny = get_api("permission", "role.yaml", "role", role.id)
         PermissionManager().generate(scope_datas_allow=scope_data_allow, scope_datas_deny=scope_data_deny,
-                                     _data=_data, admin_only=True)
+                                     _data=_data)
 
     return jsonify(error_code=RET.OK, error_msg="OK")
 
@@ -115,8 +116,12 @@ def handler_delete_group(group_id):
             Insert(
                 Message,
                 {
-                    "data": json.dumps({"info": f'<b>{redis_client.hget(RedisKey.user(g.gitee_id), "current_org_name")}'
-                                                f'</b>组织下的<b>{re.group.name}</b>用户组已解散'}),
+                    "data": json.dumps(
+                        {
+                            "info": f'<b>{redis_client.hget(RedisKey.user(g.gitee_id), "current_org_name")}'
+                                    f'</b>组织下的<b>{re.group.name}</b>用户组已解散'
+                        }
+                    ),
                     "level": MsgLevel.group.value,
                     "from_id": group_id,
                     "to_id": item.user.gitee_id,
@@ -126,24 +131,7 @@ def handler_delete_group(group_id):
         Group.query.filter_by(is_delete=False, id=group_id).update({'is_delete': True}, synchronize_session=False)
         ReUserGroup.query.filter_by(is_delete=False, group_id=group_id).update({'is_delete': True},
                                                                                synchronize_session=False)
-
-        _roles = Role.query.filter_by(type='group', group_id=group_id).all()
-        suffix = get_default_suffix('group')
-        sort_list = []
-        for _role in _roles:
-            if _role.name == suffix:
-                sort_list.insert(0, _role)
-            else:
-                sort_list.append(_role)
-        for _role in sort_list:
-            _urs = ReUserRole.query.filter_by(role_id=_role.id).all()
-            _srs = ReScopeRole.query.filter_by(role_id=_role.id).all()
-            for _re in _urs:
-                Delete(ReUserRole, {"id": _re.id}).single()
-            for _re in _srs:
-                Delete(ReScopeRole, {"id": _re.id}).single()
-        for _role in sort_list:
-            _role.delete()
+        delete_role(_type='group', group=re.group)
 
     # 用户组成员退出用户组
     elif re.role_type in [GroupRole.admin.value, GroupRole.user.value]:
@@ -155,9 +143,13 @@ def handler_delete_group(group_id):
             Insert(
                 Message,
                 {
-                    "data": json.dumps({"info": f'<b>{re.user.gitee_name}</b>退出'
-                                                f'<b>{redis_client.hget(RedisKey.user(g.gitee_id), "current_org_name")}'
-                                                f'</b>组织下的<b>{re.group.name}</b>用户组'}),
+                    "data": json.dumps(
+                        {
+                            "info": f'<b>{re.user.gitee_name}</b>退出'
+                                    f'<b>{redis_client.hget(RedisKey.user(g.gitee_id), "current_org_name")}'
+                                    f'</b>组织下的<b>{re.group.name}</b>用户组'
+                        }
+                    ),
                     "level": MsgLevel.group.value,
                     "from_id": g.gitee_id,
                     "to_id": item.user.gitee_id,
@@ -167,9 +159,11 @@ def handler_delete_group(group_id):
         re.add_update()
 
         # 解除组内角色和用户的绑定
-        _filter = [ReUserRole.user_id == g.gitee_id,
+        _filter = [
+            ReUserRole.user_id == g.gitee_id,
             Role.group_id == group_id,
-            Role.type == 'group']
+            Role.type == 'group'
+        ]
         re_list = ReUserRole.query.join(Role).filter(*_filter).all()
         for re in re_list:
             Delete(ReUserRole, {"id": re.id}).single()
@@ -272,10 +266,14 @@ def handler_add_user(group_id, body):
         Insert(
             Message,
             {
-                "data": json.dumps({"group_id": group_id,
-                                    "info": f'<b>{re.user.gitee_name}</b>邀请您加入'
-                                            f'<b>{redis_client.hget(RedisKey.user(g.gitee_id), "current_org_name")}</b>组织下的'
-                                            f'<b>{re.group.name}</b>用户组。'}),
+                "data": json.dumps(
+                    {
+                        "group_id": group_id,
+                        "info": f'<b>{re.user.gitee_name}</b>邀请您加入'
+                                f'<b>{redis_client.hget(RedisKey.user(g.gitee_id), "current_org_name")}</b>组织下的'
+                                f'<b>{re.group.name}</b>用户组。'
+                    }
+                ),
                 "level": MsgLevel.user.value,
                 "from_id": re.user.gitee_id,
                 "to_id": gitee_id,
@@ -319,9 +317,13 @@ def handler_update_user(group_id, body):
                 Insert(
                     Message,
                     {
-                        "data": json.dumps({'info': f'<b>{re.user.gitee_name}</b>将您请出'
-                                                    f'<b>{redis_client.hget(RedisKey.user(g.gitee_id), "current_org_name")}</b>组织下的'
-                                                    f'<b>{re.group.name}</b>用户组！'}),
+                        "data": json.dumps(
+                            {
+                                'info': f'<b>{re.user.gitee_name}</b>将您请出'
+                                        f'<b>{redis_client.hget(RedisKey.user(g.gitee_id), "current_org_name")}</b>组织下的'
+                                        f'<b>{re.group.name}</b>用户组！'
+                            }
+                        ),
                         "level": MsgLevel.user.value,
                         "from_id": g.gitee_id,
                         "to_id": item.user_gitee_id,

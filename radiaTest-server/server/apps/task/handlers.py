@@ -269,6 +269,15 @@ class HandlerTask(object):
         if task.task_status.name not in ['执行中', '已执行', '已完成']:
             if body.is_manage_task:
                 setattr(task, "frame", None)
+                case_ids = []
+                task_milestones = TaskMilestone.query.filter_by(task_id=task_id).all()
+                for task_milestone in task_milestones:
+                    for case in task_milestone.cases:
+                        case_ids.append(case.id)
+                    cases = Case.query.filter(Case.id.in_(case_ids)).all()
+                    _ = [task_milestone.cases.remove(item) for item in cases if item in task_milestone.cases]
+                    task_milestone.add_update()
+                    _ = [db.session.delete(item) for item in task_milestone.manual_cases if item.case_id in case_ids]
             if body.frame:
                 task.frame = body.frame
             if any([body.milestones, body.milestone_id]) and any([task.parents.filter(Task.is_delete.is_(False)).all(),
@@ -298,6 +307,13 @@ class HandlerTask(object):
                         db.session.commit()
                     _ = [db.session.delete(item) for item in task.milestones if item.milestone_id in delete_list]
                     db.session.commit()
+                    start_time_list = []
+                    for item in milestones:
+                        _milestone = Milestone.query.get(item)
+                        if _milestone:
+                            start_time_list.append(_milestone.start_time)
+                    start_time_list.sort()
+                    task.start_time = start_time_list[0] if start_time_list else None
                     milestones = set(milestones) - set(old_milestones)
                 _ = [task.milestones.append(TaskMilestone(task_id=task_id, milestone_id=item)) for item in milestones]
                 temp = Milestone.query.get(body.milestones[0])

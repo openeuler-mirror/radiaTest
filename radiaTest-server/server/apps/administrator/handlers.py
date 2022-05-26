@@ -20,13 +20,15 @@ from server import redis_client
 from server.utils.response_util import RET
 from server.utils.redis_util import RedisKey
 from server.utils.auth_util import generate_token
-from server.utils.db import collect_sql_error
+from server.utils.db import collect_sql_error, Delete
 from server.utils.file_util import FileUtil
 from server.utils.cla_util import ClaShowAdminSchema
 from server.utils.permission_utils import PermissionManager
-from server.utils.read_from_yaml import create_role, get_api
+from server.utils.read_from_yaml import create_role, get_api, get_default_suffix
 from server.model.administrator import Admin
 from server.model.organization import Organization
+from server.model.group import Group
+from server.model.permission import Role, ReScopeRole, ReUserRole
 from server.schema.organization import AddSchema
 
 
@@ -193,6 +195,11 @@ def handler_update_org(org_id):
     _form = dict()
     if request.form.get('is_delete'):
         org.is_delete = True
+        _groups = Group.query.filter_by(org_id=org_id).all()
+        for _group in _groups:
+            delete_role(_type='group', group=_group)
+            _groups.update({'is_delete': True}, synchronize_session=False)
+        delete_role(_type='org', org=org)
     else:
         for key, value in request.form.items():
             if value:
@@ -211,3 +218,27 @@ def handler_update_org(org_id):
         error_code=RET.OK,
         error_msg="OK"
     )
+
+
+def delete_role(_type, org=None, group=None):
+    filter_param = [Role.type == _type]
+    if _type == 'org':
+        filter_param.append(Role.org_id == org.id)
+    elif _type == 'group':
+        filter_param.append(Role.group_id == group.id)
+    _roles = Role.query.filter(*filter_param).all()
+    suffix = get_default_suffix(_type)
+    sort_list = []
+    for _role in _roles:
+        if _role.name == suffix:
+            sort_list.insert(0, _role)
+        else:
+            sort_list.append(_role)
+    for _role in sort_list:
+        _urs = ReUserRole.query.filter_by(role_id=_role.id).all()
+        _srs = ReScopeRole.query.filter_by(role_id=_role.id).all()
+        for _re in _urs:
+            Delete(ReUserRole, {"id": _re.id}).single()
+        for _re in _srs:
+            Delete(ReScopeRole, {"id": _re.id}).single()
+    sort_list[0].delete()
