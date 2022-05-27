@@ -206,10 +206,12 @@ class PmachineBaseSchema(BaseModel):
                 datetime.datetime.now()
                 + datetime.timedelta(days=current_app.config.get("MAX_OCUPY_TIME"))
             ):
-                raise ValueError(
-                    "The max occupation duration is %s days."
-                    % current_app.config.get("MAX_OCUPY_TIME")
-                )
+                if values["description"] != current_app.config.get("CI_PURPOSE") \
+                and values["description"] != current_app.config.get("CI_HOST"):
+                    raise ValueError(
+                        "The max occupation duration is %s days."
+                        % current_app.config.get("MAX_OCUPY_TIME")
+                    )
 
         elif values.get("state") == "idle":
             values["start_time"] = None
