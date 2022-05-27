@@ -85,10 +85,11 @@ class AutoInstall:
         )
 
 
+
 class OnOff:
     def __init__(self, body) -> None:
         self._body = body
-        self.pmachine = json.loads(body.get("pmachine"))
+        self.pmachine = body.get("pmachine")
 
     def on_off(self):
         exitcode, output = ShellCmd(
@@ -103,13 +104,19 @@ class OnOff:
         if exitcode:
             return jsonify(error_code=exitcode, error_msg=output)
 
-        update_body = deepcopy(self.pmachine)
-        update_body.pop("id")
+        exitcode, output = getstatusoutput(
+            "ipmitool -I lanplus -H %s -U %s  -P %s power status"
+            % (self.pmachine["bmc_ip"], self.pmachine["bmc_user"], self.pmachine["bmc_password"])
+        )
+        if exitcode != 0:
+            raise ValueError("The infomation of BMC provided is wrong.")
 
         return update_request(
             "/api/v1/pmachine/{}".format(
                 self.pmachine.get("id")
             ),
-            update_body,
+            {
+                "status":output.split()[-1]
+            },
             self._body.get("auth")
         )
