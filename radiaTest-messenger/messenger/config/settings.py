@@ -20,9 +20,6 @@ class Config(object):
     # HTTP请求头
     HEADERS = {"Content-Type": "application/json;charset=utf8"}
 
-    # HTTP PROTOCOL
-    PROTOCOL = "http"
-    PROTOCOL_TO_SERVER = "https"
     # 虚拟机
     # 虚拟机创建基础信息
     # 最大内存

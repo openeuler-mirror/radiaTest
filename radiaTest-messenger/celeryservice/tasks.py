@@ -40,7 +40,8 @@ def async_check_alive():
     _resp = dict()
     _r = do_request(
         method="get",
-        url="http://{}:{}/api/v1/heartbeat".format(
+        url="{}://{}:{}/api/v1/heartbeat".format(
+            celeryconfig.protocol,
             celeryconfig.messenger_ip,
             celeryconfig.messenger_listen
         ),

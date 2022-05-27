@@ -76,9 +76,10 @@ server_addr = loads_config_ini("worker", "SERVER_ADDR")
 messenger_ip = loads_config_ini("worker", "MESSENGER_IP")
 messenger_listen = loads_config_ini("worker", "MESSENGER_LISTEN")
 protocol = loads_config_ini("worker", "PROTOCOL")
+protocol_to_server = loads_config_ini("worker", "PROTOCOL_TO_SERVER")
 headers = {"Content-Type": "application/json;charset=utf8"}
-protocol_to_server = "https"
 vmstatus_state = ("_STARTING", "_SUCCESS")
 cdromstatus_state = ("CREATING", "CDROMMING", "INSTALLING", "SUCCESS")
 wait_vm_shutdown = 20
 wait_vm_install = 6000
+

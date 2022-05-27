@@ -82,7 +82,7 @@ services:
         restart: always
         ports:
             - 8080:8080
-            - 443:443
+            - 21500:21500
         links:
             - supervisor
         volumes:
@@ -90,6 +90,7 @@ services:
             - /var/log/nginx
             - /usr/share/radiaTest/dist:/usr/share/nginx/html
             - /etc/nginx:/etc/nginx
+            - /etc/radiaTest/server_ssl:/etc/radiaTest/server_ssl
         ulimits:
             nproc: 65535
             nofile:

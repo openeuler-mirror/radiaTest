@@ -36,7 +36,7 @@
 </template>
 
 <script>
-import { defineComponent } from 'vue';
+import { ref, toRefs, defineComponent } from 'vue';
 import { PowerOff } from '@vicons/fa';
 
 import { handlePowerClick } from '@/views/pmachine/modules/changeState/power.js';
@@ -54,9 +54,10 @@ export default defineComponent({
     }
   },
   setup(props) {
+    const { disabled } = toRefs(props);
 
     return {
-      handleClick: () => handlePowerClick(props.id, props.status, props.disabled),
+      handleClick: () => handlePowerClick(props.id, props.status, disabled),
     };
   },
 });

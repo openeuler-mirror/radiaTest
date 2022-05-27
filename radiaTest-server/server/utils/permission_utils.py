@@ -14,6 +14,7 @@ from server import db, redis_client
 from server.model.permission import ReScopeRole, Role, Scope
 from server.utils.db import Insert, Precise, Like
 from server.utils.redis_util import RedisKey
+from server.utils.requests_util import gen_path_by_protocol
 from server.model import ReUserGroup
 
 
@@ -272,19 +273,18 @@ class PermissionItemsPool:
         for _item in self.origin_pool:
             try:
                 _url = "{}/{}".format(self._root_url, _item.id)
+
+                request_path = gen_path_by_protocol(current_app.config.get("PROTOCOL"), _url)
+                
                 _resp = requests.request(
                     method=self.act,
-                    url="{}://{}:{}/{}".format(
-                        current_app.config.get("PROTOCOL"),
-                        current_app.config.get("SERVER_IP"),
-                        current_app.config.get("SERVER_PORT"),
-                        _url
-                    ),
+                    url=request_path,
                     headers={
                         'Content-Type': 'application/json;charset=utf8',
                         'Authorization': self.auth,
                     },
                 )
+
                 if _resp.status_code != 200:
                     raise RuntimeError(_resp.text)
 
