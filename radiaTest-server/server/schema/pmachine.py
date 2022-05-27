@@ -157,7 +157,8 @@ class PmachineBaseSchema(BaseModel):
     occupier: Optional[str]
     locked: Optional[bool] = False
     machine_group_id: Optional[int]
-    
+    status: Power
+
     @validator("ip")
     def check_ip_format(cls, v):
         if not ip_type(v):
@@ -270,6 +271,7 @@ class PmachineUpdateSchema(PmachineBaseSchema):
 class PmachineInstallSchema(BaseModel):
     id: int
     milestone_id: int
+    status: Power
 
 
 class PmachinePowerSchema(BaseModel):

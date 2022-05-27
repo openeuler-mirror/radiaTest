@@ -6,7 +6,7 @@ import datetime
 from flask import request, jsonify, current_app
 from flask_restful import Resource
 from flask_pydantic import validate
-
+import json
 from server.model import Pmachine, IMirroring, Vmachine
 from server.model.pmachine import MachineGroup
 from server.utils.db import Insert, Delete, Edit, Select, collect_sql_error
@@ -163,7 +163,18 @@ class PmachineEvent(Resource):
             )
 
         messenger = PmachineMessenger(body.__dict__)
-        messenger.send_request(machine_group, "/api/v1/pmachine/checkpmachineinfo")
+        resp = messenger.send_request(machine_group, "/api/v1/pmachine/checkpmachineinfo")
+
+        if resp.status_code != 200:
+            raise RuntimeError("failed in check bmc info and pmachine info.")
+        try:
+            result = json.loads(resp.text).get("data")
+        except AttributeError:
+            result = resp.json.get("data")
+
+        _body.update({
+            "status": result.get("status")
+        })
 
         return ResourceManager("pmachine").add("api_infos.yaml", body.__dict__)
 
@@ -239,9 +250,8 @@ class Power(Resource):
                 "pmachine": pmachine.to_json()
             }
         )
-
-        messenger = PmachineMessenger(body.__dict__)
+        messenger = PmachineMessenger(_body)
         messenger.send_request(machine_group, "/api/v1/pmachine/checkbmcinfo")
 
         messenger = PmachineMessenger(_body)
-        return messenger.send_request(machine_group, "/api/v1/pmachine/")
+        return messenger.send_request(machine_group, "/api/v1/pmachine/power")
