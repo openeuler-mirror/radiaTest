@@ -15,6 +15,7 @@ from server.utils.db import Edit, Insert, collect_sql_error
 from server.utils.page_util import PageUtil
 from server.utils.permission_utils import GetAllByPermission
 from server.model.testcase import Baseline, Suite, Case, Commit, CaseDetailHistory, CommitComment
+from server.model.framework import GitRepo
 from server.model.task import Task, TaskMilestone, TaskManualCase
 from server.model.celerytask import CeleryTask
 from server.model.message import Message, MsgType, MsgLevel
@@ -24,7 +25,7 @@ from server.model.job import Analyzed
 from server.schema.base import PageBaseSchema
 from server.schema.testcase import BaselineBaseSchema, AddCaseCommitSchema, \
     UpdateCaseCommitSchema, CommitQuerySchema, CaseCommitBatch, \
-    QueryHistorySchema
+    QueryHistorySchema, BaselineBodySchema
 from server.schema.celerytask import CeleryTaskUserInfoSchema
 from server.utils.file_util import ZipImportFile, ExcelImportFile
 from server.utils.sheet import Excel, SheetExtractor
@@ -67,6 +68,7 @@ class CaseImportHandler:
                         "name": case.get("suite"),
                         "group_id": group_id,
                         "org_id": redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id'),
+                        "permission_type": "group",
                     }
                 ).single(Suite, '/suite')
                 _suite = Suite.query.filter_by(
@@ -80,9 +82,10 @@ class CaseImportHandler:
             del case["suite"]
 
             if not _case:
+                case.update({"permission_type": "group"})
+                case.update({"group_id": group_id})
+                case.update({"org_id": redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')})
                 Insert(Case, case).single(Case, "/case")
-
-                _case = Case.query.filter_by(name=case.get("name")).first()
             else:
                 case["id"] = _case.id
 
@@ -178,17 +181,11 @@ class BaselineHandler:
         if not baseline:
             return jsonify(error_code=RET.NO_DATA_ERR, error_msg="baseline is not exists")
 
-        current_org_id = int(redis_client.hget(
-            RedisKey.user(g.gitee_id),
-            'current_org_id'
-        ))
-
-        if current_org_id != baseline.org_id:
-            return jsonify(error_code=RET.VERIFY_ERR, error_msg="No right to query")
+        filter_params = GetAllByPermission(Baseline).get_filter()
 
         return_data = BaselineBaseSchema(**baseline.__dict__).dict()
 
-        filter_params = [Baseline.parent.contains(baseline)]
+        filter_params.append(Baseline.parent.contains(baseline))
 
         for key, value in query.dict().items():
             if not value:
@@ -221,17 +218,15 @@ class BaselineHandler:
     @staticmethod
     @collect_sql_error
     def get_roots(query):
-        filter_params = [
-            Baseline.is_root.is_(True),
-            Baseline.org_id == redis_client.hget(
-                RedisKey.user(g.gitee_id), 'current_org_id'),
-            Baseline.group_id == query.group_id,
-        ]
+        filter_params = GetAllByPermission(Baseline).get_filter()
+        filter_params.append(Baseline.is_root.is_(True))
         for key, value in query.dict().items():
             if not value:
                 continue
             if key == 'title':
                 filter_params.append(Baseline.title.like(f'%{value}%'))
+            if key == 'group_id':
+                filter_params.append(Baseline.group_id==value)
 
         baselines = Baseline.query.filter(*filter_params).all()
         return_data = [baseline.to_json() for baseline in baselines]
@@ -241,8 +236,9 @@ class BaselineHandler:
     @collect_sql_error
     def create(body):
         _body = body.__dict__
-        _body["org_id"] = redis_client.hget(
-            RedisKey.user(g.gitee_id), 'current_org_id')
+        _body.update({"creator_id": g.gitee_id})
+        _body.update({"permission_type": "group"})
+        _body.update({"org_id": redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')})
 
         if not body.parent_id:
             baseline_id = Insert(Baseline, body.__dict__).insert_id()
@@ -386,7 +382,11 @@ class SuiteHandler:
     @staticmethod
     @collect_sql_error
     def create(body):
-        _id = Insert(Suite, body.__dict__).insert_id(Suite, "/suite")
+        _body = body.__dict__
+        _body.update({"creator_id": g.gitee_id})
+        _body.update({"permission_type": "group"})
+        _body.update({"org_id": redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')})
+        _id = Insert(Suite, _body).insert_id(Suite, "/suite")
         return jsonify(error_code=RET.OK, error_msg="OK", data={"id": _id})
 
 
@@ -406,15 +406,92 @@ class CaseHandler:
             )
         _body["suite_id"] = _suite.id
         _body.pop("suite")
-
+        _body.update({"creator_id": g.gitee_id})
+        _body.update({"permission_type": "group"})
+        _body.update({"org_id": redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')})
         _id = Insert(Case, _body).insert_id(Case, "/case")
         return jsonify(error_code=RET.OK, error_msg="OK", data={"id": _id})
+
+    @staticmethod
+    @collect_sql_error
+    def create_case_baseline_commit(body):
+        _body = body.__dict__
+
+        _suite = Suite.query.filter_by(name=_body.get("suite")).first()
+        if not _suite:
+            return jsonify(
+                error_code=RET.PARMA_ERR,
+                error_msg="The suite {} is not exist".format(
+                    _body.get("suite")
+                )
+            )
+        _body["suite_id"] = _suite.id
+        _body.pop("suite")
+        _body.update({"creator_id": g.gitee_id})
+        _body.update({"permission_type": "group"})
+        _body.update({"org_id": redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')})
+
+        _id = Insert(Case, _body).insert_id(Case, "/case")
+
+        _baseline_body = BaselineBodySchema(
+            case_id=_id,
+            group_id=_body.get("group_id"),
+            parent_id=_body.get("parent_id"),
+            title=_body.get("name"),
+            type="case",
+            creator_id=g.gitee_id,
+            permission_type="group",
+            org_id=redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id'),
+        )
+
+
+        _result = BaselineHandler.create(_baseline_body)
+        _result = _result.get_json()
+        _baseline = Baseline.query.filter_by(id=_result["data"]).first()
+        source = list()
+        cur = _baseline
+
+        while cur:
+            if not cur.parent.all():
+                source.append(cur.id)
+                break
+            if len(cur.parent.all()) > 1:
+                raise RuntimeError(
+                    "baseline should not have parents beyond one")
+
+            source.append(cur.id)
+            cur = cur.parent[0]
+
+        insert_data = _body
+        insert_data['title'] = 'review new testcase '+ _body.get("name")
+        insert_data['description'] = 'review new testcase '+ _body.get("name")
+        insert_data['version'] = str(uuid.uuid4()).replace('-', '')
+        insert_data['case_description'] = _body.get("description")
+        insert_data['case_detail_id'] = _id
+        insert_data['remark'] = 'review new testcase '+ _body.get("name")
+        insert_data['status'] = 'pending'
+        insert_data['case_mod_type'] = 'add'
+        insert_data['expectation'] = _body.get("expection")
+
+        _source = source
+        _source.reverse()
+        _source_str = ''
+        for _s in _source:
+            _source_str += Baseline.query.get(_s).title + '>'
+        _source_str += _body.get("name")
+        insert_data['source'] = _source_str
+        _ = Insert(Commit, insert_data).insert_id(Commit, '/commit')
+        return jsonify(error_code=RET.OK, error_msg="OK")
 
 
 class TemplateCasesHandler:
     @staticmethod
     @collect_sql_error
     def get_all(git_repo_id):
+        _filter = GetAllByPermission(GitRepo).get_filter()
+        _gitrepo = GitRepo.query.filter(*_filter).first()
+        if not _gitrepo:
+            raise RuntimeError("gitrepo does not exist/ has no right")
         cases = Case.query.join(Suite).filter(
             Suite.git_repo_id == git_repo_id
         ).all()
@@ -529,6 +606,14 @@ class HandlerCaseReview(object):
         if body.status == 'rejected':
             commit.reviewer_id = g.gitee_id
             commit.review_time = datetime.datetime.now()
+            if commit.case_mod_type == "add":
+                _baseline = Baseline.query.filter_by(case_id=commit.case_detail_id).first()
+                db.session.delete(_baseline)
+                db.session.commit()
+                _case = Case.query.filter_by(id=commit.case_detail_id).first()
+                db.session.delete(_case)
+                db.session.commit()
+                
         commit.add_update()
 
         return jsonify(error_code=RET.OK, error_msg="OK")
@@ -536,9 +621,10 @@ class HandlerCaseReview(object):
     @staticmethod
     @collect_sql_error
     def update_batch(body: CaseCommitBatch):
+        org_id = redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')
         if body.commit_ids:
             for commit_id in body.commit_ids:
-                commit = Commit.query.filter_by(id=commit_id, creator_id=g.gitee_id).first()
+                commit = Commit.query.filter_by(id=commit_id, creator_id=g.gitee_id, org_id=org_id).first()
                 if not commit:
                     continue
                 if commit and commit.status == 'pending':
@@ -549,21 +635,31 @@ class HandlerCaseReview(object):
     @staticmethod
     @collect_sql_error
     def delete(commit_id):
-        commit = Commit.query.filter_by(id=commit_id).first()
+        commit = GetAllByPermission(Commit).single({"id": commit_id})
         if not commit or commit.status == 'pending':
             return jsonify(error_code=RET.NO_DATA_ERR, error_msg="commit not exists/not allowed to update")
-        commit.delete()
+        db.session.delete(commit)
+        db.session.commit()
+        if commit.case_mod_type == "add":
+            _baseline = Baseline.query.filter_by(case_id=commit.case_detail_id).first()
+            db.session.delete(_baseline)
+            db.session.commit()
+            _case = Case.query.filter_by(id=commit.case_detail_id).first()
+            db.session.delete(_case)
+            db.session.commit()
+        return jsonify(error_code=RET.OK, error_msg="OK")
 
     @staticmethod
     @collect_sql_error
     def handler_case_detail(commit_id):
-        _commit = Commit.query.get(commit_id).to_json()
-        return jsonify(error_code=RET.OK, error_msg="OK", data=_commit)
+        return GetAllByPermission(Commit).precise({"id": commit_id})
 
     @staticmethod
     @collect_sql_error
     def handler_get_history(case_id, query: QueryHistorySchema):
-        _filter = [Commit.status == 'accepted', Commit.case_detail_id == case_id]
+        _filter = GetAllByPermission(Commit).get_filter()
+        _filter.append(Commit.status == 'accepted')
+        _filter.append(Commit.case_detail_id == case_id)
         if query.title:
             _filter.append(Commit.title.like(f'%{query.title}%'))
         if query.start_time:
@@ -590,6 +686,7 @@ class HandlerCaseReview(object):
             _filter.extend(permission_filter)
         elif query.user_type == 'creator':
             _filter.append(Commit.creator_id == g.gitee_id)
+            _filter.append(Commit.org_id == redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id'))
         if query.title:
             _filter.append(Commit.title.like(f'%{query.title}%'))
 
@@ -619,15 +716,42 @@ class HandlerCommitComment(object):
     @staticmethod
     @collect_sql_error
     def add(commit_id, body):
-        if not body.content:
+        _body = body.__dict__
+        if "content" not in _body.keys() or _body.get("content") == '':
             return jsonify(error_code=RET.NO_DATA_ERR, error_msg="no data")
         comment = CommitComment(commit_id=commit_id,
                                 content=body.content,
                                 parent_id=body.parent_id,
                                 reply_id=body.reply_id,
-                                creator_id=g.gitee_id)
+                                creator_id=g.gitee_id,
+                                org_id=redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id'))
         comment.add_update()
         return jsonify(error_code=RET.OK, error_msg='OK')
+
+    @staticmethod
+    @collect_sql_error
+    def update(comment_id, body):
+        _body = body.__dict__
+        if "content" not in _body.keys() or _body.get("content") == '':
+            return jsonify(error_code=RET.NO_DATA_ERR, error_msg="no data")
+        comment = CommitComment.query.filter_by(id=comment_id, creator_id=g.gitee_id).first()
+        if not comment:
+            return jsonify(error_code=RET.NO_DATA_ERR, error_msg="Comment not exist/has no right")
+        setattr(comment, 'content', _body.get("content"))
+        comment.add_update()
+        return jsonify(error_code=RET.OK, error_msg='OK')
+
+    @staticmethod
+    def get_comments(commit_id, comment_id, child_list):
+        children_comments = CommitComment.query.filter_by(
+            commit_id=commit_id,
+            parent_id=comment_id).order_by(CommitComment.create_time).all()
+        for child in children_comments:
+            _comment = child.to_json()
+            _child_list = []
+            HandlerCommitComment.get_comments(commit_id, child.id, _child_list)
+            _comment['child_list'] = _child_list
+            child_list.append(_comment)
 
     @staticmethod
     @collect_sql_error
@@ -637,26 +761,29 @@ class HandlerCommitComment(object):
         @param commit_id:
         @return:
         """
+        commit = GetAllByPermission(Commit).single({"id": commit_id})
+        if not commit or commit.status == 'pending':
+            return jsonify(error_code=RET.NO_DATA_ERR, error_msg="commit not exists/has no right")
+
         # 第一层评论
         comment_list = []
         comments = CommitComment.query.filter_by(commit_id=commit_id, parent_id=0, reply_id=0).order_by(
             CommitComment.create_time).all()
         for comment in comments:
-            # 回复的评论
-            children_comments = CommitComment.query.filter_by(commit_id=commit_id, parent_id=comment.id).order_by(
-                CommitComment.create_time).all()
+            _child_list = []
+            HandlerCommitComment.get_comments(commit_id, comment.id, _child_list)
             _comment = comment.to_json()
-            child_list = []
-            for child in children_comments:
-                child_list.append(child.to_json())
-            _comment['child_list'] = child_list
+            _comment['child_list'] = _child_list
             comment_list.append(_comment)
         return jsonify(error_code=RET.OK, error_msg='OK', data=comment_list)
 
     @staticmethod
     @collect_sql_error
     def delete(comment_id):
-        comment = CommitComment.query.filter_by(id=comment_id, creator_id=g.gitee_id).first()
+        comment = CommitComment.query.filter_by(
+            id=comment_id,
+            creator_id=g.gitee_id,
+            org_id=redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')).first()
         if not comment:
             return jsonify(error_code=RET.NO_DATA_ERR, error_msg="Comment not exist/has no right")
         comment.delete()
@@ -665,8 +792,11 @@ class HandlerCommitComment(object):
     @staticmethod
     @collect_sql_error
     def get_pending_status(query: PageBaseSchema):
-        filter_chain = Commit.query.filter_by(status='pending', creator_id=g.gitee_id).order_by(
-            Commit.create_time.desc())
+        org_id=redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')
+        filter_chain = Commit.query.filter_by(
+            status='pending',
+            creator_id=g.gitee_id,
+            org_id=org_id).order_by(Commit.create_time.desc())
         page_dict, e = PageUtil.get_page_dict(filter_chain, query.page_num, query.page_size,
                                               func=lambda x: x.to_json())
         if e:

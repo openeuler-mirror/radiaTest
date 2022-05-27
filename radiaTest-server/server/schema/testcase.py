@@ -6,7 +6,7 @@ from typing_extensions import Literal
 from typing import List
 
 from server.model.testcase import Suite, Case
-from server.schema.base import UpdateBaseModel, PageBaseSchema
+from server.schema.base import PermissionBase, UpdateBaseModel, PageBaseSchema
 from server.schema import MachineType, TestType, TestLevel, BaselineType
 
 
@@ -98,6 +98,9 @@ class SuiteBase(BaseModel):
         except:
             raise ValueError("The type of add_disk is not validate.")
 
+class SuiteCreate(SuiteBase):
+    name: str
+    group_id: int
 
 class SuiteUpdate(SuiteBase, UpdateBaseModel):
     name: Optional[str]
@@ -116,6 +119,15 @@ class CaseBase(SuiteBase):
     automatic: bool
     usabled: Optional[bool] = False
     code: Optional[str]
+
+class CaseCreate(CaseBase):
+    name: str
+    group_id: int
+
+class CaseBaselineCommitCreate(CaseBase):
+    name: str
+    group_id: int
+    parent_id: int
 
 
 class CaseUpdate(CaseBase, UpdateBaseModel):
@@ -148,7 +160,6 @@ class CaseUpdateSchemaWithSuiteId(CaseBaseSchemaWithSuiteId, UpdateBaseModel):
     expection: Optional[str]
     automatic: Optional[bool]
 
-
 class AddCaseCommitSchema(BaseModel):
     title: str
     creator_id: int = None
@@ -164,7 +175,7 @@ class AddCaseCommitSchema(BaseModel):
     status: str = None
     permission_type: str = None
     source: List
-
+    case_mod_type: str
 
 class UpdateCaseCommitSchema(BaseModel):
     title: str = None
@@ -177,7 +188,6 @@ class UpdateCaseCommitSchema(BaseModel):
     remark: str = None
     status: str = None
     open_edit: bool = False
-
 
 class CaseCommitBasic(AddCaseCommitSchema):
     id: int
@@ -199,6 +209,8 @@ class AddCommitCommentSchema(BaseModel):
     reply_id: int
     content: str
 
+class UpdateCommitCommentSchema(BaseModel):
+    content: str
 
 class CaseCommitBatch(BaseModel):
     commit_ids: List[int] = None
@@ -208,20 +220,3 @@ class QueryHistorySchema(PageBaseSchema):
     start_time: str = None
     end_time: str = None
     title: str = None
-
-
-class AddCaseCommitSchema(BaseModel):
-    title: str
-    creator_id: int = None
-    description: str = None  # 提交commit时的description
-    case_description: str = None  # case本身的description
-    case_detail_id: int
-    machine_type: str = None
-    machine_num: int = None
-    preset: str = None
-    steps: str = None
-    expectation: str = None
-    remark: str = None
-    status: str = None
-    permission_type: str = None
-    source: List

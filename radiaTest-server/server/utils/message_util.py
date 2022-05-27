@@ -22,7 +22,7 @@ from server.utils.table_adapter import TableAdapter
 
 class MessageManager:
     @staticmethod
-    def get_cur_api_msg(uri, method, body):
+    def get_cur_api_msg(uri, method):
         with open('server/config/api_infos.yaml', 'r', encoding='utf-8') as f:
             api_infos = yaml.load(f.read(), Loader=yaml.FullLoader)
         
@@ -38,7 +38,6 @@ class MessageManager:
                 ).first()
                 if _instance.permission_type == "person":
                     return None
-                _api["body"] = body
                 return _api
             continue
         return None

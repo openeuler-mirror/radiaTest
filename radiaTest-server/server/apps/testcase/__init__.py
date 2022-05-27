@@ -6,6 +6,8 @@ from .routes import (
     BaselineImportEvent,
     SuiteEvent,
     CaseEvent,
+    CaseItemEvent,
+    CaseBaselineCommitEvent,
     CaseImport,
     CaseRecycleBin,
     ResolveTestcaseByFilepath,
@@ -31,11 +33,16 @@ def init_api(api: Api):
         BaselineImportEvent,
         "/api/v1/baseline/case_set",
     )
+    api.add_resource(
+        CaseBaselineCommitEvent,
+        "/api/v1/case/baseline/commit",
+    )
     api.add_resource(PreciseCaseEvent, "/api/v1/case/preciseget")
     api.add_resource(PreciseSuiteEvent, "/api/v1/suite/preciseget")
     api.add_resource(SuiteItemEvent, "/api/v1/suite/<int:suite_id>")
     api.add_resource(SuiteEvent, "/api/v1/suite")
     api.add_resource(CaseEvent, "/api/v1/case")
+    api.add_resource(CaseItemEvent, "/api/v1/case/<int:case_id>")
     api.add_resource(CaseImport, "/api/v1/case/import")
     api.add_resource(CaseRecycleBin, "/api/v1/case/recycle_bin")
     api.add_resource(

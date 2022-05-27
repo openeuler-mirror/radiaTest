@@ -164,6 +164,7 @@ class TestcaseHandler(TaskAuthHandler):
         if baseline:
             return baseline.id
         else:
+            _body.update({"permission_type": "group"})
             baseline_id = self.create_baseline(_body)
 
             return baseline_id

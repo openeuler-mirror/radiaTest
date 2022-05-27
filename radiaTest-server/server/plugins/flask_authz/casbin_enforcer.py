@@ -170,10 +170,7 @@ class CasbinEnforcer:
                                 )
                                 return func(*args, **kwargs)
 
-            if request.get_data().decode() == '':
-                _api = MessageManager().get_cur_api_msg(uri, str(request.method), request.get_data().decode())
-            else:
-                _api = MessageManager().get_cur_api_msg(uri, str(request.method), request.get_json())
+            _api = MessageManager().get_cur_api_msg(uri, str(request.method))
             if not _api:
                 self.app.logger.error(
                     "Unauthorized attempt: method: %s resource: %s%s"
@@ -187,6 +184,10 @@ class CasbinEnforcer:
                 )
                 return jsonify(error_code=RET.UNAUTHORIZE_ERR, error_msg="Unauthorized")
             else:
+                if request.get_data() == '':
+                    _api["body"] = ""
+                else:
+                    _api["body"] = request.get_data() if not request.get_json() else request.get_json()
                 MessageManager().run(_api)
                 return jsonify(error_code=RET.UNAUTHORIZE_ERR, error_msg="Unauthorized, Your request has been sent to the administrator for processing.")
 
