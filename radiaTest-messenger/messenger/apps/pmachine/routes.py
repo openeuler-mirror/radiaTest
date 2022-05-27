@@ -34,12 +34,10 @@ class Power(Resource):
 class CheckBmcInfo(Resource):
     @validate()
     def put(self, body: PmachineBaseSchema):
-        _body = body.__dict__
-        _body.update({
-            "auth": request.headers.get("authorization")
-        })
-
         return jsonify(
+            data={
+            "status": body.status
+            },
             error_code=RET.OK, 
             error_msg="succeed in check bmc info."
         )
@@ -47,12 +45,10 @@ class CheckBmcInfo(Resource):
 class CheckPmachineInfo(Resource):
     @validate()
     def put(self, body: PmachineEventSchema):
-        _body = body.__dict__
-        _body.update({
-            "auth": request.headers.get("authorization")
-        })
-
         return jsonify(
+            data={
+            "status": body.status
+            },
             error_code=RET.OK,
             error_msg="succeed in check bmc info and pmachine info."
         )

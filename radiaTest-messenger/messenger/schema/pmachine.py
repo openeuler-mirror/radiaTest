@@ -40,6 +40,7 @@ class PmachineBaseSchema(BaseModel):
     occupier: Optional[str]
     locked: Optional[bool] = False
     machine_group_id: Optional[int]
+    status: Power
 
     @validator("ip")
     def check_ip_format(cls, v):
@@ -53,17 +54,16 @@ class PmachineBaseSchema(BaseModel):
             raise ValueError("this bmc_ip of machine group format error")
         return v
 
-    @validator("bmc_password")
+    @validator("status")
     def required_bmc_conditions(cls, v, values):
         exitcode, output = getstatusoutput(
             "ipmitool -I lanplus -H %s -U %s  -P %s power status"
-            % (values.get("bmc_ip"), values.get("bmc_user"), v)
+            % (values.get("bmc_ip"), values.get("bmc_user"), values["bmc_password"])
         )
         if exitcode != 0:
             raise ValueError("The infomation of BMC provided is wrong.")
 
-        values["status"] = output.split()[-1]
-
+        v = output.split()[-1]
         return v
 
 
