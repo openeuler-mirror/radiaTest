@@ -36,7 +36,7 @@
 </template>
 
 <script>
-import { ref, toRefs, defineComponent } from 'vue';
+import { toRefs, defineComponent } from 'vue';
 import { PowerOff } from '@vicons/fa';
 
 import { handlePowerClick } from '@/views/pmachine/modules/changeState/power.js';
