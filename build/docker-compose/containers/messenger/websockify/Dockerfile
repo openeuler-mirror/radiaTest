@@ -24,4 +24,4 @@ WORKDIR /data/vnc_tokens
 
 RUN dnf install -y python3-websockify
 
-CMD websockify --token-plugin TokenFile --token-source . $websockify_listen --key /etc/radiaTest/messenger_ssl/selfsigned.key --cert /etc/radiaTest/messenger_ssl/certs/selfsigned.crt
+CMD websockify --token-plugin TokenFile --token-source . $websockify_listen --key /etc/radiaTest/messenger_ssl/websockify/selfsigned.key --cert /etc/radiaTest/messenger_ssl/websockify/certs/selfsigned.crt
