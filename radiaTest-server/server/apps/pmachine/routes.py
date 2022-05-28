@@ -165,15 +165,13 @@ class PmachineEvent(Resource):
         messenger = PmachineMessenger(body.__dict__)
         resp = messenger.send_request(machine_group, "/api/v1/pmachine/checkpmachineinfo")
 
-        if resp.status_code != 200:
-            return jsonify(
-                error_code=RET.SERVER_ERR,
-                error_msg="fail to validate pmachine info"
-            )
         try:
             result = json.loads(resp.text).get("data")
         except AttributeError:
             result = resp.json.get("data")
+
+        if not result.get("status"):
+            return resp
 
         _body = body.__dict__
         _body.update({"status": result.get("status")})
