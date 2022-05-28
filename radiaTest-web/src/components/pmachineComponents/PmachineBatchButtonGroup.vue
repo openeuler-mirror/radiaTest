@@ -51,7 +51,6 @@
 
 <script>
 import { defineComponent } from 'vue';
-import batchClickHandler from '@/views/pmachine/modules/batch.js';
 
 import { PowerOff } from '@vicons/fa';
 import BatchButton from '@/components/CRUD/BatchButton.vue';
@@ -67,11 +66,7 @@ export default defineComponent({
     Disconnect,
     PowerOff,
   },
-  setup() {
-    return {
-      ...batchClickHandler,
-    };
-  },
+  setup() {},
 });
 </script>
 

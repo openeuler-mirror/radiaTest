@@ -56,9 +56,11 @@
         <delete-button title="物理机" url="/v1/pmachine" />
       </n-space>
     </n-gi>
-    <n-gi :span="18">
+    <n-gi :span="17">
+      <pmachine-filter />
+    </n-gi>
+    <n-gi :span="1">
       <n-space justify="end">
-        <pmachine-batch-button-group />
         <refresh-button @refresh="tableRef.getData()">
           刷新物理机列表
         </refresh-button>
@@ -66,9 +68,6 @@
     </n-gi>
     <n-gi :span="24"></n-gi>
     <n-gi :span="24"></n-gi>
-    <n-gi :span="24">
-      <pmachine-filter />
-    </n-gi>
     <n-gi :span="24">
       <pmachine-table ref="tableRef" @update="() => updateModalRef.show()" />
       <modal-card
