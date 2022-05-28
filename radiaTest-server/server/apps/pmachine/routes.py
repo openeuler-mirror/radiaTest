@@ -166,15 +166,16 @@ class PmachineEvent(Resource):
         resp = messenger.send_request(machine_group, "/api/v1/pmachine/checkpmachineinfo")
 
         if resp.status_code != 200:
-            raise RuntimeError("failed in check bmc info and pmachine info.")
+            return jsonify(
+                error_code=RET.SERVER_ERR,
+                error_msg="fail to validate pmachine info"
+            )
         try:
             result = json.loads(resp.text).get("data")
         except AttributeError:
             result = resp.json.get("data")
 
-        _body.update({
-            "status": result.get("status")
-        })
+        setattr(body, "status", result.get("status"))
 
         return ResourceManager("pmachine").add("api_infos.yaml", body.__dict__)
 

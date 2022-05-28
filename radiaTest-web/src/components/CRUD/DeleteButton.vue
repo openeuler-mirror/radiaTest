@@ -56,11 +56,10 @@ export default defineComponent({
       disabled,
       ...deleteAjax,
       handleClick: () =>
-        deleteAjax.postDelete(
+        deleteAjax.batchDelete(
           props.url,
           realSelectedData.value,
           store,
-          selectedData
         ),
     };
   },

@@ -53,7 +53,7 @@
             />
           </template>
         </modal-card>
-        <delete-button title="物理机" url="/pmachine" />
+        <delete-button title="物理机" url="/v1/pmachine" />
       </n-space>
     </n-gi>
     <n-gi :span="18">
