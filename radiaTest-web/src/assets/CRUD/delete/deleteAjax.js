@@ -26,7 +26,7 @@ const singleDelete = (url, id, store) => {
         : 0;
     })
     .catch((err) => {
-      handleDeleteFail(id, err.error_msg);
+      handleDeleteFail(id, err.data.error_msg);
     });
 };
 

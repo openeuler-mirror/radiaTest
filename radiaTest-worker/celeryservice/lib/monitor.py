@@ -8,7 +8,7 @@ from celeryservice.lib import TaskHandlerBase, AuthTaskHandler
 
 class IllegalMonitor(TaskHandlerBase):
     def _get_virsh_domains(self):
-        exitcode, output = subprocess.getstatusoutput(
+        exitcode, output = getstatusoutput(
             "virsh list --all | sed -n '$d; 1,2!p' | awk '{print $2}'"
         )
         if exitcode == 0:
@@ -27,6 +27,7 @@ class IllegalMonitor(TaskHandlerBase):
                 "domain": domain,
             },
             headers=celeryconfig.headers,
+            verify=celeryconfig.ca_verify == "True"
         )
         if resp.status_code != 200:
             raise RuntimeError("the worker cannot connect to server")
@@ -48,7 +49,7 @@ class IllegalMonitor(TaskHandlerBase):
                         domain + " is an illegal vmachine, not established by server"
                     )
 
-                    exitcode, output = subprocess.getstatusoutput(
+                    exitcode, output = getstatusoutput(
                         "sudo virsh destroy {}".format(
                             shlex.quote(domain),
                         )
@@ -60,7 +61,7 @@ class IllegalMonitor(TaskHandlerBase):
                             )
                         )
 
-                    exitcode, output = subprocess.getstatusoutput(
+                    exitcode, output = getstatusoutput(
                         "sudo virsh undefine --nvram --remove-all-storage {}".format(
                             shlex.quote(domain),
                         )

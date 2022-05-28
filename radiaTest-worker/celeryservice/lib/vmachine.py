@@ -37,7 +37,8 @@ class VmachineBaseSchema(AuthTaskHandler):
             headers={
                 "authorization": self.auth,
                 **celeryconfig.headers
-            }
+            },
+            verify=celeryconfig.ca_verify == "True"
         )
 
     def update_vmachine(self, body):

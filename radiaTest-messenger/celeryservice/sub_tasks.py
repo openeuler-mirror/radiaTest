@@ -38,6 +38,7 @@ def _callback_task_job_result(job_id, auth, taskmilestone_id, status):
                     "authorization": auth,
                 },
                 obj=_resp,
+                verify=celeryconfig.ca_verify == "True"
             )
 
             if _r == 0 and _resp.get("error_code") == RET.OK:
