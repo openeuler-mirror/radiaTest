@@ -160,7 +160,8 @@ class PmachineMessenger:
                 "content-type": "application/json;charset=utf-8",
                 "authorization": request.headers.get("authorization")
             },
-            obj=_resp
+            obj=_resp,
+            verify=False,
         )
 
         if _r !=0:

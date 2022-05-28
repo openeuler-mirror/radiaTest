@@ -40,7 +40,7 @@ class PmachineBaseSchema(BaseModel):
     occupier: Optional[str]
     locked: Optional[bool] = False
     machine_group_id: Optional[int]
-    status: Power
+    status: Optional[Power]
 
     @validator("ip")
     def check_ip_format(cls, v):
