@@ -72,7 +72,7 @@ import { ref, onMounted, onUnmounted, defineComponent } from 'vue';
 import { ArrowUp, ArrowDown } from '@vicons/ionicons5';
 import { Socket } from '@/socket';
 import { init } from 'echarts';
-import { settings } from '@/assets/config/settings.js';
+import settings from '@/assets/config/settings.js';
 import resourceCharts from '@/views/pmachine/modules/expandedContent/resourceChart.js';
 
 export default defineComponent({
