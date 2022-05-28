@@ -119,7 +119,7 @@ export default defineComponent({
         ip: props.ip,
         listen: props.listen,
       });
-      resourceMonitorSocket.listen(props.machineGroupIp, (res) =>
+      resourceMonitorSocket.listen(props.ip, (res) =>
         resourceCharts.listenResponse(res, charts, data)
       );
     });
