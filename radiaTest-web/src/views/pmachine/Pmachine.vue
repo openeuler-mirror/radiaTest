@@ -1,5 +1,6 @@
 <template>
   <selection-button
+    :top="101"
     @show="tableRef.showSelection()"
     @off="tableRef.offSelection()"
   />

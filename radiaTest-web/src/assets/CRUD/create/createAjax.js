@@ -24,22 +24,12 @@ const postForm = (url, form) => {
     axios
       .post(url, form.value)
       .then((res) => {
-        if (res.error_code !== 200 && res.error_code !== '2000') {
-          handleFailCreate(res.error_msg);
-          reject(res);
-        } else {
-          handleSuccessCreate();
-          resolve({ result: res,form:form.value});
-        }
+        handleSuccessCreate();
+        resolve({ result: res,form:form.value});
       })
       .catch((err) => {
-        let mesg = '发生未知错误，请联系管理员进行处理';
-        if (err.data.validation_error) {
-          mesg = err.data.validation_error.body_params[0].msg;
-        }
-        handleFailCreate(mesg);
+        handleFailCreate(res.error_msg);
         reject(err);
-        return false;
       });
   });
 };

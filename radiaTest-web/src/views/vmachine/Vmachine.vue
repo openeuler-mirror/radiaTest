@@ -1,5 +1,5 @@
 <template>
-  <n-grid :cols="24" :y-gap="2" style="padding-top:10px">
+  <n-grid :cols="24" :y-gap="6" style="padding-top:10px">
     <n-gi :span="6">
       <n-space>
         <create-button title="注册虚拟机" @click="createModalRef.show()" />

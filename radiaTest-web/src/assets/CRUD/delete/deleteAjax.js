@@ -19,22 +19,14 @@ const handleDeleteSuccess = (id) => {
 const singleDelete = (url, id, store) => {
   axios
     .delete(url)
-    .then((res) => {
-      if (res.error_code === '2000') {
-        handleDeleteSuccess();
-        store
-          ? store.commit('selected/setDeletedData', [id])
-          : 0;
-      } else {
-        handleDeleteFail(id, res.error_msg);
-      }
+    .then(() => {
+      handleDeleteSuccess(id);
+      store
+        ? store.commit('selected/setDeletedData', [id])
+        : 0;
     })
     .catch((err) => {
-      if (err.data.validation_error) {
-        handleDeleteFail(id, err.data.validation_error.body_params[0].msg);
-      } else {
-        handleDeleteFail(id, '发生未知错误，请联系管理员进行处理');
-      }
+      handleDeleteFail(id, err.error_msg);
     });
 };
 
