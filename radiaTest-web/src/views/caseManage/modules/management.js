@@ -76,7 +76,7 @@ function query() {
     })
     .catch((err) => {
       recycleBinCaseLoading.value = false;
-      window.$message?.error(err.error_msg || '未知错误');
+      window.$message?.error(err.data.error_msg || '未知错误');
     });
 }
 

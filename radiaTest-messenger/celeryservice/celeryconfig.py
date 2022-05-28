@@ -99,6 +99,7 @@ task_default_exchange_type = 'direct'
 
 # server confg
 server_addr = loads_config_ini("server", "SERVER_ADDR")
+ca_verify = loads_config_ini("server", "CA_VERIFY")
 
 # messenger config
 messenger_ip = loads_config_ini("messenger", "MESSENGER_IP")

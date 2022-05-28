@@ -28,7 +28,7 @@ const postForm = (url, form) => {
         resolve({ result: res,form:form.value});
       })
       .catch((err) => {
-        handleFailCreate(err.error_msg);
+        handleFailCreate(err.data.error_msg);
         reject(err);
       });
   });

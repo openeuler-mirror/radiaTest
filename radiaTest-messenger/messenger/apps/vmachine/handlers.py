@@ -446,6 +446,7 @@ class DeleteVmachine(AuthMessageBody):
                 "content-type": "application/json;charset=utf-8",
                 "authorization": self.auth
             },
+            verify=current_app.config.get("CA_VERIFY") == "True"
         )
 
         if _r != 0:
@@ -527,6 +528,7 @@ class DeviceManager(SyncMessenger):
                 "content-type": "application/json;charset=utf-8",
                 "authorization": self.auth
             },
+            verify=current_app.config.get("CA_VERIFY") == "True"
         )
 
         if _r != 0:
@@ -627,6 +629,7 @@ class VmachineAsyncResultHandler:
                         "content-type": "application/json;charset=utf-8",
                         "authorization": auth
                     },
+                    verify=current_app.config.get("CA_VERIFY") == "True"
                 )
 
                 if _r != 0:

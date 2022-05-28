@@ -522,6 +522,7 @@ class RunCaseHandler(TaskAuthHandler):
                         "authorization": self.user.get("auth"),
                         "content-type": "application/json;charset=utf-8",
                     },
+                    verify=celeryconfig.ca_verify == "True"
                 )
                 if r != 0:
                     self.logger.warning(

@@ -73,6 +73,7 @@ network_interface_source= loads_config_ini(
     "NETWORK_INTERFACE_SOURCE"
 )
 server_addr = loads_config_ini("worker", "SERVER_ADDR")
+ca_verify = loads_config_ini("worker", "CA_VERIFY")
 messenger_ip = loads_config_ini("worker", "MESSENGER_IP")
 messenger_listen = loads_config_ini("worker", "MESSENGER_LISTEN")
 protocol = loads_config_ini("worker", "PROTOCOL")

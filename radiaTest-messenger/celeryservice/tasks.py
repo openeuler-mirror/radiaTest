@@ -90,6 +90,7 @@ def async_check_alive():
             "content-type": "application/json;charset=utf-8"
         },
         obj=_resp,
+        verify=celeryconfig.ca_verify == "True"
     )
     if _r != 0 or _resp.get("error_code") != RET.OK:
         if _resp.get("error_msg"):
