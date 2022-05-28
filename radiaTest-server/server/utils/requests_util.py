@@ -31,9 +31,8 @@ def gen_path_by_protocol(protocol, url):
     
     return fullpath
 
-def do_request(method, url, params=None, body=None, headers=None, timeout=30, obj=None, encoder=DateEncoder):
+def do_request(method, url, params=None, body=None, headers=None, timeout=30, obj=None, encoder=DateEncoder, verify=False):
     """
-
     :param headers: dict
     :param method: http method
     :param url: http
@@ -41,6 +40,8 @@ def do_request(method, url, params=None, body=None, headers=None, timeout=30, ob
     :param body: dict
     :param timeout: second
     :param obj: callback object, support list/dict/object/func
+    :param encoder: JSON encoder
+    :param verify: ssl pem / not verify
     :return:
     """
 
@@ -57,7 +58,8 @@ def do_request(method, url, params=None, body=None, headers=None, timeout=30, ob
             params=params, 
             data=body,
             timeout=timeout, 
-            headers=headers
+            headers=headers,
+            verify=verify,
         )
         
         if resp.status_code not in [requests.codes.ok, requests.codes.created, requests.codes.no_content]:

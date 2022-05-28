@@ -6,7 +6,7 @@ from . import DateEncoder
 from .response_util import RET
 
 
-def do_request(method, url, params=None, body=None, headers=None, timeout=30, obj=None):
+def do_request(method, url, params=None, body=None, headers=None, timeout=30, obj=None, verify=False):
     """
 
     :param headers: dict
@@ -29,7 +29,8 @@ def do_request(method, url, params=None, body=None, headers=None, timeout=30, ob
             params=params, 
             data=json.dumps(body, cls=DateEncoder), 
             timeout=timeout, 
-            headers=headers
+            headers=headers,
+            verify=verify,
         )
 
         if resp.status_code not in [
