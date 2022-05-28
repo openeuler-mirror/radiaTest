@@ -175,9 +175,10 @@ class PmachineEvent(Resource):
         except AttributeError:
             result = resp.json.get("data")
 
-        setattr(body, "status", result.get("status"))
+        _body = body.__dict__
+        _body.update({"status": result.get("status")})
 
-        return ResourceManager("pmachine").add("api_infos.yaml", body.__dict__)
+        return ResourceManager("pmachine").add("api_infos.yaml", _body)
 
     @auth.login_required
     @response_collect

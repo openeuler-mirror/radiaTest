@@ -31,8 +31,8 @@ const singleDelete = (url, id, store) => {
 };
 
 const batchDelete = (url, idList, store) => {
-  for (let id in idList){
-    singleDelete(`${url}/${id}`, id, store);
+  for (let i in idList){
+    singleDelete(`${url}/${idList[i]}`, idList[i], store);
   }
 };
 
