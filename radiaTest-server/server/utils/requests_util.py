@@ -8,7 +8,7 @@ from server.utils import DateEncoder
 def gen_path_by_protocol(protocol, url):
     fullpath = None
     if protocol == "http":
-        url = "http://{}:{}{}".format(
+        fullpath = "{}://{}:{}/{}".format(
             current_app.config.get("PROTOCOL"),
             current_app.config.get("SERVER_IP"),
             current_app.config.get("SERVER_PORT"),
