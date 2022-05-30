@@ -41,6 +41,7 @@ const postForm = (formValue, casesValue) => {
     name: formValue.value.name,
     milestone_id: formValue.value.milestone,
     description: formValue.value.description,
+    git_repo_id: formValue.value.git_repo,
     cases: casesValue.value,
     permission_type: formValue.value.permission_type.split('-')[0],
     creator_id: Number(storage.getValue('gitee_id')),

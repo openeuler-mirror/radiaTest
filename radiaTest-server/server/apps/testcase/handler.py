@@ -11,7 +11,7 @@ from sqlalchemy import or_, and_
 from server import db, redis_client
 from server.utils.redis_util import RedisKey
 from server.utils.response_util import RET
-from server.utils.db import Edit, Insert, collect_sql_error
+from server.utils.db import Edit, Insert, Delete, collect_sql_error
 from server.utils.page_util import PageUtil
 from server.utils.permission_utils import GetAllByPermission
 from server.model.testcase import Baseline, Suite, Case, Commit, CaseDetailHistory, CommitComment
@@ -176,7 +176,7 @@ class BaselineHandler:
     @staticmethod
     @collect_sql_error
     def get(baseline_id, query):
-        baseline = Baseline.query.filter_by(id=baseline_id).first()
+        baseline = GetAllByPermission(Baseline).single({"id": baseline_id})
 
         if not baseline:
             return jsonify(error_code=RET.NO_DATA_ERR, error_msg="baseline is not exists")
@@ -555,12 +555,15 @@ class HandlerCaseReview(object):
     @staticmethod
     @collect_sql_error
     def update(commit_id, body: UpdateCaseCommitSchema):
-        commit = Commit.query.filter_by(id=commit_id).first()
+        commit = GetAllByPermission(Commit).single({"id": commit_id})
         if not commit:
             return jsonify(error_code=RET.NO_DATA_ERR, error_msg="commit not exists/has no right")
         if body.open_edit:
-            comment = CommitComment(content='creator re-edit', creator_id=g.gitee_id, parent_id=0, reply_id=0,
-                                    commit_id=commit.id)
+            comment = CommitComment(
+                content='creator re-edit',
+                creator_id=g.gitee_id,
+                parent_id=0,
+                commit_id=commit.id)
             comment.add_update()
 
         for key, value in body.dict().items():
@@ -578,18 +581,19 @@ class HandlerCaseReview(object):
                 _commit.add_update()
 
             #  存进历史记录表
-            case_history = CaseDetailHistory(creator_id=commit.creator_id,
-                                             machine_type=commit.machine_type,
-                                             title=commit.title,
-                                             machine_num=commit.machine_num,
-                                             preset=commit.preset,
-                                             case_description=commit.case_description,
-                                             steps=commit.steps,
-                                             expectation=commit.expectation,
-                                             remark=commit.remark,
-                                             version=commit.version,
-                                             commit_id=commit.id,
-                                             case_id=commit.case_detail_id)
+            case_history = CaseDetailHistory(
+                creator_id=commit.creator_id,
+                machine_type=commit.machine_type,
+                title=commit.title,
+                machine_num=commit.machine_num,
+                preset=commit.preset,
+                case_description=commit.case_description,
+                steps=commit.steps,
+                expectation=commit.expectation,
+                remark=commit.remark,
+                version=commit.version,
+                commit_id=commit.id,
+                case_id=commit.case_detail_id)
             case_history.add_flush_commit()
             case = Case.query.get(commit.case_detail_id)
             if not case:
@@ -621,6 +625,8 @@ class HandlerCaseReview(object):
     @staticmethod
     @collect_sql_error
     def update_batch(body: CaseCommitBatch):
+        if len(body.commit_ids) == 0:
+            return jsonify(error_code=RET.NO_DATA_ERR, error_msg="No data is selected.")
         org_id = redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')
         if body.commit_ids:
             for commit_id in body.commit_ids:
@@ -722,7 +728,6 @@ class HandlerCommitComment(object):
         comment = CommitComment(commit_id=commit_id,
                                 content=body.content,
                                 parent_id=body.parent_id,
-                                reply_id=body.reply_id,
                                 creator_id=g.gitee_id,
                                 org_id=redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id'))
         comment.add_update()
@@ -767,7 +772,7 @@ class HandlerCommitComment(object):
 
         # 第一层评论
         comment_list = []
-        comments = CommitComment.query.filter_by(commit_id=commit_id, parent_id=0, reply_id=0).order_by(
+        comments = CommitComment.query.filter_by(commit_id=commit_id, parent_id=0).order_by(
             CommitComment.create_time).all()
         for comment in comments:
             _child_list = []
@@ -776,6 +781,16 @@ class HandlerCommitComment(object):
             _comment['child_list'] = _child_list
             comment_list.append(_comment)
         return jsonify(error_code=RET.OK, error_msg='OK', data=comment_list)
+    
+    @staticmethod
+    def get_comment_ids(comment_id, id_set):
+        children_comments = CommitComment.query.filter_by(
+            parent_id=comment_id).order_by(
+                CommitComment.create_time).all()
+        for child in children_comments:
+            if child.id not in id_set:
+                id_set.add(child.id)
+                HandlerCommitComment.get_comment_ids(child.id, id_set)
 
     @staticmethod
     @collect_sql_error
@@ -786,7 +801,9 @@ class HandlerCommitComment(object):
             org_id=redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')).first()
         if not comment:
             return jsonify(error_code=RET.NO_DATA_ERR, error_msg="Comment not exist/has no right")
-        comment.delete()
+        id_set = {comment_id}
+        HandlerCommitComment.get_comment_ids(comment_id, id_set)
+        Delete(CommitComment, {"id": list(id_set)}).batch()
         return jsonify(error_code=RET.OK, error_msg='OK')
 
     @staticmethod

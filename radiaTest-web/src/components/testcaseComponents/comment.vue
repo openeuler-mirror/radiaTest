@@ -88,11 +88,7 @@ export default {
     },
     replay() {
       createComment(this.comment.commit_id, {
-        parent_id:
-          this.comment.parent_id === 0
-            ? this.comment.id
-            : this.comment.parent_id,
-        reply_id: this.comment.id,
+        parent_id: this.comment.id,
         content: this.commentInput,
       }).then(() => {
         this.cancelReply();
