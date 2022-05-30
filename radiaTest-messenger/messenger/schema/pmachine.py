@@ -93,3 +93,4 @@ class PmachineEventSchema(PmachineBaseSchema):
                     "The information provided cannot be used in normal login using SSH."
                 )
             conn.close()
+        return values
