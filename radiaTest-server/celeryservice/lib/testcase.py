@@ -10,7 +10,6 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from celeryservice.lib import TaskAuthHandler
 from server.utils.sheet import Excel, SheetExtractor
 from server.utils.response_util import RET
-from server.utils.requests_util import gen_path_by_protocol
 from server.utils.db import Insert, Edit
 from server.schema.testcase import BaselineBodyInternalSchema
 from server.model.testcase import Suite, Case, Baseline
