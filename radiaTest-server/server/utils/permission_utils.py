@@ -14,7 +14,6 @@ from server import db, redis_client
 from server.model.permission import ReScopeRole, Role, Scope
 from server.utils.db import Insert, Precise, Like
 from server.utils.redis_util import RedisKey
-from server.utils.requests_util import gen_path_by_protocol
 from server.model import ReUserGroup
 
 
