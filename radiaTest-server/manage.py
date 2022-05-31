@@ -43,9 +43,12 @@ manager.add_command("db", MigrateCommand)
 def run_gevent():
 
     server = pywsgi.WSGIServer(
-        (app.config.get("SERVER_IP"), int(app.config.get("SERVER_PORT"))),
+        (
+            app.config.get("SERVER_IP"),
+            app.config.get("SERVER_PORT"),
+        ),
         app,
-        handler_class=WebSocketHandler,
+        handler_class=WebSocketHandler
     )
     server.serve_forever()
 

@@ -279,16 +279,18 @@ class PermissionItemsPool:
         for _item in self.origin_pool:
             try:
                 _url = "{}/{}".format(self._root_url, _item.id)
-
-                request_path = gen_path_by_protocol(current_app.config.get("PROTOCOL"), _url)
                 
                 _resp = requests.request(
                     method=self.act,
-                    url=request_path,
+                    url="https://{}/{}".format(
+                        current_app.config.get("SERVER_ADDR"),
+                        _url
+                    ),
                     headers={
                         'Content-Type': 'application/json;charset=utf8',
                         'Authorization': self.auth,
                     },
+                    verify=current_app.config.get("CA_VERIFY") == "True"
                 )
 
                 if _resp.status_code != 200:

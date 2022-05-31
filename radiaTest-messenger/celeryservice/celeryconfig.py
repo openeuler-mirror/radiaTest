@@ -104,8 +104,6 @@ ca_verify = loads_config_ini("server", "CA_VERIFY")
 # messenger config
 messenger_ip = loads_config_ini("messenger", "MESSENGER_IP")
 messenger_listen = loads_config_ini("messenger", "MESSENGER_LISTEN")
-protocol = loads_config_ini("messenger", "PROTOCOL")
-protocol_to_server = loads_config_ini("messenger", "PROTOCOL_TO_SERVER")
 
 # pxe config
 pxe_ip = loads_config_ini("pxe", "PXE_IP")

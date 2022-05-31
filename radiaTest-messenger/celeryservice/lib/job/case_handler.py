@@ -462,11 +462,8 @@ class RunCaseHandler(TaskAuthHandler):
                             "job_id": self._body.get("id"),
                             "case_id": testcase.get("id"),
                             "master": self._body.get("master"),
-                            "log_url": "{}://{}:{}/{}/{}/{}/{}/".format(
-                                current_app.config.get("PROTOCOL"),
-                                current_app.config.get("REPO_IP"),
-                                current_app.config.get("REPO_PORT"),
-                                current_app.config.get("LOGS_ROOT_URL"),
+                            "log_url": "{}/{}/{}/{}/".format(
+                                current_app.config.get("REPO_URL"),
                                 self._name,
                                 testsuite.get("name"),
                                 testcase.get("name"),
@@ -513,8 +510,7 @@ class RunCaseHandler(TaskAuthHandler):
             if self._body.get("result") == "success" and len(self._new_vmachines["id"]) > 0:
                 r = do_request(
                     method="delete",
-                    url="{}://{}/api/v1/vmachine".format(
-                        celeryconfig.protocol_to_server,
+                    url="https://{}/api/v1/vmachine".format(
                         celeryconfig.server_addr,
                     ),
                     body=self._new_vmachines,

@@ -76,8 +76,6 @@ server_addr = loads_config_ini("worker", "SERVER_ADDR")
 ca_verify = loads_config_ini("worker", "CA_VERIFY")
 messenger_ip = loads_config_ini("worker", "MESSENGER_IP")
 messenger_listen = loads_config_ini("worker", "MESSENGER_LISTEN")
-protocol = loads_config_ini("worker", "PROTOCOL")
-protocol_to_server = loads_config_ini("worker", "PROTOCOL_TO_SERVER")
 headers = {"Content-Type": "application/json;charset=utf8"}
 vmstatus_state = ("_STARTING", "_SUCCESS")
 cdromstatus_state = ("CREATING", "CDROMMING", "INSTALLING", "SUCCESS")

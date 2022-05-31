@@ -67,6 +67,7 @@ services:
             - /var/log/radiaTest-server/celerybeat:/opt/radiaTest/radiaTest-server/log/celerybeat
             - /etc/radiaTest:/etc/radiaTest
             - /var/lib/radiaTest/migrations:/opt/radiaTest/radiaTest-server/migrations
+            - /var/lib/messengers_certifi:/var/lib/messengers_certifi
         ulimits:
             nproc: 65535
             nofile:
@@ -81,7 +82,6 @@ services:
         image: nginx:1.21.5
         restart: always
         ports:
-            - 8080:8080
             - 21500:21500
         links:
             - supervisor

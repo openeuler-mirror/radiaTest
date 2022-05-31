@@ -41,8 +41,7 @@ class JobMessenger:
         _resp = dict()
         _r = do_request(
             method="post",
-            url="{}://{}:{}{}".format(
-                current_app.config.get("PROTOCOL"),
+            url="https://{}:{}{}".format(
                 machine_group.messenger_ip,
                 machine_group.messenger_listen,
                 api
@@ -52,7 +51,7 @@ class JobMessenger:
                 "content-type": "application/json;charset=utf-8",
                 "authorization": request.headers.get("authorization")
             },
-            obj=_resp
+            obj=_resp,
         )
 
         if _r !=0:

@@ -5,33 +5,7 @@ from flask import current_app
 from server.utils import DateEncoder
 
 
-def gen_path_by_protocol(protocol, url):
-    fullpath = None
-    if protocol == "http":
-        fullpath = "{}://{}:{}/{}".format(
-            current_app.config.get("PROTOCOL"),
-            current_app.config.get("SERVER_IP"),
-            current_app.config.get("SERVER_PORT"),
-            url,
-        )
-    elif protocol == "https":
-        if current_app.config.get("DOMAIN_NAME"):
-            fullpath = "https://{}{}".format(
-                current_app.config.get("DOMAIN_NAME"),
-                url,
-            )
-        else:
-            fullpath = "https://{}:{}{}".format(
-                current_app.config.get("SERVER_IP"),
-                current_app.config.get("NGINX_LISTEN"),
-                url,
-            )
-    else:
-        raise RuntimeError("unsupported protocol")
-    
-    return fullpath
-
-def do_request(method, url, params=None, body=None, headers=None, timeout=30, obj=None, encoder=DateEncoder, verify=False):
+def do_request(method, url, params=None, body=None, headers=None, timeout=30, obj=None, encoder=DateEncoder, verify=True):
     """
     :param headers: dict
     :param method: http method

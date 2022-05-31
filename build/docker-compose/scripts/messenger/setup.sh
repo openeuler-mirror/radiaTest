@@ -30,22 +30,13 @@ fi
 cat ./conf/nginx/nginx.conf > /etc/nginx/nginx.conf \
     && cp -r ./conf/nginx/conf.d/* /etc/nginx/conf.d/
 
-echo "start to generate SSL certification for nginx of messenger"
-mkdir -p /etc/radiaTest/messenger_ssl/nginx/certs
-cd /etc/radiaTest/messenger_ssl/nginx/
+echo "start to generate SSL certification for messenger"
+mkdir -p /etc/radiaTest/messenger_ssl/certs
+cd /etc/radiaTest/messenger_ssl/
 
-if [[ ! -f "./selfsigned.key" && ! -f "./certs/selfsigned.crt" ]];then
+if [[ ! -f "./messenger.key" && ! -f "./certs/messenger.crt" ]];then
     gen_ssl_cert
 else
-    echo "SSL Crt&Key already exist, please make sure their validation. Otherwise, the service could not work normally."
+    echo "SSL Crt&Key already exist, please make sure their validation. Otherwise, the services could not work normally."
 fi
 
-echo "start to generate SSL certification for websockify of messenger"
-mkdir -p /etc/radiaTest/messenger_ssl/websockify/certs
-cd /etc/radiaTest/messenger_ssl/websockify/
-
-if [[ ! -f "./selfsigned.key" && ! -f "./certs/selfsigned.crt" ]];then
-    gen_ssl_cert
-else
-    echo "SSL Crt&Key already exist, please make sure their validation. Otherwise, the service could not work normally."
-fi

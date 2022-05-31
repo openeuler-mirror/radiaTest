@@ -101,7 +101,7 @@ class CaseImportHandler:
 
             if case_file.filetype:
                 case_file.file_save(
-                    current_app.config.get("UPLOAD_FILE_SAVE_PATH")
+                    current_app.config.get("TMP_FILE_SAVE_PATH")
                 )
 
                 _task = None
@@ -322,7 +322,7 @@ class BaselineHandler:
 
             if zip_case_set.filetype:
                 zip_case_set.file_save(
-                    current_app.config.get("UPLOAD_FILE_SAVE_PATH")
+                    current_app.config.get("TMP_FILE_SAVE_PATH")
                 )
 
                 uncompressed_filepath = "{}/{}".format(

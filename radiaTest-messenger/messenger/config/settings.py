@@ -46,9 +46,6 @@ class Config(object):
     # 最大存活时长(days)
     VM_MAX_DAYS = 15
 
-    # 上传服务端文件的暂存地址
-    UPLOAD_FILE_SAVE_PATH = "/tmp/"
-
     # 执行任务
     # worker端框架存放路径
     WORKER_DOWNLOAD_PATH = "/opt"

@@ -27,8 +27,7 @@ class VmachineBaseSchema(AuthTaskHandler):
     
     def delete_vmachine(self):
         _ = requests.delete(
-            url="{}://{}/api/v1/vmachine".format(
-                celeryconfig.protocol_to_server,
+            url="https://{}/api/v1/vmachine".format(
                 celeryconfig.server_addr,
             ),
             data={
@@ -43,8 +42,7 @@ class VmachineBaseSchema(AuthTaskHandler):
 
     def update_vmachine(self, body):
         _ = requests.put(
-            url="{}://{}:{}/api/v1/vmachine/callback".format(
-                celeryconfig.protocol,
+            url="https://{}:{}/api/v1/vmachine/callback".format(
                 celeryconfig.messenger_ip,
                 celeryconfig.messenger_listen,
             ),
@@ -52,7 +50,8 @@ class VmachineBaseSchema(AuthTaskHandler):
             headers={
                 "authorization": self.auth,
                 **celeryconfig.headers,
-            }
+            },
+            verify=False,
         )
 
 

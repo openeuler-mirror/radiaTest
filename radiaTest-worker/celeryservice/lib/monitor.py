@@ -19,8 +19,7 @@ class IllegalMonitor(TaskHandlerBase):
 
     def _query_vmachine(self, domain):
         resp = requests.get(
-            "{}://{}/api/v1/vmachine/check_exist".format(
-                celeryconfig.protocol_to_server,
+            "https://{}/api/v1/vmachine/check_exist".format(
                 celeryconfig.server_addr,
             ),
             params={

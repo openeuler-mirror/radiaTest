@@ -14,8 +14,9 @@ const createMachinesForm = ref({
   permission_type: undefined,
   websockify_listen: undefined,
   messenger_ip: undefined,
-  websockify_ip:undefined
+  websockify_ip:undefined,
 });
+const fileList = ref([]);
 const syncWebsockifyIP = ref(true);
 const syncMessengerIP = ref(true);
 const machinesRules = {
@@ -92,6 +93,7 @@ function showCreateModal() {
 function createMachines() {
   createMachineGroup({
     ...createMachinesForm.value,
+    ssl_cert: fileList.value[0]?.file,
     permission_type: createMachinesForm.value.permission_type.split('-')[0],
     creator_id: Number(storage.getValue('gitee_id')),
     org_id: storage.getValue('orgId'),
@@ -110,12 +112,19 @@ function createMachines() {
       messenger_ip: undefined,
       websockify_ip: undefined
     };
+    fileList.value = [];
   });
 }
 function modifyMachines() {
   const formData = JSON.parse(JSON.stringify(createMachinesForm.value));
   delete formData.permission_type;
-  modifyMachineGroup(menuOption.id, { ...formData }).then(() => {
+  modifyMachineGroup(
+    menuOption.id, 
+    { 
+      ...formData,
+      ssl_cert: fileList.value[0]?.file 
+    }
+  ).then(() => {
     createModalRef.value.close();
     refreshData();
     createMachinesForm.value = {
@@ -127,6 +136,7 @@ function modifyMachines() {
       permission_type: undefined,
       websockify_listen:undefined
     };
+    fileList.value = [];
   });
 }
 function submitCreateForm() {
@@ -142,6 +152,9 @@ function submitCreateForm() {
     }
   });
 }
+function uploadFinish (options) {
+  fileList.value = options;
+}
 export {
   machinesRules,
   syncMessengerIP,
@@ -151,5 +164,6 @@ export {
   showCreateModal,
   machinesFormRef,
   submitCreateForm,
-  changeValue
+  changeValue,
+  uploadFinish
 };

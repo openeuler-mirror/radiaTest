@@ -28,13 +28,8 @@ class FileUtil(object):
             file_suffix = os.path.splitext(secure_filename(file_storage.filename))[-1]
             file_storage.save(f'{current_app.static_folder}{file_path_temp}{file_suffix}')
 
-            if current_app.config.get("DOMAIN_NAME"):
-                return f'{current_app.config.get("PROTOCOL_TO_SERVER")}://{current_app.config.get("DOMAIN_NAME")}' \
-                    f'{current_app.static_url_path}{file_path_temp}{file_suffix}'.replace(os.path.sep, '/')
-            else:
-                return f'{current_app.config.get("PROTOCOL_TO_SERVER")}://{current_app.config.get("SERVER_IP")}' \
-                    f':{current_app.config.get("NGINX_LISTEN")}' \
-                    f'{current_app.static_url_path}{file_path_temp}{file_suffix}'.replace(os.path.sep, '/')
+            return f'https://{current_app.config.get("SERVER_ADDR")}' \
+                f'{current_app.static_url_path}{file_path_temp}{file_suffix}'.replace(os.path.sep, '/')
 
         except Exception as e:
             current_app.logger.error(f'file save error{e}')
@@ -57,11 +52,12 @@ def get_local_ip():
 
 
 class ImportFile:
-    def __init__(self, file) -> None:
+    def __init__(self, file, filename=None, filetype=None) -> None:
         self.file = file
         self.filepath = None
         self.valid_types = [".+"]
-        self.filename, self.filetype = self._validate_filetype()
+        self.filename=filename
+        self.filetype=filetype
 
     def _validate_filetype(self):
         pattern = r'^([^\.].*?)\.({})$'.format('|'.join(self.valid_types))
@@ -70,15 +66,36 @@ class ImportFile:
             return None
         return result[1], result[2]
     
-    def file_save(self, dir):
-        self.filepath = os.path.join(
-            dir, 
-            secure_filename(
-                ''.join(
-                    lazy_pinyin("{}{}.{}".format(self.filename, datetime.datetime.now().strftime("%Y%m%d%H%M%S"), self.filetype))
+    def file_save(self, dir, timestamp=True):
+        if timestamp:
+            self.filepath = os.path.join(
+                dir, 
+                secure_filename(
+                    ''.join(
+                        lazy_pinyin(
+                            "{}{}.{}".format(
+                                self.filename, 
+                                datetime.datetime.now().strftime("%Y%m%d%H%M%S"), 
+                                self.filetype
+                            )
+                        )
+                    )
                 )
             )
-        )
+        else:
+            self.filepath = os.path.join(
+                dir, 
+                secure_filename(
+                    ''.join(
+                        lazy_pinyin(
+                            "{}.{}".format(
+                                self.filename, 
+                                self.filetype
+                            )
+                        )
+                    )
+                )
+            )
 
         if os.path.exists(self.filepath):
             raise RuntimeError("Filepath is already exist: {}".format(self.filepath))
@@ -105,6 +122,7 @@ class ZipImportFile(ImportFile):
             "tar.bz2"
         ]
         self.macos_cache = "__MACOSX"
+        self.filename, self.filetype = self._validate_filetype()
     
     def unicoding(self, name, dest_dir):
         try:
@@ -181,3 +199,4 @@ class ExcelImportFile(ImportFile):
             "xlsx", 
             "xls", 
         ]
+        self.filename, self.filetype = self._validate_filetype()

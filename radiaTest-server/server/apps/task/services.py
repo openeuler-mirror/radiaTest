@@ -20,6 +20,7 @@ import json
 from uuid import uuid1
 from flask import g, current_app, url_for, jsonify
 from typing import List
+
 from server import redis_client, db
 from server.model.template import Template
 from server.model.task import Task, TaskStatus, TaskManualCase, TaskMilestone
@@ -160,13 +161,28 @@ class UpdateTaskStatusService(object):
                     milestone.add_update()
 
                 if milestone.job_result in ['pending', 'block'] and task.frame and not task.is_manage_task:
-                    get_job_url = f'http://{current_app.config.get("SERVER_IP")}:{current_app.config.get("SERVER_PORT")}' \
+                    get_job_url = f'https://{current_app.config.get("SERVER_ADDR")}' \
                                   f'{url_for("run_template_event")}'
+                    
                     headers = {"content-type": "application/json"}
-                    body = {"id": template_id, "taskmilestone_id": milestone.id, "frame": task.frame,
-                            "name": f'{template_name[:-15]}_{uuid1().hex}'}
+
+                    body = {
+                        "id": template_id, 
+                        "taskmilestone_id": milestone.id, 
+                        "frame": task.frame,
+                        "name": f'{template_name[:-15]}_{uuid1().hex}'
+                    }
                     body_json = json.dumps(body)
-                    r = do_request('post', get_job_url, body=body_json, headers=headers, timeout=0.5)
+
+                    r = do_request(
+                        'post', 
+                        get_job_url, 
+                        body=body_json, 
+                        headers=headers, 
+                        timeout=0.5,
+                        verify=current_app.config.get("CA_VERIFY") == "True"
+                    )
+
                     if r != 0 and r != 4:
                         current_app.logger.error('trigger job failed')
                         milestone.job_result = 'pending'

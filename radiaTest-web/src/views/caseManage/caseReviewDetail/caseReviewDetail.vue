@@ -51,7 +51,11 @@
               :comment="item"
             />
             <div id="comment">
-              <Editor v-model="commentInput" tag-name="div" :init="init" />
+              <editor 
+                v-model="commentInput" 
+                tag-name="div" 
+                :init="init"
+              />
               <n-button type="primary" @click="commentCase">
                 评论
               </n-button>
@@ -107,12 +111,13 @@ export default {
   components: {
     comment,
     userInfo,
-    Editor,
+    editor: Editor,
     diff,
   },
   setup() {
     modules.getDetail();
     modules.getComment();
+    modules.tinymce.init;
     return {
       formatTime,
       ...modules,

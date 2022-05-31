@@ -25,7 +25,7 @@ services:
         network_mode: "host"
         volumes:
             - /var/lib/vnc_tokens:/data/vnc_tokens
-            - /etc/radiaTest/websockify_ssl:/etc/radiaTest/websockify_ssl
+            - /etc/radiaTest/messenger_ssl:/etc/radiaTest/messenger_ssl
 
     supervisor:
         image: messenger/supervisor:radiaTest
@@ -64,7 +64,6 @@ services:
         restart: always
         ports:
             - 21510:21510
-            - 21520:21520
         links:
             - supervisor
         volumes:
