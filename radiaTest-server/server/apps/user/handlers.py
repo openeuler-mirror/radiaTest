@@ -184,7 +184,7 @@ def handler_login(gitee_token, org_id):
     redis_client.hmset(
         RedisKey.gitee_user(gitee_user.get("id")),
         gitee_user,
-        ex=600
+        ex=int(current_app.config.get("TOKEN_EXPIRES_TIME"))
     )
 
     # 从数据库中获取用户信息

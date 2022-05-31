@@ -40,8 +40,7 @@ def async_check_alive():
     _resp = dict()
     _r = do_request(
         method="get",
-        url="{}://{}:{}/api/v1/heartbeat".format(
-            celeryconfig.protocol,
+        url="https://{}:{}/api/v1/heartbeat".format(
             celeryconfig.messenger_ip,
             celeryconfig.messenger_listen
         ),
@@ -49,6 +48,7 @@ def async_check_alive():
             "content-type": "application/json;charset=utf-8"
         },
         obj=_resp,
+        verify=False,
     )
     if  _r != 0 or _resp.get("error_code") != RET.OK:
         logger.warning("lost heartbeating of messenger service") 
@@ -81,8 +81,7 @@ def async_check_alive():
     _resp = dict()
     _r = do_request(
         method="put",
-        url="{}://{}/api/v1/machine_group/heartbeat".format(
-            celeryconfig.protocol_to_server,
+        url="https://{}/api/v1/machine_group/heartbeat".format(
             celeryconfig.server_addr,
         ),
         body=heartbeat_status,

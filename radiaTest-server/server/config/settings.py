@@ -36,9 +36,6 @@ class Config(object):
     # HTTP请求头
     HEADERS = {"Content-Type": "application/json;charset=utf8"}
 
-    # HTTP PROTOCOL
-    PROTOCOL = "http"
-    PROTOCOL_TO_SERVER = "https"
 
     # 虚拟机
     # 虚拟机创建基础信息
@@ -81,11 +78,15 @@ class Config(object):
     ]
 
     # 上传服务端文件的暂存地址
-    UPLOAD_FILE_SAVE_PATH = "/tmp/"
+    TMP_FILE_SAVE_PATH = "/tmp/"
+
+    # messenger证书存储地址
+    # 警告：若修改此项，需要更改容器持久化挂载卷配置，若缺失相应更改可能出现问题
+    MESSENGERS_CERTIFI_SAVE_PATH = "/var/lib/messengers_certifi"
 
     # openEuler-QA团队配置
     # openEuler-QA团队名
-    OE_QA_GROUP_NAME = "openeuler-QA"
+    OE_QA_GROUP_NAME = "openEuler-QA"
 
     # openEuler-QA update版本测试默认时长(days)
     OE_QA_UPDATE_TASK_PERIOD = 5

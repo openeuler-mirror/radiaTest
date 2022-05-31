@@ -112,6 +112,14 @@
                   type="number"
                 />
               </n-form-item-gi>
+              <n-form-item-gi :span="18" label="SSL证书">
+                <n-upload
+                  list-type="text"
+                  @update:file-list="uploadFinish"
+                >
+                  上传SSL证书（仅存储首个文件）
+                </n-upload>
+              </n-form-item-gi>
             </n-grid>
           </n-form>
         </template>

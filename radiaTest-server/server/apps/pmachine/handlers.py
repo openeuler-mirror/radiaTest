@@ -15,18 +15,23 @@
 
 #####################################
 
+import os
 import json
 
 from flask import g, current_app, jsonify, request
+from flask_restful import original_flask_make_response as make_response
+from itsdangerous import exc
 from sqlalchemy import or_
+from pydantic.error_wrappers import ValidationError
 
 from server import redis_client
 from server.model.pmachine import Pmachine, MachineGroup
 from server.model.group import Group, ReUserGroup
+from server.model.message import Message, MsgType, MsgLevel
 from server.utils.response_util import RET
 from server.utils.redis_util import RedisKey
-from server.utils.db import Delete, Edit, Insert, collect_sql_error
-from server.model.message import Message, MsgType, MsgLevel
+from server.utils.file_util import ImportFile
+from server.utils.db import Edit, Insert, collect_sql_error
 from server.utils.requests_util import do_request
 from server.utils.response_util import RET
 from server.utils.page_util import PageUtil
@@ -95,6 +100,49 @@ class ResourcePoolHandler:
     def delete_group(machine_group_id):
         return ResourceManager("machine_group").del_cascade_single(machine_group_id, Pmachine, [Pmachine.machine_group_id==machine_group_id], False)
 
+    @staticmethod
+    def gen_body_with_cert(schema, form, origin_messenger_ip=None):
+        try:
+            _body = schema(**form).__dict__
+        except ValidationError as e:
+            status_code = current_app.config.get("FLASK_PYDANTIC_VALIDATION_ERROR_STATUS_CODE", 400)
+            return make_response(jsonify({"validation_error": e.errors()}), status_code)
+
+        if not origin_messenger_ip and not request.files.get("file"):
+            return jsonify(
+                error_code=RET.PARMA_ERR, 
+                error_msg="The certifi file of https service of messenger should be provided."
+            )
+        elif  not request.files.get("file"):
+            return _body
+
+        cert_file = ImportFile(
+            request.files.get("ssl_cert"),
+            filename=_body.get("messenger_ip", origin_messenger_ip),
+            filetype="crt"
+        )
+        try:
+            _filepath = os.path.join(
+                current_app.config.get("MESSENGERS_CERTIFI_SAVE_PATH"),
+                f"{cert_file.filename}.crt"
+            )
+            if os.path.isfile(_filepath):
+                os.remove(_filepath)
+
+            cert_file.file_save(
+                current_app.config.get("MESSENGERS_CERTIFI_SAVE_PATH"),
+                timestamp=False,
+            )
+        except RuntimeError as e:
+            return jsonify(
+                error_code=RET.RUNTIME_ERROR,
+                error_msg="fail to save the certifi file. File {} has been existed".format(cert_file.filename)
+            )
+        
+        _body.update({"cert_path": cert_file.filepath})
+        return _body
+
+
 class PmachineHandler:
     @staticmethod
     def get_all(query):
@@ -149,8 +197,7 @@ class PmachineMessenger:
         _resp = dict()
         _r = do_request(
             method="put",
-            url="{}://{}:{}{}".format(
-                current_app.config.get("PROTOCOL"),
+            url="https://{}:{}{}".format(
                 machine_group.messenger_ip,
                 machine_group.messenger_listen,
                 api
@@ -161,7 +208,6 @@ class PmachineMessenger:
                 "authorization": request.headers.get("authorization")
             },
             obj=_resp,
-            verify=False,
         )
 
         if _r !=0:

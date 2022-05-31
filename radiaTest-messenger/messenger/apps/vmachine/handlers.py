@@ -109,9 +109,8 @@ class Messenger:
         try:
             response = requests.request(
                 self._method,
-                "%s://%s:%d/%s"
+                "http://%s:%d/%s"
                 % (
-                    current_app.config.get("PROTOCOL"),
                     self._pmachine.get("ip"),
                     self._pmachine.get("listen"),
                     self._api,
@@ -437,8 +436,7 @@ class DeleteVmachine(AuthMessageBody):
 
         _r = do_request(
             method="delete",
-            url="{}://{}/api/v1/vmachine/{}/force".format(
-                current_app.config.get("PROTOCOL_TO_SERVER"),
+            url="https://{}/api/v1/vmachine/{}/force".format(
                 current_app.config.get("SERVER_ADDR"),
                 vmachine.get("id")
             ),
@@ -519,8 +517,7 @@ class DeviceManager(SyncMessenger):
 
         _r = do_request(
             method="delete",
-            url="{}://{}{}".format(
-                current_app.config.get("PROTOCOL_TO_SERVER"),
+            url="https://{}{}".format(
                 current_app.config.get("SERVER_ADDR"),
                 _url
             ),
@@ -620,8 +617,7 @@ class VmachineAsyncResultHandler:
             if isinstance(ip, Response):
                 _r = do_request(
                     method="delete",
-                    url="{}://{}/api/v1/vmachine/{}/force".format(
-                        current_app.config.get("PROTOCOL_TO_SERVER"),
+                    url="https://{}/api/v1/vmachine/{}/force".format(
                         current_app.config.get("SERVER_ADDR"),
                         body.get("id")
                     ),

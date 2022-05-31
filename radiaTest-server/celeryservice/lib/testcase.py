@@ -215,15 +215,18 @@ class TestcaseHandler(TaskAuthHandler):
                 "user_id": self.user.get("user_id"),
             }
 
-            request_path = gen_path_by_protocol(current_app.config.get("PROTOCOL"), "/api/v1/testcase/resolve_by_filepath")
+            _verify = True if current_app.get("CA_VERIFY") == "True" else False
 
             _resp = requests.post(
-                url=request_path,
+                url="https:{}/api/v1/testcase/resolve_by_filepath".format(
+                    current_app.config.get("SERVER_ADDR"),
+                ),
                 data=json.dumps(body),
                 headers={
                     'Content-Type': 'application/json;charset=utf8',
                     'Authorization': self.user.get("auth"),
-                }
+                },
+                verify=_verify,
             )
 
             if _resp.status_code == 200:

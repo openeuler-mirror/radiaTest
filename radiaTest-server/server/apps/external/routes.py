@@ -100,10 +100,12 @@ class UpdateTaskEvent(Resource):
                     }
                 ).single(Repo, "/repo")
 
-            request_path = gen_path_by_protocol(current_app.config.get("PROTOCOL"), "/api/v1/tasks/execute")
+            _verify = True if current_app.get("CA_VERIFY") == "True" else False
 
             requests.post(
-                url=request_path,
+                url="https://{}/api/v1/tasks/execute".format(
+                    current_app.config.get("SERVER_ADDR")
+                ),
                 data=json.dumps({
                     "title": "{} {}".format(form.title, frame),
                     "milestone_id": form.milestone_id,
@@ -111,7 +113,8 @@ class UpdateTaskEvent(Resource):
                     "frame": frame,
                     "cases": form.cases,
                 }),
-                headers=current_app.config.get("HEADERS")
+                headers=current_app.config.get("HEADERS"),
+                verify=_verify,
             )
             
         # return response

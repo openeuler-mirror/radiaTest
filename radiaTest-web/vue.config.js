@@ -21,7 +21,11 @@ module.exports = {
     host: '0.0.0.0',
     port: 8080,
     open: true,
-    https: false,
+    https: {
+      minVersion: 'TLSv1.1',
+      key: '/etc/radiaTest/server_ssl/server.key',
+      cert: '/etc/radiaTest/server_ssl/certs/server.crt'
+    },
     hot: false,
     compress: true,
     proxy: {

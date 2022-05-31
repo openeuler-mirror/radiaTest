@@ -2,21 +2,19 @@
 # @Author: Your name
 # @Date:   2022-04-12 11:25:48
 # @Last Modified by:   Your name
-import shlex
 import datetime
 from typing import Optional
-from subprocess import getstatusoutput
 
 from flask import current_app
 from dateutil.relativedelta import relativedelta
 from pydantic import conint, BaseModel, constr, validator, root_validator
+from sqlalchemy import and_, or_
 
 from server.schema.base import PageBaseSchema
 from server.schema import (
     Frame, 
     PmachineState, 
     Power, 
-    PermissionType,  
     MachineGroupNetworkType
 )
 from server.utils.db import Precise
@@ -26,51 +24,48 @@ from server.schema.base import PermissionBase
 from server.utils.iptype_util import ip_type
 
 class MachineGroupCreateSchema(PermissionBase):
-    """ 
-    attr: websockify_listen should in range (1000, 99999)
-    """
     name: str
     description: str
     network_type: MachineGroupNetworkType
     ip: str
     messenger_ip: str
-    messenger_listen: int
-    websockify_ip: Optional[str]
-    websockify_listen: Optional[conint(ge=1000, le=99999)]
+    messenger_listen: conint(ge=1000, le=99999)
+    websockify_ip: str
+    websockify_listen: conint(ge=1000, le=99999)
 
-
-    @validator("ip")
-    def check_ip_exist(cls, v):
-        machine_group = MachineGroup.query.filter_by(ip=v).first()
+    @root_validator
+    def check_unique_valid(cls, values):
+        # check the publicnet ip and relative services of machine group is unique
+        machine_group = MachineGroup.query.filter(
+            or_(
+                MachineGroup.ip==values.get("ip"),
+                and_(
+                    MachineGroup.messenger_ip==values.get("messenger_ip"),
+                    MachineGroup.messenger_listen==values.get("messenger_listen")
+                ),
+                and_(
+                    MachineGroup.websockify_ip==values.get("messenger_ip"),
+                    MachineGroup.websockify_listen==values.get("messenger_listen")
+                ),
+            )
+        ).first()
         if machine_group is not None:
-            raise ValueError("this ip of machine group is exist, duplication is not allowed")
-        
-        if not ip_type(v):
-            raise ValueError("this ip of machine group format error")
-        return v
+            raise ValueError("services might be used by other groups, make sure publicnet ip/messenger addr/websockify addr is unique")
 
-    @validator("messenger_ip")
-    def check_messenger_ip_format(cls, v):
-        if not ip_type(v):
-            raise ValueError("this messenger_ip of machine group format error")
-        return v
+        # check ips format valid
+        if not ip_type(values.get("ip")) or not ip_type(values.get("messenger_ip")) or not ip_type(values.get("websockify_ip")):
+            raise ValueError("ip format error in publicnet ip/messenger ip/websockify ip")
 
-    @validator("websockify_ip")
-    def check_websockify_ip_format(cls, v):
-        if not ip_type(v):
-            raise ValueError("this websockify_ip of machine group format error")
-        return v
+        return values
+
 
 class MachineGroupUpdateSchema(BaseModel):
-    """ 
-    attr: websockify_listen should in range (1000, 99999)
-    """
     name: Optional[str]
     description: Optional[str]
     network_type: Optional[MachineGroupNetworkType]
     ip: Optional[str]
     messenger_ip: Optional[str]
-    messenger_listen: Optional[int]
+    messenger_listen: Optional[conint(ge=1000, le=99999)]
     websockify_ip: Optional[str]
     websockify_listen: Optional[conint(ge=1000, le=99999)]
 
@@ -92,14 +87,12 @@ class MachineGroupUpdateSchema(BaseModel):
             raise ValueError("this websockify_ip of machine group format error")
         return v
 
+
 class MachineGroupQuerySchema(PageBaseSchema):
-    """ 
-    attr: websockify_listen should in range (1000, 99999)
-    """
     text: Optional[str]
     network_type: Optional[MachineGroupNetworkType]
     messenger_ip: Optional[str]
-    messenger_listen: Optional[int]
+    messenger_listen: Optional[conint(ge=1000, le=99999)]
     websockify_ip: Optional[str]
     websockify_listen: Optional[conint(ge=1000, le=99999)]
 
@@ -114,6 +107,7 @@ class MachineGroupQuerySchema(PageBaseSchema):
         if not ip_type(v):
             raise ValueError("this websockify_ip of machine group format error")
         return v
+
 
 class HeartbeatUpdateSchema(BaseModel):
     messenger_ip: str
@@ -244,6 +238,7 @@ class PmachineBaseSchema(BaseModel):
 
         return values
 
+
 class PmachineCreateSchema(PmachineBaseSchema, PermissionBase):
     mac: constr(max_length=17)
     frame: Frame
@@ -269,6 +264,7 @@ class PmachineUpdateSchema(PmachineBaseSchema):
         if not ip_type(v):
             raise ValueError("this bmc_ip of machine group format error")
         return v
+
 
 class PmachineInstallSchema(BaseModel):
     id: int

@@ -20,8 +20,11 @@ ENV TZ Asia/Shanghai
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 ENV websockify_listen 21580
+ENV websockify_key /etc/radiaTest/messenger_ssl/messenger.key
+ENV websockify_cert /etc/radiaTest/messenger_ssl/certs/messenger.crt
+
 WORKDIR /data/vnc_tokens
 
 RUN dnf install -y python3-websockify
 
-CMD websockify --token-plugin TokenFile --token-source . $websockify_listen --key /etc/radiaTest/messenger_ssl/websockify/selfsigned.key --cert /etc/radiaTest/messenger_ssl/websockify/certs/selfsigned.crt
+CMD websockify --token-plugin TokenFile --token-source . $websockify_listen --key ${websockify_key} --cert ${websockify_cert}

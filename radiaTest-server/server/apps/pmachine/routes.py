@@ -1,41 +1,50 @@
 # -*- coding: utf-8 -*-
 # @Author: Your name
 # @Date:   2022-04-12 14:05:57
+import json
 import datetime
 
-from flask import request, jsonify, current_app
+from flask import request, jsonify, current_app, Response
 from flask_restful import Resource
 from flask_pydantic import validate
-import json
+
+from server import casbin_enforcer
 from server.model import Pmachine, IMirroring, Vmachine
 from server.model.pmachine import MachineGroup
-from server.utils.db import Insert, Delete, Edit, Select, collect_sql_error
+from server.utils.db import Edit, Select, collect_sql_error
 from server.utils.auth_util import auth
 from server.utils.response_util import response_collect, RET
-from server.schema.base import DeleteBaseModel
+from server.utils.resource_utils import ResourceManager
 from server.schema.pmachine import (
+    MachineGroupCreateSchema,
     MachineGroupQuerySchema,
     MachineGroupUpdateSchema,
-    PmachineBaseSchema,
     PmachineCreateSchema,
     PmachineQuerySchema,
     PmachineUpdateSchema,
     PmachineInstallSchema,
     PmachinePowerSchema,
-    MachineGroupCreateSchema,
     HeartbeatUpdateSchema
 )
 from .handlers import PmachineHandler, PmachineMessenger, ResourcePoolHandler
-from server.utils.resource_utils import ResourceManager
-from server import casbin_enforcer
 
 
 class MachineGroupEvent(Resource):
     @auth.login_required
     @response_collect
-    @validate()
-    def post(self, body: MachineGroupCreateSchema):
-        return ResourceManager("machine_group").add_v2("pmachine/api_infos.yaml", body.__dict__)
+    @collect_sql_error
+    def post(self):
+        body = ResourcePoolHandler.gen_body_with_cert(
+            schema=MachineGroupCreateSchema,
+            form=request.form,
+        )
+        if isinstance(body, Response):
+            return body
+        
+        return ResourceManager("machine_group").add_v2(
+            "pmachine/api_infos.yaml", 
+            body
+        )
 
     @auth.login_required
     @response_collect
@@ -47,9 +56,23 @@ class MachineGroupEvent(Resource):
 class MachineGroupItemEvent(Resource):
     @auth.login_required
     @response_collect
-    @validate()
     @casbin_enforcer.enforcer
-    def put(self, machine_group_id, body: MachineGroupUpdateSchema):
+    def put(self, machine_group_id):
+        machine_group = MachineGroup.query.filter_by(id=machine_group_id).first()
+        if not machine_group:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="the machine group does not exist"
+            )
+
+        body = ResourcePoolHandler.gen_body_with_cert(
+            schema=MachineGroupUpdateSchema,
+            form=request.form,
+            origin_messenger_ip=machine_group.messenger_ip,
+        )
+        if isinstance(body, Response):
+            return body
+
         return ResourcePoolHandler.update_group(
             machine_group_id,
             body
@@ -101,6 +124,7 @@ class MachineGroupHeartbeatEvent(Resource):
 class PmachineItemEvent(Resource):
     @auth.login_required
     @response_collect
+    @collect_sql_error
     @validate()
     @casbin_enforcer.enforcer
     def delete(self, pmachine_id):
@@ -153,6 +177,7 @@ class PmachineItemEvent(Resource):
 class PmachineEvent(Resource):
     @auth.login_required
     @response_collect
+    @collect_sql_error
     @validate()
     def post(self, body: PmachineCreateSchema):
         machine_group = MachineGroup.query.filter_by(id=body.machine_group_id).first()

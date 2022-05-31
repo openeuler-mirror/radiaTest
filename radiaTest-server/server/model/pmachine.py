@@ -27,6 +27,8 @@ class MachineGroup(PermissionBaseModel, db.Model):
     websockify_ip = db.Column(db.String(15))
     websockify_listen = db.Column(db.Integer(), nullable=False)
 
+    cert_path = db.Column(db.String(256), nullable=False)
+
     messenger_last_heartbeat = db.Column(db.DateTime())
     pxe_last_heartbeat = db.Column(db.DateTime())
     dhcp_last_heartbeat = db.Column(db.DateTime())
@@ -51,6 +53,9 @@ class MachineGroup(PermissionBaseModel, db.Model):
             "network_type": self.network_type,
             "messenger_ip": self.messenger_ip,
             "messenger_listen": self.messenger_listen,
+            "websockify_ip": self.websockify_ip,
+            "websockify_listen": self.websockify_listen,
+            "cert_path": self.cert_path,
             "messenger_last_heartbeat": self._change_format(self.messenger_last_heartbeat),
             "pxe_last_heartbeat": self._change_format(self.pxe_last_heartbeat),
             "dhcp_last_heartbeat": self._change_format(self.dhcp_last_heartbeat),
@@ -58,8 +63,6 @@ class MachineGroup(PermissionBaseModel, db.Model):
             "permission_type": self.permission_type,
             "group_id": self.group_id,
             "org_id": self.org_id,
-            "websockify_ip": self.websockify_ip,
-            "websockify_listen": self.websockify_listen
         }
 
 
