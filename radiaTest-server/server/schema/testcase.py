@@ -206,7 +206,6 @@ class CommitQuerySchema(PageBaseSchema):
 
 class AddCommitCommentSchema(BaseModel):
     parent_id: int
-    reply_id: int
     content: str
 
 class UpdateCommitCommentSchema(BaseModel):

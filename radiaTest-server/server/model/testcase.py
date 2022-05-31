@@ -315,22 +315,16 @@ class CommitComment(PermissionBaseModel, db.Model):
     creator_id = db.Column(db.Integer(), db.ForeignKey("user.gitee_id"))
     group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
     org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
-
     parent_id = db.Column(db.Integer(), default=0)
-    reply_id = db.Column(db.Integer(), nullable=False)
-
     commit_id = db.Column(db.Integer, db.ForeignKey("commit.id"), nullable=False)
 
     def to_json(self):
         user_dict = User.query.get(self.creator_id).to_dict()
         user_dict.pop('roles')
-
         reply_dict = None
-        if self.reply_id and self.reply_id != 0:
-            reply_dict = User.query.get(CommitComment.query.get(
-                self.reply_id).creator_id).to_dict()
+        if self.parent_id and self.parent_id != 0:
+            reply_dict = User.query.get(CommitComment.query.get(self.parent_id).creator_id).to_dict()
             reply_dict.pop('roles')
-
         return {
             'id': self.id,
             'create_time': self.create_time.strftime("%Y-%m-%d %H:%M:%S"),
@@ -338,7 +332,6 @@ class CommitComment(PermissionBaseModel, db.Model):
             'creator_id': self.creator_id,
             'creator': user_dict,
             'parent_id': self.parent_id,
-            'reply_id': self.reply_id,
             'reply': reply_dict,
             'commit_id': self.commit_id,
         }

@@ -13,7 +13,6 @@ function getComment () {
 function commentCase () {
   createComment(router.currentRoute.value.params.commitId,{
     parent_id: 0,
-    reply_id: 0,
     content: commentInput.value
   }).then(() => {
     commentInput.value = '';
