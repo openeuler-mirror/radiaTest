@@ -23,6 +23,7 @@ from server.utils.auth_util import auth
 from server.utils.response_util import RET
 from server.utils.response_util import response_collect
 from server.model.framework import Framework, GitRepo
+from server.model.template import Template
 from server.utils.db import Insert, Delete, Edit, Select
 from server.schema.framework import FrameworkBase, FrameworkQuery, GitRepoBase, GitRepoQuery
 from server.utils.resource_utils import ResourceManager
@@ -158,7 +159,7 @@ class GitRepoItemEvent(Resource):
     @validate()
     @casbin_enforcer.enforcer
     def delete(self, git_repo_id):
-        return ResourceManager("git_repo").del_single(git_repo_id)
+        return ResourceManager("git_repo").del_cascade_single(git_repo_id, Template, [Template.git_repo_id==git_repo_id], False)
     
     @auth.login_required
     @response_collect
