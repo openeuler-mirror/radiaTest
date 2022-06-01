@@ -2,7 +2,6 @@ import { ref } from 'vue';
 import axios from '@/axios';
 import { getFramework } from './frameworkTable';
 import { storage } from '@/assets/utils/storageUtils';
-import router from '@/router';
 
 const isCreate = ref(true);
 const showModal = ref(false);
