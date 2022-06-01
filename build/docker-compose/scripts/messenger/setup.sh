@@ -27,15 +27,18 @@ fi
 "$PKG_MNG" install -y nginx && \
     "$PKG_MNG" install -y openssl
 
-cat ./conf/nginx/nginx.conf > /etc/nginx/nginx.conf \
-    && cp -r ./conf/nginx/conf.d/* /etc/nginx/conf.d/
+mkdir /etc/radiaTest/messenger_nginx
+
+cp -r /etc/nginx/* /etc/radiaTest/messenger_nginx/ \
+    && cat ./conf/nginx/nginx.conf > /etc/radiaTest/messenger_nginx/nginx.conf \
+    && cp -r ./conf/nginx/conf.d/* /etc/radiaTest/messenger_nginx/conf.d/
 
 echo "start to generate SSL certification for messenger"
 mkdir -p /etc/radiaTest/messenger_ssl/certs
 cd /etc/radiaTest/messenger_ssl/
 
 if [[ ! -f "./messenger.key" && ! -f "./certs/messenger.crt" ]];then
-    gen_ssl_cert
+    gen_ssl_cert messenger
 else
     echo "SSL Crt&Key already exist, please make sure their validation. Otherwise, the services could not work normally."
 fi

@@ -1,4 +1,4 @@
-version: '3.7'
+version: '3'
 
 services:
     queue:
@@ -69,7 +69,7 @@ services:
         volumes:
             - /var/lib/nginx
             - /var/log/nginx
-            - /etc/nginx:/etc/nginx
+            - /etc/radiaTest/messenger_nginx:/etc/nginx
             - /etc/radiaTest/messenger_ssl:/etc/radiaTest/messenger_ssl
         ulimits:
             nproc: 65535
