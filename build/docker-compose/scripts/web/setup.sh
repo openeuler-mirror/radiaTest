@@ -33,17 +33,20 @@ fi
 mkdir /usr/share/radiaTest
 
 npm install --force \
-    && npm run build \
-    && cat ./deploy/nginx.conf >/etc/nginx/nginx.conf \
-    && cp -r ./deploy/conf.d/* /etc/nginx/conf.d/ \
-    && cp -r ./dist /usr/share/radiaTest/
+    && npm run build
+
+mkdir /etc/radiaTest/server_nginx
+
+cp -r /etc/nginx/* /etc/radiaTest/server_nginx/ \
+    && cat ./deploy/nginx.conf > /etc/radiaTest/server_nginx/nginx.conf \
+    && cp -r ./deploy/conf.d/* /etc/radiaTest/server_nginx/conf.d/
 
 echo "start to generate SSL certification for nginx of server"
 mkdir -p /etc/radiaTest/server_ssl/certs
 cd /etc/radiaTest/server_ssl/
 
 if [[ ! -f "./selfsigned.key" && ! -f "./certs/selfsigned.crt" ]];then
-    gen_ssl_cert
+    gen_ssl_cert server
 else
     echo "SSL Crt&Key already exist, please make sure they are validation. Otherwise, the service could not work normally."
 fi

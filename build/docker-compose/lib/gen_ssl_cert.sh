@@ -23,13 +23,13 @@ function gen_ssl_cert ()
 
     echo "Create server key..."
 
-    openssl genpkey -algorithm RSA -out selfsigned.key -pkeyopt rsa_keygen_bits:2048
+    openssl genpkey -algorithm RSA -out $1.key -pkeyopt rsa_keygen_bits:2048
 
     echo "Create server certificate signing request..."
 
     SUBJECT="/C=CN/ST=Zhejiang/L=Hangzhou/O=openEuler/OU=QA/CN=$DOMAIN"
 
-    openssl req -new -key selfsigned.key -out selfsigned.csr -subj $SUBJECT
+    openssl req -new -key $1.key -out $1.csr -subj $SUBJECT
 
     echo "Sign SSL certificate..."
 
@@ -40,7 +40,7 @@ function gen_ssl_cert ()
     subjectAltName=@SubjectAlternativeName
 
     [ SubjectAlternativeName ]
-    IP.1 = $DOMAIN" > ./selfsigned.ext
+    IP.1 = $DOMAIN" > ./$1.ext
 
-    openssl x509 -req -days 3650 -in selfsigned.csr -signkey selfsigned.key -out ./certs/selfsigned.crt -extfile selfsigned.ext
+    openssl x509 -req -days 3650 -in $1.csr -signkey $1.key -out ./certs/$1.crt -extfile $1.ext
 }

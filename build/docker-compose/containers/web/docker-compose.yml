@@ -1,4 +1,4 @@
-version: '3.7'
+version: '3'
 
 services:
     cache:
@@ -89,7 +89,7 @@ services:
             - /var/lib/nginx
             - /var/log/nginx
             - /usr/share/radiaTest/dist:/usr/share/nginx/html
-            - /etc/nginx:/etc/nginx
+            - /etc/radiaTest/server_nginx:/etc/nginx
             - /etc/radiaTest/server_ssl:/etc/radiaTest/server_ssl
         ulimits:
             nproc: 65535
