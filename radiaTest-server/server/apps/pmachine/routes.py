@@ -34,9 +34,14 @@ class MachineGroupEvent(Resource):
     @response_collect
     @collect_sql_error
     def post(self):
+        _form = dict()
+        for key, value in request.form.items():
+            if value and value != 'NaN':
+                _form[key] = value
+
         body = ResourcePoolHandler.gen_body_with_cert(
             schema=MachineGroupCreateSchema,
-            form=request.form,
+            form=_form,
         )
         if isinstance(body, Response):
             return body
@@ -65,9 +70,14 @@ class MachineGroupItemEvent(Resource):
                 error_msg="the machine group does not exist"
             )
 
+        _form = dict()
+        for key, value in request.form.items():
+            if value and value != 'NaN':
+                _form[key] = value
+
         body = ResourcePoolHandler.gen_body_with_cert(
             schema=MachineGroupUpdateSchema,
-            form=request.form,
+            form=_form,
             origin_messenger_ip=machine_group.messenger_ip,
         )
         if isinstance(body, Response):

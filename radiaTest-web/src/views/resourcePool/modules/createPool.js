@@ -91,14 +91,22 @@ function showCreateModal() {
   createModalRef.value.show();
 }
 function createMachines() {
-  createMachineGroup({
-    ...createMachinesForm.value,
-    ssl_cert: fileList.value[0]?.file,
-    permission_type: createMachinesForm.value.permission_type.split('-')[0],
-    creator_id: Number(storage.getValue('gitee_id')),
-    org_id: storage.getValue('orgId'),
-    group_id: Number(createMachinesForm.value.permission_type.split('-')[1]),
-  }).then(() => {
+  let formData = new FormData();
+  formData.append('creator_id', Number(storage.getValue('gitee_id')));
+  formData.append('permission_type', createMachinesForm.value.permission_type.split('-')[0]);
+  formData.append('org_id', storage.getValue('orgId'));
+  formData.append('group_id', Number(createMachinesForm.value.permission_type.split('-')[1]));
+  formData.append('name', createMachinesForm.value.name);
+  formData.append('description', createMachinesForm.value.description);
+  formData.append('network_type', createMachinesForm.value.network_type);
+  formData.append('ip', createMachinesForm.value.ip);
+  formData.append('messenger_ip', createMachinesForm.value.messenger_ip);
+  formData.append('messenger_listen', createMachinesForm.value.messenger_listen);
+  formData.append('websockify_ip', createMachinesForm.value.websockify_ip);
+  formData.append('websockify_listen', createMachinesForm.value.websockify_listen);
+  formData.append('ssl_cert', fileList.value[0]?.file);
+
+  createMachineGroup(formData).then(() => {
     createModalRef.value.close();
     refreshData();
     createMachinesForm.value = {
@@ -116,14 +124,20 @@ function createMachines() {
   });
 }
 function modifyMachines() {
-  const formData = JSON.parse(JSON.stringify(createMachinesForm.value));
-  delete formData.permission_type;
+  let formData = new FormData();
+  formData.append('name', createMachinesForm.value.name);
+  formData.append('description', createMachinesForm.value.description);
+  formData.append('network_type', createMachinesForm.value.network_type);
+  formData.append('ip', createMachinesForm.value.ip);
+  formData.append('messenger_ip', createMachinesForm.value.messenger_ip);
+  formData.append('messenger_listen', createMachinesForm.value.messenger_listen);
+  formData.append('websockify_ip', createMachinesForm.value.websockify_ip);
+  formData.append('websockify_listen', createMachinesForm.value.websockify_listen);
+  formData.append('ssl_cert', fileList.value[0]?.file);
+
   modifyMachineGroup(
     menuOption.id, 
-    { 
-      ...formData,
-      ssl_cert: fileList.value[0]?.file 
-    }
+    formData,
   ).then(() => {
     createModalRef.value.close();
     refreshData();

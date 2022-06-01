@@ -106,16 +106,24 @@ class ResourcePoolHandler:
             _body = schema(**form).__dict__
         except ValidationError as e:
             status_code = current_app.config.get("FLASK_PYDANTIC_VALIDATION_ERROR_STATUS_CODE", 400)
-            return make_response(jsonify({"validation_error": e.errors()}), status_code)
+            return make_response(
+                jsonify(
+                    {
+                        "validation_error": {
+                            "body_params": e.errors()
+                        }
+                    }
+                ), 
+                status_code
+            )
 
-        if not origin_messenger_ip and not request.files.get("file"):
+        if not origin_messenger_ip and not request.files.get("ssl_cert"):
             return jsonify(
                 error_code=RET.PARMA_ERR, 
                 error_msg="The certifi file of https service of messenger should be provided."
             )
-        elif  not request.files.get("file"):
+        elif  not request.files.get("ssl_cert"):
             return _body
-
         cert_file = ImportFile(
             request.files.get("ssl_cert"),
             filename=_body.get("messenger_ip", origin_messenger_ip),
