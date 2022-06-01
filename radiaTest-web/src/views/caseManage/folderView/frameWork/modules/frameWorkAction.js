@@ -70,7 +70,6 @@ function submitForm() {
       if (isCreate.value) {
         formData.creator_id = storage.getValue('gitee_id');
         formData.permission_type = 'public';
-        formData.group_id = router.currentRoute.value.query.id;
         formData.org_id = storage.getValue('loginOrgId');
       }
       axios[isCreate.value ? 'post' : 'put'](url, formData)
