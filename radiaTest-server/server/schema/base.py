@@ -71,7 +71,7 @@ class PermissionBase(BaseModel):
         if not user:
             raise ValueError("The user does not exist.")
         
-        if values.get("creator_id") != g.gitee_id:
+        if values.get("creator_id") != int(g.gitee_id):
             raise ValueError("The user is not current login user.")
         
         if values.get("org_id") != int(redis_client.hget(RedisKey.user(g.gitee_id), "current_org_id")):

@@ -29,9 +29,7 @@ fi
 
 mkdir /etc/radiaTest/messenger_nginx
 
-cp -r /etc/nginx/* /etc/radiaTest/messenger_nginx/ \
-    && cat ./conf/nginx/nginx.conf > /etc/radiaTest/messenger_nginx/nginx.conf \
-    && cp -r ./conf/nginx/conf.d/* /etc/radiaTest/messenger_nginx/conf.d/
+cp ./deploy/* /etc/radiaTest/messenger_nginx/
 
 echo "start to generate SSL certification for messenger"
 mkdir -p /etc/radiaTest/messenger_ssl/certs

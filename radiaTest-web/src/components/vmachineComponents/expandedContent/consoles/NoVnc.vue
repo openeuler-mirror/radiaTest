@@ -4,7 +4,7 @@
 
 <script>
 import RFB from '@novnc/novnc/core/rfb';
-import { settings } from '@/assets/config/settings.js';
+import settings from '@/assets/config/settings.js';
 import { useMessage } from 'naive-ui';
 import { ref, onMounted, onUnmounted, defineComponent } from 'vue';
 

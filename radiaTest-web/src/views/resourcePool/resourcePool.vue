@@ -104,7 +104,7 @@
                   placeholder="请输入websockify IP"
                 />
               </n-form-item-gi>
-              <n-form-item-gi :span="6" label="websockify服务端口">
+              <n-form-item-gi :span="6" label="websockify服务端口" path="websockify_listen">
                 <n-input
                   v-model:value="createMachinesForm.websockify_listen"
                   placeholder="请输入websockify服务端口"

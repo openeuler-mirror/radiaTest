@@ -97,7 +97,7 @@ server.interceptors.response.use(
       error.response.data = {
         error_msg:
           error.response.data.validation_error.body_params[0]?.msg ||
-          error.response.data.validation_error.query_params[0]?.msg,
+          error.response.data.validation_error.query_params[0]?.msg
       };
     }
     return Promise.reject(error.response || error);

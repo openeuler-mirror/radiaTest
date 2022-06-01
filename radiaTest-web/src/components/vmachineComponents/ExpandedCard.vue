@@ -215,7 +215,7 @@
 <script>
 import { ref, watch, onMounted, onBeforeUnmount, defineComponent } from 'vue';
 import { Socket } from '@/socket';
-import { settings } from '@/assets/config/settings.js'; 
+import settings from '@/assets/config/settings.js'; 
 
 import ModalCard from '@/components/CRUD/ModalCard.vue';
 import EditModal from '@/components/vmachineComponents/expandedContent/EditModal.vue';

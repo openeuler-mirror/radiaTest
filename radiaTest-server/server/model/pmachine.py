@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # @Author: Your name
 # @Date:   2022-04-12 11:23:44
+import os
 from datetime import datetime
 from enum import unique
 
@@ -38,6 +39,14 @@ class MachineGroup(PermissionBaseModel, db.Model):
     creator_id = db.Column(db.Integer(), db.ForeignKey("user.gitee_id"))
     group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
     org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
+
+    def delete(self, table=None, namespace=None, broadcast=False):
+        _cert_path = self.cert_path
+
+        super().delete(table=None, namespace=None, broadcast=False)
+        
+        if os.path.isfile(_cert_path):
+            os.remove(_cert_path)
 
     def _change_format(self, last_heartbeat):
         if isinstance(last_heartbeat, datetime):
