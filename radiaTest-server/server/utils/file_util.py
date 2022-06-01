@@ -3,7 +3,7 @@ import re
 import socket
 import datetime
 from uuid import uuid1
-from shutil import rmtree
+from shutil import rmtree, move
 from shlex import quote
 from functools import lru_cache
 from werkzeug.utils import secure_filename
@@ -126,7 +126,7 @@ class ZipImportFile(ImportFile):
     
     def unicoding(self, name, dest_dir):
         try:
-            os.rename(
+            move(
                 os.path.join(dest_dir, name), 
                 os.path.join(
                     dest_dir, 
@@ -135,7 +135,7 @@ class ZipImportFile(ImportFile):
             )
         except (UnicodeEncodeError, UnicodeDecodeError):
             try:
-                os.rename(
+                move(
                     os.path.join(dest_dir, name), 
                     os.path.join(
                         dest_dir, 
@@ -143,7 +143,7 @@ class ZipImportFile(ImportFile):
                     )
                 )
             except (UnicodeEncodeError, UnicodeDecodeError):
-                os.rename(
+                move(
                     os.path.join(dest_dir, name), 
                     os.path.join(
                         dest_dir, 
