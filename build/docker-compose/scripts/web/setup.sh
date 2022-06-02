@@ -37,7 +37,7 @@ npm install --force \
 
 mkdir /etc/radiaTest/server_nginx
 
-cp ./deploy/* /etc/radiaTest/server_nginx/
+cp -r ./deploy/* /etc/radiaTest/server_nginx/
 
 echo "start to generate SSL certification for nginx of server"
 mkdir -p /etc/radiaTest/server_ssl/certs
