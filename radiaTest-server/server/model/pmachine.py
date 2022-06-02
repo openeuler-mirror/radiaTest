@@ -8,11 +8,11 @@ from enum import unique
 from sqlalchemy.dialects.mysql import LONGTEXT
 
 from server import db
-from server.model.base import BaseModel, ServiceModel, PermissionBaseModel
+from server.model.base import EmitDataModel, ServiceModel, PermissionBaseModel
 
 
 
-class MachineGroup(BaseModel, PermissionBaseModel, db.Model):
+class MachineGroup(EmitDataModel, PermissionBaseModel, db.Model):
     __tablename__ = "machine_group"
 
     id = db.Column(db.Integer(), primary_key=True)
