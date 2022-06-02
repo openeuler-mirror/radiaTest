@@ -35,7 +35,6 @@ def async_check_alive():
         "pxe_alive": True,
         "dhcp_alive": True
     }
-    
     # get messenger api
     _resp = dict()
     _r = do_request(
@@ -48,7 +47,7 @@ def async_check_alive():
             "content-type": "application/json;charset=utf-8"
         },
         obj=_resp,
-        verify=False,
+        verify=celeryconfig.messenger_cert_path,
     )
     if  _r != 0 or _resp.get("error_code") != RET.OK:
         logger.warning("lost heartbeating of messenger service") 

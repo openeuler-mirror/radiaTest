@@ -289,7 +289,8 @@ class PermissionItemsPool:
                         'Content-Type': 'application/json;charset=utf8',
                         'Authorization': self.auth,
                     },
-                    verify=current_app.config.get("CA_VERIFY") == "True"
+                    verify=True if current_app.config.get("CA_VERIFY") =="True" \
+                     else current_app.config.get("SERVER_CERT_PATH")
                 )
 
                 if _resp.status_code != 200:
