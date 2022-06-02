@@ -33,8 +33,8 @@ RUN dnf install -y git \
 
 WORKDIR /opt/radiaTest/radiaTest-server/
 
-RUN bash ./install_rar.sh \
-    && pip3 install -r requirements.txt -i $PIP_REPO
+RUN bash ./install_rar.sh 
+RUN pip3 install -r requirements.txt -i $PIP_REPO || pip3 install -r requirements.txt
 
 CMD bash /opt/radiaTest/build/k8s-pod/web/gunicorn/init_db.sh \
     && gunicorn -c gunicorn/gunicorn.conf.py manage:app

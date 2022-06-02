@@ -34,6 +34,7 @@ import caseReviewDetail from '@/views/caseManage/caseReviewDetail/caseReviewDeta
 import resourcePool from '@/views/resourcePool/resourcePool.vue';
 import versionManagement from '@/views/versionManagement/versionManagement.vue';
 import product from '@/views/versionManagement/product/product.vue';
+import NotFound from '@/views/resultPage/NotFound.vue';
 // import test from '@/views/test/Test.vue';
 
 const routerHistory = createWebHistory();
@@ -307,6 +308,11 @@ const router = createRouter({
         },
       ],
     },
+    {
+      path: '/:catchAll(.*)',
+      component: NotFound,
+      name: 'NotFound',
+    }
   ],
 });
 export default router;
