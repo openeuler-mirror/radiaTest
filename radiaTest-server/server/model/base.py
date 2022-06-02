@@ -16,7 +16,6 @@ class Base(object):
         if table and namespace:
             socketio.emit(
                 "update",
-                json.dumps([item.to_json() for item in table.query.all()]),
                 namespace=namespace,
                 broadcast=broadcast,
             )
@@ -27,7 +26,6 @@ class Base(object):
         if table and namespace:
             socketio.emit(
                 "update",
-                json.dumps([item.to_json() for item in table.query.all()]),
                 namespace=namespace,
                 broadcast=broadcast,
             )
@@ -43,7 +41,6 @@ class Base(object):
         if table and namespace:
             socketio.emit(
                 "update",
-                json.dumps([item.to_json() for item in table.query.all()]),
                 namespace=namespace,
                 broadcast=broadcast,
             )
@@ -59,7 +56,6 @@ class Base(object):
         if table and namespace:
             socketio.emit(
                 "update",
-                json.dumps([item.to_json() for item in table.query.all()]),
                 namespace=namespace,
                 broadcast=broadcast,
             )

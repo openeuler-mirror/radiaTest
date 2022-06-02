@@ -1,15 +1,8 @@
-import json, yaml
+import json, yaml, os
 from flask import g, jsonify, current_app
 from server.utils.response_util import RET
 
 from server.model import (
-    Product,
-    Milestone,
-    Pmachine,
-    Vmachine,
-    Group,
-    ReUserGroup,
-    User,
     ReUserOrganization,
     Message,
     MsgLevel,
@@ -17,13 +10,14 @@ from server.model import (
     Role,
     ReUserRole
 )
-from server.utils.db import Insert, Delete, Precise
+from server.utils.db import Insert, Precise
 from server.utils.table_adapter import TableAdapter
 
 class MessageManager:
     @staticmethod
     def get_cur_api_msg(uri, method):
-        with open('server/config/api_infos.yaml', 'r', encoding='utf-8') as f:
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        with open(os.path.join(base_dir,'config/api_infos.yaml'), 'r', encoding='utf-8') as f:
             api_infos = yaml.load(f.read(), Loader=yaml.FullLoader)
         
         for _api in api_infos:
