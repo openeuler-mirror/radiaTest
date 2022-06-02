@@ -1,6 +1,6 @@
 import json
 
-from server.model.base import Base
+from server.model import BaseModel
 from server import db
 from enum import Enum
 
@@ -16,7 +16,7 @@ class MsgType(Enum):
     script = 1
 
 
-class Message(db.Model, Base):
+class Message(db.Model, BaseModel):
     __tablename__ = "message"
     id = db.Column(db.Integer(), primary_key=True, autoincrement=True)
     data = db.Column(db.Text(), nullable=False)

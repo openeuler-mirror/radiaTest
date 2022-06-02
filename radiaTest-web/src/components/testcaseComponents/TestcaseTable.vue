@@ -32,10 +32,10 @@ export default defineComponent({
       get.filter('/v1/case', testcaseTable.totalData, testcaseTable.loading, {
         deleted: false,
       });
-      testcaseSocket.listen('update', (res) => {
-        testcaseTable.totalData.value = JSON.parse(res).filter(
-          (item) => item.deleted === false
-        );
+      testcaseSocket.listen('update', () => {
+        get.filter('/v1/case', testcaseTable.totalData, testcaseTable.loading, {
+          deleted: false,
+        });
       });
     });
     onUnmounted(() => {

@@ -1,4 +1,4 @@
-from server.model.base import Base, PermissionBaseModel
+from server.model import BaseModel, PermissionBaseModel
 from server.model.permission import Role, ReUserRole
 from server import db
 from enum import Enum
@@ -11,7 +11,7 @@ class GroupRole(Enum):
     no_reviewer = 0
 
 
-class Group(db.Model, PermissionBaseModel):
+class Group(db.Model, PermissionBaseModel, BaseModel):
     __tablename__ = "group"
     id = db.Column(db.Integer(), primary_key=True, autoincrement=True)
     name = db.Column(db.String(50), nullable=False)
@@ -52,7 +52,7 @@ class Group(db.Model, PermissionBaseModel):
         return group_id, new_recode
 
 
-class ReUserGroup(db.Model, Base):
+class ReUserGroup(db.Model, BaseModel):
     __tablename__ = "re_user_group"
     id = db.Column(db.Integer(), primary_key=True, autoincrement=True)
     user_add_group_flag = db.Column(db.Boolean(), default=False, nullable=False)

@@ -2,7 +2,7 @@ from sqlalchemy.dialects.mysql import LONGTEXT
 from sqlalchemy.orm import backref
 
 from server import db
-from server.model import BaseModel, PermissionBaseModel
+from server.model.base import BaseModel, PermissionBaseModel
 from server.model.user import User
 from server.model.framework import Framework
 from server.model.group import Group
@@ -134,7 +134,7 @@ class Suite(PermissionBaseModel, BaseModel, db.Model):
         }
 
 
-class Case(PermissionBaseModel, db.Model):
+class Case(BaseModel, PermissionBaseModel, db.Model):
     __tablename__ = "case"
 
     id = db.Column(db.Integer(), primary_key=True)
@@ -206,7 +206,7 @@ class Case(PermissionBaseModel, db.Model):
         }
 
 
-class Commit(PermissionBaseModel, db.Model):
+class Commit(BaseModel, PermissionBaseModel, db.Model):
     __tablename__ = "commit"
 
     id = db.Column(db.Integer(), primary_key=True)
@@ -269,7 +269,7 @@ class Commit(PermissionBaseModel, db.Model):
         }
 
 
-class CaseDetailHistory(PermissionBaseModel, db.Model):
+class CaseDetailHistory(BaseModel, PermissionBaseModel, db.Model):
     __tablename__ = "case_detail_history"
 
     id = db.Column(db.Integer(), primary_key=True)
@@ -306,7 +306,7 @@ class CaseDetailHistory(PermissionBaseModel, db.Model):
         }
 
 
-class CommitComment(PermissionBaseModel, db.Model):
+class CommitComment(BaseModel, PermissionBaseModel, db.Model):
     """用例评审评论"""
     __tablename__ = "commit_comment"
 

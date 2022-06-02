@@ -1,8 +1,8 @@
 from server import db
-from server.model.base import Base
+from server.model import BaseModel
 
 
-class CasbinRule(db.Model, Base):
+class CasbinRule(db.Model, BaseModel):
     __tablename__ = "casbin_rule"
 
     id = db.Column(db.Integer, primary_key=True)

@@ -31,8 +31,8 @@ export default defineComponent({
 
     onMounted(() => {
       get.list('/v1/product', productTable.totalData, productTable.loading);
-      productSocket.listen('update', (res) => {
-        productTable.totalData.value = JSON.parse(res);
+      productSocket.listen('update', () => {
+        get.list('/v1/product', productTable.totalData, productTable.loading);
       });
     });
 

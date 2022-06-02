@@ -1,8 +1,7 @@
 from sqlalchemy.dialects.mysql import LONGTEXT
 
 from server import db
-from server.model.base import BaseModel
-
+from server.model import BaseModel
 
 job_vmachine = db.Table(
     "job_vmachine",
@@ -109,6 +108,7 @@ class Job(BaseModel, db.Model):
 class Analyzed(BaseModel, db.Model):
     __tablename__ = "analyzed"
 
+    id = db.Column(db.Integer(), primary_key=True)
     result = db.Column(db.String(32))
     log_url = db.Column(db.Text())
     fail_type = db.Column(db.String(32))
@@ -144,6 +144,7 @@ class Analyzed(BaseModel, db.Model):
 class Logs(BaseModel, db.Model):
     __tablename__ = "logs"
 
+    id = db.Column(db.Integer(), primary_key=True)
     stage = db.Column(db.String(16), nullable=False)
     checkpoint = db.Column(db.String(255), nullable=False)
     expect_result = db.Column(db.Integer(), nullable=False)

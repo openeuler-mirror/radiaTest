@@ -1,12 +1,13 @@
 from sqlalchemy.dialects.mysql import TINYTEXT
 
 from server import db
-from server.model import BaseModel, PermissionBaseModel
+from server.model.base import BaseModel, PermissionBaseModel
 
 
 class Product(BaseModel, PermissionBaseModel, db.Model):
     __tablename__ = "product"
 
+    id = db.Column(db.Integer(), primary_key=True)
     name = db.Column(db.String(32), nullable=False)
     version = db.Column(db.String(32), nullable=False)
     description = db.Column(TINYTEXT())
