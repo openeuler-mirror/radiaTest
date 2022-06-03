@@ -53,6 +53,5 @@ class Config(object):
     # 每组测试环境，最大执行时长
     MAX_RUN_TIME = 3600
 
-
 class TestingConfig(Config):
     TESTING = True

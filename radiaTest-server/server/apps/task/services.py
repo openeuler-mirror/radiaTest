@@ -180,7 +180,8 @@ class UpdateTaskStatusService(object):
                         body=body_json, 
                         headers=headers, 
                         timeout=0.5,
-                        verify=current_app.config.get("CA_VERIFY") == "True"
+                        verify=True if current_app.config.get("CA_VERIFY") =="True" \
+                        else current_app.config.get("SERVER_CERT_PATH")
                     )
 
                     if r != 0 and r != 4:
