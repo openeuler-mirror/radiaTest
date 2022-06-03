@@ -20,7 +20,6 @@ import json
 
 from flask import g, current_app, jsonify, request
 from flask_restful import original_flask_make_response as make_response
-from itsdangerous import exc
 from sqlalchemy import or_
 from pydantic.error_wrappers import ValidationError
 
@@ -82,18 +81,6 @@ class ResourcePoolHandler:
             error_msg="OK",
             data=[machine_group.to_json()]
         )
-
-    @staticmethod
-    @collect_sql_error
-    def create_group(body):
-        return ResourceManager("machine_group").add_v2("pmachine/mg_api_infos.yaml", body.__dict__)
-
-    @staticmethod
-    @collect_sql_error
-    def update_group(machine_group_id, body):
-        _body = body.__dict__
-        _body.update({"id": machine_group_id})
-        return Edit(MachineGroup, _body).single(MachineGroup, "/machine_group")
 
     @staticmethod
     @collect_sql_error
