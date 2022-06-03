@@ -31,14 +31,12 @@
               <n-tab-pane
                 tab="基本参数"
                 name="basic"
-                @click="createFormRef.changeTabs('basic')"
               >
                 <div></div>
               </n-tab-pane>
               <n-tab-pane
                 tab="SSH参数"
                 name="ssh"
-                @click="createFormRef.changeTabs('ssh')"
               >
                 <div></div>
               </n-tab-pane>

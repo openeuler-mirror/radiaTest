@@ -9,15 +9,16 @@
       @submit="submitCreateCase"
     >
       <template #form>
-        <n-tabs type="line" size="large" :tab-padding="20"  @update:value="(value)=>createFormRef.changeTabs(value)">
-          <n-tab-pane tab="info" name="基本信息" @click="createFormRef.changeTabs('info')">
+        <n-tabs 
+          type="line" 
+          size="large" 
+          :tab-padding="20"  
+          @update:value="(value)=>createFormRef.changeTabs(value)"
+        >
+          <n-tab-pane tab="基本信息" name="basic">
             <div></div>
           </n-tab-pane>
-          <n-tab-pane
-            name="详细内容"
-            tab="content"
-            @click="createFormRef.changeTabs('content')"
-          >
+          <n-tab-pane tab="详细内容" name="detail">
             <div></div>
           </n-tab-pane>
         </n-tabs>

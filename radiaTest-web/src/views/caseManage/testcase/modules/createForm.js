@@ -3,7 +3,7 @@ import axios from '@/axios';
 
 const size = ref('medium');
 
-const tab = ref('info');
+const tab = ref('basic');
 
 const diskUsage = ref(null);
 
@@ -81,6 +81,7 @@ const clean = () => {
     steps: undefined,
     expection: undefined,
   };
+  tab.value = 'basic';
 };
 
 const infoRules = ref({
