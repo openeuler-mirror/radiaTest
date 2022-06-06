@@ -56,3 +56,7 @@ class LoginOrgListSchema(BaseModel):
 
 class VmachineExistSchema(BaseModel):
     domain: str
+
+
+class DeleteCertifiSchema(BaseModel):
+    ip: str

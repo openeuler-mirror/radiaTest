@@ -30,6 +30,7 @@ RUN dnf install -y git \
     && dnf install -y iputils \
     && dnf install -y rsync \
     && dnf install -y cronie \
+    && dnf install -y openssl \
     && dnf install -y logrotate \
     && dnf install -y python3-pip \
     && dnf install -y python3-devel

@@ -5,11 +5,15 @@ import {
   CircleSharp,
 } from '@vicons/material';
 import { EditOutlined } from '@vicons/antd';
-import { Delete28Regular } from '@vicons/fluent';
+import { 
+  Delete28Regular,
+  ArrowSync20Regular,
+  CalendarCheckmark24Regular 
+} from '@vicons/fluent';
 import { Add } from '@vicons/ionicons5';
 import { NButton, NIcon } from 'naive-ui';
 import { showCreateModal,createMachinesForm } from './createPool';
-import { getMachineGroup } from '@/api/get';
+import { getMachineGroup,getRootCert } from '@/api/get';
 import { Socket } from '@/socket';
 import config from '@/assets/config/settings';
 import router from '@/router';
@@ -57,12 +61,23 @@ const y = ref(0);
 const showDropdown = ref();
 const options = ref([
   {
-    label: '修改',
+    label: '机器组证书检查',
+    key: 'check',
+    icon: renderIcon(CalendarCheckmark24Regular),
+  },
+  {
+    label: '机器组证书更新',
+    key: 'refresh',
+    disabled: true,
+    icon: renderIcon(ArrowSync20Regular),
+  },
+  {
+    label: '机器组信息修改',
     key: 'edit',
     icon: renderIcon(EditOutlined),
   },
   {
-    label: '删除',
+    label: '机器组删除',
     key: 'delete',
     icon: renderIcon(Delete28Regular),
   },
@@ -127,7 +142,9 @@ function refreshData(){
   }
 }
 function handleSelect(key) {
-  if(key === 'edit'){
+  if(key === 'check'){
+    window.location.href = `https://${menuOption.messenger_ip}:${menuOption.messenger_listen}/api/v1/ca-check`;
+  }else if(key === 'edit'){
     createMachinesForm.value = menuOption;
     showCreateModal();
     isCreate.value = false;
@@ -216,6 +233,27 @@ function handleSelectKey(keys) {
   }
 }
 
+function handleDownloadCert() {
+  return new Promise((resolve, reject) => {
+    getRootCert()
+      .then((res) => {
+        const blob = new Blob(res.data);
+        const link = document.createElement('a');
+        link.download = 'radiatest.cacert.pem';
+        link.style.display = 'none';
+        link.href = URL.createObjectURL(blob);
+        document.body.appendChild(link);
+        link.click();
+        URL.revokeObjectURL(link.href);
+        document.body.removeChild(link);
+        resolve();
+      })
+      .catch((err) => {
+        reject(err);
+      });
+  });
+}
+
 export {
   expandeds,
   selectKey,
@@ -238,5 +276,6 @@ export {
   handleSelectKey,
   getTimeDiff,
   isCreate,
-  refreshData
+  refreshData,
+  handleDownloadCert
 };

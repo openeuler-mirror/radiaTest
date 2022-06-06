@@ -3,7 +3,9 @@ from pathlib import Path
 
 from kombu import Exchange, Queue
 
+
 ini_path = "/etc/radiaTest/messenger.ini"
+
 
 def loads_config_ini(section, option):
     config_ini = Path(ini_path)
@@ -42,7 +44,6 @@ result_serializer = 'json'
 accept_content = ['json']
 timezone = 'Asia/Shanghai'
 enable_utc = True
-# task_compression = 'gzip'
 
 # 默认log配置
 celeryd_log_file = 'celeryservice/celerymain/celery.log'
@@ -100,6 +101,9 @@ task_default_exchange_type = 'direct'
 # server confg
 server_addr = loads_config_ini("server", "SERVER_ADDR")
 ca_verify = loads_config_ini("server", "CA_VERIFY")
+# SSL file path(Warning: if you modify this item,
+# you need to change the corresponding build and deployment files)
+cacert_path = loads_config_ini("server", "CA_CERT")
 
 # messenger config
 messenger_ip = loads_config_ini("messenger", "MESSENGER_IP")
@@ -113,8 +117,3 @@ pxe_pkey = loads_config_ini("pxe", "PRIVATE_KEY")
 
 # dhcp config
 dhcp_ip = loads_config_ini("dhcp", "DHCP_IP")
-
-# SSL file path(Warning: if you modify this item,
-# you need to change the corresponding build and deployment files)
-messenger_cert_path = loads_config_ini("messenger", "MESSENGER_CERT_PATH")
-server_cert_path = loads_config_ini("server", "SERVER_CERT_PATH")

@@ -38,7 +38,7 @@ def _callback_task_job_result(job_id, auth, taskmilestone_id, status):
                 },
                 obj=_resp,
                 verify=True if celeryconfig.ca_verify == "True"\
-                     else celeryconfig.server_cert_path
+                     else celeryconfig.cacert_path
             )
 
             if _r == 0 and _resp.get("error_code") == RET.OK:

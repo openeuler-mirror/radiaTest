@@ -1,6 +1,6 @@
 import { ref } from 'vue';
-import { createMachineGroup } from '@/api/post';
 import { storage } from '@/assets/utils/storageUtils';
+import { createMachineGroup } from '@/api/post';
 import { modifyMachineGroup } from '@/api/put';
 import { isCreate, menuOption,refreshData } from './menu';
 const createModalRef = ref(null);
@@ -16,7 +16,6 @@ const createMachinesForm = ref({
   messenger_ip: undefined,
   websockify_ip:undefined,
 });
-const fileList = ref([]);
 const syncWebsockifyIP = ref(true);
 const syncMessengerIP = ref(true);
 const machinesRules = {
@@ -91,22 +90,13 @@ function showCreateModal() {
   createModalRef.value.show();
 }
 function createMachines() {
-  let formData = new FormData();
-  formData.append('creator_id', Number(storage.getValue('gitee_id')));
-  formData.append('permission_type', createMachinesForm.value.permission_type.split('-')[0]);
-  formData.append('org_id', storage.getValue('orgId'));
-  formData.append('group_id', Number(createMachinesForm.value.permission_type.split('-')[1]));
-  formData.append('name', createMachinesForm.value.name);
-  formData.append('description', createMachinesForm.value.description);
-  formData.append('network_type', createMachinesForm.value.network_type);
-  formData.append('ip', createMachinesForm.value.ip);
-  formData.append('messenger_ip', createMachinesForm.value.messenger_ip);
-  formData.append('messenger_listen', createMachinesForm.value.messenger_listen);
-  formData.append('websockify_ip', createMachinesForm.value.websockify_ip);
-  formData.append('websockify_listen', createMachinesForm.value.websockify_listen);
-  formData.append('ssl_cert', fileList.value[0]?.file);
-
-  createMachineGroup(formData).then(() => {
+  createMachineGroup({
+    ...createMachinesForm.value,
+    permission_type: createMachinesForm.value.permission_type.split('-')[0],
+    creator_id: Number(storage.getValue('gitee_id')),
+    org_id: storage.getValue('orgId'),
+    group_id: Number(createMachinesForm.value.permission_type.split('-')[1]),
+  }).then(() => {
     createModalRef.value.close();
     refreshData();
     createMachinesForm.value = {
@@ -120,25 +110,12 @@ function createMachines() {
       messenger_ip: undefined,
       websockify_ip: undefined
     };
-    fileList.value = [];
   });
 }
 function modifyMachines() {
-  let formData = new FormData();
-  formData.append('name', createMachinesForm.value.name);
-  formData.append('description', createMachinesForm.value.description);
-  formData.append('network_type', createMachinesForm.value.network_type);
-  formData.append('ip', createMachinesForm.value.ip);
-  formData.append('messenger_ip', createMachinesForm.value.messenger_ip);
-  formData.append('messenger_listen', createMachinesForm.value.messenger_listen);
-  formData.append('websockify_ip', createMachinesForm.value.websockify_ip);
-  formData.append('websockify_listen', createMachinesForm.value.websockify_listen);
-  formData.append('ssl_cert', fileList.value[0]?.file);
-
-  modifyMachineGroup(
-    menuOption.id, 
-    formData,
-  ).then(() => {
+  const formData = JSON.parse(JSON.stringify(createMachinesForm.value));
+  delete formData.permission_type;
+  modifyMachineGroup(menuOption.id, { ...formData }).then(() => {
     createModalRef.value.close();
     refreshData();
     createMachinesForm.value = {
@@ -150,7 +127,6 @@ function modifyMachines() {
       permission_type: undefined,
       websockify_listen:undefined
     };
-    fileList.value = [];
   });
 }
 function submitCreateForm() {
@@ -166,9 +142,7 @@ function submitCreateForm() {
     }
   });
 }
-function uploadFinish (options) {
-  fileList.value = options;
-}
+
 export {
   machinesRules,
   syncMessengerIP,
@@ -179,5 +153,4 @@ export {
   machinesFormRef,
   submitCreateForm,
   changeValue,
-  uploadFinish
 };

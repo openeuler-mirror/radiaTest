@@ -33,22 +33,11 @@ class MachineGroupEvent(Resource):
     @auth.login_required
     @response_collect
     @collect_sql_error
-    def post(self):
-        _form = dict()
-        for key, value in request.form.items():
-            if value and value != 'NaN':
-                _form[key] = value
-
-        body = ResourcePoolHandler.gen_body_with_cert(
-            schema=MachineGroupCreateSchema,
-            form=_form,
-        )
-        if isinstance(body, Response):
-            return body
-        
+    @validate()
+    def post(self, body: MachineGroupCreateSchema):  
         return ResourceManager("machine_group").add_v2(
             "pmachine/api_infos.yaml", 
-            body
+            body.__dict__
         )
 
     @auth.login_required
@@ -62,29 +51,18 @@ class MachineGroupItemEvent(Resource):
     @auth.login_required
     @response_collect
     @casbin_enforcer.enforcer
-    def put(self, machine_group_id):
+    def put(self, machine_group_id, body: MachineGroupUpdateSchema):
         machine_group = MachineGroup.query.filter_by(id=machine_group_id).first()
         if not machine_group:
             return jsonify(
                 error_code=RET.NO_DATA_ERR,
-                error_msg="the machine group does not exist"
+                error_msg="The machine group does not exist"
             )
 
-        _form = dict()
-        for key, value in request.form.items():
-            if value and value != 'NaN':
-                _form[key] = value
+        _body = body.__dict__
+        _body.update({"id": machine_group_id})
 
-        body = ResourcePoolHandler.gen_body_with_cert(
-            schema=MachineGroupUpdateSchema,
-            form=_form,
-            origin_messenger_ip=machine_group.messenger_ip,
-        )
-        if isinstance(body, Response):
-            return body
-
-        body.update({"id": machine_group_id})
-        return Edit(MachineGroup, body).single(MachineGroup, "/machine_group")
+        return Edit(MachineGroup, _body).single(MachineGroup, "/machine_group")
 
     @auth.login_required
     @response_collect

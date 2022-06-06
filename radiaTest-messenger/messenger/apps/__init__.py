@@ -4,6 +4,7 @@ from . import job
 from . import pmachine
 from . import vmachine
 from . import heartbeat
+from . import certifi
 
 
 def init_api(app: Flask):
@@ -12,3 +13,4 @@ def init_api(app: Flask):
     pmachine.init_api(api)
     vmachine.init_api(api)
     heartbeat.init_api(api)
+    certifi.init_api(api)

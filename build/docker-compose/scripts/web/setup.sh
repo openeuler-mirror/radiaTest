@@ -28,7 +28,7 @@ fi
 
 "$PKG_MNG" install -y git \
     && "$PKG_MNG" install -y nginx \
-    && "$PKG_MNG" install -y openssls
+    && "$PKG_MNG" install -y openssl
 
 mkdir /usr/share/radiaTest
 
@@ -39,12 +39,38 @@ mkdir /etc/radiaTest/server_nginx
 
 cp -r ./deploy/* /etc/radiaTest/server_nginx/
 
-echo "start to generate SSL certification for nginx of server"
 mkdir -p /etc/radiaTest/server_ssl/certs
-cd /etc/radiaTest/server_ssl/
+mkdir -p /etc/radiaTest/server_ssl/csr
+mkdir -p /etc/radiaTest/server_ssl/crl
+mkdir -p /etc/radiaTest/server_ssl/newcerts
+mkdir -p /etc/radiaTest/server_ssl/private
+mkdir -p /etc/radiaTest/server_ssl/conf
 
-if [[ ! -f "./server.key" && ! -f "./certs/server.crt" ]];then
-    gen_ssl_cert server
+cd /etc/radiaTest/server_ssl/
+cat ${OET_PATH}/conf/ca_openssl.cnf > conf/ca.cnf
+cat ${OET_PATH}/conf/client_openssl.cnf > conf/client.cnf
+
+if [[ ! -f "index.txt" ]];then
+    touch index.txt
+fi
+if [[ ! -f "serial" ]];then
+    echo 01 > ./serial
+fi
+
+if [[ ! -f "./private/cakey.pem" ]];then
+    gen_ca_key
+fi
+
+if [[ ! -f "./cacert.pem" ]];then
+    gen_ca_cert
+fi
+
+if [[ ! -f "./server.key" ]];then
+    gen_client_key "server"
+fi
+
+if [[ ! -f "./messenger.csr" && ! -f "./certs/messenger.crt" ]];then
+    gen_client_csr "server"
 else
-    echo "SSL Crt&Key already exist, please make sure they are validation. Otherwise, the service could not work normally."
+    echo "SSL Certfile already exist, please make sure they are validation. Otherwise, the service could not work normally."
 fi

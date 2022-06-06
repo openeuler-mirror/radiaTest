@@ -445,7 +445,7 @@ class DeleteVmachine(AuthMessageBody):
                 "authorization": self.auth
             },
             verify=True if current_app.config.get("CA_VERIFY") == "True" \
-            else current_app.config.get("SERVER_CERT_PATH")
+            else current_app.config.get("CA_CERT")
         )
 
         if _r != 0:
@@ -527,7 +527,7 @@ class DeviceManager(SyncMessenger):
                 "authorization": self.auth
             },
             verify=True if current_app.config.get("CA_VERIFY") == "True" \
-            else current_app.config.get("SERVER_CERT_PATH")
+            else current_app.config.get("CA_CERT")
         )
 
         if _r != 0:
@@ -628,7 +628,7 @@ class VmachineAsyncResultHandler:
                         "authorization": auth
                     },
                     verify=True if current_app.config.get("CA_VERIFY") == "True" \
-                    else current_app.config.get("SERVER_CERT_PATH")
+                    else current_app.config.get("CA_CERT")
                 )
 
                 if _r != 0:

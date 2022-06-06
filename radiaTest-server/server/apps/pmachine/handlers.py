@@ -27,6 +27,7 @@ from server import redis_client
 from server.model.pmachine import Pmachine, MachineGroup
 from server.model.group import Group, ReUserGroup
 from server.model.message import Message, MsgType, MsgLevel
+from server.schema.pmachine import MachineGroupCreateSchema
 from server.utils.response_util import RET, ssl_cert_verify_error_collect
 from server.utils.redis_util import RedisKey
 from server.utils.file_util import ImportFile
@@ -93,57 +94,6 @@ class ResourcePoolHandler:
             ],
             False
             )
-
-    @staticmethod
-    def gen_body_with_cert(schema, form, origin_messenger_ip=None):
-        try:
-            _body = schema(**form).__dict__
-        except ValidationError as e:
-            status_code = current_app.config.get("FLASK_PYDANTIC_VALIDATION_ERROR_STATUS_CODE", 400)
-            return make_response(
-                jsonify(
-                    {
-                        "validation_error": {
-                            "body_params": e.errors()
-                        }
-                    }
-                ),
-                status_code
-            )
-
-        if not origin_messenger_ip and not request.files.get("ssl_cert"):
-            return jsonify(
-                error_code=RET.PARMA_ERR,
-                error_msg="The certifi file of https service of messenger should be provided."
-            )
-        elif  not request.files.get("ssl_cert"):
-            return _body
-        cert_file = ImportFile(
-            request.files.get("ssl_cert"),
-            filename=_body.get("messenger_ip", origin_messenger_ip),
-            filetype="crt"
-        )
-        _filepath = os.path.join(
-            current_app.config.get("MESSENGERS_CERTIFI_SAVE_PATH"),
-            f"{cert_file.filename}.crt"
-        )
-
-        try:
-            if os.path.isfile(_filepath):
-                os.remove(_filepath)
-
-            cert_file.file_save(
-                current_app.config.get("MESSENGERS_CERTIFI_SAVE_PATH"),
-                timestamp=False,
-            )
-        except RuntimeError as e:
-            return jsonify(
-                error_code=RET.RUNTIME_ERROR,
-                error_msg="fail to save the certifi file. File {} has been existed".format(cert_file.filename)
-            )
-        
-        _body.update({"cert_path": cert_file.filepath})
-        return _body
 
 
 class PmachineHandler:

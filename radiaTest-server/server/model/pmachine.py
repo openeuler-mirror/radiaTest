@@ -28,8 +28,6 @@ class MachineGroup(EmitDataModel, PermissionBaseModel, db.Model):
     websockify_ip = db.Column(db.String(15))
     websockify_listen = db.Column(db.Integer(), nullable=False)
 
-    cert_path = db.Column(db.String(256), nullable=False)
-
     messenger_alive = db.Column(db.Boolean(), nullable=False, default=False)
     pxe_alive = db.Column(db.Boolean(), nullable=False, default=False)
     dhcp_alive = db.Column(db.Boolean(), nullable=False, default=False)
@@ -42,14 +40,6 @@ class MachineGroup(EmitDataModel, PermissionBaseModel, db.Model):
     creator_id = db.Column(db.Integer(), db.ForeignKey("user.gitee_id"))
     group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
     org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
-
-    def delete(self, table=None, namespace=None, broadcast=False):
-        _cert_path = self.cert_path
-
-        super().delete(table, namespace, broadcast)
-        
-        if os.path.isfile(_cert_path):
-            os.remove(_cert_path)
 
     def _change_format(self, last_heartbeat):
         if isinstance(last_heartbeat, datetime):
@@ -67,7 +57,6 @@ class MachineGroup(EmitDataModel, PermissionBaseModel, db.Model):
             "messenger_listen": self.messenger_listen,
             "websockify_ip": self.websockify_ip,
             "websockify_listen": self.websockify_listen,
-            "cert_path": self.cert_path,
             "messenger_alive": self.messenger_alive,
             "pxe_alive": self.pxe_alive,
             "dhcp_alive": self.dhcp_alive,

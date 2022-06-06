@@ -94,7 +94,7 @@ def query_request(api, params, auth):
         },
         obj=_resp,
         verify=True if current_app.config.get("CA_VERIFY") == "True" \
-        else current_app.config.get("SERVER_CERT_PATH")
+        else current_app.config.get("CA_CERT")
     )
 
     item = None
@@ -118,7 +118,7 @@ def update_request(api, body, auth):
         },
         obj=_resp,
         verify=True if current_app.config.get("CA_VERIFY") == "True" \
-        else current_app.config.get("SERVER_CERT_PATH")
+        else current_app.config.get("CA_CERT")
     )
     if _r != 0 or _resp.get("error_code") != RET.OK:
         raise RuntimeError("fail to update this item")
@@ -140,7 +140,7 @@ def create_request(api, body, auth):
         },
         obj=_resp,
         verify=True if current_app.config.get("CA_VERIFY") == "True" \
-        else current_app.config.get("SERVER_CERT_PATH")
+        else current_app.config.get("CA_CERT")
     )
 
     item = None
