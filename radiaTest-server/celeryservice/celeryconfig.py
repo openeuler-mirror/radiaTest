@@ -15,7 +15,7 @@
 
 #####################################
 
-import configparser
+from configparser import NoOptionError, NoSectionError, ConfigParser
 from pathlib import Path
 
 from kombu import Exchange, Queue
@@ -25,11 +25,13 @@ ini_path = "/etc/radiaTest/server.ini"
 def loads_config_ini(section, option):
     config_ini = Path(ini_path)
 
-    cfg = configparser.ConfigParser()
+    cfg = ConfigParser()
     cfg.read(config_ini)
 
-    return cfg.get(section, option)
-
+    try:
+        return cfg.get(section, option)
+    except (NoSectionError, NoOptionError):
+        return None
 
 # Broker settings
 broker_url = loads_config_ini("celery", "BROKER_URL")

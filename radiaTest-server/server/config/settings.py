@@ -83,10 +83,6 @@ class Config(object):
     # messenger证书存储地址
     # 警告：若修改此项，需要更改容器持久化挂载卷配置，若缺失相应更改可能出现问题
     MESSENGERS_CERTIFI_SAVE_PATH = "/var/lib/messengers_certifi"
-
-    # server证书存储地址
-    # 警告：若修改此项，需要变更构建和部署文件
-    SERVER_CERT_PATH = "/etc/radiaTest/server_ssl/certs/server.crt"
     
     # openEuler-QA团队配置
     # openEuler-QA团队名
