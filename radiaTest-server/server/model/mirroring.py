@@ -1,12 +1,13 @@
 from sqlalchemy.dialects.mysql import TINYTEXT, LONGTEXT
 
 from server import db
-from server.model import BaseModel
+from server.model.base import EmitDataModel
 
 
-class IMirroring(BaseModel, db.Model):
+class IMirroring(EmitDataModel, db.Model):
     __tablename__ = "i_mirroring"
 
+    id = db.Column(db.Integer(), primary_key=True)
     frame = db.Column(db.String(9), nullable=False)
     url = db.Column(db.String(256), unique=True, nullable=False)
     location = db.Column(TINYTEXT())
@@ -28,9 +29,10 @@ class IMirroring(BaseModel, db.Model):
         }
 
 
-class QMirroring(BaseModel, db.Model):
+class QMirroring(EmitDataModel, db.Model):
     __tablename__ = "q_mirroring"
 
+    id = db.Column(db.Integer(), primary_key=True)
     user = db.Column(db.String(32), default="root")
     port = db.Column(db.Integer(), default=22)
     password = db.Column(db.String(256), nullable=False)
@@ -53,9 +55,10 @@ class QMirroring(BaseModel, db.Model):
         }
 
 
-class Repo(BaseModel, db.Model):
+class Repo(EmitDataModel, db.Model):
     __tablename__ = "repo"
 
+    id = db.Column(db.Integer(), primary_key=True)
     content = db.Column(LONGTEXT(), nullable=False)
     frame = db.Column(db.String(9), nullable=False)
 

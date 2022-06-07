@@ -1,10 +1,11 @@
-from email.policy import default
 from server import db
 from server.model import BaseModel
 
 
 class CeleryTask(db.Model, BaseModel):
     __tablename__ = "celerytask"
+
+    id = db.Column(db.Integer(), primary_key=True)
     tid = db.Column(db.String(128), nullable=False)
     status = db.Column(db.String(128), nullable=False, default="PENDING")
     start_time = db.Column(db.DateTime(), nullable=True)

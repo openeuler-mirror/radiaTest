@@ -1,4 +1,4 @@
-from server.model.base import Base, PermissionBaseModel
+from server.model import BaseModel, PermissionBaseModel
 from server.model.permission import Role, ReUserRole
 from server import db
 from enum import Enum
@@ -9,7 +9,7 @@ class OrganizationRole(Enum):
     user = 0
 
 
-class Organization(db.Model, PermissionBaseModel):
+class Organization(db.Model, PermissionBaseModel, BaseModel):
     __tablename__ = "organization"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(50), nullable=False)
@@ -65,7 +65,7 @@ class Organization(db.Model, PermissionBaseModel):
         return new_recode
 
 
-class ReUserOrganization(db.Model, Base):
+class ReUserOrganization(db.Model, BaseModel):
     __tablename__ = "re_user_organization"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     is_delete = db.Column(db.Boolean, default=False, nullable=False)

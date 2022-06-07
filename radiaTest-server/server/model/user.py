@@ -1,10 +1,10 @@
-from server.model.base import Base
+from server.model.base import BaseModel
 from server.model.permission import Role
 from server import db, redis_client
 from server.utils.redis_util import RedisKey
 
 
-class User(db.Model, Base):
+class User(db.Model, BaseModel):
     __tablename__ = "user"
     gitee_id = db.Column(db.Integer(), primary_key=True)
     gitee_login = db.Column(db.String(50), nullable=False)

@@ -1,5 +1,5 @@
 from server import db, casbin_enforcer
-from server.model.base import BaseModel, CasbinRoleModel
+from server.model.base import CasbinRoleModel, BaseModel
 
 
 role_family = db.Table(
@@ -82,6 +82,7 @@ class Role(db.Model, CasbinRoleModel):
 class Scope(db.Model, BaseModel):
     __tablename__ = "scope"
 
+    id = db.Column(db.Integer(), primary_key=True)
     alias = db.Column(db.String(64), nullable=False, unique=True)
     uri = db.Column(db.String(256), nullable=False)
     act = db.Column(db.String(16), nullable=False)
@@ -102,6 +103,7 @@ class Scope(db.Model, BaseModel):
 class ReScopeRole(db.Model, CasbinRoleModel):
     __tablename__ = "re_scope_role"
 
+    id = db.Column(db.Integer(), primary_key=True)
     scope_id = db.Column(db.Integer(), db.ForeignKey("scope.id"))
     role_id = db.Column(db.Integer(), db.ForeignKey("role.id"))
 
@@ -141,6 +143,7 @@ class ReScopeRole(db.Model, CasbinRoleModel):
 class ReUserRole(db.Model, CasbinRoleModel):
     __tablename__ = "re_user_role"
 
+    id = db.Column(db.Integer(), primary_key=True)
     user_id = db.Column(db.Integer(), db.ForeignKey("user.gitee_id"))
     role_id = db.Column(db.Integer(), db.ForeignKey("role.id"))
 

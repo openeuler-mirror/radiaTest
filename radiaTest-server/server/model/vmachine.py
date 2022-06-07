@@ -1,10 +1,12 @@
 from server import db
 from server.model import BaseModel, PermissionBaseModel
+from server.model.base import EmitDataModel
 
 
 class Vmachine(BaseModel, PermissionBaseModel, db.Model):
     __tablename__ = "vmachine"
 
+    id = db.Column(db.Integer(), primary_key=True)
     name = db.Column(db.String(255), unique=True, nullable=False)
     frame = db.Column(db.String(10), nullable=False)
     mac = db.Column(db.String(48), unique=True)
@@ -80,7 +82,7 @@ class Vmachine(BaseModel, PermissionBaseModel, db.Model):
         }
 
 
-class Vnic(BaseModel, db.Model):
+class Vnic(EmitDataModel, db.Model):
     __tablename__ = "vnic"
 
     id = db.Column(db.Integer(), primary_key=True)
@@ -102,7 +104,7 @@ class Vnic(BaseModel, db.Model):
         }
 
 
-class Vdisk(BaseModel, db.Model):
+class Vdisk(EmitDataModel, db.Model):
     __tablename__ = "vdisk"
 
     id = db.Column(db.Integer(), primary_key=True)

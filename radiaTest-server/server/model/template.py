@@ -1,11 +1,10 @@
 from server import db
-from server.model import BaseModel, PermissionBaseModel
+from server.model.base import BaseModel, PermissionBaseModel
 from server.model.milestone import Milestone
 from server.model.user import User
 from server.model.group import Group
 from server.model.organization import Organization
 from sqlalchemy.dialects.mysql import LONGTEXT
-from server.model.testcase import Case
 
 
 template_case = db.Table(

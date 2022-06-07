@@ -4,6 +4,8 @@ from server.model import BaseModel, PermissionBaseModel
 
 class Framework(db.Model, PermissionBaseModel, BaseModel):
     __tablename__ = "framework"
+
+    id = db.Column(db.Integer(), primary_key=True)
     name = db.Column(db.String(64), unique=True, nullable=False)
     url = db.Column(db.String(256), unique=True, nullable=False)
     logs_path = db.Column(db.String(256))
@@ -31,6 +33,8 @@ class Framework(db.Model, PermissionBaseModel, BaseModel):
 
 class GitRepo(db.Model, PermissionBaseModel, BaseModel):
     __tablename__ = "git_repo"
+
+    id = db.Column(db.Integer(), primary_key=True)
     name = db.Column(db.String(64), nullable=False)
     git_url = db.Column(db.String(256), unique=True, nullable=False)
     sync_rule = db.Column(db.Boolean(), nullable=False, default=True)

@@ -1,7 +1,7 @@
 import pandas as pd
 
 from server import db
-from server.model.base import Base, PermissionBaseModel
+from server.model.base import BaseModel, PermissionBaseModel
 from .group import Group
 from .job import Analyzed
 from .testcase import Suite
@@ -24,7 +24,7 @@ task_case = db.Table('task_case',
                      )
 
 
-class TaskManualCase(db.Model, Base):
+class TaskManualCase(db.Model, BaseModel):
     __tablename__ = 'task_manual_case'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     task_milestone_id = db.Column(db.Integer, db.ForeignKey('task_milestone.id'), nullable=False)
@@ -40,7 +40,7 @@ class TaskManualCase(db.Model, Base):
         }
 
 
-class TaskMilestone(db.Model, Base):
+class TaskMilestone(db.Model, BaseModel):
     __tablename__ = "task_milestone"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     task_id = db.Column(db.Integer, db.ForeignKey('task.id'), nullable=False)
@@ -114,7 +114,7 @@ class TaskMilestone(db.Model, Base):
         }
 
 
-class TaskParticipant(Base, db.Model):
+class TaskParticipant(BaseModel, db.Model):
     """任务参与者表"""
     __tablename__ = "task_participant"
 
@@ -129,7 +129,7 @@ class TaskParticipant(Base, db.Model):
         default="PERSON")
 
 
-class Task(db.Model, PermissionBaseModel):
+class Task(db.Model, PermissionBaseModel, BaseModel):
     """任务表"""
     __tablename__ = "task"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -177,7 +177,7 @@ class Task(db.Model, PermissionBaseModel):
             return False
 
 
-class TaskComment(PermissionBaseModel, db.Model):
+class TaskComment(BaseModel, PermissionBaseModel, db.Model):
     """评论"""
 
     __tablename__ = "task_comment"
@@ -191,7 +191,7 @@ class TaskComment(PermissionBaseModel, db.Model):
     task_id = db.Column(db.Integer, db.ForeignKey("task.id"), nullable=False)  # 归属任务id
 
 
-class TaskStatus(PermissionBaseModel, db.Model):
+class TaskStatus(BaseModel, PermissionBaseModel, db.Model):
     __tablename__ = "task_status"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(32), nullable=False, unique=True)
@@ -210,7 +210,7 @@ class TaskStatus(PermissionBaseModel, db.Model):
         }
 
 
-class TaskTag(Base, db.Model):
+class TaskTag(BaseModel, db.Model):
     __tablename__ = "task_tag"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(32), nullable=False, unique=True)
@@ -229,7 +229,7 @@ class TaskTag(Base, db.Model):
 #     contents = db.relationship('TaskReportContent', backref='report_model')
 
 
-class TaskReportContent(Base, db.Model):
+class TaskReportContent(BaseModel, db.Model):
     __tablename__ = "task_report_content"
     task_id = db.Column(db.Integer, db.ForeignKey("task.id"), primary_key=True)
     # model_id = db.Column(db.Integer, db.ForeignKey("task_report_model.id"), primary_key=True)
@@ -240,7 +240,7 @@ class TaskReportContent(Base, db.Model):
     org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
 
 
-class TaskDistributeTemplate(PermissionBaseModel, db.Model):
+class TaskDistributeTemplate(BaseModel, PermissionBaseModel, db.Model):
     __tablename__ = 'task_distribute_template'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(32), nullable=False, unique=True)
@@ -261,7 +261,7 @@ class TaskDistributeTemplate(PermissionBaseModel, db.Model):
         }
 
 
-class DistributeTemplateType(PermissionBaseModel, db.Model):
+class DistributeTemplateType(BaseModel, PermissionBaseModel, db.Model):
     __tablename__ = 'distribute_template_type'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(32), nullable=False)

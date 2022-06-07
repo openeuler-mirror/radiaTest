@@ -1,9 +1,9 @@
 from werkzeug.security import generate_password_hash, check_password_hash
-from server.model.base import Base
+from server.model import BaseModel
 from server import db, casbin_enforcer
 
 
-class Admin(db.Model, Base):
+class Admin(db.Model, BaseModel):
     __tablename__ = 'administrator'
     id = db.Column(db.Integer(), primary_key=True, autoincrement=True)
     account = db.Column(db.String(30), unique=True, nullable=False)

@@ -8,11 +8,11 @@ from enum import unique
 from sqlalchemy.dialects.mysql import LONGTEXT
 
 from server import db
-from server.model.base import ServiceBaseModel, PermissionBaseModel
+from server.model.base import BaseModel, ServiceModel, PermissionBaseModel
 
 
 
-class MachineGroup(PermissionBaseModel, db.Model):
+class MachineGroup(BaseModel, PermissionBaseModel, db.Model):
     __tablename__ = "machine_group"
 
     id = db.Column(db.Integer(), primary_key=True)
@@ -75,9 +75,10 @@ class MachineGroup(PermissionBaseModel, db.Model):
         }
 
 
-class Pmachine(ServiceBaseModel, PermissionBaseModel, db.Model):
+class Pmachine(ServiceModel, PermissionBaseModel, db.Model):
     __tablename__ = "pmachine"
 
+    id = db.Column(db.Integer(), primary_key=True)
     frame = db.Column(db.String(9), nullable=False)
     mac = db.Column(db.String(17), index=True, unique=True, nullable=False)
     bmc_ip = db.Column(db.String(15), index=True, unique=True, nullable=False)

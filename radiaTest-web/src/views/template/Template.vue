@@ -198,9 +198,9 @@ export default defineComponent({
     onMounted(() => {
       template.getData();
 
-      templateSocket.listen('update', (res) =>
-        template.devideData(JSON.parse(res))
-      );
+      templateSocket.listen('update', () => {
+        template.getData();
+      });
     });
 
     onUnmounted(() => {
