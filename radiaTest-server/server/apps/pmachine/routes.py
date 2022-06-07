@@ -83,10 +83,8 @@ class MachineGroupItemEvent(Resource):
         if isinstance(body, Response):
             return body
 
-        return ResourcePoolHandler.update_group(
-            machine_group_id,
-            body
-        )
+        body.update({"id": machine_group_id})
+        return Edit(MachineGroup, body).single(MachineGroup, "/machine_group")
 
     @auth.login_required
     @response_collect
