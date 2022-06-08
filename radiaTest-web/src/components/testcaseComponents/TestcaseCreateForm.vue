@@ -1,5 +1,5 @@
 <template>
-  <div v-show="tab === 'info'">
+  <div v-show="tab === 'basic'">
     <n-form
       :label-width="40"
       :model="infoFormValue"
@@ -158,7 +158,7 @@
       </n-grid>
     </n-form>
   </div>
-  <div v-show="tab === 'content'">
+  <div v-show="tab === 'detail'">
     <n-form
       :label-width="40"
       :model="contentFormValue"

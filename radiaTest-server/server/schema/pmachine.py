@@ -115,11 +115,21 @@ class HeartbeatUpdateSchema(BaseModel):
     pxe_alive: bool
     dhcp_alive: bool
 
-    @validator("messenger_ip")
-    def check_messenger_ip_format(cls, v):
-        if not ip_type(v):
-            raise ValueError("this messenger_ip of machine group format error")
-        return v
+    @root_validator
+    def heartbeat_validation(cls, values):
+        if not ip_type(values.get("messenger_ip")):
+            raise ValueError("the IP is in wrong format")
+        
+        current_datetime = datetime.datetime.now()
+
+        if values.get("messenger_alive"):
+            values["messenger_last_heartbeat"] = current_datetime
+        if values.get("pxe_alive"):
+            values["pxe_last_heartbeat"] = current_datetime
+        if values.get("dhcp_alive"):
+            values["dhcp_last_heartbeat"] = current_datetime
+        
+        return values
 
 
 class PmachineQuerySchema(PageBaseSchema):

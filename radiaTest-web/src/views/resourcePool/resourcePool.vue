@@ -238,9 +238,9 @@ export default {
           it.children[1].color = 'rgba(0,0,0,0)';
           it.children[2].color = 'rgba(0,0,0,0)';
           setTimeout(() => {
-            it.children[0].color = it.children[0].suffix === '刚刚' ? 'green' : 'red';
-            it.children[1].color = it.children[1].suffix === '刚刚' ? 'green' : 'red';
-            it.children[2].color = it.children[2].suffix === '刚刚' ? 'green' : 'red';
+            it.children[0].color = item.messenger_alive ? 'green' : 'red';
+            it.children[1].color = item.pxe_alive ? 'green' : 'red';
+            it.children[2].color = item.dhcp_alive ? 'green' : 'red';
           }, 50);
         });
       }

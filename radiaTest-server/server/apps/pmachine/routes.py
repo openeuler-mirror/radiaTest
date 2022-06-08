@@ -111,22 +111,13 @@ class MachineGroupHeartbeatEvent(Resource):
                 error_code=RET.NO_DATA_ERR,
                 error_msg="the machine group does not exist"
             )
-
-        current_datetime = datetime.datetime.now()
-
-        if body.messenger_alive:
-            machine_group.messenger_last_heartbeat = current_datetime
-        if body.pxe_alive:
-            machine_group.pxe_last_heartbeat = current_datetime
-        if body.dhcp_alive:
-            machine_group.dhcp_last_heartbeat = current_datetime
         
-        machine_group.add_update(MachineGroup, "/machine_group", True)
+        _body = {
+            "id": machine_group.id,
+            **body.__dict__,
+        }
 
-        return jsonify(
-            error_code=RET.OK,
-            error_msg="OK",
-        )
+        return Edit(MachineGroup, _body).single(MachineGroup, "/machine_group")
 
 
 class PmachineItemEvent(Resource):

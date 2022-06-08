@@ -30,6 +30,9 @@ class MachineGroup(EmitDataModel, PermissionBaseModel, db.Model):
 
     cert_path = db.Column(db.String(256), nullable=False)
 
+    messenger_alive = db.Column(db.Boolean(), nullable=False, default=False)
+    pxe_alive = db.Column(db.Boolean(), nullable=False, default=False)
+    dhcp_alive = db.Column(db.Boolean(), nullable=False, default=False)
     messenger_last_heartbeat = db.Column(db.DateTime())
     pxe_last_heartbeat = db.Column(db.DateTime())
     dhcp_last_heartbeat = db.Column(db.DateTime())
@@ -43,7 +46,7 @@ class MachineGroup(EmitDataModel, PermissionBaseModel, db.Model):
     def delete(self, table=None, namespace=None, broadcast=False):
         _cert_path = self.cert_path
 
-        super().delete(table=None, namespace=None, broadcast=False)
+        super().delete(table, namespace, broadcast)
         
         if os.path.isfile(_cert_path):
             os.remove(_cert_path)
@@ -65,6 +68,9 @@ class MachineGroup(EmitDataModel, PermissionBaseModel, db.Model):
             "websockify_ip": self.websockify_ip,
             "websockify_listen": self.websockify_listen,
             "cert_path": self.cert_path,
+            "messenger_alive": self.messenger_alive,
+            "pxe_alive": self.pxe_alive,
+            "dhcp_alive": self.dhcp_alive,
             "messenger_last_heartbeat": self._change_format(self.messenger_last_heartbeat),
             "pxe_last_heartbeat": self._change_format(self.pxe_last_heartbeat),
             "dhcp_last_heartbeat": self._change_format(self.dhcp_last_heartbeat),
