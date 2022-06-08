@@ -37,7 +37,9 @@ class VmachineBaseSchema(AuthTaskHandler):
                 "authorization": self.auth,
                 **celeryconfig.headers
             },
-            verify=celeryconfig.ca_verify == "True"
+            verify=True if celeryconfig.ca_verify == "True" else \
+            celeryconfig.server_cert_path
+
         )
 
     def update_vmachine(self, body):
@@ -51,7 +53,8 @@ class VmachineBaseSchema(AuthTaskHandler):
                 "authorization": self.auth,
                 **celeryconfig.headers,
             },
-            verify=False,
+            verify=True if celeryconfig.ca_verify == "True" else \
+            celeryconfig.server_cert_path,
         )
 
 

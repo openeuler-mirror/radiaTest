@@ -368,7 +368,7 @@ class CreateVmachine(AuthMessageBody):
 class Control(AuthMessageBody):
     def __init__(self, auth, body) -> None:
         self._vmachine = body.get("vmachine")
-        self._pmachine = self._vmachine.get("pmachine")
+        self._pmachine = body.get("pmachine")
         body.update({"name": self._vmachine.get("name")})
         super().__init__(auth, body)
 
@@ -444,7 +444,8 @@ class DeleteVmachine(AuthMessageBody):
                 "content-type": "application/json;charset=utf-8",
                 "authorization": self.auth
             },
-            verify=current_app.config.get("CA_VERIFY") == "True"
+            verify=True if current_app.config.get("CA_VERIFY") == "True" \
+            else current_app.config.get("SERVER_CERT_PATH")
         )
 
         if _r != 0:
@@ -525,7 +526,8 @@ class DeviceManager(SyncMessenger):
                 "content-type": "application/json;charset=utf-8",
                 "authorization": self.auth
             },
-            verify=current_app.config.get("CA_VERIFY") == "True"
+            verify=True if current_app.config.get("CA_VERIFY") == "True" \
+            else current_app.config.get("SERVER_CERT_PATH")
         )
 
         if _r != 0:
@@ -625,7 +627,8 @@ class VmachineAsyncResultHandler:
                         "content-type": "application/json;charset=utf-8",
                         "authorization": auth
                     },
-                    verify=current_app.config.get("CA_VERIFY") == "True"
+                    verify=True if current_app.config.get("CA_VERIFY") == "True" \
+                    else current_app.config.get("SERVER_CERT_PATH")
                 )
 
                 if _r != 0:

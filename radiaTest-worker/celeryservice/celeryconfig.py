@@ -82,3 +82,9 @@ cdromstatus_state = ("CREATING", "CDROMMING", "INSTALLING", "SUCCESS")
 wait_vm_shutdown = 20
 wait_vm_install = 6000
 
+# SSL file path(Warning: if you modify this item,
+# you need to change the corresponding build and deployment files)
+server_cert_path = loads_config_ini("server", "SERVER_CERT_PATH")
+messenger_cert_path = loads_config_ini("messenger", "MESSENGER_CERT_PATH")
+
+

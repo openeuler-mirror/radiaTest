@@ -214,7 +214,8 @@ class TestcaseHandler(TaskAuthHandler):
                 "user_id": self.user.get("user_id"),
             }
 
-            _verify = True if current_app.get("CA_VERIFY") == "True" else False
+            _verify = True if current_app.config.get("CA_VERIFY") == "True" \
+            else current_app.config.get("SERVER_CERT_PATH")
 
             _resp = requests.post(
                 url="https:{}/api/v1/testcase/resolve_by_filepath".format(

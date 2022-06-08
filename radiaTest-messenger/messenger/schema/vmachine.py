@@ -106,9 +106,8 @@ class VmachineUpdateSchema(AuthBaseModel):
     pmachine: dict
 
 
-class PowerSchema(AuthBaseModel):
+class PowerSchema(VmachineItemSchema):
     status: VMStatus
-    pmachine: dict
 
 
 class VnicBaseSchema(VmachineItemSchema):

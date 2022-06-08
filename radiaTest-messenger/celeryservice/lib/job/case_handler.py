@@ -518,7 +518,8 @@ class RunCaseHandler(TaskAuthHandler):
                         "authorization": self.user.get("auth"),
                         "content-type": "application/json;charset=utf-8",
                     },
-                    verify=celeryconfig.ca_verify == "True"
+                    verify=True if celeryconfig.ca_verify == "True" \
+                        else celeryconfig.server_cert_path
                 )
                 if r != 0:
                     self.logger.warning(

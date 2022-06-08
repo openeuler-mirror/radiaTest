@@ -157,7 +157,9 @@ class VmachineControl(Resource):
         _body = body.__dict__
         _body.update(
             {
-                "pmachine": pmachine.to_json()
+                "pmachine": pmachine.to_json(),
+                "vmachine": vmachine.to_json(),
+
             }
         )
 

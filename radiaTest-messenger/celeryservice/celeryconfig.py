@@ -117,3 +117,4 @@ dhcp_ip = loads_config_ini("dhcp", "DHCP_IP")
 # SSL file path(Warning: if you modify this item,
 # you need to change the corresponding build and deployment files)
 messenger_cert_path = loads_config_ini("messenger", "MESSENGER_CERT_PATH")
+server_cert_path = loads_config_ini("server", "SERVER_CERT_PATH")

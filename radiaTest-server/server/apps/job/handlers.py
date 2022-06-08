@@ -52,7 +52,8 @@ class JobMessenger:
                 "authorization": request.headers.get("authorization")
             },
             obj=_resp,
-            verify=machine_group.cert_path, 
+            verify=True if current_app.config.get("CA_VERIFY") == "True" \
+            else machine_group.cert_path, 
         )
 
         if _r !=0:
