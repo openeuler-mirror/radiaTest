@@ -17,6 +17,8 @@
 
 pushd /etc/radiaTest_ssl
 
+mkdir conf certs newcerts crl csr private  
+
 if [[ ! -f "conf/ca.cnf" ]];then
     cat /opt/radiaTest/build/k8s-pod/web/gunicorn/ca_openssl.cnf > conf/ca.cnf
 fi
