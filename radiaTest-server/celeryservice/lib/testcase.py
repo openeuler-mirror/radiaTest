@@ -219,7 +219,7 @@ class TestcaseHandler(TaskAuthHandler):
             else current_app.config.get("CA_CERT")
 
             _resp = requests.post(
-                url="https:{}/api/v1/testcase/resolve_by_filepath".format(
+                url="https:{}/api/v1/testcase/resolve-by-filepath".format(
                     current_app.config.get("SERVER_ADDR"),
                 ),
                 data=json.dumps(body),

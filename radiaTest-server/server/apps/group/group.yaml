@@ -11,14 +11,14 @@
   uri: /api/v1/groups/{group_id}/users
   act: put
 - alias: 用户-团队角色绑定
-  uri: /api/v1/user_role/group/{group_id}
+  uri: /api/v1/user-role/group/{group_id}
   act: post
 - alias: 用户-团队角色解绑
-  uri: /api/v1/user_role/group/{group_id}
+  uri: /api/v1/user-role/group/{group_id}
   act: delete
 - alias: scope-团队角色绑定
-  uri: /api/v1/scope_role/group/{group_id}
+  uri: /api/v1/scope-role/group/{group_id}
   act: post
 - alias: scope-团队角色解绑
-  uri: /api/v1/scope_role/group/{group_id}
+  uri: /api/v1/scope-role/group/{group_id}
   act: delete

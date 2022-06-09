@@ -87,7 +87,7 @@ function typeNameTrans (type) {
 // 查询回收站任务
 function query (page) {
   axios
-    .get('/v1/tasks/recycle_bin', { page_num: page })
+    .get('/v1/tasks/recycle-bin', { page_num: page })
     .then((res) => {
       recycleBinTaskLoading.value = false;
       if (res.data.items) {

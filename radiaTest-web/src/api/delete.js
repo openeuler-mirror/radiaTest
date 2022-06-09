@@ -15,7 +15,7 @@ function deleteRequest(url, data) {
   });
 }
 export function deleteRepo(id) {
-  return deleteRequest(`/v1/git_repo/${id}`);
+  return deleteRequest(`/v1/git-repo/${id}`);
 }
 export function deleteVm(id){
   return deleteRequest(`/v1/vmachine/${id}/force`);
@@ -27,11 +27,11 @@ export function deleteComment (id) {
   return deleteRequest(`/v1/commit/comment/${id}`);
 }
 export function deleteMachineGroup(id){
-  return deleteRequest(`/v1/machine_group/${id}`);
+  return deleteRequest(`/v1/machine-group/${id}`);
 }
 export function deleteGroupUserRole (id,data) {
-  return deleteRequest(`/v1/user_role/group/${id}`,data);
+  return deleteRequest(`/v1/user-role/group/${id}`,data);
 }
 export function deleteOrgUserRole (id, data) {
-  return deleteRequest(`/v1/user_role/org/${id}`, data);
+  return deleteRequest(`/v1/user-role/org/${id}`, data);
 }

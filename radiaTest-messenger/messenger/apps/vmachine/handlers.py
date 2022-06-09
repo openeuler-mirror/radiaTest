@@ -32,7 +32,7 @@ class ChoosePmachine(AuthMessageBody):
         super().__init__(auth, body)
 
         self._pmachines = query_request(
-            "/api/v1/accessable_machines",
+            "/api/v1/accessable-machines",
             {
                 "machine_group_id": body.get("machine_group_id"),
                 "machine_purpose": "create_vmachine",

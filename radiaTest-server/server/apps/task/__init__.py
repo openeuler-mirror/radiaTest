@@ -30,9 +30,9 @@ def init_api(api: Api):
     api.add_resource(TaskDistributeTemplate, '/api/v1/tasks/distribute_templates',
                      '/api/v1/tasks/distribute_templates/<int:template_id>', endpoint='distribute_templates')
     api.add_resource(DistributeType,
-                     '/api/v1/tasks/distribute_templates/<int:template_id>/types',
-                     '/api/v1/tasks/distribute_templates/suites',
-                     '/api/v1/tasks/distribute_templates/types/<int:type_id>', endpoint='distribute_template_type')
+                     '/api/v1/tasks/distribute-templates/<int:template_id>/types',
+                     '/api/v1/tasks/distribute-templates/suites',
+                     '/api/v1/tasks/distribute-templates/types/<int:type_id>', endpoint='distribute_template_type')
     api.add_resource(DistributeCaseByTemplate,
                      '/api/v1/tasks/<int:task_id>/distribute_templates/<int:template_id>',
                      endpoint='distribute_case_by_template')

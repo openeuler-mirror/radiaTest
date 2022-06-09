@@ -15,7 +15,7 @@ function putRequest (url, data) {
   });
 }
 export function modifyRepo (id, data) {
-  return putRequest(`/v1/git_repo/${id}`, data);
+  return putRequest(`/v1/git-repo/${id}`, data);
 }
 export function modifyDelayTime (id, data) {
   return putRequest(`/v1/vmachine/${id}/delay`, data);
@@ -30,10 +30,10 @@ export function modifyCommitInfo (id,data) {
   return putRequest(`/v1/case/commit/${id}`, data);
 }
 export function modifyMachineGroup(id,data){
-  return putRequest(`/v1/machine_group/${id}`,data);
+  return putRequest(`/v1/machine-group/${id}`,data);
 }
 export function modifyGroupUserRole (id, data) {
-  return putRequest(`/v1/user_role/group/${id}`, data);
+  return putRequest(`/v1/user-role/group/${id}`, data);
 }
 export function organizationInfo (id, data) {
   return putRequest(`/v1/admin/org/${id}`, data);

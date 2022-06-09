@@ -9,12 +9,12 @@ pmachine:
     act: put
     alias: 修改Pmachine
 machine_group:
-  - uri: /api/v1/machine_group/%d
+  - uri: /api/v1/machine-group/%d
     act: delete
     alias: 删除Machine_Group
-  - uri: /api/v1/machine_group/%d
+  - uri: /api/v1/machine-group/%d
     act: get
     alias: 获取Machine_Group
-  - uri: /api/v1/machine_group/%d
+  - uri: /api/v1/machine-group/%d
     act: put
     alias: 修改Machine_Group

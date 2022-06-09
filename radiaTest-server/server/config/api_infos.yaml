@@ -34,18 +34,18 @@
   act: put
   alias: 修改Pmachine
   table: pmachine
-- uri: /api/v1/machine_group/%d
+- uri: /api/v1/machine-group/%d
   act: delete
   alias: 删除Machine_Group
   table: machine_group
-- uri: /api/v1/machine_group/%d
+- uri: /api/v1/machine-group/%d
   act: get
   alias: 获取Machine_Group
   table: machine_group
-- uri: /api/v1/machine_group/%d
+- uri: /api/v1/machine-group/%d
   act: put
   alias: 修改Machine_Group
-  table: machine_group
+  table: machine-group
 - uri: /api/v1/vmachine/%d
   act: delete
   alias: 删除Vmachine

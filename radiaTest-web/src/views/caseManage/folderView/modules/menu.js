@@ -524,7 +524,7 @@ function uploadSet(node) {
   // formData.append('git_repo_id', info.value);
   changeLoadingStatus(true);
   axios
-    .post('/v1/baseline/case_set', formData)
+    .post('/v1/baseline/case-set', formData)
     .then(() => {
       window.$message?.success('用例集已上传,请到后台任务查看进展');
       getDirectory(node);
@@ -554,7 +554,7 @@ function renderUpload() {
   return h(
     NUpload,
     {
-      action: '/api/v1/baseline/case_set',
+      action: '/api/v1/baseline/case-set',
       accept: '.rar,.zip,.tar,.gz,.xz,.bz2',
       withCredentials: true,
       max: 1,

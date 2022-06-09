@@ -165,7 +165,7 @@ class PmachineEvent(Resource):
             )
 
         messenger = PmachineMessenger(body.__dict__)
-        resp = messenger.send_request(machine_group, "/api/v1/pmachine/checkpmachineinfo")
+        resp = messenger.send_request(machine_group, "/api/v1/pmachine/check-machine-info")
 
         try:
             result = json.loads(resp.text).get("data")

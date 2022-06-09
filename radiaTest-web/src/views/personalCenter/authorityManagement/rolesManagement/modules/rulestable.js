@@ -67,11 +67,11 @@ function setRuleData(data) {
 }
 const ruleModal = ref();
 function getOperateAction() {
-  let actionUrl = '/v1/scope_role';
+  let actionUrl = '/v1/scope-role';
   if (roleInfo.value.type === 'group') {
-    actionUrl = `/v1/scope_role/group/${roleInfo.value.group_id}`;
+    actionUrl = `/v1/scope-role/group/${roleInfo.value.group_id}`;
   } else if (roleInfo.value.type === 'org') {
-    actionUrl = `/v1/scope_role/org/${roleInfo.value.org_id}`;
+    actionUrl = `/v1/scope-role/org/${roleInfo.value.org_id}`;
   }
   return actionUrl;
 }

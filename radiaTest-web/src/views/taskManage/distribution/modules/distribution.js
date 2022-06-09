@@ -129,7 +129,7 @@ function getSuitesAxios() {
   suiteNamesOptions.value = [];
   suitesTemp = [];
   axios
-    .get('/v1/tasks/distribute_templates/suites', {
+    .get('/v1/tasks/distribute-templates/suites', {
       page_num: 1,
       page_size: 99999999,
     })
@@ -395,7 +395,7 @@ function handleTemplatePageChange(currentPage) {
 
 function deleteTemplateName(templateNameID) {
   axios
-    .delete(`/v1/tasks/distribute_templates/${templateNameID}`)
+    .delete(`/v1/tasks/distribute-templates/${templateNameID}`)
     .then(() => {
       getTemplateTableData();
     })
@@ -406,7 +406,7 @@ function deleteTemplateName(templateNameID) {
 
 function deleteTemplateType(templateTypeID) {
   axios
-    .delete(`/v1/tasks/distribute_templates/types/${templateTypeID}`)
+    .delete(`/v1/tasks/distribute-templates/types/${templateTypeID}`)
     .then(() => {
       getTemplateTableData();
     })
@@ -651,7 +651,7 @@ function createTemplate() {
       window.$message?.error('请填写相关信息');
     } else {
       axios
-        .post('/v1/tasks/distribute_templates', {
+        .post('/v1/tasks/distribute-templates', {
           name: drawerModel.value.templateName,
           group_id: drawerModel.value.groupName,
         })
@@ -675,7 +675,7 @@ function createTemplateType() {
     } else {
       axios
         .post(
-          `/v1/tasks/distribute_templates/${drawerModel.value.templateNameID}/types`,
+          `/v1/tasks/distribute-templates/${drawerModel.value.templateNameID}/types`,
           {
             name: drawerModel.value.templateType,
             executor_id: drawerModel.value.executor,
@@ -703,7 +703,7 @@ function editTemplateNameCb() {
     } else {
       axios
         .put(
-          `/v1/tasks/distribute_templates/${drawerModel.value.templateNameID}`,
+          `/v1/tasks/distribute-templates/${drawerModel.value.templateNameID}`,
           {
             name: drawerModel.value.templateName,
           }
@@ -728,7 +728,7 @@ function editTemplateTypeCb() {
     } else {
       axios
         .put(
-          `/v1/tasks/distribute_templates/types/${drawerModel.value.templateTypeID}`,
+          `/v1/tasks/distribute-templates/types/${drawerModel.value.templateTypeID}`,
           {
             name: drawerModel.value.templateType,
             executor_id: drawerModel.value.executor,
