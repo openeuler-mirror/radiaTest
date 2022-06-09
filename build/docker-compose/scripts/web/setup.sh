@@ -65,11 +65,11 @@ if [[ ! -f "./cacert.pem" ]];then
     gen_ca_cert
 fi
 
-if [[ ! -f "./server.key" ]];then
+if [[ ! -f "server.key" ]];then
     gen_client_key "server"
 fi
 
-if [[ ! -f "./messenger.csr" && ! -f "./certs/messenger.crt" ]];then
+if [[ ! -f "csr/server.csr" && ! -f "certs/server.crt" ]];then
     gen_client_csr "server"
 else
     echo "SSL Certfile already exist, please make sure they are validation. Otherwise, the service could not work normally."
