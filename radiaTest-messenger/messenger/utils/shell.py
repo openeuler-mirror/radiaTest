@@ -38,3 +38,8 @@ class ShellCmd:
             return False
 
         return True
+
+
+class ShellCmdApi(ShellCmd):
+    def exec(self):
+        return self._exec()
