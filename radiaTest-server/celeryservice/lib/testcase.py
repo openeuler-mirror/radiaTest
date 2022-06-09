@@ -9,7 +9,7 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from celeryservice.lib import TaskAuthHandler
 from server.utils.sheet import Excel, SheetExtractor
-from server.utils.response_util import RET
+from server.utils.response_util import RET, ssl_cert_verify_error_collect
 from server.utils.db import Insert, Edit
 from server.schema.testcase import BaselineBodyInternalSchema
 from server.model.testcase import Suite, Case, Baseline
@@ -190,6 +190,7 @@ class TestcaseHandler(TaskAuthHandler):
                     _case_id=case.id,
                 )
 
+    @ssl_cert_verify_error_collect
     def deep_create(self, _filepath, _parent_id):
         _title = ""
         if not _parent_id:
@@ -228,6 +229,11 @@ class TestcaseHandler(TaskAuthHandler):
                 },
                 verify=_verify,
             )
+            if isinstance(_resp, dict):
+                self.logger.error(
+                    f"messenger: {_resp}"
+                )
+                return
 
             if _resp.status_code == 200:
                 resp_dict = json.loads(_resp.text)

@@ -20,7 +20,7 @@ import json
 from uuid import uuid1
 from flask import g, current_app, url_for, jsonify
 from typing import List
-
+from server.utils.response_util import RET, ssl_cert_verify_error_collect
 from server import redis_client, db
 from server.model.template import Template
 from server.model.task import Task, TaskStatus, TaskManualCase, TaskMilestone
@@ -123,6 +123,7 @@ class UpdateTaskStatusService(object):
                  list(new_cases - old_cases)]
             db.session.commit()
 
+    @ssl_cert_verify_error_collect
     def execute(self):
         result = None
         for task in [self.task]:
@@ -237,8 +238,10 @@ def get_family_member(member_id: set, return_set: set, is_parent=True) -> set:
         return return_set
     tasks = Task.query.filter(Task.id.in_(member_id), Task.is_delete.is_(False)).all()
     for task in tasks:
-        members = task.parents.filter(Task.is_delete == False).all() if not is_parent else \
-            task.children.filter(Task.is_delete == False).all()
+        if not is_parent:
+            members = task.parents.filter(Task.is_delete is False).all()
+        else:
+            members = task.children.filter(Task.is_delete is False).all()
         member_id = [item.id for item in members]
         member_id = set(member_id)
         return get_family_member(member_id, return_set, is_parent)

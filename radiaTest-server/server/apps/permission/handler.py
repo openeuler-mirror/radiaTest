@@ -10,7 +10,7 @@ from server.model.pmachine import Pmachine
 from server.model.vmachine import Vmachine
 from server.model.permission import ReScopeRole, ReUserRole, Role, Scope
 from server.utils.permission_utils import PermissionItemsPool
-from server.utils.response_util import RET
+from server.utils.response_util import RET, ssl_cert_verify_error_collect
 from server.utils.db import Insert, Delete, collect_sql_error
 from server.utils.read_from_yaml import get_default_suffix
 
@@ -393,6 +393,7 @@ class ScopeRoleLimitedHandler(RoleLimitedHandler):
 class AccessableMachinesHandler:
     @staticmethod
     @collect_sql_error
+    @ssl_cert_verify_error_collect
     def get_all(query):
         namespace, origin_pool = None, []
 

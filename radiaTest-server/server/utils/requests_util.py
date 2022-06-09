@@ -60,9 +60,8 @@ def do_request(method, url, params=None, body=None, headers=None, timeout=30, ob
     except requests.exceptions.Timeout as e:
         current_app.logger.error(f"request time out: {e}")
         return 2
-    except requests.exceptions.SSLError as e:
-        current_app.logger.error(f"request ssl error: {e}")
-        return -2
     except requests.exceptions.RequestException as e:
         current_app.logger.error(f"request exception: {e}")
+        if isinstance(e, requests.exceptions.SSLError):
+            raise e
         return 3

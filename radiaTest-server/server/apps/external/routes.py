@@ -27,14 +27,15 @@ from server.schema.external import LoginOrgListSchema, OpenEulerUpdateTaskBase, 
 from server.model.group import Group
 from server.model.mirroring import Repo
 from server.model.vmachine import Vmachine
-from server.utils.db import Insert, Edit
-from .handler import UpdateRepo, UpdateTaskHandler, UpdateTaskForm
 from server.model.organization import Organization
-from server.utils.response_util import RET
+from server.utils.db import Insert, Edit
+from server.utils.response_util import RET, ssl_cert_verify_error_collect
+from .handler import UpdateRepo, UpdateTaskHandler, UpdateTaskForm
 
 
 class UpdateTaskEvent(Resource):
     @validate()
+    @ssl_cert_verify_error_collect
     def post(self, body: OpenEulerUpdateTaskBase):
         form = UpdateTaskForm(body)
 
@@ -102,7 +103,7 @@ class UpdateTaskEvent(Resource):
             _verify = True if current_app.config.get("CA_VERIFY") == "True" \
             else current_app.config.get("SERVER_CERT_PATH")
 
-            requests.post(
+            resp = requests.post(
                 url="https://{}/api/v1/tasks/execute".format(
                     current_app.config.get("SERVER_ADDR")
                 ),
@@ -116,7 +117,9 @@ class UpdateTaskEvent(Resource):
                 headers=current_app.config.get("HEADERS"),
                 verify=_verify,
             )
-            
+            if isinstance(resp, dict):
+                return resp
+
         # return response
         return {"error_code": RET.OK, "error_msg": "OK"}
 

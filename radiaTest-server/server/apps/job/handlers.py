@@ -3,7 +3,7 @@ from flask import current_app, request, jsonify, g
 
 from server.model.pmachine import Pmachine
 from server.model.vmachine import Vmachine
-from server.utils.response_util import RET
+from server.utils.response_util import RET, ssl_cert_verify_error_collect
 from server.utils.requests_util import do_request
 
 
@@ -13,7 +13,7 @@ class JobMessenger:
         self._body.update({
             "user_id": int(g.gitee_id),
         })
-        
+
         self._body["pmachine_list"] = self.get_machine_list(
             self._body["pmachine_list"],
             Pmachine,
@@ -23,6 +23,7 @@ class JobMessenger:
             Vmachine,
         )
 
+    @staticmethod
     def get_machine_list(self, machine_id_list, table):
         machine_list = []
         for machine_id in machine_id_list:
@@ -37,8 +38,13 @@ class JobMessenger:
         
         return machine_list
 
+    @ssl_cert_verify_error_collect
     def send_job(self, machine_group, api):
         _resp = dict()
+        if current_app.config.get("CA_VERIFY") == "True":
+            _verify = True
+        else:
+            _verify = machine_group.cert_path
         _r = do_request(
             method="post",
             url="https://{}:{}{}".format(
@@ -52,11 +58,10 @@ class JobMessenger:
                 "authorization": request.headers.get("authorization")
             },
             obj=_resp,
-            verify=True if current_app.config.get("CA_VERIFY") == "True" \
-            else machine_group.cert_path, 
+            verify=_verify,
         )
 
-        if _r !=0:
+        if _r != 0:
             return jsonify(
                 error_code=RET.RUNTIME_ERROR,
                 error_msg="could not reach messenger of this machine group"
