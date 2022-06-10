@@ -62,10 +62,6 @@ class VmachineMessenger:
     def send_request(self, machine_group, api, method, obj=None):
         if obj is None:
             obj = dict()
-        if current_app.config.get("CA_VERIFY") == "True":
-            _verify = True
-        else:
-            _verify = current_app.config.get("CA_CERT")
 
         _r = do_request(
             method=method,
@@ -80,7 +76,7 @@ class VmachineMessenger:
                 "authorization": request.headers.get("authorization")
             },
             obj=obj,
-            verify=_verify,
+            verify=current_app.config.get("CA_CERT"),
         )
 
         if _r != 0:
