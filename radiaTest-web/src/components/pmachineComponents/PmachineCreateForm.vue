@@ -40,7 +40,7 @@
         </n-form-item-gi>
         <n-gi :span="6">
           <n-form-item
-            label="host端口"
+            label="radiaTest-worker监听端口"
             path="listen"
             v-show="basicFormValue.description === 'as the host of ci'"
           >

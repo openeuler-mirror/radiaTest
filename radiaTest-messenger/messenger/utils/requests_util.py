@@ -6,7 +6,7 @@ from . import DateEncoder
 from .response_util import RET
 
 
-def do_request(method, url, params=None, body=None, headers=None, timeout=30, obj=None, verify=False):
+def do_request(method, url, params=None, body=None, headers=None, timeout=30, obj=None, verify=False, cert=None):
     """
 
     :param headers: dict
@@ -16,13 +16,15 @@ def do_request(method, url, params=None, body=None, headers=None, timeout=30, ob
     :param body: dict
     :param timeout: second
     :param obj: callback object, support list/dict/object/func
+    :param verify: whether check with certification authority
+    :param cert: whether check with local client certification
     :return:
     """
 
     try:
         if method.lower() not in ['get', 'post', 'put', 'delete']:
             return -1
-        
+
         resp = requests.request(
             method.lower(), 
             url, 
@@ -31,6 +33,7 @@ def do_request(method, url, params=None, body=None, headers=None, timeout=30, ob
             timeout=timeout, 
             headers=headers,
             verify=verify,
+            cert=cert,
         )
 
         if resp.status_code not in [

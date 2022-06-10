@@ -12,7 +12,10 @@ def loads_config_ini(section, option):
     cfg = configparser.ConfigParser()
     cfg.read(config_ini)
 
-    return cfg.get(section, option)
+    try:
+        return cfg.get(section, option)
+    except (configparser.NoSectionError, configparser.NoOptionError):
+        return None
 
 
 # Broker settings

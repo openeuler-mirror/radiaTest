@@ -44,7 +44,8 @@ class JobMessenger:
         if current_app.config.get("CA_VERIFY") == "True":
             _verify = True
         else:
-            _verify = machine_group.cert_path
+            _verify = current_app.config.get("CA_CERT")
+        
         _r = do_request(
             method="post",
             url="https://{}:{}{}".format(
