@@ -89,7 +89,7 @@ function gen_server_cert ()
     openssl ca \
         -in csr/server.csr -out certs/server.crt \
         -extensions v3_req \
-        -config <(cat conf/ca.cnf <(printf "$SAN"))
+        -config <(cat conf/ca.cnf <(printf "$1"))
 
     echo "Signature Success"
 }
@@ -100,14 +100,23 @@ function gen_messenger_cert ()
     read -p "Please type in the server address, [ ip:port | domain ]:" SERVER_ADDR
     read -p "If the server service works as selfsigned certifi, type in the path to the self-CA (press ENTER if not):" CACERT_PATH
     read -p "Please type in the messenger ip adress (public):" IPADDR
-
-    curl -o 'certs/messenger.crt' \
-        -H 'Content-Type: multipart/form-data' \
-        -X POST 'https://'$SERVER_ADDR'/api/v1/ca-cert' \
-        -F 'csr=@"csr/messenger.csr"' \
-        -F 'ip='$IPADDR''  \
-        -F 'san='$1'' \
-        --cacert $CACERT_PATH
+    
+    if [ -e $CACERT_PATH ];then
+        curl -o 'certs/messenger.crt' \
+            -H 'Content-Type: multipart/form-data' \
+            -X POST 'https://'$SERVER_ADDR'/api/v1/ca-cert' \
+            -F 'csr=@"csr/messenger.csr"' \
+            -F 'ip='$IPADDR''  \
+            -F 'san='$1''
+    else
+        curl -o 'certs/messenger.crt' \
+            -H 'Content-Type: multipart/form-data' \
+            -X POST 'https://'$SERVER_ADDR'/api/v1/ca-cert' \
+            -F 'csr=@"csr/messenger.csr"' \
+            -F 'ip='$IPADDR''  \
+            -F 'san='$1'' \
+            --cacert $CACERT_PATH
+    fi
 
     if [ -e $(cat certs/messenger.crt | grep Certificate) ];then
         echo -e "fail to ask server to sign for this CSR:\n$(cat certs/messenger.crt)"
