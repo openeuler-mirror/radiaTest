@@ -51,6 +51,7 @@ class MachineGroupItemEvent(Resource):
     @auth.login_required
     @response_collect
     @casbin_enforcer.enforcer
+    @validate()
     def put(self, machine_group_id, body: MachineGroupUpdateSchema):
         machine_group = MachineGroup.query.filter_by(id=machine_group_id).first()
         if not machine_group:
@@ -140,11 +141,13 @@ class PmachineItemEvent(Resource):
                         error_msg = "Pmachine has vmmachine, can't released."
                     )
             if pmachine.state == "occupied":
-                 _body = body.__dict__
-                 _body.update({
-                     "description": "",
-                     "occupier": "",
-                 })
+                _body = body.__dict__
+                _body.update(
+                    {
+                        "description": "",
+                        "occupier": ""
+                    }
+                )
         _body = body.__dict__
         _body.update({"id": pmachine_id})
         
