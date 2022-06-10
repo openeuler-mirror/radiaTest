@@ -13,7 +13,7 @@ def init_api(api: Api):
     api.add_resource(ParticipantItem, '/api/v1/tasks/<int:task_id>/participants', endpoint='task_participant_item')
     api.add_resource(Participants, '/api/v1/tasks/participants', endpoint='task_participant')
     api.add_resource(Comment, '/api/v1/tasks/<int:task_id>/comment', endpoint='task_comment')
-    api.add_resource(RecycleBin, '/api/v1/tasks/recycle_bin', endpoint='task_recycle_bin')
+    api.add_resource(RecycleBin, '/api/v1/tasks/recycle-bin', endpoint='task_recycle_bin')
     api.add_resource(Tag, '/api/v1/tasks/tags', endpoint='task_tag')
     api.add_resource(FamilyItem, '/api/v1/tasks/<int:task_id>/family', endpoint='task_family_item')
     api.add_resource(Family, '/api/v1/tasks/family', endpoint='task_family')
