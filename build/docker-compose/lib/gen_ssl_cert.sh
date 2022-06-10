@@ -24,11 +24,11 @@ function gen_san_ext ()
         read -p "Setting alternative names, the type of this SAN is [DNS/IP]?(press ENTER to finish):" TYPE
         if [[ $TYPE == "IP" || $TYPE == "ip" ]];then
             read -p "Please Enter a valid public IP address IP.$ipNum = " IP
-            SAN="${SAN}IP.${ipNum} = ${IP}, "
+            SAN="${SAN}IP.${ipNum} = ${IP}\n"
             ipNum=$(($ipNum+1))
         elif [[ $TYPE == "DNS" || $TYPE == "dns" ]];then
             read -p "Please Enter a valid Domain name DNS.$dnsNum = " DNS
-            SAN="${SAN}DNS.${dnsNum} = ${DNS},    "
+            SAN="${SAN}DNS.${dnsNum} = ${DNS}\n"
             dnsNum=$(($dnsNum+1))
         else
             break
@@ -70,12 +70,12 @@ function gen_client_csr ()
         exit 1
     fi
 
-    openssl req -new -key $1.key -out csr/$1.csr -config <(cat conf/client.cnf <(printf "$SAN"))
+    openssl req -new -key $1.key -out csr/$1.csr -config <(cat conf/client.cnf <(echo -e "$SAN"))
 
     if [[ $1 == "server" ]];then
-        gen_server_cert $SAN
+        gen_server_cert "$SAN"
     elif [[ $1 == "messenger" ]];then
-        gen_messenger_cert $SAN
+        gen_messenger_cert "$SAN"
     else
         echo "Unsupported service to generate certfile"
         exit 1
@@ -101,20 +101,22 @@ function gen_messenger_cert ()
     read -p "If the server service works as selfsigned certifi, type in the path to the self-CA (press ENTER if not):" CACERT_PATH
     read -p "Please type in the messenger ip adress (public):" IPADDR
     
-    if [ -e $CACERT_PATH ];then
+    if [ ! -n "$CACERT_PATH" ];then
+        echo "request certification from server"
         curl -o 'certs/messenger.crt' \
             -H 'Content-Type: multipart/form-data' \
             -X POST 'https://'$SERVER_ADDR'/api/v1/ca-cert' \
             -F 'csr=@"csr/messenger.csr"' \
             -F 'ip='$IPADDR''  \
-            -F 'san='$1''
+            -F san="$1"
     else
+        echo "request certification from server, with self-signed root CA"
         curl -o 'certs/messenger.crt' \
             -H 'Content-Type: multipart/form-data' \
             -X POST 'https://'$SERVER_ADDR'/api/v1/ca-cert' \
             -F 'csr=@"csr/messenger.csr"' \
             -F 'ip='$IPADDR''  \
-            -F 'san='$1'' \
+            -F san="$1" \
             --cacert $CACERT_PATH
     fi
 
