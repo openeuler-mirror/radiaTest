@@ -1,4 +1,6 @@
-from flask import make_response, g, jsonify, request
+import imp
+import requests
+from flask import make_response, g, jsonify, current_app
 from functools import wraps
 
 
@@ -28,6 +30,8 @@ class RET(object):
     WRONG_REPO_URL = "60002"
     RUNTIME_ERROR = "60009"
     CASCADE_OP_ERR = "60010"
+    CERTIFICATE_VERIFY_FAILED = "5009"
+    SSLERROR = "5010"
 
 
 def response_collect(func):
@@ -40,6 +44,7 @@ def response_collect(func):
 
     return wrapper
 
+
 def attribute_error_collect(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
@@ -50,6 +55,27 @@ def attribute_error_collect(func):
             return jsonify(
                 error_code=RET.NO_DATA_ERR,
                 error_msg=str(e)
+            )
+
+    return wrapper
+
+
+def ssl_cert_verify_error_collect(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            resp= func(*args, **kwargs)
+            return resp
+        except requests.exceptions.SSLError as e:
+            current_app.logger.error(str(e))
+            if "SSLCertVerificationError" in str(e):
+                return dict(
+                error_code=RET.CERTIFICATE_VERIFY_FAILED,
+                error_msg="SSLCertVerificationError, certificate verify failed.",
+            )
+            return dict(
+                error_code=RET.SSLERROR,
+                error_msg="SSLError, please check your certificate.",
             )
 
     return wrapper

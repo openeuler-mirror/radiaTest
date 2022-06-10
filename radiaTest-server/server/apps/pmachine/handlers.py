@@ -27,7 +27,7 @@ from server import redis_client
 from server.model.pmachine import Pmachine, MachineGroup
 from server.model.group import Group, ReUserGroup
 from server.model.message import Message, MsgType, MsgLevel
-from server.utils.response_util import RET
+from server.utils.response_util import RET, ssl_cert_verify_error_collect
 from server.utils.redis_util import RedisKey
 from server.utils.file_util import ImportFile
 from server.utils.db import Edit, Insert, collect_sql_error
@@ -85,7 +85,14 @@ class ResourcePoolHandler:
     @staticmethod
     @collect_sql_error
     def delete_group(machine_group_id):
-        return ResourceManager("machine_group").del_cascade_single(machine_group_id, Pmachine, [Pmachine.machine_group_id==machine_group_id], False)
+        return ResourceManager("machine_group").del_cascade_single(
+            machine_group_id,
+            Pmachine,
+            [
+                Pmachine.machine_group_id == machine_group_id
+            ],
+            False
+            )
 
     @staticmethod
     def gen_body_with_cert(schema, form, origin_messenger_ip=None):
@@ -100,13 +107,13 @@ class ResourcePoolHandler:
                             "body_params": e.errors()
                         }
                     }
-                ), 
+                ),
                 status_code
             )
 
         if not origin_messenger_ip and not request.files.get("ssl_cert"):
             return jsonify(
-                error_code=RET.PARMA_ERR, 
+                error_code=RET.PARMA_ERR,
                 error_msg="The certifi file of https service of messenger should be provided."
             )
         elif  not request.files.get("ssl_cert"):
@@ -116,11 +123,12 @@ class ResourcePoolHandler:
             filename=_body.get("messenger_ip", origin_messenger_ip),
             filetype="crt"
         )
+        _filepath = os.path.join(
+            current_app.config.get("MESSENGERS_CERTIFI_SAVE_PATH"),
+            f"{cert_file.filename}.crt"
+        )
+
         try:
-            _filepath = os.path.join(
-                current_app.config.get("MESSENGERS_CERTIFI_SAVE_PATH"),
-                f"{cert_file.filename}.crt"
-            )
             if os.path.isfile(_filepath):
                 os.remove(_filepath)
 
@@ -188,8 +196,13 @@ class PmachineMessenger:
             "user_id": int(g.gitee_id),
         })
 
+    @ssl_cert_verify_error_collect
     def send_request(self, machine_group, api):
         _resp = dict()
+        if current_app.config.get("CA_VERIFY") == "True":
+            _verify = True
+        else:
+            _verify = machine_group.cert_path
         _r = do_request(
             method="put",
             url="https://{}:{}{}".format(
@@ -203,11 +216,10 @@ class PmachineMessenger:
                 "authorization": request.headers.get("authorization")
             },
             obj=_resp,
-            verify=True if current_app.config.get("CA_VERIFY") == "True" \
-            else machine_group.cert_path,
+            verify=_verify,
         )
 
-        if _r !=0:
+        if _r != 0:
             return jsonify(
                 error_code=RET.RUNTIME_ERROR,
                 error_msg="could not reach messenger of this machine group"
@@ -243,8 +255,8 @@ class StateHandler:
         org_id = redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')
         filter_params = [
             Group.name == current_app.config.get("OE_QA_GROUP_NAME"),
-            Group.is_delete == False,
-            ReUserGroup.is_delete == False,
+            Group.is_delete is False,
+            ReUserGroup.is_delete is False,
             ReUserGroup.org_id == org_id,
             ReUserGroup.role_type == 1,
         ]
@@ -257,7 +269,8 @@ class StateHandler:
             data=json.dumps(
                 dict(
                     group_id=re.group.id,
-                    info=f'<b>{redis_client.hget(RedisKey.user(g.gitee_id), "gitee_name")}</b>请求{StateHandler.english_to_chinese.get(self.to_state)}物理机<b>{self.pmachine.ip}</b>。'
+                    info=f'<b>{redis_client.hget(RedisKey.user(g.gitee_id), "gitee_name")}</b>\
+                    请求{StateHandler.english_to_chinese.get(self.to_state)}物理机<b>{self.pmachine.ip}</b>。'
                 )
             ),
             level=MsgLevel.user.value,

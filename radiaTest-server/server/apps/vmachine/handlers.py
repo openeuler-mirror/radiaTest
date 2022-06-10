@@ -1,7 +1,7 @@
 from flask import jsonify, g, current_app, request
 
 from server.utils.db import collect_sql_error
-from server.utils.response_util import RET
+from server.utils.response_util import RET, ssl_cert_verify_error_collect
 from server.utils.requests_util import do_request
 from server.model import Vmachine, Pmachine
 from server.utils.page_util import PageUtil
@@ -13,7 +13,7 @@ class VmachineHandler:
     @staticmethod
     def get_all(query):
         filter_params = GetAllByPermission(Vmachine).get_filter()
-        p_filter_params = [Pmachine.machine_group_id==query.machine_group_id]
+        p_filter_params = [Pmachine.machine_group_id == query.machine_group_id]
         if query.host_ip:
             p_filter_params.append(Pmachine.ip.like(f"%{query.host_ip}%"))
         pmachines = Pmachine.query.filter(*p_filter_params).all()
@@ -58,8 +58,14 @@ class VmachineMessenger:
             "user_id": int(g.gitee_id),
         })
 
+    @ssl_cert_verify_error_collect
     def send_request(self, machine_group, api, method):
         _resp = dict()
+        if current_app.config.get("CA_VERIFY") == "True":
+            _verify = True
+        else:
+            _verify = machine_group.cert_path
+
         _r = do_request(
             method=method,
             url="https://{}:{}{}".format(
@@ -73,11 +79,10 @@ class VmachineMessenger:
                 "authorization": request.headers.get("authorization")
             },
             obj=_resp,
-            verify=True if current_app.config.get("CA_VERIFY") == "True" \
-            else machine_group.cert_path,
+            verify=_verify,
         )
 
-        if _r !=0:
+        if _r != 0:
             return jsonify(
                 error_code=RET.RUNTIME_ERROR,
                 error_msg="could not reach messenger of this machine group"
