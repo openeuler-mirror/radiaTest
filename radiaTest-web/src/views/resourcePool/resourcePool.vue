@@ -247,7 +247,8 @@ export default {
           'params': { machineId: this.expandeds.at(-1)}
         }
       );
-    } else if (this.$route.name !== 'resourcePool') {
+    }
+    if (this.$route.name !== 'resourcePool') {
       this.handleExpandKey([this.menuOptions[0]]);
       this.selectKey = this.$route.params.machineId;
       this.expandeds = [this.menuOptions[0].key, this.$route.params.machineId];
