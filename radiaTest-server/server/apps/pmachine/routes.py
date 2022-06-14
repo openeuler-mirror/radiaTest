@@ -192,6 +192,8 @@ class PmachineEvent(Resource):
         try:
             result = json.loads(resp.text).get("data")
         except AttributeError:
+            if isinstance(resp, dict):
+                return resp
             result = resp.json.get("data")
 
         if not result.get("status"):
