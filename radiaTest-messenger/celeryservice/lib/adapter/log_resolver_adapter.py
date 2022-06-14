@@ -1,78 +1,65 @@
 import os
 import re
-import requests
 import tempfile
+import requests
 
 import wget
 from flask.globals import current_app
 
 from messenger.utils.requests_util import create_request, query_request, update_request
-from messenger.utils.shell import ShellCmd
+from messenger.utils.shell import ShellCmdApi
 from messenger.utils.bash import rsync_password_file_delete, rsync_password_file_generator, rsync_dir_push
 
 
-class LogsHandler:
-    def __init__(self, conn, job_id, job_name, framework, adaptor, auth):
-        self._conn = conn
-        self._job_id = job_id
-        self._job_name = job_name
-        self._framework = framework
-        self._adaptor = adaptor
-        self._auth = auth
+class LogResolverAdapter:
+    def __init__(self, log_resolver_param):
+        self._conn = log_resolver_param.ssh
+        self._job_id = log_resolver_param.id
+        self._job_name = log_resolver_param.name
+        self._framework = log_resolver_param.framework
+        self._adaptor = log_resolver_param.adaptor
+        self._auth = log_resolver_param.auth
         self._logs_path = self._init_logs_path()
-
-    def _init_logs_path(self):
-        _path = ""
-        if self._conn:
-            _path = current_app.config.get(
-                "WORKER_DOWNLOAD_PATH"
-            ).replace("/$", "")
-        else:
-            _path = current_app.config.get(
-                "SERVER_FRAMEWORK_PATH"
-            ).replace("/$", "")
-
-        return _path + '/' + self._framework.get("name") + '/' + self._framework.get("logs_path").replace("/$", "")
 
     def push_dir_to_server(self):
         # install rsync
-        exitcode, output = ShellCmd(
+        exitcode, output = ShellCmdApi(
             "which rsync || dnf install rsync -y",
             self._conn,
-        )._exec()
+        ).exec()
 
         if exitcode:
             raise RuntimeError("Failed to install rsync.")
 
-        # current_app.logger.info(output)
+        current_app.logger.info(output)
 
         # generate password file
-        exitcode, output = ShellCmd(
+        exitcode, output = ShellCmdApi(
             rsync_password_file_generator(),
             self._conn,
-        )._exec()
+        ).exec()
 
         if exitcode:
             raise RuntimeError("Failed to generate password file for rsync.")
 
-        # current_app.logger.info(output)
+        current_app.logger.info(output)
 
         # push logs by rsync
-        exitcode, output = ShellCmd(
+        exitcode, output = ShellCmdApi(
             rsync_dir_push(self._logs_path, self._job_name),
             self._conn,
-        )._exec()
+        ).exec()
 
         if exitcode:
             raise RuntimeError("Failed to push logs by rsync.")
 
-        # current_app.logger.info(output)
+        current_app.logger.info(output)
 
         # generate password file
-        exitcode, output = ShellCmd(
+        exitcode, output = ShellCmdApi(
             rsync_password_file_delete(),
             self._conn,
-        )._exec()
+        ).exec()
 
         if exitcode:
             raise RuntimeError(
@@ -156,3 +143,16 @@ class LogsHandler:
 
         if os.path.exists(_log_file):
             os.remove(_log_file)
+
+    def _init_logs_path(self):
+        _path = ""
+        if self._conn:
+            _path = current_app.config.get(
+                "WORKER_DOWNLOAD_PATH"
+            ).replace("/$", "")
+        else:
+            _path = current_app.config.get(
+                "SERVER_FRAMEWORK_PATH"
+            ).replace("/$", "")
+
+        return _path + '/' + self._framework.get("name") + '/' + self._framework.get("logs_path").replace("/$", "")

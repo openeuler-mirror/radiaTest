@@ -2,14 +2,15 @@ from copy import deepcopy
 from datetime import datetime
 import time
 import random
+import collections
 from collections import defaultdict
 
 from flask import current_app
 
 from celeryservice import celeryconfig
 from celeryservice.lib import TaskAuthHandler
-from celeryservice.lib.job.logs_handler import LogsHandler
-from celeryservice.lib.job.executor import Executor
+from celeryservice.lib.adapter.log_resolver_adapter import LogResolverAdapter
+from celeryservice.lib.adapter.executor_adapter import ExecutorAdaptor
 from messenger.utils.pssh import Connection
 from messenger.utils.requests_util import create_request, do_request, query_request, update_request
 from messenger.utils.response_util import RET
@@ -17,7 +18,7 @@ from messenger.apps.vmachine.handlers import DeleteVmachine, DeviceManager
 from messenger.apps.pmachine.handlers import AutoInstall
 from messenger.schema.vmachine import VmachineBaseSchema, VmachineCreateSchema, VnicBaseSchema, VdiskBaseSchema
 from messenger.schema.job import JobCreateSchema, JobUpdateSchema
-from messenger.apps.framework.adaptor import FrameworkAdaptor
+from celeryservice.lib.framework import FrameworkDict
 
 
 class RunCaseHandler(TaskAuthHandler):
@@ -381,20 +382,25 @@ class RunCaseHandler(TaskAuthHandler):
                 None,
                 self.user.get("auth")
             )
-            framework = git_repo.get("framework")
 
-            adaptor = getattr(FrameworkAdaptor, framework.get("name"))
-
-            _logs_handler = LogsHandler(
-                ssh,
-                self._body.get("id"),
-                self._name,
-                framework,
-                adaptor,
+            framework = query_request(
+                "/api/v1/framework/{}".format(
+                    git_repo.get("framework_id")
+                ),
+                None,
                 self.user.get("auth")
             )
 
-            _executor = Executor(ssh, framework, git_repo, adaptor)
+            adaptor = getattr(FrameworkDict, framework.get("name"))
+
+            LogresolverParam = collections.namedtuple('LogresolverParam',
+                                                      ['ssh', 'id', 'name', 'framework', 'adaptor', 'auth'])
+            log_resolver_param = LogresolverParam(ssh, self._body.get('id'), 
+                                                  self._name, framework, adaptor.logresolver, self.user.get("auth"))
+
+            _logs_handler = LogResolverAdapter(log_resolver_param)
+
+            _executor = ExecutorAdaptor(ssh, framework, git_repo, adaptor.executor)
 
             _executor.prepare_git()
             _executor.deploy(self._body.get("master"), machines)
@@ -414,6 +420,7 @@ class RunCaseHandler(TaskAuthHandler):
                     },
                     self.user.get("auth")
                 )
+
                 testcase = query_request(
                     "/api/v1/case/preciseget",
                     {
