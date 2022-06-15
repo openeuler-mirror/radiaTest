@@ -1,5 +1,5 @@
-from mugen_executor import MugenExecutor
-from mugen_log_resolver import MugenLogResolver
+from celeryservice.lib.framework.mugen.mugen_executor import MugenExecutor
+from celeryservice.lib.framework.mugen.mugen_log_resolver import MugenLogResolver
 
 
 class Mugen:

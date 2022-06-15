@@ -14,7 +14,7 @@ class MugenExecutor(Executor):
     @staticmethod
     def run_test(**kargs):
         if kargs.get('testcase') is None and kargs.get('testsuite') is None:
-            return ShellCmdApipi(
+            return ShellCmdApi(
                 MugenExecutor.run_all_cases(kargs.get('download_path')),
                 kargs.get('conn'),
             ).exec()
