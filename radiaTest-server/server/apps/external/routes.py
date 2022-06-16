@@ -176,6 +176,7 @@ class CaCert(Resource):
     def get(self):
         return send_file(
             current_app.config.get("CA_CERT"),
+            as_attachment=True
         )
 
     def post(self):

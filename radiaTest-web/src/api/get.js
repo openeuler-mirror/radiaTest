@@ -62,7 +62,17 @@ export function getMachineGroup (data) {
   return getRequest('/v1/machine-group', data);
 }
 export function getRootCert (data) {
-  return getRequest('/v1/ca-cert', data);
+  return new Promise((resolve, reject) => {
+    axios
+      .get('/v1/ca-cert', data, {responseType: 'arraybuffer'})
+      .then((res) => {
+        resolve(res);
+      })
+      .catch((err) => {
+        reject(err);
+        window.$notification?.error({ content: err.data.error_msg || unkonwnErrorMsg });
+      });
+  });
 }
 export function getCommitHistory (caseId, data) {
   return getRequest(`/v1/commit/history/${caseId}`, data);

@@ -40,11 +40,11 @@ cd /etc/radiaTest/messenger_ssl/
 cat ${OET_PATH}/conf/client_openssl.cnf > conf/client.cnf
 
 
-if [[ ! -f "./messenger.key" ]];then
+if [[ ! -f "messenger.key" ]];then
     gen_client_key "messenger"
 fi
 
-if [[ ! -f "./messenger.csr" && ! -f "./certs/messenger.crt" ]];then
+if [[ ! -f "csr/messenger.csr" && ! -f "certs/messenger.crt" ]];then
     gen_client_csr "messenger"
 else
     echo "SSL CSR/CRT files already exist, please make sure their validation. Otherwise, the services could not work normally."
