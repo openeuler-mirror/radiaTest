@@ -58,7 +58,7 @@ const recycleBinCaseData = ref([]);
 // 查询回收站
 function query() {
   axios
-    .get('/v1/case/recycle_bin')
+    .get('/v1/case/recycle-bin')
     .then((res) => {
       recycleBinCaseLoading.value = false;
       recycleBinCaseData.value = res.data.map((_case, index) => {

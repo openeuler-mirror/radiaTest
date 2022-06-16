@@ -27,7 +27,7 @@ class RunJob(TaskAuthHandler):
     @property
     def pmachine_pool(self):
         return query_request(
-            "/api/v1/accessable_machines",
+            "/api/v1/accessable-machines",
             {
                 "machine_group_id": self._body.get("machine_group_id"),
                 "machine_purpose": "run_job",

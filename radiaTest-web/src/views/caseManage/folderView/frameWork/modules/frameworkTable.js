@@ -24,7 +24,7 @@ import axios from '@/axios';
 const frameLoading = ref(false);
 function getRepo(row) {
   axios
-    .get('/v1/git_repo', { framework_id: row.id })
+    .get('/v1/git-repo', { framework_id: row.id })
     .then((res) => {
       row.expand = true;
       frameLoading.value = false;

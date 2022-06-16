@@ -605,7 +605,7 @@ function cancelDistributeTask() {
 function distributeTaskBtn(value) {
   axios
     .put(
-      `/v1/tasks/${modalData.value.detail.id}/distribute_templates/${value}`,
+      `/v1/tasks/${modalData.value.detail.id}/distribute-templates/${value}`,
       {
         milestone_id: distributeTaskMilestoneValue.value,
         distribute_all_cases: distributeAllCases.value,

@@ -44,7 +44,7 @@ def init_api(api: Api):
     api.add_resource(CaseEvent, "/api/v1/case")
     api.add_resource(CaseItemEvent, "/api/v1/case/<int:case_id>")
     api.add_resource(CaseImport, "/api/v1/case/import")
-    api.add_resource(CaseRecycleBin, "/api/v1/case/recycle_bin")
+    api.add_resource(CaseRecycleBin, "/api/v1/case/recycle-bin")
     api.add_resource(
         ResolveTestcaseByFilepath, "/api/v1/testcase/resolve_by_filepath"
     )

@@ -14,19 +14,19 @@ function getRequest (url, data) {
   });
 }
 export function getRepo (data) {
-  return getRequest('/v1/git_repo', data);
+  return getRequest('/v1/git-repo', data);
 }
 export function getSuite (data) {
   return getRequest('/v1/suite', data);
 }
 export function getPm (data) {
-  return getRequest('/v1/accessable_machines', {
+  return getRequest('/v1/accessable-machines', {
     machine_type: 'physical',
     ...data,
   });
 }
 export function getVm (data) {
-  return getRequest('/v1/accessable_machines', {
+  return getRequest('/v1/accessable-machines', {
     machine_type: 'kvm',
     ...data,
   });
@@ -59,7 +59,7 @@ export function getCaseReview (data) {
   return getRequest('/v1/case/commit/query', data);
 }
 export function getMachineGroup (data) {
-  return getRequest('/v1/machine_group', data);
+  return getRequest('/v1/machine-group', data);
 }
 export function getRootCert (data) {
   return getRequest('/v1/ca-cert', data);
@@ -89,7 +89,7 @@ export function getMilestoneTask (milestoneId, data) {
   return getRequest(`/v1/milestone/${milestoneId}/tasks`, data);
 }
 export function getMachineGroupDetails (id, data) {
-  return getRequest(`/v1/machine_group/${id}`, data);
+  return getRequest(`/v1/machine-group/${id}`, data);
 }
 export function getCaseCommit (data) {
   return getRequest('/v1/user/case/commit', data);

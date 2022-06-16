@@ -10,4 +10,4 @@ def init_api(api: Api):
     api.add_resource(Power, "/api/v1/pmachine/power")
     api.add_resource(Install, "/api/v1/pmachine/install")
     api.add_resource(CheckBmcInfo, "/api/v1/pmachine/checkbmcinfo")
-    api.add_resource(CheckPmachineInfo, "/api/v1/pmachine/checkpmachineinfo")
+    api.add_resource(CheckPmachineInfo, "/api/v1/pmachine/check-machine-info")

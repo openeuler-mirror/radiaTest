@@ -25,5 +25,5 @@ from .routes import CaCert
 def init_api(api: Api):
     api.add_resource(UpdateTaskEvent, "/api/v1/openeuler/task/update")
     api.add_resource(LoginOrgList, "/api/v1/login/org/list")
-    api.add_resource(VmachineExist, "/api/v1/vmachine/check_exist")
+    api.add_resource(VmachineExist, "/api/v1/vmachine/check-exist")
     api.add_resource(CaCert, "/api/v1/ca-cert")

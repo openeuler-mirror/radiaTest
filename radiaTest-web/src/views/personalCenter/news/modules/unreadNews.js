@@ -110,7 +110,7 @@ function accept (index, type) {
         if (res.data.error_code !== '2000') {
           return Promise.reject(res);
         }
-        axios.put('/v1/msgcallback', {
+        axios.put('/v1/msg/callback', {
           msg_id: item.id,
           access: true
         }).then(() => {
@@ -131,7 +131,7 @@ function refuse (index, type) {
   if (item.data.group_id) {
     handleMsg(index, type, false);
   } else {
-    axios.put('/v1/msgcallback', {
+    axios.put('/v1/msg/callback', {
       msg_id: item.id,
       access: false
     }).then(() => {

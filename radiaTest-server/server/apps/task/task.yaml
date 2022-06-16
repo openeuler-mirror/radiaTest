@@ -53,7 +53,7 @@
   uri: /api/v1/tasks/{task_id}/cases/result
   act: get
 - alias: 根据模板分配任务
-  uri: /api/v1/tasks/{task_id}/distribute_templates/{template_id}
+  uri: /api/v1/tasks/{task_id}/distribute-templates/{template_id}
   act: put
 - alias: 更新手动用例状态
   uri: /api/v1/task/{task_id}/milestones/{taskmilestone_id}/cases/{case_id}

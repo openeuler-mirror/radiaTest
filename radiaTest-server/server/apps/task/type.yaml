@@ -1,6 +1,6 @@
 - alias: 修改子模板
-  uri: /api/v1/tasks/distribute_templates/types/{type_id}
+  uri: /api/v1/tasks/distribute-templates/types/{type_id}
   act: put
 - alias: 删除子模板
-  uri: /api/v1/tasks/distribute_templates/types/{type_id}
+  uri: /api/v1/tasks/distribute-templates/types/{type_id}
   act: delete

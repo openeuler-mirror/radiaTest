@@ -58,14 +58,14 @@ function getRoleList () {
 }
 function getUserInfo () {
   if (selectdRole.value === 'public') {
-    requestUrl = '/v1/user_role';
+    requestUrl = '/v1/user-role';
     actionUrl.value = '/v1/users';
     getUserTableData();
     getRoleList();
   } else {
     const [key, id] = window.atob(selectdRole.value).split('-');
     if (key) {
-      requestUrl = `/v1/user_role/${key}/${id}`;
+      requestUrl = `/v1/user-role/${key}/${id}`;
       actionUrl.value = `/v1/${key === 'group' ? 'groups' : 'org'}/${id}/users`;
       getUserTableData();
       getRoleList();

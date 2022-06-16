@@ -16,7 +16,7 @@ function postRequest (url, data) {
   });
 }
 export function createRepo (data) {
-  return postRequest('/v1/git_repo', data);
+  return postRequest('/v1/git-repo', data);
 }
 export function implementTemplate (data) {
   return postRequest('/v1/job/template', data);
@@ -31,19 +31,19 @@ export function createComment (commitId, data) {
   });
 }
 export function createMachineGroup (data) {
-  return postRequest('/v1/machine_group', data);
+  return postRequest('/v1/machine-group', data);
 }
 export function cloneTemplate (data) {
-  return postRequest('/v1/templateclone', data);
+  return postRequest('/v1/template/clone', data);
 }
 export function setGroupUserRole (id, data) {
-  return postRequest(`/v1/user_role/group/${id}`, {
+  return postRequest(`/v1/user-role/group/${id}`, {
     webMessage: 'manual',
     ...data,
   });
 }
 export function setOrgUserRole (id, data) {
-  return postRequest(`/v1/user_role/org/${id}`, {
+  return postRequest(`/v1/user-role/org/${id}`, {
     webMessage: 'manual',
     ...data,
   });
