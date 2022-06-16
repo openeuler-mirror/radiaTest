@@ -80,13 +80,13 @@ class Config(object):
     # 上传服务端文件的暂存地址
     TMP_FILE_SAVE_PATH = "/tmp/"
 
-    # messenger证书存储地址
-    # 警告：若修改此项，需要更改容器持久化挂载卷配置，若缺失相应更改可能出现问题
-    MESSENGERS_CERTIFI_SAVE_PATH = "/var/lib/messengers_certifi"
+    # server的CA服务根目录
+    # 警告：若修改此项，需要更改部署配置，若缺失相应更改可能出现问题
+    CA_DIR = "/etc/radiaTest/server_ssl"
     
     # openEuler-QA团队配置
     # openEuler-QA团队名
-    OE_QA_GROUP_NAME = "openEuler-QA"
+    OE_QA_GROUP_NAME = "openEuler测试组"
 
     # openEuler-QA update版本测试默认时长(days)
     OE_QA_UPDATE_TASK_PERIOD = 5

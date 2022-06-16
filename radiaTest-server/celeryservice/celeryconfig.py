@@ -142,4 +142,4 @@ task_default_exchange_type = 'direct'
 
 # SSL file path(Warning: if you modify this item,
 # you need to change the corresponding build and deployment files)
-server_cert_path = loads_config_ini("server", "SERVER_CERT_PATH")
+cacert_path = loads_config_ini("server", "CA_CERT")

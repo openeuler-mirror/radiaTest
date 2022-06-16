@@ -18,6 +18,7 @@ const orgOpts = ref([]);
 const requireCLA = ref(true);
 const hasCLA = ref(false);
 const hasEnterprise = ref(false);
+const orgListLoading = ref(false);
 const loginForm = reactive({
   userName: '',
   passWord: '',
@@ -95,12 +96,14 @@ function hanleLogin () {
 
 const registerShow = ref(false);
 function gotoHome () {
+  orgListLoading.value = true;
   getAllOrg().then((res) => {
     orgOpts.value = res.data.map((item) => ({
       label: item.org_name,
       value: String(item.org_id),
       ...item,
     }));
+    orgListLoading.value = false;
   });
   if (urlArgs().code) {
     loginByCode({
@@ -165,6 +168,7 @@ function selectOrg (value) {
 
 export {
   requireCLA,
+  orgListLoading,
   rules,
   hasCLA,
   hasEnterprise,

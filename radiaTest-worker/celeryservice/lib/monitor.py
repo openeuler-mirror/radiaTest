@@ -27,7 +27,7 @@ class IllegalMonitor(TaskHandlerBase):
             },
             headers=celeryconfig.headers,
             verify=True if celeryconfig.ca_verify == "True" else \
-            celeryconfig.server_cert_path
+            celeryconfig.cacert_path
         )
         if resp.status_code != 200:
             raise RuntimeError("the worker cannot connect to server")

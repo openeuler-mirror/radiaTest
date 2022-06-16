@@ -19,7 +19,7 @@ module.exports = {
   productionSourceMap: false,
   devServer: {
     host: '0.0.0.0',
-    port: 8080,
+    port: 21500,
     open: true,
     https: {
       minVersion: 'TLSv1.1',

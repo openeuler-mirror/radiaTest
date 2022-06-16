@@ -15,21 +15,32 @@
 
 #####################################
 
+import os
 import re
 import json
+import shlex
+from subprocess import getstatusoutput
 import requests
 
-from flask import current_app, jsonify
+from flask import current_app, jsonify, request, make_response, send_file
 from flask_restful import Resource
 from flask_pydantic import validate
 
-from server.schema.external import LoginOrgListSchema, OpenEulerUpdateTaskBase, VmachineExistSchema
+from server import casbin_enforcer
+from server.utils.auth_util import auth
+from server.schema.external import (
+    LoginOrgListSchema, 
+    OpenEulerUpdateTaskBase, 
+    VmachineExistSchema,
+    DeleteCertifiSchema
+)
 from server.model.group import Group
 from server.model.mirroring import Repo
 from server.model.vmachine import Vmachine
 from server.model.organization import Organization
 from server.utils.db import Insert, Edit
 from server.utils.response_util import RET, ssl_cert_verify_error_collect
+from server.utils.file_util import ImportFile
 from .handler import UpdateRepo, UpdateTaskHandler, UpdateTaskForm
 
 
@@ -101,7 +112,7 @@ class UpdateTaskEvent(Resource):
                 ).single(Repo, "/repo")
 
             _verify = True if current_app.config.get("CA_VERIFY") == "True" \
-            else current_app.config.get("SERVER_CERT_PATH")
+            else current_app.config.get("CA_CERT")
 
             resp = requests.post(
                 url="https://{}/api/v1/tasks/execute".format(
@@ -157,4 +168,104 @@ class VmachineExist(Resource):
             error_code=RET.OK,
             error_msg="OK",
             data=vmachine.name
+        )
+
+
+class CaCert(Resource):
+    @auth.login_required()
+    def get(self):
+        return send_file(
+            current_app.config.get("CA_CERT"),
+        )
+
+    def post(self):
+        _san = request.form.get("san")
+        _messenger_ip = request.form.get("ip")
+        _csr_file = request.files.get("csr")
+
+        if not _messenger_ip or not _csr_file or not _san:
+            return make_response(
+                jsonify(
+                    validation_error="lack of ip address/csr file/subject alternative name"
+                ),
+                current_app.config.get("FLASK_PYDANTIC_VALIDATION_ERROR_STATUS_CODE", 400)
+            )
+
+        csr_file = ImportFile(
+            _csr_file,
+            filename=request.form.get("ip"),
+            filetype="csr"
+        )
+        
+        try:
+            csr_file.file_save(
+                "{}/csr".format(
+                    current_app.config.get("CA_DIR")
+                ),
+                timestamp=True,
+            )
+        except RuntimeError as e:
+            return make_response(
+                jsonify(
+                    message=str(e)
+                ),
+                500
+            )
+        
+        certs_dir = "{}/certs".format(
+            current_app.config.get("CA_DIR")
+        )
+        if not os.path.exists(certs_dir):
+            csr_file.file_remove()
+            return make_response(
+                jsonify(
+                    message="the directory to storage certfile does not exist"
+                ),
+                500
+            )
+        
+        certs_path = f"{certs_dir}/{_messenger_ip}.crt"
+        
+        caconf_path = "{}/conf/ca.cnf".format(current_app.config.get("CA_DIR"))
+
+        exitcode, output = getstatusoutput(
+            "bash server/apps/external/certs_sign.sh {} {} {} {}".format(
+                shlex.quote(csr_file.filepath),
+                shlex.quote(certs_path),
+                caconf_path,
+                shlex.quote(_san)
+            )
+        )
+
+        if exitcode != 0:
+            csr_file.file_remove()
+            return make_response(
+                jsonify(
+                    message=f"fail to create certfile for machine group of messenger ip {_messenger_ip}: {output}"
+                ),
+                500
+            )
+        else:
+            return send_file(certs_path, as_attachment=True)
+
+    # @auth.login_required()
+    # @casbin_enforcer.enforcer()
+    @validate()
+    def delete(self, body: DeleteCertifiSchema):
+        
+        exitcode, output = getstatusoutput(
+            "openssl ca -revoke {0}/certs/{1}.crt -config {0}/openssl.cnf".format(
+                current_app.config.get("CA_DIR"),
+                body.ip,
+            )
+        )
+
+        if exitcode != 0:
+            raise RuntimeError(
+                f"fail to delete certfile for machine group of messenger ip {body.ip}: {output}"
+            )
+
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK"
         )

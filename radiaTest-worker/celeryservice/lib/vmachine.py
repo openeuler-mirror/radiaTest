@@ -38,15 +38,11 @@ class VmachineBaseSchema(AuthTaskHandler):
                 **celeryconfig.headers
             },
             verify=True if celeryconfig.ca_verify == "True" else \
-            celeryconfig.server_cert_path
+            celeryconfig.cacert_path
 
         )
 
     def update_vmachine(self, body):
-        if celeryconfig.ca_verify == "True":
-            _verify = True
-        else:
-            _verify = celeryconfig.messenger_cert_path
         _ = requests.put(
             url="https://{}:{}/api/v1/vmachine/callback".format(
                 celeryconfig.messenger_ip,
@@ -57,7 +53,8 @@ class VmachineBaseSchema(AuthTaskHandler):
                 "authorization": self.auth,
                 **celeryconfig.headers,
             },
-            verify=_verify,
+            verify=True if celeryconfig.ca_verify == "True" else \
+            celeryconfig.cacert_path,
         )
 
 

@@ -1,0 +1,40 @@
+[req]
+distinguished_name = req_distinguished_name
+attributes = req_attributes
+req_extensions = v3_req
+
+[ req_distinguished_name ]
+countryName                     = Country Name (2 letter code)
+countryName_default             = CN
+countryName_min                 = 2
+countryName_max                 = 2
+
+stateOrProvinceName             = State or Province Name (full name)
+stateOrProvinceName_default     = Zhejiang
+
+localityName                    = Locality Name (eg, city)
+localityName_default            = Hangzhou
+
+0.organizationName              = Organization Name (eg, company)
+0.organizationName_default      = openEuler
+
+organizationalUnitName          = Organizational Unit Name (eg, section)
+organizationalUnitName_default = QA-sig
+
+commonName                      = Common Name (e.g. server FQDN or YOUR name)
+commonName_max                  = 64
+
+emailAddress                    = Email Address
+emailAddress_max                = 64
+
+[ req_attributes ]
+challengePassword               = A challenge password
+challengePassword_min           = 4
+challengePassword_max           = 20
+
+unstructuredName                = An optional company name
+
+[v3_req]
+keyUsage = keyEncipherment, dataEncipherment
+extendedKeyUsage = serverAuth, clientAuth
+subjectAltName = @SubjectAlternativeName

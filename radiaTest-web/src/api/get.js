@@ -61,6 +61,9 @@ export function getCaseReview (data) {
 export function getMachineGroup (data) {
   return getRequest('/v1/machine_group', data);
 }
+export function getRootCert (data) {
+  return getRequest('/v1/ca-cert', data);
+}
 export function getCommitHistory (caseId, data) {
   return getRequest(`/v1/commit/history/${caseId}`, data);
 }

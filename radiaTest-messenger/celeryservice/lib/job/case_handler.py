@@ -526,7 +526,7 @@ class RunCaseHandler(TaskAuthHandler):
                         "content-type": "application/json;charset=utf-8",
                     },
                     verify=True if celeryconfig.ca_verify == "True" \
-                        else celeryconfig.server_cert_path
+                        else celeryconfig.cacert_path
                 )
                 if r != 0:
                     self.logger.warning(

@@ -112,14 +112,6 @@
                   type="number"
                 />
               </n-form-item-gi>
-              <n-form-item-gi :span="18" label="SSL证书（仅上传首个文件)">
-                <n-upload
-                  list-type="text"
-                  @update:file-list="uploadFinish"
-                >
-                  <n-button>上传证书</n-button>
-                </n-upload>
-              </n-form-item-gi>
             </n-grid>
           </n-form>
         </template>
@@ -134,6 +126,9 @@
           show-trigger="arrow-circle"
           :style="{ height: contentHeight + 'px' }"
         >
+          <n-alert title="提示" type="default" closable :show-icon="false">
+            机器组端SSL证书均为radiaTest服务端统一颁发，请<n-button type="info" text @click="handleDownloadCert">下载</n-button>并安装CA根证书以批量信任
+          </n-alert>
           <n-tree
             block-line
             :data="menuOptions"
@@ -245,7 +240,14 @@ export default {
         });
       }
     });
-    if (this.$route.name !== 'resourcePool') {
+    if(this.$route.name === 'resourcePool' && this.expandeds.at(-1) !== 'pool'){
+      this.$router.push(
+        {
+          'name': 'pmachine',
+          'params': { machineId: this.expandeds.at(-1)}
+        }
+      );
+    } else if (this.$route.name !== 'resourcePool') {
       this.handleExpandKey([this.menuOptions[0]]);
       this.selectKey = this.$route.params.machineId;
       this.expandeds = [this.menuOptions[0].key, this.$route.params.machineId];

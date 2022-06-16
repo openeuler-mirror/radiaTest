@@ -72,7 +72,9 @@
           <n-form>
             <n-form-item style="--label-height: 6px">
               <n-select
+                remote
                 ref="select"
+                :loading="orgListLoading"
                 :options="orgOpts"
                 v-model:value="loginOrg"
                 @update:value="selectOrg"

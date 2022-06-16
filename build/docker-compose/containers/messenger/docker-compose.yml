@@ -49,7 +49,6 @@ services:
             - /var/log/radiaTest-messenger/job_callback:/opt/radiaTest/radiaTest-messenger/log/messenger/job_callback
             - /etc/radiaTest:/etc/radiaTest
             - /root/.ssh:/root/.ssh
-            - /tmp:/tmp
         ulimits:
             nproc: 65535
             nofile:

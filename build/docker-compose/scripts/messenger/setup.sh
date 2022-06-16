@@ -31,13 +31,21 @@ mkdir /etc/radiaTest/messenger_nginx
 
 cp -r ./conf/nginx/* /etc/radiaTest/messenger_nginx/
 
-echo "start to generate SSL certification for messenger"
 mkdir -p /etc/radiaTest/messenger_ssl/certs
-cd /etc/radiaTest/messenger_ssl/
+mkdir -p /etc/radiaTest/messenger_ssl/conf
+mkdir -p /etc/radiaTest/messenger_ssl/csr
+mkdir -p /etc/radiaTest/messenger_ssl/fail
 
-if [[ ! -f "./messenger.key" && ! -f "./certs/messenger.crt" ]];then
-    gen_ssl_cert messenger
-else
-    echo "SSL Crt&Key already exist, please make sure their validation. Otherwise, the services could not work normally."
+cd /etc/radiaTest/messenger_ssl/
+cat ${OET_PATH}/conf/client_openssl.cnf > conf/client.cnf
+
+
+if [[ ! -f "./messenger.key" ]];then
+    gen_client_key "messenger"
 fi
 
+if [[ ! -f "./messenger.csr" && ! -f "./certs/messenger.crt" ]];then
+    gen_client_csr "messenger"
+else
+    echo "SSL CSR/CRT files already exist, please make sure their validation. Otherwise, the services could not work normally."
+fi
