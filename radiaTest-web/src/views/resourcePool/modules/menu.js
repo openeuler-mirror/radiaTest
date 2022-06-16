@@ -237,7 +237,7 @@ function handleDownloadCert() {
   return new Promise((resolve, reject) => {
     getRootCert()
       .then((res) => {
-        const blob = new Blob(res.data);
+        const blob = new Blob(res);
         const link = document.createElement('a');
         link.download = 'radiatest.cacert.pem';
         link.style.display = 'none';
