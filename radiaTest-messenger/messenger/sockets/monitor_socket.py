@@ -80,6 +80,10 @@ class RemoteMonitorSocket(MonitorSocket):
     def on_end(self, data):
         if not data:
             return
+        if isinstance(data, str):
+            ip = data
+        else:
+            ip = data.get("ip")
         ip = data.get("ip")
         if not ip:
             return

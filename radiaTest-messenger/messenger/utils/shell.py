@@ -1,6 +1,7 @@
 from subprocess import getstatusoutput
 
 from flask import current_app
+from messenger.utils.pssh import ConnectionApi
 
 
 def local_cmd(cmd, conn=None):
@@ -8,7 +9,7 @@ def local_cmd(cmd, conn=None):
 
 
 def remote_cmd(cmd, conn):
-    return conn._command(cmd)
+    return conn.command(cmd)
 
 
 class ShellCmd:
@@ -43,3 +44,7 @@ class ShellCmd:
 class ShellCmdApi(ShellCmd):
     def exec(self):
         return self._exec()
+
+
+    def bexec(self):
+        return self._bexec()

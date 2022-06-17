@@ -152,6 +152,7 @@ class VmachineDataUpdateSchema(BaseModel):
     status: Optional[str]
     vnc_token: Optional[str]
     pmachine_id: Optional[str]
+    special_device: Optional[str]
 
 
 class VmachineConfigUpdateSchema(BaseModel):

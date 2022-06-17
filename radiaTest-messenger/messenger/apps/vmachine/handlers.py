@@ -9,7 +9,7 @@ import requests
 from flask import current_app, jsonify, request
 
 from messenger.utils import DateEncoder
-from messenger.utils.pssh import Connection
+from messenger.utils.pssh import ConnectionApi
 from messenger.utils.pxe import QueryIp
 from messenger.utils.token_creator import VncTokenCreator
 from messenger.utils.response_util import RET
@@ -94,11 +94,14 @@ class ChooseMirror(AuthMessageBody):
 
 
 class Messenger:
-    def __init__(self, auth, body, pmachine, api, method="put") -> None:
+    def __init__(self, auth, body, pmachine, api, method="put", 
+    vmachine=None, device=None) -> None:
         self.auth = auth
         self._api = api
         self._body = body
         self._pmachine = pmachine
+        self._vmachine = vmachine
+        self._device = device
         self._method = method
 
     @abc.abstractmethod
@@ -121,23 +124,23 @@ class Messenger:
                     **current_app.config.get("HEADERS")
                 },
             )
-            resp = response.text.encode(response.encoding).decode(
-                response.apparent_encoding
-            )
-            if response.status_code != 200:
-                return jsonify(error_code=response.status_code, error_msg=resp)
-
-            self._body.update({
-                "pmachine_id": self._pmachine.get("id"),
-            })
-
-            resp_dict = json.loads(resp)
-            
-            return self.handle_callback(resp_dict)
-
         except requests.RequestException as e:
             current_app.logger.error(e)
-            raise RecursionError(e)
+            raise RecursionError from e
+
+        resp = response.text.encode(response.encoding).decode(
+            response.apparent_encoding
+        )
+        if response.status_code != 200:
+            return jsonify(error_code=response.status_code, error_msg=resp)
+
+        self._body.update({
+            "pmachine_id": self._pmachine.get("id"),
+        })
+
+        resp_dict = json.loads(resp)
+        
+        return self.handle_callback(resp_dict)
 
 
 class CeleryMessenger(Messenger):
@@ -175,12 +178,12 @@ class SyncMessenger(Messenger):
 
 
 def check_available_mem(ip, pwd, port, user, vm_mem):
-    ssh = Connection(ip, pwd, port, user)
-    conn = ssh._conn()
+    ssh = ConnectionApi(ip, pwd, port, user)
+    conn = ssh.conn()
     if not conn:
         raise "failed to connect to physical machine."
-    _, avail_mem = ssh._command("free -g | sed -n '2p' | awk '{print $7}'")
-    ssh._close()
+    _, avail_mem = ssh.command("free -g | sed -n '2p' | awk '{print $7}'")
+    ssh.close()
     return int(avail_mem) > int(vm_mem)/1024 + 5
 
 
@@ -433,7 +436,10 @@ class DeleteVmachine(AuthMessageBody):
 
         if vmachine.get("vnc_port"):
             VncTokenCreator(pmachine.get("ip"), vmachine.get("vnc_port")).end()
-
+        if current_app.config.get("CA_VERIFY"):
+            _verify = True
+        else:
+            _verify = current_app.config.get("CA_CERT")
         _r = do_request(
             method="delete",
             url="https://{}/api/v1/vmachine/{}/force".format(
@@ -444,8 +450,7 @@ class DeleteVmachine(AuthMessageBody):
                 "content-type": "application/json;charset=utf-8",
                 "authorization": self.auth
             },
-            verify=True if current_app.config.get("CA_VERIFY") == "True" \
-            else current_app.config.get("CA_CERT")
+            verify=_verify
         )
 
         if _r != 0:
@@ -516,6 +521,10 @@ class DeviceManager(SyncMessenger):
         elif target == "vdisk":
             _url = "/api/v1/vdisk/{}/data".format(self._device.get("id"))
 
+        if current_app.config.get("CA_VERIFY"):
+            _verify = True
+        else:
+            _verify = current_app.config.get("CA_CERT")
         _r = do_request(
             method="delete",
             url="https://{}{}".format(
@@ -526,8 +535,7 @@ class DeviceManager(SyncMessenger):
                 "content-type": "application/json;charset=utf-8",
                 "authorization": self.auth
             },
-            verify=True if current_app.config.get("CA_VERIFY") == "True" \
-            else current_app.config.get("CA_CERT")
+            verify=_verify
         )
 
         if _r != 0:
@@ -611,12 +619,21 @@ class VmachineAsyncResultHandler:
 
         if body.get("method") == "cdrom":
             return jsonify(resp)
-
+        if body.get("method") == "auto":
+            body.update(
+                {
+                    "password": current_app.config.get("DEFAULT_VM_PASSWORD"),
+                }
+            )
         pxe = QueryIp(body.get("mac"))
 
         for _ in range(current_app.config.get("VM_ENABLE_SSH")):
             ip = pxe.query()
             if isinstance(ip, Response):
+                if current_app.config.get("CA_VERIFY") == "True":
+                    _verify = True
+                else:
+                    _verify = current_app.config.get("CA_CERT")
                 _r = do_request(
                     method="delete",
                     url="https://{}/api/v1/vmachine/{}/force".format(
@@ -627,8 +644,7 @@ class VmachineAsyncResultHandler:
                         "content-type": "application/json;charset=utf-8",
                         "authorization": auth
                     },
-                    verify=True if current_app.config.get("CA_VERIFY") == "True" \
-                    else current_app.config.get("CA_CERT")
+                    verify=_verify
                 )
 
                 if _r != 0:
@@ -639,8 +655,8 @@ class VmachineAsyncResultHandler:
 
                 return ip
 
-            ssh = Connection(ip, body.get("password"))
-            conn = ssh._conn()
+            ssh = ConnectionApi(ip, body.get("password"))
+            conn = ssh.conn()
             if conn:
                 break
             time.sleep(1)
@@ -673,8 +689,9 @@ class VmachineAsyncResultHandler:
             )[0]
 
         if repo:
-            ssh._command(
-                "mv /etc/yum.repos.d/openEuler.repo /etc/yum.repos.d/openEuler.repo.bak && echo -e '%s' > /etc/yum.repos.d/%s.repo"
+            ssh.command(
+                "mv /etc/yum.repos.d/openEuler.repo /etc/yum.repos.d/openEuler.repo.bak && \
+                 echo -e '%s' > /etc/yum.repos.d/%s.repo"
                 % (
                     repo.get("content"), 
                     body.get("milestone").replace(" ", "-")
@@ -682,7 +699,7 @@ class VmachineAsyncResultHandler:
             )
 
         if update_repo:
-            ssh._command(
+            ssh.command(
                 "echo -e '%s' > /etc/yum.repos.d/%s.repo"
                 % (
                     update_repo.get("content"), 
@@ -690,7 +707,7 @@ class VmachineAsyncResultHandler:
                 )
             )
 
-        ssh._close()
+        ssh.close()
 
         update_body = deepcopy(body)
         update_body.pop("id")

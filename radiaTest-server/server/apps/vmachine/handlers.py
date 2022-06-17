@@ -59,8 +59,9 @@ class VmachineMessenger:
         })
 
     @ssl_cert_verify_error_collect
-    def send_request(self, machine_group, api, method):
-        _resp = dict()
+    def send_request(self, machine_group, api, method, obj=None):
+        if obj is None:
+            obj = dict()
         if current_app.config.get("CA_VERIFY") == "True":
             _verify = True
         else:
@@ -78,7 +79,7 @@ class VmachineMessenger:
                 "content-type": "application/json;charset=utf-8",
                 "authorization": request.headers.get("authorization")
             },
-            obj=_resp,
+            obj=obj,
             verify=_verify,
         )
 
@@ -88,7 +89,7 @@ class VmachineMessenger:
                 error_msg="could not reach messenger of this machine group"
             )
 
-        return jsonify(_resp)
+        return jsonify(obj)
 
 
 class VmachineForceHandler:
