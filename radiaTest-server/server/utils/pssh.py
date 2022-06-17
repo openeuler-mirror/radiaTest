@@ -54,3 +54,16 @@ class Connection(SSH):
 
     def _close(self):
         self._client.close()
+
+
+class ConnectionApi(Connection):
+    def conn(self):
+        return self._conn()
+
+
+    def command(self, cmd):
+        return self._command(cmd)
+
+
+    def close(self):
+        return self._close()

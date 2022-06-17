@@ -2,7 +2,7 @@ from subprocess import getstatusoutput
 
 from flask import current_app
 
-from server.utils.pssh import Connection
+from server.utils.pssh import ConnectionApi
 
 
 def local_cmd(cmd, conn=None):
@@ -10,7 +10,7 @@ def local_cmd(cmd, conn=None):
 
 
 def remote_cmd(cmd, conn):
-    return conn._command(cmd)
+    return conn.command(cmd)
 
 
 class ShellCmd:
@@ -40,3 +40,12 @@ class ShellCmd:
             return False
 
         return True
+
+
+class ShellCmdApi(ShellCmd):
+    def exec(self):
+        return self._exec()
+
+
+    def bexec(self):
+        return self._bexec()

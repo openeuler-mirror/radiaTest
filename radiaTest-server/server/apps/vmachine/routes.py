@@ -199,7 +199,7 @@ class AttachDevice(Resource):
         vmachine = Vmachine.query.filter_by(id=body.vmachine_id).first()
         pmachine = vmachine.pmachine
         machine_group = pmachine.machine_group
-
+        resps = []
         _body = body.__dict__
         _body.update(
             {
@@ -212,6 +212,7 @@ class AttachDevice(Resource):
             machine_group,
             "/api/v1/attach",
             "post",
+            resps,
         )
 
 
