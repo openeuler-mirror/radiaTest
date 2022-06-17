@@ -47,8 +47,10 @@ def async_check_alive():
             "content-type": "application/json;charset=utf-8"
         },
         obj=_resp,
-        verify=True if celeryconfig.ca_verify =="True" \
-        else celeryconfig.cacert_path,
+        cert=(
+            celeryconfig.messenger_cert_path,
+            celeryconfig.messenger_key_path
+        ),
     )
     if  _r != 0 or _resp.get("error_code") != RET.OK:
         logger.warning("lost heartbeating of messenger service") 

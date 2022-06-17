@@ -53,11 +53,11 @@
                 :span="6"
                 label="类型"
                 path="permission_type"
-                v-if="isCreate"
               >
                 <n-cascader
                   v-model:value="createMachinesForm.permission_type"
                   placeholder="请选择"
+                  :disabled="!isCreate"
                   :options="typeOptions"
                   check-strategy="child"
                   remote

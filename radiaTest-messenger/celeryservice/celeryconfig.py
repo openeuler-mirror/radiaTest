@@ -13,10 +13,10 @@ def loads_config_ini(section, option):
     cfg = configparser.ConfigParser()
     cfg.read(config_ini)
 
-    if not cfg.get(section, option):
+    try:
+        return cfg.get(section, option)
+    except (configparser.NoSectionError, configparser.NoOptionError):
         return None
-
-    return cfg.get(section, option)
 
 
 # Broker settings
@@ -108,6 +108,8 @@ cacert_path = loads_config_ini("server", "CA_CERT")
 # messenger config
 messenger_ip = loads_config_ini("messenger", "MESSENGER_IP")
 messenger_listen = loads_config_ini("messenger", "MESSENGER_LISTEN")
+messenger_cert_path = loads_config_ini("messenger", "MESSENGER_CERT_PATH")
+messenger_key_path = loads_config_ini("messenger", "MESSENGER_KEY_PATH")
 
 # pxe config
 pxe_ip = loads_config_ini("pxe", "PXE_IP")
