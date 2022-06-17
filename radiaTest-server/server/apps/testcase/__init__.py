@@ -31,7 +31,7 @@ def init_api(api: Api):
     )
     api.add_resource(
         BaselineImportEvent,
-        "/api/v1/baseline/case_set",
+        "/api/v1/baseline/case-set",
     )
     api.add_resource(
         CaseBaselineCommitEvent,
@@ -46,7 +46,7 @@ def init_api(api: Api):
     api.add_resource(CaseImport, "/api/v1/case/import")
     api.add_resource(CaseRecycleBin, "/api/v1/case/recycle-bin")
     api.add_resource(
-        ResolveTestcaseByFilepath, "/api/v1/testcase/resolve_by_filepath"
+        ResolveTestcaseByFilepath, "/api/v1/testcase/resolve-by-filepath"
     )
     api.add_resource(
         TemplateCasesQuery, "/api/v1/template/cases/<int:git_repo_id>"
