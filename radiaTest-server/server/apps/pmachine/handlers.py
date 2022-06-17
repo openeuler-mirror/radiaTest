@@ -149,10 +149,6 @@ class PmachineMessenger:
     @ssl_cert_verify_error_collect
     def send_request(self, machine_group, api):
         _resp = dict()
-        if current_app.config.get("CA_VERIFY") == "True":
-            _verify = True
-        else:
-            _verify = current_app.config.get("CA_CERT")
         
         _r = do_request(
             method="put",
@@ -167,7 +163,7 @@ class PmachineMessenger:
                 "authorization": request.headers.get("authorization")
             },
             obj=_resp,
-            verify=_verify,
+            verify=current_app.config.get("CA_CERT"),
         )
 
         if _r != 0:
