@@ -71,6 +71,10 @@ fi
 
 if [[ ! -f "csr/server.csr" && ! -f "certs/server.crt" ]];then
     gen_client_csr "server"
+elif [[ ! -f "certs/server.crt" ]];then
+    echo "Using exist CSR: server.csr to ask CA Signature"
+    SAN=`gen_san_ext "[ SubjectAlternativeName ]\n"`
+    gen_server_cert "$SAN"
 else
     echo "SSL Certfile already exist, please make sure they are validation. Otherwise, the service could not work normally."
 fi

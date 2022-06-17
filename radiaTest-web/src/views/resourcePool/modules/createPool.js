@@ -8,7 +8,7 @@ const machinesFormRef = ref(null);
 const createMachinesForm = ref({
   name: undefined,
   description: undefined,
-  network_type: undefined,
+  network_type: 'LAN',
   ip: undefined,
   messenger_listen: undefined,
   permission_type: undefined,
@@ -102,7 +102,7 @@ function createMachines() {
     createMachinesForm.value = {
       name: undefined,
       description: undefined,
-      network_type: undefined,
+      network_type: 'LAN',
       ip: undefined,
       listen: undefined,
       permission_type: undefined,

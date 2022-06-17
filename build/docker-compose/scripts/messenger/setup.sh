@@ -46,10 +46,10 @@ fi
 
 if [[ ! -f "csr/messenger.csr" && ! -f "certs/messenger.crt" ]];then
     gen_client_csr "messenger"
-else if [[ ! -f "certs/messenger.crt" ]]
+elif [[ ! -f "certs/messenger.crt" ]];then
     echo "Using exist CSR: messenger.csr to ask CA Signature"
     SAN=`gen_san_ext "[ SubjectAlternativeName ]\n"`
-    gen_messenger_cert $SAN
+    gen_messenger_cert "$SAN"
 else
     echo "SSL CSR/CRT files already exist, please make sure their validation. Otherwise, the services could not work normally."
 fi
