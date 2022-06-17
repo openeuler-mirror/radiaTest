@@ -152,7 +152,7 @@ class SuiteEvent(Resource):
             if value:
                 body[key] = value
 
-        return Select(Suite, body).fuzz()
+        return GetAllByPermission(Suite).fuzz(body)
 
 
 class PreciseSuiteEvent(Resource):
@@ -165,7 +165,7 @@ class PreciseSuiteEvent(Resource):
             if value:
                 body[key] = value
 
-        return Select(Suite, body).precise()
+        return GetAllByPermission(Suite).precise(body)
 
 
 class PreciseCaseEvent(Resource):
