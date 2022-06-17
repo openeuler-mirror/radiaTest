@@ -79,10 +79,6 @@ class Config(object):
 
     # 上传服务端文件的暂存地址
     TMP_FILE_SAVE_PATH = "/tmp/"
-
-    # server的CA服务根目录
-    # 警告：若修改此项，需要更改部署配置，若缺失相应更改可能出现问题
-    CA_DIR = "/etc/radiaTest/server_ssl"
     
     # openEuler-QA团队配置
     # openEuler-QA团队名

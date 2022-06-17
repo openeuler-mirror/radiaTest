@@ -73,7 +73,7 @@ class ImportFile:
                 secure_filename(
                     ''.join(
                         lazy_pinyin(
-                            "{}{}.{}".format(
+                            "{}.{}.{}".format(
                                 self.filename, 
                                 datetime.datetime.now().strftime("%Y%m%d%H%M%S"), 
                                 self.filetype
