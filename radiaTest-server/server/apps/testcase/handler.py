@@ -237,7 +237,6 @@ class BaselineHandler:
     def create(body):
         _body = body.__dict__
         _body.update({"creator_id": g.gitee_id})
-        _body.update({"permission_type": "group"})
         _body.update({"org_id": redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')})
 
         if not body.parent_id:
@@ -384,7 +383,6 @@ class SuiteHandler:
     def create(body):
         _body = body.__dict__
         _body.update({"creator_id": g.gitee_id})
-        _body.update({"permission_type": "group"})
         _body.update({"org_id": redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')})
         _id = Insert(Suite, _body).insert_id(Suite, "/suite")
         return jsonify(error_code=RET.OK, error_msg="OK", data={"id": _id})
@@ -407,7 +405,6 @@ class CaseHandler:
         _body["suite_id"] = _suite.id
         _body.pop("suite")
         _body.update({"creator_id": g.gitee_id})
-        _body.update({"permission_type": "group"})
         _body.update({"org_id": redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')})
         _id = Insert(Case, _body).insert_id(Case, "/case")
         return jsonify(error_code=RET.OK, error_msg="OK", data={"id": _id})
@@ -428,7 +425,6 @@ class CaseHandler:
         _body["suite_id"] = _suite.id
         _body.pop("suite")
         _body.update({"creator_id": g.gitee_id})
-        _body.update({"permission_type": "group"})
         _body.update({"org_id": redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')})
 
         _id = Insert(Case, _body).insert_id(Case, "/case")
@@ -440,7 +436,6 @@ class CaseHandler:
             title=_body.get("name"),
             type="case",
             creator_id=g.gitee_id,
-            permission_type="group",
             org_id=redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id'),
         )
 

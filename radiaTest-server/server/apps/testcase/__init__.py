@@ -19,7 +19,7 @@ from .routes import (
     CaseCommitInfo,
     CaseCommitComment,
     CommitStatus,
-    CommitHistory
+    CommitHistory,
 )
 
 

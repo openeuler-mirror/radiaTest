@@ -8,8 +8,8 @@ from celery.utils.log import get_task_logger
 from celery.schedules import crontab
 
 from worker import celery
-from .lib.vmachine import InstallVmachine
-from .lib.monitor import IllegalMonitor
+from celeryservice.lib.vmachine import InstallVmachine
+from celeryservice.lib.monitor import IllegalMonitor
 
 __all__ = ['create_vmachine']
 

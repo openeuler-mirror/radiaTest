@@ -7,7 +7,7 @@ from typing import List
 
 from server.model.testcase import Suite, Case
 from server.schema.base import PermissionBase, UpdateBaseModel, PageBaseSchema
-from server.schema import MachineType, TestType, TestLevel, BaselineType
+from server.schema import MachineType, PermissionType, TestType, TestLevel, BaselineType
 
 
 class BaselineBodySchema(BaseModel):
@@ -19,6 +19,7 @@ class BaselineBodySchema(BaseModel):
     case_id: Optional[int]
     is_root: bool = True
     in_set: bool = False
+    permission_type: Optional[PermissionType] = "group"
 
     @root_validator
     def validate_suite(cls, values):
@@ -87,6 +88,7 @@ class SuiteBase(BaseModel):
     deleted: Optional[bool] = False
     owner: Optional[str]
     git_repo_id: Optional[int]
+    permission_type: Optional[PermissionType] = "group"
 
     @validator("add_disk")
     def check_add_disk(cls, v):
