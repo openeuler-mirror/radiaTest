@@ -108,8 +108,6 @@ cacert_path = loads_config_ini("server", "CA_CERT")
 # messenger config
 messenger_ip = loads_config_ini("messenger", "MESSENGER_IP")
 messenger_listen = loads_config_ini("messenger", "MESSENGER_LISTEN")
-messenger_cert_path = loads_config_ini("messenger", "MESSENGER_CERT_PATH")
-messenger_key_path = loads_config_ini("messenger", "MESSENGER_KEY_PATH")
 
 # pxe config
 pxe_ip = loads_config_ini("pxe", "PXE_IP")
