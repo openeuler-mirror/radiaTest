@@ -10,7 +10,7 @@ from flask import current_app
 from pydantic import BaseModel, conint, constr, Field, validator, root_validator
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from server.schema.base import PermissionBase
-
+from server.utils.iptype_util import ip_type
 from server.schema import (
     Frame,
     InstallMethod,
@@ -195,6 +195,16 @@ class VmachineDelaySchema(BaseModel):
                 % current_app.config.get("VM_MAX_DAYS")
             )
 
+        return v
+
+
+class VmachineIpaddrSchema(BaseModel):
+    ip: str
+
+    @validator("ip")
+    def check_ip_format(cls, v):
+        if not ip_type(v):
+            raise ValueError("The ip of vmachine is invaild.")
         return v
 
 

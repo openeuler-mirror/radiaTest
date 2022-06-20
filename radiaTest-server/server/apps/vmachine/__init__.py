@@ -16,6 +16,7 @@ from .routes import (
     VdiskData,
     VdiskItemData,
     PreciseVmachineEvent,
+    VmachineIpaddrItem,
 )
 
 
@@ -24,6 +25,7 @@ def init_api(api: Api):
     api.add_resource(PreciseVmachineEvent, "/api/v1/vmachine/preciseget")
     api.add_resource(VmachineItemForceEvent, "/api/v1/vmachine/<int:vmachine_id>/force")
     api.add_resource(VmachineDelayEvent, "/api/v1/vmachine/<int:vmachine_id>/delay")
+    api.add_resource(VmachineIpaddrItem, "/api/v1/vmachine/<int:vmachine_id>/ipaddr")
     api.add_resource(VmachineItemEvent, "/api/v1/vmachine/<int:vmachine_id>")
     api.add_resource(VmachineControl, "/api/v1/vmachine/power")
     api.add_resource(AttachDevice, "/api/v1/vmachine/attach")
