@@ -43,7 +43,7 @@ class ResourcePoolHandler:
     @staticmethod
     @collect_sql_error
     def get_all(query):
-        filter_params = GetAllByPermission(MachineGroup).get_filter()
+        filter_params = list()
         if query.text:
             filter_params.append(
                 or_(

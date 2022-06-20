@@ -38,7 +38,6 @@ import {
 } from 'naive-ui';
 import router from '@/router';
 import { createModalRef, createFormRef, importModalRef } from './createRef';
-import { getGroup as getGroups } from '@/api/get.js';
 
 function renderIcon(icon) {
   return () =>
@@ -131,10 +130,11 @@ function getGroup(node) {
       key: 'newDirectory',
       icon: renderIcon(CreateNewFolderOutlined),
     });
-    getGroups({
-      page_num: 1,
-      page_size: 99999,
-    })
+    axios
+      .get(`/v1/org/${node.key.replace('org-', '')}/groups`, {
+        page_num: 1,
+        page_size: 99999,
+      })
       .then((res) => {
         node.children = [];
         for (const item of res.data.items) {
