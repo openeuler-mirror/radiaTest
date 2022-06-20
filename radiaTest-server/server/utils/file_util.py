@@ -125,6 +125,8 @@ class ZipImportFile(ImportFile):
         self.filename, self.filetype = self._validate_filetype()
     
     def unicoding(self, name, dest_dir):
+        according = False
+
         try:
             new_name = name.encode('cp437').decode('utf-8')
         except (UnicodeEncodeError, UnicodeDecodeError):
@@ -132,7 +134,8 @@ class ZipImportFile(ImportFile):
                 new_name = name.encode('gbk').decode('utf-8')
             except (UnicodeEncodeError, UnicodeDecodeError):
                 new_name = name.encode('utf-8').decode('utf-8')
-        
+                according = True
+
         new_path = os.path.join(dest_dir, new_name)
         if os.path.isdir(new_path):
             rmtree(new_path)
@@ -142,9 +145,13 @@ class ZipImportFile(ImportFile):
             os.path.join(dest_dir, new_name)
         )
 
+        return not according
+
     def uncompress(self, dest_dir):
         if self.filetype == 'zip':
             zip_file = zipfile.ZipFile(self.filepath)
+            
+            require_delete_origin = True
 
             for name in zip_file.namelist():
                 # 过滤MAC OS压缩生成的缓存文件
@@ -153,16 +160,17 @@ class ZipImportFile(ImportFile):
                 
                 zip_file.extract(name, dest_dir)
 
-                self.unicoding(name, dest_dir)
+                require_delete_origin = self.unicoding(name, dest_dir)
             
-            tmp_filepath = os.path.join(dest_dir, zip_file.namelist()[0])
-            try:
-                rmtree(tmp_filepath)
-            except NotADirectoryError:
-                os.remove(tmp_filepath)
-                raise RuntimeError(
-                    "zipped object should be a dictionary as importing case set"
-                )
+            if require_delete_origin:
+                tmp_filepath = os.path.join(dest_dir, zip_file.namelist()[0])
+                try:
+                    rmtree(tmp_filepath)
+                except NotADirectoryError:
+                    os.remove(tmp_filepath)
+                    raise RuntimeError(
+                        "zipped object should be a dictionary as importing case set"
+                    )
             
             zip_file.close()
 
