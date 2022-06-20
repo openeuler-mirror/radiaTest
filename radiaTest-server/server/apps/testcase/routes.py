@@ -8,19 +8,17 @@ from server.utils.redis_util import RedisKey
 from server.utils.auth_util import auth
 from server.utils.response_util import RET, response_collect
 from server.utils.permission_utils import GetAllByPermission
-from server.model.testcase import Suite, Case, CommitComment
-from server.utils.db import Insert, Edit, Select, Delete, collect_sql_error
-from server.schema.base import DeleteBaseModel, PageBaseSchema
+from server.model.testcase import Suite, Case
+from server.utils.db import Edit, Delete, collect_sql_error
+from server.schema.base import PageBaseSchema
 from server.schema.celerytask import CeleryTaskUserInfoSchema
 from server.schema.testcase import (
     BaselineBodySchema,
     BaselineQuerySchema,
     BaselineItemQuerySchema,
     BaselineUpdateSchema,
-    SuiteBase,
     SuiteCreate,
     SuiteUpdate,
-    CaseBase,
     CaseCreate,
     CaseBaselineCommitCreate,
     CaseUpdate,
@@ -233,7 +231,17 @@ class CaseItemEvent(Resource):
     @auth.login_required()
     @response_collect
     def get(self, case_id):
-        return GetAllByPermission(Case).precise({"id": case_id})
+        case = Case.query.filter_by(id=case_id).first()
+        if not case:
+            return jsonify(
+                error_code=RET.OK,
+                error_msg="OK"
+            )
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+            data=case.to_json()
+        )
 
 class TemplateCasesQuery(Resource):
     @auth.login_required()

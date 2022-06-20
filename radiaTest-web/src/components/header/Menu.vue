@@ -34,36 +34,6 @@
     @click="handlePoolClick"
   >
     <template #text> <n-text>资源池</n-text> </template>
-    <!-- <template #menu>
-      <animate-button url="/home/resource-pool/pmachine" :size="270">
-        <template #icon>
-          <n-icon class="icon" size="160">
-            <computer-round />
-          </n-icon>
-        </template>
-        <template #text><n-text>物理机</n-text> </template>
-      </animate-button>
-      <animate-button url="/home/resource-pool/vmachine" :size="270">
-        <template #icon>
-          <n-icon class="icon" size="160">
-            <computer-round />
-          </n-icon>
-        </template>
-        <template #text> <n-text>虚拟机</n-text> </template>
-      </animate-button>
-      <animate-button
-        :disabled="true"
-        url="/home/resource-pool/docker"
-        :size="270"
-      >
-        <template #icon>
-          <n-icon class="icon" size="160">
-            <logo-docker />
-          </n-icon>
-        </template>
-        <template #text> <n-text>Docker</n-text> </template>
-      </animate-button>
-    </template> -->
   </my-tab>
   <my-tab url="/home/testing">
     <template #text> <n-text>测试中心</n-text> </template>
@@ -135,7 +105,9 @@ export default defineComponent({
         router.push('/home');
       },
       handlePoolClick() {
-        router.push({ name: 'resourcePool' });
+        if (router.currentRoute.value.name !== 'pmachine' && router.currentRoute.value !== 'vmachine') {
+          router.push({ name: 'resourcePool' });
+        }
       }
     };
   },

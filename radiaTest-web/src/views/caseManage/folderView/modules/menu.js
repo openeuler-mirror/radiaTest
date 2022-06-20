@@ -23,7 +23,7 @@ import { changeLoadingStatus } from '@/assets/utils/loading';
 import { putModalRef, updateModalRef } from './editRef';
 import { getDetail } from '@/views/caseManage/folderView/taskDetails/modules/details.js';
 import store from '@/store';
-import { getCaseDetail } from '@/api/get';
+import { getCaseDetail, getCasePrecise } from '@/api/get';
 import {
   NButton,
   NFormItem,
@@ -441,7 +441,7 @@ function getCase(id) {
     return '';
   }
   currentCase = id;
-  getCaseDetail({
+  getCasePrecise({
     suite_id: id,
   })
     .then((res) => {
@@ -783,8 +783,8 @@ const actionHandlder = {
         });
       } else if (key === 'case') {
         const id = contextmenu.info.case_id;
-        getCaseDetail({ id }).then((res) => {
-          store.commit('rowData/set', res.data[0]);
+        getCaseDetail(id).then((res) => {
+          store.commit('rowData/set', res.data);
           updateModalRef.value.show();
         });
       }

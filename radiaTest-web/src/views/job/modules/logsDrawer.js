@@ -99,8 +99,8 @@ const getCases = (id) => {
   }
 };
 
-const getCaseDetail = (_case) => {
-  getCase({ id: _case }).then((res) => {
+const getCaseDetail = (id) => {
+  getCase(id).then((res) => {
     if (res.data?.length === 0) {
       window.$message?.error(
         '无法获取本测试用例详细数据，请联系管理员进行处理'

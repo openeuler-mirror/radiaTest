@@ -163,7 +163,6 @@ class TestcaseHandler(TaskAuthHandler):
         if baseline:
             return baseline.id
         else:
-            _body.update({"permission_type": "group"})
             baseline_id = self.create_baseline(_body)
 
             return baseline_id
@@ -219,7 +218,7 @@ class TestcaseHandler(TaskAuthHandler):
             else current_app.config.get("CA_CERT")
 
             _resp = requests.post(
-                url="https:{}/api/v1/testcase/resolve-by-filepath".format(
+                url="https://{}/api/v1/testcase/resolve-by-filepath".format(
                     current_app.config.get("SERVER_ADDR"),
                 ),
                 data=json.dumps(body),
@@ -407,12 +406,3 @@ class TestcaseHandler(TaskAuthHandler):
             )
 
             return jsonify(error_code=RET.SERVER_ERR, error_msg=str(e))
-
-        finally:
-            if os.path.exists(zip_filepath):
-                os.remove(zip_filepath)
-                if unzip_filepath and os.path.exists(unzip_filepath):
-                    if os.path.isdir(unzip_filepath):
-                        shutil.rmtree(unzip_filepath)
-                    else:
-                        os.remove(unzip_filepath)

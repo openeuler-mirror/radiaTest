@@ -89,7 +89,10 @@ export function getCaseReviewDetails (id, data) {
 export function getCaseReviewComment (id, data) {
   return getRequest(`/v1/case/${id}/comment`, data);
 }
-export function getCaseDetail (data) {
+export function getCaseDetail (id, data) {
+  return getRequest(`/v1/case/${id}`, data);
+}
+export function getCasePrecise (data) {
   return getRequest('/v1/case', data);
 }
 export function getExtendRole (data) {

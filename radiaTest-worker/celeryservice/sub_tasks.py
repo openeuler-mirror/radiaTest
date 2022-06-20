@@ -7,7 +7,7 @@ sys.path.append(BASE_DIR)
 from celery.utils.log import get_task_logger
 
 from worker import celery
-from .lib.monitor import VmStatusMonitor
+from celeryservice.lib.monitor import VmStatusMonitor
 
 __all__ = ['async_vmstatus_monitor']
 

@@ -61,12 +61,11 @@ function getDetail () {
   getCaseReviewDetails(commit).then(res => {
     detailInfo.value = res.data;
     newContent.value = res.data;
-    getCaseDetail({
-      id: res.data.case_detail_id
-    }).then((response) => {
-      [oldContent.value] = response.data;
-      content.value = detailContent();
-    });
+    getCaseDetail(res.data.case_detail_id)
+      .then((response) => {
+        oldContent.value = response.data;
+        content.value = detailContent();
+      });
   });
 }
 const statusTag = {

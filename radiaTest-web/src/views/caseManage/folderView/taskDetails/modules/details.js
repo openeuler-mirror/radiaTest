@@ -167,17 +167,15 @@ function getDetail (caseId) {
     .get(`/v1/baseline/${caseId}`)
     .then((res) => {
       source.value = res.data.source;
-      getCaseDetail({
-        id: res.data.case_id,
-      })
+      getCaseDetail(res.data.case_id) 
         .then((response) => {
-          [caseInfo.value] = response.data;
+          caseInfo.value = response.data;
           caseInfo.value.title = res.data.title;
-          if (response.data[0].git_repo?.framework?.id) {
+          if (response.data.git_repo?.framework?.id) {
             axios
-              .get(`/v1/framework/${response.data[0].git_repo.framework.id}`)
+              .get(`/v1/framework/${response.data.git_repo.framework.id}`)
               .then((result) => {
-                [caseInfo.value.framework] = result.data;
+                caseInfo.value.framework = result.data;
                 setDataList(caseInfo.value);
               });
           } else {

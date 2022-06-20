@@ -243,7 +243,7 @@ export default {
     if(this.$route.name === 'resourcePool' && this.expandeds.at(-1) !== 'pool'){
       this.$router.push(
         {
-          'name': 'pmachine',
+          'name': this.activeTab,
           'params': { machineId: this.expandeds.at(-1)}
         }
       );

@@ -47,12 +47,9 @@ export default defineComponent({
     const formValue = ref({});
 
     const getData = () => {
-      getCaseDetail({
-        id: testcaseTable.rowData.value.id,
-        name: testcaseTable.rowData.value.name,
-      })
+      getCaseDetail(testcaseTable.rowData.value.id)
         .then((res) => {
-          [formValue.value] = res.data;
+          formValue.value = res.data;
         })
         .catch(() => {
           window.$message?.error('无法获取数据');
