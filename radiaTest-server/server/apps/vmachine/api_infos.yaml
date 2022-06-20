@@ -8,3 +8,6 @@ vmachine:
   - uri: /api/v1/vmachine/%d
     act: put
     alias: 修改Vmachine
+  - uri: /api/v1/vmachine/%d/ipaddr
+    act: put
+    alias: 修改Vmachine的ip地址
