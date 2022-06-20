@@ -53,8 +53,7 @@ class VmachineBaseSchema(AuthTaskHandler):
                 "authorization": self.auth,
                 **celeryconfig.headers,
             },
-            verify=True if celeryconfig.ca_verify == "True" else \
-            celeryconfig.cacert_path,
+            verify=celeryconfig.cacert_path,
         )
 
 
