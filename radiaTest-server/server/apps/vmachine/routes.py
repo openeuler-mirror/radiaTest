@@ -29,6 +29,7 @@ from server.schema.vmachine import (
     VnicBaseSchema,
     VdiskBaseSchema,
     VnicCreateSchema,
+    VmachineIpaddrSchema,
 )
 from server.utils.auth_util import auth
 from server.utils.db import Delete, Edit, Like, Select, Insert
@@ -179,6 +180,20 @@ class VmachineDelayEvent(Resource):
         _body.update(
             {
                 "id": vmachine_id
+            }
+        )
+        return Edit(Vmachine, _body).single(Vmachine, "/vmachine")
+
+
+class VmachineIpaddrItem(Resource):
+    @auth.login_required
+    @response_collect
+    @validate()
+    def put(self, vmachine_id, body: VmachineIpaddrSchema):
+        _body = body.__dict__
+        _body.update(
+            {
+                "id": vmachine_id,
             }
         )
         return Edit(Vmachine, _body).single(Vmachine, "/vmachine")
