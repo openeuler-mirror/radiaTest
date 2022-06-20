@@ -1,27 +1,38 @@
 import { h, ref } from 'vue';
-import { NTag, NButton, NSpace, NTooltip, NGradientText } from 'naive-ui';
+import { NTag, NIcon, NButton, NSpace, NTooltip, NGradientText } from 'naive-ui';
 
 import ExpandedCard from '@/components/vmachineComponents/ExpandedCard';
 
 import { deleteAjax } from '@/assets/CRUD/delete';
 import { deleteVm } from '@/api/delete';
-import { modifyDelayTime } from '@/api/put';
+import { modifyDelayTime, modifyVmachineIp } from '@/api/put';
 import { formatTime } from '@/assets/utils/dateFormatUtils';
 import { get } from '@/assets/CRUD/read';
 import vmachineTable from '@/views/vmachine/modules/vmachineTable.js';
 import textDialog from '@/assets/utils/dialog';
+import { WarningRound } from '@vicons/material';
+import { validateIpaddress } from '@/assets/utils/formUtils';
+
+const ipaddrModalRef = ref();
+const ipaddr = ref({
+  ip: '',
+  id: '',
+});
 
 const delayModalRef = ref();
 const delay = ref({
   time: '',
   id: '',
 });
+
 const getColumnExpand = () => {
   return {
     type: 'expand',
     renderExpand: (rowData) => {
       if (rowData.status === 'installing') {
         return h('div', null, '虚拟机正在安装');
+      } else if (!rowData.ip && (!rowData.vnc_token || !rowData.vnc_port)) {
+        return h('div', null, '缺乏IP以及VNC相关参数，该虚拟机暂不可用');
       }
       return h(ExpandedCard, {
         data: rowData,
@@ -40,6 +51,50 @@ const ColumnDefault = [
     title: 'IP 地址',
     key: 'ip',
     className: 'cols ip',
+    render(row) {
+      return h(
+        NTooltip,
+        {
+          trigger: 'hover',
+        },
+        {
+          trigger: () => {
+            return h(
+              'p',
+              {
+                style: {
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer'
+                },
+                onClick: () => {
+                  ipaddr.value.ip = row.ip;
+                  ipaddr.value.id = row.id;
+                  ipaddrModalRef.value.show();
+                },
+              },
+              row.ip
+                ? h(NGradientText,{type: 'info'}, row.ip)
+                : [
+                  h(
+                    NIcon,
+                    {
+                      color: 'grey',
+                      size: 18,
+                    },
+                    {
+                      default: () => h(WarningRound)
+                    }
+                  ),
+                  h('span',{style: {color: 'grey'}},'Unknown')
+                ]
+            );
+          },
+          default: () => row.ip ? '若IP发生变动，此处需要手动变更' : 'IP未分配，若已有IP需要手动录入',
+        }
+      );
+    }
   },
   {
     title: '架构',
@@ -156,6 +211,7 @@ const ColumnOperate = {
 const createColumns = () => {
   return [getColumnExpand(), ...ColumnDefault, ColumnState, ColumnOperate];
 };
+
 function submitDelay() {
   modifyDelayTime(delay.value.id, {
     end_time: formatTime(delay.value.time, 'yyyy-MM-dd hh:mm:ss'),
@@ -166,4 +222,33 @@ function submitDelay() {
   });
 }
 
-export { delay, delayModalRef, createColumns, submitDelay,ColumnDefault };
+function submitIpaddr() {
+  modifyVmachineIp(ipaddr.value.id, {
+    ip: ipaddr.value.ip,
+  }).then(() => {
+    ipaddr.value.id = '';
+    ipaddrModalRef.value.close();
+    get.list('/v1/vmachine', vmachineTable.totalData, vmachineTable.loading);
+  });
+}
+
+const ipaddrRule = ref({
+  ip: {
+    required: true,
+    validator: validateIpaddress,
+    trigger: ['blur'],
+  },
+});
+
+export { 
+  ipaddrRule,
+  ipaddr,
+  delay, 
+  ipaddrModalRef,
+  delayModalRef, 
+  createColumns, 
+  submitDelay,
+  submitIpaddr, 
+  ColumnDefault 
+};
+
