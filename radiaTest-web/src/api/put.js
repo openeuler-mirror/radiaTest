@@ -17,6 +17,9 @@ function putRequest (url, data) {
 export function modifyRepo (id, data) {
   return putRequest(`/v1/git-repo/${id}`, data);
 }
+export function modifyVmachineIp (id, data) {
+  return putRequest(`/v1/vmachine/${id}/ipaddr`, data);
+}
 export function modifyDelayTime (id, data) {
   return putRequest(`/v1/vmachine/${id}/delay`, data);
 }

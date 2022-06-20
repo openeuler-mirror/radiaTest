@@ -134,7 +134,7 @@ const validateIpaddress = (rule, value) => {
     !/^(([0-9]|[0-9]{2}|[0-9]{3})\.){3}([0-9]|[0-9]{2}|[0-9]{3})$/.test(
       value
     ) &&
-        value
+      value
   ) {
     return new Error('IP地址不合法');
   } 

@@ -1,6 +1,6 @@
 from typing import Optional
 
-from pydantic import constr, root_validator
+from pydantic import BaseModel, constr, root_validator
 
 from server.model import Product
 from server.utils.db import Precise
@@ -35,3 +35,9 @@ class ProductUpdate(UpdateBaseModel):
         if product and product.id != values.get("id"):
             raise ValueError("The version of product has existed.")
         return values
+
+
+class ProductQueryBase(BaseModel):
+    name: Optional[constr(max_length=32)]
+    version: Optional[constr(max_length=32)]
+    description: Optional[constr(max_length=255)]

@@ -34,7 +34,7 @@ const getProductOpts = (productOpts, loading) => {
   loading ? (loading.value = true) : 0;
   productOpts.value = [];
   axios
-    .get('/v1/product')
+    .get('/v1/product/preciseget')
     .then((res) => {
       loading ? (loading.value = false) : 0;
       res.data.forEach((item) => {
@@ -59,7 +59,7 @@ const getVersionOpts = (versionOpts, productName, loading) => {
   loading ? (loading.value = true) : 0;
   versionOpts.value = [];
   axios
-    .get('/v1/product', { name: productName })
+    .get('/v1/product/preciseget', { name: productName })
     .then((res) => {
       loading ? (loading.value = false) : 0;
       versionOpts.value = res.data.map((item) => {

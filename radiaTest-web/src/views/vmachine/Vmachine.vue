@@ -38,6 +38,19 @@
     <n-gi :span="24"></n-gi>
     <n-gi :span="24">
       <vmachine-table ref="tableRef" @update="() => updateModalRef.show()" />
+      <modal-card title="修改虚拟机IP" ref="ipaddrModalRef" @validate="submitIpaddr">
+        <template #form>
+          <n-form :model="ipaddr" :rules="ipaddrRule">
+            <n-form-item path="ip" label="虚拟机IP地址">
+              <n-input 
+                style="width: 100%"
+                v-model:value="ipaddr.ip"
+                placeholder="请确保手动录入的IP有效"
+              />
+            </n-form-item>
+          </n-form>
+        </template>
+      </modal-card>
       <modal-card title="延期" ref="delayModalRef" @validate="submitDelay">
         <template #form>
           <n-form-item label="释放时间">
@@ -107,7 +120,7 @@ import { ref, defineComponent } from 'vue';
 import settings from '@/assets/config/settings.js';
 import Common from '@/components/CRUD';
 import Essential from '@/components/vmachineComponents';
-import { delayModalRef, delay, submitDelay } from './modules/vmachineTableColumns';
+import { ipaddrModalRef, delayModalRef, ipaddr, delay, submitIpaddr, submitDelay, ipaddrRule } from './modules/vmachineTableColumns';
 export default defineComponent({
   components: {
     ...Common,
@@ -123,12 +136,16 @@ export default defineComponent({
     return {
       settings,
       tableRef,
+      ipaddrRule,
       createFormRef,
       updateFormRef,
       createModalRef,
       updateModalRef,
+      ipaddrModalRef,
       delayModalRef,
+      submitIpaddr,
       submitDelay,
+      ipaddr,
       delay,
     };
   },

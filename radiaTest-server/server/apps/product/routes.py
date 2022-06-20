@@ -4,10 +4,9 @@ from flask_pydantic import validate
 
 from server.model import Product, Milestone
 from server.utils.auth_util import auth
-from server.utils.db import Insert, Delete, Edit, Select
+from server.utils.db import Edit, Select
 
-from server.schema.base import DeleteBaseModel
-from server.schema.product import ProductBase, ProductUpdate
+from server.schema.product import ProductBase, ProductQueryBase, ProductUpdate
 from server.utils.permission_utils import GetAllByPermission
 from server.utils.resource_utils import ResourceManager
 from server import casbin_enforcer
@@ -43,3 +42,10 @@ class ProductEvent(Resource):
     def get(self):
         body = request.args.to_dict()
         return GetAllByPermission(Product).fuzz(body)
+
+
+class PreciseProductEvent(Resource):
+    @auth.login_required
+    @validate()
+    def get(self, body: ProductQueryBase):
+        return GetAllByPermission(Product).precise(body.__dict__)

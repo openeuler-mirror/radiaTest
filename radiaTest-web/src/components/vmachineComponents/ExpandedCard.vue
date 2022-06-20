@@ -2,7 +2,7 @@
   <n-card hoverable>
     <n-space vertical>
       <n-tabs type="line">
-        <n-tab-pane name="configs" tab="概览">
+        <n-tab-pane name="configs" tab="概览" v-if="data.ip">
           <n-grid x-gap="24" y-gap="48">
             <n-gi :span="24"></n-gi>
             <n-gi :span="6">
@@ -102,7 +102,7 @@
             @refresh="() => context.emit('change')"
           />
         </n-tab-pane>
-        <n-tab-pane name="nics" tab="网卡配置">
+        <n-tab-pane name="nics" tab="网卡配置" v-if="data.ip">
           <div
             style="
               width: 100%;
@@ -143,7 +143,7 @@
           </div>
           <nics-data-table :id="data.id" ref="nics" />
         </n-tab-pane>
-        <n-tab-pane name="disks" tab="硬盘配置">
+        <n-tab-pane name="disks" tab="硬盘配置" v-if="data.ip">
           <div
             style="
               width: 100%;
