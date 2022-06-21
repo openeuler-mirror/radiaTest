@@ -16,9 +16,9 @@ def make_celery(app_name):
                 'routing_key': 'celerytask_status',
                 'delivery_mode': 1,
             },
-            'celeryservice.tasks.async_check_vmachine_lifecycle': {
-                'queue': 'queue_check_vmachine_lifecycle',
-                'routing_key': 'vmachine_lifecycle',
+            'celeryservice.tasks.async_check_machine_lifecycle': {
+                'queue': 'queue_check_machine_lifecycle',
+                'routing_key': 'machine_lifecycle',
                 'delivery_mode': 1,
             },
             'celeryservice.tasks.async_read_git_repo': {
