@@ -19,14 +19,14 @@ class MessageManager:
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         with open(os.path.join(base_dir,'config/api_infos.yaml'), 'r', encoding='utf-8') as f:
             api_infos = yaml.load(f.read(), Loader=yaml.FullLoader)
-        
+        uri_arr = uri.split("/")
         for _api in api_infos:
-            if method == _api.get("act") and _api.get("uri").split("%")[0] in uri:
-                uri_s =  _api.get("uri").split("%")
-                uri_t1 = uri_s[0]
-                uri_t2 = uri_s[1] if len(uri_s) > 1 else ""
-                indx = uri.index(uri_t1)
-                _api["id"] = uri[indx:].replace(uri_t1, "").replace(uri_t2, "")
+            if method == _api.get("act") and _api.get("uri").split("%")[0] in uri \
+                and (uri_arr[-1].isdigit() or (not uri_arr[-1].isdigit() and _api.get("uri").split("%")[1] in uri)):
+                if uri_arr[-1].isdigit():
+                    _api["id"] = uri_arr[-1]
+                else:
+                    _api["id"] = uri_arr[-2]
                 _instance =  Precise(
                     getattr(TableAdapter, _api["table"]), {"id": int(_api["id"])},
                 ).first()
