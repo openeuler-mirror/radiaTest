@@ -7,53 +7,51 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 ####################################
-# @Author  : 
-# @email   : 
-# @Date    : 
+# @Author  :
+# @email   :
+# @Date    :
 # @License : Mulan PSL v2
 
 
 #####################################
 
 import re
-import json
 import datetime
 
 from flask import current_app
 
 from server.model.product import Product
 from server.model.milestone import Milestone
-from server.model.testcase import Case, Suite
-from server.utils.db import Insert
-from server.utils.response_util import RET
-from server.apps.milestone.handler import MilestoneOpenApiHandler
-from server.schema.milestone import MilestoneCreateSchema
+from server.model.testcase import Case, Suite, Baseline
+from server.model.group import ReUserGroup, GroupRole
+from server.utils.db import Insert, Precise
 
 
 class UpdateTaskForm:
     def __init__(self, body):
         self._body = body.__dict__
-        self.cases = []
         self.product_id = None
         self.milestone_id = None
         self.title = None
+        self.group = None
 
 
 class UpdateTaskHandler:
     @staticmethod
-    def get_product_id(form):
-        _product = Product.query.filter_by(
-            name=form._body.get("product"), 
-            version=form._body.get("version"),
-        ).first()
+    def get_product_id(form: UpdateTaskForm):
+        product_body = {
+            "name": form._body.get("product"),
+            "version": form._body.get("version"),
+            "permission_type": "group",
+            "group_id": form.group.id,
+            "org_id": form.group.org_id
+        }
+        _product = Precise(Product, product_body).first()
 
         if not _product:
             form.product_id = Insert(
-                Product, 
-                {
-                    "name": form._body.get("product"), 
-                    "version": form._body.get("version")
-                }
+                Product,
+                product_body
             ).insert_id()
         else:
             form.product_id = _product.id
@@ -67,77 +65,57 @@ class UpdateTaskHandler:
                 "name": form.title,
                 "product_id": form.product_id,
                 "type": "update",
-                "is_sync": True,
-                "end_time": datetime.datetime.now() + datetime.timedelta(
+                "is_sync": False,
+                "start_time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "end_time": (datetime.datetime.now() + datetime.timedelta(
                     days=current_app.config.get("OE_QA_UPDATE_TASK_PERIOD")
-                )
+                )).strftime("%Y-%m-%d %H:%M:%S"),
+                "permission_type": "group",
+                "creator_id": ReUserGroup.query.filter_by(
+                    group_id=form.group.id,
+                    role_type=GroupRole.create_user.value
+                ).first().user_gitee_id,
+                "group_id": form.group.id,
+                "org_id": form.group.org_id
             }
-            _resp = MilestoneOpenApiHandler(
-                MilestoneCreateSchema(**body).__dict__
-            ).create()
-
-            _r = None
-            try:
-                _r = _resp.json
-            except AttributeError:
-                _r = json.loads(_resp.text)
-            
-            if _r.get("error_code") != RET.OK:
-                form.milestone_id = Insert(
-                    Milestone, 
-                    {
-                        "name": form.title,
-                        "product_id": form.product_id,
-                        "type": "update",
-                        "is_sync": False,
-                        "start_time": datetime.datetime.now(),
-                        "end_time": datetime.datetime.now() + datetime.timedelta(
-                            days=current_app.config.get("OE_QA_UPDATE_TASK_PERIOD")
-                        )
-                    }
-                ).insert_id()
-            else:
-                _milestone = Milestone.query.filter_by(name=form.title).first()
-                if not _milestone:
-                    raise RuntimeError(
-                        "create milestone fail either of sync or not sync method"
-                    )
-                form.milestone_id = _milestone.id
+            form.milestone_id = Insert(
+                Milestone,
+                body
+            ).insert_id()
         else:
             form.milestone_id = _milestone.id
 
     @staticmethod
-    def suites_to_cases(form: UpdateTaskForm):
+    def create_baseline(form: UpdateTaskForm):
+        milestone = Milestone.query.get(form.milestone_id)
+        root_baseline_body = {
+            "group_id": form.group.id,
+            "title": milestone.name,
+            "type": "directory",
+            "milestone": milestone.id,
+            "org_id": form.group.org_id
+        }
+        root_baseline = Precise(
+            Baseline, root_baseline_body).first()
+        if not root_baseline:
+            root_baseline = Insert(Baseline, root_baseline_body).insert_obj()
         for suite in form._body.get("pkgs"):
             _suite = Suite.query.filter_by(name=suite).first()
-
             if not _suite:
-                _suite_id = Insert(Suite, {"name": suite}).insert_id()
-
-                _case_id = Insert(
-                    Case, 
-                    {
-                        "name": "oe_test_{}_cases_implement".format(suite), 
-                        "suite_id": _suite_id,
-                        "description": "请补充用例",
-                        "steps": "1.调研软件包，查阅文档，制定测试方案\n\n2.编写文本用例\n\n3.若可以实现自动化，补充自动化脚本用例，并向代码仓提交PR",
-                        "expection": "至少补充文本用例，若可以自动化，并且可开源，则需向代码仓提交PR",
-                        "remark": "本用例仅为占位说明，在补充后请手动删除",
-                        "automatic": False,
-                    }
-                ).insert_id()
-
-                if _case_id:
-                    form.cases.append(_case_id)
-            
-            else:
-                _cases_object = _suite.case
-
-                _cases_list = [_case.to_json() for _case in _cases_object]
-
-                _cases_name = list(map(lambda case: case["id"], _cases_list))
-
-                form.cases += _cases_name
+                _suite = Insert(Suite, {"name": suite}).insert_obj()
+            baseline_body = {
+                "group_id": form.group.id,
+                "title": _suite.name,
+                "type": "suite",
+                "suite_id": _suite.id,
+                "org_id": form.group.org_id,
+                "is_root": False
+            }
+            _ = Precise(Milestone, baseline_body).first()
+            if not _:
+                _ = Insert(Baseline, baseline_body).insert_obj()
+                root_baseline.children.append(_)
+        root_baseline.add_update()
 
 
 class UpdateRepo:

@@ -29,8 +29,8 @@ from flask_pydantic import validate
 from server import casbin_enforcer
 from server.utils.auth_util import auth
 from server.schema.external import (
-    LoginOrgListSchema, 
-    OpenEulerUpdateTaskBase, 
+    LoginOrgListSchema,
+    OpenEulerUpdateTaskBase,
     VmachineExistSchema,
     DeleteCertifiSchema
 )
@@ -46,7 +46,6 @@ from .handler import UpdateRepo, UpdateTaskHandler, UpdateTaskForm
 
 class UpdateTaskEvent(Resource):
     @validate()
-    @ssl_cert_verify_error_collect
     def post(self, body: OpenEulerUpdateTaskBase):
         form = UpdateTaskForm(body)
 
@@ -56,9 +55,10 @@ class UpdateTaskEvent(Resource):
 
         if not _group:
             return {"error_code": RET.TASK_WRONG_GROUP_NAME, "error_msg": "invalid group name by openEuler QA config"}
-        
+
         group = _group[0]
 
+        form.group = group
         # get product_id
         UpdateTaskHandler.get_product_id(form)
 
@@ -67,7 +67,7 @@ class UpdateTaskEvent(Resource):
 
         result = re.findall(pattern, body.base_update_url)
 
-        if  not result:
+        if not result:
             return {"error_code": RET.WRONG_INSTALL_WAY, "error_msg": "invalid repo url format"}
 
         form.title = "{} {} {}".format(
@@ -80,7 +80,7 @@ class UpdateTaskEvent(Resource):
         UpdateTaskHandler.get_milestone_id(form)
 
         # get cases
-        UpdateTaskHandler.suites_to_cases(form)
+        UpdateTaskHandler.create_baseline(form)
 
         #create repo config content
         update_repo = UpdateRepo(body)
@@ -89,16 +89,16 @@ class UpdateTaskEvent(Resource):
         # insert or update repo config and use internal task execute api
         for frame in ["aarch64", "x86_64"]:
             repo = Repo.query.filter_by(
-                milestone_id=form.milestone_id, 
+                milestone_id=form.milestone_id,
                 frame=frame
             ).first()
 
             if not repo:
                 Insert(
-                    Repo, 
+                    Repo,
                     {
-                        "content": update_repo.content, 
-                        "frame": frame, 
+                        "content": update_repo.content,
+                        "frame": frame,
                         "milestone_id": form.milestone_id
                     }
                 ).single(Repo, "/repo")
@@ -107,31 +107,10 @@ class UpdateTaskEvent(Resource):
                     Repo,
                     {
                         "id": repo.id,
-                        "content": update_repo.content, 
+                        "content": update_repo.content,
                     }
                 ).single(Repo, "/repo")
 
-            _verify = True if current_app.config.get("CA_VERIFY") == "True" \
-            else current_app.config.get("CA_CERT")
-
-            resp = requests.post(
-                url="https://{}/api/v1/tasks/execute".format(
-                    current_app.config.get("SERVER_ADDR")
-                ),
-                data=json.dumps({
-                    "title": "{} {}".format(form.title, frame),
-                    "milestone_id": form.milestone_id,
-                    "group_id": group.id,
-                    "frame": frame,
-                    "cases": form.cases,
-                }),
-                headers=current_app.config.get("HEADERS"),
-                verify=_verify,
-            )
-            if isinstance(resp, dict):
-                return resp
-
-        # return response
         return {"error_code": RET.OK, "error_msg": "OK"}
 
 
@@ -149,7 +128,7 @@ class LoginOrgList(Resource):
 
         return jsonify(
             error_code=RET.OK,
-            error_msg="OK", 
+            error_msg="OK",
             data=return_data
         )
 
@@ -197,7 +176,7 @@ class CaCert(Resource):
             filename=request.form.get("ip"),
             filetype="csr"
         )
-        
+
         try:
             csr_file.file_save(
                 "{}/csr".format(
@@ -212,7 +191,7 @@ class CaCert(Resource):
                 ),
                 500
             )
-        
+
         certs_dir = "{}/certs".format(
             current_app.config.get("CA_DIR")
         )
@@ -224,9 +203,9 @@ class CaCert(Resource):
                 ),
                 500
             )
-        
+
         certs_path = f"{certs_dir}/{_messenger_ip}.crt"
-        
+
         caconf_path = "{}/conf/ca.cnf".format(current_app.config.get("CA_DIR"))
 
         exitcode, output = getstatusoutput(
@@ -253,7 +232,7 @@ class CaCert(Resource):
     # @casbin_enforcer.enforcer()
     @validate()
     def delete(self, body: DeleteCertifiSchema):
-        
+
         exitcode, output = getstatusoutput(
             "openssl ca -revoke {0}/certs/{1}.crt -config {0}/openssl.cnf".format(
                 current_app.config.get("CA_DIR"),
