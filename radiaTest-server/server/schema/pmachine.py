@@ -9,7 +9,7 @@ from flask import current_app
 from dateutil.relativedelta import relativedelta
 from pydantic import conint, BaseModel, constr, validator, root_validator
 from sqlalchemy import and_, or_
-
+import sqlalchemy
 from server.schema.base import PageBaseSchema
 from server.schema import (
     Frame, 
@@ -229,9 +229,7 @@ class PmachineBaseSchema(BaseModel):
             current_app.config.get("CI_HOST"),
         ]:
             values["start_time"] = datetime.datetime.now()
-            values["end_time"] = (
-                datetime.datetime.now() + relativedelta(years=+99)
-            ).strftime("%Y-%m-%d %H:%M:%S")
+            values["end_time"] = sqlalchemy.null()
             values["state"] = "occupied"
 
             if not all(
@@ -273,6 +271,25 @@ class PmachineUpdateSchema(PmachineBaseSchema):
     def check_bmc_ip_format(cls, v):
         if not ip_type(v):
             raise ValueError("this bmc_ip of machine group format error")
+        return v
+
+
+class PmachineDelaySchema(BaseModel):
+    end_time: Optional[datetime.datetime]
+ 
+    @validator("end_time")
+    def check_end_time(cls, v):
+        if not v:
+            raise ValueError(
+                "Empty time cannot be modified."
+            )
+        if v > (datetime.datetime.now()
+                + datetime.timedelta(days=current_app.config.get("MAX_OCUPY_TIME"))
+            ):
+            raise ValueError(
+                "The max occupation duration is %s days."
+                % current_app.config.get("MAX_OCUPY_TIME")
+            )
         return v
 
 

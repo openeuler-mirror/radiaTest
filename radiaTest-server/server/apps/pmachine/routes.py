@@ -6,6 +6,7 @@ import datetime
 
 from flask import request, jsonify, current_app, Response
 from flask_restful import Resource
+import sqlalchemy
 from flask_pydantic import validate
 
 from server import casbin_enforcer
@@ -24,7 +25,8 @@ from server.schema.pmachine import (
     PmachineUpdateSchema,
     PmachineInstallSchema,
     PmachinePowerSchema,
-    HeartbeatUpdateSchema
+    HeartbeatUpdateSchema,
+    PmachineDelaySchema,
 )
 from .handlers import PmachineHandler, PmachineMessenger, ResourcePoolHandler
 
@@ -145,7 +147,8 @@ class PmachineItemEvent(Resource):
                 _body.update(
                     {
                         "description": "",
-                        "occupier": ""
+                        "occupier": "",
+                        "end_time": sqlalchemy.null()
                     }
                 )
         _body = body.__dict__
@@ -190,6 +193,26 @@ class PmachineEvent(Resource):
     @validate()
     def get(self, query: PmachineQuerySchema):
         return PmachineHandler.get_all(query)
+
+
+class PmachineDelayEvent(Resource):
+    @auth.login_required
+    @response_collect
+    @validate()
+    def put(self, pmachine_id, body: PmachineDelaySchema):
+        pmachine = Pmachine.query.filter_by(id=pmachine_id).first()
+        if pmachine.end_time is None:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR, 
+                error_msg="Empty end_time cannot be modified."
+            )
+        _body = body.__dict__
+        _body.update(
+            {
+                "id": pmachine_id
+            }
+        )        
+        return Edit(Pmachine, _body).single(Pmachine, "/pmachine")
 
 
 class Install(Resource):
