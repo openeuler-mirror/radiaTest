@@ -8,6 +8,9 @@ pmachine:
   - uri: /api/v1/pmachine/%d
     act: put
     alias: 修改Pmachine
+  - uri: /api/v1/pmachine/%d/delay
+    act: put
+    alias: 修改Pmachine占用时间
 machine_group:
   - uri: /api/v1/machine-group/%d
     act: delete
