@@ -23,6 +23,9 @@ export function modifyVmachineIp (id, data) {
 export function modifyDelayTime (id, data) {
   return putRequest(`/v1/vmachine/${id}/delay`, data);
 }
+export function modifyPmachineDelayTime (id, data) {
+  return putRequest(`/v1/pmachine/${id}/delay`, data);
+}
 export function modifyCommitStatus (id, data) {
   return putRequest(`/v1/case/commit/${id}`, data);
 }

@@ -8,7 +8,8 @@ import { EditOutlined } from '@vicons/antd';
 import { 
   Delete28Regular,
   ArrowSync20Regular,
-  CalendarCheckmark24Regular 
+  CalendarCheckmark24Regular,
+  TextDescription20Regular 
 } from '@vicons/fluent';
 import { Add } from '@vicons/ionicons5';
 import { NButton, NIcon } from 'naive-ui';
@@ -50,6 +51,8 @@ function renderPrefix({ option }) {
           return h(AutoAwesomeMosaicOutlined);
         } else if (option.key.indexOf('server') !== -1) {
           return h(CircleSharp);
+        } else if (option.key.startsWith('description')) {
+          return h(TextDescription20Regular);
         }
         return h(AirplayFilled);
       },
@@ -190,6 +193,10 @@ function handleTreeLoad (node) {
           info:item,
           suffix: item.ip,
           children: [
+            {
+              label: item.description,
+              key: `description-${item.id}`
+            },
             {
               label: 'messenger服务',
               key: `messenger_server-${item.id}`,

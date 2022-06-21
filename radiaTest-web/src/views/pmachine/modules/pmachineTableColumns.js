@@ -1,5 +1,5 @@
 import { h, ref } from 'vue';
-import { NSpace, NTag, NIcon, NButton } from 'naive-ui';
+import { NSpace, NTag, NIcon, NButton, NTooltip, NGradientText } from 'naive-ui';
 import { Construct } from '@vicons/ionicons5';
 import { Locked } from '@vicons/carbon';
 import { renderTooltip } from '@/assets/render/tooltip';
@@ -8,6 +8,16 @@ import PowerButton from '@/components/pmachineComponents/changeState/PowerButton
 import ConnectButton from '@/components/pmachineComponents/changeState/ConnectButton';
 import InstallButton from '@/components/pmachineComponents/changeState/InstallButton';
 import ExpandedCard from '@/components/pmachineComponents/ExpandedCard';
+import { formatTime } from '@/assets/utils/dateFormatUtils';
+import pmachineTable from './pmachineTable';
+import { modifyPmachineDelayTime } from '@/api/put';
+import { get } from '@/assets/CRUD/read';
+
+const delayModalRef = ref();
+const delay = ref({
+  time: '',
+  id: '',
+});
 
 const ColumnEndtime = ref({
   title: '释放时间',
@@ -15,6 +25,32 @@ const ColumnEndtime = ref({
   className: 'cols endtime',
   sorter: true,
   sortOrder: false,
+  render(row) {
+    return h(
+      NTooltip,
+      {
+        trigger: 'hover',
+      },
+      {
+        trigger: () => {
+          return h(
+            NGradientText,
+            {
+              type: 'info',
+              style: 'cursor:pointer',
+              onClick: () => {
+                delay.value.time = new Date(row.end_time).getTime();
+                delay.value.id = row.id;
+                delayModalRef.value.show();
+              },
+            },
+            row.end_time
+          );
+        },
+        default: () => '延长期限',
+      }
+    );
+  } 
 });
 
 const ColumnState = {
@@ -178,4 +214,22 @@ const createColumns = (updateHandler) => {
   ];
 };
 
-export { ColumnDefault, createColumns, ColumnEndtime };
+function submitDelay() {
+  modifyPmachineDelayTime(delay.value.id, {
+    end_time: formatTime(delay.value.time, 'yyyy-MM-dd hh:mm:ss'),
+  }).then(() => {
+    delay.value.id = '';
+    delay.value.time = '';
+    get.list('/v1/pmachine', pmachineTable.totalData, pmachineTable.loading);
+  });
+}
+
+export { 
+  ColumnDefault, 
+  createColumns, 
+  ColumnEndtime, 
+  submitDelay, 
+  delay, 
+  delayModalRef 
+};
+
