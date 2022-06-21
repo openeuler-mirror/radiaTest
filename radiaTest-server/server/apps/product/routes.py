@@ -46,6 +46,11 @@ class ProductEvent(Resource):
 
 class PreciseProductEvent(Resource):
     @auth.login_required
-    @validate()
-    def get(self, body: ProductQueryBase):
-        return GetAllByPermission(Product).precise(body.__dict__)
+    def get(self):
+        body = dict()
+
+        for key, value in request.args.to_dict().items():
+            if value:
+                body[key] = value
+
+        return GetAllByPermission(Product).precise(body)
