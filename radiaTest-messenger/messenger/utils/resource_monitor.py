@@ -4,7 +4,7 @@ import time
 import abc
 
 from messenger import socketio
-from messenger.utils.pssh import Connection
+from messenger.utils.pssh import ConnectionApi
 from messenger.utils.bash import ResourceQueryCli
 
 
@@ -47,7 +47,7 @@ class RemoteShellMonitor(ResourceMonitor):
         while self.watcher_num >= 0:
             if self.watcher_num == 0:
                 if self.ssh_client:
-                    self.ssh_client._close()
+                    self.ssh_client.close()
                 break
 
             if not self.ssh_client:
@@ -60,24 +60,24 @@ class RemoteShellMonitor(ResourceMonitor):
             time.sleep(1)
 
     def _connect(self):
-        self.ssh_client = Connection(
+        self.ssh_client = ConnectionApi(
             self.ip, 
             self.password, 
             self.port, 
             self.user
         )
-        return self.ssh_client._conn()
+        return self.ssh_client.conn()
 
     def get_data(self):
-        mem_total = self.ssh_client._command(ResourceQueryCli.mem_total_cli)[1]
-        mem_usage = self.ssh_client._command(ResourceQueryCli.mem_usage_cli)[1]
-        cpu_usage = self.ssh_client._command(ResourceQueryCli.cpu_usage_cli)[1]
-        cpu_index = self.ssh_client._command(ResourceQueryCli.cpu_index_cli)[1]
-        cpu_num = self.ssh_client._command(ResourceQueryCli.cpu_num_cli)[1]
-        cpu_physical_cores = self.ssh_client._command(ResourceQueryCli.cpu_physical_cores_cli)[1]
-        cpu_logical_cores = self.ssh_client._command(ResourceQueryCli.cpu_logical_cores_cli)[1]
-        os_info = self.ssh_client._command(ResourceQueryCli.os_cli)[1]
-        kernel_info = self.ssh_client._command(ResourceQueryCli.kernel_cli)[1]
+        mem_total = self.ssh_client.command(ResourceQueryCli.mem_total_cli)[1]
+        mem_usage = self.ssh_client.command(ResourceQueryCli.mem_usage_cli)[1]
+        cpu_usage = self.ssh_client.command(ResourceQueryCli.cpu_usage_cli)[1]
+        cpu_index = self.ssh_client.command(ResourceQueryCli.cpu_index_cli)[1]
+        cpu_num = self.ssh_client.command(ResourceQueryCli.cpu_num_cli)[1]
+        cpu_physical_cores = self.ssh_client.command(ResourceQueryCli.cpu_physical_cores_cli)[1]
+        cpu_logical_cores = self.ssh_client.command(ResourceQueryCli.cpu_logical_cores_cli)[1]
+        os_info = self.ssh_client.command(ResourceQueryCli.os_cli)[1]
+        kernel_info = self.ssh_client.command(ResourceQueryCli.kernel_cli)[1]
         
         cpu_physical_cores_real = cpu_logical_cores
         if cpu_physical_cores and cpu_num:

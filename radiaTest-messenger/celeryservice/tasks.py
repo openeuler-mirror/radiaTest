@@ -8,7 +8,7 @@ from celery.utils.log import get_task_logger
 
 from celeryservice import celeryconfig
 from celeryservice.lib.job.handler import RunSuite, RunTemplate
-from messenger.utils.pssh import Connection
+from messenger.utils.pssh import ConnectionApi
 from messenger.utils.requests_util import do_request
 from messenger.utils.response_util import RET
 
@@ -54,18 +54,18 @@ def async_check_alive():
         heartbeat_status["messenger_alive"] = False
 
     # ssh pxe
-    ssh_client = Connection(
+    ssh_client = ConnectionApi(
         ip=celeryconfig.pxe_ip,
         user=celeryconfig.pxe_ssh_user,
         port=celeryconfig.pxe_ssh_port,
         pkey=celeryconfig.pxe_pkey
     )
 
-    result = ssh_client._conn()
+    result = ssh_client.conn()
     if not result:
         heartbeat_status["pxe_alive"] = False
     else:
-        ssh_client._close()
+        ssh_client.close()
 
     # ping dhcp
     exitcode, output = subprocess.getstatusoutput(

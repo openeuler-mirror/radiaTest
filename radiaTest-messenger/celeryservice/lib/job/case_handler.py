@@ -11,7 +11,7 @@ from celeryservice import celeryconfig
 from celeryservice.lib import TaskAuthHandler
 from celeryservice.lib.adapter.log_resolver_adapter import LogResolverAdapter
 from celeryservice.lib.adapter.executor_adapter import ExecutorAdaptor
-from messenger.utils.pssh import Connection
+from messenger.utils.pssh import ConnectionApi
 from messenger.utils.requests_util import create_request, do_request, query_request, update_request
 from messenger.utils.response_util import RET
 from messenger.apps.vmachine.handlers import DeleteVmachine, DeviceManager
@@ -302,14 +302,14 @@ class RunCaseHandler(TaskAuthHandler):
         master = random.choice(machines)
         self._body.update({"master": master.get("ip")})
 
-        ssh = Connection(
+        ssh = ConnectionApi(
             master.get("ip"),
             master.get("password"),
             master.get("port"),
             master.get("user"),
         )
         for _ in range(current_app.config.get("VM_ENABLE_SSH")):
-            conn = ssh._conn()
+            conn = ssh.conn()
             if conn:
                 break
 

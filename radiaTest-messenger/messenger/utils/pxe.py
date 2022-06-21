@@ -7,7 +7,7 @@ from .response_util import RET
 
 
 from messenger.utils.shell import ShellCmd
-from messenger.utils.pssh import Connection
+from messenger.utils.pssh import ConnectionApi
 from messenger.utils.bash import (
     check_ip,
     judge_bind,
@@ -25,13 +25,13 @@ class DHCP:
         if ShellCmd(check_ip(current_app.config.get("PXE_IP")))._bexec():
             self._conn = None
         else:
-            self._conn = Connection(
+            self._conn = ConnectionApi(
                 current_app.config.get("PXE_IP"),
                 port=current_app.config.get("PXE_SSH_PORT"),
                 user=current_app.config.get("PXE_SSH_USER"),
                 pkey=current_app.config.get("PRIVATE_KEY"),
             )
-            self._conn._conn()
+            self._conn.conn()
 
 
 class PxeInstall(DHCP):
@@ -47,7 +47,7 @@ class PxeInstall(DHCP):
             exitcode, output = ShellCmd(backup_conf(), self._conn)._exec()
             if exitcode:
                 current_app.logger.error(output)
-                self._conn._close()
+                self._conn.close()
                 return jsonify(
                     {
                         {
@@ -63,7 +63,7 @@ class PxeInstall(DHCP):
                 exitcode, output = ShellCmd(restore_dhcp(), self._conn)._exec()
                 if exitcode:
                     current_app.logger.error(output)
-                    self._conn._close()
+                    self._conn.close()
                     return jsonify(
                         {
                             {
@@ -73,7 +73,7 @@ class PxeInstall(DHCP):
                         }
                     )
 
-                self._conn._close()
+                self._conn.close()
                 return jsonify(
                     {
                         "error_code": RET.NET_CONF_ERR,
@@ -94,7 +94,7 @@ class PxeInstall(DHCP):
             exitcode, output = ShellCmd(restore_dhcp(), self._conn)._exec()
             if exitcode:
                 current_app.logger.error(output)
-                self._conn._close()
+                self._conn.close()
                 return jsonify(
                     {
                         {
@@ -104,7 +104,7 @@ class PxeInstall(DHCP):
                     }
                 )
 
-            self._conn._close()
+            self._conn.close()
             return jsonify(
                 {{"error_code": RET.NET_CONF_ERR, "error_msg": "Failed to bind mac address."}}
             )
@@ -118,7 +118,7 @@ class PxeInstall(DHCP):
             if exitcode1 or exitcode2:
                 current_app.logger.error(output1)
                 current_app.logger.error(output2)
-                self._conn._close()
+                self._conn.close()
                 return jsonify(
                     {
                         {
@@ -128,7 +128,7 @@ class PxeInstall(DHCP):
                     }
                 )
 
-            self._conn._close()
+            self._conn.close()
             return jsonify(
                 {
                     {
@@ -148,10 +148,10 @@ class CheckInstall:
 
     def check(self):
         # TODO pxe安装后的密码，后续需要处理（lemon.higgins）
-        client = Connection(self._ip, "openEuler12#$")  
+        client = ConnectionApi(self._ip, "openEuler12#$")  
 
         for _ in range(1800):
-            conn = client._conn()
+            conn = client.conn()
             if conn:
                 break
             time.sleep(1)
