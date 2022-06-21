@@ -1,13 +1,17 @@
 import datetime
-
+from celeryservice import celeryconfig
+import sqlalchemy
+from server.utils.requests_util import do_request
+from server.utils.response_util import RET
 from server import db
 from server.model.vmachine import Vmachine
+from server.model.pmachine import Pmachine
 from celeryservice.lib import TaskHandlerBase
 
 
 
 class LifecycleMonitor(TaskHandlerBase):
-    def main(self):
+    def check_vmachine_lifecycle(self):
         v_machines = Vmachine.query.all()
 
         for vmachine in v_machines:
@@ -23,3 +27,33 @@ class LifecycleMonitor(TaskHandlerBase):
                 db.session.delete(vmachine)
         
         db.session.commit()
+
+
+    def check_pmachine_lifecycle(self):
+        filter_params = [
+            Pmachine.state == "occupied",
+            Pmachine.end_time.isnot(None),
+        ]
+        pmachines = Pmachine.query.filter(*filter_params).all()
+
+        for pmachine in pmachines:
+            end_time = pmachine.end_time
+
+            if (datetime.datetime.now() > end_time):
+                self.logger.info(
+                    "pmachine {} is going to be released, with end_time {}".format(
+                        pmachine.id, 
+                        pmachine.end_time
+                    )
+                )
+
+                pmachine.state = "idle"
+                pmachine.end_time = sqlalchemy.null()
+                pmachine.description = ""
+                pmachine.occupier = ""
+                pmachine.add_update(Pmachine, "/pmachine")
+
+
+    def main(self):
+        self.check_pmachine_lifecycle()
+        self.check_vmachine_lifecycle()

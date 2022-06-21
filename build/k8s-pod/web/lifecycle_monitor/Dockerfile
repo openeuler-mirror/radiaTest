@@ -16,4 +16,4 @@
 FROM radia-test/gunicorn
 LABEL maintainer="ethanzhang55@outlook.com"
 
-CMD celery -A manage.my_celery worker --loglevel=info --hostname=celery_worker_lifecycle_monitor --queues=queue_check_vmachine_lifecycle
+CMD celery -A manage.my_celery worker --loglevel=info --hostname=celery_worker_lifecycle_monitor --queues=queue_check_machine_lifecycle

@@ -61,7 +61,7 @@ def setup_periodic_tasks(sender, **kwargs):
         10.0, async_update_celerytask_status.s(), name="update_celerytask_status"
     )
     sender.add_periodic_task(
-        crontab(minute='*/30'), async_check_vmachine_lifecycle.s(), name="check_vmachine_lifecycle"
+        crontab(minute='*/30'), async_check_machine_lifecycle.s(), name="check_machine_lifecycle"
     )
     sender.add_periodic_task(
         crontab(minute='*/60'), async_read_git_repo.s(), name="read_git_repo"
@@ -102,7 +102,7 @@ def async_update_celerytask_status():
 
 
 @celery.task
-def async_check_vmachine_lifecycle():
+def async_check_machine_lifecycle():
     LifecycleMonitor(logger).main()
 
 
