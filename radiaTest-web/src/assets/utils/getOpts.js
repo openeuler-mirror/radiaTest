@@ -34,7 +34,7 @@ const getProductOpts = (productOpts, loading) => {
   loading ? (loading.value = true) : 0;
   productOpts.value = [];
   axios
-    .get('/v1/product/preciseget')
+    .get('/v1/product')
     .then((res) => {
       loading ? (loading.value = false) : 0;
       res.data.forEach((item) => {

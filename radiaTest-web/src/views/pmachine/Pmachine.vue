@@ -69,6 +69,18 @@
     <n-gi :span="24"></n-gi>
     <n-gi :span="24">
       <pmachine-table ref="tableRef" @update="() => updateModalRef.show()" />
+      <modal-card title="延长占用时间" ref="delayModalRef" @validate="submitDelay">
+        <template #form>
+          <n-form-item label="释放时间">
+            <n-date-picker
+              style="width: 100%"
+              v-model:value="delay.time"
+              type="date"
+              :is-date-disabled="(current) => delay.time > current"
+            />
+          </n-form-item>
+        </template>
+      </modal-card>
       <modal-card
         title="修改物理机"
         url="/v1/pmachine"
@@ -146,6 +158,7 @@ import { ref, defineComponent } from 'vue';
 import settings from '@/assets/config/settings.js';
 import Common from '@/components/CRUD';
 import Essential from '@/components/pmachineComponents';
+import { delay, delayModalRef, submitDelay } from './modules/pmachineTableColumns';
 
 export default defineComponent({
   components: {
@@ -160,6 +173,9 @@ export default defineComponent({
     const updateModalRef = ref(null);
 
     return {
+      delay,
+      delayModalRef,
+      submitDelay,
       settings,
       tableRef,
       createFormRef,

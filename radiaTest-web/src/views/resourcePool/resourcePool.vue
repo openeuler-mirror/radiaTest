@@ -215,28 +215,23 @@ export default {
       const updateData = JSON.parse(data);
       if (Array.isArray(updateData)) {
         updateData.forEach((item) => {
-          const it = this.menuOptions[0].children.find(
-            (i) => i.key === String(item.id)
-          );
-          const pxeHeartbeat =
-            new Date(item.pxe_last_heartbeat).getTime() - Date.now();
-          const messenger =
-            new Date(item.messenger_last_heartbeat).getTime() - Date.now();
-          const dhcp = new Date(item.dhcp_last_heartbeat) - Date.now();
-          it.children[0].suffix = this.getTimeDiff(Math.abs(messenger));
-          it.children[0].label = 'messenger服务';
-          it.children[1].label = 'pxe服务';
-          it.children[1].suffix = this.getTimeDiff(Math.abs(pxeHeartbeat));
-          it.children[2].label = 'dhcp服务';
-          it.children[2].suffix = this.getTimeDiff(Math.abs(dhcp));
-          it.children[0].color = 'rgba(0,0,0,0)';
-          it.children[1].color = 'rgba(0,0,0,0)';
-          it.children[2].color = 'rgba(0,0,0,0)';
-          setTimeout(() => {
-            it.children[0].color = item.messenger_alive ? 'green' : 'red';
-            it.children[1].color = item.pxe_alive ? 'green' : 'red';
-            it.children[2].color = item.dhcp_alive ? 'green' : 'red';
-          }, 50);
+          const it = this.menuOptions[0].children.find((i) => i.key === String(item.id));
+          if (it) {
+            const pxeHeartbeat = new Date(item.pxe_last_heartbeat).getTime() - Date.now();
+            const messenger = new Date(item.messenger_last_heartbeat).getTime() - Date.now();
+            const dhcp = new Date(item.dhcp_last_heartbeat) - Date.now();
+            it.children[1].suffix = this.getTimeDiff(Math.abs(messenger));
+            it.children[2].suffix = this.getTimeDiff(Math.abs(pxeHeartbeat));
+            it.children[3].suffix = this.getTimeDiff(Math.abs(dhcp));
+            it.children[1].color = 'rgba(0,0,0,0)';
+            it.children[2].color = 'rgba(0,0,0,0)';
+            it.children[3].color = 'rgba(0,0,0,0)';
+            setTimeout(() => {
+              it.children[1].color = item.messenger_alive ? 'green' : 'red';
+              it.children[2].color = item.pxe_alive ? 'green' : 'red';
+              it.children[3].color = item.dhcp_alive ? 'green' : 'red';
+            }, 50);
+          }
         });
       }
     });
