@@ -1,7 +1,7 @@
 import shlex
 from flask import current_app
 from subprocess import getstatusoutput
-from messenger.utils.pssh import Connection
+from messenger.utils.pssh import ConnectionApi
 from typing import Optional
 from pydantic import BaseModel, conint, constr, Field, validator, root_validator
 import datetime
@@ -82,12 +82,12 @@ class PmachineEventSchema(PmachineBaseSchema):
             ):
                 raise ValueError("ip address is not available.")
 
-            conn = Connection(
+            conn = ConnectionApi(
                 str(values.get("ip")),
                 str(values.get("password")),
                 values.get("port"),
                 str(values.get("user")),
-            )._conn()
+            ).conn()
             if not conn:
                 raise ValueError(
                     "The information provided cannot be used in normal login using SSH."

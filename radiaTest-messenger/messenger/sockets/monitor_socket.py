@@ -84,7 +84,7 @@ class RemoteMonitorSocket(MonitorSocket):
             ip = data
         else:
             ip = data.get("ip")
-        ip = data.get("ip")
+
         if not ip:
             return
 

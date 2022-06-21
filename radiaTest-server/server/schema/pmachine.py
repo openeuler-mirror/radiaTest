@@ -18,7 +18,7 @@ from server.schema import (
     MachineGroupNetworkType
 )
 from server.utils.db import Precise
-from server.utils.pssh import Connection
+from server.utils.pssh import ConnectionApi
 from server.model import Pmachine, MachineGroup
 from server.schema.base import PermissionBase
 from server.utils.iptype_util import ip_type

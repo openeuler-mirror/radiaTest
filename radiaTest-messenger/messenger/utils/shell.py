@@ -1,7 +1,6 @@
 from subprocess import getstatusoutput
 
 from flask import current_app
-from messenger.utils.pssh import ConnectionApi
 
 
 def local_cmd(cmd, conn=None):

@@ -31,7 +31,7 @@ const getColumnExpand = () => {
     renderExpand: (rowData) => {
       if (rowData.status === 'installing') {
         return h('div', null, '虚拟机正在安装');
-      } else if (!rowData.ip && (!rowData.vnc_token || !rowData.vnc_port)) {
+      } else if (!rowData.ip && (!rowData.vnc_token || rowData.vnc_port === null)) {
         return h('div', null, '缺乏IP以及VNC相关参数，该虚拟机暂不可用');
       }
       return h(ExpandedCard, {
