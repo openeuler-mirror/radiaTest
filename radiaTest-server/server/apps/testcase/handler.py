@@ -653,7 +653,7 @@ class HandlerCaseReview(object):
     @staticmethod
     @collect_sql_error
     def handler_case_detail(commit_id):
-        commit = Commit.query.fiter_by(id=commit_id).first()
+        commit = Commit.query.filter_by(id=commit_id).first()
         if not commit:
             return jsonify(
                 error_code=RET.NO_DATA_ERR,
