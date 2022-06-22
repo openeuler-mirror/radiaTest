@@ -25,6 +25,8 @@ const pagination = reactive({
   pageCount: 1,
   itemCount: 1,
   pageSize: 10,
+  showSizePicker: true,
+  pageSizes: [5, 10, 20, 50]
 });
 
 //get table data
@@ -73,6 +75,14 @@ function turnPages(page) {
   pagination.page = page;
   getDataList();
 }
+
+//change table page size
+function turnPageSize(pageSize) {
+  pagination.pageSize = pageSize;
+  pagination.page = 1;
+  getDataList();
+}
+
 function groupRowProps(row, rowIndex) {
   return {
     style: 'cursor: pointer;',
@@ -339,5 +349,6 @@ export {
   activeIndex,
   getDataList,
   turnPages,
+  turnPageSize,
   groupRowProps,
 };

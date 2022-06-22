@@ -10,7 +10,13 @@ const showIssueDrawer = ref(false);
 const isCheck = ref(false);
 const loading = ref(true);
 const isUpdating = ref(false);
-const pagination = ref({ page: 1, pageCount: 1, pageSize: 10 });
+const pagination = ref({ 
+  page: 1, 
+  pageCount: 1, 
+  pageSize: 10,
+  showSizePicker: true,
+  pageSizes: [5, 10, 20, 50]
+});
 const filter = ref({
   name: '',
   page_num: pagination.value.page,
@@ -52,6 +58,11 @@ function changePage(page) {
   filter.value.page_num = page;
   getTableData();
 }
+function changePageSize(pageSize) {
+  pagination.value.page = 1;
+  pagination.value.pageSize = pageSize;
+  getTableData();
+}
 
 export default {
   data,
@@ -68,5 +79,6 @@ export default {
   showIssueDrawer,
   pagination,
   changePage,
+  changePageSize,
   getTableData,
 };

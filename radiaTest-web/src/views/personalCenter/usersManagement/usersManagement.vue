@@ -27,6 +27,7 @@
               :data="usersData"
               :loading="loading"
               @update:page="handlePageChange"
+              @update:page-size="handlePageSizeChange"
             />
           </n-layout-content>
         </n-layout>

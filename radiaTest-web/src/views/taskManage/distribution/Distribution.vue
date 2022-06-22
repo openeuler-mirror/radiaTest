@@ -170,6 +170,7 @@
         :single-line="false"
         :pagination="templatePagination"
         @update:page="handleTemplatePageChange"
+        @update:page-size="handleTemplatePageSizeChange"
       />
     </n-scrollbar>
   </div>

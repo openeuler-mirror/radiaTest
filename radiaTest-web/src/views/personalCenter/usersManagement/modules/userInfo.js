@@ -11,6 +11,8 @@ const pagination = ref({
   page: 1,
   pageCount: 1,
   pageSize: 10,
+  showSizePicker: true,
+  pageSizes: [5, 10, 20, 50]
 });
 const actionUrl = ref('');
 
@@ -74,6 +76,11 @@ function getUserInfo () {
 }
 function handlePageChange(page) {
   pagination.value.page = page;
+  getUserTableData();
+}
+function handlePageSizeChange(pageSize) {
+  pagination.value.page = 1;
+  pagination.value.pageSize = pageSize;
   getUserTableData();
 }
 function deleteRole(row) {
@@ -163,4 +170,5 @@ export {
   pagination,
   getUserInfo,
   handlePageChange,
+  handlePageSizeChange,
 };
