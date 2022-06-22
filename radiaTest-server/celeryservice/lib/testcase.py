@@ -80,6 +80,8 @@ class TestcaseHandler(TaskAuthHandler):
                             "name": case.get("suite"),
                             "group_id": self.user.get("group_id"),
                             "org_id": self.user.get("org_id"),
+                            "creator_id": self.user.get("user_id"),
+                            "permission_type": "group",
                         }
                     ).single(Suite, '/suite')
                     _suite = Suite.query.filter_by(
@@ -99,6 +101,10 @@ class TestcaseHandler(TaskAuthHandler):
             del case["suite"]
 
             if not _case:
+                case["group_id"] = self.user.get("group_id")
+                case["org_id"] = self.user.get("org_id")
+                case["creator_id"] = self.user.get("user_id")
+                case["permission_type"] = "group"
                 Insert(Case, case).single(Case, "/case")
 
                 _case = Case.query.filter_by(name=case.get("name")).first()
