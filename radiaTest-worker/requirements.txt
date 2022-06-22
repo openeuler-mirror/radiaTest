@@ -1,3 +1,4 @@
+gunicorn==20.0.4
 gevent==21.8.0
 Flask_Script==2.0.6
 Flask_Migrate==2.7.0
@@ -14,3 +15,6 @@ redis==3.0.0
 paramiko==2.8.0
 wheel==0.37.1
 psutil==5.8.0
+itsdangerous==2.0.1
+Werkzeug==2.0.2
+Jinja2==3.0.2
