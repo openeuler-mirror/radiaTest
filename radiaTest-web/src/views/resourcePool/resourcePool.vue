@@ -126,8 +126,8 @@
           show-trigger="arrow-circle"
           :style="{ height: contentHeight + 'px' }"
         >
-          <n-alert title="提示" type="default" closable :show-icon="false">
-            机器组端SSL证书均为radiaTest服务端统一颁发，请<n-button type="info" text @click="handleDownloadCert">下载</n-button>并安装CA根证书以批量信任
+          <n-alert title="使用须知" type="warning" closable>
+            请<n-button type="info" text @click="handleDownloadCert">下载</n-button>并安装根证书以批量信任机器组端服务，以免无法正常使用资源池
           </n-alert>
           <n-tree
             block-line

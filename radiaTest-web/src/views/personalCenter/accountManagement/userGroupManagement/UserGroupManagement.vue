@@ -223,7 +223,10 @@ export default {
       },
       deep: true
     }
-  }
+  },
+  unmounted() {
+    modules.allRole.value = {};
+  },
 };
 </script>
 <style lang="less" scope>

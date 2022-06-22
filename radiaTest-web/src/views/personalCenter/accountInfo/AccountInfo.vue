@@ -167,6 +167,9 @@ export default {
     });
     return { ...modules, createAvatar };
   },
+  unmounted() {
+    modules.allRole.value = {};
+  },
 };
 </script>
 <style lang="less" scoped>
