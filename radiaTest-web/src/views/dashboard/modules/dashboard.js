@@ -41,7 +41,7 @@ const personalDataOverview = ref({
 const tasksPagination = ref({
   page: 1,
   pageCount: 1, //总页数
-  pageSize: 11,
+  pageSize: 10,
 });
 
 let taskType = 'not_accomplish';

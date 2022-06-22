@@ -19,10 +19,12 @@ const groupInfo = reactive({
   re_user_group_role_type: '',
 });
 const groupPagination = reactive({
-  pageSize: 5,
+  pageSize: 10,
   page: 1,
   pageCount: 1,
   itemCount: 1,
+  showSizePicker: true,
+  pageSizes: [5, 10, 20, 50],
 });
 
 // get table data
@@ -210,6 +212,13 @@ function groupTurnPages (page) {
   getGroupUsers();
 }
 
+// change table pageSize
+function groupTurnPageSize (pageSize) {
+  groupPagination.pageSize = pageSize;
+  groupPagination.page = 1;
+  getGroupUsers();
+}
+
 //add user
 const showAddUser = ref(false);
 function addUser () {
@@ -227,5 +236,6 @@ export {
   editGroupUsers,
   drawerUpdateShow,
   groupTurnPages,
+  groupTurnPageSize,
   addUser,
 };

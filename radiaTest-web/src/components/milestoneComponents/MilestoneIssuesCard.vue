@@ -27,6 +27,7 @@
       :pagination="pagination"
       remote
       @update:page="changePage"
+      @update:page-size="changePageSize"
     />
   </n-card>
   <n-drawer
@@ -170,6 +171,11 @@ export default defineComponent({
       this.pagination.page = page;
       this.getData();
     },
+    changePageSize(pageSize) {
+      this.pagination.page = 1;
+      this.pagination.pageSize = pageSize;
+      this.getData();
+    },
     getData() {
       this.loading = true;
       getIssue({
@@ -244,7 +250,9 @@ export default defineComponent({
     const pagination = ref({
       pageSize: 10,
       page: 1,
-      pageCount: 1
+      pageCount: 1,
+      showSizePicker: true,
+      pageSizes: [5, 10, 20, 50]
     });
 
     return {

@@ -35,6 +35,7 @@
         :data="state.dataList"
         :pagination="pagination"
         @update:page="turnPages"
+        @update:page-size="turnPageSize"
         :row-props="groupRowProps"
       />
       <n-drawer
@@ -52,6 +53,7 @@
             :loading="tableLoading"
             :pagination="groupPagination"
             @update:page="groupTurnPages"
+            @update:page-size="groupTurnPageSize"
           />
           <template #footer>
             <n-button

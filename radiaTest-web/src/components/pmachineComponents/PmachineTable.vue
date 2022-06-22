@@ -15,6 +15,7 @@
     :scroll-x="1600"
     :pagination="pagination"
     @update:page="handlePageChange"
+    @update:page-size="handlePageSizeChange"
   />
 </template>
 
@@ -33,6 +34,11 @@ export default defineComponent({
   methods: {
     handlePageChange(page) {
       this.pagination.page = page;
+      this.getData();
+    },
+    handlePageSizeChange(pageSize) {
+      this.pagination.page = 1;
+      this.pagination.pageSize = pageSize;
       this.getData();
     },
     getData() {
@@ -72,7 +78,9 @@ export default defineComponent({
       pagination: {
         page: 1,
         pageCount: 1,
-        pageSize: 10
+        pageSize: 20,
+        showSizePicker: true,
+        pageSizes: [5, 10, 20, 50, 100]
       },
     };
   },

@@ -310,6 +310,8 @@ const templatePagination = reactive({
   page: 1,
   pageCount: 1, //总页数
   pageSize: 15, //受控模式下的分页大小
+  showSizePicker: true,
+  pageSizes: [5, 10, 20, 50]
 });
 
 function getTemplateTableRowsData(items) {
@@ -389,6 +391,13 @@ function getTemplateTableData() {
 function handleTemplatePageChange(currentPage) {
   if (!distributionLoading.value) {
     templatePagination.page = currentPage;
+    getTemplateTableData();
+  }
+}
+function handleTemplatePageSizeChange(pageSize) {
+  if (!distributionLoading.value) {
+    templatePagination.page = 1;
+    templatePagination.pageSize = pageSize;
     getTemplateTableData();
   }
 }
@@ -782,6 +791,7 @@ export {
   handleChangeExecutor,
   handleChangeHelper,
   handleTemplatePageChange,
+  handleTemplatePageSizeChange,
   drawerTypeJudge,
   groupSelectLoading,
   userSelectLoading,

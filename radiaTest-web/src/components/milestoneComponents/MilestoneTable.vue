@@ -12,6 +12,7 @@
     @update:checked-row-keys="(keys) => handleCheck(keys)"
     :pagination="pagination"
     @update:page="changePage"
+    @update:page-size="changePageSize"
   />
 </template>
 

@@ -12,6 +12,7 @@
     :scroll-x="1600"
     :pagination="pagination"
     @update:page="handlePageChange"
+    @update:page-size="handlePageSizeChange"
     remote
   />
 </template>
@@ -31,6 +32,11 @@ export default defineComponent({
   methods: {
     handlePageChange(page) {
       this.pagination.page = page;
+      this.getData();
+    },
+    handlePageSizeChange(pageSize) {
+      this.pagination.page = 1;
+      this.pagination.pageSize = pageSize;
       this.getData();
     },
     getData() {
@@ -92,7 +98,9 @@ export default defineComponent({
       pagination: ref({
         page: 1,
         pageCount: 1,
-        pageSize: 10,
+        pageSize: 50,
+        showSizePicker: true,
+        pageSizes: [5, 10, 20, 50, 100]
       }),
       ...vmachineTable,
       showSelection: () => selection.show(columns),
