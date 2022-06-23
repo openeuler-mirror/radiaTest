@@ -38,7 +38,7 @@
     @validate="handleModifyClick()"
   >
     <template #form>
-      <n-form :label-width="80" :model="formValue" ref="formRef">
+      <n-form :label-width="80" :model="formValue">
         <n-form-item label="用户名" path="user">
           <n-input v-model:value="formValue.user" placeholder="请输入用户名" />
         </n-form-item>
@@ -80,7 +80,6 @@ export default defineComponent({
     return {
       isShow,
       formValue,
-      formRef: ref(),
       accountInfo,
       accountModalRef,
       handleHideClick,

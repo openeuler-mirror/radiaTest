@@ -72,7 +72,7 @@
                 >
                   {{ item }}
                 </n-tag>
-                <ssh-info :machine-id="data.id"/>
+                <ssh-info :machine-id="data.id" />
                 <n-p>
                   <span>SSH端口：</span>
                   <span>{{ data.port }}</span>
@@ -229,6 +229,7 @@ import EditModal from '@/components/vmachineComponents/expandedContent/EditModal
 import { specialDevice } from '@/assets/config/vmachineSpecialDevice.js';
 import expandedContent from './expandedContent';
 import expanded from '@/views/vmachine/modules/expanded.js';
+import { getVmachineSsh } from '@/api/get.js';
 
 export default defineComponent({
   components: {
@@ -242,6 +243,8 @@ export default defineComponent({
   },
   // eslint-disable-next-line max-lines-per-function
   setup(props, context) {
+    const SshUser = ref('');
+    const SshPassword = ref('');
     const vmachineResourceSocket = new Socket(
       `${settings.websocketProtocol}://${props.data.machine_group.messenger_ip}:${props.data.machine_group.messenger_listen}/monitor/normal`
     );
@@ -251,12 +254,19 @@ export default defineComponent({
     const osInfo = ref('');
     const kernelInfo = ref('');
     onMounted(() => {
+      getVmachineSsh(props.data.id).then((res) => {
+        SshUser.value = res.data.user;
+        SshPassword.value = res.data.password;
+      }).catch(() => {
+        window.$message?.warning('无权获取ssh信息，无法通过概览获取CPU与内存用量数据');
+      });
+
       if (props.data.status === 'running') {
         vmachineResourceSocket.emit('start', {
           ip: props.data.ip,
           port: props.data.port,
-          user: props.data.user,
-          password: props.data.password,
+          user: SshUser.value,
+          password: SshPassword.value,
         });
       }
       vmachineResourceSocket.listen(props.data.ip, (data) => {
@@ -273,6 +283,8 @@ export default defineComponent({
       memoryPercentage.value = '';
       cpuPercentage.value = '';
       vmachineResourceSocket.disconnect();
+      SshUser.value = '';
+      SshPassword.value = '';
     });
     watch(
       () => props.data.status,
