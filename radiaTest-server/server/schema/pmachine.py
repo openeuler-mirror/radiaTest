@@ -294,13 +294,11 @@ class PmachineDelaySchema(BaseModel):
 
 
 class PmachineInstallSchema(BaseModel):
-    id: int
     milestone_id: int
     status: Power
 
 
 class PmachinePowerSchema(BaseModel):
-    id: int
     status: Power
 
 

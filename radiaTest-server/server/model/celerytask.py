@@ -20,9 +20,9 @@ class CeleryTask(db.Model, BaseModel):
     def to_dict(self):
         _machine = None
         if self.object_type == "vmachine":
-            _machine = self.vmachine.to_json()
+            _machine = self.vmachine.to_public_json()
         elif self.object_type == "pmachine":
-            _machine = self.pmachine.to_json()
+            _machine = self.pmachine.to_public_json()
 
         _start_time = None
         if self.start_time:

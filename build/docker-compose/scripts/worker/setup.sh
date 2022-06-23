@@ -16,6 +16,7 @@
 #! /bin/sh
 
 "$PKG_MNG" install -y git &&
+    "$PKG_MNG" install -y qemu &&
     "$PKG_MNG" install -y libvirt &&
     "$PKG_MNG" install -y virt-install &&
     "$PKG_MNG" install -y rsync &&
@@ -23,6 +24,8 @@
     "$PKG_MNG" install -y logrotate &&
     "$PKG_MNG" install -y python3-pip &&
     "$PKG_MNG" install -y python3-devel
+
+systemctl start libvirtd || exit 1
 
 if [[ -d "${OET_PATH}/../../radiaTest-worker" ]]; then
     cd "${OET_PATH}/../../radiaTest-worker"

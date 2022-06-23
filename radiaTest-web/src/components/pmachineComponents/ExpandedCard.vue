@@ -14,8 +14,8 @@
                 <n-p>ssh用户名：{{ SSHUSER }}</n-p>
                 <n-p>ssh端口：{{ SSHPORT }}</n-p>
                 <n-p>ssh密码：{{ SSHPASSWORD }}</n-p>
-                <n-p v-show="DESCRIPTION === 'as the host of ci'">
-                  CI端口：{{ LISTEN }}
+                <n-p v-show="data.description === 'as the host of ci'">
+                  worker端口：{{ data.listen }}
                 </n-p>
               </n-space>
             </n-gi>
@@ -55,7 +55,7 @@
           </n-grid>
         </n-tab-pane>
         <n-tab-pane
-          :disabled="DESCRIPTION !== 'as the host of ci'"
+          :disabled="data.description !== 'as the host of ci'"
           name="monitor"
           tab="资源监控"
         >
@@ -64,7 +64,7 @@
               ref="charts"
               :data="data"
               :ip="IP"
-              :listen="LISTEN"
+              :listen="data.listen"
               :machineGroupIp="machine_group_ip"
             />
           </div>
@@ -120,11 +120,6 @@ export default defineComponent({
   },
   props: {
     data: Object,
-    SSHUSER: String,
-    SSHPASSWORD: String,
-    SSHPORT: String,
-    LISTEN: Number,
-    DESCRIPTION: String,
     IP: String,
     messenger_listen: String || Number,
     machine_group_ip: String

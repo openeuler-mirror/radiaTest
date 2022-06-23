@@ -7,8 +7,6 @@ import { deleteAjax } from '@/assets/CRUD/delete';
 import { deleteVm } from '@/api/delete';
 import { modifyDelayTime, modifyVmachineIp } from '@/api/put';
 import { formatTime } from '@/assets/utils/dateFormatUtils';
-import { get } from '@/assets/CRUD/read';
-import vmachineTable from '@/views/vmachine/modules/vmachineTable.js';
 import textDialog from '@/assets/utils/dialog';
 import { WarningRound } from '@vicons/material';
 import { validateIpaddress } from '@/assets/utils/formUtils';
@@ -218,7 +216,6 @@ function submitDelay() {
   }).then(() => {
     delay.value.id = '';
     delayModalRef.value.close();
-    get.list('/v1/vmachine', vmachineTable.totalData, vmachineTable.loading);
   });
 }
 
@@ -228,7 +225,6 @@ function submitIpaddr() {
   }).then(() => {
     ipaddr.value.id = '';
     ipaddrModalRef.value.close();
-    get.list('/v1/vmachine', vmachineTable.totalData, vmachineTable.loading);
   });
 }
 

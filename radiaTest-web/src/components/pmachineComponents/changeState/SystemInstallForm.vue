@@ -63,9 +63,8 @@ export default defineComponent({
       handlePropsButtonClick: () => installForm.validateFormData(context),
       post: () => {
         updateAjax.putForm(
-          '/v1/pmachine/install',
+          `/v1/pmachine/${props.machineId}/install`,
           ref({
-            id: props.machineId,
             milestone_id: installForm.formValue.value.milestone_id,
           })
         );
