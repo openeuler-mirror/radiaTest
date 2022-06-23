@@ -11,8 +11,8 @@ from celeryservice.lib import TaskAuthHandler
 from server.utils.sheet import Excel, SheetExtractor
 from server.utils.response_util import RET, ssl_cert_verify_error_collect
 from server.utils.db import Insert, Edit
-from server.schema.testcase import BaselineBodyInternalSchema
-from server.model.testcase import Suite, Case, Baseline
+from server.schema.testcase import CaseNodeBodyInternalSchema
+from server.model.testcase import Suite, Case, CaseNode
 
 
 class TestcaseHandler(TaskAuthHandler):
@@ -20,34 +20,34 @@ class TestcaseHandler(TaskAuthHandler):
         self.promise = promise
         super().__init__(user, logger)
 
-    def create_baseline(self, body):
+    def create_case_node(self, body):
         if not body.parent_id:
-            baseline_id = Insert(Baseline, body.__dict__).insert_id()
-            return baseline_id
+            case_node_id = Insert(CaseNode, body.__dict__).insert_id()
+            return case_node_id
 
-        parent = Baseline.query.filter_by(id=body.parent_id).first()
+        parent = CaseNode.query.filter_by(id=body.parent_id).first()
         if not parent:
-            raise RuntimeError("parent baseline not exists, creating failed")
+            raise RuntimeError("parent case_node not exists, creating failed")
 
         for child in parent.children:
             if body.title == child.title:
                 raise RuntimeError(
-                    "baseline {} is already exist".format(
+                    "case_node {} is already exist".format(
                         body.title
                     )
                 )
 
-        baseline = Baseline.query.filter_by(
+        case_node = CaseNode.query.filter_by(
             id=Insert(
-                Baseline,
+                CaseNode,
                 body.__dict__
             ).insert_id()
         ).first()
 
-        baseline.parent.append(parent)
-        baseline.add_update()
+        case_node.parent.append(parent)
+        case_node.add_update()
 
-        return baseline.id
+        return case_node.id
 
     def loads_data(self, filetype, filepath):
         excel = Excel(filetype).load(filepath)
@@ -115,10 +115,10 @@ class TestcaseHandler(TaskAuthHandler):
 
         return suites
 
-    def get_baseline_id(self, _title, _type, _parent_id, _suite_id=None, _case_id=None):
+    def get_case_node_id(self, _title, _type, _parent_id, _suite_id=None, _case_id=None):
         """已存在节点则直接获取id，不存在的节点新增后获取"""
 
-        _body = BaselineBodyInternalSchema(
+        _body = CaseNodeBodyInternalSchema(
             title=_title,
             type=_type,
             group_id=self.user.get("group_id"),
@@ -132,11 +132,11 @@ class TestcaseHandler(TaskAuthHandler):
         filter_params = list()
 
         if _parent_id is not None:
-            parent_baseline = Baseline.query.filter_by(
+            parent_case_node = CaseNode.query.filter_by(
                 id=_parent_id
             ).first()
 
-            if not parent_baseline:
+            if not parent_case_node:
                 raise RuntimeError(
                     "parent id {} is not exist.".format(
                         _body.parent_id
@@ -144,43 +144,43 @@ class TestcaseHandler(TaskAuthHandler):
                 )
 
             filter_params = [
-                Baseline.title == _body.title,
-                Baseline.type == _type,
-                Baseline.group_id == self.user.get("group_id"),
-                Baseline.org_id == self.user.get("org_id"),
-                Baseline.suite_id == _body.suite_id,
-                Baseline.case_id == _body.case_id,
-                Baseline.parent.contains(parent_baseline),
-                Baseline.in_set == True
+                CaseNode.title == _body.title,
+                CaseNode.type == _type,
+                CaseNode.group_id == self.user.get("group_id"),
+                CaseNode.org_id == self.user.get("org_id"),
+                CaseNode.suite_id == _body.suite_id,
+                CaseNode.case_id == _body.case_id,
+                CaseNode.parent.contains(parent_case_node),
+                CaseNode.in_set == True
             ]
         else:
             filter_params = [
-                Baseline.title == _body.title,
-                Baseline.type == _type,
-                Baseline.group_id == self.user.get("group_id"),
-                Baseline.org_id == self.user.get("org_id"),
-                Baseline.suite_id == _body.suite_id,
-                Baseline.case_id == _body.case_id,
-                Baseline.in_set == True
+                CaseNode.title == _body.title,
+                CaseNode.type == _type,
+                CaseNode.group_id == self.user.get("group_id"),
+                CaseNode.org_id == self.user.get("org_id"),
+                CaseNode.suite_id == _body.suite_id,
+                CaseNode.case_id == _body.case_id,
+                CaseNode.in_set == True
             ]
 
-        baseline = Baseline.query.filter(*filter_params).first()
+        case_node = CaseNode.query.filter(*filter_params).first()
 
-        if baseline:
-            return baseline.id
+        if case_node:
+            return case_node.id
         else:
-            baseline_id = self.create_baseline(_body)
+            case_node_id = self.create_case_node(_body)
 
-            return baseline_id
+            return case_node_id
 
-    def travelsal_baseline_tree(self, _file_id, _suites):
+    def travelsal_case_node_tree(self, _file_id, _suites):
         for _suite_id in _suites:
             _suite = Suite.query.filter_by(id=_suite_id).first()
 
             if not _suite:
                 continue
 
-            _this_suite_id = self.get_baseline_id(
+            _this_suite_id = self.get_case_node_id(
                 _title=_suite.name,
                 _type="suite",
                 _suite_id=_suite.id,
@@ -188,7 +188,7 @@ class TestcaseHandler(TaskAuthHandler):
             )
 
             for case in _suite.case:
-                _ = self.get_baseline_id(
+                _ = self.get_case_node_id(
                     _title=case.name,
                     _type="case",
                     _parent_id=_this_suite_id,
@@ -207,7 +207,7 @@ class TestcaseHandler(TaskAuthHandler):
         _ext = os.path.basename(_filepath).split('.')[-1]
 
         if os.path.isfile(_filepath) and _ext in ['xlsx', 'xls', 'csv'] and _name:
-            _file_id = self.get_baseline_id(
+            _file_id = self.get_case_node_id(
                 _name,
                 "directory",
                 _parent_id,
@@ -269,7 +269,7 @@ class TestcaseHandler(TaskAuthHandler):
             )
             return
 
-        _this_id = self.get_baseline_id(
+        _this_id = self.get_case_node_id(
             _title=_title,
             _type="directory",
             _parent_id=_parent_id,
@@ -324,7 +324,7 @@ class TestcaseHandler(TaskAuthHandler):
                 )
 
                 if file_id is not None:
-                    self.travelsal_baseline_tree(file_id, suites)
+                    self.travelsal_case_node_tree(file_id, suites)
 
                 self.next_period()
                 self.promise.update_state(

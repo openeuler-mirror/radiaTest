@@ -151,7 +151,7 @@ def resolve_testcase_file(self, filepath, user):
 
 
 @celery.task(bind=True)
-def resolve_testcase_file_for_baseline(self, file_id, filepath, user):
+def resolve_testcase_file_for_case_node(self, file_id, filepath, user):
     TestcaseHandler(user, logger, self).resolve(
         filepath,
         file_id,

@@ -14,7 +14,7 @@ from server.utils.response_util import RET
 from server.utils.db import Edit, Insert, Delete, collect_sql_error
 from server.utils.page_util import PageUtil
 from server.utils.permission_utils import GetAllByPermission
-from server.model.testcase import Baseline, Suite, Case, Commit, CaseDetailHistory, CommitComment
+from server.model.testcase import CaseNode, Suite, Case, Commit, CaseDetailHistory, CommitComment
 from server.model.framework import GitRepo
 from server.model.task import Task, TaskMilestone, TaskManualCase
 from server.model.celerytask import CeleryTask
@@ -23,15 +23,15 @@ from server.model.user import User
 from server.model.milestone import Milestone
 from server.model.job import Analyzed
 from server.schema.base import PageBaseSchema
-from server.schema.testcase import BaselineBaseSchema, AddCaseCommitSchema, \
+from server.schema.testcase import CaseNodeBaseSchema, AddCaseCommitSchema, \
     UpdateCaseCommitSchema, CommitQuerySchema, CaseCommitBatch, \
-    QueryHistorySchema, BaselineBodySchema
+    QueryHistorySchema, CaseNodeBodySchema
 from server.schema.celerytask import CeleryTaskUserInfoSchema
 from server.utils.file_util import ZipImportFile, ExcelImportFile
 from server.utils.sheet import Excel, SheetExtractor
 from server.utils.read_from_yaml import get_api
 from server.utils.permission_utils import PermissionManager, GetAllByPermission
-from celeryservice.tasks import resolve_testcase_file, resolve_testcase_file_for_baseline, resolve_testcase_set
+from celeryservice.tasks import resolve_testcase_file, resolve_testcase_file_for_case_node, resolve_testcase_set
 
 
 class CaseImportHandler:
@@ -95,7 +95,7 @@ class CaseImportHandler:
 
     @staticmethod
     @collect_sql_error
-    def import_case(file, group_id, baseline_id=None):
+    def import_case(file, group_id, case_node_id=None):
         try:
             case_file = ExcelImportFile(file)
 
@@ -106,9 +106,9 @@ class CaseImportHandler:
 
                 _task = None
 
-                if baseline_id is not None:
-                    _task = resolve_testcase_file_for_baseline.delay(
-                        baseline_id,
+                if case_node_id is not None:
+                    _task = resolve_testcase_file_for_case_node.delay(
+                        case_node_id,
                         case_file.filepath,
                         CeleryTaskUserInfoSchema(
                             auth=request.headers.get("authorization"),
@@ -172,33 +172,33 @@ class CaseImportHandler:
             return jsonify(error_code=RET.SERVER_ERR, error_msg=str(e))
 
 
-class BaselineHandler:
+class CaseNodeHandler:
     @staticmethod
     @collect_sql_error
-    def get(baseline_id, query):
-        baseline = GetAllByPermission(Baseline).single({"id": baseline_id})
+    def get(case_node_id, query):
+        case_node = GetAllByPermission(CaseNode).single({"id": case_node_id})
 
-        if not baseline:
-            return jsonify(error_code=RET.NO_DATA_ERR, error_msg="baseline is not exists")
+        if not case_node:
+            return jsonify(error_code=RET.NO_DATA_ERR, error_msg="case_node is not exists")
 
-        filter_params = GetAllByPermission(Baseline).get_filter()
+        filter_params = GetAllByPermission(CaseNode).get_filter()
 
-        return_data = BaselineBaseSchema(**baseline.__dict__).dict()
+        return_data = CaseNodeBaseSchema(**case_node.__dict__).dict()
 
-        filter_params.append(Baseline.parent.contains(baseline))
+        filter_params.append(CaseNode.parent.contains(case_node))
 
         for key, value in query.dict().items():
             if not value:
                 continue
             if key == 'title':
-                filter_params.append(Baseline.title.like(f'%{value}%'))
+                filter_params.append(CaseNode.title.like(f'%{value}%'))
 
-        children = Baseline.query.filter(*filter_params).all()
+        children = CaseNode.query.filter(*filter_params).all()
 
         return_data["children"] = [child.to_json() for child in children]
 
         source = list()
-        cur = baseline
+        cur = case_node
 
         while cur:
             if not cur.parent.all():
@@ -206,7 +206,7 @@ class BaselineHandler:
                 break
             if len(cur.parent.all()) > 1:
                 raise RuntimeError(
-                    "baseline should not have parents beyond one")
+                    "case_node should not have parents beyond one")
 
             source.append(cur.id)
             cur = cur.parent[0]
@@ -218,18 +218,18 @@ class BaselineHandler:
     @staticmethod
     @collect_sql_error
     def get_roots(query):
-        filter_params = GetAllByPermission(Baseline).get_filter()
-        filter_params.append(Baseline.is_root.is_(True))
+        filter_params = GetAllByPermission(CaseNode).get_filter()
+        filter_params.append(CaseNode.is_root.is_(True))
         for key, value in query.dict().items():
             if not value:
                 continue
             if key == 'title':
-                filter_params.append(Baseline.title.like(f'%{value}%'))
+                filter_params.append(CaseNode.title.like(f'%{value}%'))
             if key == 'group_id':
-                filter_params.append(Baseline.group_id==value)
+                filter_params.append(CaseNode.group_id==value)
 
-        baselines = Baseline.query.filter(*filter_params).all()
-        return_data = [baseline.to_json() for baseline in baselines]
+        case_nodes = CaseNode.query.filter(*filter_params).all()
+        return_data = [case_node.to_json() for case_node in case_nodes]
         return jsonify(error_code=RET.OK, error_msg="OK", data=return_data)
 
     @staticmethod
@@ -240,10 +240,10 @@ class BaselineHandler:
         _body.update({"org_id": redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')})
 
         if not body.parent_id:
-            baseline_id = Insert(Baseline, body.__dict__).insert_id()
-            return jsonify(error_code=RET.OK, error_msg="OK", data=baseline_id)
+            case_node_id = Insert(CaseNode, body.__dict__).insert_id()
+            return jsonify(error_code=RET.OK, error_msg="OK", data=case_node_id)
 
-        parent = Baseline.query.filter_by(id=body.parent_id).first()
+        parent = CaseNode.query.filter_by(id=body.parent_id).first()
         if not parent:
             return jsonify(error_code=RET.NO_DATA_ERR, error_msg="parent node is not exists")
 
@@ -259,55 +259,55 @@ class BaselineHandler:
                     data=child.id
                 )
 
-        baseline = Baseline.query.filter_by(
+        case_node = CaseNode.query.filter_by(
             id=Insert(
-                Baseline,
+                CaseNode,
                 _body,
             ).insert_id()
         ).first()
 
-        baseline.parent.append(parent)
-        baseline.add_update()
+        case_node.parent.append(parent)
+        case_node.add_update()
 
-        return jsonify(error_code=RET.OK, error_msg="OK", data=baseline.id)
+        return jsonify(error_code=RET.OK, error_msg="OK", data=case_node.id)
 
     @staticmethod
     @collect_sql_error
-    def update(baseline_id, body):
-        baseline = Baseline.query.filter_by(id=baseline_id).first()
+    def update(case_node_id, body):
+        case_node = CaseNode.query.filter_by(id=case_node_id).first()
 
         current_org_id = int(
             redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')
         )
 
-        if current_org_id != baseline.org_id:
+        if current_org_id != case_node.org_id:
             return jsonify(error_code=RET.VERIFY_ERROR, error_msg="No right to edit")
 
-        if not baseline:
-            return jsonify(error_code=RET.NO_DATA_ERR, error_msg="baseline is not exists")
+        if not case_node:
+            return jsonify(error_code=RET.NO_DATA_ERR, error_msg="case_node is not exists")
 
-        baseline.title = body.title
+        case_node.title = body.title
 
-        baseline.add_update()
+        case_node.add_update()
 
         return jsonify(error_code=RET.OK, error_msg="OK")
 
     @staticmethod
     @collect_sql_error
-    def delete(baseline_id):
-        baseline = Baseline.query.filter_by(id=baseline_id).first()
+    def delete(case_node_id):
+        case_node = CaseNode.query.filter_by(id=case_node_id).first()
 
         current_org_id = int(
             redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')
         )
 
-        if current_org_id != baseline.org_id:
+        if current_org_id != case_node.org_id:
             return jsonify(error_code=RET.VERIFY_ERR, error_msg="No right to delete")
 
-        if not baseline:
-            return jsonify(error_code=RET.NO_DATA_ERR, error_msg="baseline is not exists")
+        if not case_node:
+            return jsonify(error_code=RET.NO_DATA_ERR, error_msg="case_node is not exists")
 
-        db.session.delete(baseline)
+        db.session.delete(case_node)
         db.session.commit()
 
         return jsonify(error_code=RET.OK, error_msg="OK")
@@ -411,7 +411,7 @@ class CaseHandler:
 
     @staticmethod
     @collect_sql_error
-    def create_case_baseline_commit(body):
+    def create_case_node_commit(body):
         _body = body.__dict__
 
         _suite = Suite.query.filter_by(name=_body.get("suite")).first()
@@ -429,7 +429,7 @@ class CaseHandler:
 
         _id = Insert(Case, _body).insert_id(Case, "/case")
 
-        _baseline_body = BaselineBodySchema(
+        _case_node_body = CaseNodeBodySchema(
             case_id=_id,
             group_id=_body.get("group_id"),
             parent_id=_body.get("parent_id"),
@@ -440,11 +440,11 @@ class CaseHandler:
         )
 
 
-        _result = BaselineHandler.create(_baseline_body)
+        _result = CaseNodeHandler.create(_case_node_body)
         _result = _result.get_json()
-        _baseline = Baseline.query.filter_by(id=_result["data"]).first()
+        _case_node = CaseNode.query.filter_by(id=_result["data"]).first()
         source = list()
-        cur = _baseline
+        cur = _case_node
 
         while cur:
             if not cur.parent.all():
@@ -452,7 +452,7 @@ class CaseHandler:
                 break
             if len(cur.parent.all()) > 1:
                 raise RuntimeError(
-                    "baseline should not have parents beyond one")
+                    "case_node should not have parents beyond one")
 
             source.append(cur.id)
             cur = cur.parent[0]
@@ -472,7 +472,7 @@ class CaseHandler:
         _source.reverse()
         _source_str = ''
         for _s in _source:
-            _source_str += Baseline.query.get(_s).title + '>'
+            _source_str += CaseNode.query.get(_s).title + '>'
         _source_str += _body.get("name")
         insert_data['source'] = _source_str
         _ = Insert(Commit, insert_data).insert_id(Commit, '/commit')
@@ -522,7 +522,7 @@ class HandlerCaseReview(object):
         _source.reverse()
         source = ''
         for _s in _source:
-            source += Baseline.query.get(_s).title + '>'
+            source += CaseNode.query.get(_s).title + '>'
         source += case.name
         insert_data['source'] = source
         commit_id = Insert(Commit, insert_data).insert_id(Commit, '/commit')
@@ -606,8 +606,8 @@ class HandlerCaseReview(object):
             commit.reviewer_id = g.gitee_id
             commit.review_time = datetime.datetime.now()
             if commit.case_mod_type == "add":
-                _baseline = Baseline.query.filter_by(case_id=commit.case_detail_id).first()
-                db.session.delete(_baseline)
+                _case_node = CaseNode.query.filter_by(case_id=commit.case_detail_id).first()
+                db.session.delete(_case_node)
                 db.session.commit()
                 _case = Case.query.filter_by(id=commit.case_detail_id).first()
                 db.session.delete(_case)
@@ -642,8 +642,8 @@ class HandlerCaseReview(object):
         db.session.delete(commit)
         db.session.commit()
         if commit.case_mod_type == "add":
-            _baseline = Baseline.query.filter_by(case_id=commit.case_detail_id).first()
-            db.session.delete(_baseline)
+            _case_node = CaseNode.query.filter_by(case_id=commit.case_detail_id).first()
+            db.session.delete(_case_node)
             db.session.commit()
             _case = Case.query.filter_by(id=commit.case_detail_id).first()
             db.session.delete(_case)

@@ -7,12 +7,12 @@ from typing import List
 
 from server.model.testcase import Suite, Case
 from server.schema.base import PermissionBase, UpdateBaseModel, PageBaseSchema
-from server.schema import MachineType, PermissionType, TestType, TestLevel, BaselineType
+from server.schema import MachineType, PermissionType, TestType, TestLevel, CaseNodeType
 
 
-class BaselineBodySchema(BaseModel):
+class CaseNodeBodySchema(BaseModel):
     title: str
-    type: BaselineType
+    type: CaseNodeType
     parent_id: Optional[int]
     group_id: int
     suite_id: Optional[int]
@@ -34,7 +34,7 @@ class BaselineBodySchema(BaseModel):
 
         if values["type"] == 'suite':
             if not values["suite_id"]:
-                raise ValueError("The baseline should relate to one suite")
+                raise ValueError("The case_node should relate to one suite")
 
             suite = Suite.query.filter_by(id=values["suite_id"]).first()
             if not suite:
@@ -42,7 +42,7 @@ class BaselineBodySchema(BaseModel):
 
         elif values["type"] == 'case':
             if not values["case_id"]:
-                raise ValueError("The baseline should relate to one case")
+                raise ValueError("The case_node should relate to one case")
 
             case = Case.query.filter_by(id=values["case_id"]).first()
             if not case:
@@ -51,24 +51,24 @@ class BaselineBodySchema(BaseModel):
         return values
 
 
-class BaselineBodyInternalSchema(BaselineBodySchema):
+class CaseNodeBodyInternalSchema(CaseNodeBodySchema):
     org_id: int
 
 
-class BaselineQuerySchema(BaseModel):
+class CaseNodeQuerySchema(BaseModel):
     group_id: int
     title: Optional[str]
 
 
-class BaselineItemQuerySchema(BaseModel):
+class CaseNodeItemQuerySchema(BaseModel):
     title: Optional[str]
 
 
-class BaselineUpdateSchema(BaseModel):
+class CaseNodeUpdateSchema(BaseModel):
     title: Optional[str]
 
 
-class BaselineBaseSchema(BaseModel):
+class CaseNodeBaseSchema(BaseModel):
     id: int
     title: str
     type: str
@@ -126,7 +126,7 @@ class CaseCreate(CaseBase):
     name: str
     group_id: int
 
-class CaseBaselineCommitCreate(CaseBase):
+class CaseNodeCommitCreate(CaseBase):
     name: str
     group_id: int
     parent_id: int
