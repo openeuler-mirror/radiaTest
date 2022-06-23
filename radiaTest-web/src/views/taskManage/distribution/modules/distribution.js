@@ -369,7 +369,7 @@ function getTemplateTableRowsData(items) {
 function getTemplateTableData() {
   distributionLoading.value = true;
   axios
-    .get('v1/tasks/distribute_templates', {
+    .get('v1/tasks/distribute-templates', {
       page_num: templatePagination.page,
       page_size: templatePagination.pageSize,
     })
@@ -469,7 +469,7 @@ function getTemplateType(value) {
   drawerModel.value.helpers = [];
   axios
     .get(
-      `v1/tasks/distribute_templates/suites?page_num=1&page_size=99999999&type_id=${value}`
+      `v1/tasks/distribute-templates/suites?page_num=1&page_size=99999999&type_id=${value}`
     )
     .then((res) => {
       if (res.data.suites) {

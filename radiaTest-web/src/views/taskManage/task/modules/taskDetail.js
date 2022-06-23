@@ -1268,7 +1268,7 @@ function getTemplateName() {
   distributeTaskValue.value = null;
   distributeTaskOption.value = [];
   axios
-    .get('v1/tasks/distribute_templates', {
+    .get('v1/tasks/distribute-templates', {
       group_id: modalData.value.detail.group_id,
     })
     .then((res) => {

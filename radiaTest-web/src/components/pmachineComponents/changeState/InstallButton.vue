@@ -17,7 +17,6 @@
   </n-tooltip>
   <modal-card
     title="物理机系统自动化安装"
-    url="/v1/pmachine/install"
     ref="updateModalRef"
     @validate="() => updateFormRef.handlePropsButtonClick()"
     @submit="updateFormRef.post()"

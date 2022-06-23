@@ -27,14 +27,14 @@ def init_api(api: Api):
     api.add_resource(TaskMilestonesCases, '/api/v1/task/<int:task_id>/milestones/<int:taskmilestone_id>/cases/<int:case_id>',
                      endpoint='task_milestone_cases')
     api.add_resource(TaskExecute, '/api/v1/tasks/execute', endpoint='out_task')
-    api.add_resource(TaskDistributeTemplate, '/api/v1/tasks/distribute_templates',
-                     '/api/v1/tasks/distribute_templates/<int:template_id>', endpoint='distribute_templates')
+    api.add_resource(TaskDistributeTemplate, '/api/v1/tasks/distribute-templates',
+                     '/api/v1/tasks/distribute-templates/<int:template_id>', endpoint='distribute-templates')
     api.add_resource(DistributeType,
                      '/api/v1/tasks/distribute-templates/<int:template_id>/types',
                      '/api/v1/tasks/distribute-templates/suites',
                      '/api/v1/tasks/distribute-templates/types/<int:type_id>', endpoint='distribute_template_type')
     api.add_resource(DistributeCaseByTemplate,
-                     '/api/v1/tasks/<int:task_id>/distribute_templates/<int:template_id>',
+                     '/api/v1/tasks/<int:task_id>/distribute-templates/<int:template_id>',
                      endpoint='distribute_case_by_template')
     api.add_resource(TaskList, '/api/v1/tasks/list', endpoint='task_list')
     api.add_resource(CaseTask, "/api/v1/case/<int:case_id>/task")

@@ -115,7 +115,18 @@ class PmachineItemEvent(Resource):
     @validate()
     @casbin_enforcer.enforcer
     def get(self, pmachine_id):
-        return Select(Pmachine, {"id":pmachine_id}).single()
+        pmachine = Pmachine.query.filter_by(id=pmachine_id).first()
+        if not pmachine:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="the pmachine does not exist",
+            )
+        
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+            data=pmachine.to_public_json()
+        )
 
     @auth.login_required
     @response_collect
@@ -195,6 +206,40 @@ class PmachineEvent(Resource):
         return PmachineHandler.get_all(query)
 
 
+class PmachineBmcEvent(Resource):
+    @auth.login_required
+    @response_collect
+    def get(self, pmachine_id):
+        pmachine = Pmachine.query.filter_by(id=pmachine_id).first()
+        if not pmachine:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="the pmachine does not exist",
+            )
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+            data=pmachine.to_bmc_json()
+        )
+
+
+class PmachineSshEvent(Resource):
+    @auth.login_required
+    @response_collect
+    def get(self, pmachine_id):
+        pmachine = Pmachine.query.filter_by(id=pmachine_id).first()
+        if not pmachine:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="the pmachine does not exist",
+            )
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+            data=pmachine.to_ssh_json()
+        )
+
+
 class PmachineDelayEvent(Resource):
     @auth.login_required
     @response_collect
@@ -219,9 +264,9 @@ class Install(Resource):
     @auth.login_required
     @response_collect
     @validate()
-    def put(self, body: PmachineInstallSchema):
+    def put(self, pmachine_id, body: PmachineInstallSchema):
         pmachine = Pmachine.query.filter_by(
-            id=body.id
+            id=pmachine_id
         ).first()
         if not pmachine:
             return jsonify(
@@ -231,7 +276,7 @@ class Install(Resource):
 
         machine_group = pmachine.machine_group
         messenger = PmachineMessenger(body.__dict__)
-        messenger.send_request(machine_group, "/api/v1/pmachine/checkbmcinfo")
+        messenger.send_request(machine_group, "/api/v1/pmachine/check-bmc-info")
 
         imirroring = IMirroring.query.filter_by(
             milestone_id=body.milestone_id
@@ -245,6 +290,7 @@ class Install(Resource):
         _body = body.__dict__
         _body.update(
             {
+                "id": pmachine_id,
                 "pmachine": pmachine.to_json(),
                 "mirroring": imirroring.to_json()
             }
@@ -258,9 +304,9 @@ class Power(Resource):
     @auth.login_required
     @response_collect
     @validate()
-    def put(self, body: PmachinePowerSchema):
+    def put(self, pmachine_id, body: PmachinePowerSchema):
         pmachine = Pmachine.query.filter_by(
-            id=body.id
+            id=pmachine_id
         ).first()
         if not pmachine:
             return jsonify(
@@ -277,11 +323,12 @@ class Power(Resource):
         _body = body.__dict__
         _body.update(
             {
+                "id": pmachine_id,
                 "pmachine": pmachine.to_json()
             }
         )
         messenger = PmachineMessenger(_body)
-        messenger.send_request(machine_group, "/api/v1/pmachine/checkbmcinfo")
+        messenger.send_request(machine_group, "/api/v1/pmachine/check-bmc-info")
 
         messenger = PmachineMessenger(_body)
         return messenger.send_request(machine_group, "/api/v1/pmachine/power")

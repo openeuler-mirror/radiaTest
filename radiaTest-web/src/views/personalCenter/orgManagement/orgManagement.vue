@@ -142,7 +142,6 @@
             <n-input
               v-model:value="registerModel.oauth_client_id"
               placeholder="请填写oauth_client_id"
-              :maxlength="50"
             ></n-input>
           </n-form-item>
           <n-form-item
@@ -153,7 +152,6 @@
             <n-input
               v-model:value="registerModel.oauth_client_secret"
               placeholder="请填写oauth_client_secret"
-              :maxlength="50"
             ></n-input>
           </n-form-item>
           <n-form-item

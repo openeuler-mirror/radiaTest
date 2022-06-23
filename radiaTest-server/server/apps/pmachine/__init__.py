@@ -18,6 +18,8 @@
 from flask_restful import Api
 
 from .routes import PmachineEvent, PmachineItemEvent,PmachineDelayEvent
+from .routes import PmachineBmcEvent
+from .routes import PmachineSshEvent
 from .routes import Power
 from .routes import Install
 from .routes import MachineGroupEvent
@@ -28,9 +30,11 @@ from .routes import MachineGroupHeartbeatEvent
 def init_api(api: Api):
     api.add_resource(PmachineEvent, "/api/v1/pmachine")
     api.add_resource(PmachineItemEvent, "/api/v1/pmachine/<int:pmachine_id>")
+    api.add_resource(PmachineBmcEvent, "/api/v1/pmachine/<int:pmachine_id>/bmc")
+    api.add_resource(PmachineSshEvent, "/api/v1/pmachine/<int:pmachine_id>/ssh")
     api.add_resource(PmachineDelayEvent, "/api/v1/pmachine/<int:pmachine_id>/delay")
-    api.add_resource(Power, "/api/v1/pmachine/power")
-    api.add_resource(Install, "/api/v1/pmachine/install")
+    api.add_resource(Power, "/api/v1/pmachine/<int:pmachine_id>/power")
+    api.add_resource(Install, "/api/v1/pmachine/<int:pmachine>/install")
     api.add_resource(MachineGroupEvent, "/api/v1/machine-group")
     api.add_resource(MachineGroupItemEvent, "/api/v1/machine-group/<int:machine_group_id>")
     api.add_resource(MachineGroupHeartbeatEvent, "/api/v1/machine-group/heartbeat")

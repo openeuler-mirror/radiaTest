@@ -18,7 +18,7 @@
 </template>
 
 <script>
-import { ref, onMounted, onUnmounted, defineComponent } from 'vue';
+import { ref, defineComponent } from 'vue';
 import { useStore } from 'vuex';
 import { Socket } from '@/socket';
 
@@ -77,18 +77,6 @@ export default defineComponent({
   setup() {
     const store = useStore();
     const columns = ref(createColumns());
-    // const vmachineSocket = new Socket(`${settings.websocketProtocol}://${settings.serverPath}/vmachine`);
-    // vmachineSocket.connect();
-
-    onMounted(() => {
-      // get.list('/v1/vmachine', vmachineTable.totalData, vmachineTable.loading);
-      // vmachineSocket.listen('update', () => {
-      //   get.list('/v1/vmachine', vmachineTable.totalData, vmachineTable.loading);
-      // });
-    });
-    onUnmounted(() => {
-      // vmachineSocket.disconnect();
-    });
 
     return {
       store,

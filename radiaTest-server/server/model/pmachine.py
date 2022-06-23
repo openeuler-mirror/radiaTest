@@ -103,7 +103,7 @@ class Pmachine(ServiceModel, PermissionBaseModel, db.Model):
     group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
     org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
 
-    def to_json(self):
+    def standardize_time(self):
         _start_time = None if not self.start_time else self.start_time.strftime(
             "%Y-%m-%d %H:%M:%S"
         )
@@ -113,18 +113,17 @@ class Pmachine(ServiceModel, PermissionBaseModel, db.Model):
         _boot_time = None if not self.boot_time else self.boot_time.strftime(
             "%Y-%m-%d %H:%M:%S"
         )
+        return _start_time, _end_time, _boot_time
+
+    def to_public_json(self):
+        _start_time, _end_time, _boot_time = self.standardize_time()
 
         return {
             "id": self.id,
             "frame": self.frame,
+            "ip": self.ip,
             "mac": self.mac,
             "bmc_ip": self.bmc_ip,
-            "bmc_user": self.bmc_user,
-            "bmc_password": self.bmc_password,
-            "ip": self.ip,
-            "user": self.user,
-            "password": self.password,
-            "port": self.port,
             "description": self.description,
             "start_time": _start_time,
             "end_time": _end_time,
@@ -140,3 +139,26 @@ class Pmachine(ServiceModel, PermissionBaseModel, db.Model):
             "group_id": self.group_id,
             "org_id": self.org_id
         }
+
+    def to_bmc_json(self):
+        return {
+            "bmc_user": self.bmc_user,
+            "bmc_password": self.bmc_password,         
+        }
+    
+    def to_ssh_json(self):
+        return {
+            "user": self.user,
+            "password": self.password,
+            "port": self.port,
+        }
+
+    def to_json(self):
+        return_dict = {
+            **self.to_public_json(),
+            **self.to_bmc_json(),
+            **self.to_ssh_json()
+        }
+        return return_dict
+
+    

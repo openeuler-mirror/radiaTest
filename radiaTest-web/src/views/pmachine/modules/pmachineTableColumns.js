@@ -125,11 +125,6 @@ const ColumnExpand = {
   renderExpand: (rowData) =>
     h(ExpandedCard, {
       data:rowData,
-      SSHUSER: rowData.user,
-      SSHPORT: rowData.port,
-      SSHPASSWORD: rowData.password,
-      LISTEN: rowData.listen,
-      DESCRIPTION: rowData.description,
       IP: rowData.ip,
       machine_group_ip:rowData.machine_group.messenger_ip,
       messenger_listen:rowData.machine_group.messenger_listen

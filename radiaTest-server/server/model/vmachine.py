@@ -44,21 +44,17 @@ class Vmachine(BaseModel, PermissionBaseModel, db.Model):
     creator_id = db.Column(db.Integer(), db.ForeignKey("user.gitee_id"))
     group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
     org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
-
-    def to_json(self):
+    
+    def to_public_json(self):
         _machine_group = None
         if self.pmachine and self.pmachine.machine_group:
             _machine_group = self.pmachine.machine_group.to_json()
-
+        
         return {
             "id": self.id,
             "name": self.name,
             "frame": self.frame,
             "mac": self.mac,
-            "ip": self.ip,
-            "password": self.password,
-            "port": self.port,
-            "user": self.user,
             "sockets": self.sockets,
             "cores": self.cores,
             "threads": self.threads,
@@ -79,6 +75,20 @@ class Vmachine(BaseModel, PermissionBaseModel, db.Model):
             "permission_type": self.permission_type,
             "group_id": self.group_id,
             "org_id": self.org_id
+        }
+
+    def to_ssh_json(self):
+        return {
+            "ip": self.ip,
+            "password": self.password,
+            "port": self.port,
+            "user": self.user,
+        }
+
+    def to_json(self):
+        return {
+            **self.to_public_json(),
+            **self.to_ssh_json()
         }
 
 
