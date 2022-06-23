@@ -1,13 +1,13 @@
 from flask_restful import Api
 
 from .routes import (
-    BaselineEvent,
-    BaselineItemEvent,
-    BaselineImportEvent,
+    CaseNodeEvent,
+    CaseNodeItemEvent,
+    CaseNodeImportEvent,
     SuiteEvent,
     CaseEvent,
     CaseItemEvent,
-    CaseBaselineCommitEvent,
+    CaseNodeCommitEvent,
     CaseImport,
     CaseRecycleBin,
     ResolveTestcaseByFilepath,
@@ -24,18 +24,18 @@ from .routes import (
 
 
 def init_api(api: Api):
-    api.add_resource(BaselineEvent, "/api/v1/baseline")
+    api.add_resource(CaseNodeEvent, "/api/v1/case-node")
     api.add_resource(
-        BaselineItemEvent,
-        "/api/v1/baseline/<int:baseline_id>"
+        CaseNodeItemEvent,
+        "/api/v1/case-node/<int:case_node_id>"
     )
     api.add_resource(
-        BaselineImportEvent,
-        "/api/v1/baseline/case-set",
+        CaseNodeImportEvent,
+        "/api/v1/case-node/case-set",
     )
     api.add_resource(
-        CaseBaselineCommitEvent,
-        "/api/v1/case/baseline/commit",
+        CaseNodeCommitEvent,
+        "/api/v1/case/case-node/commit",
     )
     api.add_resource(PreciseCaseEvent, "/api/v1/case/preciseget")
     api.add_resource(PreciseSuiteEvent, "/api/v1/suite/preciseget")

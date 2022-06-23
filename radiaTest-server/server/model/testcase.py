@@ -9,17 +9,17 @@ from server.model.group import Group
 from server.model.organization import Organization
 
 
-baseline_family = db.Table(
-    'baseline_family',
+case_node_family = db.Table(
+    'case_node_family',
     db.Column('parent_id', db.Integer, db.ForeignKey(
-        'baseline.id'), primary_key=True),
+        'case_node.id'), primary_key=True),
     db.Column('child_id', db.Integer, db.ForeignKey(
-        'baseline.id'), primary_key=True)
+        'case_node.id'), primary_key=True)
 )
 
 
-class Baseline(BaseModel, PermissionBaseModel, db.Model):
-    __tablename__ = "baseline"
+class CaseNode(BaseModel, PermissionBaseModel, db.Model):
+    __tablename__ = "case_node"
 
     id = db.Column(db.Integer(), primary_key=True)
     title = db.Column(db.String(255), nullable=False)
@@ -37,10 +37,10 @@ class Baseline(BaseModel, PermissionBaseModel, db.Model):
     case_id = db.Column(db.Integer(), db.ForeignKey("case.id"))
 
     children = db.relationship(
-        "Baseline",
-        secondary=baseline_family,
-        primaryjoin=(baseline_family.c.parent_id == id),
-        secondaryjoin=(baseline_family.c.child_id == id),
+        "CaseNode",
+        secondary=case_node_family,
+        primaryjoin=(case_node_family.c.parent_id == id),
+        secondaryjoin=(case_node_family.c.child_id == id),
         backref=db.backref('parent', lazy='dynamic'),
         lazy='dynamic',
         cascade="all, delete"
@@ -100,8 +100,8 @@ class Suite(PermissionBaseModel, BaseModel, db.Model):
         "Case", backref="suite", cascade="all, delete, delete-orphan"
     )
 
-    baselines = db.relationship(
-        "Baseline", backref="suite", cascade="all, delete, delete-orphan"
+    case_nodes = db.relationship(
+        "CaseNode", backref="suite", cascade="all, delete, delete-orphan"
     )
 
     def to_json(self):
@@ -163,8 +163,8 @@ class Case(BaseModel, PermissionBaseModel, db.Model):
 
     analyzeds = db.relationship('Analyzed', backref='case')
 
-    baselines = db.relationship(
-        "Baseline", backref="case", cascade="all, delete, delete-orphan"
+    case_nodes = db.relationship(
+        "CaseNode", backref="case", cascade="all, delete, delete-orphan"
     )
 
     tasks_manuals = db.relationship(

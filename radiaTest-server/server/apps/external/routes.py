@@ -80,7 +80,7 @@ class UpdateTaskEvent(Resource):
         UpdateTaskHandler.get_milestone_id(form)
 
         # get cases
-        UpdateTaskHandler.create_baseline(form)
+        UpdateTaskHandler.create_case_node(form)
 
         #create repo config content
         update_repo = UpdateRepo(body)

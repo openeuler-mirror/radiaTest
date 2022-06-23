@@ -24,7 +24,7 @@ class Group(db.Model, PermissionBaseModel, BaseModel):
 
     re_user_group = db.relationship("ReUserGroup", backref="group")
 
-    baselines = db.relationship("Baseline", cascade="all, delete", backref="group")
+    case_nodes = db.relationship("CaseNode", cascade="all, delete", backref="group")
 
     roles = db.relationship("Role", cascade="all, delete", backref="group")
 

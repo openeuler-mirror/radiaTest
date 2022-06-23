@@ -22,7 +22,7 @@ from flask import current_app
 
 from server.model.product import Product
 from server.model.milestone import Milestone
-from server.model.testcase import Case, Suite, Baseline
+from server.model.testcase import Case, Suite, CaseNode
 from server.model.group import ReUserGroup, GroupRole
 from server.utils.db import Insert, Precise
 
@@ -86,24 +86,24 @@ class UpdateTaskHandler:
             form.milestone_id = _milestone.id
 
     @staticmethod
-    def create_baseline(form: UpdateTaskForm):
+    def create_case_node(form: UpdateTaskForm):
         milestone = Milestone.query.get(form.milestone_id)
-        root_baseline_body = {
+        root_case_node_body = {
             "group_id": form.group.id,
             "title": milestone.name,
             "type": "directory",
             "milestone": milestone.id,
             "org_id": form.group.org_id
         }
-        root_baseline = Precise(
-            Baseline, root_baseline_body).first()
-        if not root_baseline:
-            root_baseline = Insert(Baseline, root_baseline_body).insert_obj()
+        root_case_node = Precise(
+            CaseNode, root_case_node_body).first()
+        if not root_case_node:
+            root_case_node = Insert(CaseNode, root_case_node_body).insert_obj()
         for suite in form._body.get("pkgs"):
             _suite = Suite.query.filter_by(name=suite).first()
             if not _suite:
                 _suite = Insert(Suite, {"name": suite}).insert_obj()
-            baseline_body = {
+            case_node_body = {
                 "group_id": form.group.id,
                 "title": _suite.name,
                 "type": "suite",
@@ -111,11 +111,11 @@ class UpdateTaskHandler:
                 "org_id": form.group.org_id,
                 "is_root": False
             }
-            _ = Precise(Milestone, baseline_body).first()
+            _ = Precise(Milestone, case_node_body).first()
             if not _:
-                _ = Insert(Baseline, baseline_body).insert_obj()
-                root_baseline.children.append(_)
-        root_baseline.add_update()
+                _ = Insert(CaseNode, case_node_body).insert_obj()
+                root_case_node.children.append(_)
+        root_case_node.add_update()
 
 
 class UpdateRepo:

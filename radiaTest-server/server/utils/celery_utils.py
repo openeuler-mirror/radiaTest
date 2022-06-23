@@ -46,7 +46,7 @@ def make_celery(app_name):
                 'routing_key': 'file',
                 'delivery_mode': 1,
             },
-            'celeryservice.tasks.resolve_testcase_file_for_baseline': {
+            'celeryservice.tasks.resolve_testcase_file_for_case_node': {
                 'queue': 'queue_file_resolution',
                 'routing_key': 'file',
                 'delivery_mode': 1,

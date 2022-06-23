@@ -1,4 +1,4 @@
-from celeryservice.tasks import resolve_testcase_file_for_baseline
+from celeryservice.tasks import resolve_testcase_file_for_case_node
 from flask import request, g, jsonify
 from flask_restful import Resource
 from flask_pydantic import validate
@@ -13,14 +13,14 @@ from server.utils.db import Edit, Delete, collect_sql_error
 from server.schema.base import PageBaseSchema
 from server.schema.celerytask import CeleryTaskUserInfoSchema
 from server.schema.testcase import (
-    BaselineBodySchema,
-    BaselineQuerySchema,
-    BaselineItemQuerySchema,
-    BaselineUpdateSchema,
+    CaseNodeBodySchema,
+    CaseNodeQuerySchema,
+    CaseNodeItemQuerySchema,
+    CaseNodeUpdateSchema,
     SuiteCreate,
     SuiteUpdate,
     CaseCreate,
-    CaseBaselineCommitCreate,
+    CaseNodeCommitCreate,
     CaseUpdate,
     AddCaseCommitSchema,
     UpdateCaseCommitSchema,
@@ -32,7 +32,7 @@ from server.schema.testcase import (
 )
 from server.apps.testcase.handler import (
     CaseImportHandler,
-    BaselineHandler,
+    CaseNodeHandler,
     SuiteHandler,
     CaseHandler,
     TemplateCasesHandler,
@@ -41,40 +41,40 @@ from server.apps.testcase.handler import (
 )
 
 
-class BaselineEvent(Resource):
+class CaseNodeEvent(Resource):
     @auth.login_required()
     @response_collect
     @validate()
-    def post(self, body: BaselineBodySchema):
-        return BaselineHandler.create(body)
-
-    @auth.login_required()
-    @response_collect
-    @validate()
-    def get(self, query: BaselineQuerySchema):
-        return BaselineHandler.get_roots(query)
-
-
-class BaselineItemEvent(Resource):
-    @auth.login_required()
-    @response_collect
-    @validate()
-    def get(self, baseline_id: int, query: BaselineItemQuerySchema):
-        return BaselineHandler.get(baseline_id, query)
-
-    @auth.login_required()
-    @response_collect
-    def delete(self, baseline_id):
-        return BaselineHandler.delete(baseline_id)
+    def post(self, body: CaseNodeBodySchema):
+        return CaseNodeHandler.create(body)
 
     @auth.login_required()
     @response_collect
     @validate()
-    def put(self, baseline_id, body: BaselineUpdateSchema):
-        return BaselineHandler.update(baseline_id, body)
+    def get(self, query: CaseNodeQuerySchema):
+        return CaseNodeHandler.get_roots(query)
 
 
-class BaselineImportEvent(Resource):
+class CaseNodeItemEvent(Resource):
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def get(self, case_node_id: int, query: CaseNodeItemQuerySchema):
+        return CaseNodeHandler.get(case_node_id, query)
+
+    @auth.login_required()
+    @response_collect
+    def delete(self, case_node_id):
+        return CaseNodeHandler.delete(case_node_id)
+
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def put(self, case_node_id, body: CaseNodeUpdateSchema):
+        return CaseNodeHandler.update(case_node_id, body)
+
+
+class CaseNodeImportEvent(Resource):
     @auth.login_required()
     @response_collect
     @validate()
@@ -85,15 +85,15 @@ class BaselineImportEvent(Resource):
                 error_msg="the id of group could not be empty as importing case set"
             )
 
-        return BaselineHandler.import_case_set(
+        return CaseNodeHandler.import_case_set(
             request.files.get("file"),
             request.form.get("group_id"),
         )
 
     @auth.login_required()
     @response_collect
-    def get(self, baseline_id: int):
-        return BaselineHandler.get_all_case(baseline_id)
+    def get(self, case_node_id: int):
+        return CaseNodeHandler.get_all_case(case_node_id)
 
 
 class SuiteItemEvent(Resource):
@@ -178,12 +178,12 @@ class PreciseCaseEvent(Resource):
 
         return GetAllByPermission(Case).precise(body)
 
-class CaseBaselineCommitEvent(Resource):
+class CaseNodeCommitEvent(Resource):
     @auth.login_required()
     @response_collect
     @validate()
-    def post(self, body: CaseBaselineCommitCreate):
-        return CaseHandler.create_case_baseline_commit(body)
+    def post(self, body: CaseNodeCommitCreate):
+        return CaseHandler.create_case_node_commit(body)
 
 class CaseEvent(Resource):
     @auth.login_required()
@@ -281,7 +281,7 @@ class ResolveTestcaseByFilepath(Resource):
     def post(self):
         body = request.json
 
-        _task = resolve_testcase_file_for_baseline.delay(
+        _task = resolve_testcase_file_for_case_node.delay(
             body.get("file_id"),
             body.get("filepath"),
             CeleryTaskUserInfoSchema(
