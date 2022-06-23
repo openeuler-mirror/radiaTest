@@ -214,8 +214,27 @@ class OperateVmachine(VmachineBaseSchema):
         exitcode, output = undefine_domain(self._body.get("name"))
         return jsonify({"error_code": exitcode, "error_msg": output})
 
-    def edit(self):
-        pass
+
+    def edit(self): 
+        if self._body.get("memory"):
+            exitcode, output = getstatusoutput(
+                "virt-xml {} --edit --memory {},maxmemory={}".format(
+                    shlex.quote(self._body.get("name")),
+                    shlex.quote(str(self._body.get("memory"))),
+                    shlex.quote(str(self._body.get("memory"))),
+            ))
+
+
+        if self._body.get("sockets") or self._body.get("cores") or self._body.get("threads"):
+            exitcode, output = getstatusoutput(
+                    "virt-xml {} --edit --vcpus sockets={},cores={},threads={}".format(
+                        shlex.quote(self._body.get("name")),
+                        shlex.quote(str(self._body.get("sockets"))),
+                        shlex.quote(str(self._body.get("cores"))),
+                        shlex.quote(str(self._body.get("threads"))),
+            ))
+
+        return jsonify({"error_code": exitcode, "error_msg": output})
 
 
 class OperateVnic(VmachineBaseSchema):
