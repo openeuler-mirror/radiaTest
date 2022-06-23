@@ -160,7 +160,7 @@ export default {
       10;
     this.$nextTick(() => {
       window.addEventListener('refreshEvent', ({ detail }) => {
-        this.expandNode(detail.baselineId);
+        this.expandNode(detail.caseNodeId);
       });
     });
   },

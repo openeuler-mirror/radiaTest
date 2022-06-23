@@ -55,6 +55,8 @@ class Vmachine(BaseModel, PermissionBaseModel, db.Model):
             "name": self.name,
             "frame": self.frame,
             "mac": self.mac,
+            "ip": self.ip,
+            "port": self.port,
             "sockets": self.sockets,
             "cores": self.cores,
             "threads": self.threads,
@@ -79,9 +81,7 @@ class Vmachine(BaseModel, PermissionBaseModel, db.Model):
 
     def to_ssh_json(self):
         return {
-            "ip": self.ip,
             "password": self.password,
-            "port": self.port,
             "user": self.user,
         }
 

@@ -1,10 +1,10 @@
 import { ref } from 'vue';
 import router from '@/router';
-import { getBaselineTask } from '@/api/get';
+import { getCaseNodeTask } from '@/api/get';
 const task = ref({});
 function getTask () {
-  const baselineId = window.atob(router.currentRoute.value.params.directoryId);
-  getBaselineTask(baselineId).then(res => {
+  const caseNodeId = window.atob(router.currentRoute.value.params.directoryId);
+  getCaseNodeTask(caseNodeId).then(res => {
     task.value = res.data;
   });
 }

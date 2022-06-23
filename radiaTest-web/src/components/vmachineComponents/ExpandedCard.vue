@@ -72,6 +72,7 @@
                 >
                   {{ item }}
                 </n-tag>
+                <ssh-info :machine-id="data.id"/>
               </n-space>
             </n-gi>
             <n-gi :span="4">
@@ -217,6 +218,7 @@ import { ref, watch, onMounted, onBeforeUnmount, defineComponent } from 'vue';
 import { Socket } from '@/socket';
 import settings from '@/assets/config/settings.js'; 
 
+import SshInfo from './expandedContent/SshInfo.vue';
 import ModalCard from '@/components/CRUD/ModalCard.vue';
 import EditModal from '@/components/vmachineComponents/expandedContent/EditModal.vue';
 
@@ -229,6 +231,7 @@ export default defineComponent({
     ...expandedContent,
     ModalCard,
     EditModal,
+    SshInfo,
   },
   props: {
     data: Object,

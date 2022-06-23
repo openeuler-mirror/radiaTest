@@ -209,6 +209,7 @@ class PmachineEvent(Resource):
 class PmachineBmcEvent(Resource):
     @auth.login_required
     @response_collect
+    @casbin_enforcer.enforcer
     def get(self, pmachine_id):
         pmachine = Pmachine.query.filter_by(id=pmachine_id).first()
         if not pmachine:
@@ -226,6 +227,7 @@ class PmachineBmcEvent(Resource):
 class PmachineSshEvent(Resource):
     @auth.login_required
     @response_collect
+    @casbin_enforcer.enforcer
     def get(self, pmachine_id):
         pmachine = Pmachine.query.filter_by(id=pmachine_id).first()
         if not pmachine:

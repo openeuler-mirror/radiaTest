@@ -48,17 +48,17 @@ function renderIcon(icon) {
 const suiteInfo = ref();
 const renameAction = {
   label: '重命名',
-  key: 'renameBaseline',
+  key: 'renameCaseNode',
   icon: renderIcon(DriveFileRenameOutlineFilled),
 };
 const editAction = {
   label: '修改',
-  key: 'editBaseline',
+  key: 'editCaseNode',
   icon: renderIcon(EditOutlined),
 };
 const deleteAction = {
   label: '删除',
-  key: 'deleteBaseline',
+  key: 'deleteCaseNode',
   icon: renderIcon(Delete28Regular),
 };
 const createChildrenAction = {
@@ -163,7 +163,7 @@ function getGroup(node) {
 function getDirectory(node) {
   return new Promise((resolve, reject) => {
     axios
-      .get('/v1/baseline', {
+      .get('/v1/case-node', {
         group_id: node.key.replace('users-', ''),
       })
       .then((res) => {
@@ -202,9 +202,9 @@ function getDirectory(node) {
   });
 }
 
-function getBaseLine(node) {
+function getCaseNode(node) {
   return new Promise((resolve, reject) => {
-    axios.get(`/v1/baseline/${node.info.id}`)
+    axios.get(`/v1/case-node/${node.info.id}`)
       .then((res) => {
         node.children = [];
         for (const item of res.data.children) {
@@ -272,7 +272,7 @@ function loadData(node, callback) {
         });
       break;
     default:
-      getBaseLine(node)
+      getCaseNode(node)
         .then(() => {
           callback('success');
         })
@@ -524,7 +524,7 @@ function uploadSet(node) {
   // formData.append('git_repo_id', info.value);
   changeLoadingStatus(true);
   axios
-    .post('/v1/baseline/case-set', formData)
+    .post('/v1/case-node/case-set', formData)
     .then(() => {
       window.$message?.success('用例集已上传,请到后台任务查看进展');
       getDirectory(node);
@@ -554,7 +554,7 @@ function renderUpload() {
   return h(
     NUpload,
     {
-      action: '/api/v1/baseline/case-set',
+      action: '/api/v1/case-node/case-set',
       accept: '.rar,.zip,.tar,.gz,.xz,.bz2',
       withCredentials: true,
       max: 1,
@@ -601,7 +601,7 @@ function dialogView(confirmFn, node, contentType = 'directory') {
 }
 function newDirectory(node) {
   axios
-    .post('/v1/baseline', {
+    .post('/v1/case-node', {
       title: info.value,
       type: 'directory',
       group_id: node.info.group_id,
@@ -610,7 +610,7 @@ function newDirectory(node) {
     .then(() => {
       window.$message.success('创建成功');
       if (node.type === 'directory') {
-        getBaseLine(node);
+        getCaseNode(node);
       } else {
         getDirectory(node);
       }
@@ -621,7 +621,7 @@ function newDirectory(node) {
 }
 function newSuite(node) {
   axios
-    .post('/v1/baseline', {
+    .post('/v1/case-node', {
       title: inputInfo.value,
       type: 'suite',
       group_id: node.info.group_id,
@@ -630,10 +630,10 @@ function newSuite(node) {
     })
     .then((res) => {
       window.$message.success('创建成功');
-      getBaseLine(node);
+      getCaseNode(node);
       if (relationSuiteForm.value.caseId) {
         axios
-          .post('/v1/baseline', {
+          .post('/v1/case-node', {
             type: 'case',
             group_id: node.info.group_id,
             parent_id: res.data,
@@ -649,9 +649,9 @@ function newSuite(node) {
       window.$message.error(err.data.error_msg || '未知错误');
     });
 }
-function deleteBaseLine(node) {
+function deleteCaseNode(node) {
   axios
-    .delete(`/v1/baseline/${node.info.id}`)
+    .delete(`/v1/case-node/${node.info.id}`)
     .then(() => {
       const index = node.parent.children.findIndex(
         (item) => item.info.id === node.info.id
@@ -668,9 +668,9 @@ function deleteBaseLine(node) {
       window.$message.error(err.data.error_msg || '未知错误');
     });
 }
-function renameBaseLine(node) {
+function renameCaseNode(node) {
   axios
-    .put(`/v1/baseline/${node.info.id}`, {
+    .put(`/v1/case-node/${node.info.id}`, {
       title: info.value,
     })
     .then(() => {
@@ -683,7 +683,7 @@ function renameBaseLine(node) {
 }
 function newCase(node, caseId, title) {
   axios
-    .post('/v1/baseline', {
+    .post('/v1/case-node', {
       type: 'case',
       group_id: node.info.group_id,
       parent_id: node.info.id,
@@ -692,7 +692,7 @@ function newCase(node, caseId, title) {
     })
     .then(() => {
       window.$message?.success('添加成功');
-      getBaseLine(node);
+      getCaseNode(node);
     })
     .catch((err) => {
       window.$message?.error(err.data.error_msg || '未知错误');
@@ -708,7 +708,7 @@ function refreshNode(node) {
       getDirectory(node);
       break;
     default:
-      node.root ? getOrg() : getBaseLine(node);
+      node.root ? getOrg() : getCaseNode(node);
       break;
   }
 }
@@ -731,15 +731,15 @@ const actionHandlder = {
       }
     },
   },
-  deleteBaseline: {
+  deleteCaseNode: {
     handler(contextmenu) {
-      deleteBaseLine(contextmenu);
+      deleteCaseNode(contextmenu);
     },
   },
-  renameBaseline: {
+  renameCaseNode: {
     handler(contextmenu) {
       initDialogViewData();
-      dialogView(renameBaseLine, contextmenu);
+      dialogView(renameCaseNode, contextmenu);
     },
   },
   newCase: {
@@ -772,7 +772,7 @@ const actionHandlder = {
       refreshNode(contextmenu);
     },
   },
-  editBaseline: {
+  editCaseNode: {
     handler(contextmenu) {
       const [key] = contextmenu.key.split('-');
       if (key === 'suite') {
@@ -827,8 +827,8 @@ function findeItem(array, key, value) {
   return array.find((item) => Number(item.info[key]) === Number(value));
 }
 
-function getNode(baselineId) {
-  axios.get(`/v1/baseline/${baselineId}`).then((res) => {
+function getNode(casNodeId) {
+  axios.get(`/v1/case-node/${casNodeId}`).then((res) => {
     const treePath = [];
     treePath.push(res.data.group_id);
     if (Array.isArray(res.data.source) && res.data.source.length) {
@@ -845,17 +845,17 @@ function getNode(baselineId) {
             getDirectory(group).then((directory) => {
               expandKeys.value.push(group.key);
               index++;
-              const baseline = findeItem(directory, 'id', treePath[index]);
-              resolve(baseline);
+              const caseNode = findeItem(directory, 'id', treePath[index]);
+              resolve(caseNode);
             });
           });
         } else {
           pre.then((node) => {
-            getBaseLine(node).then((baselines) => {
+            getCaseNode(node).then((caseNodes) => {
               index++;
-              const baseline = findeItem(baselines, 'id', treePath[index]);
+              const caseNode = findeItem(caseNodes, 'id', treePath[index]);
               expandKeys.value.push(node.key);
-              resolve(baseline);
+              resolve(caseNode);
             });
           });
         }
@@ -870,12 +870,12 @@ function submitCreateCase() {
     }
   });
 }
-function expandNode(baselineId) {
+function expandNode(caseNodeId) {
   let timer = null;
   timer = setInterval(() => {
     if (menuList.value[0].key) {
       clearInterval(timer);
-      getNode(baselineId);
+      getNode(caseNodeId);
     }
   }, 500);
 }
@@ -892,7 +892,7 @@ function extendSubmit(value) {
   }
   const formData = new FormData();
   formData.append('file', value.file[0].file);
-  formData.append('baseline_id', importInfo.info.id);
+  formData.append('case_node_id', importInfo.info.id);
   formData.append('group_id', importInfo.info.group_id);
   formData.append('framework_id', value.data.framework_id);
   axios.post('/v1/case/import', formData).then(() => {
