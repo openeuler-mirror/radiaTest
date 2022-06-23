@@ -122,6 +122,7 @@ class Pmachine(ServiceModel, PermissionBaseModel, db.Model):
             "id": self.id,
             "frame": self.frame,
             "ip": self.ip,
+            "port": self.port,
             "mac": self.mac,
             "bmc_ip": self.bmc_ip,
             "description": self.description,
@@ -150,7 +151,6 @@ class Pmachine(ServiceModel, PermissionBaseModel, db.Model):
         return {
             "user": self.user,
             "password": self.password,
-            "port": self.port,
         }
 
     def to_json(self):

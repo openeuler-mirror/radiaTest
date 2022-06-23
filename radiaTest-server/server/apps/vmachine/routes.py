@@ -200,9 +200,30 @@ class VmachineIpaddrItem(Resource):
 
 
 class VmachineItemForceEvent(Resource):
+    @auth.login_required
+    @response_collect
     @validate()
     def delete(self, vmachine_id):
         return VmachineForceHandler.delete(vmachine_id)
+
+
+class VmachineSshEvent(Resource):
+    @auth.login_required
+    @response_collect
+    @validate()
+    @casbin_enforcer.enforcer
+    def get(self, vmachine_id):
+        vmachine = Vmachine.query.filter_by(id=vmachine_id).first()
+        if not vmachine:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="the vmachine does not exist"
+            )
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+            data=vmachine.to_ssh_json()
+        )
 
 
 class AttachDevice(Resource):

@@ -20,11 +20,20 @@ export function modifyRepo (id, data) {
 export function modifyVmachineIp (id, data) {
   return putRequest(`/v1/vmachine/${id}/ipaddr`, data);
 }
+export function modifyVmachineSsh (id, data) {
+  return putRequest(`/v1/vmachine/${id}/ssh`, data);
+}
 export function modifyDelayTime (id, data) {
   return putRequest(`/v1/vmachine/${id}/delay`, data);
 }
 export function modifyPmachineDelayTime (id, data) {
   return putRequest(`/v1/pmachine/${id}/delay`, data);
+}
+export function modifyPmachineBmc (id, data) {
+  return putRequest(`/v1/pmachine/${id}/bmc`, data);
+}
+export function modifyPmachineSsh (id, data) {
+  return putRequest(`/v1/pmachine/${id}/ssh`, data);
 }
 export function modifyCommitStatus (id, data) {
   return putRequest(`/v1/case/commit/${id}`, data);

@@ -129,7 +129,7 @@ class UpdateRepo:
         pattern = r'/(update.+?)/'
         result = re.findall(pattern, self._base_url)
         if self._base_url:
-            self.content += "[{}}]\nname={}\nbaseurl={}$basearch/\nenabled=1\ngpgcheck=0\n\n".format(result[-1], result[-1], self._base_url)
+            self.content += "[{}]\nname={}\nbaseurl={}$basearch/\nenabled=1\ngpgcheck=0\n\n".format(result[-1], result[-1], self._base_url)
         
         if self._epol_url:
             rs = result[-1].split("_")[-1]

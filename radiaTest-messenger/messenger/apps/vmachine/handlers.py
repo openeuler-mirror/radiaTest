@@ -3,10 +3,9 @@ from copy import deepcopy
 import json
 import time
 from random import choice
-from httplib2 import Response
 
 import requests
-from flask import current_app, jsonify, request
+from flask import current_app, jsonify, Response
 
 from messenger.utils import DateEncoder
 from messenger.utils.pssh import ConnectionApi

@@ -118,7 +118,7 @@ export default {
           if (Number(sessionStorage.getItem('refresh')) === 1) {
             window.dispatchEvent(
               new CustomEvent('refreshEvent', {
-                detail: { baselineId: this.$route.params.taskid },
+                detail: { caseNodeId: this.$route.params.taskid },
               })
             );
             sessionStorage.setItem('refresh', 0);

@@ -11,9 +11,9 @@
             <n-gi :span="24"></n-gi>
             <n-gi :span="6">
               <n-space vertical>
-                <n-p>ssh用户名：{{ SSHUSER }}</n-p>
+                <account-info :machine-id="data.id" title="BMC" />
+                <account-info :machine-id="data.id" title="SSH" />
                 <n-p>ssh端口：{{ SSHPORT }}</n-p>
-                <n-p>ssh密码：{{ SSHPASSWORD }}</n-p>
                 <n-p v-show="data.description === 'as the host of ci'">
                   worker端口：{{ data.listen }}
                 </n-p>
@@ -113,10 +113,12 @@ import settings from '@/assets/config/settings.js';
 import ResourceCharts from './expandedContent/ResourceCharts';
 import { createTerminal } from '@/assets/utils/xterm.js';
 import { FitAddon } from 'xterm-addon-fit';
+import AccountInfo from './expandedContent/AccountInfo.vue';
 
 export default defineComponent({
   components: {
     ResourceCharts,
+    AccountInfo,
   },
   props: {
     data: Object,

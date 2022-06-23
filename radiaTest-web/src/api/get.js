@@ -80,8 +80,17 @@ export function getCommitHistory (caseId, data) {
 export function getPmachine (data) {
   return getRequest('/v1/pmachine', data);
 }
+export function getPmachineBmc (pmachineId, data) {
+  return getRequest(`/v1/pmachine/${pmachineId}/bmc`, data);
+}
+export function getPmachineSsh (pmachineId, data) {
+  return getRequest(`/v1/pmachine/${pmachineId}/ssh`, data);
+}
 export function getVmachine (data) {
   return getRequest('/v1/vmachine', data);
+}
+export function getVmachineSsh (vmachineId, data) {
+  return getRequest(`/v1/vmachine/${vmachineId}/ssh`, data);
 }
 export function getCaseReviewDetails (id, data) {
   return getRequest(`/v1/case/commit/${id}`, data);
@@ -122,6 +131,6 @@ export function getOrgUser (id, data) {
 export function getProduct (data) {
   return getRequest('/v1/product', data);
 }
-export function getBaselineTask (id, data) {
-  return getRequest(`/v1/baseline/${id}/task`, data);
+export function getCaseNodeTask (id, data) {
+  return getRequest(`/v1/case-node/${id}/task`, data);
 }

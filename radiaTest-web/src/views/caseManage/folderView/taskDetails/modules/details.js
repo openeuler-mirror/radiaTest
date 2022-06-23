@@ -164,7 +164,7 @@ const loading = ref(false);
 function getDetail (caseId) {
   loading.value = true;
   axios
-    .get(`/v1/baseline/${caseId}`)
+    .get(`/v1/case-node/${caseId}`)
     .then((res) => {
       source.value = res.data.source;
       getCaseDetail(res.data.case_id) 

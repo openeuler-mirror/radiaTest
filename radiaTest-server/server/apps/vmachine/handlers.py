@@ -35,7 +35,7 @@ class VmachineHandler:
         query_filter = Vmachine.query.filter(*filter_params)
 
         def page_func(item):
-            return item.to_json()
+            return item.to_public_json()
 
         page_dict, e = PageUtil.get_page_dict(
             query_filter, 

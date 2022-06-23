@@ -53,21 +53,15 @@
             @keydown.enter.prevent
           />
         </n-form-item-gi>
-        <n-form-item-gi :span="12" label="BMC 用户名" path="bmc_user">
+        <n-form-item-gi :span="12" label="BMC 用户名">
           <n-input
-            v-model:value="bmcFormValue.bmc_user"
-            placeholder="输入BMC用户名"
-            @keydown.enter.prevent
+            :disabled="true"
           />
         </n-form-item-gi>
       </n-grid>
-      <n-form-item label="输入密码" path="bmc_password">
+      <n-form-item label="BMC 密码">
         <n-input
-          v-model:value="bmcFormValue.bmc_password"
-          @keydown.enter.prevent
-          type="password"
-          show-password-on="click"
-          placeholder="请输入"
+          :disabled="true"
         />
       </n-form-item>
     </n-form>
@@ -96,21 +90,15 @@
             @keydown.enter.prevent
           />
         </n-form-item-gi>
-        <n-form-item-gi :span="12" label="SSH 用户名" path="user">
+        <n-form-item-gi :span="12" label="SSH 用户名">
           <n-input
-            v-model:value="sshFormValue.user"
-            placeholder="请输入"
-            @keydown.enter.prevent
+            :disabled="true"
           />
         </n-form-item-gi>
       </n-grid>
-      <n-form-item label="输入密码" path="password">
+      <n-form-item label="输入密码">
         <n-input
-          v-model:value="sshFormValue.password"
-          @keydown.enter.prevent
-          type="password"
-          show-password-on="click"
-          placeholder="请输入"
+          :disabled="true"
         />
       </n-form-item>
     </n-form>
