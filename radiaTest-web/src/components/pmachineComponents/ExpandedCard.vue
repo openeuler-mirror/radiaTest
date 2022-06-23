@@ -13,7 +13,7 @@
               <n-space vertical>
                 <account-info :machine-id="data.id" title="BMC" />
                 <account-info :machine-id="data.id" title="SSH" />
-                <n-p>ssh端口：{{ SSHPORT }}</n-p>
+                <n-p>ssh端口：{{ data.port }}</n-p>
                 <n-p v-show="data.description === 'as the host of ci'">
                   worker端口：{{ data.listen }}
                 </n-p>
