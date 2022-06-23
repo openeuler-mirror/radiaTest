@@ -30,7 +30,9 @@ class CreateMilestone:
     @staticmethod
     def run(body):
         if body.get("is_sync"):
-            MilestoneOpenApiHandler(body).create()
+            resp = MilestoneOpenApiHandler(body).create()
+            if resp.get_json().get('error_code') != RET.OK:
+                return resp
             milestone =  Milestone.query.filter_by(name=body.get("name")).first()
             CreateMilestone.bind_scope(milestone.id, body, "api_infos.yaml")
             return jsonify(
@@ -212,6 +214,7 @@ class MilestoneOpenApiHandler(BaseOpenApiHandler):
             _body["end_time"] = body.get("due_date")
 
         _body.update({
+            "id": body.get("id"),
             "name": body.get("title"),
             "type": self.type,
             "product_id": self.product_id,
