@@ -73,6 +73,10 @@
                   {{ item }}
                 </n-tag>
                 <ssh-info :machine-id="data.id"/>
+                <n-p>
+                  <span>SSH端口：</span>
+                  <span>{{ data.port }}</span>
+                </n-p>
               </n-space>
             </n-gi>
             <n-gi :span="4">
