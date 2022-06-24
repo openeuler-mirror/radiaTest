@@ -2,6 +2,8 @@ from flask_restful import Resource
 from flask_pydantic import validate
 
 from server import casbin_enforcer
+from server.model.organization import Organization
+from server.model.group import Group
 from server.utils.auth_util import auth
 from server.utils.response_util import response_collect
 from server.schema.permission import (
@@ -94,6 +96,34 @@ class ScopeItemEvent(Resource):
     @response_collect
     def delete(self, scope_id):
         return ScopeHandler.delete(scope_id)
+
+
+class OrganizationScopeEvent(Resource):
+    @auth.login_required
+    # @casbin_enforcer.enforcer
+    @response_collect
+    @validate()
+    def get(self, org_id, query: ScopeQuerySchema):
+        return ScopeHandler.get_permitted_all(
+            _type="org",
+            table=Organization,
+            owner_id=org_id,
+            query=query,
+        )
+
+
+class GroupScopeEvent(Resource):
+    @auth.login_required
+    # @casbin_enforcer.enforcer
+    @response_collect
+    @validate()
+    def get(self, group_id, query: ScopeQuerySchema):
+        return ScopeHandler.get_permitted_all(
+            _type="group",
+            table=Group,
+            owner_id=group_id,
+            query=query,
+        )
 
 
 class UserRolePublicEvent(Resource):

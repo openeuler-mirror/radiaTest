@@ -7,16 +7,23 @@
           width="400px"
           bordered
         >
-          <div>
-            <n-button type="primary" text @click="rulesView">
+          <div style="display: flex;justify-content: center;">
+            <n-button quaternary type="primary" @click="rulesView" style="font-size: 18px;">
               <template #icon>
-                <n-icon>
-                  <PolicyOutlined />
+                <n-icon :size="18">
+                  <manage-protection />
                 </n-icon>
               </template>
-              规则
+              访问规则管理
             </n-button>
           </div>
+          <n-divider />
+          <p style="font-size: 18px;display: flex;align-items: center">
+            <n-icon :size="18">
+              <user-role />
+            </n-icon>
+            <span style="padding-left: 6px;">角色-权限管理</span>
+          </p>
           <div class="leftHeader">
             <div class="searchWrap" style="width: 70%">
               <n-icon size="22" class="search"> <Search /> </n-icon>
@@ -30,7 +37,7 @@
           </div>
           <n-list>
             <n-list-item>
-              <n-thing title="角色列表">
+              <n-thing>
                 <n-tree
                   :data="roleList"
                   @update:selected-keys="selectRole"
@@ -60,15 +67,16 @@ import { defineComponent } from 'vue';
 import { modules } from './modules/index.js';
 import cardPage from '@/components/common/cardPage';
 import { Search } from '@vicons/tabler';
-import { PolicyOutlined } from '@vicons/material';
+import { ManageProtection, UserRole } from '@vicons/carbon';
 import roleForm from '@/components/form/roleForm.vue';
 
 export default defineComponent({
   components: {
     cardPage,
     Search,
-    PolicyOutlined,
+    ManageProtection,
     roleForm,
+    UserRole
   },
   computed: {
     routerChange() {

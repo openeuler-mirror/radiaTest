@@ -96,26 +96,36 @@ function initRoleList () {
         key: 'public',
       },
       {
+        label: '组织',
+        key: 'org',
+        children: [],
+      },
+      {
         label: '团队',
         key: 'group',
         children: [],
       },
       {
-        label: '组织',
-        key: 'org',
-        children: [],
-      },
+        label: '个人',
+        key: 'person',
+        children: []
+      }
     ];
   } else {
     roleList.value = [
       {
-        label: '团队',
-        key: 'group',
+        label: '平台',
+        key: 'public',
         children: [],
       },
       {
         label: '组织',
         key: 'org',
+        children: [],
+      },
+      {
+        label: '团队',
+        key: 'group',
         children: [],
       },
     ];

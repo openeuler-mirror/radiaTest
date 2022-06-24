@@ -107,36 +107,24 @@ class ConnectState {
 const handleSendRequest = (dOccupy, connect) => {
   dOccupy.content = '占用请求已发送';
   if (connect.formValue.value.description === 'used for ci') {
-    return axios.put(`/v1/pmachine/${connect.formValue.value.id}`, {
+    return axios.put(`/v1/pmachine/${connect.formValue.value.id}/occupy`, {
       description: connect.formValue.value.description,
       occupier: storage.getValue('gitee_name'),
-      state: 'occupied',
       user: connect.formValue.value.user,
-      ip: connect.formValue.value.ip,
-      port: connect.formValue.value.port,
-      password: connect.formValue.value.password,
     });
   } else if (connect.formValue.value.description !== 'as the host of ci') {
-    return axios.put(`/v1/pmachine/${connect.formValue.value.id}`, {
+    return axios.put(`/v1/pmachine/${connect.formValue.value.id}/occupy`, {
       description: connect.formValue.value.description,
       end_time: any2standard(connect.datetime.value),
       occupier: storage.getValue('gitee_name'),
-      state: 'occupied',
       user: connect.formValue.value.user,
-      ip: connect.formValue.value.ip,
-      port: connect.formValue.value.port,
-      password: connect.formValue.value.password,
     });
   }
-  return axios.put(`/v1/pmachine/${connect.formValue.value.id}`, {
+  return axios.put(`/v1/pmachine/${connect.formValue.value.id}/occupy`, {
     description: connect.formValue.value.description,
     listen: connect.formValue.value.listen,
     occupier: storage.getValue('gitee_name'),
-    state: 'occupied',
     user: connect.formValue.value.user,
-    ip: connect.formValue.value.ip,
-    port: connect.formValue.value.port,
-    password: connect.formValue.value.password,
   });
 };
 
@@ -169,13 +157,7 @@ const handleRelease = (dRelease, connect) => {
   return new Promise((resolve, reject) => {
     dRelease.content = '释放请求已发送';
     axios
-      .put(`/v1/pmachine/${connect.formValue.value.id}`, {
-        state: 'idle',
-        user: connect.formValue.value.user,
-        ip: connect.formValue.value.ip,
-        port: connect.formValue.value.port,
-        password: connect.formValue.value.password,
-      })
+      .put(`/v1/pmachine/${connect.formValue.value.id}/release`)
       .then((res) => {
         if (res.error_code === '2000') {
           dRelease.content = '物理机已确认释放';

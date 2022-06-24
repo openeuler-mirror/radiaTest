@@ -2,9 +2,13 @@
   <div>
     <n-descriptions label-placement="left">
       <template #header>
-        <div style="display: flex; justify-content: space-between">
-          <breadcrumb :list="titles" :fontsize="20" />
-          <n-button type="error" @click="deleteRole"> 删除 </n-button>
+        <div style="display: flex;">
+          <breadcrumb :list="titles" :fontsize="20" style="padding-right: 20px;" />
+          <n-button round quaternary type="error" @click="deleteRole">
+            <n-icon :size="20">
+             <delete />
+            </n-icon>
+          </n-button>
         </div>
       </template>
       <n-descriptions-item>
@@ -20,7 +24,7 @@
             <settings />
           </n-icon>
         </template>
-        规则设置
+        权限变更
       </n-button>
     </div>
     <table-filter :filters="filters" @filterchange="filterChange" />
@@ -53,23 +57,40 @@
       </n-drawer-content>
     </n-drawer>
     <modal-card
-      title="规则"
+      title="权限变更"
       ref="ruleModal"
       cancelText="关闭"
       :showConfirm="false"
     >
       <template #form>
-        <n-input
-          style="margin:5px 0;width:800px"
-          round
-          placeholder="请输入名称"
-          v-model:value="ruleSearch"
-          @change="filterRules"
-        >
-          <template #suffix>
-            <n-icon :component="Search" />
-          </template>
-        </n-input>
+        <n-tabs v-model:value="tabValue" type="line" @update:value="getRelationRules">
+          <n-tab-pane v-if="isPermitted" name="permitted" tab="授权权限域"></n-tab-pane>
+          <n-tab-pane name="public" tab="公共权限域"></n-tab-pane>
+        </n-tabs>
+        <n-input-group>
+          <n-input
+            style="margin:5px 0;width:800px"
+            round
+            placeholder="搜索规则名称"
+            v-model:value="aliasSearch"
+            @change="getRelationRules"
+          >
+            <template #suffix>
+              <n-icon :component="Search" />
+            </template>
+          </n-input>
+          <n-input
+            style="margin:5px 0;width:800px"
+            round
+            placeholder="搜索规则路由"
+            v-model:value="uriSearch"
+            @change="getRelationRules"
+          >
+            <template #suffix>
+              <n-icon :component="Search" />
+            </template>
+          </n-input>
+        </n-input-group>
         <n-data-table
           :columns="relationRuleColumns"
           :data="relationRuleData"
@@ -80,24 +101,34 @@
   </div>
 </template>
 <script>
+import { computed } from 'vue';
 import { modules } from './modules';
 import breadcrumb from '@/components/breadcrumb/breadcrumb.vue';
 // import { UserAddOutlined } from '@vicons/antd';
 import { Search } from '@vicons/ionicons5';
-import { Settings } from '@vicons/carbon';
+import { Settings, Delete } from '@vicons/carbon';
 import modalCard from '@/components/CRUD/ModalCard.vue';
 import tableFilter from '@/components/filter/tableFilter.vue';
+import { storage } from '@/assets/utils/storageUtils';
 
 export default {
   components: {
     breadcrumb,
     Settings,
+    Delete,
     modalCard,
     tableFilter
   },
   setup() {
     modules.getRoleInfo();
-    return { ...modules, Search };
+    const isPermitted = computed(() => {
+      if (storage.getValue('role') === 1) {
+        modules.tabValue.value = 'public';
+        return false;
+      }
+      return true;
+    });
+    return { ...modules, Search, isPermitted };
   },
 };
 </script>

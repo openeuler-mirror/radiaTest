@@ -257,25 +257,24 @@ export default defineComponent({
       getVmachineSsh(props.data.id).then((res) => {
         SshUser.value = res.data.user;
         SshPassword.value = res.data.password;
+        if (props.data.status === 'running') {
+          vmachineResourceSocket.emit('start', {
+            ip: props.data.ip,
+            port: props.data.port,
+            user: SshUser.value,
+            password: SshPassword.value,
+          });
+        }
+        vmachineResourceSocket.listen(props.data.ip, (data) => {
+          data.mem_usage
+            ? (memoryPercentage.value = data.mem_usage.toFixed(2))
+            : 0;
+          data.cpu_usage ? (cpuPercentage.value = data.cpu_usage.toFixed(2)) : 0;
+          osInfo.value = data.os_info;
+          kernelInfo.value = data.kernel_info;
+        });
       }).catch(() => {
         window.$message?.warning('无权获取ssh信息，无法通过概览获取CPU与内存用量数据');
-      });
-
-      if (props.data.status === 'running') {
-        vmachineResourceSocket.emit('start', {
-          ip: props.data.ip,
-          port: props.data.port,
-          user: SshUser.value,
-          password: SshPassword.value,
-        });
-      }
-      vmachineResourceSocket.listen(props.data.ip, (data) => {
-        data.mem_usage
-          ? (memoryPercentage.value = data.mem_usage.toFixed(2))
-          : 0;
-        data.cpu_usage ? (cpuPercentage.value = data.cpu_usage.toFixed(2)) : 0;
-        osInfo.value = data.os_info;
-        kernelInfo.value = data.kernel_info;
       });
     });
     onBeforeUnmount(() => {
