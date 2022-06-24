@@ -153,14 +153,12 @@ class CaseBaseSchemaWithSuiteId(SuiteBase):
     code: Optional[str]
 
 
-class CaseUpdateSchemaWithSuiteId(CaseBaseSchemaWithSuiteId, UpdateBaseModel):
+class CaseUpdateSchemaWithSuiteId(UpdateBaseModel):
     name: Optional[str]
     suite_id: Optional[int]
-    description: Optional[str]
-    preset: Optional[str]
-    steps: Optional[str]
-    expection: Optional[str]
     automatic: Optional[bool]
+    usabled: Optional[bool]
+    code: Optional[str]
 
 class AddCaseCommitSchema(BaseModel):
     title: str

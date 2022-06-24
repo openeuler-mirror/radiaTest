@@ -21,7 +21,7 @@ class MessageManager:
             api_infos = yaml.load(f.read(), Loader=yaml.FullLoader)
         uri_arr = uri.split("/")
         for _api in api_infos:
-            if method == _api.get("act") and _api.get("uri").split("%")[0] in uri \
+            if method.lower() == _api.get("act").lower() and _api.get("uri").split("%")[0] in uri \
                 and (uri_arr[-1].isdigit() or (not uri_arr[-1].isdigit() and _api.get("uri").split("%")[1] in uri)):
                 if uri_arr[-1].isdigit():
                     _api["id"] = uri_arr[-1]
