@@ -204,7 +204,7 @@ class PmachineReleaseEvent(Resource):
                     "start_time": sqlalchemy.null(),
                     "end_time": sqlalchemy.null(),
                     "state": "idle",
-                    "listen": "",
+                    "listen": None,
             }
 
         _body.update({"id": pmachine_id})
