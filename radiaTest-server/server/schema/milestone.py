@@ -68,7 +68,7 @@ class MilestoneCreateSchema(MilestoneBaseSchema, PermissionBase):
                     Milestone.query.filter(
                         Milestone.name.op("regexp")(prefix + "[1-9]*")
                     )
-                    .order_by(Milestone.name.desc())
+                    .order_by(Milestone.name.desc(), Milestone.id.asc())
                     .first()
                 )
                 if not _max_round:

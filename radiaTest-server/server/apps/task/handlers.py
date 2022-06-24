@@ -46,7 +46,7 @@ class HandlerTaskStatus(object):
     @staticmethod
     @collect_sql_error
     def add(body):
-        status = TaskStatus.query.order_by(TaskStatus.order.desc()).first()
+        status = TaskStatus.query.order_by(TaskStatus.order.desc(), TaskStatus.id.asc()).first()
         new_order = (status.order + 1) if status else 1
         status = TaskStatus(name=body.name, order=new_order, creator_id=g.gitee_id)
         status.add_update()

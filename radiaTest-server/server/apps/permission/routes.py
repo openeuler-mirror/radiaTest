@@ -100,7 +100,7 @@ class ScopeItemEvent(Resource):
 
 class OrganizationScopeEvent(Resource):
     @auth.login_required
-    # @casbin_enforcer.enforcer
+    @casbin_enforcer.enforcer
     @response_collect
     @validate()
     def get(self, org_id, query: ScopeQuerySchema):
@@ -114,7 +114,7 @@ class OrganizationScopeEvent(Resource):
 
 class GroupScopeEvent(Resource):
     @auth.login_required
-    # @casbin_enforcer.enforcer
+    @casbin_enforcer.enforcer
     @response_collect
     @validate()
     def get(self, group_id, query: ScopeQuerySchema):

@@ -514,7 +514,7 @@ def handler_get_all(query):
     if query.gitee_name:
         filter_params.append(User.gitee_id.like(f'%{query.gitee_name}%'))
 
-    query_filter = User.query.filter(*filter_params).order_by(User.create_time.desc())
+    query_filter = User.query.filter(*filter_params).order_by(User.create_time.desc(), User.id.asc())
 
     # 获取用户组下的所有用户
     def page_func(item):
@@ -581,21 +581,21 @@ def handler_get_user_task(query: UserTaskSchema):
     filter_param = []
     if query.task_type == 'all':
         # 任务总数、分页
-        basic_filter = Task.query.filter(*basic_filter_params).order_by(Task.update_time.desc())
+        basic_filter = Task.query.filter(*basic_filter_params).order_by(Task.update_time.desc(), Task.id.asc())
         filter_param = basic_filter
 
     elif query.task_type == 'month':
         # 本月任务
         month_filter_params.extend(basic_filter_params)
-        month_filter = Task.query.filter(*month_filter_params).order_by(Task.update_time.desc())
+        month_filter = Task.query.filter(*month_filter_params).order_by(Task.update_time.desc(), Task.id.asc())
         filter_param = month_filter
     elif query.task_type == 'week':
         week_filter_params.extend(basic_filter_params)
-        week_filter = Task.query.filter(*week_filter_params).order_by(Task.update_time.desc())
+        week_filter = Task.query.filter(*week_filter_params).order_by(Task.update_time.desc(), Task.id.asc())
         filter_param = week_filter
     elif query.task_type == 'today':
         today_filter_params.extend(basic_filter_params)
-        today_filter = Task.query.filter(*today_filter_params).order_by(Task.update_time.desc())
+        today_filter = Task.query.filter(*today_filter_params).order_by(Task.update_time.desc(), Task.id.asc())
         filter_param = today_filter
     elif query.task_type == 'overtime':
         overtime_filter_params = [
@@ -608,12 +608,12 @@ def handler_get_user_task(query: UserTaskSchema):
             )
         ]
         overtime_filter_params.extend(basic_filter_params)
-        overtime_filter = Task.query.filter(*overtime_filter_params).order_by(Task.update_time.desc())
+        overtime_filter = Task.query.filter(*overtime_filter_params).order_by(Task.update_time.desc(), Task.id.asc())
         filter_param = overtime_filter
     elif query.task_type == 'not_accomplish':
         not_accomplish_filter_params = [Task.accomplish_time.is_(None)]
         not_accomplish_filter_params.extend(basic_filter_params)
-        not_accomplish_filter = Task.query.filter(*not_accomplish_filter_params).order_by(Task.update_time.desc())
+        not_accomplish_filter = Task.query.filter(*not_accomplish_filter_params).order_by(Task.update_time.desc(), Task.id.asc())
         filter_param = not_accomplish_filter
 
     page_dict, e = PageUtil.get_page_dict(filter_param, query.page_num, query.page_size, func=page_func)
@@ -646,7 +646,7 @@ def handler_get_user_machine(query: UserMachineSchema):
                 Pmachine.description.like(f'%{query.machine_name}%'),
                 Pmachine.bmc_ip.like(f'%{query.machine_name}%')
             ))
-        filter_chain = Pmachine.query.filter(*filter_params).order_by(Pmachine.create_time.desc())
+        filter_chain = Pmachine.query.filter(*filter_params).order_by(Pmachine.create_time.desc(), Pmachine.id.asc())
         page_dict, e = PageUtil.get_page_dict(filter_chain, query.page_num, query.page_size, func=page_func)
         if e:
             return jsonify(error_code=RET.SERVER_ERR, error_msg=f'get pmachine page error {e}')
@@ -662,7 +662,7 @@ def handler_get_user_machine(query: UserMachineSchema):
                 Vmachine.description.like(f'%{query.machine_name}%'),
                 Vmachine.milestone.like(f'%{query.machine_name}%')
             ))
-        filter_chain = Vmachine.query.filter(*filter_params).order_by(Vmachine.create_time.desc())
+        filter_chain = Vmachine.query.filter(*filter_params).order_by(Vmachine.create_time.desc(), Vmachine.id.asc())
         page_dict, e = PageUtil.get_page_dict(filter_chain, query.page_num, query.page_size, func=page_func)
         if e:
             return jsonify(error_code=RET.SERVER_ERR, error_msg=f'get vmachine page error {e}')
@@ -711,7 +711,7 @@ def handler_get_user_case_commit(query: UserCaseCommitSchema):
         filter_params.append(Commit.status == query.status)
     else:
         filter_params.append(Commit.status != 'pending')
-    filter_chain = Commit.query.filter(*filter_params).order_by(Commit.create_time.desc())
+    filter_chain = Commit.query.filter(*filter_params).order_by(Commit.create_time.desc(), Commit.id.asc())
     page_dict, e = PageUtil.get_page_dict(filter_chain, query.page_num, query.page_size, func=lambda x: x.to_json())
     if e:
         return jsonify(error_code=RET.SERVER_ERR, error_msg=f'get case commit page error {e}')
@@ -760,7 +760,7 @@ def handler_get_user_case_commit(query: UserCaseCommitSchema):
         filter_params.append(Commit.status == query.status)
     else:
         filter_params.append(Commit.status != 'pending')
-    filter_chain = Commit.query.filter(*filter_params).order_by(Commit.create_time.desc())
+    filter_chain = Commit.query.filter(*filter_params).order_by(Commit.create_time.desc(), Commit.id.asc())
     page_dict, e = PageUtil.get_page_dict(filter_chain, query.page_num, query.page_size, func=lambda x: x.to_json())
     if e:
         return jsonify(error_code=RET.SERVER_ERR, error_msg=f'get case commit page error {e}')

@@ -44,7 +44,7 @@ class CeleryTaskHandler:
         if query.object_type:
             filter_params.append(CeleryTask.object_type == query.object_type)
 
-        query_filter = CeleryTask.query.filter(*filter_params).order_by(CeleryTask.create_time.desc())
+        query_filter = CeleryTask.query.filter(*filter_params).order_by(CeleryTask.create_time.desc(), CeleryTask.id.asc())
         
         def page_func(item):
             celerytask_dict = item.to_dict()

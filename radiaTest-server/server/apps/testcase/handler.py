@@ -679,7 +679,7 @@ class HandlerCaseReview(object):
         if query.end_time:
             _filter.append(Commit.create_time <= query.end_time)
 
-        all = Commit.query.filter(*_filter).order_by(Commit.create_time.desc()).all()
+        all = Commit.query.filter(*_filter).order_by(Commit.create_time.desc(), Commit.id.asc()).all()
         commit_list = []
 
         for item in all:
@@ -708,7 +708,7 @@ class HandlerCaseReview(object):
                 type_filter.append(Commit.status != 'pending')
                 all_commits = Commit.query.filter(*type_filter).all()
                 return_data['all_count'] = len(all_commits)
-                filter_chain = Commit.query.filter(*type_filter).order_by(Commit.create_time.desc())
+                filter_chain = Commit.query.filter(*type_filter).order_by(Commit.create_time.desc(), Commit.id.asc())
                 page_dict, e = PageUtil.get_page_dict(filter_chain, query.page_num, query.page_size,
                                                       func=lambda x: x.to_json())
                 return_data['all_commit'] = page_dict
@@ -716,7 +716,7 @@ class HandlerCaseReview(object):
                 type_filter.append(Commit.status == query_type)
                 _commits = Commit.query.filter(*type_filter).all()
                 return_data[query_type + '_count'] = len(_commits)
-                filter_chain = Commit.query.filter(*type_filter).order_by(Commit.create_time.desc())
+                filter_chain = Commit.query.filter(*type_filter).order_by(Commit.create_time.desc(), Commit.id.asc())
                 page_dict, e = PageUtil.get_page_dict(filter_chain, query.page_num, query.page_size,
                                                       func=lambda x: x.to_json())
                 return_data[query_type + '_commit'] = page_dict
@@ -819,7 +819,7 @@ class HandlerCommitComment(object):
         filter_chain = Commit.query.filter_by(
             status='pending',
             creator_id=g.gitee_id,
-            org_id=org_id).order_by(Commit.create_time.desc())
+            org_id=org_id).order_by(Commit.create_time.desc(), Commit.id.asc())
         page_dict, e = PageUtil.get_page_dict(filter_chain, query.page_num, query.page_size,
                                               func=lambda x: x.to_json())
         if e:
