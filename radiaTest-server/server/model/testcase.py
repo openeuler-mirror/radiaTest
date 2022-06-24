@@ -60,7 +60,7 @@ class CaseNode(BaseModel, PermissionBaseModel, db.Model):
         }
         if self.type == 'case' and self.case_id:
             _commit = Commit.query.filter_by(case_detail_id=self.case_id) \
-                .order_by(Commit.create_time.desc()).first()
+                .order_by(Commit.create_time.desc(), Commit.id.asc()).first()
             if _commit:
                 return_data['case_status'] = _commit.status
                 return_data['commit_id'] = _commit.id

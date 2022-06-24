@@ -2,7 +2,7 @@ import yaml
 from flask import jsonify, g, request, current_app
 from sqlalchemy import or_, and_
 
-from server import db
+from server import db, redis_client
 from server.model.administrator import Admin
 from server.model.organization import Organization, ReUserOrganization, OrganizationRole
 from server.model.group import Group, ReUserGroup, GroupRole
@@ -14,6 +14,7 @@ from server.utils.permission_utils import PermissionItemsPool
 from server.utils.response_util import RET, ssl_cert_verify_error_collect
 from server.utils.db import Insert, Delete, collect_sql_error
 from server.utils.read_from_yaml import get_default_suffix
+from server.utils.redis_util import RedisKey
 
 
 class RoleHandler:
@@ -58,24 +59,21 @@ class RoleHandler:
     @collect_sql_error
     def get_all(query):
         filter_params = []
+
         admin = Admin.query.filter_by(account=g.gitee_login).first()
         if not admin:
             filter_params = [
-                and_(
-                     ReUserGroup.user_gitee_id == g.gitee_id,
-                     or_(
-                         and_(
-                             ReUserGroup.group_id == Role.group_id,
-                             ReUserGroup.user_add_group_flag == True,
-                             ReUserGroup.is_delete == False,
-                             Role.type == 'group'
-                         ),
-                         and_(
-                             ReUserGroup.org_id == Role.org_id,
-                             Role.type == 'org'
-                         ),
-                         Role.type == 'public',
-                     )
+                or_(
+                    and_(
+                        ReUserOrganization.organization_id == redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id'),
+                        Role.type == 'org',
+                    ),
+                    and_(
+                        ReUserGroup.user_gitee_id == g.gitee_id,
+                        ReUserGroup.user_add_group_flag == True,
+                        ReUserGroup.is_delete == False,
+                    ),
+                    Role.type == 'public',
                 )
             ]
         for key, value in query.dict().items():
@@ -86,7 +84,12 @@ class RoleHandler:
             if key == 'description':
                 filter_params.append(Role.description.like(f'%{value}%'))
 
-        roles = Role.query.select_from(ReUserGroup).filter(*filter_params).all()
+        roles = Role.query.outerjoin(
+            ReUserOrganization, Role.org_id == ReUserOrganization.organization_id
+        ).outerjoin(
+            ReUserGroup, Role.group_id == ReUserGroup.group_id
+        ).filter(*filter_params).all()
+        
         return_data = [role.to_json() for role in roles]
 
         return jsonify(error_code=RET.OK, error_msg="OK", data=return_data)
@@ -236,16 +239,17 @@ class ScopeHandler:
             name=_role_name,
             type=_type,
             org_id=owner_id,
-        )
+        ).first()
         if not _role:
             return jsonify(
                 error_code=RET.NO_DATA_ERR,
                 error_msg=f"the administrator role of this {_type} does not exist"
             )
 
-        _re_scope_role_id_list = [_re.id for _re in ReScopeRole.query.filter_by(role_id=_role.id).all()]
+        _re_scope_roles = ReScopeRole.query.filter_by(role_id=_role.id).all()
+        _re_scope_roles_id_list = [_re.id for _re in _re_scope_roles]
 
-        _filter_params = [Scope.id.in_(_re_scope_role_id_list)]
+        _filter_params = [Scope.id.in_(_re_scope_roles_id_list)]
         if query.alias:
             _filter_params.append(Scope.alias.like(f'%{query.alias}%'))
         if query.uri:
@@ -263,7 +267,7 @@ class ScopeHandler:
         return jsonify(
             error_code=RET.OK,
             error_msg="OK",
-            data=scopes
+            data=[scope.to_json() for scope in scopes]
         )
 
     @staticmethod

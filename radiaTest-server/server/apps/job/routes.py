@@ -92,9 +92,9 @@ class JobEvent(Resource):
         ).filter(*filter_params)
 
         if query.sorted_by == "create_time":
-            query_filter = query_filter.order_by(Job.create_time.desc())
+            query_filter = query_filter.order_by(Job.create_time.desc(), Job.id.asc())
         elif query.sorted_by == "end_time":
-            query_filter = query_filter.order_by(Job.end_time.desc())
+            query_filter = query_filter.order_by(Job.end_time.desc(), Job.id.asc())
 
         def page_func(item):
             job_dict = item.to_json()

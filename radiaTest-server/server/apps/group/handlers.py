@@ -222,7 +222,7 @@ def handler_group_user_page(group_id, query: QueryGroupUserSchema):
             ReUserGroup.user_gitee_id.notin_(query.except_list)
         )
 
-    query_filter = ReUserGroup.query.filter(*filter_params).order_by(ReUserGroup.create_time.desc())
+    query_filter = ReUserGroup.query.filter(*filter_params).order_by(ReUserGroup.create_time.desc(), ReUserGroup.id.asc())
 
     # 获取用户组下的所有用户
     def page_func(item):
