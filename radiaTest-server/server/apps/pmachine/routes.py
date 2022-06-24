@@ -16,6 +16,7 @@ from server.utils.db import Edit, Select, collect_sql_error
 from server.utils.auth_util import auth
 from server.utils.response_util import response_collect, RET
 from server.utils.resource_utils import ResourceManager
+from server.utils.permission_utils import GetAllByPermission
 from server.schema.pmachine import (
     MachineGroupCreateSchema,
     MachineGroupQuerySchema,
@@ -47,8 +48,7 @@ class MachineGroupEvent(Resource):
     @response_collect
     @validate()
     def get(self, query: MachineGroupQuerySchema):
-        return ResourcePoolHandler.get_all(query)
-
+        return GetAllByPermission(MachineGroup).fuzz(query.__dict__)
 
 class MachineGroupItemEvent(Resource):
     @auth.login_required
