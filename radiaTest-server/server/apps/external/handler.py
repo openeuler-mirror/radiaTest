@@ -41,14 +41,17 @@ class UpdateTaskHandler:
     def get_product_id(form: UpdateTaskForm):
         product_body = {
             "name": form._body.get("product"),
-            "version": form._body.get("version"),
-            "permission_type": "group",
-            "group_id": form.group.id,
-            "org_id": form.group.org_id
+            "version": form._body.get("version")
         }
         _product = Precise(Product, product_body).first()
 
         if not _product:
+            product_body.update(
+                {
+                    "permission_type": "org",
+                    "org_id": form.group.org_id
+                }
+            )
             form.product_id = Insert(
                 Product,
                 product_body
@@ -70,7 +73,7 @@ class UpdateTaskHandler:
                 "end_time": (datetime.datetime.now() + datetime.timedelta(
                     days=current_app.config.get("OE_QA_UPDATE_TASK_PERIOD")
                 )).strftime("%Y-%m-%d %H:%M:%S"),
-                "permission_type": "group",
+                "permission_type": "org",
                 "creator_id": ReUserGroup.query.filter_by(
                     group_id=form.group.id,
                     role_type=GroupRole.create_user.value
@@ -93,7 +96,8 @@ class UpdateTaskHandler:
             "title": milestone.name,
             "type": "directory",
             "milestone": milestone.id,
-            "org_id": form.group.org_id
+            "org_id": form.group.org_id,
+            "permission_type": "group"
         }
         root_case_node = Precise(
             CaseNode, root_case_node_body).first()
@@ -109,7 +113,8 @@ class UpdateTaskHandler:
                 "type": "suite",
                 "suite_id": _suite.id,
                 "org_id": form.group.org_id,
-                "is_root": False
+                "is_root": False,
+                "permission_type": "group"
             }
             _ = Precise(Milestone, case_node_body).first()
             if not _:
