@@ -30,6 +30,14 @@
   act: put
   alias: 修改Pmachine占用时间
   table: pmachine
+- uri: /api/v1/pmachine/%d/occupy
+  act: put
+  alias: 占用Pmachine
+  table: pmachine
+- uri: /api/v1/pmachine/%d/release
+  act: put
+  alias: 释放Pmachine
+  table: pmachine
 - uri: /api/v1/machine-group/%d
   act: delete
   alias: 删除Machine_Group

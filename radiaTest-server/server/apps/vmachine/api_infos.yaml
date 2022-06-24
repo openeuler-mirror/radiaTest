@@ -11,3 +11,6 @@ vmachine:
   - uri: /api/v1/vmachine/%d/ipaddr
     act: put
     alias: 修改Vmachine的ip地址
+  - uri: /api/v1/vmachine/%d/ssh
+    act: get
+    alias: 获取Vmachine的ssh信息

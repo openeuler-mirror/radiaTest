@@ -11,6 +11,18 @@ pmachine:
   - uri: /api/v1/pmachine/%d/delay
     act: put
     alias: 修改Pmachine占用时间
+  - uri: /api/v1/pmachine/%d/occupy
+    act: put
+    alias: 占用Pmachine
+  - uri: /api/v1/pmachine/%d/release
+    act: put
+    alias: 释放Pmachine
+  - uri: /api/v1/pmachine/%d/ssh
+    act: get
+    alias: 获取Pmachine的ssh信息
+  - uri: /api/v1/pmachine/%d/bmc
+    act: get
+    alias: 获取Pmachine的bmc信息
 machine_group:
   - uri: /api/v1/machine-group/%d
     act: delete
