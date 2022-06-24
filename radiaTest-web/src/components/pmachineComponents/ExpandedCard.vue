@@ -110,6 +110,7 @@ import { ref, onMounted, onUnmounted, defineComponent } from 'vue';
 import { Socket } from '@/socket';
 
 import settings from '@/assets/config/settings.js';
+import { getPmachineSsh } from '@/api/get.js';
 import ResourceCharts from './expandedContent/ResourceCharts';
 import { createTerminal } from '@/assets/utils/xterm.js';
 import { FitAddon } from 'xterm-addon-fit';
@@ -152,9 +153,9 @@ export default defineComponent({
     startConsole() {
       this.termSocket.emit('start', {
         machine_ip: this.IP,
-        port: this.SSHPORT,
-        user: this.SSHUSER,
-        password: this.SSHPASSWORD,
+        port: this.data.port,
+        user: this.SshUser,
+        password: this.SsdPassword,
         cols: this.termHeight,
         rows: this.termWidth,
         machine_group_ip: this.machine_group_ip,
@@ -194,6 +195,8 @@ export default defineComponent({
     }
   },
   setup(props) {
+    const SshUser = ref('');
+    const SshPassword = ref('');
     const memoryTotal = ref('');
     const cpuPhysicalCores = ref('');
     const cpuIndex = ref('');
@@ -204,12 +207,16 @@ export default defineComponent({
       `${settings.websocketProtocol}://${props.machine_group_ip}:${props.messenger_listen}/monitor/normal`
     );
     onMounted(() => {
+      getPmachineSsh(props.data.id).then((res) => {
+        SshUser.value = res.data.user;
+        SshPassword.value = res.data.password;
+      }).catch(() => {window.$message?.warning('无权获取ssh信息，无法通过概览获取CPU与内存用量数据');});
       resourceMonitorSocket.connect();
       resourceMonitorSocket.emit('start', {
         ip: props.IP,
-        user: props.SSHUSER,
+        user: SshUser.value,
         port: props.data.port,
-        password: props.SSHPASSWORD,
+        password: SshPassword.value,
         messenger_listen: props.messenger_listen,
       });
       resourceMonitorSocket.listen(props.IP, (res) => {

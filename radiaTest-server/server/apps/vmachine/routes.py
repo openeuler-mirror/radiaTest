@@ -67,11 +67,17 @@ class VmachineItemEvent(Resource):
     @validate()
     @casbin_enforcer.enforcer
     def get(self, vmachine_id):
-        return Select(Vmachine, {"id":vmachine_id}).single()
-    
-    # @validate()
-    # def put(self, vmachine_id, body: EditBaseModel):
-    #     return EditVmachine(body.__dict__).work()
+        vmachine = Vmachine.query.filter_by(id=vmachine_id).first()
+        if not vmachine:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="the vmachine does not exist"
+            )
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+            data=vmachine.to_public_json()
+        )
 
 
 class PreciseVmachineEvent(Resource):
