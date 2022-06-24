@@ -35,26 +35,8 @@
   >
     <template #text> <n-text>资源池</n-text> </template>
   </my-tab>
-  <my-tab url="/home/testing">
+  <my-tab url="/home/testing" :has-arrow="false" @click="handleTestClick">
     <template #text> <n-text>测试中心</n-text> </template>
-    <template #menu>
-      <animate-button url="/home/testing/jobs" :size="270">
-        <template #icon>
-          <n-icon class="icon" size="160">
-            <board />
-          </n-icon>
-        </template>
-        <template #text> <n-text>测试看板</n-text> </template>
-      </animate-button>
-      <animate-button url="/home/testing/template" :size="270">
-        <template #icon>
-          <n-icon class="icon" size="160">
-            <format />
-          </n-icon>
-        </template>
-        <template #text> <n-text>模板仓库</n-text> </template>
-      </animate-button>
-    </template>
   </my-tab>
   <my-tab
     id="testcase"
@@ -72,10 +54,8 @@
 <script>
 import { defineComponent } from 'vue';
 import { useRouter } from 'vue-router';
-import { FormatIndentIncreaseRound as Format, } from '@vicons/material';
 import {
   TaskListRtl20Filled as TaskList,
-  Board20Filled as Board,
 } from '@vicons/fluent';
 import { LogoFirebase } from '@vicons/ionicons5';
 
@@ -88,13 +68,14 @@ export default defineComponent({
     AnimateButton,
     LogoFirebase,
     TaskList,
-    Board,
-    Format,
   },
   setup() {
     const router = useRouter();
 
     return {
+      handleTestClick() {
+        router.push('/home/testing');
+      },
       handleTcmClick() {
         router.push('/home/tcm/folderview');
       },

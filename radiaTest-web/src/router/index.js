@@ -5,8 +5,9 @@ import Product from '@/views/product/Product';
 import Milestone from '@/views/milestone/Milestone';
 import Pmachine from '@/views/pmachine/Pmachine';
 import Vmachine from '@/views/vmachine/Vmachine';
-import Template from '@/views/template/Template';
-import Job from '@/views/job/Job';
+import Template from '@/views/testCenter/template/Template';
+import TestCenterManagement from '@/views/testCenter/TestCenterManagement.vue';
+import Job from '@/views/testCenter/job/Job';
 import Testcase from '@/views/caseManage/testcase/Testcase';
 import Blank from '@/components/public/Blank';
 import Report from '@/views/taskManage/report/Report.vue';
@@ -24,7 +25,7 @@ import authorityManagement from '@/views/personalCenter/authorityManagement/auth
 import CaseManagement from '@/views/caseManage/CaseManagement.vue';
 import folderView from '@/views/caseManage/folderView/folderView.vue';
 import taskDetails from '@/views/caseManage/folderView/taskDetails/taskDetails.vue';
-import frameWork from '@/views/caseManage/folderView/frameWork/frameWork.vue';
+import frameWork from '@/views/caseManage/frameWork/frameWork.vue';
 import testsuite from '@/views/caseManage/testsuite/testsuite.vue';
 import rulesManagement from '@/views/personalCenter/authorityManagement/rulesManagement/rulesManagement.vue';
 import rolesManagement from '@/views/personalCenter/authorityManagement/rolesManagement/rolesManagement.vue';
@@ -138,7 +139,7 @@ const router = createRouter({
         {
           path: 'testing/',
           redirect: '/home/testing/jobs',
-          component: Blank,
+          component: TestCenterManagement,
           children: [
             {
               path: 'jobs/',
@@ -185,11 +186,6 @@ const router = createRouter({
               name: 'testsuite',
             },
             {
-              path: 'testsuite/',
-              component: testsuite,
-              name: 'testsuite',
-            },
-            {
               path: 'folderview/',
               component: folderView,
               name: 'folderview',
@@ -199,12 +195,12 @@ const router = createRouter({
                   component: taskDetails,
                   name: 'taskDetails',
                 },
-                {
-                  path: 'frameWork/:groupId',
-                  component: frameWork,
-                  name: 'frameWork',
-                },
               ],
+            },
+            {
+              path: 'frameWork',
+              component: frameWork,
+              name: 'frameWork',
             },
           ],
         },

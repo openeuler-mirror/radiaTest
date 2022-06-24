@@ -133,9 +133,9 @@ import { Loading3QuartersOutlined as Loading } from '@vicons/antd';
 import { Warning } from '@vicons/ionicons5';
 
 import { createTitle } from '@/assets/utils/createTitle';
-import createForm from '@/views/template/modules/createForm.js';
-import casesForm from '@/views/template/modules/casesForm.js';
-import createAjax from '@/views/template/modules/createAjax.js';
+import createForm from '@/views/testCenter/template/modules/createForm.js';
+import casesForm from '@/views/testCenter/template/modules/casesForm.js';
+import createAjax from '@/views/testCenter/template/modules/createAjax.js';
 import extendForm from '@/views/product/modules/createForm.js';
 
 export default defineComponent({

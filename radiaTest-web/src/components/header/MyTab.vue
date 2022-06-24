@@ -147,25 +147,7 @@ export default defineComponent({
   font-family: v-sans;
   float: left;
 }
-@media screen and (max-width: 1423px) {
-  .tab {
-    float: none;
-    height: 40px;
-    padding-top: 0px;
-    margin-bottom: 20px;
-  }
-}
-@media screen and (max-width: 1423px) {
-  #home {
-    border-bottom-style: none !important;
-    border-left-style: solid;
-  }
-}
-@media screen and (max-width: 1423px) {
-  #case {
-    text-align: left;
-  }
-}
+
 .arrow {
   transition: all 0.4s ease-in-out;
 }

@@ -1,4 +1,4 @@
-import { cols } from '@/views/job/modules';
+import { cols } from '@/views/testCenter/job/modules';
 
 const initColumns = (columns, type) => {
   if (type === 'execute') {
