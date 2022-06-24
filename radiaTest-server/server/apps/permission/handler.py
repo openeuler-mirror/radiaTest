@@ -69,6 +69,7 @@ class RoleHandler:
                         Role.type == 'org',
                     ),
                     and_(
+                        ReUserGroup.org_id == redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id'),
                         ReUserGroup.user_gitee_id == g.gitee_id,
                         ReUserGroup.user_add_group_flag == True,
                         ReUserGroup.is_delete == False,
