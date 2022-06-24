@@ -124,10 +124,6 @@ class Mugen:
                 for case in origin_data["cases"]:
                     case_data = {
                         "suite": suite,
-                        "description": "default",
-                        "preset": "default",
-                        "steps": "default",
-                        "expection": "default",
                         "automatic": True,
                         "usabled": True,
                     }

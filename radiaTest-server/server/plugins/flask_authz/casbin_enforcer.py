@@ -188,8 +188,12 @@ class CasbinEnforcer:
                     _api["body"] = ""
                 else:
                     _api["body"] = request.get_data() if not request.get_json() else request.get_json()
-                MessageManager().run(_api)
-                return jsonify(error_code=RET.UNAUTHORIZE_ERR, error_msg="Unauthorized, Your request has been sent to the administrator for processing.")
+                try:
+                    MessageManager().run(_api)
+                    return jsonify(error_code=RET.UNAUTHORIZE_ERR, error_msg="Unauthorized, Your request has been sent to the administrator for processing.")
+                except RuntimeError as e:
+                    self.app.logger.error(str(e))
+                    return jsonify(error_code=RET.UNAUTHORIZE_ERR, error_msg="Unauthorized")        
 
         return wrapper
 
