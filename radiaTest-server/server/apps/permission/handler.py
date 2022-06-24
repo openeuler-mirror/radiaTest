@@ -1,3 +1,4 @@
+import yaml
 from flask import jsonify, g, request, current_app
 from sqlalchemy import or_, and_
 
@@ -72,7 +73,8 @@ class RoleHandler:
                          and_(
                              ReUserGroup.org_id == Role.org_id,
                              Role.type == 'org'
-                         )
+                         ),
+                         Role.type == 'public',
                      )
                 )
             ]
@@ -215,6 +217,54 @@ class ScopeHandler:
         return_data = [scope.to_json() for scope in scopes]
 
         return jsonify(error_code=RET.OK, error_msg="OK", data=return_data)
+
+    @staticmethod
+    @collect_sql_error
+    def get_permitted_all(_type, table, owner_id, query):
+        _owner = table.query.filter_by(id=owner_id).first()
+        if not _owner:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg=f"the {_type} does not exist"
+            )
+        
+        with open('server/config/role_init.yaml', 'r', encoding='utf-8') as f:
+            _role_infos = yaml.load(f.read(), Loader=yaml.FullLoader)
+        _role_name = _role_infos.get(_type).get("administrator")
+
+        _role = Role.query.filter_by(
+            name=_role_name,
+            type=_type,
+            org_id=owner_id,
+        )
+        if not _role:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg=f"the administrator role of this {_type} does not exist"
+            )
+
+        _re_scope_role_id_list = [_re.id for _re in ReScopeRole.query.filter_by(role_id=_role.id).all()]
+
+        _filter_params = [Scope.id.in_(_re_scope_role_id_list)]
+        if query.alias:
+            _filter_params.append(Scope.alias.like(f'%{query.alias}%'))
+        if query.uri:
+            _filter_params.append(Scope.uri.like(f'%{query.uri}%'))
+        if query.act:
+            _filter_params.append(Scope.act == query.act)
+        if query.eft:
+            _filter_params.append(Scope.eft == query.eft)
+        
+        scopes = Scope.query.filter(*_filter_params).order_by(
+            Scope.create_time.desc(), 
+            Scope.id.asc()
+        ).all()
+        
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+            data=scopes
+        )
 
     @staticmethod
     @collect_sql_error

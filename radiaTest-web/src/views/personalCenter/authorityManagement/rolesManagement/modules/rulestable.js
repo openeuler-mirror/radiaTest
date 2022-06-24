@@ -6,10 +6,16 @@ import { changeLoadingStatus } from '@/assets/utils/loading';
 import axios from '@/axios';
 import { roleId, getRoleInfo } from './roleInfo';
 import { unkonwnErrorMsg } from '@/assets/utils/description';
+import { expandRole } from '../../modules/role';
+import { storage } from '@/assets/utils/storageUtils';
 
 const showDrawer = ref(false);
 const roleInfo = ref({});
 const ruleData = ref([]);
+const tabValue = ref('permitted');
+const aliasSearch = ref('');
+const uriSearch = ref('');
+
 const ruleColumns = [
   {
     title: '名称',
@@ -183,7 +189,15 @@ const relationRulePagination = {
 };
 function getRelationRules() {
   changeLoadingStatus(true);
-  axios.get('/v1/scope').then((res) => {
+  let [scopeType, ownerId] = window.atob(expandRole.value[1]).split('-');
+  let scopeUrl = `/v1/scope/${scopeType}/${ownerId}`;
+  if (storage.getValue('role') === 1 || tabValue.value === 'public') {
+    scopeUrl = '/v1/scope';
+  }
+  axios.get(scopeUrl, {
+    alias: aliasSearch.value,
+    uri: uriSearch.value,
+  }).then((res) => {
     relationRuleData.value = res.data.map((item) => {
       item.allow = ruleData.value.findIndex((i) => i.id === item.id) !== -1;
       return { ...item };
@@ -202,10 +216,6 @@ function relationRule() {
 const rulePagination = {
   pageSize: 5,
 };
-const ruleSearch = ref('');
-function filterRules () {
-  relationRuleData.value = rulesData.value.filter(item => item.alias.indexOf(ruleSearch.value) !== -1);
-}
 const filters = [
   { key: 'alias', placeholder: '请输入名称', type: 'input' },
   { key: 'uri', placeholder: '请输入路由', type: 'input' },
@@ -235,12 +245,12 @@ function filterChange(options) {
   getRoleInfo(options);
 }
 export {
-  ruleSearch,
+  aliasSearch,
+  uriSearch,
   relationRulePagination,
   relationRuleData,
   relationRuleColumns,
   rulePagination,
-  filterRules,
   showDrawer,
   setDrawerStatus,
   setRoleInfo,
@@ -251,5 +261,7 @@ export {
   ruleData,
   relationRule,
   filters,
-  filterChange
+  filterChange,
+  tabValue,
+  getRelationRules,
 };

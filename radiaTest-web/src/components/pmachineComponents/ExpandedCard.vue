@@ -210,26 +210,26 @@ export default defineComponent({
       getPmachineSsh(props.data.id).then((res) => {
         SshUser.value = res.data.user;
         SshPassword.value = res.data.password;
+        resourceMonitorSocket.emit('start', {
+          ip: props.IP,
+          user: SshUser.value,
+          port: props.data.port,
+          password: SshPassword.value,
+          messenger_listen: props.messenger_listen,
+        });
+        resourceMonitorSocket.listen(props.IP, (resp) => {
+          cpuPercentage.value = resp.cpu_usage.toFixed(2);
+          memoryTotal.value = resp.mem_total.toFixed(2);
+          memoryPercentage.value = resp.mem_usage.toFixed(2);
+          memoryUse.value = (
+            (memoryPercentage.value * memoryTotal.value) /
+            100
+          ).toFixed(2);
+          cpuPhysicalCores.value = resp.cpu_physical_cores;
+          cpuIndex.value = resp.cpu_index;
+        });
       }).catch(() => {window.$message?.warning('无权获取ssh信息，无法通过概览获取CPU与内存用量数据');});
       resourceMonitorSocket.connect();
-      resourceMonitorSocket.emit('start', {
-        ip: props.IP,
-        user: SshUser.value,
-        port: props.data.port,
-        password: SshPassword.value,
-        messenger_listen: props.messenger_listen,
-      });
-      resourceMonitorSocket.listen(props.IP, (res) => {
-        cpuPercentage.value = res.cpu_usage.toFixed(2);
-        memoryTotal.value = res.mem_total.toFixed(2);
-        memoryPercentage.value = res.mem_usage.toFixed(2);
-        memoryUse.value = (
-          (memoryPercentage.value * memoryTotal.value) /
-          100
-        ).toFixed(2);
-        cpuPhysicalCores.value = res.cpu_physical_cores;
-        cpuIndex.value = res.cpu_index;
-      });
     });
     onUnmounted(() => {
       resourceMonitorSocket.emit('end', { ip: props.IP });
