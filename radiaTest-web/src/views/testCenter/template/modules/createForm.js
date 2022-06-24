@@ -8,8 +8,8 @@ import {
 import { storage } from '@/assets/utils/storageUtils';
 import { currentOrg } from '@/components/header/profileMenu/modules/orgInfo';
 import { createRepoOptions } from '@/assets/utils/getOpts';
-import createAjax from '@/views/template/modules/createAjax.js';
-import casesForm from '@/views/template/modules/casesForm.js';
+import createAjax from '@/views/testCenter/template/modules/createAjax.js';
+import casesForm from '@/views/testCenter/template/modules/casesForm.js';
 import { getGroup } from '@/api/get';
 
 const formRef = ref(null);

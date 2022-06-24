@@ -57,7 +57,7 @@ import { ArrowLeft32Filled as ArrowLeft } from '@vicons/fluent';
 import CasesSelector from './logsDrawerComponents/CasesSelector.vue';
 import AnalysisTimeline from './logsDrawerComponents/AnalysisTimeline.vue';
 
-import logsDrawer from '@/views/job/modules/logsDrawer.js';
+import logsDrawer from '@/views/testCenter/job/modules/logsDrawer.js';
 import caseDetails from './logsDrawerComponents/caseDetails.vue';
 
 export default defineComponent({

@@ -1,7 +1,7 @@
 import { ref } from 'vue';
 import actions from '@/assets/CRUD/update/updateAjax';
 import {getTimeline,records,caseDetail} from './line';
-import logMethod from '@/views/job/modules/logsDrawer';
+import logMethod from '@/views/testCenter/job/modules/logsDrawer';
 const selectedRecord = ref();
 const selectedStage = ref('');
 const logsData = ref('');

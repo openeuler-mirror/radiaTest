@@ -1,11 +1,5 @@
 <template>
-  <div>
-    <n-h3 style="display: flex; align-items: center">
-      <n-icon size="20" style="margin-right: 10px">
-        <GroupsFilled />
-      </n-icon>
-      {{ groupName }}
-    </n-h3>
+  <div style="padding:30px">
     <div style="margin-bottom: 10px">
       <n-button @click="addFramework" type="primary">
         添加测试框架
@@ -113,9 +107,8 @@
 <script>
 import { modules } from './modules/index';
 import { Add } from '@vicons/ionicons5';
-import { GroupsFilled } from '@vicons/material';
 export default {
-  components: { Add, GroupsFilled },
+  components: { Add },
   setup() {
     modules.initData();
     return {

@@ -37,7 +37,7 @@
 <script>
 import { defineComponent } from 'vue';
 
-import logsDrawer from '@/views/job/modules/logsDrawer.js';
+import logsDrawer from '@/views/testCenter/job/modules/logsDrawer.js';
 
 export default defineComponent({
   setup() {

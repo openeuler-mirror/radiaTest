@@ -51,7 +51,7 @@ import { defineComponent, ref } from 'vue';
 import Timeline from '@/components/timeline/timeline.vue';
 import TimelineItem from '@/components/timeline/timelineItem.vue';
 
-import logsDrawer from '@/views/job/modules/logsDrawer.js';
+import logsDrawer from '@/views/testCenter/job/modules/logsDrawer.js';
 
 export default defineComponent({
   components: {

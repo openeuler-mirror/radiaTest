@@ -60,7 +60,7 @@
 import { ref, watch, defineComponent } from 'vue';
 import { getChildrenJob, getJob } from '@/api/get';
 import { unkonwnErrorMsg } from '@/assets/utils/description';
-import { jobsCard } from '@/views/job/modules';
+import { jobsCard } from '@/views/testCenter/job/modules';
 
 export default defineComponent({
   props: {

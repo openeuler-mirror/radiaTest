@@ -157,7 +157,7 @@
   </div>
 </template>
 <script>
-import * as execTemplate  from '@/views/template/modules/execTemplate';
+import * as execTemplate  from '@/views/testCenter/template/modules/execTemplate';
 import expandedCard from '@/components/templateComponents/ExpandedCard.vue';
 import selectMachine from '@/components/machine/selectMachine.vue';
 export default {

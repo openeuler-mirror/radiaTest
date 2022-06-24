@@ -178,6 +178,11 @@ const menu = ref([
     text: '用例评审',
     name: 'caseReview',
   },
+  {
+    id: 3,
+    text: '测试框架',
+    name: 'frameWork',
+  },
 ]);
 
 const isTabActive = (name) => {

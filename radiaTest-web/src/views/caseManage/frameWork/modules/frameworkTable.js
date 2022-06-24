@@ -19,7 +19,6 @@ import {
   frameworkForm,
   deleteFramework,
 } from './frameWorkAction';
-import router from '@/router';
 import axios from '@/axios';
 const frameLoading = ref(false);
 function getRepo(row) {
@@ -317,18 +316,14 @@ function getFramework() {
     });
   });
 }
-const groupName = ref('');
 function initData() {
-  groupName.value = window.decodeURI(
-    window.atob(router.currentRoute.value.params.groupId)
-  );
+  
   getFramework();
 }
 const frameworkPagination = ref({ pageSize: 10 });
 
 export {
   frameLoading,
-  groupName,
   frameworkPagination,
   frameworkData,
   frameworkColumns,

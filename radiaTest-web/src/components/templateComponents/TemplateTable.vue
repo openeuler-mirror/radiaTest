@@ -11,8 +11,8 @@
 <script>
 import { inject, computed, defineComponent } from 'vue';
 
-import templateTable from '@/views/template/modules/templateTable.js';
-import { getColumns } from '@/views/template/modules/templateTableColumns.js';
+import templateTable from '@/views/testCenter/template/modules/templateTable.js';
+import { getColumns } from '@/views/testCenter/template/modules/templateTableColumns.js';
 
 export default defineComponent({
   props: {

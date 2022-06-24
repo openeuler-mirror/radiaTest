@@ -20,6 +20,11 @@ function setMenu() {
         text: '用例评审',
         name: 'caseReview',
       },
+      {
+        id: 3,
+        text: '测试框架',
+        name: 'frameWork',
+      },
     ];
   } else {
     management.menu.value = [
@@ -32,6 +37,11 @@ function setMenu() {
         id: 2,
         text: '用例评审',
         name: 'caseReview',
+      },
+      {
+        id: 3,
+        text: '测试框架',
+        name: 'frameWork',
       },
     ];
   }

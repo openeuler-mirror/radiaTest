@@ -189,7 +189,7 @@ import selectMachine from '@/components/machine/selectMachine.vue';
 
 import { createTitle } from '@/assets/utils/createTitle';
 import { createAjax } from '@/assets/CRUD/create';
-import createForm from '@/views/job/modules/createForm.js';
+import createForm from '@/views/testCenter/job/modules/createForm.js';
 
 export default defineComponent({
   components: {
