@@ -8,6 +8,7 @@ from messenger.apps.vmachine.handlers import (
     Control,
     DeviceManager,
     VmachineAsyncResultHandler,
+    EditVmachine,
 )
 from messenger.utils.response_util import runtime_error_collect
 from messenger.schema.vmachine import (
@@ -18,6 +19,7 @@ from messenger.schema.vmachine import (
     VnicCreateSchema,
     DeviceDeleteSchema,
     DeviceBaseSchema,
+    VmachineUpdateSchema,
 )
 
 
@@ -26,20 +28,19 @@ class VmachineEventItem(Resource):
     @validate()
     def delete(self, vmachine_id, body: VmachineItemSchema):
         _body = body.__dict__
-        _body.update({"id":vmachine_id,})
+        _body.update({"id":vmachine_id})
         auth = request.headers.get("authorization")
         return DeleteVmachine(auth, _body).run()
-    
-    # TODO 更改内存、cpu
-    # @runtime_error_collect
-    # @validate()
-    # def put(self, vmachine_id, body: VmachineUpdate):
-            # _body = body.__dict__
-            # _body.update({
-            #     "id": vmachine_id
-            #     "auth": request.headers.get("authorization")
-            # })
-    #     return EditVmachine(body.__dict__).work()
+
+
+    @runtime_error_collect
+    @validate()
+    def put(self, vmachine_id, body: VmachineUpdateSchema):
+        _body = body.__dict__
+        _body.update({"id":vmachine_id})
+        auth = request.headers.get("authorization")
+        return EditVmachine(auth, _body).work()
+
 
 
 class VmachineEvent(Resource):

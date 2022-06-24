@@ -141,6 +141,13 @@ class VmachineCreateSchema(VmachineBaseSchema, PermissionBase):
         return values
 
 
+class VmachineItemUpdateSchema(BaseModel):
+    memory: Optional[conint(ge=2048, le=Config.VM_MAX_MEMEORY)]
+    sockets: Optional[conint(ge=1, le=Config.VM_MAX_SOCKET)]
+    cores: Optional[conint(ge=1, le=Config.VM_MAX_CORE)]
+    threads: Optional[conint(ge=1, le=Config.VM_MAX_THREAD)]
+
+
 class VmachineDataUpdateSchema(BaseModel):
     name: Optional[str]
     frame: Optional[Frame]
@@ -168,8 +175,8 @@ class VmachineConfigUpdateSchema(BaseModel):
             create_time = (
                 Precise(Vmachine, {"id": values.get("id")}).first().create_time
             )
-        except (IntegrityError, SQLAlchemyError):
-            raise ValueError("Must select an existing virtual machine.")
+        except (IntegrityError, SQLAlchemyError) as e:
+            raise ValueError("Must select an existing virtual machine.") from e
 
         max_time = create_time + timedelta(
             days=current_app.config.get("VM_MAX_DAYS")
@@ -187,7 +194,11 @@ class VmachineDelaySchema(BaseModel):
 
     @validator("end_time")
     def check_end_time(cls, v, values):
-        
+        if not v or v < (datetime.now()):
+            raise ValueError(
+                "Empty time and Past time cannot be modified."
+            )
+
         dl = (v - datetime.now()).days
         if dl > current_app.config.get("VM_MAX_DAYS"):
             raise ValueError(

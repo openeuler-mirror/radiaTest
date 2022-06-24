@@ -466,6 +466,59 @@ class DeleteVmachine(AuthMessageBody):
         )
 
 
+class EditVmachine(AuthMessageBody):
+    def work(self):
+        pmachine = self._body.get("pmachine")
+        if pmachine:
+            if self._body.get("memory"):
+                result = check_available_mem(
+                    pmachine.get("ip"), 
+                    pmachine.get("password"), 
+                    pmachine.get("port"),
+                    pmachine.get("user"),
+                    self._body.get("memory")
+                )
+                if not result:
+                    return jsonify(
+                        error_code=RET.NO_MEM_ERR,
+                        error_msg="the machine has no enough memory to use"
+                    )
+            resp = SyncMessenger(
+                self.auth,
+                self._body,
+                pmachine,
+                "virtual/machine",
+                method="put",
+            ).work()
+
+            if resp.get("error_code"):
+                return jsonify(
+                    error_code=RET.DATA_EXIST_ERR,
+                    error_msg="vmachine {} fail to be put.".format(
+                        self._body.get("id")
+                    )
+                )
+            if self._body.get("memory") or \
+                self._body.get("sockets") or self._body.get("cores") or self._body.get("threads"):
+                update_request(
+                    "/api/v1/vmachine/{}/data".format(
+                        self._body.get("id")
+                    ),
+                    {
+                        "memory": self._body.get("memory"),
+                        "sockets": self._body.get("sockets"),
+                        "cores": self._body.get("cores"),
+                        "threads": self._body.get("threads"),
+                    },
+                    self.auth
+                )
+
+        return jsonify(
+            error_code=RET.OK, 
+            error_msg="vmachine success to put."
+        )
+
+
 class DeviceManager(SyncMessenger):
     def add(self, target):
         self._vmachine = self._body.get("vmachine")

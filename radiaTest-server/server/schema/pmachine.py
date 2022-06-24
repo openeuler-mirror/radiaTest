@@ -38,14 +38,14 @@ class MachineGroupCreateSchema(PermissionBase):
         # check the publicnet ip and relative services of machine group is unique
         machine_group = MachineGroup.query.filter(
             or_(
-                MachineGroup.ip==values.get("ip"),
+                MachineGroup.ip == values.get("ip"),
                 and_(
-                    MachineGroup.messenger_ip==values.get("messenger_ip"),
-                    MachineGroup.messenger_listen==values.get("messenger_listen")
+                    MachineGroup.messenger_ip == values.get("messenger_ip"),
+                    MachineGroup.messenger_listen == values.get("messenger_listen")
                 ),
                 and_(
-                    MachineGroup.websockify_ip==values.get("messenger_ip"),
-                    MachineGroup.websockify_listen==values.get("messenger_listen")
+                    MachineGroup.websockify_ip == values.get("messenger_ip"),
+                    MachineGroup.websockify_listen == values.get("messenger_listen")
                 ),
             )
         ).first()
@@ -165,7 +165,7 @@ class PmachineBaseSchema(BaseModel):
 
     @validator("ip")
     def check_ip_format(cls, v):
-        if not ip_type(v):
+        if v and not ip_type(v):
             raise ValueError("this ip of machine group format error")
         return v
 
@@ -197,53 +197,15 @@ class PmachineBaseSchema(BaseModel):
                 listen = values["listen"]
                 if not listen:
                     raise ValueError("As a CI host, listen must be provided.")
-        if values.get("state") == "occupied":
-            values["start_time"] = datetime.datetime.now()
-            if not values.get("description"):
-                raise ValueError("The reasons for occupation must be stated.")
-
-            if not values.get("end_time"):
-                values["end_time"] = (
-                    datetime.datetime.now() + datetime.timedelta(days=1)
-                ).strftime("%Y-%m-%d %H:%M:%S")
-            elif values.get("end_time") > (
-                datetime.datetime.now()
-                + datetime.timedelta(days=current_app.config.get("MAX_OCUPY_TIME"))
-            ):
-                if values["description"] != current_app.config.get("CI_PURPOSE") \
-                and values["description"] != current_app.config.get("CI_HOST"):
-                    raise ValueError(
-                        "The max occupation duration is %s days."
-                        % current_app.config.get("MAX_OCUPY_TIME")
-                    )
-
-        elif values.get("state") == "idle":
-            values["start_time"] = None
-            values["end_time"] = None
-            values["description"] = None
-            values["listen"] = None
-            values["occupier"] = None
-
-        if values.get("description") in [
-            current_app.config.get("CI_PURPOSE"),
-            current_app.config.get("CI_HOST"),
-        ]:
-            values["start_time"] = datetime.datetime.now()
-            values["end_time"] = sqlalchemy.null()
-            values["state"] = "occupied"
-
-            if not all(
-                (
+            if not all((
                     values.get("ip"),
                     values.get("user"),
                     values.get("port"),
                     values.get("password"),
-                )
-            ):
+                )):
                 raise ValueError(
                     "As a CI host, ip、user、port、password must be provided."
                 )
-
         return values
 
 
@@ -254,11 +216,6 @@ class PmachineCreateSchema(PmachineBaseSchema, PermissionBase):
     bmc_user: constr(max_length=32)
     bmc_password: constr(min_length=6, max_length=256)
 
-    @validator("bmc_ip")
-    def check_bmc_ip_format(cls, v):
-        if not ip_type(v):
-            raise ValueError("this bmc_ip of machine group format error")
-        return v
 
 class PmachineUpdateSchema(PmachineBaseSchema):
     mac: Optional[constr(max_length=17)]
@@ -267,21 +224,15 @@ class PmachineUpdateSchema(PmachineBaseSchema):
     bmc_user: Optional[constr(max_length=32)]
     bmc_password: Optional[constr(min_length=6, max_length=256)]
 
-    @validator("bmc_ip")
-    def check_bmc_ip_format(cls, v):
-        if not ip_type(v):
-            raise ValueError("this bmc_ip of machine group format error")
-        return v
-
 
 class PmachineDelaySchema(BaseModel):
     end_time: Optional[datetime.datetime]
  
     @validator("end_time")
     def check_end_time(cls, v):
-        if not v:
+        if not v or v < (datetime.datetime.now()):
             raise ValueError(
-                "Empty time cannot be modified."
+                "Empty time and Past time is invalid."
             )
         if v > (datetime.datetime.now()
                 + datetime.timedelta(days=current_app.config.get("MAX_OCUPY_TIME"))
@@ -291,6 +242,35 @@ class PmachineDelaySchema(BaseModel):
                 % current_app.config.get("MAX_OCUPY_TIME")
             )
         return v
+
+
+class PmachineOccupySchema(PmachineDelaySchema):
+    description: str
+    occupier: str
+    listen: Optional[int]
+    start_time: Optional[datetime.datetime]
+    end_time: Optional[datetime.datetime]
+
+
+    @root_validator
+    def check_values(cls, values):
+        values["start_time"] = datetime.datetime.now()
+
+        if values["description"] in [
+            current_app.config.get("CI_PURPOSE"),
+            current_app.config.get("CI_HOST"),
+        ]:
+            if values["description"]==current_app.config.get("CI_HOST")\
+             and not values["listen"]:
+                raise ValueError(
+                    "As a CI host, listen must be provided."
+                )
+            values["end_time"] = None
+        else:
+            values["end_time"] = (datetime.datetime.now()
+                    + datetime.timedelta(days=current_app.config.get("MAX_OCUPY_TIME"))
+                )
+        return values
 
 
 class PmachineInstallSchema(BaseModel):

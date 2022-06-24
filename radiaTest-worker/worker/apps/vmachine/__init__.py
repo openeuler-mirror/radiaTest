@@ -26,7 +26,7 @@ class VmachineEvent(Resource):
         )
 
     def put(self):
-        pass
+        return OperateVmachine(request.json).edit()
 
     def delete(self):
         return OperateVmachine(request.json).delete()

@@ -27,6 +27,7 @@ from server.schema.pmachine import (
     PmachinePowerSchema,
     HeartbeatUpdateSchema,
     PmachineDelaySchema,
+    PmachineOccupySchema,
 )
 from .handlers import PmachineHandler, PmachineMessenger, ResourcePoolHandler
 
@@ -108,7 +109,8 @@ class PmachineItemEvent(Resource):
     @validate()
     @casbin_enforcer.enforcer
     def delete(self, pmachine_id):
-        return ResourceManager("pmachine").del_cascade_single(pmachine_id, Vmachine, [Vmachine.pmachine_id==pmachine_id], False)
+        return ResourceManager("pmachine").del_cascade_single(
+            pmachine_id, Vmachine, [Vmachine.pmachine_id == pmachine_id], False)
     
     @auth.login_required
     @response_collect
@@ -139,34 +141,76 @@ class PmachineItemEvent(Resource):
                 error_code = RET.NO_DATA_ERR,
                 error_msg = "The pmachine does not exist. Please check."
             )
-        if body.state:
-            if pmachine.state == body.state:
-                return jsonify(
-                    error_code = RET.VERIFY_ERR,
-                    error_msg = "Pmachine state has not been modified. Please check."
-                )
-
-            if pmachine.state == "occupied" and pmachine.description == current_app.config.get("CI_HOST"):
-                vmachine = Vmachine.query.filter_by(pmachine_id=pmachine.id).first()
-                if vmachine:
-                    return jsonify(
-                        error_code = RET.NO_DATA_ERR, 
-                        error_msg = "Pmachine has vmmachine, can't released."
-                    )
-            if pmachine.state == "occupied":
-                _body = body.__dict__
-                _body.update(
-                    {
-                        "description": "",
-                        "occupier": "",
-                        "end_time": sqlalchemy.null()
-                    }
-                )
         _body = body.__dict__
         _body.update({"id": pmachine_id})
-        
-        
+         
         return Edit(Pmachine, _body).single(Pmachine, "/pmachine")
+
+
+class PmachineOccupyEvent(Resource):
+    @auth.login_required
+    @response_collect
+    @validate()
+    @casbin_enforcer.enforcer
+    def put(self, pmachine_id, body: PmachineOccupySchema):
+        pmachine = Pmachine.query.filter_by(id=pmachine_id).first()
+        if not pmachine:
+            return jsonify(
+                error_code = RET.NO_DATA_ERR,
+                error_msg = "The pmachine does not exist. Please check."
+            )
+        if pmachine.state == "occupied":
+            return jsonify(
+                error_code = RET.VERIFY_ERR,
+                error_msg = "Pmachine state has not been modified. Please check."
+            )
+        _body = body.__dict__
+        _body.update({
+            "id": pmachine_id,
+            "state": "occupied",
+        })
+        
+        return Edit(Pmachine, _body).single(Pmachine, "/pmachine")    
+
+
+class PmachineReleaseEvent(Resource):
+    @auth.login_required
+    @response_collect
+    @validate()
+    @casbin_enforcer.enforcer
+    def put(self, pmachine_id):
+        pmachine = Pmachine.query.filter_by(id=pmachine_id).first()
+        if not pmachine:
+            return jsonify(
+                error_code = RET.NO_DATA_ERR,
+                error_msg = "The pmachine does not exist. Please check."
+            )
+        if pmachine.state == "idle":
+            return jsonify(
+                error_code = RET.VERIFY_ERR,
+                error_msg = "Pmachine state has not been modified. Please check."
+            )
+        if pmachine.state == "occupied" and pmachine.description == current_app.config.get("CI_HOST"):
+            vmachine = Vmachine.query.filter_by(pmachine_id=pmachine.id).first()
+            if vmachine:
+                return jsonify(
+                    error_code = RET.NO_DATA_ERR,
+                    error_msg = "Pmachine has vmmachine, can't released."
+                )
+        if pmachine.state == "occupied":
+            _body = {
+                    "description": "",
+                    "occupier": "",
+                    "start_time": sqlalchemy.null(),
+                    "end_time": sqlalchemy.null(),
+                    "state": "idle",
+                    "listen": "",
+            }
+
+        _body.update({"id": pmachine_id})
+
+        return Edit(Pmachine, _body).single(Pmachine, "/pmachine")
+
 
 class PmachineEvent(Resource):
     @auth.login_required
@@ -250,8 +294,8 @@ class PmachineDelayEvent(Resource):
         pmachine = Pmachine.query.filter_by(id=pmachine_id).first()
         if pmachine.end_time is None:
             return jsonify(
-                error_code=RET.NO_DATA_ERR, 
-                error_msg="Empty end_time cannot be modified."
+                error_code=RET.VERIFY_ERR,
+                error_msg="Lack of end_time of pmachine."
             )
         _body = body.__dict__
         _body.update(

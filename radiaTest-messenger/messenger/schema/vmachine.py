@@ -98,12 +98,12 @@ class VmachineBaseSchema(AuthBaseModel, PermissionBase):
 
 
 class VmachineUpdateSchema(AuthBaseModel):
-    memory: Optional[conint(ge=2048, le=Config.VM_MAX_MEMEORY)] = 2048
-    sockets: Optional[conint(ge=1, le=Config.VM_MAX_SOCKET)] = 1
-    cores: Optional[conint(ge=1, le=Config.VM_MAX_CORE)] = 1
-    threads: Optional[conint(ge=1, le=Config.VM_MAX_THREAD)] = 1
-
+    memory: Optional[conint(ge=2048, le=Config.VM_MAX_MEMEORY)]
+    sockets: Optional[conint(ge=1, le=Config.VM_MAX_SOCKET)]
+    cores: Optional[conint(ge=1, le=Config.VM_MAX_CORE)]
+    threads: Optional[conint(ge=1, le=Config.VM_MAX_THREAD)]
     pmachine: dict
+    name: constr(min_length=10, max_length=255)
 
 
 class PowerSchema(VmachineItemSchema):

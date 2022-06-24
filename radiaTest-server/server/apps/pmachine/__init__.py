@@ -20,6 +20,7 @@ from flask_restful import Api
 from .routes import PmachineEvent, PmachineItemEvent,PmachineDelayEvent
 from .routes import PmachineBmcEvent
 from .routes import PmachineSshEvent
+from .routes import PmachineOccupyEvent, PmachineReleaseEvent
 from .routes import Power
 from .routes import Install
 from .routes import MachineGroupEvent
@@ -32,6 +33,8 @@ def init_api(api: Api):
     api.add_resource(PmachineItemEvent, "/api/v1/pmachine/<int:pmachine_id>")
     api.add_resource(PmachineBmcEvent, "/api/v1/pmachine/<int:pmachine_id>/bmc")
     api.add_resource(PmachineSshEvent, "/api/v1/pmachine/<int:pmachine_id>/ssh")
+    api.add_resource(PmachineOccupyEvent, "/api/v1/pmachine/<int:pmachine_id>/occupy")
+    api.add_resource(PmachineReleaseEvent, "/api/v1/pmachine/<int:pmachine_id>/release")
     api.add_resource(PmachineDelayEvent, "/api/v1/pmachine/<int:pmachine_id>/delay")
     api.add_resource(Power, "/api/v1/pmachine/<int:pmachine_id>/power")
     api.add_resource(Install, "/api/v1/pmachine/<int:pmachine>/install")

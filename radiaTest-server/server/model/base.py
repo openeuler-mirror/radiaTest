@@ -78,7 +78,7 @@ class ServiceModel(BaseModel):
     id = db.Column(db.Integer(), primary_key=True)
     name = db.Column(db.String(64))
     description = db.Column(db.String(256))
-    ip = db.Column(db.String(15), nullable=False)
+    ip = db.Column(db.String(15), nullable=True)
     listen = db.Column(db.Integer())
 
 

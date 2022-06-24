@@ -30,6 +30,7 @@ from server.schema.vmachine import (
     VdiskBaseSchema,
     VnicCreateSchema,
     VmachineIpaddrSchema,
+    VmachineItemUpdateSchema,
 )
 from server.utils.auth_util import auth
 from server.utils.db import Delete, Edit, Like, Select, Insert
