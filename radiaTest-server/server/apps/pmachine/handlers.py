@@ -20,7 +20,7 @@ import json
 
 from flask import g, current_app, jsonify, request
 from flask_restful import original_flask_make_response as make_response
-from sqlalchemy import or_
+from sqlalchemy import or_, and_
 from pydantic.error_wrappers import ValidationError
 
 from server import redis_client
@@ -39,7 +39,41 @@ from server.utils.permission_utils import GetAllByPermission
 from server.utils.resource_utils import ResourceManager
 
 
-class ResourcePoolHandler:        
+class ResourcePoolHandler:     
+    @staticmethod
+    @collect_sql_error
+    def get_all(query):
+        filter_params = [
+            or_(
+                MachineGroup.org_id == redis_client.hget(RedisKey.user(g.gitee.id), 'current_org_id'),
+                MachineGroup.permission_type == 'public',
+                and_(
+                    MachineGroup.permission_type == 'person',
+                    MachineGroup.creator_id == g.gitee_id
+                )
+            )
+        ]
+        if query.text:
+            filter_params.append(
+                or_(
+                    MachineGroup.name.like(f"%{query.text}%"),
+                    MachineGroup.ip.like(f"%{query.text}%")
+                )
+            )
+        
+        if query.network_type:
+            filter_params.append(
+                MachineGroup.network_type == query.network_type
+            )
+        
+        machine_groups = MachineGroup.query.filter(*filter_params).all()
+
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+            data=[machine_group.to_json() for machine_group in machine_groups]
+        )   
+    
     @staticmethod
     @collect_sql_error
     def get(machine_group_id):

@@ -236,11 +236,15 @@ class ScopeHandler:
             _role_infos = yaml.load(f.read(), Loader=yaml.FullLoader)
         _role_name = _role_infos.get(_type).get("administrator")
 
-        _role = Role.query.filter_by(
-            name=_role_name,
-            type=_type,
-            org_id=owner_id,
-        ).first()
+        _filter_params = [
+            table.name == _role_name,
+            table.type == _type,
+        ]
+        if _type == "group":
+            _filter_params.append(table.group_id == owner_id)
+        elif _type == "org":
+            _filter_params.append(table.org_id == owner_id)
+        _role = Role.query.filter(*_filter_params).first()
         if not _role:
             return jsonify(
                 error_code=RET.NO_DATA_ERR,
@@ -335,8 +339,9 @@ class RoleLimitedHandler:
         self.role_id = None
 
         _role = Role.query.filter_by(id=role_id).first()
-        if _role and _role.type == _type and _role.group_id == group_id and (
-                _type == 'public' or _type == 'group' or _type == 'org' and _role.org_id == org_id):
+        if _role and _role.type == _type and (
+            (_type == 'group' and _role.group_id == group_id) or (
+            _type == 'org' and _role.org_id == org_id) or _type == 'public' or _type == 'person'):
             self.role_id = _role.id
 
 
