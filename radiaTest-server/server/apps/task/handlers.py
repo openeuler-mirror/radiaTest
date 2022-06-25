@@ -915,8 +915,12 @@ class HandlerTaskStatistics(object):
             filter_params.append(or_(Task.deadline <= query.end_time, Task.deadline.is_(None)))
         if query.type:
             filter_params.append(Task.type == query.type)
-        if query.executors:
+            if query.type == 'PERSON':
+                filter_params.append(Task.executor_id == g.gitee_id)
+        if query.executors and query.type != 'PERSON':
             filter_params.append(Task.executor_id.in_(query.executors))
+        if query.groups:
+            filter_params.append(Task.group_id.in_(query.groups))
         if query.milestone_id:
             filter_params.append(TaskMilestone.milestone_id == query.milestone_id)
             self.tasks = Task.query.join(TaskMilestone).filter(*filter_params).all()
@@ -1030,7 +1034,7 @@ class HandlerTaskStatistics(object):
         burn_down_time, burn_down_count = self.analyze_burn_up()
         task_overtime = self.analyze_expired()
         task_distribute = self.analyze_tasks()
-        issues = self.get_issues()
+        issues = [] if not self.query.milestone_id else self.get_issues_v8()
         return_data = {
             'total': numbers[0],
             'accomplish': numbers[1],
@@ -1047,43 +1051,26 @@ class HandlerTaskStatistics(object):
         return jsonify(error_code=RET.OK, error_msg="OK", data=return_data)
 
     def get_issues_v8(self):
-        if not self.query.milestone_id:
-            return jsonify(error_code=RET.PARMA_ERR, error_msg="milestone_id should be provided")
+        milestone = Milestone.query.get(self.query.milestone_id)
+        if not milestone:
+            return []
 
-        org = Organization.query.get(redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id'))
-        if not org:
-            return jsonify(error_code=RET.NO_DATA_ERR, error_msg="the organization not exist")
+        org = Organization.query.filter_by(
+            id=redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')
+        ).first()
+        if not org or not org.enterprise_id:
+            return []
 
         params = self.query.__dict__
+        params.update({
+            "state": "active",
+            "sort": "created",
+            "direction": "desc",
+        })
 
         return IssueOpenApiHandlerV8().get_all(
             GiteeIssueQueryV8(**params).__dict__
         )
-
-    def get_issues(self):
-        issues = []
-        if not self.query.milestone_id:
-            return issues
-        milestone = Milestone.query.get(self.query.milestone_id)
-        if not milestone:
-            return issues
-
-        org = Organization.query.get(redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id'))
-        if not org:
-            return issues
-
-        issues_proxy = IssueOpenApiHandlerV5(org.enterprise, milestone.name)
-        issues_list = issues_proxy.get_all_list(params={
-            "enterprise": org.enterprise,
-            "state": "open",
-            "sort": "created",
-            "direction": "desc",
-            "milestone": milestone.name
-        })
-        for issue in issues_list:
-            if issue.get('issue_type') == '缺陷':
-                issues.append(issue)
-        return issues
 
 
 class HandlerTaskExecute(object):

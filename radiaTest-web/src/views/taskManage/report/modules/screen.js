@@ -16,7 +16,9 @@ const typeOptions = [
 ];
 
 const owner = ref([]);
+const group = ref([]);
 const ownerOptions = ref([]);
+const groupOptions = ref([]);
 
 const milestone = ref('');
 const milestoneOptions = ref([]);
@@ -36,7 +38,32 @@ function getMilestone () {
   });
 }
 
+function getGroup() {
+  if (type.value !== 'GROUP') {
+    group.value = [];
+  }
+  const requests = [];
+  requests.push(axios.get(`/v1/org/${storage.getValue('orgId')}/groups`, { page_size: 99999, page_num: 1, }));
+  groupOptions.value = [];
+  Promise.allSettled(requests).then(responses => {
+    responses.forEach(item => {
+      if (item.value?.data?.items) {
+        for (const i of item.value.data.items) {
+          const element = {
+            value: i.id ? i.id : i.gitee_id,
+            avatar: i.avatar_url,
+            label: i.name ? i.name : i.gitee_name,
+          };
+          groupOptions.value.push(element);
+        }
+      }
+    });
+  });
+}
 function getOwner() {
+  if (type.value === 'PERSON' || !type.value) {
+    owner.value = [];
+  }
   const requests = [];
   requests.push(axios.get(`/v1/org/${storage.getValue('orgId')}/users`, { page_size: 99999, page_num: 1, }));
   ownerOptions.value = [];
@@ -79,10 +106,13 @@ export {
   milestone,
   milestoneOptions,
   owner,
+  group,
   timeRange,
   typeOptions,
+  groupOptions,
   ownerOptions,
   getOwner,
+  getGroup,
   getMilestone,
   renderLabel,
   disablePreviousDate,

@@ -1,9 +1,9 @@
 import { reactive } from 'vue';
 
 import axios from '@/axios';
-import { timeRange, type, milestone, owner, ownerOptions } from './screen';
+import { timeRange, type, milestone, group, owner } from './screen';
 import { formatTime } from '@/assets/utils/dateFormatUtils.js';
-import { setTableDate } from './issueTable';
+import { setTableDate, pagination } from './issueTable';
 
 const count = reactive({
   incomplete: 0,
@@ -116,12 +116,13 @@ function setDataZoom (option, maxCount, dataLength) {
   ];
 }
 function getData () {
-  const [executors, groups] = [[], []];
+  const executors = [];
+  const groups = [];
   owner.value.forEach(item => {
-    const element = ownerOptions.value.find(i => {
-      return item === i.value;
-    });
-    element.type === 'GROUP' ? groups.push(item) : executors.push(item);
+    executors.push(item);
+  });
+  group.value.forEach(item => {
+    groups.push(item);
   });
   const option = {
     start_time: formatTime(timeRange.value ? timeRange.value[0] : null, 'yyyy-MM-dd'),
@@ -130,6 +131,8 @@ function getData () {
     executors: executors.join(','),
     milestone_id: milestone.value,
     groups: groups.join(','),
+    page: pagination.value.page,
+    per_page: pagination.value.pageSize,
   };
   axios.get('/v1/task/count/total', option).then(res => {
     count.dueToday = res.data.count_today;

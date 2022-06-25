@@ -79,7 +79,7 @@ function getOperateAction() {
   } else if (roleInfo.value.type === 'org') {
     actionUrl = `/v1/scope-role/org/${roleInfo.value.org_id}`;
   } else if (roleInfo.value.type === 'person') {
-    actionUrl = `/v1/scope-role/user/${roleInfo.value.name}`
+    actionUrl = `/v1/scope-role/user/${roleInfo.value.name}`;
   }
   return actionUrl;
 }

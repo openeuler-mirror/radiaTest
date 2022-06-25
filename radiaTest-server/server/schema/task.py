@@ -313,8 +313,11 @@ class QueryTaskStatisticsSchema(BaseModel):
     start_time: str = None
     end_time: str = None
     type: str = None
+    groups: str = None
     executors: str = None
     milestone_id: str = None
+    page: int = 1
+    per_page: int = 10
 
     @root_validator
     def validate(cls, query):
@@ -326,6 +329,8 @@ class QueryTaskStatisticsSchema(BaseModel):
                 query[key] = parser.parse(value)
             elif key == 'end_time':
                 query[key] = datetime.combine(parser.parse(value).date(), time.max)
+            elif key == 'groups':
+                query[key] = [int(item) for item in value.split(',')]
             elif key == 'executors':
                 query[key] = [int(item) for item in value.split(',')]
             elif key == 'type':
