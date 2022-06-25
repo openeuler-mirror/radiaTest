@@ -262,6 +262,30 @@ class ScopeRoleGroupEvent(Resource):
         ).unbind_scope()
 
 
+class ScopeRolePersonEvent(Resource):
+    @auth.login_required
+    @casbin_enforcer.enforcer
+    @response_collect
+    @validate()
+    def post(self, gitee_id, body: ScopeRoleBaseSchema):
+        return ScopeRoleLimitedHandler(
+            _type='person',
+            user_id=gitee_id,
+            body=body
+        ).bind_scope()
+
+    @auth.login_required
+    @casbin_enforcer.enforcer
+    @response_collect
+    @validate()
+    def delete(self, gitee_id, body: ScopeRoleBaseSchema):
+        return ScopeRoleLimitedHandler(
+            _type='person',
+            user_id=gitee_id,
+            body=body
+        ).unbind_scope()
+
+
 class AccessableMachinesEvent(Resource):
     @auth.login_required
     @response_collect

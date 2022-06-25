@@ -47,7 +47,7 @@ class MachineGroupEvent(Resource):
     @response_collect
     @validate()
     def get(self, query: MachineGroupQuerySchema):
-        return GetAllByPermission(MachineGroup).fuzz(query.__dict__)
+        return ResourcePoolHandler.get_all(query)
 
 class MachineGroupItemEvent(Resource):
     @auth.login_required

@@ -133,19 +133,18 @@ const handleOccupy = async (dOccupy, connect) => {
     new Promise((resolveWaitSend) => setTimeout(resolveWaitSend, 1000))
       .then(() => handleSendRequest(dOccupy, connect))
       .then((res) => {
-        if (res.error_code === '2000') {
-          dOccupy.content = '物理机已成功占用';
-          return Promise.resolve(res);
-        }
-        return Promise.reject(new Error('请检查参数或检查该物理机是否存在'));
+        dOccupy.content = '物理机已成功占用';
+        return Promise.resolve(res);
       })
       .catch((err) => {
-        if (!err.message && !err.data.validation_error) {
-          window.$message?.error('发生未知错误，请联系管理员进行处理');
+        if (err.error_msg) {
+          window.$message?.error(err.error_msg);
+        } else if (err.message) {
+          window.$message?.error(err.message);
         } else if (err.data.validation_error) {
           window.$message?.error(err.data.validation_error.body_params[0].msg);
         } else {
-          window.$message?.error(err.message);
+          window.$message?.error('发生未知错误，请联系管理员进行处理');
         }
         connect.clean();
       })
@@ -158,19 +157,19 @@ const handleRelease = (dRelease, connect) => {
     dRelease.content = '释放请求已发送';
     axios
       .put(`/v1/pmachine/${connect.formValue.value.id}/release`)
-      .then((res) => {
-        if (res.error_code === '2000') {
-          dRelease.content = '物理机已确认释放';
-          resolve();
-        }
+      .then(() => {
+        dRelease.content = '物理机已确认释放';
+        resolve();
       })
       .catch((err) => {
-        if (!err.message && !err.data.validation_error) {
-          window.$message?.error('发生未知错误，请联系管理员进行处理');
+        if (err.error_msg) {
+          window.$message?.error(err.error_msg);
+        } else if (err.message) {
+          window.$message?.error(err.message);
         } else if (err.data.validation_error) {
           window.$message?.error(err.data.validation_error.body_params[0].msg);
         } else {
-          window.$message?.error(err.data.error_msg);
+          window.$message?.error('发生未知错误，请联系管理员进行处理');
         }
         connect.clean();
         reject(err);
