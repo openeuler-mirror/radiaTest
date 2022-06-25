@@ -3,7 +3,7 @@
     <div class="title">
       <div class="screen-list">
         <n-grid x-gap="12" :cols="12">
-          <n-gi :span="5">
+          <n-gi :span="3">
             <div class="title-option">
               <span style="flex-shrink:0">任务时间段:</span>
               <n-date-picker
@@ -15,16 +15,38 @@
               />
             </div>
           </n-gi>
-          <n-gi :span="2">
+          <n-gi :span="1">
             <div class="title-option">
               <span style="flex-shrink:0">任务类别:</span>
-              <n-select v-model:value="type" :options="typeOptions" clearable />
+              <n-select 
+                v-model:value="type" 
+                @update:value="() => {
+                  getGroup();
+                  getOwner();
+                }"
+                :options="typeOptions" 
+                clearable 
+              />
             </div>
           </n-gi>
           <n-gi :span="2">
             <div class="title-option">
-              <span style="flex-shrink:0">任务归属:</span>
+              <span style="flex-shrink:0">责任团队:</span>
               <n-select
+                :disabled="type !== 'GROUP'"
+                :render-label="renderLabel"
+                v-model:value="group"
+                multiple
+                clearable
+                :options="groupOptions"
+              />
+            </div>
+          </n-gi>
+          <n-gi :span="3">
+            <div class="title-option">
+              <span style="flex-shrink:0">责任人:</span>
+              <n-select
+                :disabled="type === 'PERSON'"
                 :render-label="renderLabel"
                 v-model:value="owner"
                 multiple
@@ -114,7 +136,16 @@
         </div>
       </n-gi>
       <n-gi class="grid-item" :span="2">
-        <n-data-table :columns="columns" remote :data="tableData" :pagination="pagination" :row-key="(row) => row.id" @update:filters="handleFiltersChange" />
+        <n-data-table 
+          :columns="columns" 
+          remote 
+          :data="tableData" 
+          :pagination="pagination" 
+          :row-key="(row) => row.id" 
+          @update:filters="handleFiltersChange"
+          @update:page="changePage"
+          @update:page-size="changePageSize" 
+        />
       </n-gi>
     </n-grid>
 
@@ -157,7 +188,8 @@ export default {
   },
   setup() {
     modules.getData();
-    modules.getOwner('ORGANIZATION');
+    modules.getGroup();
+    modules.getOwner();
     modules.getMilestone();
     return modules;
   },

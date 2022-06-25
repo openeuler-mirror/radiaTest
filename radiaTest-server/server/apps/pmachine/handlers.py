@@ -45,7 +45,7 @@ class ResourcePoolHandler:
     def get_all(query):
         filter_params = [
             or_(
-                MachineGroup.org_id == redis_client.hget(RedisKey.user(g.gitee.id), 'current_org_id'),
+                MachineGroup.org_id == redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id'),
                 MachineGroup.permission_type == 'public',
                 and_(
                     MachineGroup.permission_type == 'person',
