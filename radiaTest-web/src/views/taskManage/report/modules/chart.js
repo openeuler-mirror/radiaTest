@@ -1,9 +1,13 @@
-import { reactive } from 'vue';
+import { ref, reactive } from 'vue';
 
 import axios from '@/axios';
 import { timeRange, type, milestone, group, owner } from './screen';
 import { formatTime } from '@/assets/utils/dateFormatUtils.js';
 import { setTableDate, pagination } from './issueTable';
+import { getIssueType } from '@/api/get';
+
+const issueTypeOpts = ref([]);
+const stateType = ref('');
 
 const count = reactive({
   incomplete: 0,
@@ -115,25 +119,8 @@ function setDataZoom (option, maxCount, dataLength) {
     },
   ];
 }
-function getData () {
-  const executors = [];
-  const groups = [];
-  owner.value.forEach(item => {
-    executors.push(item);
-  });
-  group.value.forEach(item => {
-    groups.push(item);
-  });
-  const option = {
-    start_time: formatTime(timeRange.value ? timeRange.value[0] : null, 'yyyy-MM-dd'),
-    end_time: formatTime(timeRange.value ? timeRange.value[1] : null, 'yyyy-MM-dd'),
-    type: type.value,
-    executors: executors.join(','),
-    milestone_id: milestone.value,
-    groups: groups.join(','),
-    page: pagination.value.page,
-    per_page: pagination.value.pageSize,
-  };
+
+function requestData(option) {
   axios.get('/v1/task/count/total', option).then(res => {
     count.dueToday = res.data.count_today;
     count.overdue = res.data.overtime_count;
@@ -166,6 +153,41 @@ function getData () {
   });
 }
 
+function getData () {
+  const executors = [];
+  const groups = [];
+  owner.value.forEach(item => {
+    executors.push(item);
+  });
+  group.value.forEach(item => {
+    groups.push(item);
+  });
+  const option = {
+    start_time: formatTime(timeRange.value ? timeRange.value[0] : null, 'yyyy-MM-dd'),
+    end_time: formatTime(timeRange.value ? timeRange.value[1] : null, 'yyyy-MM-dd'),
+    type: type.value,
+    executors: executors.join(','),
+    milestone_id: milestone.value,
+    groups: groups.join(','),
+    page: pagination.value.page,
+    per_page: pagination.value.pageSize,
+    issue_type_id: stateType.value,
+  };
+  requestData(option);
+}
+
+function getStatics() {
+  getIssueType().then(res => {
+    issueTypeOpts.value = JSON.parse(res.data).data.map(item => ({ label: item.title, value: String(item.id) }));
+    const defect = issueTypeOpts.value.find(item => item.label === '缺陷');
+    if (defect) {
+      stateType.value = defect.value;
+      getData();
+    } else {
+      window.$message?.info('当前组织企业仓的任务类型不存在"缺陷",请手动选择要查询的任务类型');
+    }
+  });
+}
 
 export {
   lineOptions,
@@ -173,4 +195,7 @@ export {
   pieOption,
   count,
   getData,
+  getStatics,
+  issueTypeOpts,
+  stateType,
 };

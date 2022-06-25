@@ -318,6 +318,7 @@ class QueryTaskStatisticsSchema(BaseModel):
     milestone_id: str = None
     page: int = 1
     per_page: int = 10
+    issue_type_id: int
 
     @root_validator
     def validate(cls, query):
@@ -336,6 +337,8 @@ class QueryTaskStatisticsSchema(BaseModel):
             elif key == 'type':
                 query[key] = EnumsTaskType(value)
             elif key == 'milestone_id':
+                query[key] = int(value)
+            elif key == 'issue_type_id':
                 query[key] = int(value)
         return query
 
