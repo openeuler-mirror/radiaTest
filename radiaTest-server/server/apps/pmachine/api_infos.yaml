@@ -8,6 +8,12 @@ pmachine:
   - uri: /api/v1/pmachine/%d
     act: put
     alias: 修改Pmachine
+  - uri: /api/v1/pmachine/%d/power
+    act: put
+    alias: 修改Pmachine上下电
+  - uri: /api/v1/pmachine/%d/install
+    act: put
+    alias: 安装Pmachine
   - uri: /api/v1/pmachine/%d/delay
     act: put
     alias: 修改Pmachine占用时间

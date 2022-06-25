@@ -290,6 +290,7 @@ class PmachineDelayEvent(Resource):
     @auth.login_required
     @response_collect
     @validate()
+    @casbin_enforcer.enforcer
     def put(self, pmachine_id, body: PmachineDelaySchema):
         pmachine = Pmachine.query.filter_by(id=pmachine_id).first()
         if pmachine.end_time is None:
@@ -310,6 +311,7 @@ class Install(Resource):
     @auth.login_required
     @response_collect
     @validate()
+    @casbin_enforcer.enforcer
     def put(self, pmachine_id, body: PmachineInstallSchema):
         pmachine = Pmachine.query.filter_by(
             id=pmachine_id
@@ -350,6 +352,7 @@ class Power(Resource):
     @auth.login_required
     @response_collect
     @validate()
+    @casbin_enforcer.enforcer
     def put(self, pmachine_id, body: PmachinePowerSchema):
         pmachine = Pmachine.query.filter_by(
             id=pmachine_id
