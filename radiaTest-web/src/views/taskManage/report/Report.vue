@@ -67,7 +67,7 @@
           </n-gi>
           <n-gi :span="1">
             <div class="title-option">
-              <n-button type="primary" @click="getData">
+              <n-button type="primary" @click="getStatics">
                 查询
               </n-button>
             </div>
@@ -136,6 +136,11 @@
         </div>
       </n-gi>
       <n-gi class="grid-item" :span="2">
+        <n-select 
+          v-model:value="stateType"
+          @update:value="getStatics"
+          :options="issueTypeOpts"
+        />
         <n-data-table 
           :columns="columns" 
           remote 
@@ -187,7 +192,7 @@ export default {
     // EyeSharp,
   },
   setup() {
-    modules.getData();
+    modules.getStatics();
     modules.getGroup();
     modules.getOwner();
     modules.getMilestone();

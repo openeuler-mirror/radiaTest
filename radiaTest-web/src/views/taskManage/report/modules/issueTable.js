@@ -5,7 +5,7 @@ import { MdCloseCircleOutline } from '@vicons/ionicons4';
 import { IncompleteCircleRound, PauseCircleFilled } from '@vicons/material';
 import { any2standard, any2stamp } from '@/assets/utils/dateFormatUtils';
 import IssueState from '@/components/public/IssueState.vue';
-import { getData } from './chart.js';
+import { getStatics } from './chart.js';
 
 const issueStateDict = {
   '修复中': {
@@ -232,11 +232,11 @@ function handleFiltersChange (value) {
 }
 function changePage(page) {
   pagination.value.page = page;
-  getData();
+  getStatics();
 }
 function changePageSize(pageSize) {
   pagination.value.page = 1;
   pagination.value.pageSize = pageSize;
-  getData();
+  getStatics();
 }
 export { columns, tableData, pagination, setTableDate, handleFiltersChange, changePage, changePageSize };
