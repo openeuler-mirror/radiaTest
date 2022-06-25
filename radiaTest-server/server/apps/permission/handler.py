@@ -238,7 +238,7 @@ class ScopeHandler:
 
         _filter_params = [
             table.name == _role_name,
-            table.type == _type,
+            table.permission_type == _type,
         ]
         if _type == "group":
             _filter_params.append(table.group_id == owner_id)
