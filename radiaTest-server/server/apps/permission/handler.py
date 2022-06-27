@@ -264,7 +264,7 @@ class ScopeHandler:
                 error_code=RET.NO_DATA_ERR,
                 error_msg=f"the administrator role of public does not exist"
             )
-        ScopeHandler.get_scopes_by_role(_role.id, query)
+        return ScopeHandler.get_scopes_by_role(_role.id, query)
 
     @staticmethod
     @collect_sql_error
@@ -294,7 +294,7 @@ class ScopeHandler:
                 error_code=RET.NO_DATA_ERR,
                 error_msg=f"the administrator role of this {_type} does not exist"
             )
-        ScopeHandler.get_scopes_by_role(_role.id, query)
+        return ScopeHandler.get_scopes_by_role(_role.id, query)
 
     @staticmethod
     @collect_sql_error
