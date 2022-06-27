@@ -638,8 +638,14 @@ def handler_get_user_machine(query: UserMachineSchema):
             item_dict = PmachineBriefSchema(**item.__dict__).dict()
             return item_dict
 
-        filter_params = [Pmachine.org_id == current_org_id,
-                         or_(Pmachine.user == g.gitee_id, Pmachine.occupier == g.gitee_id)]
+        filter_params = [
+            Pmachine.org_id == current_org_id,
+            or_(
+                Pmachine.user == g.gitee_id,
+                Pmachine.occupier == g.gitee_id,
+                Pmachine.creator_id == g.gitee_id
+            )
+        ]
         if query.machine_name:
             filter_params.append(or_(
                 Pmachine.ip.like(f'%{query.machine_name}%'),
@@ -655,7 +661,11 @@ def handler_get_user_machine(query: UserMachineSchema):
             item_dict = VmachineBriefSchema(**item.__dict__).dict()
             return item_dict
 
-        filter_params = [Vmachine.org_id == current_org_id, Vmachine.user == g.gitee_id]
+        filter_params = [
+            Vmachine.org_id == current_org_id,
+            Vmachine.user == g.gitee_id,
+            Vmachine.creator_id == g.gitee_id
+        ]
         if query.machine_name:
             filter_params.append(or_(
                 Vmachine.ip.like(f'%{query.machine_name}%'),

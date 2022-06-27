@@ -82,7 +82,9 @@ class UpdateTaskStatusService(object):
                     children_ = get_task_children(tasks=[item], children=[])
                     all_accomplish = True
                     for child in children_:
-                        if child.task_status.name == '已完成':
+                        if child.id == self.task.id:
+                            continue
+                        if child.task_status.name != '已完成':
                             all_accomplish = False
                             break
                     if all_accomplish:
