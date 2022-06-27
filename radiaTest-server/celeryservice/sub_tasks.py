@@ -47,8 +47,11 @@ def update_case(case_data):
     else:
         logger.info("update {}".format(case_data["name"]))
         case_data.update({"id": same_case.id})
-        _ = Edit(Case, CaseUpdateSchemaWithSuiteId(
-            **case_data).__dict__).single(Case, "/case")
+        _data = CaseUpdateSchemaWithSuiteId(**case_data).__dict__
+        _data["permission_type"] = "group"
+        _data["group_id"] = _repo.group_id
+        _data["org_id"] = _repo.org_id
+        _ = Edit(Case, _data).single(Case, "/case")
 
 
 
@@ -72,10 +75,11 @@ def update_suite(suite_data, cases_data):
         ).insert_id(Suite, "/suite")
     else:
         suite_data.update({"id": same_suite.id})
-        _ = Edit(
-            Suite,
-            SuiteUpdate(**suite_data).__dict__
-        ).single(Suite, "/suite")
+        _data = SuiteUpdate(**suite_data).__dict__
+        _data["permission_type"] = "group"
+        _data["group_id"] = _repo.group_id
+        _data["org_id"] = _repo.org_id
+        _ = Edit(Suite, _data).single(Suite, "/suite")
 
         suite_id = same_suite.id
 
