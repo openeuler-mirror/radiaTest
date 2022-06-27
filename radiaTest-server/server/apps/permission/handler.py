@@ -221,37 +221,10 @@ class ScopeHandler:
         return_data = [scope.to_json() for scope in scopes]
 
         return jsonify(error_code=RET.OK, error_msg="OK", data=return_data)
-
+    
     @staticmethod
-    @collect_sql_error
-    def get_permitted_all(_type, table, owner_id, query):
-        _owner = table.query.filter_by(id=owner_id).first()
-        if not _owner:
-            return jsonify(
-                error_code=RET.NO_DATA_ERR,
-                error_msg=f"the {_type} does not exist"
-            )
-        
-        with open('server/config/role_init.yaml', 'r', encoding='utf-8') as f:
-            _role_infos = yaml.load(f.read(), Loader=yaml.FullLoader)
-        _role_name = _role_infos.get(_type).get("administrator")
-
-        _filter_params = [
-            table.name == _role_name,
-            table.permission_type == _type,
-        ]
-        if _type == "group":
-            _filter_params.append(table.group_id == owner_id)
-        elif _type == "org":
-            _filter_params.append(table.org_id == owner_id)
-        _role = Role.query.filter(*_filter_params).first()
-        if not _role:
-            return jsonify(
-                error_code=RET.NO_DATA_ERR,
-                error_msg=f"the administrator role of this {_type} does not exist"
-            )
-
-        _re_scope_roles = ReScopeRole.query.filter_by(role_id=_role.id).all()
+    def get_scopes_by_role(role_id, query):
+        _re_scope_roles = ReScopeRole.query.filter_by(role_id=role_id).all()
         _re_scope_roles_id_list = [_re.id for _re in _re_scope_roles]
 
         _filter_params = [Scope.id.in_(_re_scope_roles_id_list)]
@@ -274,6 +247,54 @@ class ScopeHandler:
             error_msg="OK",
             data=[scope.to_json() for scope in scopes]
         )
+
+    @staticmethod
+    @collect_sql_error
+    def get_public_all(query):
+        with open('server/config/role_init.yaml', 'r', encoding='utf-8') as f:
+            _role_infos = yaml.load(f.read(), Loader=yaml.FullLoader)
+        _role_name = _role_infos.get('public').get("administrator")
+        _filter_params = [
+            Role.name == _role_name,
+            Role.type == 'public',
+        ]
+        _role = Role.query.filter(*_filter_params).first()
+        if not _role:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg=f"the administrator role of public does not exist"
+            )
+        ScopeHandler.get_scopes_by_role(_role.id, query)
+
+    @staticmethod
+    @collect_sql_error
+    def get_permitted_all(_type, table, owner_id, query):
+        _owner = table.query.filter_by(id=owner_id).first()
+        if not _owner:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg=f"the {_type} does not exist"
+            )
+        
+        with open('server/config/role_init.yaml', 'r', encoding='utf-8') as f:
+            _role_infos = yaml.load(f.read(), Loader=yaml.FullLoader)
+        _role_name = _role_infos.get(_type).get("administrator")
+
+        _filter_params = [
+            Role.name == _role_name,
+            Role.type == _type,
+        ]
+        if _type == "group":
+            _filter_params.append(Role.group_id == owner_id)
+        elif _type == "org":
+            _filter_params.append(Role.org_id == owner_id)
+        _role = Role.query.filter(*_filter_params).first()
+        if not _role:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg=f"the administrator role of this {_type} does not exist"
+            )
+        ScopeHandler.get_scopes_by_role(_role.id, query)
 
     @staticmethod
     @collect_sql_error

@@ -6,7 +6,7 @@ import { changeLoadingStatus } from '@/assets/utils/loading';
 import axios from '@/axios';
 import { roleId, getRoleInfo } from './roleInfo';
 import { unkonwnErrorMsg } from '@/assets/utils/description';
-import { expandRole } from '../../modules/role';
+import { activeRole } from '../../modules/role';
 import { storage } from '@/assets/utils/storageUtils';
 
 const showDrawer = ref(false);
@@ -15,6 +15,7 @@ const ruleData = ref([]);
 const tabValue = ref('permitted');
 const aliasSearch = ref('');
 const uriSearch = ref('');
+const isAuthorized = ref(false);
 
 const ruleColumns = [
   {
@@ -191,8 +192,8 @@ const relationRulePagination = {
 };
 function getRelationRules() {
   changeLoadingStatus(true);
-  let [scopeType, ownerId] = window.atob(expandRole.value[1]).split('-');
-  let scopeUrl = `/v1/scope/${scopeType}/${ownerId}`;
+  let {scopeType, ownerId} = activeRole.value;
+  let scopeUrl = ownerId ? `/v1/scope/${scopeType}/${ownerId}` : `/v1/scope/${scopeType}`;
   if (storage.getValue('role') === 1 || tabValue.value === 'public') {
     scopeUrl = '/v1/scope';
   }
@@ -205,8 +206,10 @@ function getRelationRules() {
       return { ...item };
     });
     rulesData.value = relationRuleData.value.map(item => item);
+    isAuthorized.value = true;
     changeLoadingStatus(false);
   }).catch((err) => {
+    isAuthorized.value = false;
     window.$notification?.error({ content: err.data.error_msg || unkonwnErrorMsg });
     changeLoadingStatus(false);
   });
@@ -266,4 +269,5 @@ export {
   filterChange,
   tabValue,
   getRelationRules,
+  isAuthorized,
 };

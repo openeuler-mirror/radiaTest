@@ -2,7 +2,7 @@ import router from '@/router';
 import { setActiveRole } from './role';
 
 function rulesView() {
-  setActiveRole('');
+  setActiveRole({});
   router.push({ name: 'rulesManagement' });
 }
 
