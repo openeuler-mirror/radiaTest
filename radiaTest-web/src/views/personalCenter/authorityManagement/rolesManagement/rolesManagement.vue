@@ -95,7 +95,9 @@
           :columns="relationRuleColumns"
           :data="relationRuleData"
           :pagination="relationRulePagination"
+          v-if="isAuthorized"
         />
+        <n-empty v-else />
       </template>
     </modal-card>
   </div>

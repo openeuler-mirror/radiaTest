@@ -8,7 +8,7 @@ import router from '@/router';
 import { storage } from '@/assets/utils/storageUtils';
 
 const roleList = ref([]);
-const activeRole = ref('');
+const activeRole = ref({});
 const expandRole = ref([]);
 function setActiveRole (value) {
   activeRole.value = value;
@@ -137,6 +137,8 @@ function initRoleList () {
 function renderOptionByKey (key, isActive, item, renderFn) {
   if (isActive) {
     expandRole.value = [key, window.btoa(`${key}-${item[`${key}_id`]}`)];
+    activeRole.value.scopeType = item.type;
+    activeRole.value.ownerId = item[`${key}_id`];
   }
   renderFn(item);
 }
@@ -145,7 +147,7 @@ function renderRole () {
     initRoleList();
     res.data?.forEach((item) => {
       let isActive = false;
-      if (String(item.id) === window.atob(activeRole.value)) {
+      if (String(item.id) === window.atob(activeRole.value.roleId)) {
         isActive = true;
       }
       const renderFn = {
@@ -156,6 +158,7 @@ function renderRole () {
       if (item.type === 'public') {
         if (isActive) {
           expandRole.value = ['public', window.btoa(item.id)];
+          activeRole.value.scopeType = 'public';
         }
         pubIndex !== -1 &&
           roleList.value[pubIndex].children.push({
@@ -177,9 +180,9 @@ function renderRole () {
 }
 function getRoleList () {
   if (router.currentRoute.value.name === 'rolesManagement') {
-    activeRole.value = router.currentRoute.value.params.roleId;
+    activeRole.value.roleId = router.currentRoute.value.params.roleId;
   } else {
-    activeRole.value = '';
+    activeRole.value.roleId = '';
   }
   renderRole();
 }
@@ -188,10 +191,20 @@ function selectRole (key, options) {
   if (options[0].children) {
     return;
   }
-  [activeRole.value] = key;
+  let _ownerId = null;
+  if (options[0].info.type === 'org') {
+    _ownerId = options[0].info.org_id;
+  } else if (options[0].info.type === 'group') {
+    _ownerId = options[0].info.group_id;
+  }
+  activeRole.value = {
+    roleId: key[0],
+    scopeType: options[0].info.type,
+    ownerId: _ownerId,
+  };
   router.push({
     name: 'rolesManagement',
-    params: { roleId: activeRole.value },
+    params: { roleId: activeRole.value.roleId },
   });
 }
 

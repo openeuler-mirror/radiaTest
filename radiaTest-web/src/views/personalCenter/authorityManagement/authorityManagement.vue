@@ -42,7 +42,7 @@
                   :data="roleList"
                   @update:selected-keys="selectRole"
                   :expanded-keys="expandRole"
-                  :selected-keys="activeRole"
+                  :selected-keys="activeRole.roleId"
                   @update:expanded-keys="expandKey"
                 />
               </n-thing>

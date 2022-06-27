@@ -514,7 +514,7 @@ def handler_get_all(query):
     if query.gitee_name:
         filter_params.append(User.gitee_id.like(f'%{query.gitee_name}%'))
 
-    query_filter = User.query.filter(*filter_params).order_by(User.create_time.desc(), User.id.asc())
+    query_filter = User.query.filter(*filter_params).order_by(User.create_time.desc(), User.gitee_id.asc())
 
     # 获取用户组下的所有用户
     def page_func(item):

@@ -98,6 +98,17 @@ class ScopeItemEvent(Resource):
         return ScopeHandler.delete(scope_id)
 
 
+class PublicScopeEvent(Resource):
+    @auth.login_required
+    @casbin_enforcer.enforcer
+    @response_collect
+    @validate()
+    def get(self, query: ScopeQuerySchema):
+        return ScopeHandler.get_public_all(
+            query=query,
+        )
+
+
 class OrganizationScopeEvent(Resource):
     @auth.login_required
     @casbin_enforcer.enforcer
