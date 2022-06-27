@@ -144,10 +144,6 @@ class CaseUpdate(CaseBase, UpdateBaseModel):
 
 class CaseBaseSchemaWithSuiteId(SuiteBase):
     suite_id: int
-    description: str
-    preset: Optional[str]
-    steps: str
-    expection: str
     automatic: bool
     usabled: Optional[bool] = False
     code: Optional[str]
