@@ -216,7 +216,7 @@ export default defineComponent({
             creator_id: Number(storage.getValue('gitee_id')),
             org_id: storage.getValue('orgId'),
             group_id: Number(createForm.formValue.value.permission_type.split('-')[1]),
-            machine_group_id:router.currentRoute.value.params.machineId
+            machine_group_id:window.atob(router.currentRoute.value.params.machineId)
           }
         });
         context.emit('close');

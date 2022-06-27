@@ -115,11 +115,6 @@ export default defineComponent({
   flex-shrink: 0;
   box-shadow: 0 2px 8px 0 rgb(2, 24, 42, 0.1);
   transition: height 1s ease-in-out;
-}
-@media screen and (max-width: 1423px) {
-  .header {
-    height: 100px;
-    overflow: hidden;
-  }
+  display: flex;
 }
 </style>

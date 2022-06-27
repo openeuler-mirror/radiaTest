@@ -201,7 +201,7 @@ export default {
       return this.$route.name === 'pmachine' || this.$route.name === 'vmachine';
     },
     key() {
-      return this.$route.params.machineId;
+      return window.atob(this.$route.params.machineId);
     },
   },
   unmounted() {
@@ -239,14 +239,14 @@ export default {
       this.$router.push(
         {
           'name': this.activeTab,
-          'params': { machineId: this.expandeds.at(-1)}
+          'params': { machineId: window.btoa(this.expandeds.at(-1))}
         }
       );
     }
     if (this.$route.name !== 'resourcePool') {
       this.handleExpandKey([this.menuOptions[0]]);
-      this.selectKey = this.$route.params.machineId;
-      this.expandeds = [this.menuOptions[0].key, this.$route.params.machineId];
+      this.selectKey = window.atob(this.$route.params.machineId);
+      this.expandeds = [this.menuOptions[0].key, window.atob(this.$route.params.machineId)];
       const urlpath = this.$route.path.split('/');
       this.activeTab = urlpath[urlpath.length - 2];
     }

@@ -43,7 +43,7 @@ export default defineComponent({
       this.loading = true;
       getVmachine({
         ...this.filterValue,
-        machine_group_id: this.$route.params.machineId,
+        machine_group_id: window.atob(this.$route.params.machineId),
         page_num: this.pagination.page,
         page_size: this.pagination.pageSize,
       }).then(res => {

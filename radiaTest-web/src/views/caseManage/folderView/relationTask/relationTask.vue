@@ -1,6 +1,6 @@
 <template>
   <div>
-        <n-alert title="最新关联任务" type="info" round closable>
+      <n-alert title="最新关联任务" type="info" round closable>
       <div class="alert-content">
         <n-grid :cols="24" :x-gap="24" :y-gap="18">
           <!--最新关联任务名称-->

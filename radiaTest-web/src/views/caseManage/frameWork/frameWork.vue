@@ -64,44 +64,6 @@
         </n-space>
       </template>
     </n-modal>
-    <n-modal
-      v-model:show="repoModal"
-      preset="dialog"
-      :title="isRepoCreate ? '新增代码仓' : '修改代码仓'"
-    >
-      <n-form
-        ref="repoRef"
-        label-placement="top"
-        :model="repoForm"
-        :rules="repoRules"
-      >
-        <n-form-item label="名称" path="name">
-          <n-input
-            v-model:value="repoForm.name"
-            placeholder="请输入名称"
-          />
-        </n-form-item>
-        <n-form-item label="仓库地址" path="git_url">
-          <n-input v-model:value="repoForm.git_url" placeholder="仓库地址" />
-        </n-form-item>
-        <n-form-item label="是否允许同步" path="sync_rule">
-          <n-switch v-model:value="repoForm.sync_rule">
-            <template #checked> 是 </template>
-            <template #unchecked> 否 </template>
-          </n-switch>
-        </n-form-item>
-      </n-form>
-      <template #action>
-        <n-space style="width: 100%">
-          <n-button type="error" ghost size="large" @click="closeRepoForm">
-            取消
-          </n-button>
-          <n-button size="large" @click="submitRepoForm" type="primary" ghost>
-            提交
-          </n-button>
-        </n-space>
-      </template>
-    </n-modal>
   </div>
 </template>
 <script>
