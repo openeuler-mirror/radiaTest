@@ -152,7 +152,7 @@ function changeFrame() {
   getPm({
     machine_purpose: 'create_vmachine',
     frame: formValue.value.frame,
-    machine_group_id:router.currentRoute.value.params.machineId
+    machine_group_id:window.atob(router.currentRoute.value.params.machineId)
   }).then((res) => {
     pmData.value = res.data;
   });

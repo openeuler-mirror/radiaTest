@@ -113,12 +113,12 @@ export default {
       sessionStorage.setItem('refresh', 0);
     } else {
       this.$nextTick(() => {
-        this.getDetail(this.$route.params.taskid);
+        this.getDetail(window.atob(this.$route.params.taskid));
         setTimeout(() => {
           if (Number(sessionStorage.getItem('refresh')) === 1) {
             window.dispatchEvent(
               new CustomEvent('refreshEvent', {
-                detail: { caseNodeId: this.$route.params.taskid },
+                detail: { caseNodeId: window.atob(this.$route.params.taskid)},
               })
             );
             sessionStorage.setItem('refresh', 0);

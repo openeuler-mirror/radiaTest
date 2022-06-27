@@ -804,7 +804,7 @@ function menuClick({ key, options }) {
   const [itemkey, id] = key[0].split('-');
   if (itemkey === 'case') {
     router.push({
-      path: `/home/tcm/folderview/taskDetail/${id}`,
+      path: `/home/tcm/folderview/taskDetail/${window.btoa(id)}`,
     });
   } else if (itemkey === 'org') {
     router.push({

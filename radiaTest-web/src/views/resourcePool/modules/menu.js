@@ -141,7 +141,7 @@ function refreshData(){
   ];
   expandeds.value = ['pool'];
   if(router.currentRoute.value.name !== 'resourcePool'){
-    expandeds.value.push(router.currentRoute.value.params.machineId);
+    expandeds.value.push(window.atob(router.currentRoute.value.params.machineId));
   }
 }
 function handleSelect(key) {
