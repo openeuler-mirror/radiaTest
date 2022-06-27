@@ -2,7 +2,7 @@
   <div>
     <n-card>
       <n-grid x-gap="12" :cols="4">
-        <n-gi :span="1" v-for="item in list" :key="item.id" class="item">
+        <n-gi :span="1" v-for="(item, index) in list" :key="item.id" class="item" @click="changeNum(index)" style="cursor: pointer">
           <n-progress
             type="dashboard"
             gap-position="bottom"
@@ -24,20 +24,31 @@
         </n-gi>
       </n-grid>
     </n-card>
-    <n-card title="AT">
-      <n-data-table />
+    <n-card v-for="(item, index) in list" :key="item.id" :title="item.label" v-show="index === num">
+      <n-data-table
+        :columns="columns"
+        :data="tableData"
+        :pagination="pagination"
+        :bordered="false"
+      />
     </n-card>
   </div>
 </template>
 <script>
 import {ref} from 'vue';
 import {CheckmarkCircleSharp,CloseCircleSharp} from '@vicons/ionicons5';
+import { modules } from './modules';
 export default {
   components:{
     CheckmarkCircleSharp,
     CloseCircleSharp
   },
   setup() {
+    const num = ref(0);
+    function changeNum(index){
+      num.value = index;
+      // 调取切换tab获取数据的接口
+    }
     const list = ref([
       {progress:100,label:'AT通过率',id:1},
       {progress:100,label:'周防护网',id:2},
@@ -49,8 +60,12 @@ export default {
       {date:'2022-09-30',success:true},
     ]);
     return {
+      num,
       list,
-      dailyBuild
+      dailyBuild,
+      changeNum,
+      pagenation: false,
+      ...modules,
     };
   },
 };

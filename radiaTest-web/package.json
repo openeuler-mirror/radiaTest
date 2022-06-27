@@ -57,6 +57,8 @@
     "less": "^4.1.1",
     "less-loader": "^10.0.1",
     "naive-ui": "^2.19.2",
+    "node-sass": "^7.0.1",
+    "sass-loader": "^13.0.0",
     "vfonts": "^0.1.0",
     "webpack-dev-server": "^3.11.2",
     "sass": "^1.26.5",

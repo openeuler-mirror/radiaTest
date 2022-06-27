@@ -3,39 +3,20 @@ const detail = ref({});
 const drawerShow = ref(false);
 const active = ref(false);
 const requestCard = ref(null);
-const cardInfo = ref([
-  { progress: 50, description: '12sadadcxcsdffffffffff232134214asdsfsf', id: 1 },
-  { progress: 60, description: '12sadadcxcsdffffffffff232134214asdsfsf', id: 2 },
-  { progress: 80, description: '12sadadcxcsdffffffffff232134214asdsfsf', id: 3 },
-]);
-function cardClick (index) {
-  console.log(cardInfo.value[index]);
+const cardDescription = ref({
+  title: null,
+  progress: null,
+});
+function cardClick () {
   active.value = true;
 }
 const activeTab = ref('testProgress');
-const testProgressList = ref([
-  {
-    title: 'openEuler 22.03 LTS realese', children: [
-      { title: '安全测试', progress: 80, list: [{ name: 123, success: false }] },
-      { title: '单包服务', progress: 100, list: [{ name: 23, success: false }, { name: 33, success: true }] },
-      { title: '单包命令', progress: 80 },
-    ],
-    id: 1
-  },
-  {
-    title: 'openEuler 22.03 LTS realese', children: [
-      { title: '安全测试', progress: 80, list: [{ name: 123, success: false }] },
-      { title: '单包服务', progress: 100, list: [{ name: 23, success: false }, { name: 33, success: true }] },
-      { title: '单包命令', progress: 80 },
-    ],
-    id: 2
-  }
-]);
+const testProgressList = ref([]);
 const newRequestCount = ref(20);
 const extendRequestCount = ref(13);
 const newRequestRate = ref(80);
 const extendRequestRate = ref(100);
-const showList = ref();
+const showList = ref(false);
 
 const boxWidth = ref(0);
 watch(showList, () => {
@@ -56,7 +37,7 @@ const packageBox = ref(null);
 const packageWidth = ref(0);
 watch(showPackage, () => {
   nextTick(() => {
-    packageWidth.value = packageBox.value.$el.clientWidth;
+    packageWidth.value = requestCard.value.$el.clientWidth;
   });
 });
 export {
@@ -77,6 +58,6 @@ export {
   detail,
   testProgressList,
   drawerShow,
-  cardInfo,
+  cardDescription,
   cardClick,
 };

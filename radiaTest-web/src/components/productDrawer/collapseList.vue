@@ -17,22 +17,26 @@
         </div>
       </template>
       <template #header-extra v-if="item.progress !== undefined">
-        <n-progress
+        <!-- <n-progress
           style="width:80%"
           type="line"
           :percentage="item.progress"
           indicator-placement="inside"
           processing
-        />
+        /> -->
+        <custom-progress :progress="item.progress">
+        </custom-progress>
       </template>
     </n-collapse-item>
   </n-collapse>
 </template>
 <script>
 import {ChevronDownCircle, CloseCircle} from '@vicons/ionicons5';
+import customProgress from '@/components/customProgress/customProgress.vue';
 export default {
   name: 'collapseList',
   components:{
+    customProgress,
     ChevronDownCircle,
     CloseCircle
   },
@@ -46,5 +50,12 @@ export default {
   display: flex;
   justify-content: space-evenly;
   align-items: center;
+}
+</style>
+
+<style scoped>
+.n-collapse {
+    width: 100%;
+    margin-right: 30px;
 }
 </style>

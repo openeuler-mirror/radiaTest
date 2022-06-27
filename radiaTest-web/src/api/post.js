@@ -30,6 +30,11 @@ export function createComment (commitId, data) {
     ...data,
   });
 }
+export function createProductMessage (productId) {
+  return postRequest('/v1/qualityboard', {
+    product_id: productId
+  });
+}
 export function createMachineGroup (data) {
   return postRequest('/v1/machine-group', data);
 }
