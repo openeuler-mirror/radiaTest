@@ -24,7 +24,7 @@ class JobMessenger:
         )
 
     @staticmethod
-    def get_machine_list(self, machine_id_list, table):
+    def get_machine_list(machine_id_list, table):
         machine_list = []
         for machine_id in machine_id_list:
             machine = table.query.filter_by(id=machine_id).first()

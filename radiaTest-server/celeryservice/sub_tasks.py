@@ -39,6 +39,11 @@ def update_case(case_data):
             "permission_type": "group",
             "group_id": _repo.group_id,
             "org_id": _repo.org_id,
+            "description": "",
+            "preset": "",
+            "steps": "",
+            "expection": "",
+            "remark": "",
         })
         _ = Insert(Case, _data).insert_id(Case, "/case")
     else:
@@ -51,7 +56,6 @@ def update_case(case_data):
             "org_id": _repo.org_id,
         })
         _ = Edit(Case, _data).single(Case, "/case")
-
 
 
 @celery.task
