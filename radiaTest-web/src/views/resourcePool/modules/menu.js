@@ -103,7 +103,7 @@ function nodeProps({ option }) {
         router.push({
           name: 'pmachine',
           params: {
-            machineId: option.value,
+            machineId: window.btoa(option.value),
           },
         });
       }

@@ -387,7 +387,8 @@ def handler_user_info(gitee_id):
         for item in groups:
             re_user_group = ReUserGroupSchema(**item.to_dict())
             group = GroupInfoSchema(**item.group.to_dict())
-            group_list.append({**re_user_group.dict(), **group.dict()})
+            if not group.is_delete:
+                group_list.append({**re_user_group.dict(), **group.dict()})
     user_dict["groups"] = group_list
 
     # 组织信息
@@ -397,7 +398,8 @@ def handler_user_info(gitee_id):
         for item in orgs:
             re_user_organization = ReUserOrgSchema(**item.to_dict())
             org = OrgUserInfoSchema(**item.organization.to_dict())
-            org_list.append({**re_user_organization.dict(), **org.dict()})
+            if not org.is_delete:
+                org_list.append({**re_user_organization.dict(), **org.dict()})
     user_dict["orgs"] = org_list
     user_dict = UserInfoSchema(**user_dict).dict()
     return jsonify(error_code=RET.OK, error_msg="OK", data=user_dict)

@@ -7,7 +7,7 @@ class Config(object):
     TESTING = False
 
     # 日志
-    LOG_LEVEL = "INFO"
+    LOG_LEVEL = "WARNING"
 
     # 数据库
     SQLALCHEMY_TRACK_MODIFICATIONS = False

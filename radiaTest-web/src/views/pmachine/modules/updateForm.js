@@ -22,11 +22,15 @@ const basicFormValue = ref({
 
 const bmcFormValue = ref({
   bmc_ip: undefined,
+  bmc_user: undefined,
+  bmc_password: undefined,
 });
 
 const sshFormValue = ref({
   ip: undefined,
   port: undefined,
+  user: undefined,
+  password: undefined,
 });
 
 const initData = (form) => {
@@ -37,10 +41,14 @@ const initData = (form) => {
   };
   bmcFormValue.value = {
     bmc_ip: form.bmc_ip,
+    bmc_user: form.bmc_user,
+    bmc_password: form.bmc_password,
   };
   sshFormValue.value = {
     ip: form.ip,
     port: form.port,
+    user: form.user,
+    password: form.password,
   };
 };
 
@@ -62,6 +70,16 @@ const bmcRules = ref({
   bmc_ip: {
     required: true,
     validator: validateIpaddressCheckNull,
+    trigger: 'blur',
+  },
+  bmc_user: {
+    required: true,
+    message: 'BMC用户名不可为空',
+    trigger: 'blur',
+  },
+  bmc_password: {
+    required: true,
+    message: 'BMC密码不可为空',
     trigger: 'blur',
   },
 });
@@ -108,4 +126,3 @@ export default {
   validateFormData,
   initData,
 };
-
