@@ -270,7 +270,6 @@ class ScopeRolePersonEvent(Resource):
     def post(self, gitee_id, body: ScopeRoleBaseSchema):
         return ScopeRoleLimitedHandler(
             _type='person',
-            user_id=gitee_id,
             body=body
         ).bind_scope()
 
@@ -281,7 +280,6 @@ class ScopeRolePersonEvent(Resource):
     def delete(self, gitee_id, body: ScopeRoleBaseSchema):
         return ScopeRoleLimitedHandler(
             _type='person',
-            user_id=gitee_id,
             body=body
         ).unbind_scope()
 
