@@ -14,6 +14,7 @@ class OrgUserInfoSchema(BaseModel):
     org_description: Optional[str] = Field(alias="description")
     org_avatar_url: Optional[str] = Field(alias="avatar_url")
     org_enterprise: Optional[str] = Field(alias="enterprise_id")
+    is_delete: Optional[bool] = False
 
 
 class AddSchema(BaseModel):

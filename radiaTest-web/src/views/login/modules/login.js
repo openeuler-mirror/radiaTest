@@ -150,7 +150,7 @@ function renderLabel (option) {
     [
       h(NAvatar, {
         src: option.org_avatar,
-        round: true,
+        round: false,
         size: 'small',
         style: 'margin-right:10px',
         fallbackSrc: createAvatar(option.label.slice(0, 1))

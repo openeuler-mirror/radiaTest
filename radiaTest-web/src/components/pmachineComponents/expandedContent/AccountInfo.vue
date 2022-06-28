@@ -2,28 +2,28 @@
   <span>
       <span class="account">{{ title }}</span>
       <span class="account">用户名/密码:</span>
-      <span class="account">{{ accountInfo }}</span>  
+      <span class="account">{{ accountInfo[title] }}</span>  
   </span>
   <n-button 
     class="account"
-    v-if="!isShow" 
+    v-if="!isShow[title]" 
     type="success" 
     text
-    @click="handleShowClick(title)"
+    @click="handleShowClick(machineId, title)"
   >
     显示
   </n-button>
   <n-button 
     class="account" 
-    v-if="isShow" 
+    v-if="isShow[title]" 
     type="info" 
     text
-    @click="handleHideClick()"
+    @click="handleHideClick(title)"
   >
     隐藏
   </n-button>
   <n-button 
-    v-if="isShow"
+    v-if="isShow[title]"
     class="account" 
     type="primary" 
     text
@@ -35,18 +35,35 @@
     :initY="100"
     :title="`修改${title}信息`"
     ref="accountModalRef"
-    @validate="handleModifyClick(title)"
+    @validate="handleModifyClick(machineId, title)"
   >
     <template #form>
-      <n-form :label-width="80" :model="formValue" ref="formRef">
+      <n-form 
+        :label-width="80" 
+        :model="formValue" 
+        ref="formRef"
+        :rules="rules"
+      >
         <n-form-item label="用户名" path="user">
-          <n-input v-model:value="formValue.user" placeholder="请输入用户名" />
+          <n-input 
+            :value="formValue.user" 
+            :disabled="true"
+          />
         </n-form-item>
         <n-form-item label="密码" path="password">
           <n-input
             v-model:value="formValue.password"
             placeholder="请输入密码"
             type="password"
+            show-password-on="click"
+          />
+        </n-form-item>
+        <n-form-item label="确认密码" path="rePassword">
+          <n-input
+            v-model:value="formValue.rePassword"
+            placeholder="请再次输入密码"
+            type="password"
+            show-password-on="click"
           />
         </n-form-item>
       </n-form>
@@ -55,9 +72,8 @@
 </template>
 
 <script>
-import { ref, defineComponent } from 'vue';
-import { getPmachineBmc, getPmachineSsh } from '@/api/get';
-import { modifyPmachineBmc, modifyPmachineSsh } from '@/api/put';
+import { defineComponent, onUnmounted } from 'vue';
+import secretInfo from '@/views/pmachine/modules/expandedContent/secretInfo.js';
 import ModalCard from '@/components/CRUD/ModalCard';
 
 export default defineComponent({
@@ -68,53 +84,12 @@ export default defineComponent({
     title: String,
     machineId: Number,
   },
-  setup(props) {
-    const isShow = ref(false);
-    const accountInfo = ref('***** / *****');
-    const formValue = ref({});
-    const accountModalRef = ref();
-    function handleHideClick() {
-      isShow.value = false;
-      formValue.value = {};
-      accountInfo.value = '***** / *****';
-    }
+  setup() {
+    onUnmounted(() => {
+      secretInfo.formValue.value = {};
+    });
     return {
-      isShow,
-      formValue,
-      formRef: ref(),
-      accountInfo,
-      accountModalRef,
-      handleHideClick,
-      handleShowClick(target) {
-        if (target === 'BMC') {
-          getPmachineBmc(props.machineId).then((res) => {
-            accountInfo.value = `${res.data.bmc_user} / ${res.data.bmc_password}`;
-            formValue.value.user = res.data.bmc_user;
-            formValue.value.password = res.data.bmc_password;
-            isShow.value = true;
-          });
-        } else if (target === 'SSH') {
-          getPmachineSsh(props.machineId).then((res) => {
-            accountInfo.value = `${res.data.user} / ${res.data.password}`;
-            formValue.value.user = res.data.user;
-            formValue.value.password = res.data.password;
-            isShow.value = true;
-          });
-        }
-      },
-      handleModifyClick(target) {
-        if (target === 'BMC') {
-          modifyPmachineBmc(props.machineId, formValue.value).finally(() => {
-            handleHideClick();
-            accountModalRef.value.close();
-          });
-        } else if (target === 'SSH') {
-          modifyPmachineSsh(props.machineId, formValue.value).finally(() => {
-            handleHideClick();
-            accountModalRef.value.close();
-          });
-        }
-      }
+      ...secretInfo
     };
   },
 });

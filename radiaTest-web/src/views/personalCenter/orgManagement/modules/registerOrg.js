@@ -173,18 +173,21 @@ function submitOrgInfo() {
   });
   let formData = new FormData();
   formData.append('avatar_url', fileList.value[0]?.file);
-  formData.append('name', registerModel.name);
-  formData.append('cla_verify_url', registerModel.claVerifyUrl);
-  formData.append('cla_sign_url', registerModel.claSignUrl);
-  formData.append('cla_request_type', registerModel.claRequestMethod);
-  formData.append('cla_pass_flag', registerModel.claPassFlag);
+  formData.append('name', registerModel.name ? registerModel.name : undefined);
+  formData.append('cla_verify_url', registerModel.claVerifyUrl ? registerModel.claVerifyUrl : undefined);
+  formData.append('cla_sign_url', registerModel.claSignUrl ? registerModel.cla_sign_url : undefined);
+  formData.append('cla_request_type', registerModel.claRequestMethod ? registerModel.cla_request_type : undefined);
+  formData.append('cla_pass_flag', registerModel.claPassFlag ? registerModel.cla_pass_flag : undefined);
   formData.append('cla_verify_params', JSON.stringify(claVerifyParams));
   formData.append('cla_verify_body', JSON.stringify(claVerifyBody));
-  formData.append('enterprise_id', registerModel.enterprise);
-  formData.append('oauth_client_id', registerModel.oauth_client_id);
-  formData.append('oauth_client_secret', registerModel.oauth_client_secret);
-  formData.append('oauth_scope', registerModel.oauth_client_scope.join(','));
-  formData.append('description', registerModel.description);
+  formData.append('enterprise_id', registerModel.enterprise ? registerModel.enterpreise_id : undefined);
+  formData.append('oauth_client_id', registerModel.oauth_client_id ? registerModel.oauth_client_id : undefined);
+  formData.append(
+    'oauth_client_secret', 
+    registerModel.oauth_client_secret ? registerModel.oauth_client_secret : undefined,
+  );
+  formData.append('oauth_scope', registerModel.oauth_client_scope?.join(','));
+  formData.append('description', registerModel.description ? registerModel.description : undefined);
 
   regirsterRef.value.validate((errors) => {
     if (!errors) {

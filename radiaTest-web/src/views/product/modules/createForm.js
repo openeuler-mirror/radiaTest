@@ -26,29 +26,21 @@ const defaultOptions = [
     value: 'openEuler',
   },
   {
-    label: 'CentOS',
-    value: 'CentOS',
+    label: 'EulerOS',
+    value: 'EulerOS',
   },
   {
-    label: 'fedora',
-    value: 'fedora',
+    label: 'SUSE Euler',
+    value: 'SUSE Euler',
   },
   {
-    label: 'Ubuntu',
-    value: 'Ubuntu',
+    label: 'KylinSec',
+    value: 'KylinSec',
   },
   {
-    label: 'debian',
-    value: 'debian',
-  },
-  {
-    label: 'openSUSE',
-    value: 'openSUSE',
-  },
-  {
-    label: 'arch',
-    value: 'arch',
-  },
+    label: 'UOS',
+    value: 'UOS',
+  }
 ];
 
 const nameOptions = computed(() => [

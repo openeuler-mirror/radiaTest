@@ -195,10 +195,10 @@ def handler_update_org(org_id):
     _form = dict()
     if request.form.get('is_delete'):
         org.is_delete = True
-        _groups = Group.query.filter_by(org_id=org_id).all()
-        for _group in _groups:
+        _groups = Group.query.filter_by(org_id=org_id)
+        for _group in _groups.all():
             delete_role(_type='group', group=_group)
-            _groups.update({'is_delete': True}, synchronize_session=False)
+        _groups.update({'is_delete': True}, synchronize_session=False)
         delete_role(_type='org', org=org)
     else:
         for key, value in request.form.items():
