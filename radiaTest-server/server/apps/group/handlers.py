@@ -26,14 +26,13 @@ from server.utils.db import collect_sql_error, Insert, Delete
 from server.utils.file_util import FileUtil
 from server.utils.page_util import PageUtil
 from server.utils.permission_utils import PermissionManager
-from server.utils.read_from_yaml import create_role, get_default_suffix, get_api
+from server.utils.read_from_yaml import create_role, get_api
 from server.model.group import Group, ReUserGroup, GroupRole
 from server.model.administrator import Admin
 from server.model.message import Message, MsgType, MsgLevel
 from server.model.organization import Organization
 from server.model.permission import ReUserRole, Role
 from server.schema.group import ReUserGroupSchema, GroupInfoSchema, QueryGroupUserSchema
-from server.apps.administrator.handlers import delete_role
 
 
 @collect_sql_error
@@ -45,8 +44,8 @@ def handler_add_group():
     org_id = redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')
     filter_params = [
         Group.name == name,
-        Group.is_delete == False,
-        ReUserGroup.is_delete == False,
+        Group.is_delete.is_(False),
+        ReUserGroup.is_delete.is_(False),
         ReUserGroup.org_id == org_id
     ]
     re = ReUserGroup.query.join(Group).filter(*filter_params).first()
@@ -111,6 +110,16 @@ def handler_delete_group(group_id):
 
     # 创建者解散用户组
     if re.role_type == GroupRole.create_user.value:
+        group = Group.query.filter_by(is_delete=False, id=group_id).first()
+        if not group:
+            return jsonify(error_code=RET.NO_DATA_ERR, error_msg=f"group no find")
+        group.is_delete = True
+        flag = group.add_update()
+        if not flag:
+            return jsonify(
+                error_code=RET.OTHER_REQ_ERR,
+                error_msg='resources are related to current group, please delete these resources and retry!'
+            )
         res = ReUserGroup.query.filter_by(is_delete=False, group_id=group_id).all()
         for item in res:
             Insert(
@@ -131,11 +140,10 @@ def handler_delete_group(group_id):
         Group.query.filter_by(is_delete=False, id=group_id).update({'is_delete': True}, synchronize_session=False)
         ReUserGroup.query.filter_by(is_delete=False, group_id=group_id).update({'is_delete': True},
                                                                                synchronize_session=False)
-        delete_role(_type='group', group=re.group)
 
     # 用户组成员退出用户组
     elif re.role_type in [GroupRole.admin.value, GroupRole.user.value]:
-        res = ReUserGroup.query.filter(ReUserGroup.is_delete == False, ReUserGroup.group_id == group_id,
+        res = ReUserGroup.query.filter(ReUserGroup.is_delete.is_(False), ReUserGroup.group_id == group_id,
                                        ReUserGroup.role_type.in_([GroupRole.create_user.value, GroupRole.admin.value]),
                                        ReUserGroup.user_gitee_id != g.gitee_id).all()
         re.is_delete = True
@@ -180,9 +188,9 @@ def handler_group_page():
     name = request.args.get('name')
     filter_params = [
         ReUserGroup.user_gitee_id == g.gitee_id,
-        ReUserGroup.is_delete == False,
-        ReUserGroup.user_add_group_flag == True,
-        Group.is_delete == False,
+        ReUserGroup.is_delete.is_(False),
+        ReUserGroup.user_add_group_flag.is_(True),
+        Group.is_delete.is_(False),
         ReUserGroup.org_id == redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')
     ]
     if name:
@@ -222,12 +230,11 @@ def handler_group_user_page(group_id, query: QueryGroupUserSchema):
             ReUserGroup.user_gitee_id.notin_(query.except_list)
         )
 
-    query_filter = ReUserGroup.query.filter(*filter_params).order_by(ReUserGroup.create_time.desc(), ReUserGroup.id.asc())
+    query_filter = ReUserGroup.query.filter(*filter_params)\
+        .order_by(ReUserGroup.create_time.desc(), ReUserGroup.id.asc())
 
     # 获取用户组下的所有用户
     def page_func(item):
-        if item.is_delete:
-            return None
         user_dict = item.user.to_dict()
         re_dict = ReUserGroupSchema(**item.to_dict()).dict()
         return {**re_dict, **user_dict}
@@ -295,8 +302,8 @@ def handler_update_user(group_id, body):
         filter_params = [
             ReUserGroup.user_gitee_id.in_(body.gitee_ids),
             ReUserGroup.group_id == group_id,
-            ReUserGroup.is_delete == False,
-            ReUserGroup.user_add_group_flag == True
+            ReUserGroup.is_delete.is_(False),
+            ReUserGroup.user_add_group_flag.is_(True)
         ]
         if re.role_type == GroupRole.create_user.value:
             filter_params.append(ReUserGroup.role_type != GroupRole.create_user.value)

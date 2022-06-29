@@ -29,9 +29,23 @@ class Organization(db.Model, PermissionBaseModel, BaseModel):
     cla_request_type = db.Column(db.String(8), nullable=True)
     cla_pass_flag = db.Column(db.String(512), nullable=True)
 
-    re_user_org = db.relationship("ReUserOrganization", backref="organization")
+    re_user_org = db.relationship("ReUserOrganization", cascade="all, delete", backref="organization")
 
     roles = db.relationship("Role", cascade="all, delete", backref="organization")
+
+    def add_update(self, table=None, namespace=None, broadcast=False):
+        from sqlalchemy.exc import IntegrityError
+        from flask import current_app
+        if self.is_delete:
+            try:
+                super().delete(table, namespace, broadcast)
+                return True
+            except IntegrityError as e:
+                current_app.logger.error(f'database operate error -> {e}')
+                return False
+        else:
+            super().add_update(table, namespace, broadcast)
+            return True
 
     def to_dict(self):
         _dict = self.__dict__

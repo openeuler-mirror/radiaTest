@@ -1,6 +1,7 @@
 import json
 import calendar
 from datetime import datetime, timedelta
+import pytz
 from flask import current_app, request, Response, redirect, g, jsonify
 from sqlalchemy import or_, and_, extract
 
@@ -211,13 +212,13 @@ def handler_login(gitee_token, org_id):
 
             if re.default is False:
                 _resp = handler_select_default_org(org_id, gitee_user.get("id"))
+                _r = None
                 try:
                     _r = _resp.json
-                    if _r.get("error_code") != RET.OK:
-                        return False, gitee_user.get("id")
-
                 except (AttributeError, TypeError) as e:
                     raise RuntimeError(str(e)) from e
+                if _r.get("error_code") != RET.OK:
+                    return False, gitee_user.get("id")
 
         return True, user.gitee_id, token
 
@@ -332,16 +333,16 @@ def handler_register(gitee_id, body):
 
     # 将当前组织设为注册组织
     _resp = handler_select_default_org(org.id, gitee_user.get("id"))
+    _r = None
     try:
         _r = _resp.json
-        if _r.get("error_code") != RET.OK:
-            raise RuntimeError(_r.get("error_msg"))
-
     except (AttributeError, RuntimeError) as e:
         return jsonify(
             error_code=RET.SERVER_ERR,
             error_msg=f"SERVER ERROR: {str(e)}"
         )
+    if _r.get("error_code") != RET.OK:
+        raise RuntimeError(_r.get("error_msg"))
 
     return jsonify(error_code=RET.OK, error_msg="OK", data=return_data)
 
@@ -536,7 +537,7 @@ def handler_get_user_task(query: UserTaskSchema):
         RedisKey.user(g.gitee_id),
         'current_org_id'
     ))
-    now = datetime.now()
+    now = datetime.now(tz=pytz.timezone('Asia/Shanghai'))
     # 全部任务
     basic_filter_params = [Task.is_delete.is_(False),
                            Task.executor_id == g.gitee_id,
@@ -615,7 +616,8 @@ def handler_get_user_task(query: UserTaskSchema):
     elif query.task_type == 'not_accomplish':
         not_accomplish_filter_params = [Task.accomplish_time.is_(None)]
         not_accomplish_filter_params.extend(basic_filter_params)
-        not_accomplish_filter = Task.query.filter(*not_accomplish_filter_params).order_by(Task.update_time.desc(), Task.id.asc())
+        not_accomplish_filter = Task.query.filter(*not_accomplish_filter_params)\
+            .order_by(Task.update_time.desc(), Task.id.asc())
         filter_param = not_accomplish_filter
 
     page_dict, e = PageUtil.get_page_dict(filter_param, query.page_num, query.page_size, func=page_func)
@@ -641,10 +643,9 @@ def handler_get_user_machine(query: UserMachineSchema):
             return item_dict
 
         filter_params = [
-            Pmachine.org_id == current_org_id,
             or_(
                 Pmachine.user == g.gitee_id,
-                Pmachine.occupier == g.gitee_id,
+                Pmachine.occupier == User.query.get(g.gitee_id).name,
                 Pmachine.creator_id == g.gitee_id
             )
         ]
@@ -664,8 +665,6 @@ def handler_get_user_machine(query: UserMachineSchema):
             return item_dict
 
         filter_params = [
-            Vmachine.org_id == current_org_id,
-            Vmachine.user == g.gitee_id,
             Vmachine.creator_id == g.gitee_id
         ]
         if query.machine_name:
@@ -687,9 +686,13 @@ def handler_get_user_case_commit(query: UserCaseCommitSchema):
         RedisKey.user(g.gitee_id),
         'current_org_id'
     ))
-    now = datetime.now()
+    now = datetime.now(tz=pytz.timezone('Asia/Shanghai'))
     # 全部
-    basic_filter_params = [Commit.creator_id == g.gitee_id, Commit.status == 'accepted', Commit.org_id == current_org_id]
+    basic_filter_params = [
+        Commit.creator_id == g.gitee_id,
+        Commit.status == 'accepted',
+        Commit.org_id == current_org_id
+    ]
 
     # 今日贡献
     today_filter_params = [extract('year', Commit.create_time) == now.year,
@@ -736,7 +739,7 @@ def handler_get_user_case_commit(query: UserCaseCommitSchema):
 
 @collect_sql_error
 def handler_get_user_case_commit(query: UserCaseCommitSchema):
-    now = datetime.now()
+    now = datetime.now(tz=pytz.timezone('Asia/Shanghai'))
     # 全部
     basic_filter_params = [Commit.creator_id == g.gitee_id, Commit.status == 'accepted']
 

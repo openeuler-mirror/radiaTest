@@ -195,11 +195,12 @@ def handler_update_org(org_id):
     _form = dict()
     if request.form.get('is_delete'):
         org.is_delete = True
-        _groups = Group.query.filter_by(org_id=org_id)
-        for _group in _groups.all():
-            delete_role(_type='group', group=_group)
-        _groups.update({'is_delete': True}, synchronize_session=False)
-        delete_role(_type='org', org=org)
+        flag = org.add_update()
+        if not flag:
+            return jsonify(
+                error_code=RET.OTHER_REQ_ERR,
+                error_msg='resources are related to current group, please delete these resources and retry!'
+            )
     else:
         for key, value in request.form.items():
             if value:
@@ -207,7 +208,8 @@ def handler_update_org(org_id):
         body = AddSchema(**_form)
         avatar = request.files.get("avatar_url")
         if avatar:
-            org.avatar_url = FileUtil.flask_save_file(avatar, org.avatar_url if org.avatar_url else FileUtil.generate_filepath('avatar'))
+            org.avatar_url = FileUtil.flask_save_file(
+                avatar, org.avatar_url if org.avatar_url else FileUtil.generate_filepath('avatar'))
         else:
             org.avatar_url = None
         for key, value in body.dict().items():
