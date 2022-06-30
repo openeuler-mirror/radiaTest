@@ -26,9 +26,15 @@ pmachine:
   - uri: /api/v1/pmachine/%d/ssh
     act: get
     alias: 获取Pmachine的ssh信息
+  - uri: /api/v1/pmachine/%d/ssh
+    act: put
+    alias: 修改Pmachine的ssh密码
   - uri: /api/v1/pmachine/%d/bmc
     act: get
     alias: 获取Pmachine的bmc信息
+  - uri: /api/v1/pmachine/%d/bmc
+    act: put
+    alias: 修改Pmachine的bmc密码
 machine_group:
   - uri: /api/v1/machine-group/%d
     act: delete

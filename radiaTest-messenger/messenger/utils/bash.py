@@ -66,6 +66,24 @@ def power_on_off(ip, user, password, status):
         quote(ip), quote(user), quote(password), quote(status)
     )
 
+
+# pmachine释放后修改密码
+def pmachine_reset_password(user, new_password):
+    return "echo '{}:{}'| chpasswd" .format(quote(user), quote(new_password))
+
+
+# 查询物理机Administrator用户id
+def get_bmc_user_id(bmc_user):
+    return ("ipmitool user list 1 | grep -i {}" .format(quote(bmc_user))
+    + " |awk '{print $1}' | shuf -n 1")
+
+
+# 修改物理机Administrator用户bmc密码
+def reset_bmc_user_passwd(bmc_id, bmc_password):
+    return "ipmitool user set password {} {}".format(
+        quote(bmc_id), quote(bmc_password)
+    )
+
 # 查询ip地址
 def inquire_ip(mac):
     return (

@@ -603,7 +603,7 @@ class DeviceManager(SyncMessenger):
 
     def attach(self):
         vmachine = self._body.get("vmachine")
-        self._pmachine = vmachine.get("pmachine")
+        self._pmachine = self._body.get("pmachine")
         self._body.update({"name": vmachine.get("name")})
         self._method = "post"
 

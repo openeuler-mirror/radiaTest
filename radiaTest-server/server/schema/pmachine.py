@@ -2,9 +2,9 @@
 # @Author: Your name
 # @Date:   2022-04-12 11:25:48
 # @Last Modified by:   Your name
-import datetime
+from datetime import datetime, timedelta
 from typing import Optional
-
+import pytz
 from flask import current_app
 from dateutil.relativedelta import relativedelta
 from pydantic import conint, BaseModel, constr, validator, root_validator
@@ -22,6 +22,7 @@ from server.utils.pssh import ConnectionApi
 from server.model import Pmachine, MachineGroup
 from server.schema.base import PermissionBase
 from server.utils.iptype_util import ip_type
+
 
 class MachineGroupCreateSchema(PermissionBase):
     name: str
@@ -50,10 +51,12 @@ class MachineGroupCreateSchema(PermissionBase):
             )
         ).first()
         if machine_group is not None:
-            raise ValueError("services might be used by other groups, make sure publicnet ip/messenger addr/websockify addr is unique")
+            raise ValueError("services might be used by other groups, \
+            make sure publicnet ip/messenger addr/websockify addr is unique")
 
         # check ips format valid
-        if not ip_type(values.get("ip")) or not ip_type(values.get("messenger_ip")) or not ip_type(values.get("websockify_ip")):
+        if not ip_type(values.get("ip")) or not ip_type(values.get("messenger_ip")) \
+            or not ip_type(values.get("websockify_ip")):
             raise ValueError("ip format error in publicnet ip/messenger ip/websockify ip")
 
         return values
@@ -120,7 +123,7 @@ class HeartbeatUpdateSchema(BaseModel):
         if not ip_type(values.get("messenger_ip")):
             raise ValueError("the IP is in wrong format")
         
-        current_datetime = datetime.datetime.now()
+        current_datetime = datetime.now(pytz.timezone('Asia/Shanghai'))
 
         if values.get("messenger_alive"):
             values["messenger_last_heartbeat"] = current_datetime
@@ -153,8 +156,8 @@ class PmachineBaseSchema(BaseModel):
     user: Optional[constr(max_length=32)]
     port: Optional[int]
     password: Optional[constr(min_length=6, max_length=256)]
-    end_time: Optional[datetime.datetime]
-    start_time: Optional[datetime.datetime]
+    end_time: Optional[datetime]
+    start_time: Optional[datetime]
     listen: Optional[int]
     description: Optional[str]
     state: Optional[PmachineState]
@@ -185,7 +188,7 @@ class PmachineBaseSchema(BaseModel):
 
     @validator("start_time")
     def check_start_time(cls, v):
-        if v > datetime.datetime.now():
+        if v > datetime.now(pytz.timezone('Asia/Shanghai')):
             raise ValueError("start_time invalid.")
 
         return v
@@ -226,16 +229,16 @@ class PmachineUpdateSchema(PmachineBaseSchema):
 
 
 class PmachineDelaySchema(BaseModel):
-    end_time: Optional[datetime.datetime]
+    end_time: Optional[datetime]
  
     @validator("end_time")
     def check_end_time(cls, v):
-        if not v or v < (datetime.datetime.now()):
+        if not v or v < (datetime.now(pytz.timezone('Asia/Shanghai'))):
             raise ValueError(
                 "Empty time and Past time is invalid."
             )
-        if v > (datetime.datetime.now()
-                + datetime.timedelta(days=current_app.config.get("MAX_OCUPY_TIME"))
+        if v > (datetime.now(pytz.timezone('Asia/Shanghai'))
+                + timedelta(days=current_app.config.get("MAX_OCUPY_TIME"))
             ):
             raise ValueError(
                 "The max occupation duration is %s days."
@@ -248,29 +251,39 @@ class PmachineOccupySchema(PmachineDelaySchema):
     description: str
     occupier: str
     listen: Optional[int]
-    start_time: Optional[datetime.datetime]
-    end_time: Optional[datetime.datetime]
+    start_time: Optional[datetime]
+    end_time: Optional[datetime]
 
 
     @root_validator
     def check_values(cls, values):
-        values["start_time"] = datetime.datetime.now()
+        values["start_time"] = datetime.now(pytz.timezone('Asia/Shanghai'))
 
         if values["description"] in [
             current_app.config.get("CI_PURPOSE"),
             current_app.config.get("CI_HOST"),
         ]:
-            if values["description"]==current_app.config.get("CI_HOST")\
+            if values["description"] == current_app.config.get("CI_HOST")\
              and not values["listen"]:
                 raise ValueError(
                     "As a CI host, listen must be provided."
                 )
             values["end_time"] = None
         else:
-            values["end_time"] = (datetime.datetime.now()
-                    + datetime.timedelta(days=current_app.config.get("MAX_OCUPY_TIME"))
+            values["end_time"] = (datetime.now(pytz.timezone('Asia/Shanghai'))
+                    + timedelta(days=current_app.config.get("MAX_OCUPY_TIME"))
                 )
         return values
+
+
+class PmachineSshSchema(BaseModel):
+    user: Optional[constr(max_length=32)]
+    password: constr(min_length=6, max_length=256)
+
+
+class PmachineBmcSchema(BaseModel):
+    bmc_user: Optional[constr(max_length=32)]
+    bmc_password: constr(min_length=6, max_length=256)
 
 
 class PmachineInstallSchema(BaseModel):
