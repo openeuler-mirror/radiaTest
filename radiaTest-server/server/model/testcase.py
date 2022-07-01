@@ -35,7 +35,7 @@ class CaseNode(BaseModel, PermissionBaseModel, db.Model):
     suite_id = db.Column(db.Integer(), db.ForeignKey("suite.id"))
 
     case_id = db.Column(db.Integer(), db.ForeignKey("case.id"))
-
+    milestone = db.Column(db.Integer(), db.ForeignKey("milestone.id"))
     children = db.relationship(
         "CaseNode",
         secondary=case_node_family,
@@ -334,4 +334,28 @@ class CommitComment(BaseModel, PermissionBaseModel, db.Model):
             'parent_id': self.parent_id,
             'reply': reply_dict,
             'commit_id': self.commit_id,
+        }
+
+
+class Checklist(db.Model, BaseModel):
+    __tablename__ = "checklist"
+    id = db.Column(db.Integer(), primary_key=True, autoincrement=True)
+    check_item = db.Column(db.String(50), nullable=False, unique=True)
+    ratio = db.Column(db.String(50))
+    rounds = db.Column(db.String(128), default=False)
+    lts = db.Column(db.Boolean(), default=False)
+    lts_spx = db.Column(db.Boolean(), default=False)
+    innovation = db.Column(db.Boolean(), default=False)
+
+    def to_json(self):
+        return {
+            'id': self.id,
+            'check_item': self.check_item,
+            'ratio': self.ratio,
+            'rounds': self.rounds,
+            'lts': self.lts,
+            'lts_spx': self.lts_spx,
+            'innovation': self.innovation,
+            'create_time': self.create_time.strftime("%Y-%m-%d %H:%M:%S"),
+            'update_time': self.update_time.strftime("%Y-%m-%d %H:%M:%S")
         }

@@ -65,6 +65,7 @@ class AddTaskSchema(BaseModel):
     case_id: int = None
     is_single_case: bool = False
     is_manage_task: bool = False
+    case_node_id: int = None
 
 
 class OutAddTaskSchema(BaseModel):

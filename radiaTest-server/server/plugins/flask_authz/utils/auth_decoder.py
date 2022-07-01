@@ -12,9 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from base64 import b64decode
-
 import jwt
+from server.utils.aes_util import FileAES
 
 
 class UnSupportedAuthType(Exception):
@@ -47,15 +46,18 @@ def authorization_decoder(config, auth_str: str):
         decoded owner from token
     """
 
-    type, token = auth_str.split()
+    _type, _token = auth_str.split()
 
-    if type == "JWT":
+    if _type == "JWT":
         """return only the identity， depends on JWT 2.x"""
+        decode_payload = FileAES().decrypt(_token.split('.')[1])
+        token = _token.replace(_token.split('.')[1], decode_payload)
+
         decoded_jwt = jwt.decode(
-            token, 
-            config.get("TOKEN_SECRET_KEY"), 
-            algorithms=["HS512", "HS384","HS256"],
+            token,
+            config.get("TOKEN_SECRET_KEY"),
+            algorithms=["HS512", "HS384", "HS256"],
         )
         return str(decoded_jwt.get("gitee_id", ""))
     else:
-        raise UnSupportedAuthType("%s Authorization is not supported" % type)
+        raise UnSupportedAuthType("%s Authorization is not supported" % _type)

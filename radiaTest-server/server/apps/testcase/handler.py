@@ -6,7 +6,7 @@ import datetime
 import uuid
 
 from flask import jsonify, g, current_app, request
-from sqlalchemy import or_, and_
+from sqlalchemy import or_, and_, func
 
 from server import db, redis_client
 from server.utils.redis_util import RedisKey
@@ -14,10 +14,11 @@ from server.utils.response_util import RET
 from server.utils.db import Edit, Insert, Delete, collect_sql_error
 from server.utils.page_util import PageUtil
 from server.utils.permission_utils import GetAllByPermission
-from server.model.testcase import CaseNode, Suite, Case, Commit, CaseDetailHistory, CommitComment
+from server.model.testcase import CaseNode, Suite, Case, Commit, CaseDetailHistory, CommitComment, Checklist
 from server.model.framework import GitRepo
 from server.model.task import Task, TaskMilestone, TaskManualCase
 from server.model.celerytask import CeleryTask
+from server.model.group import Group
 from server.model.message import Message, MsgType, MsgLevel
 from server.model.user import User
 from server.model.milestone import Milestone
@@ -195,6 +196,9 @@ class CaseNodeHandler:
 
         children = CaseNode.query.filter(*filter_params).all()
 
+        case_node_info = CaseNodeHandler.get_case_node_process(case_node)
+        return_data["process"] = case_node_info["progress"]
+
         return_data["children"] = [child.to_json() for child in children]
 
         source = list()
@@ -213,7 +217,39 @@ class CaseNodeHandler:
 
         return_data["source"] = source
 
+        if case_node.type == 'case' and source:
+            case_result = CaseNodeHandler.get_case_result(case_node.case_id, source[1])
+            return_data["result"] = case_result
         return jsonify(error_code=RET.OK, error_msg="OK", data=return_data)
+
+    @staticmethod
+    @collect_sql_error
+    def get_case_result(case_id, root_case_node_id):
+        case_result = None
+        case = Case.query.get(case_id)
+        task = Task.query.filter_by(case_node_id=root_case_node_id, is_delete=False).order_by(
+            Task.create_time.desc()).first()
+        if task:
+            task_milestone = TaskMilestone.query.filter(
+                TaskMilestone.task_id == task.id,
+                TaskMilestone.cases.contains(case)
+                ).first()
+            if case.usabled:
+                case_result = task_milestone.job_result
+                if task_milestone.job_result == 'block':
+                    case_result = 'failed'
+                elif task_milestone.job_result == 'done':
+                    case_result = 'success'
+                analyzed = Analyzed.query.filter_by(job_id=task_milestone.job_id, case_id=case.id).first()
+                if analyzed:
+                    case_result = analyzed.result if analyzed.result else case_result
+            else:
+                case_result = 'running'
+                manual_case = TaskManualCase.query.filter_by(task_milestone_id=task_milestone.id,
+                                                             case_id=case.id).first()
+                if manual_case:
+                    case_result = manual_case.case_result
+        return case_result
 
     @staticmethod
     @collect_sql_error
@@ -246,7 +282,17 @@ class CaseNodeHandler:
         parent = CaseNode.query.filter_by(id=body.parent_id).first()
         if not parent:
             return jsonify(error_code=RET.NO_DATA_ERR, error_msg="parent node is not exists")
-
+        root_case_node = CaseNodeHandler.get_root_case_node(body.parent_id)
+        task = Task.query.filter(
+            Task.case_node_id == root_case_node.id,
+            Task.accomplish_time.is_(None),
+            Task.is_delete.is_(False)
+            ).first()
+        if task:
+            return jsonify(
+                error_code=RET.DATA_EXIST_ERR,
+                error_msg="task exists,not allowed to create a new directory/suite"
+            )
         _body.update({"in_set": parent.in_set})
 
         for child in parent.children:
@@ -375,6 +421,88 @@ class CaseNodeHandler:
                 shutil.rmtree(uncompressed_filepath)
 
             return jsonify(error_code=RET.SERVER_ERR, error_msg=str(e))
+
+    @staticmethod
+    @collect_sql_error
+    def get_all_case(case_node_id):
+        _case_node = CaseNode.query.get(case_node_id)
+        res_ids = []
+        res_items = []
+
+        def get_children(case_node: CaseNode):
+            if case_node.type != 'case':
+                children = CaseNode.query.filter(CaseNode.parent.contains(case_node)).all()
+                for child in children:
+                    get_children(child)
+            else:
+                res_ids.append(case_node.case_id)
+                res_items.append(Case.query.get(case_node.case_id))
+        if _case_node:
+            get_children(_case_node)
+        return res_ids, res_items
+
+    @staticmethod
+    @collect_sql_error
+    def get_root_case_node(case_node_id):
+        _case_node = CaseNode.query.get(case_node_id)
+        root_case_node = []
+
+        def get_parent(case_node: CaseNode):
+            if not case_node.is_root:
+                parent = CaseNode.query.filter(CaseNode.children.contains(case_node)).first()
+                get_parent(parent)
+            else:
+                root_case_node.append(case_node)
+
+        if _case_node:
+            get_parent(_case_node)
+        return root_case_node[0]
+
+    @staticmethod
+    @collect_sql_error
+    def get_task(case_node_id):
+        from server.apps.task.handlers import HandlerTask
+        task = Task.query.filter_by(
+            case_node_id=case_node_id,
+            is_delete=False
+        ).order_by(Task.create_time.desc()).first()
+        if task:
+            return HandlerTask.get(task.id)
+        else:
+            return jsonify(error_code=RET.OK, error_msg="OK", data=None)
+
+    @staticmethod
+    @collect_sql_error
+    def get_case_node(milestone_id):
+        case_nodes = CaseNode.query.filter_by(milestone=milestone_id).all()
+        return_data = [CaseNodeHandler.get_case_node_process(case_node) for case_node in case_nodes]
+        return jsonify(error_code=RET.OK, error_msg="OK", data=return_data)
+
+    @staticmethod
+    @collect_sql_error
+    def get_product_case_node(product_id):
+        _filter = [
+            Milestone.type == 'update',
+            Milestone.product_id == product_id,
+            CaseNode.milestone == Milestone.id
+        ]
+        case_nodes = CaseNode.query.filter(*_filter).all()
+        return_data = [CaseNodeHandler.get_case_node_process(case_node) for case_node in case_nodes]
+        return jsonify(error_code=RET.OK, error_msg="OK", data=return_data)
+
+    @staticmethod
+    @collect_sql_error
+    def get_case_node_process(case_node):
+        case_ids, cases = CaseNodeHandler.get_all_case(case_node.id)
+        root_case_node = CaseNodeHandler.get_root_case_node(case_node.id)
+        success_count = 0
+        for case_id in case_ids:
+            if CaseNodeHandler.get_case_result(case_id, root_case_node.id) == 'success':
+                success_count = success_count + 1
+        progress = '0%' if len(cases) == 0 else str(int(float(success_count) / len(cases) * 100)) + '%'
+        case_node = case_node.to_json()
+        case_node['progress'] = progress
+        return case_node
 
 
 class SuiteHandler:
@@ -538,8 +666,12 @@ class HandlerCaseReview(object):
             Insert(
                 Message,
                 {
-                    "data": json.dumps({"info": f'您提交的名为<b>{_commit.title}</b>的用例评审因已合入'
-                                                f'<b>{creator.gitee_name}</b>提交版本,故已退回,请知悉'}),
+                    "data": json.dumps(
+                        {
+                            "info": f'您提交的名为<b>{_commit.title}</b>的用例评审因已合入'
+                                    f'<b>{creator.gitee_name}</b>提交版本,故已退回,请知悉'
+                        }
+                    ),
                     "level": MsgLevel.user.value,
                     "from_id": g.gitee_id,
                     "to_id": _commit.creator_id,
@@ -612,7 +744,7 @@ class HandlerCaseReview(object):
                 _case = Case.query.filter_by(id=commit.case_detail_id).first()
                 db.session.delete(_case)
                 db.session.commit()
-                
+
         commit.add_update()
 
         return jsonify(error_code=RET.OK, error_msg="OK")
@@ -787,7 +919,7 @@ class HandlerCommitComment(object):
             _comment['child_list'] = _child_list
             comment_list.append(_comment)
         return jsonify(error_code=RET.OK, error_msg='OK', data=comment_list)
-    
+
     @staticmethod
     def get_comment_ids(comment_id, id_set):
         children_comments = CommitComment.query.filter_by(
@@ -825,3 +957,170 @@ class HandlerCommitComment(object):
         if e:
             return jsonify(error_code=RET.SERVER_ERR, error_msg=f'get case commit page error {e}')
         return jsonify(error_code=RET.OK, error_msg='OK', data=page_dict)
+
+
+class ChecklistHandler:
+    @staticmethod
+    @collect_sql_error
+    def handler_get_one(checklist_id):
+        _checklist = Checklist.query.get(checklist_id)
+        if not _checklist:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="current checklist does not exist/already deleted"
+            )
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+            data=_checklist.to_json()
+        )
+
+    @staticmethod
+    @collect_sql_error
+    def handler_get_checklist(query):
+        _filter = []
+        if query.check_item:
+            _filter.append(Checklist.check_item.like(f'%{query.check_item}%'))
+        filter_chain = Checklist.query.filter(*_filter)
+        page_dict, e = PageUtil.get_page_dict(filter_chain, query.page_num, query.page_size, func=lambda x: x.to_json())
+        if e:
+            return jsonify(
+                error_code=RET.SERVER_ERR,
+                error_msg=f'get checklist page error {e}'
+            )
+        return jsonify(
+            error_code=RET.OK,
+            error_msg='OK',
+            data=page_dict
+        )
+
+
+class ResourceItemHandler:
+    def __init__(self, _type='group', org_id=None, group_id=None):
+        if _type not in ['group', 'org']:
+            raise RuntimeError("type error, parameter type must be group or org")
+        if (_type == 'group' and not group_id) or (_type == 'org' and not org_id):
+            raise RuntimeError("type not match, group_id/org_id not exist")
+        self._type = _type
+        self.org_id = org_id
+        self.group_id = group_id
+
+    def get_table_filter(self, table):
+        if self._type == 'group':
+            table_filter = [
+                table.permission_type == 'group',
+                table.org_id == int(redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')),
+                table.group_id == self.group_id
+            ]
+        else:
+            table_filter = [
+                table.permission_type == 'org',
+                table.org_id == self.org_id
+            ]
+        return table_filter
+
+    def analyze(self, data):
+        steps = {}
+        for (key, value) in data:
+            step = {key: value}
+            steps.update(step)
+        return steps
+
+    def get_case(self):
+        all_filter = self.get_table_filter(Case)
+        auto_filter = all_filter.copy()
+        auto_filter.append(Case.automatic == True)
+        all_count = Case.query.filter(*all_filter).count()
+        auto_count = Case.query.filter(*auto_filter).count()
+        auto_ratio = '0%' if all_count == 0 else str(int(float(auto_count) / all_count) * 100) + '%'
+        return all_count, auto_ratio
+
+    def get_case_distribute(self):
+        type_filter = [
+            Case.test_type.isnot(None),
+            Case.org_id == self.org_id
+        ]
+        group_filter = [
+            Case.group_id.isnot(None),
+            Case.org_id == self.org_id,
+            Case.group_id == Group.id
+        ]
+        type_distribute = db.session.query(Case.test_type, func.count(Case.id).label('count'))\
+            .filter(*type_filter).group_by(Case.test_type).all()
+        group_distribute = db.session.query(Group.name, func.count(Case.id).label('count')).\
+            filter(*group_filter).group_by(Group.name).all()
+        return self.analyze(type_distribute), self.analyze(group_distribute)
+
+    def get_commit(self):
+        now = datetime.datetime.now()
+        today = datetime.datetime(now.year, now.month, now.day, 0, 0, 0)
+        this_week_start = today - datetime.timedelta(days=now.weekday())
+        this_week_end = today + datetime.timedelta(days=7 - now.weekday())
+        week_filter_params = [Commit.update_time >= this_week_start,
+                              Commit.update_time < this_week_end]
+
+        this_month_start = datetime.datetime(now.year, now.month, 1)
+        next_month_start = datetime.datetime(now.year, now.month + 1, 1)
+        month_filter_params = [Commit.update_time >= this_month_start,
+                               Commit.update_time < next_month_start]
+        table_filter = self.get_table_filter(Commit)
+        table_filter.append(Commit.status == 'accepted')
+
+        week_filter_params.extend(table_filter)
+        week_count = Commit.query.filter(*week_filter_params).count()
+
+        month_filter_params.extend(table_filter)
+        month_count = Commit.query.filter(*month_filter_params).count()
+
+        day_start = today - datetime.timedelta(days=7)
+        distribute = db.session.query(
+            func.date_format(Commit.update_time, '%Y-%m-%d').label('date'),
+            func.count('*').label('count')) \
+            .filter(Commit.update_time.between(day_start, today)) \
+            .group_by('date').all()
+        date_range = self.create_date_range(7)
+        new_distribute = self.analyze(distribute)
+        date_range.update(new_distribute)
+        return week_count, month_count, date_range
+
+    def create_date_range(self, days: int):
+        now = datetime.datetime.now()
+        today = datetime.datetime(now.year, now.month, now.day, 0, 0, 0)
+        date_range = {}
+        for i in range(days, -1, -1):
+            day_start = today - datetime.timedelta(days=i)
+            date_range.update({day_start.strftime("%Y-%m-%d"): 0})
+        return date_range
+
+    def get_commit_attribute(self):
+        _filter = [
+            Commit.org_id == self.org_id,
+            Commit.group_id.isnot(None),
+            Commit.group_id == Group.id
+        ]
+        commit_attribute = db.session.query(Group.name, func.count(Commit.id).label('count')) \
+            .filter(*_filter).group_by(Group.name).all()
+        return self.analyze(commit_attribute)
+
+    def run(self):
+        all_count, auto_ratio = self.get_case()
+        week_count, month_count, distribute = self.get_commit()
+        return_data = {
+            "all_count": all_count,
+            "auto_ratio": auto_ratio,
+            "week_count": week_count,
+            "month_count": month_count,
+            "distribute": distribute,
+        }
+
+        if self._type == 'org':
+            type_distribute, group_distribute = self.get_case_distribute()
+            commit_attribute = self.get_commit_attribute()
+            return_data["group_distribute"] = group_distribute
+            return_data["type_distribute"] = type_distribute
+            return_data["commit_attribute"] = commit_attribute
+        return jsonify(
+            error_code=RET.OK,
+            error_msg='OK',
+            data=return_data
+        )
