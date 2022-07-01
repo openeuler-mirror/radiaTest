@@ -19,14 +19,27 @@ class Group(db.Model, PermissionBaseModel, BaseModel):
     avatar_url = db.Column(db.String(512), nullable=True, default=None)
     is_delete = db.Column(db.Boolean(), default=False, nullable=False)
     creator_id = db.Column(db.Integer(), db.ForeignKey("user.gitee_id"))
-    group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
     org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
 
-    re_user_group = db.relationship("ReUserGroup", backref="group")
+    re_user_group = db.relationship("ReUserGroup", cascade="all, delete", backref="group")
 
     case_nodes = db.relationship("CaseNode", cascade="all, delete", backref="group")
 
     roles = db.relationship("Role", cascade="all, delete", backref="group")
+
+    def add_update(self, table=None, namespace=None, broadcast=False):
+        from sqlalchemy.exc import IntegrityError
+        from flask import current_app
+        if self.is_delete:
+            try:
+                super().delete(table, namespace, broadcast)
+                return True
+            except IntegrityError as e:
+                current_app.logger.error(f'database operate error -> {e}')
+                return False
+        else:
+            super().add_update(table, namespace, broadcast)
+            return True
 
     def to_dict(self):
         return {
