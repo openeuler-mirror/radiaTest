@@ -29,7 +29,7 @@ from server.model.administrator import Admin
 from server.model.organization import Organization
 from server.model.group import Group
 from server.model.permission import Role, ReScopeRole, ReUserRole
-from server.schema.organization import AddSchema
+from server.schema.organization import UpdateSchema
 
 
 @collect_sql_error
@@ -189,7 +189,7 @@ def handler_update_org(org_id):
     if not org:
         return jsonify(
             error_code=RET.NO_DATA_ERR,
-            error_msg="no find organization"
+            error_msg="the organization does not exist"
         )
 
     _form = dict()
@@ -204,7 +204,7 @@ def handler_update_org(org_id):
         for key, value in request.form.items():
             if value:
                 _form[key] = value
-        body = AddSchema(**_form)
+        body = UpdateSchema(**_form)
         avatar = request.files.get("avatar_url")
         if avatar:
             org.avatar_url = FileUtil.flask_save_file(avatar, org.avatar_url if org.avatar_url else FileUtil.generate_filepath('avatar'))

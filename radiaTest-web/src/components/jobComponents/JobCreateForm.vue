@@ -25,10 +25,20 @@
         ref="formRef"
       >
         <n-grid :cols="24" :x-gap="36">
-          <n-form-item-gi :span="24" label="任务名" path="name">
+          <n-form-item-gi :span="18" label="任务名" path="name">
             <n-input
               v-model:value="formValue.name"
               placeholder="默认任务名: Job-{milestone}-{frame}-{Y}-{m}-{d}-{H}-{M}-{S}"
+            />
+          </n-form-item-gi>
+          <n-form-item-gi :span="6" label="类型" path="permission_type">
+            <n-cascader
+              v-model:value="formValue.permission_type"
+              placeholder="请选择"
+              :options="typeOptions"
+              check-strategy="child"
+              remote
+              :on-load="handleLoad"
             />
           </n-form-item-gi>
           <n-form-item-gi :span="6" label="产品" path="product">
@@ -162,18 +172,6 @@
               :machineType="machineType"
             />
             {{ formValue.machine_list.length }}/{{ totalMachineCount }}
-            <!-- <n-select
-              filterable
-              :value="formValue.machine_list"
-              @update:value="selectPm"
-              placeholder="请选择机器"
-              :options="machineOptions"
-              multiple
-            >
-              <template #arrow>
-                {{ formValue.machine_list.length }}/{{ totalMachineCount }}
-              </template>
-            </n-select> -->
           </n-form-item-gi>
         </n-grid>
       </n-form>
@@ -184,32 +182,29 @@
 <script>
 import { ref, onMounted, onUnmounted, defineComponent } from 'vue';
 import selectMachine from '@/components/machine/selectMachine.vue';
-// import { Loading3QuartersOutlined as Loading } from '@vicons/antd';
-// import { Warning } from '@vicons/ionicons5';
 
 import { createTitle } from '@/assets/utils/createTitle';
 import { createAjax } from '@/assets/CRUD/create';
 import createForm from '@/views/testCenter/job/modules/createForm.js';
+import  extendForm from '@/views/product/modules/createForm.js';
+import { storage } from '@/assets/utils/storageUtils';
 
 export default defineComponent({
   components: {
     selectMachine
-    // Loading,
-    // Warning,
   },
   setup(props, context) {
     onMounted(() => {
       createForm.getProductOptions();
     });
-
     createForm.activeProductWatcher();
     createForm.activeVersionWatcher();
-
     onUnmounted(() => {
       createForm.clean();
     });
-
     return {
+      typeOptions: extendForm.typeOptions,
+      handleLoad: extendForm.handleLoad,
       createTitle,
       ...createForm,
       handlePropsButtonClick: () => createForm.validateFormData(context),
@@ -235,6 +230,10 @@ export default defineComponent({
             strict_mode: createForm.formValue.value.strict_mode,
             machine_policy: createForm.formValue.value.select_mode,
             machine_group_id: createForm.formValue.value.machine_group_id,
+            permission_type: createForm.formValue.value.permission_type.split('-')[0],
+            creator_id: Number(storage.getValue('gitee_id')),
+            org_id: storage.getValue('orgId'),
+            group_id: Number(createForm.formValue.value.permission_type.split('-')[1])
           }, machineInfo))
         );
         context.emit('close');
