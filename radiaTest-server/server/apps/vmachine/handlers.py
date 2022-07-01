@@ -50,6 +50,11 @@ class VmachineHandler:
             )
         return jsonify(error_code=RET.OK, error_msg="OK", data=page_dict)
 
+    @staticmethod
+    @collect_sql_error
+    def delete(vmachine_list):
+        return ResourceManager("vmachine").del_batch(vmachine_list)
+
 
 class VmachineMessenger:
     def __init__(self, body):

@@ -1,9 +1,10 @@
 from copy import deepcopy
-from datetime import datetime
+import datetime
 import time
 import random
 import collections
 from collections import defaultdict
+import pytz
 
 from flask import current_app
 
@@ -38,7 +39,7 @@ class RunCaseHandler(TaskAuthHandler):
     def _create_job(self):
         if self._body.get("multiple") is False:
             self._update_job(
-                name=self._name, 
+                name=self._name,
                 status="PREPARING",
             )
         else:
@@ -56,7 +57,7 @@ class RunCaseHandler(TaskAuthHandler):
             self._body.update({
                 "name": self._name,
                 "start_time": self.start_time,
-                "running_time":  0,
+                "running_time": 0,
                 "status": "PREPARING",
                 "multiple": False,
             })
@@ -74,7 +75,7 @@ class RunCaseHandler(TaskAuthHandler):
             if not child:
                 raise RuntimeError(
                     "child job creating fail or has been deleted"
-                )             
+                )
 
             self._body.update(child)
             self._body.pop("milestone")
@@ -85,7 +86,7 @@ class RunCaseHandler(TaskAuthHandler):
             "running_time": self.running_time,
             **kwargs,
         })
-        
+
         update_body = deepcopy(self._body)
         _job_id = update_body.pop("id")
 
@@ -123,12 +124,12 @@ class RunCaseHandler(TaskAuthHandler):
             raise RuntimeError(
                 "could not satisfy the require number of vmachiens"
             )
-        
+
         return selected_machines, new_machines
 
     def vm_install_method(self):
         _milestone = query_request(
-            "/api/v1/milestone/{}".format(
+            "/api/v2/milestone/{}".format(
                 self._body.get("milestone_id")
             ),
             None,
@@ -242,7 +243,7 @@ class RunCaseHandler(TaskAuthHandler):
 
         new_machines = []
         selected_machines = self._body.get("pmachine_list")
-        
+
         if self._body.get("machine_policy") == "manual":
             rest_quantity = quantity - len(selected_machines)
 
@@ -259,14 +260,14 @@ class RunCaseHandler(TaskAuthHandler):
             raise RuntimeError(
                 "could not satisfy the require number of vmachiens"
             )
-        
+
         return selected_machines, new_machines
 
     def install_pmachine(self, quantity, pmachine_pool):
         if len(pmachine_pool) < quantity:
             raise RuntimeError(
                 "Not enough Pmachines to be used, {} is still needed but only {} could be offered".format(
-                    quantity, 
+                    quantity,
                     len(pmachine_pool)
                 )
             )
@@ -359,7 +360,7 @@ class RunCaseHandler(TaskAuthHandler):
 
             elif machine_type == "physical":
                 selected_machines, new_machines = self.get_pmachine(
-                    machine_num, 
+                    machine_num,
                     pmachine_pool
                 )
             else:
@@ -383,24 +384,32 @@ class RunCaseHandler(TaskAuthHandler):
                 self.user.get("auth")
             )
 
-            framework = query_request(
-                "/api/v1/framework/{}".format(
-                    git_repo.get("framework_id")
-                ),
-                None,
-                self.user.get("auth")
-            )
+            framework = git_repo.get("framework")
 
             adaptor = getattr(FrameworkDict, framework.get("name"))
 
-            LogresolverParam = collections.namedtuple('LogresolverParam',
-                                                      ['ssh', 'id', 'name', 'framework', 'adaptor', 'auth'])
-            log_resolver_param = LogresolverParam(ssh, self._body.get('id'), 
-                                                  self._name, framework, adaptor.logresolver, self.user.get("auth"))
+            LogresolverParam = collections.namedtuple(
+                'LogresolverParam',
+                [
+                    'ssh',
+                    'id',
+                    'name',
+                    'framework',
+                    'adaptor',
+                    'auth'
+                ]
+            )
+            log_resolver_param = LogresolverParam(
+                ssh,
+                self._body.get('id'),
+                self._name, framework,
+                adaptor.logresolver(),
+                self.user.get("auth")
+            )
 
             _logs_handler = LogResolverAdapter(log_resolver_param)
 
-            _executor = ExecutorAdaptor(ssh, framework, git_repo, adaptor.executor)
+            _executor = ExecutorAdaptor(ssh, framework, git_repo, adaptor.executor())
 
             _executor.prepare_git()
             _executor.deploy(self._body.get("master"), machines)
@@ -411,7 +420,7 @@ class RunCaseHandler(TaskAuthHandler):
             fail = 0
 
             for suite_cases in suites_cases:
-                _start_time = datetime.now()
+                _start_time = datetime.datetime.now(tz=pytz.timezone('Asia/Shanghai'))
 
                 testsuite = query_request(
                     "/api/v1/suite/preciseget",
@@ -431,10 +440,10 @@ class RunCaseHandler(TaskAuthHandler):
 
                 if not testsuite or not testcase:
                     raise RuntimeError("testsuite {} or testcase {} is not exist".format(
-                        suite_cases[0], 
+                        suite_cases[0],
                         suite_cases[1]
                     )
-                )
+                    )
 
                 testsuite = testsuite[0]
                 testcase = testcase[0]
@@ -458,9 +467,10 @@ class RunCaseHandler(TaskAuthHandler):
                     })
                     self._update_job(status="ANALYZING")
 
-                    _current_time = datetime.now()
+                    _current_time = datetime.datetime.now(tz=pytz.timezone('Asia/Shanghai'))
 
-                    _running_time = (_current_time - _start_time).seconds * 1000 + (_current_time - _start_time).microseconds/1000
+                    _running_time = (_current_time - _start_time).seconds * 1000 + (
+                            _current_time - _start_time).microseconds / 1000
 
                     create_request(
                         "/api/v1/analyzed",
@@ -469,9 +479,10 @@ class RunCaseHandler(TaskAuthHandler):
                             "job_id": self._body.get("id"),
                             "case_id": testcase.get("id"),
                             "master": self._body.get("master"),
-                            "log_url": "{}/{}/{}/{}/".format(
+                            "log_url": "{}/{}/{}/{}/{}/".format(
                                 current_app.config.get("REPO_URL"),
                                 self._name,
+                                framework.get("logs_path"),
                                 testsuite.get("name"),
                                 testcase.get("name"),
                             ),
@@ -479,11 +490,11 @@ class RunCaseHandler(TaskAuthHandler):
                         },
                         self.user.get("auth")
                     )
-                    
+
                     _logs_handler.push_dir_to_server()
                     _logs_handler.loads_to_db(testcase.get("id"))
 
-            ssh._close()
+            ssh.close()
             self._body.update(
                 {
                     "result": "success"
@@ -492,7 +503,8 @@ class RunCaseHandler(TaskAuthHandler):
                 }
             )
 
-        except RuntimeError as e:
+        except (RuntimeError, ValueError) as e:
+            current_app.logger.error(e)
             self.is_blocked = True
 
             self.logger.error(str(e))
@@ -500,24 +512,34 @@ class RunCaseHandler(TaskAuthHandler):
             self._update_job(
                 result="fail",
                 remark=str(e),
-                status="BLOCK", 
-                end_time=datetime.now()
+                status="BLOCK",
+                end_time=datetime.datetime.now(tz=pytz.timezone('Asia/Shanghai'))
             )
 
             if (
-                self._body.get("machine_type") == "kvm"
-                and len(self._new_vmachines["id"]) > 0
-            ):         
-                resp = DeleteVmachine(self._new_vmachines).run()
+                    self._body.get("machine_type") == "kvm"
+                    and len(self._new_vmachines["id"]) > 0
+            ):
+                resp = DeleteVmachine(self.user.get("auth"), self._new_vmachines).run()
 
                 if resp.get("error_code") != RET.OK:
                     raise RuntimeError(resp.get("error_msg"))
 
         finally:
             if self._body.get("result") == "success" and len(self._new_vmachines["id"]) > 0:
+                self._new_vmachines.update(
+                    {
+                        "end_time": datetime.datetime.now(
+                            tz=pytz.timezone('Asia/Shanghai')
+                        )
+                        + datetime.timedelta(
+                            days=current_app.config.get("RUN_JOB_VM_EXPIRED")
+                        )
+                    }
+                )
                 r = do_request(
-                    method="delete",
-                    url="https://{}/api/v1/vmachine".format(
+                    method="put",
+                    url="https://{}/api/v1/vmachine/batchdelay".format(
                         celeryconfig.server_addr,
                     ),
                     body=self._new_vmachines,
@@ -530,9 +552,9 @@ class RunCaseHandler(TaskAuthHandler):
                 )
                 if r != 0:
                     self.logger.warning(
-                        "fail to delete virtual machines of success job"
+                        "fail to batch delay virtual machines of success job"
                     )
-            
+
             if len(self._borrow_pmachines) > 0:
                 for _borrow_pmachine in self._borrow_pmachines:
                     _borrow_pmachine["locked"] = False
@@ -547,7 +569,10 @@ class RunCaseHandler(TaskAuthHandler):
                     )
 
             if not self.is_blocked:
-                self._update_job(status="DONE", end_time=datetime.now())
+                self._update_job(
+                    status="DONE",
+                    end_time=datetime.datetime.now(tz=pytz.timezone('Asia/Shanghai'))
+                )
 
             return {
                 "name": self._body.get("name"),

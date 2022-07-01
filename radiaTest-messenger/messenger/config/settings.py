@@ -53,5 +53,9 @@ class Config(object):
     # 每组测试环境，最大执行时长
     MAX_RUN_TIME = 3600
 
+    # 执行任务创建的虚拟机过期时间(单位:天)
+    RUN_JOB_VM_EXPIRED = 1
+
+
 class TestingConfig(Config):
     TESTING = True

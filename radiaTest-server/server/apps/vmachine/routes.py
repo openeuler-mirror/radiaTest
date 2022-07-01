@@ -90,6 +90,15 @@ class PreciseVmachineEvent(Resource):
         return GetAllByPermission(Vmachine).precise(query.__dict__)
 
 
+class VmachineBatchDelayEvent(Resource):
+    @auth.login_required
+    @response_collect
+    @validate()
+    def put(self):
+        _body = request.json
+        return Edit(Vmachine, _body).batch(Vmachine, "/vmachine")
+
+
 class VmachineEvent(Resource):
     @auth.login_required
     @response_collect
@@ -150,6 +159,13 @@ class VmachineEvent(Resource):
     @validate()
     def get(self, query: VmachineQuerySchema):
         return VmachineHandler.get_all(query)
+
+    @auth.login_required
+    @response_collect
+    @validate()
+    def delete(self):
+        vmachine_list = request.json.get("id")
+        return VmachineHandler.delete(vmachine_list)
 
 
 class VmachineControl(Resource):
