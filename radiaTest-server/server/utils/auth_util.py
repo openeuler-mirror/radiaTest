@@ -1,3 +1,4 @@
+import binascii
 from flask import g, current_app
 from flask_httpauth import HTTPTokenAuth
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
@@ -52,10 +53,13 @@ def verify_token(token):
         else:
             return False
     except BadSignature:
-        current_app.logger.error(f"Illegal Signature: JWT {token}")
+        current_app.logger.info(f"Illegal signature in JWT {token} attempt to do request")
         return False
     except BadData:
-        current_app.logger.error(f"Illegal Token: JWT {token}")
+        current_app.logger.info(f"Illegal token in JWT {token} attempt to do request")
+        return False
+    except binascii.Error:
+        current_app.logger.info(f"Uncrypted/Unknown token {token} attempt to do request")
         return False
     finally:
         if data and data.get("gitee_login") == redis_client.hget(RedisKey.user(data.get("gitee_id")), "gitee_login"):
