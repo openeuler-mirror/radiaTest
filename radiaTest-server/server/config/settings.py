@@ -8,6 +8,7 @@ class Config(object):
 
     # 日志
     LOG_LEVEL = "WARNING"
+    LOG_CONF = "server/config/logging.json"
 
     # 数据库
     SQLALCHEMY_TRACK_MODIFICATIONS = False
