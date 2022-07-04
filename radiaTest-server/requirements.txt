@@ -17,6 +17,7 @@ click-plugins==1.1.1
 click-repl==0.2.0
 colorama==0.4.4
 configobj==5.0.6
+pycryptodome==3.15.0
 cryptography==35.0.0
 decorator==4.4.2
 distro==1.5.0
