@@ -53,3 +53,6 @@ export function modifyGroupUserRole (id, data) {
 export function organizationInfo (id, data) {
   return putRequest(`/v1/admin/org/${id}`, data);
 }
+export function modifyGroupRepo (id, data) {
+  return putRequest(`/v1/git-repo/${id}`, data);
+}

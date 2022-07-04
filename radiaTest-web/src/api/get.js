@@ -134,3 +134,14 @@ export function getProduct (data) {
 export function getCaseNodeTask (id, data) {
   return getRequest(`/v1/case-node/${id}/task`, data);
 }
+export function getOrgNode (id, data) {
+  return getRequest(`/v1/org/${id}/resource`, data);
+}
+
+export function getTermNode (id, data) {
+  return getRequest(`/v1/group/${id}/resource`, data);
+}
+
+export function getGroupRepo (id) {
+  return getRequest(`/v1/git-repo/${id}`);
+}

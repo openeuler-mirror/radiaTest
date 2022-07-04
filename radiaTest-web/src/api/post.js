@@ -48,4 +48,7 @@ export function setOrgUserRole (id, data) {
     ...data,
   });
 }
+export function setGroupRepo (data) {
+  return postRequest('/v1/git-repo',data);
+}
 

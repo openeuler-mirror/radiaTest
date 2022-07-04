@@ -133,6 +133,14 @@
                 multiple
               />
             </n-form-item>
+            <n-form-item label="里程碑" path="milestone_id">
+              <n-select
+                :options="milestones"
+                v-model:value="model.milestone_id"
+                clearable
+                multiple
+              ></n-select>
+            </n-form-item>
             <n-form-item label="状态" path="status_id">
               <n-select
                 placeholder="请选择"

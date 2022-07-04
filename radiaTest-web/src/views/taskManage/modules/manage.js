@@ -18,6 +18,7 @@ const originators = ref([]); // 创建者
 const executors = ref([]); // 执行者
 const participants = ref([]); // 协助人
 const statusOptions = ref([]); // 任务状态
+const milestones = ref([]); // 里程碑列表
 const recycleBinTaskTable = ref(null); // 回收站表格名称
 const recycleBinTaskLoading = ref(false); // 回收站表格加载状态
 const showRecycleBinModal = ref(false); // 显示回收站表格
@@ -187,6 +188,7 @@ const model = ref({
   executor_id: null,
   originator: null,
   participant_id: null,
+  milestone_id: null,
   status_id: null,
   start_time: null,
   deadline: null,
@@ -215,6 +217,18 @@ const menu = ref([
   },
 ]);
 
+//获取里程碑列表
+function getMilestones() {
+  axios.get('/v2/milestone').then(response => {
+    if(response?.data) {
+      milestones.value = response.data?.items?.map((item) => ({
+        label: item.name,
+        value: String(item.id),
+      })) || [];
+    }
+  });
+}
+
 // 初始化
 function initCondition () {
   const allRequest = [
@@ -225,6 +239,7 @@ function initCondition () {
     }),
     getGroup({ page_size: 99999, page_num: 1 }),
   ];
+  getMilestones();
   Promise.allSettled(allRequest).then((responses) => {
     if (responses[0].value?.data) {
       statusOptions.value = [];
@@ -317,6 +332,7 @@ function clearCondition (e) {
     originator: null,
     participant_id: null,
     status_id: null,
+    milestone_id: null,
     start_time: null,
     deadline: null,
     type: null,
@@ -353,6 +369,7 @@ export {
   model,
   rules,
   menu,
+  milestones,
   initCondition,
   handleValidateButtonClick,
   menuClick,
