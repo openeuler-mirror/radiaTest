@@ -57,9 +57,6 @@ def verify_token(token):
     except BadData:
         current_app.logger.error(f"Illegal Token: JWT {token}")
         return False
-    except Exception as e:
-        current_app.logger.error(str(e))
-        return False
     finally:
         if data and data.get("gitee_login") == redis_client.hget(RedisKey.user(data.get("gitee_id")), "gitee_login"):
             try:
