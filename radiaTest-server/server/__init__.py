@@ -1,4 +1,7 @@
+import os
+import json
 import logging
+import logging.config
 
 import pymysql
 from flask import Flask
@@ -22,6 +25,18 @@ socketio = SocketIO(
 casbin_enforcer = CasbinEnforcer()
 
 
+def init_logging(default_level, cfg_path):
+    if os.path.exists(cfg_path):
+        with open(cfg_path, 'rt') as file:
+            config = json.load(file)
+        logging.config.dictConfig(config)
+    else:
+        logging.basicConfig(
+            level=default_level,
+            format="%(asctime)s, %(levelname)s - %(name)s: %(message)s",
+        )
+
+
 def create_app(**kwargs):
     app = Flask(__name__)
 
@@ -31,9 +46,9 @@ def create_app(**kwargs):
     if not ini_result:
         raise RuntimeError("There is no valid config files for this flask app.")
 
-    logging.basicConfig(
-        level=app.config.get("LOG_LEVEL"),
-        format="%(asctime)s - %(name)s - %(levelname)s: %(message)s",
+    init_logging(
+        default_level=app.config.get("LOG_LEVEL", logging.INFO),
+        cfg_path=app.config.get("LOG_CONF", 'server/config/logging.json')
     )
 
     if kwargs.get('celery'):

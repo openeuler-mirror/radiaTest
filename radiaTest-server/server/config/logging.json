@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "disable_existing_loggers": false,
+  "formatters": {
+    "brief": {
+      "class": "logging.Formatter",
+      "datefmt": "%Y-%m-%d %H:%M:%S",
+      "format": "%(asctime)s, %(levelname)s - %(name)s: %(message)s"
+    },
+    "verbose": {
+      "class": "logging.Formatter",
+      "datefmt": "%Y-%m-%d %H:%M:%S",
+      "format": "%(asctime)s, %(levelname)s - [%(process)s] - %(threadName)s - %(name)s %(pathname)s:%(funcName)s - %(lineno)s: %(message)s"
+    }
+  },
+  "handlers": {
+    "console.handler": {
+      "class": "logging.StreamHandler",
+      "level": "WARNING",
+      "formatter": "brief",
+      "stream": "ext://flask.logging.wsgi_errors_stream"
+    },
+    "debug.file.handler.timed": {
+      "class": "logging.handlers.TimedRotatingFileHandler",
+      "level": "DEBUG",
+      "formatter": "verbose",
+      "filename": "/opt/radiaTest/radiaTest-server/log/server/radiatest.server.debug.log",
+      "when": "D",
+      "backupCount": 10,
+      "encoding": "utf8"
+    },
+    "info.file.handler.timed": {
+      "class": "logging.handlers.TimedRotatingFileHandler",
+      "level": "INFO",
+      "formatter": "brief",
+      "filename": "/opt/radiaTest/radiaTest-server/log/server/radiatest.server.log",
+      "when": "D",
+      "backupCount": 30,
+      "encoding": "utf8"
+    }
+  },
+  "loggers": {
+    "server": {
+      "level": "DEBUG",
+      "handlers": [
+        "console.handler",
+        "debug.file.handler.timed",
+        "info.file.handler.timed"
+      ]
+    }  
+  }
+}
