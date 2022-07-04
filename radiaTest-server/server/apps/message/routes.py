@@ -16,8 +16,9 @@ def after_connect(token):
     与客户端建立连接后执行
     """
     flag, gitee_id = verify_token(token)
+        
     # 若检验出user_id，将此客户端添加到user_id的room中
-    if flag and gitee_id:
+    if flag is True and gitee_id is not None:
         join_room(str(gitee_id))
         msg_count = Message.query.filter(
             Message.to_id == g.gitee_id,
