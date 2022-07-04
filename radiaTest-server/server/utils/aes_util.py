@@ -1,4 +1,3 @@
-import os
 import base64
 from Crypto.Cipher import AES
 from flask import current_app
@@ -6,7 +5,7 @@ from flask import current_app
 
 class FileAES:
     def __init__(self):
-        self.key = current_app.config.get('AES_KEY')
+        self.key = current_app.config.get('AES_KEY').encoder('utf-8')
         self.mode = AES.MODE_ECB
 
     def encrypt(self, text):
