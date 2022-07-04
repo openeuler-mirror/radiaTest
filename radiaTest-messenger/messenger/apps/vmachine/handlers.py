@@ -104,7 +104,7 @@ class Messenger:
         self._method = method
 
     @abc.abstractmethod
-    def handle_callback(self):
+    def handle_callback(self, *args):
         pass
 
     def work(self):

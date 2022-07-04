@@ -3,10 +3,10 @@ from celeryservice.lib.framework.mugen.mugen_log_resolver import MugenLogResolve
 
 
 class Mugen:
-    @property
-    def executor(self):
+    @staticmethod
+    def executor():
         return MugenExecutor()
 
-    @property
-    def logresolver(self):
+    @staticmethod
+    def logresolver():
         return MugenLogResolver()

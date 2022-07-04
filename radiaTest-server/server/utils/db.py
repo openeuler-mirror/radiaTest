@@ -164,6 +164,18 @@ class Edit(DataBase):
 
         data.add_update(table, namespace, broadcast)
 
+    @pdbc
+    def batch(self, table=None, namespace=None, broadcast=False):
+        data = MultipleConditions(self._table, {"id":self._data.get("id")}).all()
+        if not data:
+            raise ValueError("Batch update data has been exist.")
+        self._data.pop("id")
+        for d in data:
+            for key, value in self._data.items():
+                if value is not None:
+                    setattr(d, key, value)
+            d.add_update(table, namespace, broadcast)
+
 
 class Select(DataBase):
     @pdbc
