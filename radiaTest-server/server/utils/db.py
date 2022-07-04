@@ -191,9 +191,9 @@ class Select(DataBase):
     @pdbc
     def single(self):
         tdata = self._table.query.filter_by(id=self._data.get("id")).first()
-        data=[]
+        data = dict()
         if tdata:
-            data = [tdata.to_json()]
+            data = tdata.to_json()
         return jsonify(
             {
                 "error_code": RET.OK,
