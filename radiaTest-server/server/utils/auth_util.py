@@ -51,13 +51,13 @@ def verify_token(token):
             new_token = generate_token(data.get('gitee_id'), data.get('gitee_login'))
             token = new_token
         else:
-            return False
+            return False, None
     except BadSignature:
-        return False
+        return False, None
     except BadData:
-        return False
+        return False, None
     except Exception:
-        return False
+        return False, None
     finally:
         if data and data.get("gitee_login") == redis_client.hget(RedisKey.user(data.get("gitee_id")), "gitee_login"):
             try:
@@ -67,7 +67,7 @@ def verify_token(token):
             g.gitee_login = data.get("gitee_login")
             g.token = token
             return True, data.get("gitee_id")
-    return False
+    return False, None
 
 
 class RefreshTokenSchema(BaseModel):
