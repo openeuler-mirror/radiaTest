@@ -57,6 +57,10 @@ class AddSchema(BaseModel):
         return values
 
 
+class UpdateSchema(AddSchema):
+    name: Optional[str]
+
+
 class OrgBaseSchema(AddSchema):
     id: int
 

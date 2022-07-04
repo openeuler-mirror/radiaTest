@@ -4,6 +4,7 @@ venv
 dump.rdb
 **/migrations
 **/tests
+**/tmp
 *.pid*
 *.log*
 radiaTest-web/node_modules
@@ -19,4 +20,5 @@ radiaTest-web/src/assets/config/settings.js
 radiaTest-worker/celeryservice/flower/*
 radiaTest-worker/celeryservice/celerymain/*
 radiaTest-worker/celeryservice/celerybeat/*
+test/api-test/report/*.html
 !**/.gitkeep

@@ -29,30 +29,14 @@ const formValue = ref({
   select_mode: 'auto',
   machine_list: [],
   strict_mode: false,
-  machine_group_id:undefined,
+  machine_group_id: undefined,
+  permission_type: undefined,
 });
-// const loading = ref(false);
-// const warning = ref(false);
 
 const productOpts = ref([]);
 const versionOpts = ref([]);
 const milestoneOpts = ref([]);
 const frameworkOpts = ref([]);
-
-// const suiteValidator = (rule, value) => {
-//   // warning.value = false;
-//   if (!value) {
-//     return new Error('测试套不可为空');
-//   }
-//   // loading.value = true;
-//   // return axios.validate(
-//   //   '/v1/suite',
-//   //   { name: formValue.value.suite },
-//   //   loading,
-//   //   warning,
-//   //   true
-//   // );
-// };
 
 const rules = {
   suite: {

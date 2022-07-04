@@ -9,6 +9,9 @@ import argparse
 from public import HTMLTestRunner
 
 
+sys.path.append(os.path.split(os.path.abspath(os.path.dirname(__file__)))[0])
+
+
 def get_test_suite(suit: str, case_name: str):
     testunit = unittest.TestSuite()
     test_dir = os.path.abspath(os.path.dirname(__file__)) + os.sep + 'testcase'
@@ -42,7 +45,7 @@ if __name__ == '__main__':
     fp = open(filename, 'wb')
     runner = HTMLTestRunner.HTMLTestRunner(
         stream=fp,
-        title=u'RadiaTest项目自动化测试报告',
+        title=u'radiaTest项目自动化测试报告',
         description=u'用例执行情况：',
         )
     all_test_units = get_test_suite(args.suit, args.case)
