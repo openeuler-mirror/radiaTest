@@ -99,7 +99,6 @@
             v-model:value="repoForm.framework_id"
             placeholder="请选择"
             :options="frameworkList"
-            @update:value="handleChange"
           />
         </n-form-item>
         <n-form-item label="名称" path="name">
@@ -186,10 +185,6 @@ export default {
         resetLayout: false,
         zoomIn: false,
         zoomOut:false
-      },
-      handleChange(value) {
-        console.log(value);
-        debugger;
       },
       ...modules
     };
