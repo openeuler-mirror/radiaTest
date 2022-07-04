@@ -1,5 +1,4 @@
-import time
-from flask import g
+from flask import g, current_app
 from flask_httpauth import HTTPTokenAuth
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from itsdangerous.exc import SignatureExpired, BadSignature, BadData
@@ -51,13 +50,16 @@ def verify_token(token):
             new_token = generate_token(data.get('gitee_id'), data.get('gitee_login'))
             token = new_token
         else:
-            return False, None
+            return False
     except BadSignature:
-        return False, None
+        current_app.logger.error(f"Illegal Signature: JWT {token}")
+        return False
     except BadData:
-        return False, None
-    except Exception:
-        return False, None
+        current_app.logger.error(f"Illegal Token: JWT {token}")
+        return False
+    except Exception as e:
+        current_app.logger.error(str(e))
+        return False
     finally:
         if data and data.get("gitee_login") == redis_client.hget(RedisKey.user(data.get("gitee_id")), "gitee_login"):
             try:
@@ -67,7 +69,7 @@ def verify_token(token):
             g.gitee_login = data.get("gitee_login")
             g.token = token
             return True, data.get("gitee_id")
-    return False, None
+    return False
 
 
 class RefreshTokenSchema(BaseModel):

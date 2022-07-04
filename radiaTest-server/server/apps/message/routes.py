@@ -15,7 +15,10 @@ def after_connect(token):
     """
     与客户端建立连接后执行
     """
-    flag, gitee_id = verify_token(token)
+    flag, gitee_id = False, None
+    _verify_result = verify_token(token)
+    if isinstance(_verify_result, tuple):
+        flag, gitee_id = _verify_result
         
     # 若检验出user_id，将此客户端添加到user_id的room中
     if flag is True and gitee_id is not None:
