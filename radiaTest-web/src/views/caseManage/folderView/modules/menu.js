@@ -808,10 +808,14 @@ function menuClick({ key, options }) {
     });
   } else if (itemkey === 'org') {
     router.push({
-      name: 'frameWork',
-      params: {
-        groupId: window.btoa(window.encodeURI(options[0].label)),
+      name: 'orgNode',
+      query: {
+        id,
       },
+    });
+  } else if (itemkey === 'users') {
+    router.push({
+      name: 'termNode',
       query: {
         id,
       },

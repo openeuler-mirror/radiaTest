@@ -1348,6 +1348,7 @@ export default defineComponent({
       if (temp.participant_id?.length) {
         temp.participant_id = temp.participant_id.join(',');
       }
+      if (temp.milestone_id?.length) { temp.milestone_id = temp.milestone_id.join(','); }
       const allRequest = modules.listData.value.map((item) => {
         return proxy.$axios.get('/v1/tasks', {
           ...temp,

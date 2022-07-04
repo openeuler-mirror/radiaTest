@@ -25,6 +25,8 @@ import CaseManagement from '@/views/caseManage/CaseManagement.vue';
 import folderView from '@/views/caseManage/folderView/folderView.vue';
 import taskDetails from '@/views/caseManage/folderView/taskDetails/taskDetails.vue';
 import frameWork from '@/views/caseManage/frameWork/frameWork.vue';
+import orgNode from '@/views/caseManage/folderView/orgNodes/orgNodes.vue';
+import termNode from '@/views/caseManage/folderView/termNodes/termNodes.vue';
 import testsuite from '@/views/caseManage/testsuite/testsuite.vue';
 import rulesManagement from '@/views/personalCenter/authorityManagement/rulesManagement/rulesManagement.vue';
 import rolesManagement from '@/views/personalCenter/authorityManagement/rolesManagement/rolesManagement.vue';
@@ -192,6 +194,16 @@ const router = createRouter({
                   path: 'taskdetail/:taskid/',
                   component: taskDetails,
                   name: 'taskDetails',
+                },
+                {
+                  path: 'orgNode',
+                  component: orgNode,
+                  name: 'orgNode',
+                },
+                {
+                  path: 'termNode',
+                  component: termNode,
+                  name: 'termNode',
                 },
               ],
             },

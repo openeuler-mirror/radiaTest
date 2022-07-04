@@ -23,6 +23,7 @@ import '@kangc/v-md-editor/lib/style/base-editor.css';
 import '@kangc/v-md-editor/lib/theme/style/github.css';
 import '@kangc/v-md-editor/lib/plugins/todo-list/todo-list.css';
 import '@kangc/v-md-editor/lib/plugins/mermaid/mermaid.css';
+import VueKityminder from '@orh/vue-kityminder';
 
 // highlightjs
 import hljs from 'highlight.js';
@@ -49,6 +50,7 @@ app
   .use(VueGridLayout)
   .use(naive)
   .use(VMdEditor)
+  .use(VueKityminder)
   .use(store)
   .use(router);
 
