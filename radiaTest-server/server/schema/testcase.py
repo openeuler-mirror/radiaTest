@@ -1,3 +1,4 @@
+import re
 from typing import Optional
 
 from pydantic import BaseModel, constr, validator
@@ -20,11 +21,17 @@ class CaseNodeBodySchema(BaseModel):
     is_root: bool = True
     in_set: bool = False
     permission_type: Optional[PermissionType] = "group"
+    milestone_id: Optional[int]
 
     @root_validator
     def validate_suite(cls, values):
         if values["parent_id"]:
             values["is_root"] = False
+            if values["milestone_id"]:
+                raise ValueError("current case_node can not relate to Milestone")
+        else:
+            if not values["milestone_id"]:
+                raise ValueError("current case_node need milestone")
 
         if values["is_root"] and values["in_set"]:
             values["title"] = "用例集"
@@ -100,9 +107,11 @@ class SuiteBase(BaseModel):
         except:
             raise ValueError("The type of add_disk is not validate.")
 
+
 class SuiteCreate(SuiteBase):
     name: str
     group_id: int
+
 
 class SuiteUpdate(SuiteBase, UpdateBaseModel):
     name: Optional[str]
@@ -122,9 +131,11 @@ class CaseBase(SuiteBase):
     usabled: Optional[bool] = False
     code: Optional[str]
 
+
 class CaseCreate(CaseBase):
     name: str
     group_id: int
+
 
 class CaseNodeCommitCreate(CaseBase):
     name: str
@@ -156,6 +167,7 @@ class CaseUpdateSchemaWithSuiteId(UpdateBaseModel):
     usabled: Optional[bool]
     code: Optional[str]
 
+
 class AddCaseCommitSchema(BaseModel):
     title: str
     creator_id: int = None
@@ -173,6 +185,7 @@ class AddCaseCommitSchema(BaseModel):
     source: List
     case_mod_type: str
 
+
 class UpdateCaseCommitSchema(BaseModel):
     title: str = None
     description: str = None
@@ -184,6 +197,7 @@ class UpdateCaseCommitSchema(BaseModel):
     remark: str = None
     status: str = None
     open_edit: bool = False
+
 
 class CaseCommitBasic(AddCaseCommitSchema):
     id: int
@@ -204,8 +218,10 @@ class AddCommitCommentSchema(BaseModel):
     parent_id: int
     content: str
 
+
 class UpdateCommitCommentSchema(BaseModel):
     content: str
+
 
 class CaseCommitBatch(BaseModel):
     commit_ids: List[int] = None
@@ -215,3 +231,53 @@ class QueryHistorySchema(PageBaseSchema):
     start_time: str = None
     end_time: str = None
     title: str = None
+
+
+class CheckRound(BaseModel):
+    rounds: dict = None
+
+    @validator("rounds")
+    def check_rounds(cls, rounds):
+        if rounds:
+            for key, value in rounds.items():
+                pattern = re.compile(r"^R[1-9]\d*$")
+                if not pattern.findall(key):
+                    raise ValueError("rounds key error! key should be like Rx")
+                if value not in [0, 1]:
+                    raise ValueError("rounds value error! value should be 0 or 1")
+            round_keys = list(rounds.keys())
+            if any(int(round_keys[i + 1].strip('R')) - int(round_keys[i].strip('R')) != 1 for i in
+                   range(0, len(round_keys) - 1)):
+                raise ValueError("rounds not in correct order!")
+        return str(rounds)
+
+
+class CheckRatio(BaseModel):
+    ratio: str = None
+
+    @validator("ratio")
+    def check_ratio(cls, ratio):
+        if ratio:
+            _ratio = float(ratio.strip('%')) / 100.0
+            if not 0 <= _ratio <= 1:
+                raise ValueError("ratio is around 0-100%")
+        return ratio
+
+
+class AddChecklistSchema(CheckRound, CheckRatio):
+    check_item: str
+    rounds: dict
+    lts: bool = False
+    lts_spx: bool = False
+    innovation: bool = False
+
+
+class UpdateChecklistSchema(CheckRound, CheckRatio):
+    check_item: str = None
+    lts: bool = None
+    lts_spx: bool = None
+    innovation: bool = None
+
+
+class QueryChecklistSchema(PageBaseSchema):
+    check_item: str = None

@@ -153,9 +153,10 @@ class Task(db.Model, PermissionBaseModel, BaseModel):
     display = db.Column(db.Boolean, default=True, nullable=False)
     automatic = db.Column(db.Boolean, default=False, nullable=False)  # 是否是只有自动化用例的任务
     automatic_finish = db.Column(db.Boolean, default=False, nullable=False)  # 子任务完成，任务是否自动完成
-    is_single_case = db.Column(db.Boolean, default=False, nullable=False)  # 是否单测试用例任务
     is_manage_task = db.Column(db.Boolean, default=False, nullable=False)  # 是否管理型任务
+    test_strategy = db.Column(db.Boolean, default=False, nullable=False)  # 测试策略任务
     status_id = db.Column(db.Integer, db.ForeignKey("task_status.id"), nullable=True)  # 任务分类表关联
+    case_node_id = db.Column(db.Integer, db.ForeignKey("case_node.id"), nullable=True)
 
     comments = db.relationship("TaskComment", backref="task")  # 评论表关联
     participants = db.relationship("TaskParticipant", backref="task")

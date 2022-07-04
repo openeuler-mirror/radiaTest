@@ -4,6 +4,7 @@ from flask_httpauth import HTTPTokenAuth
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from itsdangerous.exc import SignatureExpired, BadSignature, BadData
 from server import redis_client
+from server.utils.aes_util import FileAES
 from server.utils.redis_util import RedisKey
 from pydantic import BaseModel
 
@@ -22,7 +23,9 @@ def generate_token(gitee_id, gitee_login, ex=60 * 60 * 2):
     if redis_client.exists(RedisKey.token(gitee_id)):
         return redis_client.get(RedisKey.token(gitee_id))
     token_data = dict(gitee_id=gitee_id, gitee_login=gitee_login)
-    token = str(serializer.dumps(token_data), encoding='utf-8')
+    _token = str(serializer.dumps(token_data), encoding='utf-8')
+    aes_payload = FileAES().encrypt(_token.split('.')[1])
+    token = _token.replace(_token.split('.')[1], aes_payload)
     # 缓存token信息
     redis_client.set(RedisKey.token(gitee_id), token, ex)
     redis_client.hmset(RedisKey.token(token), mapping={"gitee_id": gitee_id, "gitee_login": gitee_login}, ex=ex)
@@ -33,8 +36,12 @@ def generate_token(gitee_id, gitee_login, ex=60 * 60 * 2):
 def verify_token(token):
     data = None
     try:
+        aes = FileAES()
+        decode_payload = aes.decrypt(token.split('.')[1])
+        _token = token.replace(token.split('.')[1], decode_payload)
+
         global serializer
-        data = serializer.loads(token)
+        data = serializer.loads(_token)
     except SignatureExpired:
         # 用户签名过期登录不过期
         if redis_client.exists(RedisKey.token(token)):

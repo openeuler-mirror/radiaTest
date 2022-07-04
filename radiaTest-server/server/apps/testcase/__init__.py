@@ -20,6 +20,13 @@ from .routes import (
     CaseCommitComment,
     CommitStatus,
     CommitHistory,
+    CaseNodeTask,
+    MileStoneCaseNode,
+    ProductCaseNode,
+    ChecklistItem,
+    ChecklistEvent,
+    GroupNodeItem,
+    OrgNodeItem
 )
 
 
@@ -57,3 +64,22 @@ def init_api(api: Api):
     api.add_resource(CaseCommitInfo, '/api/v1/case/commit/query', '/api/v1/case/commit/count/<query_type>', endpoint='commit_query')
     api.add_resource(CaseCommitComment, '/api/v1/case/<int:commit_id>/comment',
                      '/api/v1/commit/comment/<int:comment_id>', endpoint='commit_comment')
+    api.add_resource(CaseNodeTask, '/api/v1/case-node/<int:case_node_id>/task', endpoint='case_node_task')
+    api.add_resource(MileStoneCaseNode, "/api/v1/milestone/<int:milestone_id>/case-node")
+    api.add_resource(ProductCaseNode, "/api/v1/product/<int:product_id>/case-node")
+    api.add_resource(
+        ChecklistItem,
+        "/api/v1/checklist/<int:checklist_id>",
+    )
+    api.add_resource(
+        ChecklistEvent,
+        "/api/v1/checklist",
+    )
+    api.add_resource(
+        GroupNodeItem,
+        "/api/v1/group/<int:group_id>/resource",
+    )
+    api.add_resource(
+        OrgNodeItem,
+        "/api/v1/org/<int:org_id>/resource",
+    )

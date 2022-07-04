@@ -11,7 +11,7 @@ from server.model.job import Job, Analyzed
 from server.model.user import User
 from server.model.organization import Organization
 from server.model.milestone import Milestone
-from server.model.testcase import Case
+from server.model.testcase import Case, CaseNode
 from server.model.permission import Scope, ReScopeRole
 from server.schema.task import *
 from server.schema.milestone import GiteeIssueQueryV8
@@ -26,6 +26,7 @@ from server.utils.permission_utils import PermissionManager, GetAllByPermission
 from server.apps.milestone.handler import IssueOpenApiHandlerV5, IssueOpenApiHandlerV8
 from .services import UpdateTaskStatusService, get_family_member, update_task_display, AnalysisTaskInfo, send_message, \
     judge_task_automatic
+from server.apps.testcase.handler import CaseNodeHandler
 
 
 class HandlerTaskStatus(object):
@@ -108,6 +109,30 @@ class HandlerTask(object):
         insert_dict = body.dict()
         insert_dict['creator_id'] = g.gitee_id
         insert_dict['org_id'] = redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')
+        current_org_id = int(redis_client.hget(
+            RedisKey.user(g.gitee_id),
+            'current_org_id'
+        ))
+        case_ids = []
+        if body.case_node_id:
+            case_node = CaseNode.query.filter_by(id=body.case_node_id, in_set=False, is_root=True).first()
+            if not case_node:
+                return jsonify(error_code=RET.PARMA_ERR,
+                               error_msg="current test strategy can not create task/case_node not exist")
+            if not case_node.milestone:
+                return jsonify(error_code=RET.PARMA_ERR,
+                               error_msg="current test strategy must relate to a milestone")
+            if current_org_id != case_node.org_id:
+                return jsonify(error_code=RET.VERIFY_ERR, error_msg="No right to query")
+
+            task = Task.query.filter(Task.case_node_id == body.case_node_id, Task.accomplish_time.is_(None),
+                                     Task.is_delete == False).first()
+            if task:
+                return jsonify(error_code=RET.PARMA_ERR,
+                               error_msg=f"current test strategy has already associated with task {task.title}")
+            insert_dict['milestone_id'] = case_node.milestone
+            insert_dict['test_strategy'] = True
+            case_ids = CaseNodeHandler.get_all_case(body.case_node_id)
         executor_id = body.executor_id
         insert_dict['permission_type'] = body.type.lower() if body.type in ['PERSON', 'GROUP'] else 'org'
 
@@ -122,7 +147,7 @@ class HandlerTask(object):
         insert_dict['executor_id'] = executor_id
         task = Task()
         for key, value in insert_dict.items():
-            if hasattr(task, key):
+            if hasattr(task, key) and value is not None:
                 setattr(task, key, value)
         if body.child_id:
             children = Task.query.filter(Task.id.in_(body.child_id)).all()
@@ -136,11 +161,11 @@ class HandlerTask(object):
             task.display = False
         task.add_update()
 
-        if body.case_id and body.milestone_id:
+        if case_ids:
             task = Task.query.filter_by(title=body.title).first()
             update_task_schema = UpdateTaskSchema(milestone_id=body.milestone_id)
             HandlerTask.update(task.id, update_task_schema)
-            add_task_case_schema = AddTaskCaseSchema(case_id=[body.case_id])
+            add_task_case_schema = AddTaskCaseSchema(case_id=case_ids)
             HandlerTaskCase.add(task.id, body.milestone_id, add_task_case_schema)
         scope_data_allow, scope_data_deny = get_api("task", "task.yaml", "task", task.id)
         _data = {
@@ -168,6 +193,8 @@ class HandlerTask(object):
                 filter_params.append(Task.start_time >= value)
             elif key == 'deadline':
                 filter_params.append(Task.deadline <= value)
+            elif key == 'milestone_id':
+                filter_params.append(Task.milestones.any(Milestone.id.in_(value)))
             elif hasattr(Task, key):
                 filter_params.append(getattr(Task, key) == value)
         query_filter = Task.query.join(TaskParticipant).filter(

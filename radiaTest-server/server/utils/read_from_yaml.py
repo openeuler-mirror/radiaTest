@@ -22,7 +22,8 @@ def init_admin(db, app):
 
 def init_scope(db, app):
     with app.app_context():
-        with open('server/config/scope_init.yaml', 'r', encoding='utf-8') as f:
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        with open(os.path.join(base_dir, "config" + os.sep + "scope_init.yaml"), 'r', encoding='utf-8') as f:
             try:
                 result = yaml.load(f.read(), Loader=yaml.FullLoader)
             except yaml.YAMLError as e:
@@ -52,7 +53,8 @@ def init_role(db, app):
         if not _role:
             role = Role(name='admin', type='public', necessary=True)
             role.add_flush_commit()
-        with open("server" + os.sep + "config" + os.sep + "role_init.yaml", 'r', encoding='utf-8') as f:
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        with open(os.path.join(base_dir, "config" + os.sep + "role_init.yaml"), 'r', encoding='utf-8') as f:
             try:
                 result = yaml.load(f.read(), Loader=yaml.FullLoader)
             except yaml.YAMLError as e:
@@ -81,7 +83,8 @@ def init_role(db, app):
 
 def create_role(_type, group=None, org=None):
     from flask import current_app
-    with open("server" + os.sep + "config" + os.sep + "role_init.yaml", 'r', encoding='utf-8') as f:
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    with open(os.path.join(base_dir, "config" + os.sep + "role_init.yaml"), 'r', encoding='utf-8') as f:
         try:
             result = yaml.load(f.read(), Loader=yaml.FullLoader)
         except yaml.YAMLError as e:
@@ -131,7 +134,8 @@ def create_role(_type, group=None, org=None):
 
 def get_api(_path, file, matching_word, id):
     from flask import current_app
-    with open("server" + os.sep + "apps" + os.sep + _path + os.sep + file, 'r', encoding='utf-8') as f:
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    with open(os.path.join(base_dir, "apps" + os.sep + _path + os.sep + file), 'r', encoding='utf-8') as f:
         try:
             result = yaml.load(f.read(), Loader=yaml.FullLoader)
         except yaml.YAMLError as e:
@@ -157,7 +161,8 @@ def get_api(_path, file, matching_word, id):
 
 def get_default_suffix(role_type):
     from flask import current_app
-    with open("server" + os.sep + "config" + os.sep + "role_init.yaml", 'r', encoding='utf-8') as f:
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    with open(os.path.join(base_dir, "config" + os.sep + "role_init.yaml"), 'r', encoding='utf-8') as f:
         try:
             result = yaml.load(f.read(), Loader=yaml.FullLoader)
         except yaml.YAMLError as e:
@@ -169,6 +174,7 @@ def get_default_suffix(role_type):
         if role_type == 'default':
             suffix = role_list[role_type]
     return suffix
+
 
 def get_recv_id(db,app):
     with app.app_context():

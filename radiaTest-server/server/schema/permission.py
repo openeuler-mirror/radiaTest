@@ -10,7 +10,7 @@ class RoleBaseSchema(BaseModel):
     description: Optional[str]
     group_id: Optional[int]
     org_id: Optional[int]
-    role_id: int
+    role_id: Optional[int]
 
     @root_validator
     def validate_type(cls, values):

@@ -140,11 +140,12 @@ class RoleHandler:
 
         _ = Insert(Role, _body).insert_id(Role, '/role')
 
-        role = Role.query.get(_body["role_id"])
-        _origin = [_ for _ in role.children]
-        role.children.append(Role.query.get(_))
-        _after = [_ for _ in role.children]
-        role.add_update(difference=list(set(_after) - set(_origin)))
+        if _body.get("role_id"):
+            role = Role.query.get(_body["role_id"])
+            _origin = [_ for _ in role.children]
+            role.children.append(Role.query.get(_))
+            _after = [_ for _ in role.children]
+            role.add_update(difference=list(set(_after) - set(_origin)))
         return jsonify(error_code=RET.OK, error_msg="OK")
 
     @staticmethod
