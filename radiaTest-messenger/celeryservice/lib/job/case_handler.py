@@ -1,4 +1,5 @@
 from copy import deepcopy
+import json
 import datetime
 import time
 import random
@@ -15,7 +16,7 @@ from celeryservice.lib.adapter.executor_adapter import ExecutorAdaptor
 from messenger.utils.pssh import ConnectionApi
 from messenger.utils.requests_util import create_request, do_request, query_request, update_request
 from messenger.utils.response_util import RET
-from messenger.apps.vmachine.handlers import DeleteVmachine, DeviceManager
+from messenger.apps.vmachine.handlers import DeleteVmachine, DeviceManager, RequestWorkerParam, MachineInfoParam
 from messenger.apps.pmachine.handlers import AutoInstall
 from messenger.schema.vmachine import VmachineBaseSchema, VmachineCreateSchema, VnicBaseSchema, VdiskBaseSchema
 from messenger.schema.job import JobCreateSchema, JobUpdateSchema
@@ -220,22 +221,28 @@ class RunCaseHandler(TaskAuthHandler):
     def increase_vnic(self, machines, quantity):
         for machine in machines:
             for _ in range(quantity):
-                DeviceManager(
+                request_worker_param = RequestWorkerParam(
+                    self.user.get("auth"),
                     VnicBaseSchema(**{"vmachine_id": machine.id}).dict(),
-                    None,
-                    "virtual/machine/vnic",
-                ).add("vnic")
+                    "virtual/machine/vnic"
+                )
+                machine_info_param = MachineInfoParam()
+
+                DeviceManager(request_worker_param, machine_info_param).add("vnic")
 
     def increase_vdisk(self, machines, capacities):
         for machine in machines:
             for capacity in capacities:
-                DeviceManager(
+                request_worker_param = RequestWorkerParam(
+                    self.user.get("auth"),
                     VdiskBaseSchema(
                         **{"vmachine_id": machine.id, "capacity": capacity}
                     ).dict(),
-                    None,
-                    "virtual/machine/vdisk",
-                ).add("vdisk")
+                    "virtual/machine/vdisk"
+                )
+                machine_info_param = MachineInfoParam()
+
+                DeviceManager(request_worker_param, machine_info_param).add("vdisk")
 
     def get_pmachine(self, quantity, pmachine_pool):
         if self._body.get("machine_policy") == "auto":
@@ -520,8 +527,8 @@ class RunCaseHandler(TaskAuthHandler):
                     self._body.get("machine_type") == "kvm"
                     and len(self._new_vmachines["id"]) > 0
             ):
-                resp = DeleteVmachine(self.user.get("auth"), self._new_vmachines).run()
-
+                resp = DeleteVmachine(self.user.get("auth"), new_machines).run()
+                resp = json.loads(resp.data.decode('UTF-8'))
                 if resp.get("error_code") != RET.OK:
                     raise RuntimeError(resp.get("error_msg"))
 

@@ -15,6 +15,21 @@ from messenger.utils.response_util import RET
 from messenger.utils.requests_util import create_request, do_request, query_request, update_request
 
 
+class RequestWorkerParam:
+    def __init__(self, auth, body, api, method="put") -> None:
+        self.auth = auth
+        self.api = api
+        self.body = body
+        self.method = method
+
+
+class MachineInfoParam:
+    def __init__(self, pmachine=None, vmachine=None, device=None) -> None:
+        self.pmachine = pmachine
+        self.vmachine = vmachine
+        self.device = device
+
+
 class MessageBody:
     def __init__(self, body) -> None:
         self._body = body
@@ -50,8 +65,8 @@ class ChoosePmachine(AuthMessageBody):
         while len(self._pmachines) > 0:
             pm = self._algorithm(self._pmachines)
             result = check_available_mem(
-                pm.get("ip"), 
-                pm.get("password"), 
+                pm.get("ip"),
+                pm.get("password"),
                 pm.get("port"),
                 pm.get("user"),
                 self._body.get("memory")
@@ -60,13 +75,12 @@ class ChoosePmachine(AuthMessageBody):
                 return pm
             else:
                 self._pmachines.remove(pm)
-        
+
         if org_len > 0:
             return jsonify(
                 error_code=RET.NO_MEM_ERR,
                 error_msg="the machine has no enough memory to use"
             )
-   
 
         return jsonify(
             error_code=RET.NO_DATA_ERR,
@@ -93,21 +107,23 @@ class ChooseMirror(AuthMessageBody):
 
 
 class Messenger:
-    def __init__(self, auth, body, pmachine, api, method="put", 
-    vmachine=None, device=None) -> None:
-        self.auth = auth
-        self._api = api
-        self._body = body
-        self._pmachine = pmachine
-        self._vmachine = vmachine
-        self._device = device
-        self._method = method
+    def __init__(self, request_worker_param, machine_info_param):
+        self.auth = request_worker_param.auth
+        self._api = request_worker_param.api
+        self._body = request_worker_param.body
+        self._pmachine = machine_info_param.pmachine
+        self._vmachine = machine_info_param.vmachine
+        self._device = machine_info_param.device
+        self._method = request_worker_param.method
 
     @abc.abstractmethod
     def handle_callback(self, *args):
         pass
 
     def work(self):
+        self._body.update({
+            "pmachine_id": self._pmachine.get("id"),
+        })
         try:
             response = requests.request(
                 self._method,
@@ -133,12 +149,8 @@ class Messenger:
         if response.status_code != 200:
             return jsonify(error_code=response.status_code, error_msg=resp)
 
-        self._body.update({
-            "pmachine_id": self._pmachine.get("id"),
-        })
-
         resp_dict = json.loads(resp)
-        
+
         return self.handle_callback(resp_dict)
 
 
@@ -161,7 +173,7 @@ class CeleryMessenger(Messenger):
             celerytask_body,
             self.auth
         )
-        
+
         return self._body
 
 
@@ -170,7 +182,6 @@ class SyncMessenger(Messenger):
         if resp_dict.get("error_code"):
             return resp_dict
 
-        self._body.update({"pmachine_id": self._pmachine.get("id")})
         self._body.update(resp_dict)
 
         return self._body
@@ -183,7 +194,7 @@ def check_available_mem(ip, pwd, port, user, vm_mem):
         raise "failed to connect to physical machine."
     _, avail_mem = ssh.command("free -g | sed -n '2p' | awk '{print $7}'")
     ssh.close()
-    return int(avail_mem) > int(vm_mem)/1024 + 5
+    return int(avail_mem) > int(vm_mem) / 1024 + 5
 
 
 class CreateVmachine(AuthMessageBody):
@@ -194,7 +205,7 @@ class CreateVmachine(AuthMessageBody):
         self._update_milestone = None
         if body.get("update_milestone"):
             self._update_milestone = body.get("update_milestone")
-        
+
         super().__init__(auth, body)
 
     def install(self):
@@ -206,8 +217,8 @@ class CreateVmachine(AuthMessageBody):
 
         elif self._body.get("pm_select_mode") == "assign":
             result = check_available_mem(
-                self._pmachine.get("ip"), 
-                self._pmachine.get("password"), 
+                self._pmachine.get("ip"),
+                self._pmachine.get("password"),
                 self._pmachine.get("port"),
                 self._pmachine.get("user"),
                 self._body.get("memory")
@@ -218,7 +229,7 @@ class CreateVmachine(AuthMessageBody):
                     error_msg="the machine has no enough memory to use"
                 )
         else:
-            #预留其他方式
+            # 预留其他方式
             pass
         if isinstance(self._pmachine, Response):
             return self._pmachine
@@ -230,7 +241,7 @@ class CreateVmachine(AuthMessageBody):
         if self._body.get("method") == "import":
             mirror = ChooseMirror(
                 self.auth,
-                self._body, 
+                self._body,
                 "/api/v1/qmirroring/preciseget"
             ).run(self._milestone)
 
@@ -247,7 +258,7 @@ class CreateVmachine(AuthMessageBody):
         elif self._body.get("method") == "auto":
             mirror = ChooseMirror(
                 self.auth,
-                self._body, 
+                self._body,
                 "/api/v1/imirroring/preciseget"
             ).run(self._milestone)
 
@@ -256,7 +267,7 @@ class CreateVmachine(AuthMessageBody):
             else:
                 self._body.update(
                     {
-                        "location": mirror.get("location"), 
+                        "location": mirror.get("location"),
                         "ks": mirror.get("ks")
                     }
                 )
@@ -264,7 +275,7 @@ class CreateVmachine(AuthMessageBody):
         elif self._body.get("method") == "cdrom":
             mirror = ChooseMirror(
                 self.auth,
-                self._body, 
+                self._body,
                 "/api/v1/imirroring/preciseget"
             ).run(self._milestone)
 
@@ -331,12 +342,14 @@ class CreateVmachine(AuthMessageBody):
                 )
             )
 
-        output = CeleryMessenger(
+        request_worker_param = RequestWorkerParam(
             self.auth,
             self._body,
-            self._pmachine,
-            "virtual/machine", "post"
-        ).work()
+            "virtual/machine",
+            method="post"
+        )
+        machine_info_param = MachineInfoParam(pmachine=self._pmachine)
+        output = CeleryMessenger(request_worker_param, machine_info_param).work()
 
         self._body.update(output)
 
@@ -357,7 +370,7 @@ class CreateVmachine(AuthMessageBody):
                     self._body.get("id")
                 )
             )
-        
+
         return jsonify(
             error_code=RET.OK,
             error_msg="OK",
@@ -375,12 +388,13 @@ class Control(AuthMessageBody):
         super().__init__(auth, body)
 
     def run(self):
-        output = SyncMessenger(
+        request_worker_param = RequestWorkerParam(
             self.auth,
-            self._body, 
-            self._pmachine,
+            self._body,
             "virtual/machine/power"
-        ).work()
+        )
+        machine_info_param = MachineInfoParam(pmachine=self._pmachine)
+        output = SyncMessenger(request_worker_param, machine_info_param).work()
 
         if output.get("error_code"):
             return output
@@ -406,26 +420,63 @@ class Control(AuthMessageBody):
             update_body,
             self.auth
         )
-        
+
         return jsonify(resp)
 
 
 class DeleteVmachine(AuthMessageBody):
     def run(self):
-        vmachine = self._body.get("vmachine")
-        pmachine = self._body.get("pmachine")
+        for vmachine in self._body:
+            pmachine = {
+                "ip": vmachine.get("host_ip"),
+                "listen": vmachine.get("host_listen"),
+                "id": vmachine.get("host_id")
+            }
 
-        if pmachine:
-            resp = SyncMessenger(
-                self.auth,
-                vmachine,
-                pmachine,
-                "virtual/machine",
+            if vmachine.get("host_ip"):
+                request_worker_param = RequestWorkerParam(
+                    self.auth,
+                    {"name": vmachine.get("name")},
+                    "virtual/machine",
+                    method="delete"
+                )
+                machine_info_param = MachineInfoParam(
+                    pmachine=pmachine,
+                    vmachine=vmachine
+                )
+                resp = SyncMessenger(request_worker_param, machine_info_param).work()
+
+                if resp.get("error_code"):
+                    current_app.logger.debug(resp.get("error_msg"))
+                    return jsonify(
+                        error_code=RET.DATA_DEL_ERR,
+                        error_msg="vmachine {} fail to be deleted from {}.".format(
+                            vmachine.get("id"), vmachine.get("host_id")
+                        )
+                    )
+
+            if vmachine.get("vnc_port"):
+                VncTokenCreator(vmachine.get("host_ip"), vmachine.get("vnc_port")).end()
+
+            if current_app.config.get("CA_VERIFY") == "True":
+                _verify = True
+            else:
+                _verify = current_app.config.get("CA_CERT")
+
+            _r = do_request(
                 method="delete",
-            ).work()
+                url="https://{}/api/v1/vmachine/{}/force".format(
+                    current_app.config.get("SERVER_ADDR"),
+                    vmachine.get("id")
+                ),
+                headers={
+                    "content-type": "application/json;charset=utf-8",
+                    "authorization": self.auth
+                },
+                verify=_verify
+            )
 
-            if resp.get("error_code"):
-                current_app.logger.debug(resp.get("error_msg"))
+            if _r != 0:
                 return jsonify(
                     error_code=RET.DATA_DEL_ERR,
                     error_msg="vmachine {} fail to be deleted.".format(
@@ -433,35 +484,8 @@ class DeleteVmachine(AuthMessageBody):
                     )
                 )
 
-        if vmachine.get("vnc_port"):
-            VncTokenCreator(pmachine.get("ip"), vmachine.get("vnc_port")).end()
-        if current_app.config.get("CA_VERIFY"):
-            _verify = True
-        else:
-            _verify = current_app.config.get("CA_CERT")
-        _r = do_request(
-            method="delete",
-            url="https://{}/api/v1/vmachine/{}/force".format(
-                current_app.config.get("SERVER_ADDR"),
-                vmachine.get("id")
-            ),
-            headers={
-                "content-type": "application/json;charset=utf-8",
-                "authorization": self.auth
-            },
-            verify=_verify
-        )
-
-        if _r != 0:
-            return jsonify(
-                error_code=RET.DATA_DEL_ERR,
-                error_msg="vmachine {} fail to be deleted.".format(
-                    vmachine.get("id")
-                )
-            )
-            
         return jsonify(
-            error_code=RET.OK, 
+            error_code=RET.OK,
             error_msg="vmachine success to delete."
         )
 
@@ -472,8 +496,8 @@ class EditVmachine(AuthMessageBody):
         if pmachine:
             if self._body.get("memory"):
                 result = check_available_mem(
-                    pmachine.get("ip"), 
-                    pmachine.get("password"), 
+                    pmachine.get("ip"),
+                    pmachine.get("password"),
                     pmachine.get("port"),
                     pmachine.get("user"),
                     self._body.get("memory")
@@ -483,13 +507,14 @@ class EditVmachine(AuthMessageBody):
                         error_code=RET.NO_MEM_ERR,
                         error_msg="the machine has no enough memory to use"
                     )
-            resp = SyncMessenger(
+            request_worker_param = RequestWorkerParam(
                 self.auth,
                 self._body,
-                pmachine,
                 "virtual/machine",
-                method="put",
-            ).work()
+                method="put"
+            )
+            machine_info_param = MachineInfoParam(pmachine=pmachine)
+            resp = SyncMessenger(request_worker_param, machine_info_param).work()
 
             if resp.get("error_code"):
                 return jsonify(
@@ -499,7 +524,7 @@ class EditVmachine(AuthMessageBody):
                     )
                 )
             if self._body.get("memory") or \
-                self._body.get("sockets") or self._body.get("cores") or self._body.get("threads"):
+                    self._body.get("sockets") or self._body.get("cores") or self._body.get("threads"):
                 update_request(
                     "/api/v1/vmachine/{}/data".format(
                         self._body.get("id")
@@ -514,7 +539,7 @@ class EditVmachine(AuthMessageBody):
                 )
 
         return jsonify(
-            error_code=RET.OK, 
+            error_code=RET.OK,
             error_msg="vmachine success to put."
         )
 
@@ -648,7 +673,7 @@ class VmachineAsyncResultHandler:
         pmachine = body.get("pmachine")
 
         _vnc_token = VncTokenCreator(
-            pmachine.get("ip"), 
+            pmachine.get("ip"),
             body.get("vnc_port")
         ).start()
 
@@ -745,7 +770,7 @@ class VmachineAsyncResultHandler:
                 "mv /etc/yum.repos.d/openEuler.repo /etc/yum.repos.d/openEuler.repo.bak && \
                  echo -e '%s' > /etc/yum.repos.d/%s.repo"
                 % (
-                    repo.get("content"), 
+                    repo.get("content"),
                     body.get("milestone").replace(" ", "-")
                 )
             )
@@ -754,7 +779,7 @@ class VmachineAsyncResultHandler:
             ssh.command(
                 "echo -e '%s' > /etc/yum.repos.d/%s.repo"
                 % (
-                    update_repo.get("content"), 
+                    update_repo.get("content"),
                     body.get("update_milestone").name.replace(" ", "-")
                 )
             )
@@ -771,5 +796,5 @@ class VmachineAsyncResultHandler:
             update_body,
             auth
         )
-        
+
         return jsonify(resp)

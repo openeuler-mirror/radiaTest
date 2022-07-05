@@ -1,3 +1,4 @@
+import os
 import time
 import shlex
 import tempfile
@@ -33,20 +34,22 @@ def domain_state(name):
         + " '{print $NF}' | sed 's/^ *//;s/ *$//' "
     )
 
+
 def attach_device(name, xml):
-    tmpfile = tempfile.mkstemp()
-    exitcode,output = getstatusoutput(
+    tmpfile = tempfile.mkstemp()[1]
+    exitcode, output = getstatusoutput(
         "echo -e {} > {} && virsh attach-device {} {} --config".format(
             shlex.quote(xml),
-            tmpfile[1],
+            tmpfile,
             shlex.quote(name),
-            tmpfile[1]
+            tmpfile
         )
     )
+    if os.path.exists(tmpfile):
+        os.remove(tmpfile)
     
     return jsonify({"error_code": exitcode, "error_msg": output})
     
-
 
 def undefine_domain(name):
     return getstatusoutput(
@@ -66,7 +69,7 @@ class InstallVmachine(VmachineBaseSchema):
             return jsonify(
                 {
                     "error_code": 1,
-                    "error_code": "The host is not configured with a network mode virtual bridge.",
+                    "error_msg": "The host is not configured with a network mode virtual bridge.",
                 }
             )
 
@@ -115,7 +118,11 @@ class InstallVmachine(VmachineBaseSchema):
         self._body.update(
             {
                 "mac": getoutput(
-                    "virsh dumpxml %s | grep -Pzo  \"<interface type='bridge'>[\s\S] *<mac address.*\" |grep -Pzo '<mac address.*' | awk -F\\' '{print $2}' | head -1"
+                    "virsh dumpxml %s "
+                    "| grep -Pzo  \"<interface type='bridge'>[\s\S] *<mac address.*\" "
+                    "|grep -Pzo '<mac address.*' "
+                    "| awk -F\\' '{print $2}' "
+                    "| head -1"
                     % self._body.get("name")
                 ).strip(),
                 "status": output,
@@ -124,6 +131,43 @@ class InstallVmachine(VmachineBaseSchema):
                 .split(":")[-1],
             }
         )
+        return jsonify(self._body)
+
+    def cd_rom(self):
+        exitcode, output = getstatusoutput(
+            "qemu-img create -f qcow2 {}/{}.qcow2 {}G".format(
+                shlex.quote(current_app.config.get("STORAGE_POOL").replace("/$", "")),
+                shlex.quote(self._body.get("name")),
+                shlex.quote(str(self._body.get("capacity"))),
+            )
+        )
+        if exitcode:
+            return jsonify({"error_code": exitcode, "status": output})
+
+        exitcode, output = getstatusoutput(
+            "{} --cdrom {} --noreboot".format(install_base(self._body), self._body.get("url"))
+        )
+        if exitcode:
+            rm_disk_image(self._body.get("name"))
+            return jsonify({"error_code": 31000, "error_msg": output})
+        
+        self._body.update(
+            {
+                "mac": getoutput(
+                    "virsh dumpxml %s "
+                    "| grep -Pzo  \"<interface type='bridge'>[\s\S] *<mac address.*\" "
+                    "|grep -Pzo '<mac address.*' "
+                    "| awk -F\\' '{print $2}' "
+                    "| head -1"
+                    % self._body.get("name")
+                ).strip(),
+                "status": "running",
+                "vnc_port": domain_cli("vncdisplay", self._body.get("name"))[1]
+                .strip("\n")
+                .split(":")[-1],
+            }
+        )
+
         return jsonify(self._body)
 
     def _import(self):
@@ -162,40 +206,11 @@ class InstallVmachine(VmachineBaseSchema):
         self._body.update(
             {
                 "mac": getoutput(
-                    "virsh dumpxml %s | grep -Pzo  \"<interface type='bridge'>[\s\S] *<mac address.*\" |grep -Pzo '<mac address.*' | awk -F\\' '{print $2}' | head -1"
-                    % self._body.get("name")
-                ).strip(),
-                "status": "running",
-                "vnc_port": domain_cli("vncdisplay", self._body.get("name"))[1]
-                .strip("\n")
-                .split(":")[-1],
-            }
-        )
-
-        return jsonify(self._body)
-
-    def cd_rom(self):
-        exitcode, output = getstatusoutput(
-            "qemu-img create -f qcow2 {}/{}.qcow2 {}G".format(
-                shlex.quote(current_app.config.get("STORAGE_POOL").replace("/$", "")),
-                shlex.quote(self._body.get("name")),
-                shlex.quote(str(self._body.get("capacity"))),
-            )
-        )
-        if exitcode:
-            return jsonify({"error_code": exitcode, "status": output})
-
-        exitcode, output = getstatusoutput(
-            "{} --cdrom {} --noreboot".format(install_base(self._body), self._body.get("url"))
-        )
-        if exitcode:
-            rm_disk_image(self._body.get("name"))
-            return jsonify({"error_code": 31000, "error_msg": output})
-        
-        self._body.update(
-            {
-                "mac": getoutput(
-                    "virsh dumpxml %s | grep -Pzo  \"<interface type='bridge'>[\s\S] *<mac address.*\" |grep -Pzo '<mac address.*' | awk -F\\' '{print $2}' | head -1"
+                    "virsh dumpxml %s "
+                    "| grep -Pzo  \"<interface type='bridge'>[\s\S] *<mac address.*\" "
+                    "|grep -Pzo '<mac address.*' "
+                    "| awk -F\\' '{print $2}' "
+                    "| head -1"
                     % self._body.get("name")
                 ).strip(),
                 "status": "running",
@@ -210,10 +225,15 @@ class InstallVmachine(VmachineBaseSchema):
 
 class OperateVmachine(VmachineBaseSchema):
     def delete(self):
-        domain_cli("destroy", self._body.get("name"))
-        exitcode, output = undefine_domain(self._body.get("name"))
+        names = self._body.get("name")
+        if isinstance(names, list):
+            for name in names:
+                domain_cli("destroy", name)
+                exitcode, output = undefine_domain(name)
+        else:
+            domain_cli("destroy", names)
+            exitcode, output = undefine_domain(names)
         return jsonify({"error_code": exitcode, "error_msg": output})
-
 
     def edit(self): 
         if self._body.get("memory"):
@@ -245,7 +265,7 @@ class OperateVnic(VmachineBaseSchema):
                 return jsonify(
                     {
                         "error_code": 1,
-                        "error_code": "The host is not configured with a bridge mode virtual bridge.",
+                        "error_msg": "The host is not configured with a bridge mode virtual bridge.",
                     }
                 )
         else:
@@ -254,7 +274,7 @@ class OperateVnic(VmachineBaseSchema):
                 return jsonify(
                     {
                         "error_code": 1,
-                        "error_code": "The host is not configured with a network mode virtual network.",
+                        "error_msg": "The host is not configured with a network mode virtual network.",
                     }
                 )
 
