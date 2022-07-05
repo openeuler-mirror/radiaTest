@@ -804,7 +804,7 @@ function menuClick({ key, options }) {
   const [itemkey, id] = key[0].split('-');
   if (itemkey === 'case') {
     router.push({
-      path: `/home/tcm/folderview/taskDetail/${window.btoa(id)}`,
+      path: `/home/tcm/folderview/node-detail/${window.btoa(id)}`,
     });
   } else if (itemkey === 'org') {
     router.push({
@@ -822,7 +822,7 @@ function menuClick({ key, options }) {
     });
   } else {
     router.push({
-      path: '/home/tcm/folderview/taskDetail/development',
+      path: '/home/tcm/folderview/node-detail/development',
     });
   }
 }
