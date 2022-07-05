@@ -661,7 +661,7 @@ function deleteCaseNode(node) {
         router.currentRoute.value.name === 'taskDetails' &&
         router.currentRoute.value.params.taskid !== 'development'
       ) {
-        getDetail(router.currentRoute.value.params.taskid);
+        getDetail(window.btoa(router.currentRoute.value.params.taskid));
       }
     })
     .catch((err) => {

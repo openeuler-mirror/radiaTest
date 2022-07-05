@@ -104,6 +104,9 @@
         show-trigger="arrow-circle"
         :style="{ height: contentHeight + 'px' }"
       >
+        <n-alert title="用例导入须知" type="warning" closable>
+          请确保文本用例格式与模板一致，否则导入时将会被跳过。点击<a :href="caseTemplateUrl">下载</a>文本用例模板文件
+        </n-alert>
         <tree
           :expandKeys="expandKeys"
           :data="menuList"
@@ -126,6 +129,7 @@
 <script>
 import tree from '@/components/tree/tree.vue';
 import { modules } from './modules';
+import config from '@/assets/config/settings.js';
 import Common from '@/components/CRUD';
 import Essential from '@/components/testcaseComponents';
 import { ref } from 'vue';
@@ -165,12 +169,15 @@ export default {
     });
   },
   setup() {
+    const caseTemplateUrl = `https://${config.serverPath}/static/case_template.xls`;
+
     modules.clearSelectKey();
     if (!modules.menuList.value) {
       modules.getOrg();
     }
     const contentHeight = ref(0);
     return {
+      caseTemplateUrl,
       contentHeight,
       ...modules,
     };

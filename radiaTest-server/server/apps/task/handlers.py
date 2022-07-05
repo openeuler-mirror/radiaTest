@@ -1,8 +1,12 @@
+from datetime import timedelta
+import json
 import math
 import ast
-from flask import jsonify, g, request
+from celery import current_app
+
+from flask import jsonify, g, request, Response
 from sqlalchemy import or_
-from datetime import timedelta
+
 from server import db, redis_client
 from server.model.task import TaskStatus, Task, TaskParticipant, TaskComment
 from server.model.task import TaskTag, TaskReportContent, TaskMilestone, TaskManualCase
@@ -1079,7 +1083,7 @@ class HandlerTaskStatistics(object):
 
     def get_issues_v8(self):
         milestone = Milestone.query.get(self.query.milestone_id)
-        if not milestone:
+        if not milestone or milestone.is_sync is False:
             return []
 
         org = Organization.query.filter_by(
@@ -1095,9 +1099,23 @@ class HandlerTaskStatistics(object):
             "direction": "desc",
         })
 
-        return IssueOpenApiHandlerV8().get_all(
+        _resp = IssueOpenApiHandlerV8().get_all(
             GiteeIssueQueryV8(**params).__dict__
         )
+
+        if not isinstance(_resp, Response):
+            return []
+        try:
+            resp = json.loads(_resp.text)
+            if resp.get("error_code") != RET.OK:
+                return []
+            issue_list = resp.get("data")
+            if not isinstance(issue_list, list):
+                issue_list = json.loads(issue_list)
+            return issue_list
+        except (AttributeError, json.JSONDecodeError) as e:
+            current_app.logger.error(f"query issue list {issue_list} failed because {str(e)}")
+            return []
 
 
 class HandlerTaskExecute(object):
