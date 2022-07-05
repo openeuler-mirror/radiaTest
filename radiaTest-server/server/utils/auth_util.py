@@ -58,7 +58,7 @@ def verify_token(token):
     except BadData:
         current_app.logger.info(f"Illegal token in JWT {token} attempt to do request")
         return False
-    except binascii.Error:
+    except (binascii.Error, IndexError):
         current_app.logger.info(f"Uncrypted/Unknown token {token} attempt to do request")
         return False
     finally:

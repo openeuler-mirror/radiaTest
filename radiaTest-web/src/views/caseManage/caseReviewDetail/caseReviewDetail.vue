@@ -1,7 +1,7 @@
 <template>
   <div class="detail-container">
     <n-breadcrumb>
-      <n-breadcrumb-item href="../casereview">
+      <n-breadcrumb-item href="../case-review">
         用例评审
       </n-breadcrumb-item>
       <n-breadcrumb-item href="#">

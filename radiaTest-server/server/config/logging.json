@@ -39,14 +39,12 @@
       "encoding": "utf8"
     }
   },
-  "loggers": {
-    "server": {
-      "level": "DEBUG",
-      "handlers": [
-        "console.handler",
-        "debug.file.handler.timed",
-        "info.file.handler.timed"
-      ]
-    }  
-  }
+  "root": {
+    "level": "DEBUG",
+    "handlers": [
+      "console.handler",
+      "debug.file.handler.timed",
+      "info.file.handler.timed"
+    ]
+  }  
 }

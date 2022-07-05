@@ -127,7 +127,7 @@
           :style="{ height: contentHeight + 'px' }"
         >
           <n-alert title="使用须知" type="warning" closable>
-            请<n-button type="info" text @click="handleDownloadCert">下载</n-button>并安装根证书以批量信任机器组端服务，以免无法正常使用资源池
+            若需要查看资源监控、使用VNC控制台，请<n-button type="info" text @click="handleDownloadCert">下载</n-button>并安装根证书批量信任机器组服务，或于机器组节点右键菜单中点击信任单个机器组服务
           </n-alert>
           <n-tree
             block-line
@@ -235,7 +235,7 @@ export default {
         });
       }
     });
-    if(this.$route.name === 'resourcePool' && this.expandeds.at(-1) !== 'pool'){
+    if(this.$route.name === 'resourcePool' && this.expandeds.at(-1) !== 'pool' && this.expandeds.length !== 0){
       this.$router.push(
         {
           'name': this.activeTab,

@@ -166,12 +166,12 @@ const router = createRouter({
           },
           children: [
             {
-              path: 'casereview/',
+              path: 'case-review/',
               component: caseReview,
               name: 'caseReview',
             },
             {
-              path: 'caseReviewDetail/:commitId',
+              path: 'case-review-detail/:commitId',
               component: caseReviewDetail,
               name: 'caseReviewDetail',
             },
@@ -191,24 +191,24 @@ const router = createRouter({
               name: 'folderview',
               children: [
                 {
-                  path: 'taskdetail/:taskid/',
+                  path: 'node-detail/:taskid/',
                   component: taskDetails,
                   name: 'taskDetails',
                 },
                 {
-                  path: 'orgNode',
+                  path: 'org-node',
                   component: orgNode,
                   name: 'orgNode',
                 },
                 {
-                  path: 'termNode',
+                  path: 'term-node',
                   component: termNode,
                   name: 'termNode',
                 },
               ],
             },
             {
-              path: 'frameWork',
+              path: 'framework',
               component: frameWork,
               name: 'frameWork',
             },
@@ -244,16 +244,16 @@ const router = createRouter({
       },
     },
     {
-      path: '/personalCenter/',
+      path: '/personal-center/',
       component: PersonalCenter,
       name: 'PersonalCenter',
       children: [
         {
           path: '',
-          redirect: '/personalCenter/accountManagement/',
+          redirect: '/personal-center/account-management/',
         },
         {
-          path: 'accountManagement/',
+          path: 'account-management/',
           component: AccountManagement,
           name: 'accountManagement',
           meta: {
@@ -261,7 +261,7 @@ const router = createRouter({
           },
         },
         {
-          path: 'accountInfo/',
+          path: 'account-info/',
           component: AccountInfo,
           name: 'accountInfo',
           meta: {
@@ -269,7 +269,7 @@ const router = createRouter({
           },
         },
         {
-          path: 'orgManagement/',
+          path: 'org-management/',
           component: OrgManagement,
           name: 'orgManagement',
           meta: {
@@ -277,17 +277,17 @@ const router = createRouter({
           },
         },
         {
-          path: 'authorityManagement/',
+          path: 'authority-management/',
           component: authorityManagement,
           name: 'authorityManagement',
           children: [
             {
-              path: 'rulesManagement/',
+              path: 'rules-management/',
               component: rulesManagement,
               name: 'rulesManagement',
             },
             {
-              path: 'rolesManagement/:roleId',
+              path: 'roles-management/:roleId',
               component: rolesManagement,
               name: 'rolesManagement',
             },
@@ -297,7 +297,7 @@ const router = createRouter({
           },
         },
         {
-          path: 'usersManagement/',
+          path: 'users-management/',
           component: usersManagement,
           name: 'usersManagement',
           meta: {

@@ -23,11 +23,14 @@ const detailsList = ref([
 ]);
 const activeId = ref();
 function getData () {
-  getCommitHistory(router.currentRoute.value.params.taskid, {
-    title: searchTitle.value,
-    start_time: formatTime(timeRange.value[0],'yyyy-MM-dd hh:mm:ss'),
-    end_time: formatTime(timeRange.value[1],'yyyy-MM-dd hh:mm:ss'),
-  }).then(res => {
+  getCommitHistory(
+    window.btoa(router.currentRoute.value.params.taskid), 
+    {
+      title: searchTitle.value,
+      start_time: formatTime(timeRange.value[0],'yyyy-MM-dd hh:mm:ss'),
+      end_time: formatTime(timeRange.value[1],'yyyy-MM-dd hh:mm:ss'),
+    }
+  ).then(res => {
     versionList.value = res.data;
   });
 }
