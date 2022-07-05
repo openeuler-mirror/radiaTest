@@ -76,6 +76,9 @@ class RedisClient(object):
 
     def incr(self, name, amount=1):
         self.connection.incr(name, amount=amount)
+    
+    def keys(self, pattern):
+        return self.connection.keys(pattern)
 
 
 class RedisKey(object):
@@ -85,3 +88,4 @@ class RedisKey(object):
     gitee_user = lambda gitee_id: f"gitee_user_{gitee_id}"
     organization = lambda organization_id: f"organization_{organization_id}"
     login_org = lambda gitee_id: f"{gitee_id}_login_org"
+    access_token = lambda gitee_id: f"access_token_{gitee_id}"
