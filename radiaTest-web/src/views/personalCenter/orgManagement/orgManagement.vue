@@ -71,13 +71,13 @@
           >
             <n-input
               v-model:value="registerModel.claVerifyUrl"
-              placeholder="请输入cla验证地址"
+              placeholder="请输入cla验证地址, 必须包括协议头http或https"
             ></n-input>
           </n-form-item>
           <n-form-item v-if="requireCla" label="cla签署地址" path="claSignUrl">
             <n-input
               v-model:value="registerModel.claSignUrl"
-              placeholder="请输入cla签署地址"
+              placeholder="请输入cla签署地址, 必须包括协议头http或https"
             ></n-input>
           </n-form-item>
           <n-form-item
@@ -125,12 +125,23 @@
           </n-form-item>
           <n-form-item
             v-if="requireEnterprise"
-            label="enterprise"
+            label="Gitee企业仓"
             path="enterprise"
           >
             <n-input
               v-model:value="registerModel.enterprise"
               placeholder="请填写该组织码云企业仓ID"
+              :maxlength="50"
+            ></n-input>
+          </n-form-item>
+          <n-form-item
+            v-if="requireEnterprise"
+            label="企业仓加入申请URL"
+            path="enterprise_join_url"
+          >
+            <n-input
+              v-model:value="registerModel.enterprise_join_url"
+              placeholder="若存在公开加入申请链接可填, URL必须存在协议头http或https"
               :maxlength="50"
             ></n-input>
           </n-form-item>

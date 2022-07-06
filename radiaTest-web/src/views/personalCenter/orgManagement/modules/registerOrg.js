@@ -20,6 +20,7 @@ const registerModel = reactive({
   claRequestMethod: '',
   claPassFlag: '',
   enterprise: '',
+  enterpreise_join_url: '',
   urlParams: [],
   bodyParams: [],
   oauth_client_id: '',
@@ -101,19 +102,6 @@ const requestOptions = [
   },
 ];
 const fileList = ref([]);
-// const data = {
-//   name: registerModel.name,
-//   cla_verify_url: registerModel.claVerifyUrl,
-//   cla_sign_url: registerModel.claSignUrl,
-//   cla_request_type: registerModel.claRequestMethod,
-//   cla_pass_flag: registerModel.claPassFlag,
-//   cla_verify_params: JSON.stringify(claVerifyParams),
-//   cla_verify_body: JSON.stringify(claVerifyBody),
-//   enterprise_id: registerModel.enterprise,
-//   oauth_client_id: registerModel.oauth_client_id,
-//   oauth_client_secret: registerModel.oauth_client_secret,
-//   oauth_scope: registerModel.oauth_client_scope.join(','),
-// };
 
 function closeOrgFrom() {
   showRegisterOrgWindow.value = false;
@@ -125,6 +113,7 @@ function closeOrgFrom() {
   registerModel.claRequestMethod = '';
   registerModel.claPassFlag = '';
   registerModel.enterprise = '';
+  registerModel.enterpreise_join_url = '';
   registerModel.urlParams = [];
   registerModel.bodyParams = [];
   registerModel.oauth_client_id = '';
@@ -180,7 +169,8 @@ function submitOrgInfo() {
   formData.append('cla_pass_flag', registerModel.claPassFlag ? registerModel.cla_pass_flag : undefined);
   formData.append('cla_verify_params', JSON.stringify(claVerifyParams));
   formData.append('cla_verify_body', JSON.stringify(claVerifyBody));
-  formData.append('enterprise_id', registerModel.enterprise ? registerModel.enterpreise_id : undefined);
+  formData.append('enterprise_id', registerModel.enterprise ? registerModel.enterpreise : undefined);
+  formData.append('enterprise_join_url', registerModel.enterpreise_join_url);
   formData.append('oauth_client_id', registerModel.oauth_client_id ? registerModel.oauth_client_id : undefined);
   formData.append(
     'oauth_client_secret', 

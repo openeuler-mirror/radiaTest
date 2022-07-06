@@ -18,6 +18,7 @@ class Organization(db.Model, PermissionBaseModel, BaseModel):
     is_delete = db.Column(db.Boolean, default=False, nullable=False)
 
     enterprise_id = db.Column(db.String(50))
+    enterprise_join_url = db.Column(db.String(512))
     oauth_client_id = db.Column(db.String(512))
     oauth_client_secret = db.Column(db.String(512))
     oauth_scope = db.Column(db.String(256))
@@ -69,6 +70,7 @@ class Organization(db.Model, PermissionBaseModel, BaseModel):
         new_recode.cla_request_type = model.cla_request_type
         new_recode.description = model.description
         new_recode.enterprise_id = model.enterprise_id
+        new_recode.enterprise_join_url = model.enterprise_join_url
         new_recode.oauth_client_id = model.oauth_client_id
         new_recode.oauth_client_secret = model.oauth_client_secret
         new_recode.oauth_scope = model.oauth_scope

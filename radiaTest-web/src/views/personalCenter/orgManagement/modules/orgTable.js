@@ -29,8 +29,8 @@ function cloneRegisterModel(row){
   registerModel.claSignUrl = row.cla_sign_url;
   registerModel.claRequestMethod = row.cla_request_type;
   registerModel.claPassFlag =  row.cla_pass_flag;
-  registerModel.enterprise = row.enterprise;
   registerModel.enterprise = row.enterprise_id;
+  registerModel.enterpreise_join_url = row.enterpreise_join_url;
   registerModel.oauth_client_id = row.oauth_client_id;
   registerModel.oauth_client_secret = row.oauth_client_secret;
   registerModel.oauth_client_scope = row.oauth_scope?.split(',');

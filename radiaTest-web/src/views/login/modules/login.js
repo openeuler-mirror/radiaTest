@@ -5,7 +5,7 @@ import router from '@/router/index';
 import { storage } from '@/assets/utils/storageUtils';
 import { addRoom } from '@/assets/utils/socketUtils';
 import { getCookieValByKey } from '@/assets/utils/cookieUtils';
-import { urlArgs } from '@/assets/utils/urlUtils';
+import { urlArgs, openChildWindow } from '@/assets/utils/urlUtils';
 import { changeLoadingStatus } from '@/assets/utils/loading';
 import { getClaOrg } from './org';
 import { getAllOrg, loginByCode } from '@/api/get';
@@ -18,6 +18,8 @@ const orgOpts = ref([]);
 const requireCLA = ref(true);
 const hasCLA = ref(false);
 const hasEnterprise = ref(false);
+const claSignUrl = ref();
+const enterpriseJoinUrl = ref();
 const orgListLoading = ref(false);
 const loginForm = reactive({
   userName: '',
@@ -164,6 +166,18 @@ function selectOrg (value) {
   hasCLA.value = org.cla;
   hasEnterprise.value = org.enterprise;
   loginOrg.value = org.value;
+  claSignUrl.value = org.cla_sign_url ? org.cla_sign_url : undefined;
+  enterpriseJoinUrl.value = org.enterprise_join_url ? org.enterprise_join_url : undefined;
+}
+function handleClaSignClick() {
+  if (claSignUrl.value) {
+    openChildWindow(claSignUrl.value);
+  }
+}
+function handleEnterpriseJoinClick() {
+  if (enterpriseJoinUrl.value) {
+    openChildWindow(enterpriseJoinUrl.value);
+  }
 }
 
 export {
@@ -182,4 +196,6 @@ export {
   orgOpts,
   renderLabel,
   selectOrg,
+  handleClaSignClick,
+  handleEnterpriseJoinClick,
 };

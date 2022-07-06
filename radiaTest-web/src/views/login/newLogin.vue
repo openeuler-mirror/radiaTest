@@ -94,8 +94,16 @@
               >
                 <p style="display: flex; align-items: center">
                   <n-icon
+                    v-if="hasCLA"
                     size="20"
-                    :color="hasCLA ? 'rgba(0, 47, 167, 1)' : 'grey'"
+                    color="rgba(0, 47, 167, 1)"
+                  >
+                    <CheckmarkCircle />
+                  </n-icon>
+                  <n-icon
+                    v-else
+                    size="20"
+                    color="grey"
                   >
                     <CheckmarkCircleOutline />
                   </n-icon>
@@ -104,22 +112,36 @@
                   >
                     <n-tooltip trigger="hover" v-if="!hasCLA">
                       <template #trigger>
-                        <n-button text style="color: grey"> CLA </n-button>
+                        <n-button :disabled="true" text style="color: grey"> CLA </n-button>
                       </template>
                       尚未要求签署CLA
                     </n-tooltip>
                     <n-tooltip trigger="hover" v-else>
                       <template #trigger>
-                        <n-button text> CLA </n-button>
+                        <n-button 
+                          style="color: rgba(0, 47, 167, 1);"
+                          @click="handleClaSignClick" 
+                          text
+                        > 
+                          CLA 
+                        </n-button>
                       </template>
-                      此组织要求签署CLA
+                      此组织要求签署CLA，点击签署CLA
                     </n-tooltip>
                   </span>
                 </p>
                 <p style="display: flex; align-items: center">
                   <n-icon
+                    v-if="hasEnterprise"
                     size="20"
-                    :color="hasEnterprise ? 'rgba(0, 47, 167, 1)' : 'grey'"
+                    color="rgba(0, 47, 167, 1)"
+                  >
+                    <CheckmarkCircle />
+                  </n-icon>
+                  <n-icon
+                    v-else
+                    size="20"
+                    color="grey"
                   >
                     <CheckmarkCircleOutline />
                   </n-icon>
@@ -130,15 +152,21 @@
                   >
                     <n-tooltip trigger="hover" v-if="!hasEnterprise">
                       <template #trigger>
-                        <n-button text style="color: grey"> 企业仓 </n-button>
+                        <n-button :disabled="true" text style="color: grey"> 企业仓 </n-button>
                       </template>
                       尚未注册企业仓信息
                     </n-tooltip>
                     <n-tooltip trigger="hover" v-else>
                       <template #trigger>
-                        <n-button text> 企业仓 </n-button>
+                        <n-button 
+                          style="color: rgba(0, 47, 167, 1);" 
+                          @click="handleEnterpriseJoinClick" 
+                          text
+                        > 
+                          企业仓
+                        </n-button>
                       </template>
-                      此组织已注册企业仓信息
+                      此组织已注册企业仓信息, 点击申请加入企业仓
                     </n-tooltip>
                   </span>
                 </p>
@@ -318,7 +346,7 @@
 import config from '@/assets/config/settings';
 import { ref } from 'vue';
 import { modules } from './modules/index';
-import { CheckmarkCircleOutline } from '@vicons/ionicons5';
+import { CheckmarkCircle, CheckmarkCircleOutline } from '@vicons/ionicons5';
 import { useMessage } from 'naive-ui';
 import { User, Lock } from '@vicons/fa';
 import carousel from '@/components/carousel/carousel.vue';
@@ -327,6 +355,7 @@ export default {
     User,
     Lock,
     carousel,
+    CheckmarkCircle,
     CheckmarkCircleOutline,
   },
   mounted() {

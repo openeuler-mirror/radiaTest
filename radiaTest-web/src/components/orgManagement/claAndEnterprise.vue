@@ -30,7 +30,7 @@
       <n-table :single-line="false">
         <tbody>
           <tr>
-            <td>enterpriseID</td>
+            <td>Gitee企业仓ID</td>
             <td>{{ info.enterprise_id }}</td>
           </tr>
           <tr>
