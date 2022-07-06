@@ -188,6 +188,12 @@ def handler_login(gitee_token, org_id):
         ex=int(current_app.config.get("TOKEN_EXPIRES_TIME"))
     )
 
+    redis_client.hmset(
+        RedisKey.access_token(gitee_user.get("id")),
+        {"org_id": org_id},
+        ex=int(current_app.config.get("TOKEN_EXPIRES_TIME"))
+    )
+
     # 从数据库中获取用户信息
     user = User.query.filter_by(gitee_id=gitee_user.get("id")).first()
     # 判断用户是否存在
@@ -410,6 +416,7 @@ def handler_logout():
     redis_client.delete(RedisKey.user(g.gitee_id))
     redis_client.delete(RedisKey.token(g.gitee_id))
     redis_client.delete(RedisKey.token(g.token))
+    redis_client.delete(RedisKey.access_token(g.gitee_id))
     return jsonify(error_code=RET.OK, error_msg="OK")
 
 
