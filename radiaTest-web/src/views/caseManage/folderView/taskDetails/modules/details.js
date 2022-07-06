@@ -291,7 +291,7 @@ function updateDetail ({ data }) {
           ghost: true,
           onClick: () => {
             d.destroy();
-            getDetail(window.btoa(router.currentRoute.value.params.taskid));
+            getDetail(window.atob(router.currentRoute.value.params.taskid));
           }
         }, '取消'),
         h(NButton, {
@@ -304,7 +304,7 @@ function updateDetail ({ data }) {
                 ...getFormData(data),
                 title: caseReviewTitle.value,
                 description: caseReviewDescription.value,
-                case_detail_id: window.btoa(router.currentRoute.value.params.taskid),
+                case_detail_id: window.atob(router.currentRoute.value.params.taskid),
                 source: source.value,
                 case_mod_type: 'edit'
               }).then(() => d.destroy());
@@ -319,7 +319,7 @@ function updateDetail ({ data }) {
 }
 function cancelDetail () {
   if (router.currentRoute.value.params.taskid !== 'development') {
-    getDetail(window.btoa(router.currentRoute.value.params.taskid));
+    getDetail(window.atob(router.currentRoute.value.params.taskid));
   }
 }
 const editInfoValue = ref();
@@ -340,7 +340,7 @@ function editSubmit (formValue) {
     case_mod_type: 'edit'
   }).then(() => {
     modifyModal.value.close();
-    expandNode(window.btoa(router.currentRoute.value.params.taskid));
+    expandNode(window.atob(router.currentRoute.value.params.taskid));
   });
 }
 export {

@@ -72,6 +72,7 @@ class UpdateSchema(BaseModel):
     avatar_url: Optional[str]
 
     enterprise_id: Optional[int]
+    enterprise_join_url: Optional[str]
     oauth_client_id: Optional[str]
     oauth_client_secret: Optional[str]
     oauth_scope: Optional[str]

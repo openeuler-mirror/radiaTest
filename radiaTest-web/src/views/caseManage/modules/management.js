@@ -163,7 +163,7 @@ const recycleBinCaseColumns = [
 // 页面切换
 function menuClick(item, index) {
   menuSelect.value = index;
-  router.push(`/home/tcm/${item.name}`);
+  router.push({ name: item.name });
 }
 
 // tab名称

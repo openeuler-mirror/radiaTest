@@ -24,7 +24,7 @@ const detailsList = ref([
 const activeId = ref();
 function getData () {
   getCommitHistory(
-    window.btoa(router.currentRoute.value.params.taskid), 
+    window.atob(router.currentRoute.value.params.taskid), 
     {
       title: searchTitle.value,
       start_time: formatTime(timeRange.value[0],'yyyy-MM-dd hh:mm:ss'),
