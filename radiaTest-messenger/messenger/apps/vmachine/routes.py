@@ -9,6 +9,8 @@ from messenger.apps.vmachine.handlers import (
     DeviceManager,
     VmachineAsyncResultHandler,
     EditVmachine,
+    RequestWorkerParam,
+    MachineInfoParam
 )
 from messenger.utils.response_util import runtime_error_collect
 from messenger.schema.vmachine import (
@@ -28,19 +30,17 @@ class VmachineEventItem(Resource):
     @validate()
     def delete(self, vmachine_id, body: VmachineItemSchema):
         _body = body.__dict__
-        _body.update({"id":vmachine_id})
+        _body.update({"id": vmachine_id})
         auth = request.headers.get("authorization")
         return DeleteVmachine(auth, _body).run()
-
 
     @runtime_error_collect
     @validate()
     def put(self, vmachine_id, body: VmachineUpdateSchema):
         _body = body.__dict__
-        _body.update({"id":vmachine_id})
+        _body.update({"id": vmachine_id})
         auth = request.headers.get("authorization")
         return EditVmachine(auth, _body).work()
-
 
 
 class VmachineEvent(Resource):
@@ -80,13 +80,14 @@ class AttachDevice(Resource):
     def post(self, body: DeviceBaseSchema):
         _body = body.__dict__
         auth = request.headers.get("authorization")
-
-        return DeviceManager(
+        request_worker_param = RequestWorkerParam(
             auth,
-            _body, 
-            None, 
+            _body,
             "virtual/machine/attach"
-        ).attach()
+        )
+        machine_info_param = MachineInfoParam()
+
+        return DeviceManager(request_worker_param, machine_info_param).attach()
 
 
 class VnicEvent(Resource):
@@ -95,25 +96,27 @@ class VnicEvent(Resource):
     def post(self, body: VnicCreateSchema):
         _body = body.__dict__
         auth = request.headers.get("authorization")
-
-        return DeviceManager(
+        request_worker_param = RequestWorkerParam(
             auth,
-            _body, 
-            None, 
+            _body,
             "virtual/machine/vnic"
-        ).add("vnic")
+        )
+        machine_info_param = MachineInfoParam()
+
+        return DeviceManager(request_worker_param, machine_info_param).add("vnic")
 
     @validate()
     def delete(self, body: DeviceDeleteSchema):
         _body = body.__dict__
         auth = request.headers.get("authorization")
-
-        return DeviceManager(
+        request_worker_param = RequestWorkerParam(
             auth,
-            _body, 
-            None, 
+            _body,
             "virtual/machine/vnic"
-        ).delete("vnic")
+        )
+        machine_info_param = MachineInfoParam()
+
+        return DeviceManager(request_worker_param, machine_info_param).delete("vnic")
 
 
 class VdiskEvent(Resource):
@@ -121,23 +124,24 @@ class VdiskEvent(Resource):
     def post(self, body: VdiskCreateSchema):
         _body = body.__dict__
         auth = request.headers.get("authorization")
-
-        return DeviceManager(
+        request_worker_param = RequestWorkerParam(
             auth,
-            _body, 
-            None, 
+            _body,
             "virtual/machine/vdisk"
-        ).add("vdisk")
+        )
+        machine_info_param = MachineInfoParam()
+
+        return DeviceManager(request_worker_param, machine_info_param).add("vdisk")
 
     @validate()
     def delete(self, body: DeviceDeleteSchema):
         _body = body.__dict__
         auth = request.headers.get("authorization")
-
-        return DeviceManager(
+        request_worker_param = RequestWorkerParam(
             auth,
-            _body, 
-            None, 
+            _body,
             "virtual/machine/vdisk"
-        ).delete("vdisk")
+        )
+        machine_info_param = MachineInfoParam()
 
+        return DeviceManager(request_worker_param, machine_info_param).delete("vdisk")
