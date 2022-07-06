@@ -1,10 +1,10 @@
 import shlex
-from flask import current_app
 from subprocess import getstatusoutput
-from messenger.utils.pssh import ConnectionApi
+from datetime import datetime, timedelta
 from typing import Optional
+from flask import current_app
+from messenger.utils.pssh import ConnectionApi
 from pydantic import BaseModel, conint, constr, Field, validator, root_validator
-import datetime
 from messenger.schema import Power, Frame, PmachineState
 from messenger.utils.iptype_util import ip_type
 
@@ -22,6 +22,7 @@ class PmachinePowerSchema(BaseModel):
     status: Power
     pmachine: dict
 
+
 class PmachineBaseSchema(BaseModel):
     mac: constr(max_length=17)
     frame: Frame
@@ -32,8 +33,8 @@ class PmachineBaseSchema(BaseModel):
     user: Optional[constr(max_length=32)]
     port: Optional[int]
     password: Optional[constr(min_length=6, max_length=256)]
-    end_time: Optional[datetime.datetime]
-    start_time: Optional[datetime.datetime]
+    end_time: Optional[datetime]
+    start_time: Optional[datetime]
     listen: Optional[int]
     description: Optional[str]
     state: Optional[PmachineState]
@@ -65,6 +66,27 @@ class PmachineBaseSchema(BaseModel):
 
         v = output.split()[-1]
         return v
+
+
+class PmachineSshSchema(BaseModel):
+    id: str
+    ip: str
+    user: constr(max_length=32)
+    port: int
+    old_password: constr(min_length=6, max_length=256)
+    password: Optional[constr(min_length=6, max_length=256)]
+    random_flag:Optional[bool] = False
+
+
+class PmachineBmcSchema(PmachineBaseSchema):
+    mac: Optional[constr(max_length=17)]
+    frame: Optional[Frame]
+    id: str
+    port: int
+    bmc_ip: str
+    old_bmc_password: constr(min_length=6, max_length=256)
+    bmc_user: constr(max_length=32)
+    bmc_password: constr(min_length=6, max_length=256)
 
 
 class PmachineEventSchema(PmachineBaseSchema):

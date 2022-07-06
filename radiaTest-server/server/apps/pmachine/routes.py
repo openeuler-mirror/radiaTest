@@ -4,7 +4,7 @@
 import json
 import datetime
 
-from flask import request, jsonify, current_app, Response
+from flask import request, jsonify, current_app, Response, g
 from flask_restful import Resource
 import sqlalchemy
 from flask_pydantic import validate
@@ -12,7 +12,8 @@ from flask_pydantic import validate
 from server import casbin_enforcer
 from server.model import Pmachine, IMirroring, Vmachine
 from server.model.pmachine import MachineGroup
-from server.utils.db import Edit, Select, collect_sql_error
+from server.model.permission import ReScopeRole, Role, Scope
+from server.utils.db import Edit, Insert, collect_sql_error, Delete
 from server.utils.auth_util import auth
 from server.utils.response_util import response_collect, RET
 from server.utils.resource_utils import ResourceManager
@@ -29,6 +30,8 @@ from server.schema.pmachine import (
     HeartbeatUpdateSchema,
     PmachineDelaySchema,
     PmachineOccupySchema,
+    PmachineSshSchema,
+    PmachineBmcSchema,
 )
 from .handlers import PmachineHandler, PmachineMessenger, ResourcePoolHandler
 
@@ -49,6 +52,7 @@ class MachineGroupEvent(Resource):
     @validate()
     def get(self, query: MachineGroupQuerySchema):
         return ResourcePoolHandler.get_all(query)
+
 
 class MachineGroupItemEvent(Resource):
     @auth.login_required
@@ -164,13 +168,117 @@ class PmachineOccupyEvent(Resource):
                 error_code = RET.VERIFY_ERR,
                 error_msg = "Pmachine state has not been modified. Please check."
             )
+        
+        if not all((
+                pmachine.ip,
+                pmachine.user,
+                pmachine.password,
+                pmachine.port,
+            )):
+            return jsonify(
+                error_code = RET.VERIFY_ERR,
+                error_msg = "The pmachine lacks SSH parameters. Please add."
+            )
+
+        if g.gitee_id != pmachine.creator_id:
+            role = Role.query.filter_by(type='person', name=g.gitee_id).first()
+            scope_occupy = Scope.query.filter_by(
+                act='put',
+                uri='/api/v1/pmachine/{}/occupy'.format(pmachine_id),
+                eft='allow'
+            ).first()
+            scope_release = Scope.query.filter_by(
+                act='put',
+                uri='/api/v1/pmachine/{}/release'.format(pmachine_id),
+                eft='allow'
+            ).first()
+            scope_power = Scope.query.filter_by(
+                act='put',
+                uri='/api/v1/pmachine/{}/power'.format(pmachine_id),
+                eft='allow'
+            ).first()
+            scope_install = Scope.query.filter_by(
+                act='put',
+                uri='/api/v1/pmachine/{}/install'.format(pmachine_id),
+                eft='allow'
+            ).first()
+            scope_update = Scope.query.filter_by(
+                act='put',
+                uri='/api/v1/pmachine/{}'.format(pmachine_id),
+                eft='allow'
+            ).first()
+            scope_ssh = Scope.query.filter_by(
+                act='put',
+                uri='/api/v1/pmachine/{}/ssh'.format(pmachine_id),
+                eft='allow'
+            ).first()
+            if not all((
+                role,
+                scope_occupy,
+                scope_release,
+                scope_power,
+                scope_install,
+                scope_update,
+                scope_ssh,
+            )):
+                return jsonify(
+                    error_code = RET.NO_DATA_ERR,
+                    error_msg = "The policy info is invalid."
+                )
+            scope_occupy_role_data = {
+                "role_id": role.id,
+                "scope_id": scope_occupy.id
+            }
+            scope_release_role_data = {
+                "role_id": role.id,
+                "scope_id": scope_release.id
+            }
+            scope_power_role_data = {
+                "role_id": role.id,
+                "scope_id": scope_power.id
+            }
+            scope_install_role_data = {
+                "role_id": role.id,
+                "scope_id": scope_install.id
+            }
+            scope_update_role_data = {
+                "role_id": role.id,
+                "scope_id": scope_update.id
+            }
+            scope_ssh_role_data = {
+                "role_id": role.id,
+                "scope_id": scope_ssh.id
+            }
+            Insert(ReScopeRole, scope_release_role_data).single()
+            Insert(ReScopeRole, scope_occupy_role_data).single()
+            Insert(ReScopeRole, scope_power_role_data).single()
+            Insert(ReScopeRole, scope_install_role_data).single()
+            Insert(ReScopeRole, scope_update_role_data).single()
+            Insert(ReScopeRole, scope_ssh_role_data).single()
+   
         _body = body.__dict__
         _body.update({
             "id": pmachine_id,
             "state": "occupied",
         })
         
-        return Edit(Pmachine, _body).single(Pmachine, "/pmachine")    
+        Edit(Pmachine, _body).single(Pmachine, "/pmachine") 
+
+        # 修改随机密码
+        _body.update(
+            {
+                "id": pmachine.id,
+                "ip": pmachine.ip,
+                "user": pmachine.user,
+                "port": pmachine.port,
+                "old_password": pmachine.password,
+                "random_flag": True,
+            }
+        )      
+        return PmachineMessenger(_body).send_request(
+            pmachine.machine_group, 
+            "/api/v1/pmachine/ssh",
+        )   
 
 
 class PmachineReleaseEvent(Resource):
@@ -197,15 +305,97 @@ class PmachineReleaseEvent(Resource):
                     error_code = RET.NO_DATA_ERR,
                     error_msg = "Pmachine has vmmachine, can't released."
                 )
+
         if pmachine.state == "occupied":
             _body = {
-                    "description": "",
-                    "occupier": "",
+                    "description": sqlalchemy.null(),
+                    "occupier": sqlalchemy.null(),
                     "start_time": sqlalchemy.null(),
                     "end_time": sqlalchemy.null(),
                     "state": "idle",
-                    "listen": None,
+                    "listen": sqlalchemy.null(),
             }
+        # 删除权利
+        if g.gitee_id != pmachine.creator_id:
+            role = Role.query.filter_by(type='person', name=g.gitee_id).first()
+            scope_occupy = Scope.query.filter_by(
+                act='put',
+                uri='/api/v1/pmachine/{}/occupy'.format(pmachine_id),
+                eft='allow'
+                ).first()
+            _occupy = ReScopeRole.query.filter_by(
+                scope_id=scope_occupy.id, role_id=role.id).all()
+
+            scope_release = Scope.query.filter_by(
+                act='put',
+                uri='/api/v1/pmachine/{}/release'.format(pmachine_id),
+                eft='allow'
+                ).first()
+            _release = ReScopeRole.query.filter_by(
+                scope_id=scope_release.id, role_id=role.id).all()
+
+            scope_install = Scope.query.filter_by(
+                act='put',
+                uri='/api/v1/pmachine/{}/install'.format(pmachine_id),
+                eft='allow'           
+            ).first()
+            _install = ReScopeRole.query.filter_by(
+                scope_id=scope_install.id, role_id=role.id).all()
+
+            scope_power = Scope.query.filter_by(
+                act='put',
+                uri='/api/v1/pmachine/{}/power'.format(pmachine_id),
+                eft='allow'
+            ).first()
+            _power = ReScopeRole.query.filter_by(
+                scope_id=scope_power.id, role_id=role.id).all()
+
+            scope_update = Scope.query.filter_by(
+                act='put',
+                uri='/api/v1/pmachine/{}'.format(pmachine_id),
+                eft='allow'
+            ).first()
+            _update = ReScopeRole.query.filter_by(
+                scope_id=scope_update.id, role_id=role.id).all()
+
+            scope_ssh = Scope.query.filter_by(
+                act='put',
+                uri='/api/v1/pmachine/{}/ssh'.format(pmachine_id),
+                eft='allow'
+            ).first()
+            _ssh = ReScopeRole.query.filter_by(
+                scope_id=scope_ssh.id, role_id=role.id).all()
+
+            if not all((
+                scope_occupy,
+                _occupy,
+                scope_release,
+                _release,
+                scope_power,
+                _power,
+                scope_install,
+                _install,
+                scope_update,
+                _update,
+                scope_ssh,
+                _ssh
+            )):
+                return jsonify(
+                    error_code = RET.NO_DATA_ERR,
+                    error_msg = "The policy info is invalid."
+                )
+            for occ in _occupy:
+                Delete(ReScopeRole, {"id": occ.id}).single()
+            for rea in _release:
+                Delete(ReScopeRole, {"id": rea.id}).single()
+            for ins in _install:
+                Delete(ReScopeRole, {"id": ins.id}).single()
+            for poe in _power:
+                Delete(ReScopeRole, {"id": poe.id}).single()
+            for upd in _update:
+                Delete(ReScopeRole, {"id": upd.id}).single()
+            for ssh in _ssh:
+                Delete(ReScopeRole, {"id": ssh.id}).single()
 
         _body.update({"id": pmachine_id})
 
@@ -268,6 +458,38 @@ class PmachineBmcEvent(Resource):
         )
 
 
+    @auth.login_required
+    @response_collect
+    @validate()
+    @casbin_enforcer.enforcer
+    def put(self, pmachine_id, body: PmachineBmcSchema):
+        pmachine = Pmachine.query.filter_by(id=pmachine_id).first()
+        if not pmachine:
+            return jsonify(
+                error_code=RET.VERIFY_ERR,
+                error_msg="The pmachine does not exist."
+            )
+        if body.bmc_password == pmachine.bmc_password:
+            return jsonify(
+                error_code=RET.VERIFY_ERR,
+                error_msg="The bmc_password of pmachine does not modify."
+            )
+        _body = body.__dict__
+        _body.update(
+            {
+                "id": pmachine_id,
+                "bmc_ip": pmachine.bmc_ip,
+                "bmc_user": pmachine.bmc_user,
+                "port": pmachine.port,
+                "old_bmc_password": pmachine.bmc_password,
+            }
+        )      
+        return PmachineMessenger(_body).send_request(
+            pmachine.machine_group, 
+            "/api/v1/pmachine/bmc",
+        )
+
+
 class PmachineSshEvent(Resource):
     @auth.login_required
     @response_collect
@@ -283,6 +505,38 @@ class PmachineSshEvent(Resource):
             error_code=RET.OK,
             error_msg="OK",
             data=pmachine.to_ssh_json()
+        )
+
+
+    @auth.login_required
+    @response_collect
+    @validate()
+    @casbin_enforcer.enforcer
+    def put(self, pmachine_id, body: PmachineSshSchema):
+        pmachine = Pmachine.query.filter_by(id=pmachine_id).first()
+        if not pmachine:
+            return jsonify(
+                error_code=RET.VERIFY_ERR,
+                error_msg="The pmachine does not exist."
+            )
+        if body.password == pmachine.password:
+            return jsonify(
+                error_code=RET.VERIFY_ERR,
+                error_msg="The password of pmachine does not modify."
+            )
+        _body = body.__dict__
+        _body.update(
+            {
+                "id": pmachine.id,
+                "ip": pmachine.ip,
+                "user": pmachine.user,
+                "port": pmachine.port,
+                "old_password": pmachine.password,
+            }
+        )      
+        return PmachineMessenger(_body).send_request(
+            pmachine.machine_group, 
+            "/api/v1/pmachine/ssh",
         )
 
 

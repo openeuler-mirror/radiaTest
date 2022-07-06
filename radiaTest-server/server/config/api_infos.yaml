@@ -46,6 +46,14 @@
   act: put
   alias: 释放Pmachine
   table: pmachine
+- uri: /api/v1/pmachine/%d/ssh
+  act: put
+  alias: 修改Pmachine的ssh密码
+  table: pmachine
+- uri: /api/v1/pmachine/%d/bmc
+  act: put
+  alias: 修改Pmachine的bmc密码
+  table: pmachine
 - uri: /api/v1/machine-group/%d
   act: delete
   alias: 删除Machine_Group

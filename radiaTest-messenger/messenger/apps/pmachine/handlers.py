@@ -1,17 +1,22 @@
 from copy import deepcopy
 import json
-
+import secrets
+import string
 from flask import current_app, jsonify
 from subprocess import getstatusoutput
 from messenger.utils.response_util import RET
-from messenger.utils.shell import ShellCmd
+from messenger.utils.shell import ShellCmdApi
 from messenger.utils.bash import (
     pxe_boot,
     power_on_off,
+    pmachine_reset_password,
+    get_bmc_user_id,
+    reset_bmc_user_passwd,
 )
 from messenger.utils.pxe import PxeInstall, CheckInstall
 from messenger.utils.response_util import RET
 from messenger.utils.requests_util import update_request
+from messenger.utils.pssh import ConnectionApi
 
 
 class AutoInstall:
@@ -53,13 +58,13 @@ class AutoInstall:
         if isinstance(result, tuple):
             return result
 
-        exitcode, output = ShellCmd(
+        exitcode, output = ShellCmdApi(
             pxe_boot(
                 self.pmachine["bmc_ip"],
                 self.pmachine["bmc_user"],
                 self.pmachine["bmc_password"],
             )
-        )._exec()
+        ).exec()
 
         if exitcode:
             error_msg = (
@@ -92,14 +97,14 @@ class OnOff:
         self.pmachine = body.get("pmachine")
 
     def on_off(self):
-        exitcode, output = ShellCmd(
+        exitcode, output = ShellCmdApi(
             power_on_off(
                 self.pmachine["bmc_ip"],
                 self.pmachine["bmc_user"],
                 self.pmachine["bmc_password"],
                 self._body.get("status"),
             )
-        )._exec()
+        ).exec()
 
         if exitcode:
             return jsonify(error_code=exitcode, error_msg=output)
@@ -117,6 +122,106 @@ class OnOff:
             ),
             {
                 "status":output.split()[-1]
+            },
+            self._body.get("auth")
+        )
+
+
+class PmachineSshPassword:
+    def __init__(self, body) -> None:
+        self._body = body
+
+    def reset_password(self):
+        if self._body.get("random_flag"):
+            random_password = "".join([secrets.choice
+            (string.ascii_letters + string.digits) for _ in range(10)])
+
+        new_password = random_password if self._body.get("random_flag") \
+                    else self._body.get("password")
+        ssh = ConnectionApi(
+            ip=self._body.get("ip"),
+            port=self._body.get("port"),
+            user=self._body.get("user"),
+            passwd=self._body.get("old_password"),
+        )
+        conn = ssh.conn()
+        if not conn:
+            return jsonify(
+                {
+                    "error_code": RET.VERIFY_ERR,
+                    "error_msg": "Failed to connect to physical machine.",
+                }
+            )
+
+        exitcode, output = ShellCmdApi(
+            pmachine_reset_password(
+                self._body.get("user"),
+                new_password,
+            ), conn
+        ).exec()
+
+        if exitcode:
+            return jsonify(
+                error_code=exitcode,
+                error_msg=output)
+
+        return update_request(
+            "/api/v1/pmachine/{}".format(self._body.get("id")),
+            {
+                "password": new_password,
+            },
+            self._body.get("auth")
+        )
+
+
+class PmachineBmcPassword:
+    def __init__(self, body) -> None:
+        self._body = body
+
+
+    def reset_bmc_password(self):
+        ssh = ConnectionApi(
+            ip=self._body.get("ip"),
+            port=self._body.get("port"),
+            user=self._body.get("bmc_user"),
+            passwd=self._body.get("old_bmc_password"),
+        )
+        conn = ssh.conn()
+        if not conn:
+            return jsonify(
+                {
+                    "error_code": RET.VERIFY_ERR,
+                    "error_msg": "Failed to connect to physical machine.",
+                }
+            )
+
+        exitcode, output = ShellCmdApi(
+            get_bmc_user_id(
+                self._body.get("bmc_user"),
+            ), conn
+        ).exec()
+
+        if exitcode:
+            return jsonify(
+                error_code=exitcode,
+                error_msg=output)
+
+        exitcode, output = ShellCmdApi(
+            reset_bmc_user_passwd(
+                output,
+                self._body.get("bmc_password"),
+            ), conn
+        ).exec()
+
+        if exitcode:
+            return jsonify(
+                error_code=exitcode,
+                error_msg=output)
+
+        return update_request(
+            "/api/v1/pmachine/{}".format(self._body.get("id")),
+            {
+                "bmc_password": self._body.get("bmc_password"),
             },
             self._body.get("auth")
         )
