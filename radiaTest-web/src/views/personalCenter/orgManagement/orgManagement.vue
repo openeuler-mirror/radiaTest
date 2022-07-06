@@ -142,7 +142,6 @@
             <n-input
               v-model:value="registerModel.enterprise_join_url"
               placeholder="若存在公开加入申请链接可填, URL必须存在协议头http或https"
-              :maxlength="50"
             ></n-input>
           </n-form-item>
           <n-form-item

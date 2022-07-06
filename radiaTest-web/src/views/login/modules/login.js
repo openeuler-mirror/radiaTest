@@ -172,11 +172,15 @@ function selectOrg (value) {
 function handleClaSignClick() {
   if (claSignUrl.value) {
     openChildWindow(claSignUrl.value);
+  } else {
+    window.message?.error('该组织CLA签署地址已缺失');
   }
 }
 function handleEnterpriseJoinClick() {
   if (enterpriseJoinUrl.value) {
     openChildWindow(enterpriseJoinUrl.value);
+  } else {
+    window.message?.info('该组织没有公开的企业仓加入指引/入口');
   }
 }
 
