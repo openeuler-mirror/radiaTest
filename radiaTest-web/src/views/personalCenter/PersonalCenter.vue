@@ -70,7 +70,7 @@ export default defineComponent({
   watch: {
     $route(newUrl) {
       this.menuOptions.forEach(item => {
-        if (newUrl.path.indexOf(item.key) !== -1) {
+        if (newUrl.name.indexOf(item.key) !== -1) {
           this.menuValue = item.key;
         }
       });
