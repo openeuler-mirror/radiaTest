@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field, constr, root_validator, validator
 from server.model import Product, Milestone
 from server.utils.db import Precise
 from server.schema import MilestoneType, MilestoneState, MilestoneStateEvent
-from server.schema.base import TimeBaseSchema, PermissionBase
+from server.schema.base import TimeBaseSchema, PermissionBase, UpdateBaseModel
 
 
 class MilestoneBaseSchema(BaseModel):
@@ -25,10 +25,37 @@ class MilestoneQuerySchema(MilestoneBaseSchema):
     page_size: int = 10
 
 
-class MilestoneUpdateSchema(TimeBaseSchema):
-    description: Optional[constr(max_length=255)]
+class MilestoneUpdateSchema(UpdateBaseModel, TimeBaseSchema):
     name: Optional[constr(max_length=64)]
     state_event: Optional[MilestoneStateEvent]
+
+    @root_validator
+    def check_values(cls, values):
+        cur_milestone = Milestone.query.filter_by(id=values.get("id")).first()
+        if not cur_milestone:
+            raise ValueError("The milestone doesn't existed.")
+        start_time = cur_milestone.start_time.strftime("%Y-%m-%d")
+        end_time = cur_milestone.end_time.strftime("%Y-%m-%d")
+        if values.get("start_time"):
+            start_time = values.get("start_time").strftime("%Y-%m-%d")
+        if values.get("end_time"):
+            end_time = values.get("end_time").strftime("%Y-%m-%d")
+        
+        if start_time >= end_time:
+            raise ValueError("end_time is earlier than start_time.")
+        milestone = Milestone.query.filter(
+            Milestone.product_id == cur_milestone.product_id,
+            Milestone.type == cur_milestone.type,
+            Milestone.id != values.get("id")
+        ).order_by(Milestone.end_time.desc()).first()
+        if milestone and start_time <= milestone.end_time.strftime("%Y-%m-%d"):
+            raise ValueError("start_time of modifying milestone is earlier than end_time of milestone existed.")
+        if not values.get("name"):
+            return values
+        milestone = Precise(Milestone, {"name": values.get("name")}).first()
+        if milestone and milestone.id != values.get("id"):
+            raise ValueError("The milestone has existed.")
+        return values
     
 
 class MilestoneCreateSchema(MilestoneBaseSchema, PermissionBase):
@@ -40,24 +67,20 @@ class MilestoneCreateSchema(MilestoneBaseSchema, PermissionBase):
 
     @root_validator
     def assign_name(cls, values):
+        product = Precise(Product, {"id": values.get("product_id")}).first()
+        if not product:
+            raise ValueError("The bound product version does not exist.")
+        if values.get("start_time") >= values.get("end_time"):
+            raise ValueError("end_time is earlier than start_time.")
+        milestone = Milestone.query.filter_by(
+            product_id=values.get("product_id"),
+            type=values.get("type")
+        ).order_by(Milestone.end_time.desc()).first()
+        if milestone and values.get("start_time") <= milestone.end_time.strftime("%Y-%m-%d"):
+            raise ValueError("start_time of new milestone is earlier than end_time of milestone existed.")
         if not values.get("name"):
-            try:
-                if not values.get("product_id"):
-                    milestone = Precise(Milestone, {"id": values.get("id")}).first()
-                    if not milestone:
-                        raise ValueError("The milestone no longer exists.")
-                    product = milestone.product
-                    milestone_type = milestone.type
-                else:
-                    milestone_type = values.get("type")
-                    product = Precise(Product, {"id": values.get("product_id")}).first()
-                    if not product:
-                        raise ValueError("The bound product version does not exist.")
-            except RuntimeError as e:
-                raise RuntimeError(e)
-
+            milestone_type = values.get("type")
             prefix = product.name + " " + product.version
-
             if milestone_type == "update":
                 values["name"] = (
                     prefix + " update_" + datetime.now().strftime("%Y%m%d")
@@ -68,7 +91,7 @@ class MilestoneCreateSchema(MilestoneBaseSchema, PermissionBase):
                     Milestone.query.filter(
                         Milestone.name.op("regexp")(prefix + "[1-9]*")
                     )
-                    .order_by(Milestone.name.desc(), Milestone.id.asc())
+                    .order_by(Milestone.name.desc())
                     .first()
                 )
                 if not _max_round:
@@ -78,10 +101,9 @@ class MilestoneCreateSchema(MilestoneBaseSchema, PermissionBase):
                 values["name"] = prefix + _max_round
             elif milestone_type == "release":
                 values["name"] = prefix + " release"
-            milestone = Precise(Milestone, {"name": values.get("name")}).first()
-            if milestone:
-                raise ValueError("The milestone has existed.")
-
+        milestone = Precise(Milestone, {"name": values.get("name")}).first()
+        if milestone:
+            raise ValueError("The milestone  %s has existed." % values.get("name")) 
         return values
 
 
