@@ -18,7 +18,7 @@
       "class": "logging.StreamHandler",
       "level": "WARNING",
       "formatter": "brief",
-      "stream": "ext://flask.logging.wsgi_errors_stream"
+      "stream": "ext://sys.stdout"
     },
     "debug.file.handler.timed": {
       "class": "logging.handlers.TimedRotatingFileHandler",

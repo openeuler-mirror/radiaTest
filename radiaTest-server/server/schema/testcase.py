@@ -27,16 +27,16 @@ class CaseNodeBodySchema(BaseModel):
     def validate_suite(cls, values):
         if values["parent_id"]:
             values["is_root"] = False
-            if values["milestone_id"]:
-                raise ValueError("current case_node can not relate to Milestone")
+            if values["in_set"] is True and values["milestone_id"]:
+                raise ValueError("the case set can not relate to any milestone")
         else:
-            if not values["milestone_id"]:
-                raise ValueError("current case_node need milestone")
+            if values["in_set"] is False and not values["milestone_id"]:
+                raise ValueError("the testing strategy needs relating to milestone")
 
-        if values["is_root"] and values["in_set"]:
+        if values["is_root"] is True and values["in_set"] is True:
             values["title"] = "用例集"
 
-        if not values["in_set"] and values["title"] == "用例集":
+        if values["in_set"] is False and values["title"] == "用例集":
             raise ValueError("title is not valid for this type of node")
 
         if values["type"] == 'suite':
