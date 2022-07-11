@@ -186,7 +186,7 @@ const menu = ref([
 ]);
 
 const isTabActive = (name) => {
-  return router.currentRoute.value.path.indexOf(name) !== -1;
+  return router.currentRoute.value.name === name;
 };
 
 function showRecycleBin() {
