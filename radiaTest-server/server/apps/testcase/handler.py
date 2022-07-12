@@ -178,7 +178,6 @@ class CaseNodeHandler:
     @collect_sql_error
     def get(case_node_id, query):
         case_node = GetAllByPermission(CaseNode).single({"id": case_node_id})
-
         if not case_node:
             return jsonify(error_code=RET.NO_DATA_ERR, error_msg="case_node is not exists")
 
@@ -196,14 +195,13 @@ class CaseNodeHandler:
 
         children = CaseNode.query.filter(*filter_params).all()
 
-        case_node_info = CaseNodeHandler.get_case_node_process(case_node)
-        return_data["process"] = case_node_info["progress"]
+        # case_node_info = CaseNodeHandler.get_case_node_process(case_node)
+        # return_data["process"] = case_node_info["progress"]
 
         return_data["children"] = [child.to_json() for child in children]
 
         source = list()
         cur = case_node
-
         while cur:
             if not cur.parent.all():
                 source.append(cur.id)
@@ -216,7 +214,6 @@ class CaseNodeHandler:
             cur = cur.parent[0]
 
         return_data["source"] = source
-
         if case_node.type == 'case' and source:
             case_result = CaseNodeHandler.get_case_result(case_node.case_id, source[1])
             return_data["result"] = case_result

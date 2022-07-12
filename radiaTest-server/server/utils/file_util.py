@@ -137,7 +137,7 @@ class ZipImportFile(ImportFile):
                 according = True
 
         new_path = os.path.join(dest_dir, new_name)
-        if os.path.isdir(new_path):
+        if not according and os.path.isdir(new_path):
             rmtree(new_path)
 
         move(
