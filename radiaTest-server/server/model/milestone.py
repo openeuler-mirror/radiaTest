@@ -32,6 +32,9 @@ class Milestone(BaseModel, PermissionBaseModel, db.Model):
         "Template", backref="milestone", cascade="all, delete, delete-orphan"
     )
     tasks = db.relationship('TaskMilestone', backref='milestone')
+    issue_solved_rate = db.relationship(
+        "IssueSolvedRate", backref="milestone", cascade="all, delete, delete-orphan"
+    )
 
     jobs = db.relationship('Job', backref='milestone')
     creator_id = db.Column(db.Integer(), db.ForeignKey("user.gitee_id"))
@@ -80,3 +83,35 @@ class Milestone(BaseModel, PermissionBaseModel, db.Model):
             "org_id": self.org_id
         }
 
+
+class IssueSolvedRate(BaseModel, db.Model):
+    __tablename__ = "issue_solved_rate"
+
+    id = db.Column(db.Integer(), primary_key=True)
+    serious_solved_rate = db.Column(db.String(6), nullable=True)
+    main_solved_rate = db.Column(db.String(6), nullable=True)
+    serious_main_solved_cnt = db.Column(db.Integer(), nullable=False)
+    serious_main_all_cnt = db.Column(db.Integer(), nullable=False)
+    serious_main_solved_rate = db.Column(db.String(6), nullable=True)
+    current_solved_cnt = db.Column(db.Integer(), nullable=False)
+    current_all_cnt = db.Column(db.Integer(), nullable=False)
+    current_solved_rate = db.Column(db.String(6), nullable=True)
+    left_issues_cnt = db.Column(db.Integer(), nullable=False)
+    milestone_id = db.Column(
+        db.Integer(), db.ForeignKey("milestone.id"), nullable=False
+    )
+
+    def to_json(self):
+        return {
+            "id": self.id,
+            "serious_solved_rate": self.serious_solved_rate,
+            "main_solved_rate": self.main_solved_rate,
+            "serious_main_solved_cnt": self.serious_main_solved_cnt,
+            "serious_main_all_cnt": self.serious_main_all_cnt,
+            "serious_main_solved_rate": self.serious_main_solved_rate,
+            "current_solved_cnt": self.current_solved_cnt,
+            "current_all_cnt": self.current_all_cnt,
+            "current_solved_rate": self.current_solved_rate,
+            "left_issues_cnt": self.left_issues_cnt,
+            "milestone_id": self.milestone_id
+        }

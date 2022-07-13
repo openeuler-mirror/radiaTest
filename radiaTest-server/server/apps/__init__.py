@@ -19,6 +19,7 @@ from . import external
 from . import framework
 from . import permission
 from . import celerytask
+from . import qualityboard
 
 
 def init_api(app: Flask):
@@ -42,3 +43,4 @@ def init_api(app: Flask):
     framework.init_api(api)
     permission.init_api(api)
     celerytask.init_api(api)
+    qualityboard.init_api(api)
