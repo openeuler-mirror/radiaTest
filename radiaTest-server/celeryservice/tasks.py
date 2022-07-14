@@ -7,9 +7,9 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 ####################################
-# @Author  : 
-# @email   : 
-# @Date    : 
+# @Author  :
+# @email   :
+# @Date    :
 # @License : Mulan PSL v2
 
 
@@ -32,7 +32,7 @@ from server.utils.db import Insert
 from server import db
 from celeryservice import celeryconfig
 from celeryservice.lib.repo.handler import RepoTaskHandler
-from celeryservice.lib.monitor import LifecycleMonitor
+from celeryservice.lib.monitor import LifecycleMonitor, UpdateIssueRate
 from celeryservice.lib.testcase import TestcaseHandler
 
 
@@ -40,14 +40,11 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(BASE_DIR)
 
 
-logger = get_task_logger('manage')
+logger = get_task_logger("manage")
 socketio = SocketIO(message_queue=celeryconfig.socketio_pubsub)
 
 # 建立redis backend连接池子
-pool = redis.ConnectionPool.from_url(
-    celeryconfig.result_backend, 
-    decode_responses=True
-)
+pool = redis.ConnectionPool.from_url(celeryconfig.result_backend, decode_responses=True)
 
 
 @task_postrun.connect
@@ -61,10 +58,15 @@ def setup_periodic_tasks(sender, **kwargs):
         10.0, async_update_celerytask_status.s(), name="update_celerytask_status"
     )
     sender.add_periodic_task(
-        crontab(minute='*/30'), async_check_machine_lifecycle.s(), name="check_machine_lifecycle"
+        crontab(minute="*/30"),
+        async_check_machine_lifecycle.s(),
+        name="check_machine_lifecycle",
     )
     sender.add_periodic_task(
-        crontab(minute='*/60'), async_read_git_repo.s(), name="read_git_repo"
+        crontab(minute="*/60"), async_read_git_repo.s(), name="read_git_repo"
+    )
+    sender.add_periodic_task(
+        crontab(minute="*/30"), async_update_issue_rate.s(), name="update_issue_rate"
     )
 
 
@@ -106,6 +108,11 @@ def async_check_machine_lifecycle():
     LifecycleMonitor(logger).main()
 
 
+@celery.task
+def async_update_issue_rate():
+    UpdateIssueRate(logger).main()
+
+
 @celery.task(bind=True)
 def load_scripts(self, id, name, url, template_name):
     RepoTaskHandler(logger, self).main(id, name, url, template_name)
@@ -139,8 +146,7 @@ def async_read_git_repo():
                     "description": f"from {repo.git_url}",
                 }
 
-                _ = Insert(CeleryTask, celerytask).single(
-                    CeleryTask, '/celerytask')
+                _ = Insert(CeleryTask, celerytask).single(CeleryTask, "/celerytask")
 
 
 @celery.task(bind=True)
