@@ -18,24 +18,22 @@ module.exports = {
   },
   productionSourceMap: false,
   devServer: {
-    host: '0.0.0.0',
-    port: 21500,
+    host: '172.168.88.197',
+    // host: '0.0.0.0',
+    port: 8082,
     open: true,
-    https: {
-      minVersion: 'TLSv1.1',
-      key: '/etc/radiaTest/server_ssl/server.key',
-      cert: '/etc/radiaTest/server_ssl/certs/server.crt'
-    },
     hot: false,
     compress: true,
     proxy: {
       '/api': {
-        target: 'http://0.0.0.0:21500/',
+        target: 'http://123.60.114.22:1457/',
+        // target: 'http://0.0.0.0:21500/',
         changeOrigin: true,
         secure: false,
       },
       '/static': {
-        target: 'http://0.0.0.0:21500/',
+        target: 'http://123.60.114.22:1457/',
+        // target: 'http://0.0.0.0:21500/',
         changeOrigin: true,
         secure: false,
       }

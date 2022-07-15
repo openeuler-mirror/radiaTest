@@ -23,6 +23,7 @@ export default {
   height:100%;
   .anchor{
     flex-shrink: 0;
+    width: 23%;
   }
 }
 </style>

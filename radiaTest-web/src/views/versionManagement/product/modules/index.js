@@ -4,5 +4,5 @@ import * as productDetailDrawer from './productDetailDrawer';
 export const modules = {
   ...filter,
   ...productTable,
-  ...productDetailDrawer
+  ...productDetailDrawer,
 };

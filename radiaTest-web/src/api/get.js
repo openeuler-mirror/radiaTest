@@ -110,6 +110,15 @@ export function getExtendRole (data) {
 export function getMilestoneTask (milestoneId, data) {
   return getRequest(`/v1/milestone/${milestoneId}/tasks`, data);
 }
+export function getMilestone (productId, data) {
+  return getRequest(`/v1/milestone/preciseget?product_id=${productId}`, data);
+}
+export function getProductMessage (productId, data) {
+  return getRequest(`/v1/qualityboard?product_id=${productId}`, data);
+}
+export function getMilestoneRate (milestoneId, data) {
+  return getRequest(`/v2/issues/statistics/milestone/${milestoneId}?is_live=False`, data);
+}
 export function getMachineGroupDetails (id, data) {
   return getRequest(`/v1/machine-group/${id}`, data);
 }
