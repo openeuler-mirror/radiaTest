@@ -3,11 +3,15 @@ from typing import Optional, List
 
 from pydantic import BaseModel, constr, validator
 
-from messenger.schema import Frame, MachinePolicy
+from messenger.schema import Frame, MachinePolicy, PermissionType
 
 
 class AuthBaseModel(BaseModel):
     user_id: Optional[int]
+    creator_id: int
+    permission_type: PermissionType
+    group_id: Optional[int] = None
+    org_id: int
 
 
 class JobCreateSchema(BaseModel):
@@ -28,6 +32,7 @@ class JobCreateSchema(BaseModel):
     milestone_id: Optional[int]
     tid: Optional[str]
 
+    @classmethod
     @validator("master")
     def change_master_format(cls, v):
         return ','.join(v)
@@ -51,22 +56,24 @@ class JobUpdateSchema(AuthBaseModel):
     milestone_id: Optional[int]
     tid: Optional[str]
 
+    @classmethod
     @validator("start_time")
     def check_start_time(cls, v):
         try:
             if v:
                 v = datetime.strptime(v, "%Y-%m-%d %H:%M:%S")
-        except:
+        except ValueError:
             v = datetime.strptime(v, "%Y-%m-%d")
         
         return v
 
+    @classmethod
     @validator("end_time")
     def check_end_time(cls, v):
         try:
             if v:
                 v = datetime.strptime(v, "%Y-%m-%d %H:%M:%S")
-        except:
+        except ValueError:
             v = datetime.strptime(v, "%Y-%m-%d")
         
         return v
