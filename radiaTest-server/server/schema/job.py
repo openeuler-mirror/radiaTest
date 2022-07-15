@@ -1,10 +1,11 @@
 import datetime
 from typing import Optional, List
+import pytz
 
 from pydantic import BaseModel, HttpUrl, constr, root_validator, validator
 
 from server.schema import Frame, JobDefaultStates, JobSortedBy, MachinePolicy
-from server.schema.base import PageBaseSchema, TimeBaseSchema
+from server.schema.base import PageBaseSchema, TimeBaseSchema, PermissionBase
 from server.utils.db import Precise
 from server.model import Milestone
 
@@ -31,13 +32,14 @@ class JobCreateSchema(JobUpdateSchema):
     is_suite_job: bool
 
 
-class RunJobBase(BaseModel):
+class RunJobBase(PermissionBase):
     frame: Frame
     pmachine_list: Optional[List[int]] = []
     vmachine_list: Optional[List[int]] = []
     machine_policy: MachinePolicy
     machine_group_id: int
 
+    @classmethod
     @validator("machine_policy")
     def validate_policy(cls, v, values):
         if v == "auto" and (values["pmachine_list"] or values["vmachine_list"]):
@@ -53,13 +55,14 @@ class RunTemplateBase(RunJobBase):
     name: Optional[str]
     taskmilestone_id: Optional[int]
 
+    @classmethod
     @root_validator
     def assignment(cls, values):
         if not values.get("name"):
             values["name"] = "Job-%s-%s-%s" % (
                 values["template_name"].replace(" ", "-"),
                 values.get("frame"),
-                datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S"),
+                datetime.datetime.now(pytz.timezone('Asia/Shanghai')).strftime("%Y-%m-%d-%H-%M-%S"),
             )
         else:
             values["name"] = values["name"].replace(" ", "-")
@@ -73,6 +76,7 @@ class RunSuiteBase(RunJobBase):
     suite_id: int
     milestone_id: int
 
+    @classmethod
     @root_validator
     def assignment(cls, values):
         if not values.get("name"):
@@ -82,7 +86,7 @@ class RunSuiteBase(RunJobBase):
             values["name"] = "Job-%s-%s-%s" % (
                 milestone.name.replace(" ", "-"),
                 values.get("frame"),
-                datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S"),
+                datetime.datetime.now(pytz.timezone('Asia/Shanghai')).strftime("%Y-%m-%d-%H-%M-%S"),
             )
         return values
 
