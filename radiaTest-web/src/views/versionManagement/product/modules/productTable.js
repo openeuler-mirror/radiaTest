@@ -49,7 +49,7 @@ function getTableData () {
 }
 function getProductData (id) {
   tableLoading.value = true;
-  createProductMessage(id).then(res => {
+  createProductMessage(id).then(() => {
     tableLoading.value = false;
   }).catch(() => {
     tableLoading.value = false;
