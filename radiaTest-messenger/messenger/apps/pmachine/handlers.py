@@ -157,7 +157,7 @@ class PmachineSshPassword:
             pmachine_reset_password(
                 self._body.get("user"),
                 new_password,
-            ), conn
+            ), ssh
         ).exec()
 
         if exitcode:
@@ -198,7 +198,7 @@ class PmachineBmcPassword:
         exitcode, output = ShellCmdApi(
             get_bmc_user_id(
                 self._body.get("bmc_user"),
-            ), conn
+            ), ssh
         ).exec()
 
         if exitcode:
@@ -210,7 +210,7 @@ class PmachineBmcPassword:
             reset_bmc_user_passwd(
                 output,
                 self._body.get("bmc_password"),
-            ), conn
+            ), ssh
         ).exec()
 
         if exitcode:
