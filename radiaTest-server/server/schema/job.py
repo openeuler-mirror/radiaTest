@@ -39,7 +39,6 @@ class RunJobBase(PermissionBase):
     machine_policy: MachinePolicy
     machine_group_id: int
 
-    @classmethod
     @validator("machine_policy")
     def validate_policy(cls, v, values):
         if v == "auto" and (values["pmachine_list"] or values["vmachine_list"]):
@@ -55,7 +54,6 @@ class RunTemplateBase(RunJobBase):
     name: Optional[str]
     taskmilestone_id: Optional[int]
 
-    @classmethod
     @root_validator
     def assignment(cls, values):
         if not values.get("name"):
@@ -76,7 +74,6 @@ class RunSuiteBase(RunJobBase):
     suite_id: int
     milestone_id: int
 
-    @classmethod
     @root_validator
     def assignment(cls, values):
         if not values.get("name"):
