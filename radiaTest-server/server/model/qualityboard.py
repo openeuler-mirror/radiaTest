@@ -7,7 +7,7 @@ from server.model.milestone import IssueSolvedRate, Milestone
 
 class QualityBoard(BaseModel, db.Model):
     __tablename__ = "qualityboard"
-
+    id = db.Column(db.Integer(), primary_key=True)
     iteration_version = db.Column(db.String(256), nullable=True)
     product_id = db.Column(db.Integer(), db.ForeignKey("product.id"), nullable=True)
 
