@@ -1,8 +1,10 @@
+import json
+import string
+import random
 from flask import request
 from flask.json import jsonify
 from flask_restful import Resource
 from flask_pydantic import validate
-
 from server import casbin_enforcer
 from server.apps.vmachine.handlers import (
     VmachineHandler,
@@ -31,6 +33,7 @@ from server.schema.vmachine import (
     VnicCreateSchema,
     VmachineIpaddrSchema,
     VmachineItemUpdateSchema,
+    VmachineBatchCreateSchema,
 )
 from server.utils.auth_util import auth
 from server.utils.db import Delete, Edit, Like, Select, Insert
@@ -100,6 +103,11 @@ class VmachineBatchDelayEvent(Resource):
 
 
 class VmachineEvent(Resource):
+    def __init__(self, body=None) -> None:
+        super().__init__()
+        self.body = body
+
+
     @auth.login_required
     @response_collect
     @attribute_error_collect
@@ -117,7 +125,10 @@ class VmachineEvent(Resource):
             type="release"
         ).first()
 
-        _body = body.__dict__
+        if self.body:
+            _body = self.body.__dict__
+        else:
+            _body = body.__dict__
 
         _body.update(
             {
@@ -160,12 +171,46 @@ class VmachineEvent(Resource):
     def get(self, query: VmachineQuerySchema):
         return VmachineHandler.get_all(query)
 
+
     @auth.login_required
     @response_collect
     @validate()
     def delete(self):
         vmachine_list = request.json.get("id")
         return VmachineHandler.delete(vmachine_list)
+
+
+class VmachineBatchEvent(Resource):
+    @auth.login_required
+    @response_collect
+    @attribute_error_collect
+    @validate()
+    def post(self, body: VmachineBatchCreateSchema):
+        des = body.description
+        name = body.name
+        names = []
+        try:
+            for i in range(body.count):
+                body.description = ( des + "_" + str(i))
+                body.name = ( name + str(i) + "-"
+                + "".join(
+                    random.choice(string.ascii_lowercase + string.digits)
+                    for _ in range(3)))
+
+                obj = VmachineEvent(body)
+                obj.post()
+                names.append(body.name)
+
+        except (RuntimeError):
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="the vmachines creation failed."
+            ) 
+        return jsonify(
+                data=names,
+                error_code=RET.OK,
+                error_msg="OK."
+            )
 
 
 class VmachineControl(Resource):

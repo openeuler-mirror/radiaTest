@@ -546,7 +546,7 @@ class RunCaseHandler(TaskAuthHandler):
                 )
                 r = do_request(
                     method="put",
-                    url="https://{}/api/v1/vmachine/batchdelay".format(
+                    url="https://{}/api/v1/vmachine/batch/delay".format(
                         celeryconfig.server_addr,
                     ),
                     body=self._new_vmachines,

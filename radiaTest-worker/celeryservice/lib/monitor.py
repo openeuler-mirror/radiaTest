@@ -5,6 +5,8 @@ from subprocess import getoutput, getstatusoutput
 import time
 from celeryservice import celeryconfig
 from celeryservice.lib import TaskHandlerBase, AuthTaskHandler
+from worker.utils.bash import rm_disk_image
+
 
 class IllegalMonitor(TaskHandlerBase):
     def _get_virsh_domains(self):
@@ -71,10 +73,17 @@ class IllegalMonitor(TaskHandlerBase):
                             "Error in virsh undefine. Undefine {} failed.".format(
                                 shlex.quote(domain),
                             )
-                        )
-                    
+                        )                 
                     self.logger.info(
                         f"the illegal vmachine {domain} has been deleted."
+                    )
+
+                    rm_disk_image(
+                        shlex.quote(domain),
+                        celeryconfig.storage_pool,
+                    )   
+                    self.logger.info(
+                        f"the qcow2 of the illegal vmachine {domain} has been deleted."
                     )
             except RuntimeError as e:
                 self.logger.warn(str(e))
@@ -136,7 +145,7 @@ class VmStatusMonitor(AuthTaskHandler):
                 },
             )
 
-        except (RuntimeError, TypeError, KeyError, AttributeError):
+        except (RuntimeError, TypeError, KeyError, AttributeError):    
             promise.update_state(
                 state="FAILURE",
                 meta={

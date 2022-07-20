@@ -5,7 +5,7 @@ import string
 import random
 from datetime import datetime, timedelta
 from typing import List, Optional
-
+import pytz
 from flask import current_app
 from pydantic import BaseModel, conint, constr, Field, validator, root_validator
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
@@ -67,9 +67,8 @@ class VmachineBaseSchema(BaseModel):
     capacity: Optional[conint(ge=10, le=Config.VM_MAX_CAPACITY)] = 50
     disk_cache: Optional[DiskCache] = "default"
     video_bus: Optional[VideoBus] = "virtio"
-    end_time: Optional[datetime] = datetime.now() + timedelta(
-        days=Config.VM_DEFAULT_DAYS
-    )    
+    end_time: Optional[datetime] = datetime.now(pytz.timezone('Asia/Shanghai')) \
+     + timedelta(days=Config.VM_DEFAULT_DAYS)    
 
 
 class VmachineDataCreateSchema(VmachineBaseSchema, PermissionBase):
@@ -83,7 +82,7 @@ class VmachineDataCreateSchema(VmachineBaseSchema, PermissionBase):
     def check_end_time(cls, v):
         try:
             v = datetime.strptime(v, "%Y-%m-%d %H:%M:%S")
-        except:
+        except (RuntimeError, ValueError, KeyError, AttributeError):
             v = datetime.strptime(v, "%Y-%m-%d")
             v = v + timedelta(days=Config.VM_DEFAULT_DAYS)
         return v
@@ -110,10 +109,10 @@ class VmachineCreateSchema(VmachineBaseSchema, PermissionBase):
             )
 
         if not values.get("end_time"):
-            values["end_time"] = datetime.now() + timedelta(
-                days=Config.VM_DEFAULT_DAYS)           
+            values["end_time"] = datetime.now(pytz.timezone('Asia/Shanghai')) + \
+                timedelta(days=Config.VM_DEFAULT_DAYS)           
         
-        max_time = datetime.now() + timedelta(
+        max_time = datetime.now(pytz.timezone('Asia/Shanghai')) + timedelta(
             days=current_app.config.get("VM_MAX_DAYS")
         )
         
@@ -139,6 +138,10 @@ class VmachineCreateSchema(VmachineBaseSchema, PermissionBase):
                 )
 
         return values
+
+
+class VmachineBatchCreateSchema(VmachineCreateSchema):
+    count: conint(ge=1, le=Config.VM_MAX_COUNT)
 
 
 class VmachineItemUpdateSchema(BaseModel):
@@ -194,12 +197,12 @@ class VmachineDelaySchema(BaseModel):
 
     @validator("end_time")
     def check_end_time(cls, v, values):
-        if not v or v < (datetime.now()):
+        if not v or v < (datetime.now(pytz.timezone('Asia/Shanghai'))):
             raise ValueError(
                 "Empty time and Past time cannot be modified."
             )
 
-        dl = (v - datetime.now()).days
+        dl = (v - datetime.now(pytz.timezone('Asia/Shanghai'))).days
         if dl > current_app.config.get("VM_MAX_DAYS"):
             raise ValueError(
                 "The lifetime of virtual machine(days):%s"
@@ -269,6 +272,7 @@ class VdiskUpdateSchema(BaseModel):
 
 class DeviceDeleteSchema(BaseModel):
     id: int
+
 
 class DeviceBaseSchema(BaseModel):
     vmachine_id: int

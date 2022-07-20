@@ -18,14 +18,16 @@ from .routes import (
     VdiskItemData,
     PreciseVmachineEvent,
     VmachineIpaddrItem,
-    VmachineSshEvent
+    VmachineSshEvent,
+    VmachineBatchEvent,
 )
 
 
 def init_api(api: Api):
     api.add_resource(VmachineEvent, "/api/v1/vmachine")
+    api.add_resource(VmachineBatchEvent, "/api/v1/vmachine/batch")
     api.add_resource(PreciseVmachineEvent, "/api/v1/vmachine/preciseget")
-    api.add_resource(VmachineBatchDelayEvent, "/api/v1/vmachine/batchdelay")
+    api.add_resource(VmachineBatchDelayEvent, "/api/v1/vmachine/batch/delay")
     api.add_resource(VmachineItemForceEvent, "/api/v1/vmachine/<int:vmachine_id>/force")
     api.add_resource(VmachineDelayEvent, "/api/v1/vmachine/<int:vmachine_id>/delay")
     api.add_resource(VmachineIpaddrItem, "/api/v1/vmachine/<int:vmachine_id>/ipaddr")
