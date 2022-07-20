@@ -41,6 +41,9 @@ class ShellCmd:
 
 
 class ShellCmdApi(ShellCmd):
+    def __init__(self, cmd, conn=None):
+        super().__init__(cmd, conn)
+
     def exec(self):
         return self._exec()
 
