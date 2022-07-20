@@ -52,6 +52,9 @@ class Config(object):
     # 最大socket量
     VM_MAX_SOCKET = 4
 
+    # 最大创建虚拟机数量
+    VM_MAX_COUNT = 10
+
     # 最大磁盘大小(G)
     VM_MAX_CAPACITY = 500
 
