@@ -1,20 +1,20 @@
 framework:
-  - uri: /api/v1/framework/%d
+  - uri: /api/v1/framework/{framework_id}
     act: delete
     alias: 删除Framework
-  - uri: /api/v1/framework/%d
+  - uri: /api/v1/framework/{framework_id}
     act: get
     alias: 获取Framework
-  - uri: /api/v1/framework/%d
+  - uri: /api/v1/framework/{framework_id}
     act: put
     alias: 修改Framework
 git_repo:
-  - uri: /api/v1/git-repo/%d
+  - uri: /api/v1/git-repo/{git_repo_id}
     act: delete
     alias: 删除GitRepo
-  - uri: /api/v1/git-repo/%d
+  - uri: /api/v1/git-repo/{git_repo_id}
     act: get
     alias: 获取GitRepo
-  - uri: /api/v1/git-repo/%d
+  - uri: /api/v1/git-repo/{git_repo_id}
     act: put
     alias: 修改GitRepo

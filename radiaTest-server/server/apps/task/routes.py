@@ -306,7 +306,6 @@ class DistributeType(Resource):
     @auth.login_required()
     @response_collect
     @validate()
-    @casbin_enforcer.enforcer
     def get(self, query: DistributeTemplateTypeSchema.Query):
         return HandlerTemplateType.get(query)
 

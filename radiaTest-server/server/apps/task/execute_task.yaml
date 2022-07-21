@@ -5,24 +5,15 @@ task:
   - alias: 编辑任务信息
     uri: /api/v1/tasks/{task_id}
     act: put
-  - alias: 删除任务
-    uri: /api/v1/tasks/{task_id}
-    act: delete
   - alias: 获取任务协助者信息
     uri: /api/v1/tasks/{task_id}/participants
     act: get
-  - alias: 编辑任务协助者信息
-    uri: /api/v1/tasks/{task_id}/participants
-    act: put
   - alias: 获取任务评论
     uri: /api/v1/tasks/{task_id}/comment
     act: get
   - alias: 添加任务评论
     uri: /api/v1/tasks/{task_id}/comment
     act: post
-  - alias: 删除任务评论
-    uri: /api/v1/tasks/{task_id}/comment
-    act: delete
   - alias: 获取任务的关联任务
     uri: /api/v1/tasks/{task_id}/family
     act: get
