@@ -19,7 +19,8 @@ class LifecycleMonitor(TaskHandlerBase):
         for vmachine in v_machines:
             end_time = vmachine.end_time
 
-            if datetime.datetime.now(tz=pytz.timezone("Asia/Shanghai")) > end_time:
+            if datetime.datetime.now(tz=pytz.timezone("Asia/Shanghai")) > \
+                end_time.replace(tzinfo=pytz.timezone('Asia/Shanghai')):
                 self.logger.info(
                     "vmachine {} is going to be destroyed, with end_time {}".format(
                         vmachine.name, vmachine.end_time
@@ -39,7 +40,8 @@ class LifecycleMonitor(TaskHandlerBase):
         for pmachine in pmachines:
             end_time = pmachine.end_time
 
-            if datetime.datetime.now(tz=pytz.timezone("Asia/Shanghai")) > end_time:
+            if datetime.datetime.now(tz=pytz.timezone("Asia/Shanghai")) > \
+                end_time.replace(tzinfo=pytz.timezone('Asia/Shanghai')):
                 self.logger.info(
                     "pmachine {} is going to be released, with end_time {}".format(
                         pmachine.id, pmachine.end_time
