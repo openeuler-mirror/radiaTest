@@ -136,8 +136,6 @@ class RunCaseHandler(TaskAuthHandler):
             None,
             self.user.get("auth")
         )
-        current_app.logger.info("_milestone===")
-        current_app.logger.info(_milestone)
 
         if not _milestone:
             raise RuntimeError("cannot get milestone data")
@@ -161,9 +159,6 @@ class RunCaseHandler(TaskAuthHandler):
             self.user.get("auth"),
         )
 
-        current_app.logger.info("qcow2_mirror===")
-        current_app.logger.info(qcow2_mirror)
-
         iso_mirror = query_request(
             "/api/v1/imirroring/preciseget",
             {
@@ -172,11 +167,6 @@ class RunCaseHandler(TaskAuthHandler):
             },
             self.user.get("auth"),
         )
-
-        current_app.logger.info("qcow2_mirror===")
-        current_app.logger.info(qcow2_mirror)
-        current_app.logger.info("iso_mirror===")
-        current_app.logger.info(iso_mirror)
 
         if qcow2_mirror:
             self._body.update({"method": "import"})
@@ -200,10 +190,7 @@ class RunCaseHandler(TaskAuthHandler):
                 "/api/v1/vmachine",
                 _data,
                 self.user.get("auth")
-            )
-            current_app.logger.info("self._new_vmachinid===")
-            current_app.logger.info(self._new_vmachines["id"])           
-            
+            ) 
 
             self._new_vmachines["id"].append(resp_data.get("id"))
 
@@ -390,8 +377,6 @@ class RunCaseHandler(TaskAuthHandler):
                 )
 
             machines = selected_machines + new_machines
-            current_app.logger.info("machines===")
-            current_app.logger.info(machines)     
 
             self._update_job(status="SELECTING")
 
@@ -400,8 +385,6 @@ class RunCaseHandler(TaskAuthHandler):
             self._update_job(status="DEPLOYING")
 
             
-            current_app.logger.info("self._body===")
-            current_app.logger.info(self._body)
             git_repo = query_request(
                 "/api/v1/git-repo/{}".format(
                     self._body.get("git_repo_id")
@@ -410,8 +393,6 @@ class RunCaseHandler(TaskAuthHandler):
                 self.user.get("auth")
             )
 
-            current_app.logger.info("git_repo===")
-            current_app.logger.info(git_repo)
             framework = git_repo.get("framework")
 
             adaptor = getattr(FrameworkDict, framework.get("name"))

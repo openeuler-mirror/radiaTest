@@ -72,7 +72,6 @@ class VmachineItemEvent(Resource):
     @casbin_enforcer.enforcer
     def get(self, vmachine_id):
         vmachine = Vmachine.query.filter_by(id=vmachine_id).first()
-        current_app.logger.info(request.remote_addr)
         if not vmachine:
             return jsonify(
                 error_code=RET.NO_DATA_ERR,
