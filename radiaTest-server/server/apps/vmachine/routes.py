@@ -1,7 +1,7 @@
 import json
 import string
 import random
-from flask import request
+from flask import current_app, request
 from flask.json import jsonify
 from flask_restful import Resource
 from flask_pydantic import validate
@@ -72,6 +72,7 @@ class VmachineItemEvent(Resource):
     @casbin_enforcer.enforcer
     def get(self, vmachine_id):
         vmachine = Vmachine.query.filter_by(id=vmachine_id).first()
+        current_app.logger.info(request.remote_addr())
         if not vmachine:
             return jsonify(
                 error_code=RET.NO_DATA_ERR,
