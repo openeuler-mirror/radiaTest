@@ -32,7 +32,6 @@ class JobCreateSchema(BaseModel):
     milestone_id: Optional[int]
     tid: Optional[str]
 
-    @classmethod
     @validator("master")
     def change_master_format(cls, v):
         return ','.join(v)
@@ -56,7 +55,6 @@ class JobUpdateSchema(AuthBaseModel):
     milestone_id: Optional[int]
     tid: Optional[str]
 
-    @classmethod
     @validator("start_time")
     def check_start_time(cls, v):
         try:
@@ -67,7 +65,6 @@ class JobUpdateSchema(AuthBaseModel):
         
         return v
 
-    @classmethod
     @validator("end_time")
     def check_end_time(cls, v):
         try:
