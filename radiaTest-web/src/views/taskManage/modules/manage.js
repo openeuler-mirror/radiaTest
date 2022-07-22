@@ -11,9 +11,6 @@ import { getGroup } from '@/api/get';
 const menuSelect = ref(null); // 当前页面索引值
 const isTask = ref(true); // 是否是任务页面
 const kanban = toRef(store.state.taskManage, 'kanban'); // 看板视图、表格视图切换
-const active = ref(false); // 显示筛选
-const formRef = ref(null); // 筛选表单名称
-const taskTypeOptions = ref([]); // 任务类型
 const originators = ref([]); // 创建者
 const executors = ref([]); // 执行者
 const participants = ref([]); // 协助人
@@ -27,11 +24,11 @@ const showRecycleBinModal = ref(false); // 显示回收站表格
 const recycleBinTaskPagination = ref({
   page: 1, // 受控模式下的当前页
   pageCount: 1, // 总页数
-  pageSize: 10, // 受控模式下的分页大小
+  pageSize: 10 // 受控模式下的分页大小
 });
 
 // 确认弹框
-function warning (title, content, cb) {
+function warning(title, content, cb) {
   const d = window.$dialog?.warning({
     title,
     content,
@@ -46,7 +43,7 @@ function warning (title, content, cb) {
               cb();
             }
             d.destroy();
-          },
+          }
         },
         '确定'
       );
@@ -57,12 +54,12 @@ function warning (title, content, cb) {
           ghost: true,
           onClick: () => {
             d.destroy();
-          },
+          }
         },
         '取消'
       );
       return [cancelmBtn, confirmBtn];
-    },
+    }
   });
 }
 
@@ -70,7 +67,7 @@ function warning (title, content, cb) {
 const recycleBinTaskData = ref([]);
 
 // 任务类型英转中
-function typeNameTrans (type) {
+function typeNameTrans(type) {
   switch (type) {
     case 'PERSON':
       return '个人任务';
@@ -86,7 +83,7 @@ function typeNameTrans (type) {
 }
 
 // 查询回收站任务
-function query (page) {
+function query(page) {
   axios
     .get('/v1/tasks/recycle-bin', { page_num: page })
     .then((res) => {
@@ -99,7 +96,7 @@ function query (page) {
             name: task.title,
             type: typeNameTrans(task.type),
             originator: task.originator.gitee_name,
-            deleteTime: formatTime(task.update_time, 'yyyy-MM-dd hh:mm:ss'),
+            deleteTime: formatTime(task.update_time, 'yyyy-MM-dd hh:mm:ss')
           };
         });
         recycleBinTaskPagination.value.pageCount = res.data.pages;
@@ -120,27 +117,27 @@ const recycleBinTaskColumns = [
   {
     title: '名称',
     align: 'center',
-    key: 'name',
+    key: 'name'
   },
   {
     title: '类型',
     key: 'type',
-    align: 'center',
+    align: 'center'
   },
   {
     title: '创建人',
     align: 'center',
-    key: 'originator',
+    key: 'originator'
   },
   {
     title: '删除时间',
     align: 'center',
-    key: 'deleteTime',
+    key: 'deleteTime'
   },
   {
     title: '操作',
     align: 'center',
-    render (row) {
+    render(row) {
       return [
         h(
           NButton,
@@ -153,7 +150,7 @@ const recycleBinTaskColumns = [
                 editTask(row.id, { is_delete: false });
                 query(recycleBinTaskPagination.value.page);
               });
-            },
+            }
           },
           '恢复'
         ),
@@ -173,91 +170,76 @@ const recycleBinTaskColumns = [
                     window.$message?.error(err.data.error_msg || '未知错误');
                   });
               });
-            },
+            }
           },
           '彻底删除'
-        ),
+        )
       ];
-    },
-  },
+    }
+  }
 ];
-
-// 筛选表单数据
-const model = ref({
-  title: null,
-  executor_id: null,
-  originator: null,
-  participant_id: null,
-  milestone_id: null,
-  status_id: null,
-  start_time: null,
-  deadline: null,
-  type: null,
-});
-
-// 筛选表单验证规则
-const rules = ref({});
 
 // tab名称
 const menu = ref([
   {
     id: 0,
     text: '任务',
-    name: 'task',
+    name: 'task'
   },
   {
     id: 1,
     text: '可视化',
-    name: 'report',
+    name: 'report'
   },
   {
     id: 2,
     text: '分配模板',
-    name: 'distribution',
-  },
+    name: 'distribution'
+  }
 ]);
 
 //获取里程碑列表
 function getMilestones() {
-  axios.get('/v2/milestone').then(response => {
-    if(response?.data) {
-      milestones.value = response.data?.items?.map((item) => ({
-        label: item.name,
-        value: String(item.id),
-      })) || [];
+  axios.get('/v2/milestone').then((response) => {
+    if (response?.data) {
+      milestones.value =
+        response.data?.items?.map((item) => ({
+          label: item.name,
+          value: String(item.id)
+        })) || [];
     }
   });
 }
 
 // 初始化
-function initCondition () {
+function initCondition() {
   const allRequest = [
     axios.get('/v1/task/status'),
     axios.get(`/v1/org/${storage.getValue('orgId')}/users`, {
       page_num: 1,
-      page_size: 9999,
+      page_size: 9999
     }),
-    getGroup({ page_size: 99999, page_num: 1 }),
+    getGroup({ page_size: 99999, page_num: 1 })
   ];
   getMilestones();
   Promise.allSettled(allRequest).then((responses) => {
+    executors.value = [];
+    participants.value = [];
+    originators.value = [];
+    statusOptions.value = [];
     if (responses[0].value?.data) {
-      statusOptions.value = [];
       responses[0].value.data?.forEach((item) => {
         statusOptions.value.push({
           label: item.name,
-          value: item.id,
+          value: item.id
         });
       });
     }
     if (responses[1].value?.data) {
-      executors.value = [];
-      participants.value = [];
-      originators.value = [];
       responses[1].value.data?.items?.forEach((item) => {
         const option = {
           label: item.gitee_name,
-          value: item.gitee_id,
+          value: item.gitee_id
         };
         originators.value.push(option);
         executors.value.push(option);
@@ -268,7 +250,7 @@ function initCondition () {
       responses[2].value.data?.items?.forEach((item) => {
         const option = {
           label: item.name,
-          value: item.id,
+          value: item.id
         };
         executors.value.push(option);
         participants.value.push(option);
@@ -277,105 +259,137 @@ function initCondition () {
   });
 }
 
-// 筛选
-function handleValidateButtonClick (e) {
-  e.preventDefault();
-  formRef.value.validate((errors) => {
-    if (!errors) {
-      const formData = JSON.parse(JSON.stringify(model.value));
-      if (model.value.deadline > 0) {
-        formData.deadline = formatTime(
-          model.value.deadline,
-          'yyyy-MM-dd hh:mm:ss'
-        );
-      }
-      if (model.value.start_time > 0) {
-        formData.start_time = formatTime(
-          model.value.start_time,
-          'yyyy-MM-dd hh:mm:ss'
-        );
-      }
-      document.dispatchEvent(
-        new CustomEvent('searchTask', {
-          detail: formData,
-        })
-      );
-      active.value = false;
-    } else {
-      window.$message?.error('验证失败');
-    }
-  });
-}
-
 // 页面切换
-function menuClick (item, index) {
+function menuClick(item, index) {
   menuSelect.value = index;
   router.push(`/home/tm/${item.name}`);
   item.name === 'task' ? (isTask.value = true) : (isTask.value = false);
 }
 
 // 视图切换
-function toggleView () {
+function toggleView() {
   store.commit('taskManage/toggleView');
 }
 
-// 显示筛选框
-function screen () {
-  active.value = true;
-}
-
-// 重置筛选条件
-function clearCondition (e) {
-  model.value = {
-    title: null,
-    executor_id: null,
-    originator: null,
-    participant_id: null,
-    status_id: null,
-    milestone_id: null,
-    start_time: null,
-    deadline: null,
-    type: null,
-  };
-  handleValidateButtonClick(e);
-}
-
 // 显示回收站按钮
-function showRecycleBin () {
+function showRecycleBin() {
   showRecycleBinModal.value = true;
   recycleBinTaskLoading.value = true;
   query(1);
 }
 
 // 回收站表格页数变动
-function recycleBinTablePageChange (currentPage) {
+function recycleBinTablePageChange(currentPage) {
   if (!recycleBinTaskLoading.value) {
     recycleBinTaskLoading.value = true;
     query(currentPage);
   }
 }
 
+// 筛选条件
+const filterRule = ref([
+  {
+    path: 'title',
+    name: '名称',
+    type: 'input'
+  },
+  {
+    path: 'type',
+    name: '类型',
+    type: 'select',
+    options: [
+      { label: '个人任务', value: 'PERSON' },
+      { label: '团队任务', value: 'GROUP' },
+      { label: '组织任务', value: 'ORGANIZATION' },
+      { label: '版本任务', value: 'VERSION' }
+    ]
+  },
+  {
+    path: 'originator',
+    name: '创建者',
+    type: 'select',
+    options: originators
+  },
+  {
+    path: 'executor_id',
+    name: '执行者',
+    type: 'select',
+    options: executors
+  },
+  {
+    path: 'participant_id',
+    name: '协助人',
+    type: 'multipleselect',
+    options: participants
+  },
+  {
+    path: 'milestone_id',
+    name: '里程碑',
+    type: 'multipleselect',
+    options: milestones
+  },
+  {
+    path: 'status_id',
+    name: '状态',
+    type: 'select',
+    options: statusOptions
+  },
+  {
+    path: 'deadline',
+    name: '截止日期',
+    type: 'enddate'
+  },
+  {
+    path: 'start_time',
+    name: '开始日期',
+    type: 'startdate'
+  }
+]);
+
+function filterchange(filterArray) {
+  let model = {
+    title: null,
+    executor_id: null,
+    originator: null,
+    participant_id: null,
+    milestone_id: null,
+    status_id: null,
+    start_time: null,
+    deadline: null,
+    type: null
+  };
+
+  filterArray.forEach((v) => {
+    model[v.path] = v.value;
+  });
+
+  if (model.deadline > 0) {
+    model.deadline = formatTime(model.deadline, 'yyyy-MM-dd hh:mm:ss');
+  }
+  if (model.start_time > 0) {
+    model.start_time = formatTime(model.start_time, 'yyyy-MM-dd hh:mm:ss');
+  }
+  document.dispatchEvent(
+    new CustomEvent('searchTask', {
+      detail: model
+    })
+  );
+}
+
 export {
+  filterchange,
   menuSelect,
   isTask,
   kanban,
-  active,
-  formRef,
-  taskTypeOptions,
   originators,
   executors,
   participants,
   statusOptions,
-  model,
-  rules,
   menu,
   milestones,
   initCondition,
-  handleValidateButtonClick,
   menuClick,
   toggleView,
-  screen,
-  clearCondition,
   recycleBinTaskTable,
   recycleBinTaskLoading,
   recycleBinTaskColumns,
@@ -384,4 +398,5 @@ export {
   showRecycleBin,
   recycleBinTaskPagination,
   recycleBinTablePageChange,
+  filterRule
 };

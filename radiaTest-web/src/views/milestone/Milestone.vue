@@ -3,7 +3,7 @@
     title="里程碑"
     size="huge"
     :segmented="{
-      content: 'hard',
+      content: 'hard'
     }"
     header-style="
             font-size: 30px; 
@@ -47,14 +47,14 @@
         </n-space>
       </n-gi>
       <n-gi :span="10">
-        <milestone-filter style="position: relative" />
       </n-gi>
       <n-gi :span="2">
-        <n-space justify="end">
-          <refresh-button @refresh="tableRef.refreshData()">
+        <div class="titleBtnWrap">
+          <filterButton class="item" :filterRule="filterRule" @filterchange="filterchange"></filterButton>
+          <refresh-button class="item" @refresh="tableRef.refreshData()">
             刷新版本列表
           </refresh-button>
-        </n-space>
+        </div>
       </n-gi>
       <n-gi :span="24">
         <milestone-table ref="tableRef" @update="() => updateModalRef.show()" />
@@ -102,11 +102,15 @@ import { ref, defineComponent } from 'vue';
 import settings from '@/assets/config/settings.js';
 import Common from '@/components/CRUD';
 import Essential from '@/components/milestoneComponents';
+import filterButton from '@/components/filter/filterButton.vue';
+import milestoneTable from '@/views/milestone/modules/milestoneTable';
+import { get } from '@/assets/CRUD/read';
 
 export default defineComponent({
   components: {
     ...Common,
     ...Essential,
+    filterButton
   },
   setup() {
     const tableRef = ref(null);
@@ -114,6 +118,18 @@ export default defineComponent({
     const updateFormRef = ref(null);
     const createModalRef = ref(null);
     const updateModalRef = ref(null);
+    const filterRule = ref([
+      {
+        path: 'milestoneName',
+        name: '里程碑名',
+        type: 'input'
+      }
+    ]);
+
+    const filterchange = (filterArray) => {
+      milestoneTable.filter.value.name = filterArray[0].value;
+      get.list('/v2/milestone', milestoneTable.totalData, milestoneTable.loading, milestoneTable.filter.value);
+    };
 
     return {
       settings,
@@ -122,9 +138,21 @@ export default defineComponent({
       updateFormRef,
       createModalRef,
       updateModalRef,
+      filterRule,
+      filterchange,
+      ...milestoneTable
     };
-  },
+  }
 });
 </script>
 
-<style scoped></style>
+<style scoped lang="less">
+.titleBtnWrap {
+  display: flex;
+  align-items: center;
+
+  .item {
+    margin: 0 20px;
+  }
+}
+</style>
