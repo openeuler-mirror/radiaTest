@@ -169,6 +169,7 @@ class PmachineOccupyEvent(Resource):
                 error_msg = "Pmachine state has not been modified. Please check."
             )
         
+        # 赋权
         if not all((
                 pmachine.ip,
                 pmachine.user,
@@ -182,49 +183,78 @@ class PmachineOccupyEvent(Resource):
 
         if g.gitee_id != pmachine.creator_id:
             role = Role.query.filter_by(type='person', name=g.gitee_id).first()
+            if not role:
+                return jsonify(
+                    error_code = RET.NO_DATA_ERR,
+                    error_msg = "The role policy info is invalid."
+                )     
+
             scope_occupy = Scope.query.filter_by(
                 act='put',
                 uri='/api/v1/pmachine/{}/occupy'.format(pmachine_id),
                 eft='allow'
             ).first()
+            if not scope_occupy:
+                return jsonify(
+                    error_code = RET.NO_DATA_ERR,
+                    error_msg = "The scope_occupy policy info is invalid."
+                )  
+
             scope_release = Scope.query.filter_by(
                 act='put',
                 uri='/api/v1/pmachine/{}/release'.format(pmachine_id),
                 eft='allow'
             ).first()
+            if not scope_release:
+                return jsonify(
+                    error_code = RET.NO_DATA_ERR,
+                    error_msg = "The scope_release policy info is invalid."
+                )  
+
             scope_power = Scope.query.filter_by(
                 act='put',
                 uri='/api/v1/pmachine/{}/power'.format(pmachine_id),
                 eft='allow'
             ).first()
+            if not scope_power:
+                return jsonify(
+                    error_code = RET.NO_DATA_ERR,
+                    error_msg = "The scope_power policy info is invalid."
+                )  
+
             scope_install = Scope.query.filter_by(
                 act='put',
                 uri='/api/v1/pmachine/{}/install'.format(pmachine_id),
                 eft='allow'
             ).first()
+            if not scope_install:
+                return jsonify(
+                    error_code = RET.NO_DATA_ERR,
+                    error_msg = "The scope_install policy info is invalid."
+                ) 
+
             scope_update = Scope.query.filter_by(
                 act='put',
                 uri='/api/v1/pmachine/{}'.format(pmachine_id),
                 eft='allow'
             ).first()
+            if not scope_update:
+                return jsonify(
+                    error_code = RET.NO_DATA_ERR,
+                    error_msg = "The scope_update policy info is invalid."
+                ) 
+
             scope_ssh = Scope.query.filter_by(
                 act='put',
                 uri='/api/v1/pmachine/{}/ssh'.format(pmachine_id),
                 eft='allow'
             ).first()
-            if not all((
-                role,
-                scope_occupy,
-                scope_release,
-                scope_power,
-                scope_install,
-                scope_update,
-                scope_ssh,
-            )):
+            if not scope_ssh:
                 return jsonify(
                     error_code = RET.NO_DATA_ERR,
-                    error_msg = "The policy info is invalid."
-                )
+                    error_msg = "The scope_ssh policy info is invalid."
+                ) 
+
             scope_occupy_role_data = {
                 "role_id": role.id,
                 "scope_id": scope_occupy.id
@@ -249,6 +279,7 @@ class PmachineOccupyEvent(Resource):
                 "role_id": role.id,
                 "scope_id": scope_ssh.id
             }
+
             Insert(ReScopeRole, scope_release_role_data).single()
             Insert(ReScopeRole, scope_occupy_role_data).single()
             Insert(ReScopeRole, scope_power_role_data).single()
@@ -265,6 +296,7 @@ class PmachineOccupyEvent(Resource):
         Edit(Pmachine, _body).single(Pmachine, "/pmachine") 
 
         # 修改随机密码
+        _body = body.__dict__
         _body.update(
             {
                 "id": pmachine.id,
@@ -278,7 +310,7 @@ class PmachineOccupyEvent(Resource):
         return PmachineMessenger(_body).send_request(
             pmachine.machine_group, 
             "/api/v1/pmachine/ssh",
-        )   
+        )
 
 
 class PmachineReleaseEvent(Resource):
@@ -298,7 +330,8 @@ class PmachineReleaseEvent(Resource):
                 error_code = RET.VERIFY_ERR,
                 error_msg = "Pmachine state has not been modified. Please check."
             )
-        if pmachine.state == "occupied" and pmachine.description == current_app.config.get("CI_HOST"):
+        if pmachine.state == "occupied" and pmachine.description \
+            == current_app.config.get("CI_HOST"):
             vmachine = Vmachine.query.filter_by(pmachine_id=pmachine.id).first()
             if vmachine:
                 return jsonify(
@@ -306,6 +339,27 @@ class PmachineReleaseEvent(Resource):
                     error_msg = "Pmachine has vmmachine, can't released."
                 )
 
+        # 修改随机密码
+        _body = {
+            "id": pmachine.id,
+            "ip": pmachine.ip,
+            "user": pmachine.user,
+            "port": pmachine.port,
+            "old_password": pmachine.password,
+            "random_flag": True,
+        }
+        _resp = PmachineMessenger(_body).send_request(
+            pmachine.machine_group, 
+            "/api/v1/pmachine/ssh",
+        )
+
+        _resp = json.loads(_resp.data.decode('UTF-8'))
+        if _resp.get("error_code") != RET.OK:
+            return jsonify(
+                error_code = RET.BAD_REQ_ERR,
+                error_msg = "Modify ssh password error, can't released."
+            )
+        
         if pmachine.state == "occupied":
             _body = {
                     "description": sqlalchemy.null(),
@@ -315,74 +369,116 @@ class PmachineReleaseEvent(Resource):
                     "state": "idle",
                     "listen": sqlalchemy.null(),
             }
+
         # 删除权利
         if g.gitee_id != pmachine.creator_id:
             role = Role.query.filter_by(type='person', name=g.gitee_id).first()
+            if not role:
+                return jsonify(
+                    error_code = RET.NO_DATA_ERR,
+                    error_msg = "The role policy info is invalid."
+                )
+
             scope_occupy = Scope.query.filter_by(
                 act='put',
                 uri='/api/v1/pmachine/{}/occupy'.format(pmachine_id),
                 eft='allow'
                 ).first()
-            _occupy = ReScopeRole.query.filter_by(
-                scope_id=scope_occupy.id, role_id=role.id).all()
+            if not scope_occupy:
+                return jsonify(
+                    error_code = RET.NO_DATA_ERR,
+                    error_msg = "The scope_occupy policy info is invalid."
+                )
+            _occupy = ReScopeRole.query.filter_by(scope_id=scope_occupy.id, role_id=role.id).all()
+            if not _occupy:
+                return jsonify(
+                    error_code = RET.NO_DATA_ERR,
+                    error_msg = "The _occupy policy info is invalid."
+                )
 
             scope_release = Scope.query.filter_by(
                 act='put',
                 uri='/api/v1/pmachine/{}/release'.format(pmachine_id),
                 eft='allow'
                 ).first()
-            _release = ReScopeRole.query.filter_by(
-                scope_id=scope_release.id, role_id=role.id).all()
+            if not scope_release:
+                return jsonify(
+                    error_code = RET.NO_DATA_ERR,
+                    error_msg = "The scope_release policy info is invalid."
+                )
+            _release = ReScopeRole.query.filter_by(scope_id=scope_release.id, role_id=role.id).all()
+            if not _release:
+                return jsonify(
+                    error_code = RET.NO_DATA_ERR,
+                    error_msg = "The _release policy info is invalid."
+                )
 
             scope_install = Scope.query.filter_by(
                 act='put',
                 uri='/api/v1/pmachine/{}/install'.format(pmachine_id),
                 eft='allow'           
             ).first()
-            _install = ReScopeRole.query.filter_by(
-                scope_id=scope_install.id, role_id=role.id).all()
+            if not scope_install:
+                return jsonify(
+                    error_code = RET.NO_DATA_ERR,
+                    error_msg = "The scope_install policy info is invalid."
+                )
+            _install = ReScopeRole.query.filter_by(scope_id=scope_install.id, role_id=role.id).all()
+            if not _install:
+                return jsonify(
+                    error_code = RET.NO_DATA_ERR,
+                    error_msg = "The _install policy info is invalid."
+                )
 
             scope_power = Scope.query.filter_by(
                 act='put',
                 uri='/api/v1/pmachine/{}/power'.format(pmachine_id),
                 eft='allow'
             ).first()
-            _power = ReScopeRole.query.filter_by(
-                scope_id=scope_power.id, role_id=role.id).all()
+            if not scope_power:
+                return jsonify(
+                    error_code = RET.NO_DATA_ERR,
+                    error_msg = "The scope_power policy info is invalid."
+                )
+            _power = ReScopeRole.query.filter_by(scope_id=scope_power.id, role_id=role.id).all()
+            if not _power:
+                return jsonify(
+                    error_code = RET.NO_DATA_ERR,
+                    error_msg = "The _power policy info is invalid."
+                )
 
             scope_update = Scope.query.filter_by(
                 act='put',
                 uri='/api/v1/pmachine/{}'.format(pmachine_id),
                 eft='allow'
             ).first()
-            _update = ReScopeRole.query.filter_by(
-                scope_id=scope_update.id, role_id=role.id).all()
+            if not scope_update:
+                return jsonify(
+                    error_code = RET.NO_DATA_ERR,
+                    error_msg = "The scope_update policy info is invalid."
+                )
+            _update = ReScopeRole.query.filter_by(scope_id=scope_update.id, role_id=role.id).all()
+            if not _update:
+                return jsonify(
+                    error_code = RET.NO_DATA_ERR,
+                    error_msg = "The _update policy info is invalid."
+                )
 
             scope_ssh = Scope.query.filter_by(
                 act='put',
                 uri='/api/v1/pmachine/{}/ssh'.format(pmachine_id),
                 eft='allow'
             ).first()
-            _ssh = ReScopeRole.query.filter_by(
-                scope_id=scope_ssh.id, role_id=role.id).all()
-
-            if not all((
-                scope_occupy,
-                _occupy,
-                scope_release,
-                _release,
-                scope_power,
-                _power,
-                scope_install,
-                _install,
-                scope_update,
-                _update,
-                scope_ssh,
-                _ssh
-            )):
+            if not scope_ssh:
                 return jsonify(
                     error_code = RET.NO_DATA_ERR,
-                    error_msg = "The policy info is invalid."
+                    error_msg = "The scope_ssh policy info is invalid."
+                )
+            _ssh = ReScopeRole.query.filter_by(scope_id=scope_ssh.id, role_id=role.id).all()
+            if not _ssh:
+                return jsonify(
+                    error_code = RET.NO_DATA_ERR,
+                    error_msg = "The _ssh policy info is invalid."
                 )
             for occ in _occupy:
                 Delete(ReScopeRole, {"id": occ.id}).single()
@@ -390,15 +486,14 @@ class PmachineReleaseEvent(Resource):
                 Delete(ReScopeRole, {"id": rea.id}).single()
             for ins in _install:
                 Delete(ReScopeRole, {"id": ins.id}).single()
-            for poe in _power:
-                Delete(ReScopeRole, {"id": poe.id}).single()
+            for powe in _power:
+                Delete(ReScopeRole, {"id": powe.id}).single()
             for upd in _update:
                 Delete(ReScopeRole, {"id": upd.id}).single()
             for ssh in _ssh:
                 Delete(ReScopeRole, {"id": ssh.id}).single()
 
         _body.update({"id": pmachine_id})
-
         return Edit(Pmachine, _body).single(Pmachine, "/pmachine")
 
 
