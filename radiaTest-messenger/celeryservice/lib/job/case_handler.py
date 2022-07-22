@@ -399,6 +399,9 @@ class RunCaseHandler(TaskAuthHandler):
 
             self._update_job(status="DEPLOYING")
 
+            
+            current_app.logger.info("self._body===")
+            current_app.logger.info(self._body)
             git_repo = query_request(
                 "/api/v1/git-repo/{}".format(
                     self._body.get("git_repo_id")
