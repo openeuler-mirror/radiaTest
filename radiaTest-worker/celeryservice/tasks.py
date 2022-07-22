@@ -34,7 +34,7 @@ def create_vmachine(self, auth, body):
     if body.get("method") == "auto":
         installer.kickstart(self)
     elif body.get("method") == "import":
-        installer._import(self)
+        installer.import_type(self)
     elif body.get("method") == "cdrom":
         installer.cd_rom(self)
     else:

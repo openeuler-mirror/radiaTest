@@ -296,7 +296,7 @@ class DeviceBaseSchema(BaseModel):
 
 
 class VmachineBriefSchema(BaseModel):
-    ip: str
+    ip: Optional[str]
     description: str
     milestone: str
     status: str
