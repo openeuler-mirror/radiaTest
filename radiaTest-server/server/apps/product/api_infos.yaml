@@ -1,10 +1,10 @@
 product:
-  - uri: /api/v1/product/%d
+  - uri: /api/v1/product/{product_id}
     act: delete
     alias: 删除Product
-  - uri: /api/v1/product/%d
+  - uri: /api/v1/product/{product_id}
     act: get
     alias: 获取Product
-  - uri: /api/v1/product/%d
+  - uri: /api/v1/product/{product_id}
     act: put
     alias: 修改Product

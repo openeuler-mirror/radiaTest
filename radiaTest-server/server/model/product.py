@@ -11,9 +11,9 @@ class Product(BaseModel, PermissionBaseModel, db.Model):
     name = db.Column(db.String(32), nullable=False)
     version = db.Column(db.String(32), nullable=False)
     description = db.Column(TINYTEXT())
-    serious_solved_rate = db.Column(db.String(6), nullable=False)
-    current_solved_rate = db.Column(db.String(6), nullable=False)
-    left_issues_cnt = db.Column(db.Integer(), nullable=False)
+    serious_solved_rate = db.Column(db.String(6), nullable=True)
+    current_solved_rate = db.Column(db.String(6), nullable=True)
+    left_issues_cnt = db.Column(db.Integer(), nullable=True)
 
     milestone = db.relationship(
         "Milestone", backref="product", cascade="all, delete, delete-orphan"
