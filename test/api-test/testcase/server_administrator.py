@@ -10,29 +10,27 @@ import pytz
 sys.path.append(os.path.split(os.path.abspath(os.path.dirname(__file__)))[0])
 
 from lib import logger
+from lib.constant import account, password, RET, server_url
+from lib.common import AdminAuthUnittestTestCase, RestApi, get_val_by_key_val
 
 
-from lib.constant import account, password, RET
-from lib.common import AuthUnittestTestCase, RestApi, get_val_by_key_val
-
-
-class TestAdministrator(AuthUnittestTestCase):
+class TestAdministrator(AdminAuthUnittestTestCase):
     @classmethod
     def setUpClass(cls) -> None:
         logger.info("------------test Administrator start------------")
         super().setUpClass()
 
-    def setUp(self):
-        self.api_login = RestApi("/api/v1/admin/login")
-        self.api_org = RestApi("/api/v1/admin/org", auth=TestAdministrator.auth)
-
     def test_admin_login(self):
+        api_login = RestApi(
+            f"{server_url}/api/v1/admin/login"
+        )
+
         logger.info("验证登录Administrator")
         data = {
             "account": account,
             "password": password
         }
-        resp = self.api_login.post(data=data)
+        resp = api_login.post(data=data)
         self.assertIn("token", resp.text, "验证登录Administrator失败!")
 
         logger.info("验证登录Administrator时密码错误")
@@ -40,7 +38,7 @@ class TestAdministrator(AuthUnittestTestCase):
             "account": account,
             "password": f"wrong{password}"
         }
-        resp = self.api_login.post(data=data)
+        resp = api_login.post(data=data)
         self.assertDictEqual(
             json.loads(resp.text),
             {
@@ -55,7 +53,7 @@ class TestAdministrator(AuthUnittestTestCase):
             "account": f"wrong{account}",
             "password": password
         }
-        resp = self.api_login.post(data=data)
+        resp = api_login.post(data=data)
         self.assertDictEqual(
             json.loads(resp.text),
             {
@@ -65,9 +63,14 @@ class TestAdministrator(AuthUnittestTestCase):
             "验证登录Administrator时用户名错误失败!"
         )
 
-        self.api_login.session.close()
+        api_login.session.close()
 
     def test_admin_org(self):
+        api_org = RestApi(
+            f"{server_url}/api/v1/admin/org", 
+            auth=TestAdministrator.auth
+        )
+
         org_name = f"testOrganization{datetime.now(pytz.timezone('Asia/Shanghai')).strftime('%Y%m%d%H%M%S')}"
 
         logger.info("验证Administrator登录后post注册新组织")
@@ -75,7 +78,7 @@ class TestAdministrator(AuthUnittestTestCase):
             "name": org_name,
             "description": "organization for testing"
         }
-        resp = self.api_org.post2(data=data)
+        resp = api_org.post2(data=data)
         self.assertDictEqual(
             json.loads(resp.text),
             {
@@ -86,7 +89,7 @@ class TestAdministrator(AuthUnittestTestCase):
         )
 
         logger.info("验证Administrator登录后post注册已存在的组织")
-        resp = self.api_org.post2(data=data)
+        resp = api_org.post2(data=data)
         self.assertDictEqual(
             json.loads(resp.text),
             {
@@ -97,7 +100,7 @@ class TestAdministrator(AuthUnittestTestCase):
         )
         
         logger.info("验证Administrator登录后get组织信息")
-        resp = self.api_org.get()
+        resp = api_org.get()
         self.assertIn(
             org_name,
             resp.text,
@@ -115,7 +118,10 @@ class TestAdministrator(AuthUnittestTestCase):
             "name": f"{org_name}-edit",
             "description": f"editting testOrganization{org_name}"
         }
-        api_org_correct_item = RestApi(f"/api/v1/admin/org/{oid}", auth=TestAdministrator.auth)
+        api_org_correct_item = RestApi(
+            f"{server_url}/api/v1/admin/org/{oid}", 
+            auth=TestAdministrator.auth
+        )
         resp = api_org_correct_item.put2(data=data)
         self.assertDictEqual(
             json.loads(resp.text), 
@@ -128,7 +134,10 @@ class TestAdministrator(AuthUnittestTestCase):
 
         logger.info("验证Administrator登录后put通过不存在的org_id修改组织信息")
         wrong_oid = oid + 1000000
-        api_org_wrong_item = RestApi(f"/api/v1/admin/org/{wrong_oid}", auth=TestAdministrator.auth)
+        api_org_wrong_item = RestApi(
+            f"{server_url}/api/v1/admin/org/{wrong_oid}", 
+            auth=TestAdministrator.auth
+        )
         respon = api_org_wrong_item.put2(data=data)
         
         self.assertDictEqual(
@@ -156,7 +165,7 @@ class TestAdministrator(AuthUnittestTestCase):
 
         api_org_correct_item.session.close()
         api_org_wrong_item.session.close()
-        self.api_org.session.close()
+        api_org.session.close()
 
     @classmethod
     def tearDownClass(cls) -> None:

@@ -172,7 +172,8 @@ def handler_save_org(body, avatar=None):
                                      _data=_data)
     return jsonify(
         error_code=RET.OK,
-        error_msg="OK"
+        error_msg="OK",
+        data={"id": org.id}
     )
 
 

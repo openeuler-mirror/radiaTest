@@ -10,17 +10,20 @@ import pytz
 sys.path.append(os.path.split(os.path.abspath(os.path.dirname(__file__)))[0])
 
 from lib import logger
-from lib.constant import gitee_id, RET, repo_url
-from lib.common import AuthUnittestTestCase, RestApi, get_val_by_key_val, get_val_by_key_val2
+from lib.constant import gitee_id, RET, repo_url, server_url
+from lib.common import UserAuthUnittestTestCase, RestApi, get_val_by_key_val, get_val_by_key_val2
 
 
-class TestMirroring(AuthUnittestTestCase):
+class TestMirroring(UserAuthUnittestTestCase):
     @classmethod
     def setUpClass(cls):
         logger.info("------------test mirroring start------------")
         super().setUpClass()
         cls.curtime = datetime.now(pytz.timezone('Asia/Shanghai')).strftime("%Y%m%d%H%M%S")
-        rapi = RestApi("/api/v1/product", auth=cls.auth)
+        rapi = RestApi(
+            f"{server_url}/api/v1/product", 
+            auth=cls.auth
+        )
         data = {
             "description": "milestone openEuler 20.03 LTS SP2 for test mirroring",
             "name": "openEuler",
@@ -40,7 +43,10 @@ class TestMirroring(AuthUnittestTestCase):
         )
         rapi.session.close()
 
-        rapi = RestApi("/api/v2/milestone", auth=cls.auth)
+        rapi = RestApi(
+            f"{server_url}/api/v2/milestone", 
+            auth=cls.auth
+        )
         data = {
             "end_time": "2022-04-17 00:00:00",
             "name": f"20.03-LTS-SP2 round {cls.curtime}",
@@ -68,26 +74,38 @@ class TestMirroring(AuthUnittestTestCase):
         respon = rapi.post(data=data)
         rapi.session.close()
     
-        rapi = RestApi("/api/v2/milestone?page_size=200", auth=TestMirroring.auth)
+        rapi = RestApi(
+            f"{server_url}/api/v2/milestone?page_size=200", 
+            auth=cls.auth
+        )
         respon = rapi.get()
         cls.round_mid = get_val_by_key_val2(
             "name", 
-            f"20.03-LTS-SP2 round {TestMirroring.curtime}", 
+            f"20.03-LTS-SP2 round {cls.curtime}", 
             "id", 
             respon.text
         )
         cls.update_mid = get_val_by_key_val2(
             "name", 
-            f"20.03-LTS-SP2 update{TestMirroring.curtime}", 
+            f"20.03-LTS-SP2 update{cls.curtime}", 
             "id", 
             respon.text
         )
         rapi.session.close()
 
     def setUp(self):
-        self.api_imirroring = RestApi("/api/v1/imirroring", auth=TestMirroring.auth)
-        self.api_qmirroring = RestApi("/api/v1/qmirroring", auth=TestMirroring.auth)
-        self.api_repo = RestApi("/api/v1/repo", auth=TestMirroring.auth)
+        self.api_imirroring = RestApi(
+            f"{server_url}/api/v1/imirroring", 
+            auth=self.auth
+        )
+        self.api_qmirroring = RestApi(
+            f"{server_url}/api/v1/qmirroring", 
+            auth=self.auth
+        )
+        self.api_repo = RestApi(
+            f"{server_url}/api/v1/repo", 
+            auth=self.auth
+        )
 
     def test_imirroring_err(self):
         logger.info("验证milestone.type='update',不支持imirroring")
@@ -220,7 +238,8 @@ class TestMirroring(AuthUnittestTestCase):
         
         logger.info("验证preciseget获取imirroring")
         respon = RestApi(
-            "/api/v1/imirroring/preciseget?milestone_id=" + str(TestMirroring.round_mid), 
+            f"{server_url}/api/v1/imirroring/preciseget?milestone_id=" \
+                + str(TestMirroring.round_mid), 
             auth=TestMirroring.auth
         ).get()
         self.assertIn(
@@ -245,7 +264,8 @@ class TestMirroring(AuthUnittestTestCase):
             }
         respon = self.api_imirroring.post(data=data)
         respon = RestApi(
-            "/api/v1/imirroring/preciseget?milestone_id=" + str(TestMirroring.round_mid), 
+            f"{server_url}/api/v1/imirroring/preciseget?milestone_id=" \
+                + str(TestMirroring.round_mid), 
             auth=TestMirroring.auth
         ).get()
         imid1 = get_val_by_key_val(
@@ -264,7 +284,9 @@ class TestMirroring(AuthUnittestTestCase):
             f"location": "http://{repo_url}/repo_list/official.repo/openEuler-20.03-LTS-SP2/OS/aarch64/test",
             f"url": "http://{repo_url}/repo_list/official.repo/openEuler-20.03-LTS-SP2/ISO/aarch64/openEuler-20.03-LTS-SP2-aarch64-dvd.iso"
             }
-        api_imirroring_item_1 = RestApi("/api/v1/imirroring/" + str(imid1), auth=TestMirroring.auth)
+        api_imirroring_item_1 = RestApi(
+            f"{server_url}/api/v1/imirroring/" \
+                + str(imid1), auth=TestMirroring.auth)
         respon = api_imirroring_item_1.put(data=data)
         
         self.assertDictEqual(
@@ -426,7 +448,8 @@ class TestMirroring(AuthUnittestTestCase):
         
         logger.info("验证preciseget获取qmirroring:")
         respon = RestApi(
-            "/api/v1/qmirroring/preciseget?milestone_id=" + str(TestMirroring.round_mid), 
+            f"{server_url}/api/v1/qmirroring/preciseget?milestone_id=" \
+                + str(TestMirroring.round_mid), 
             auth=TestMirroring.auth
         ).get()
         self.assertIn(
@@ -451,7 +474,8 @@ class TestMirroring(AuthUnittestTestCase):
             }
         respon = self.api_qmirroring.post(data=data)
         respon = RestApi(
-            "/api/v1/qmirroring/preciseget?milestone_id=" + str(TestMirroring.round_mid), 
+            f"{server_url}/api/v1/qmirroring/preciseget?milestone_id=" \
+                + str(TestMirroring.round_mid), 
             auth=TestMirroring.auth
         ).get()
         qmid1 = get_val_by_key_val(
@@ -476,7 +500,9 @@ class TestMirroring(AuthUnittestTestCase):
             f"url": "http://{repo_url}/repo_list/mugen.mirror/official/openEuler/20.03-LTS-SP2/aarch64/openEuler-20.03-LTS-SP2.aarch64.qcow2",
             "user": "root"
             }
-        api_qmirroring_item_1 = RestApi("/api/v1/qmirroring/" + str(qmid1), auth=TestMirroring.auth)
+        api_qmirroring_item_1 = RestApi(
+            f"{server_url}/api/v1/qmirroring/" \
+                + str(qmid1), auth=TestMirroring.auth)
         respon = self.api_qmirroring.put(data=data)
         self.assertDictEqual(
             json.loads(respon.text), 
@@ -677,10 +703,21 @@ class TestMirroring(AuthUnittestTestCase):
         
     @classmethod
     def tearDownClass(cls) -> None:
-        RestApi("/api/v2/milestone/" + str(cls.round_mid), auth=TestMirroring.auth).delete()
-        RestApi("/api/v2/milestone/" + str(cls.update_mid), auth=TestMirroring.auth).delete()
-        RestApi("/api/v1/product" + str(cls.pid), auth=TestMirroring.auth).delete()
-        super().tearDownClass()
+        RestApi(
+            f"{server_url}/api/v2/milestone/" \
+                + str(cls.round_mid), 
+            auth=TestMirroring.auth
+        ).delete()
+        RestApi(
+            f"{server_url}/api/v2/milestone/" \
+                + str(cls.update_mid), 
+            auth=TestMirroring.auth
+        ).delete()
+        RestApi(
+            f"{server_url}/api/v1/product" \
+                + str(cls.pid), 
+            auth=TestMirroring.auth
+        ).delete()
         logger.info("------------test mirroring end--------------")
     
 if __name__ == "__main__":

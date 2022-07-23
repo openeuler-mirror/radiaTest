@@ -49,8 +49,26 @@ _path = os.path.abspath(os.path.dirname(__file__))
 account = loads_ini(f"{_path}/../api-test.ini", "server", "admin_account")
 password = loads_ini(f"{_path}/../api-test.ini", "server", "admin_password")
 server_url = loads_ini(f"{_path}/../api-test.ini", "server", "server_url")
-repo_url = loads_ini(f"{_path}/../api-test.ini", "rsync", "repo_url")
+
+gitee_oauth_id = loads_ini(f"{_path}/../api-test.ini", "server", "gitee_oauth_id")
+gitee_oauth_secret = loads_ini(f"{_path}/../api-test.ini", "server", "gitee_oauth_secret")
+gitee_oauth_redirect_url = loads_ini(f"{_path}/../api-test.ini", "server", "gitee_oauth_redirect_url")
+gitee_oauth_scope = loads_ini(f"{_path}/../api-test.ini", "server", "gitee_oauth_scope")
+
+redis_url = loads_ini(f"{_path}/../api-test.ini", "server", "redis_url")
+
+user_token = loads_ini(f"{_path}/../api-test.ini", "server", "user_token")
 gitee_id = loads_ini(f"{_path}/../api-test.ini", "server", "gitee_id")
+user_token_2 = loads_ini(f"{_path}/../api-test.ini", "server", "user_token_2")
+gitee_id_2 = loads_ini(f"{_path}/../api-test.ini", "server", "gitee_id_2")
+tmp_user_token = loads_ini(f"{_path}/../api-test.ini", "server", "tmp_user_token")
+tmp_gitee_id = loads_ini(f"{_path}/../api-test.ini", "server", "tmp_gitee_id")
+new_gitee_id = loads_ini(f"{_path}/../api-test.ini", "server", "new_gitee_id")
+
+cacert_path = loads_ini(f"{_path}/../api-test.ini", "server", "cacert_path")
+csrfile_path = loads_ini(f"{_path}/../api-test.ini", "server", "csrfile_path")
+
+repo_url = loads_ini(f"{_path}/../api-test.ini", "rsync", "repo_url")
 
 default_headers = {
     "Accept": "*/*",
