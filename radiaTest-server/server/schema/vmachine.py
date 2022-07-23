@@ -296,9 +296,3 @@ class VmachineBriefSchema(BaseModel):
     description: str
     milestone: str
     status: str
-
-    @validator("ip")
-    def check_ip_format(cls, v):
-        if not ip_type(v):
-            raise ValueError("this ip of machine group format error")
-        return v
