@@ -36,6 +36,7 @@ class MessageManager:
                         break
                 if _is:
                     _api["id"] = uri_arr[4]
+                    _api["cur_uri"] = uri
                     _instance = Precise(
                         getattr(TableAdapter, _api["table"]),
                         {"id": int(_api["id"])},
@@ -98,7 +99,7 @@ class MessageManager:
                 dict(
                     permission_type=permission_type,
                     info=f'<b>{redis_client.hget(RedisKey.user(g.gitee_id), "gitee_name")}</b>请求{_api.get("alias")}<b>{_api["id"]}</b>。',
-                    script=_api.get("uri") % int(_api["id"]),
+                    script=_api["cur_uri"],
                     method=_api.get("act"),
                     _alias=_api.get("alias"),
                     _id=_api.get("id"),
