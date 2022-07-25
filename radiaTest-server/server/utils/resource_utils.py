@@ -37,7 +37,9 @@ class ResourceManager:
         PermissionManager().generate(allow_list, deny_list, body)
         
         return jsonify(
-            error_code=RET.OK, error_msg="Request processed successfully."
+            error_code=RET.OK, 
+            error_msg="Request processed successfully.",
+            data={"id": item_id}
         )
     
     def add_v2(self, file_name, body):
@@ -55,7 +57,9 @@ class ResourceManager:
         PermissionManager().generate(allow_list, deny_list, body)
         
         return jsonify(
-            error_code=RET.OK, error_msg="Request processed successfully."
+            error_code=RET.OK, 
+            error_msg="Request processed successfully.",
+            data={"id": item_id}
         )
     
     def del_single(self, resource_id):

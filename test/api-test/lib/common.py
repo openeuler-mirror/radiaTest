@@ -9,7 +9,7 @@ import requests
 from lib import constant, logger
 
 
-class AuthUnittestTestCase(unittest.TestCase):
+class AdminAuthUnittestTestCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         logger.info("初始化: 获取最高权限授权token")
@@ -50,6 +50,13 @@ class AuthUnittestTestCase(unittest.TestCase):
             logger.error(f"Error: {str(e)}")
         
 
+class UserAuthUnittestTestCase(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        logger.info("初始化: 使用配置文件中配置的用户token")
+        cls.auth = f"JWT {constant.user_token}"
+
+
 class RestApi:
     def __init__(self, api_url, **kwargs):
         self.api_url = api_url
@@ -79,7 +86,7 @@ class RestApi:
 
     def post(self, data=None, **kwargs):
         return self.session.post(
-            f"{constant.server_url}{self.api_url}", 
+            self.api_url, 
             data=json.dumps(data), 
             headers=self.header, **kwargs
         )
@@ -90,7 +97,7 @@ class RestApi:
         _header.pop("Content-Type")
         #当提交的是form表单形式的数据时，data数据不需要使用json.dumps()将字典类型转换为字符串类型
         return self.session.post(
-            f"{constant.server_url}{self.api_url}",
+            self.api_url,
             data=data, 
             headers=_header, 
             **kwargs
@@ -98,7 +105,7 @@ class RestApi:
 
     def put(self, data=None, **kwargs):
         return self.session.put(
-            f"{constant.server_url}{self.api_url}",
+            self.api_url,
             data=json.dumps(data), 
             headers=self.header, 
             **kwargs
@@ -110,7 +117,7 @@ class RestApi:
         _header.pop("Content-Type")
         #当提交的是form表单形式的数据时，data数据不需要使用json.dumps()将字典类型转换为字符串类型
         return self.session.put(
-            f"{constant.server_url}{self.api_url}",
+            self.api_url,
             data=data, 
             headers=self.header,
             **kwargs
@@ -118,7 +125,7 @@ class RestApi:
 
     def delete(self, data=None, **kwargs):
         return self.session.delete(
-            f"{constant.server_url}{self.api_url}", 
+            self.api_url, 
             data=json.dumps(data),
             headers=self.header,
             **kwargs
