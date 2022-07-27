@@ -488,10 +488,9 @@ class RunCaseHandler(TaskAuthHandler):
                             "job_id": self._body.get("id"),
                             "case_id": testcase.get("id"),
                             "master": self._body.get("master"),
-                            "log_url": "{}/{}/{}/{}/{}/".format(
+                            "log_url": "{}/{}/{}/{}/".format(
                                 current_app.config.get("REPO_URL"),
                                 self._name,
-                                framework.get("logs_path"),
                                 testsuite.get("name"),
                                 testcase.get("name"),
                             ),

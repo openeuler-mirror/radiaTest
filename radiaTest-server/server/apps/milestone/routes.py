@@ -51,7 +51,7 @@ class MilestoneItemEventV2(Resource):
         if not milestone:
             return jsonify(
                 error_code=RET.NO_DATA_ERR,
-                error_msg="milestone {} not exitst".format(milestone_id),
+                error_msg="milestone {} not exist".format(milestone_id),
             )
 
         if milestone.is_sync is True:
