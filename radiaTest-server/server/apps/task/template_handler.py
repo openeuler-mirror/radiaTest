@@ -324,6 +324,19 @@ class HandlerTaskDistributeCass:
         return child_task
 
     @staticmethod
+    def bind_scope(task_id, user_ids: list):
+        pm = PermissionManager()
+        scope_data_allow, scope_data_deny = pm.get_api_list(
+            "task", os.path.join(base_dir, "execute_task.yaml"), task_id
+        )
+        for user_id in user_ids:
+            pm.bind_scope_user(
+                scope_datas_allow=scope_data_allow,
+                scope_datas_deny=scope_data_deny,
+                gitee_id=user_id,
+            )
+
+    @staticmethod
     def add_helpers(task, helpers):
         if helpers:
             for item in helpers.split(","):
@@ -358,6 +371,9 @@ class HandlerTaskDistributeCass:
         )
         child_task = self.child_task(title, group_id, item.executor_id)
         self.add_helpers(child_task, item.helpers)
+        test_user_ids = [_i for _i in item.helpers.split(",")]
+        test_user_ids.append(item.executor_id)
+        self.bind_scope(child_task.id, test_user_ids)
         self.add_milestone(child_task, milestone_id)
         self.parent_task.children.append(child_task)
         self.parent_task.add_update()
@@ -370,6 +386,9 @@ class HandlerTaskDistributeCass:
         )
         child_task = self.child_task(title, group_id, df.loc[0, "executor_id"])
         self.add_helpers(child_task, df.loc[0, "helpers"])
+        test_user_ids = [_i for _i in df.loc[0, "helpers"].split(",")]
+        test_user_ids.append(df.loc[0, "executor_id"])
+        self.bind_scope(child_task.id, test_user_ids)
         self.add_milestone(
             child_task,
             milestone_id,
