@@ -1,8 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import Home from '@/views/home/Home';
 import Dashboard from '@/views/dashboard/Dashboard';
-import Product from '@/views/product/Product';
-import Milestone from '@/views/milestone/Milestone';
 import Pmachine from '@/views/pmachine/Pmachine';
 import Vmachine from '@/views/vmachine/Vmachine';
 import Template from '@/views/testCenter/template/Template';
@@ -35,7 +33,8 @@ import caseReview from '@/views/caseManage/caseReview/caseReview.vue';
 import caseReviewDetail from '@/views/caseManage/caseReviewDetail/caseReviewDetail.vue';
 import resourcePool from '@/views/resourcePool/resourcePool.vue';
 import versionManagement from '@/views/versionManagement/versionManagement.vue';
-import product from '@/views/versionManagement/product/product.vue';
+import Product from '@/views/versionManagement/product/product.vue';
+import Milestone from '@/views/versionManagement/milestone/milestone.vue';
 import NotFound from '@/views/resultPage/NotFound.vue';
 
 const routerHistory = createWebHistory();
@@ -63,21 +62,9 @@ const router = createRouter({
           },
         },
         {
-          path: 'versionManagement/',
+          path: 'version-management/',
+          redirect: '/home/version-management/product',
           component: versionManagement,
-          redirect: '/home/versionManagement/product',
-          name:'versionManagement',
-          meta: {
-            title:'版本管理'
-          },
-          children: [
-            { path: 'product/', name: 'product', component: product}
-          ]
-        },
-        {
-          path: 'pvm/',
-          redirect: '/home/pvm/milestone',
-          component: Blank,
           children: [
             {
               path: 'product/',

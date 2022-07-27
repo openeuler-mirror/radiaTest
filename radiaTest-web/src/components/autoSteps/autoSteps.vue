@@ -14,16 +14,17 @@
             />
           </template>
           <div>
-            <span class="step-label">节点名称:{{ item.text }}</span><br>
+            <span class="step-label">{{ item.text }}</span><br>
           </div>
         </n-popover>
         <div class="divline" v-if="index !== list.length - 1"></div>
       </template>
-      <div v-if="!done" class="solidline"></div>
+      <div v-if="list.length !== 0 && !done" class="solidline" style=""></div>
       <n-tooltip v-if="!done" :show-arrow="false" trigger="hover">
         <template #trigger>
             <n-icon size="26" :color="hover ? '#4098fc' : ''" @click="addStep" style="cursor: pointer;top: 1px;" @mouseenter="changeHover(true)" @mouseleave="changeHover(false)">
-              <ArrowRight20Regular />
+              <ArrowRight20Regular v-if="list.length !== 0" />
+              <Play16Filled v-else />
             </n-icon>
         </template>
         {{ addTip }}
@@ -36,38 +37,35 @@
         name="basic-demo"
         style="--n-radio-size: 26px;margin-right: 17px;"
         :disabled="!done"
+        v-if="iterating"
         @click="releaseClick"
       />
-        <n-icon size="20" style="cursor: pointer;">
-          <n-popconfirm
-            @positive-click="doneEvent"
-            @negative-click="handleNegativeClick"
-          >
-            <template #trigger>
-              <ConnectTarget v-if="!done" />
-              <ConnectSource v-else />
-            </template>
-            确定要{{ done ? '恢复':'结束' }}迭代吗？
-          </n-popconfirm>
-        </n-icon>
+      <n-icon size="20" style="cursor: pointer;" v-if="list.length">
+        <n-popconfirm
+          @positive-click="doneEvent"
+          @negative-click="handleNegativeClick"
+        >
+          <template #trigger>
+            <ConnectTarget v-if="!done" />
+            <ConnectSource v-else />
+          </template>
+          确定要{{ done ? '恢复':'结束' }}迭代吗？
+        </n-popconfirm>
+      </n-icon>
     </div>
   </div>
 </template>
 <script>
-import { onMounted } from 'vue';
-import { ArrowRight20Regular } from '@vicons/fluent';
+import { toRefs, computed } from 'vue';
+import { Play16Filled, ArrowRight20Regular } from '@vicons/fluent';
 import { ConnectSource, ConnectTarget } from '@vicons/carbon';
 import { modules } from './modules';
 export default {
   props: {
     list: Array,
-    addTip: {
-      type: String,
-      default: '下一轮迭代',
-    },
     doneTip: {
       type: String,
-      default: '点击后结束迭代',
+      default: '点击后结束迭代测试',
     },
     done: {
       type: Boolean,
@@ -76,12 +74,13 @@ export default {
     currentId: {
       type: String,
       default: '',
-    }
+    },
   },
   components: {
     ArrowRight20Regular,
     ConnectSource,
-    ConnectTarget
+    ConnectTarget,
+    Play16Filled,
   },
   watch: {
     done: {
@@ -97,10 +96,18 @@ export default {
       deep: true,
     },
   },
-  setup() {
-    onMounted(() => {
+  setup(props) {
+    const { list } = toRefs(props);
+    const addTip = computed(() => {
+      if (list.value.length === 5) {
+        return '发布';
+      } else if (list.value.length !== 0) {
+        return '开启下一轮迭代测试';
+      }
+      return '开启第一轮迭代测试';
     });
     return {
+      addTip,
       ...modules,
     };
   },

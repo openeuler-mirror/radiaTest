@@ -90,7 +90,6 @@ class AutoInstall:
         )
 
 
-
 class OnOff:
     def __init__(self, body) -> None:
         self._body = body

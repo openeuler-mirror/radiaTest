@@ -2,10 +2,9 @@
   <n-button
     id="create"
     type="primary"
-    size="large"
+    size="medium"
     @mouseenter="handleEnter"
     @mouseleave="handleLeave"
-    round
   >
     <rotate-icon ref="icon" />
     {{ title }}
@@ -35,6 +34,6 @@ export default defineComponent({
 
 <style scoped>
 #create {
-  font-size: 20px;
+  font-size: 18px;
 }
 </style>
