@@ -107,7 +107,7 @@ import { onUnmounted, defineComponent } from 'vue';
 
 import validation from '@/assets/utils/validation.js';
 import { updateAjax } from '@/assets/CRUD/update';
-import updateForm from '@/views/milestone/modules/images/updateForm.js';
+import updateForm from '@/views/versionManagement/milestone/modules/images/updateForm.js';
 
 export default defineComponent({
   setup(props, context) {

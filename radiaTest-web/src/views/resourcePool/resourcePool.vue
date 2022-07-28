@@ -190,7 +190,7 @@
 <script>
 import { modules } from './modules';
 import modalCard from '@/components/CRUD/ModalCard.vue';
-import extendForm from '@/views/product/modules/createForm.js';
+import extendForm from '@/views/versionManagement/product/modules/createForm.js';
 
 export default {
   components: {

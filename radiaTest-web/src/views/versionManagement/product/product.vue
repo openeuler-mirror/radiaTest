@@ -23,14 +23,24 @@
       <div>
         <create-button title="注册产品版本" @click="createModalRef.show()" />
       </div>
-      <div style="display:flex">
+      <div style="display:flex;align-items:center">
+        <filterButton 
+          :filterRule="filterRule" 
+          @filterchange="filterchange"
+          style="display:flex;padding-right:20px;"
+        >
+        </filterButton>
         <n-select
           v-model:value="currentProduct"
           placeholder="请选择产品"
           style="width:200px"
           :options="productList"
         />
-        <n-button :disabled="!currentProduct" @click="showCheckList = true">
+        <n-button 
+          :disabled="!currentProduct" 
+          @click="showCheckList = true"
+          style="margin-right: 40px;"
+        >
           <template #icon>
             <n-icon>
               <ChecklistFilled />
@@ -38,6 +48,9 @@
           </template>
           质量checklist
         </n-button>
+        <refresh-button @refresh="getProduct()">
+          刷新产品版本列表
+        </refresh-button>
       </div>
     </div>
     <div>
@@ -438,7 +451,9 @@
   </div>
 </template>
 <script>
-import { ref, onMounted } from 'vue';
+import { ref, watch, onMounted } from 'vue';
+import { useStore } from 'vuex';
+import { getProduct } from '@/api/get';
 import Common from '@/components/CRUD';
 import Essential from '@/components/productComponents';
 import { Search } from '@vicons/carbon';
@@ -450,10 +465,13 @@ import autoSteps from '@/components/autoSteps/autoSteps.vue';
 import MilestoneIssuesCard from '@/components/milestoneComponents/MilestoneIssuesCard.vue';
 import testProgress from '@/components/productDrawer/testProgress.vue';
 import qualityProtect from '@/components/productDrawer/qualityProtect.vue';
+import filterButton from '@/components/filter/filterButton.vue';
+
 export default {
   components: {
     ...Common,
     ...Essential,
+    filterButton,
     ArrowLeft,
     autoSteps,
     MilestoneIssuesCard,
@@ -471,19 +489,41 @@ export default {
     };
   },
   setup() {
+    const store = useStore();
+
     onMounted(() => {
       modules.getTableData();
       modules.getDefaultList();
     });
+
+    watch(store.getters.filterProductState, () => {
+      modules.tableLoading.value = true;
+      getProduct(store.getters.filterProductState).then(res => {
+        modules.tableData.value = res.data || [];
+        modules.tableLoading.value = false;
+      }).catch(() => {
+        modules.tableLoading.value = false;
+      });
+    });
+
     return {
       createFormRef: ref(),
       createModalRef: ref(),
+      getProduct,
       Search,
       ...modules,
     };
   },
 };
 </script>
+<style>
+.resolvedRate {
+  width: 140px;
+}
+.seriousMain{
+  width: 160px;
+}
+</style>
 <style lang="less" scoped>
 .product-head {
   display: flex;

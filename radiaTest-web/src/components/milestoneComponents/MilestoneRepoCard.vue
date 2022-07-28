@@ -120,8 +120,8 @@ import { watch, onMounted, onUnmounted, defineComponent } from 'vue';
 import { Socket } from '@/socket';
 
 import settings from '@/assets/config/settings';
-import repoCard from '@/views/milestone/modules/repo/repoCard.js';
-import repoAjax from '@/views/milestone/modules/repo/repoAjax.js';
+import repoCard from '@/views/versionManagement/milestone/modules/repo/repoCard.js';
+import repoAjax from '@/views/versionManagement/milestone/modules/repo/repoAjax.js';
 
 export default defineComponent({
   props: {

@@ -148,7 +148,7 @@ import { Socket } from '@/socket.js';
 import settings from '@/assets/config/settings.js';
 import template from './modules/template.js';
 import { execModalRef, postExecData } from './modules/execTemplate';
-import extendForm from '@/views/product/modules/createForm.js';
+import extendForm from '@/views/versionManagement/product/modules/createForm.js';
 
 export default defineComponent({
   components: {

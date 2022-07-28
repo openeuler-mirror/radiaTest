@@ -31,15 +31,21 @@
       </n-tooltip>
       <div v-if="!done" class="noneline"></div>
       <div v-else class="releaseline" />
-      <n-radio
-        :checked="releaseRef"
-        size="large"
-        name="basic-demo"
-        style="--n-radio-size: 26px;margin-right: 17px;"
-        :disabled="!done"
-        v-if="iterating"
-        @click="releaseClick"
-      />
+      <n-popover trigger="hover" v-if="list.length" :disabled="!done">
+        <template #trigger>
+          <n-radio
+            :checked="releaseRef"
+            size="large"
+            name="basic-demo"
+            style="--n-radio-size: 26px;margin-right: 17px;"
+            :disabled="!done"
+            @click="releaseClick"
+          />
+        </template>
+        <div>
+          <span class="step-label">{{ list[-1]?.text }}</span><br>
+        </div>
+      </n-popover>
       <n-icon size="20" style="cursor: pointer;" v-if="list.length">
         <n-popconfirm
           @positive-click="doneEvent"
@@ -47,7 +53,7 @@
         >
           <template #trigger>
             <ConnectTarget v-if="!done" />
-            <ConnectSource v-else />
+            <FileDoneOutlined v-else />
           </template>
           确定要{{ done ? '恢复':'结束' }}迭代吗？
         </n-popconfirm>
@@ -58,7 +64,8 @@
 <script>
 import { toRefs, computed } from 'vue';
 import { Play16Filled, ArrowRight20Regular } from '@vicons/fluent';
-import { ConnectSource, ConnectTarget } from '@vicons/carbon';
+import { ConnectTarget } from '@vicons/carbon';
+import { FileDoneOutlined } from '@vicons/antd';
 import { modules } from './modules';
 export default {
   props: {
@@ -78,7 +85,7 @@ export default {
   },
   components: {
     ArrowRight20Regular,
-    ConnectSource,
+    FileDoneOutlined,
     ConnectTarget,
     Play16Filled,
   },
@@ -154,6 +161,7 @@ export default {
 .step-label{
   width: 200px;
   display: inline-block;
+  text-align: center;
 }
 .elementline{
   color: blue;

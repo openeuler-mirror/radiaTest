@@ -182,7 +182,7 @@ import { onMounted, onUnmounted, defineComponent } from 'vue';
 import { createAjax } from '@/assets/CRUD/create';
 import createForm from '@/views/vmachine/modules/createForm.js';
 import selectMachine from '@/components/machine/selectMachine.vue';
-import extendForm from '@/views/product/modules/createForm.js';
+import extendForm from '@/views/versionManagement/product/modules/createForm.js';
 import { storage } from '@/assets/utils/storageUtils';
 import router from '@/router';
 

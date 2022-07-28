@@ -1,4 +1,4 @@
-import { ref, computed } from 'vue';
+import { ref } from 'vue';
 import store from '@/store';
 import { get } from '@/assets/CRUD/read';
 
@@ -39,13 +39,6 @@ const rowProps = (row) => {
   };
 };
 
-const data = computed(() => {
-  const filterName = store.getters.filterMilestoneState.value;
-  return totalData.value.filter((item) =>
-    item.name.toLowerCase().includes(filterName.toLowerCase())
-  );
-});
-
 const handleCheck = (rowKeys) => {
   isCheck.value = true;
   store.commit('selected/setSelectedData', rowKeys);
@@ -65,7 +58,6 @@ function changePageSize(pageSize) {
 }
 
 export default {
-  data,
   filter,
   totalData,
   rowData,

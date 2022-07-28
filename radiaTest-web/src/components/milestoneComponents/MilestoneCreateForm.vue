@@ -95,11 +95,11 @@ import { watch, onMounted, onUnmounted, defineComponent } from 'vue';
 
 import validation from '@/assets/utils/validation.js';
 import { createAjax } from '@/assets/CRUD/create';
-import createForm from '@/views/milestone/modules/createForm.js';
+import createForm from '@/views/versionManagement/milestone/modules/createForm.js';
 import { getProductOpts, getVersionOpts } from '@/assets/utils/getOpts';
 import { storage } from '@/assets/utils/storageUtils';
 import { formatTime } from '@/assets/utils/dateFormatUtils';
-import  extendForm from '@/views/product/modules/createForm.js';
+import  extendForm from '@/views/versionManagement/product/modules/createForm.js';
 
 export default defineComponent({
   setup(props, context) {
