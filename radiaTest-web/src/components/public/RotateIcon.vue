@@ -1,5 +1,5 @@
 <template>
-  <n-icon id="icon" :class="status" size="30">
+  <n-icon id="icon" :class="status" size="24">
     <add />
   </n-icon>
 </template>
@@ -30,11 +30,6 @@ export default defineComponent({
 </script>
 
 <style scoped>
-#icon {
-  position: relative;
-  bottom: 2px;
-  right: 6px;
-}
 .rotate {
   animation: rotate 1s;
 }

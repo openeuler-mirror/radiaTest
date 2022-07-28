@@ -1,27 +1,29 @@
 import { ref, h } from 'vue';
-import { NButton, NIcon, NSpace, useMessage } from 'naive-ui';
+import { NButton, NIcon, NSpace, NTag, useMessage } from 'naive-ui';
 import { CancelRound, CheckCircleFilled } from '@vicons/material';
+import { QuestionCircle16Filled } from '@vicons/fluent';
 import { getProduct, getProductMessage, getMilestoneRate } from '@/api/get';
 import { createProductMessage } from '@/api/post';
 import { milestoneNext } from '@/api/put';
-import { detail,drawerShow,testProgressList } from './productDetailDrawer';
+import { detail,drawerShow,showPackage,testProgressList } from './productDetailDrawer';
+
 const ProductId = ref(null);
 const done = ref(false);
 const dashboardId = ref(null);
-const seriousSovledRate = ref(null);
-const currentSovledCnt = ref(null);
+const seriousResovledRate = ref(null);
+const currentResovledCnt = ref(null);
 const currentAllCnt = ref(null);
-const currentSovledRate = ref(null);
-const mainSolvedRate = ref(null);
-const seriousMainSolvedCnt = ref(null);
+const currentResovledRate = ref(null);
+const mainResolvedRate = ref(null);
+const seriousMainResolvedCnt = ref(null);
 const seriousMainAllCnt = ref(null);
-const seriousMainSolvedRate = ref(null);
+const seriousMainResolvedRate = ref(null);
 const leftIssuesCnt = ref(null);
+const previousLeftResolvedRate = ref(null);
 const tableData = ref([]);
 const testList = ref([]);
 const list = ref([]);
 const currentId = ref('');
-const addmessage = ref('下一轮迭代');
 const tableLoading = ref(false);
 const showModal = ref(false);
 const showCheckList = ref(false);
@@ -32,8 +34,10 @@ const model = ref({
   version: null,
   start_time: null,
   end_time: null,
-  public_time: null,
-  bequeath: null,
+  publish_time: null,
+  previous_left_resolved_rate: null,
+  serious_main_resolved_rate: null,
+  current_resolved_rate: null
 });
 function getDefaultList () {
   testList.value = testProgressList.value[testProgressList.value.length - 1];
@@ -70,15 +74,16 @@ function handleClick(id) {
         rateData[i] = rateData[i].toString().substring(0, rateData[i].length - 1);
       }
     }
-    seriousSovledRate.value = rateData.serious_solved_rate;
-    currentSovledCnt.value  = rateData.current_solved_cnt;
+    seriousResovledRate.value = rateData.serious_resolved_rate;
+    currentResovledCnt.value  = rateData.current_resolved_cnt;
     currentAllCnt.value  = rateData.current_all_cnt;
-    currentSovledRate.value  = rateData.current_solved_rate;
-    mainSolvedRate.value  = rateData.main_solved_rate;
-    seriousMainSolvedCnt.value  = rateData.serious_main_solved_cnt;
+    currentResovledRate.value  = rateData.current_resolved_rate;
+    mainResolvedRate.value  = rateData.main_resolved_rate;
+    seriousMainResolvedCnt.value  = rateData.serious_main_resolved_cnt;
     seriousMainAllCnt.value  = rateData.serious_main_all_cnt;
-    seriousMainSolvedRate.value  = rateData.serious_main_solved_rate;
+    seriousMainResolvedRate.value  = rateData.serious_main_resolved_rate;
     leftIssuesCnt.value = rateData.left_issues_cnt;
+    previousLeftResolvedRate.value = rateData.previous_left_resolved_rate ;
   }).catch(() => {
   });
   getTestList(id);
@@ -127,33 +132,170 @@ const columns = [
     title: '结束时间'
   },
   {
-    key: 'public_time',
+    key: 'publish_time',
     align: 'center',
     title: '发布时间'
   },
   {
-    key: 'bequeath',
+    key: 'previous_left_resolved_rate',
     align: 'center',
-    title: '遗留解决'
-  },
-  {
-    key: 'serious',
-    align: 'center',
-    title: '严重>80%',
-    render () {
-      return h(NIcon, { color: 'red',size:24 }, {
-        default: () => h(CancelRound)
-      });
+    title: '遗留问题解决率',
+    render (row) {
+      if (row.left_resolved_baseline 
+        && row.left_resolved_rate
+        && row.left_resolved_rate > row.left_resolved_baseline) {
+        return h(
+          NTag,
+          {
+            type: 'success',
+            round: true,
+            bordered: false,
+          },
+          {
+            default: `${row.left_resolved_rate}%`,
+            icon: () => h(NIcon, {
+              component: CheckCircleFilled 
+            })
+          }
+        );
+      } else if (!row.left_resolved_rate || !row.left_resolved_baseline) {
+        return h(
+          NTag,
+          {
+            type: 'default',
+            round: true,
+            bordered: false,
+          },
+          {
+            default: 'unknown',
+            icon: () => h(NIcon, {
+              component: QuestionCircle16Filled 
+            })
+          }
+        );
+      }
+      return h(
+        NTag,
+        {
+          type: 'error',
+          round: true,
+          bordered: false,
+        },
+        {
+          default: `${row.left_resolved_rate}%`,
+          icon: () => h(NIcon, {
+            component: CancelRound 
+          })
+        }
+      );
     }
   },
   {
-    key: 'serious',
+    key: 'serious_main_resolved_rate',
     align: 'center',
-    title: '版本100%',
-    render () {
-      return h(NIcon, { color: 'green', size: 24 }, {
-        default: () => h(CheckCircleFilled)
-      });
+    title: '严重/主要问题解决率',
+    render (row) {
+      if (row.serious_main_resolved_baseline 
+        && row.serious_main_resolved_rate
+        && row.serious_main_resolved_rate > row.serious_main_resolved_baseline) {
+        return h(
+          NTag,
+          {
+            type: 'success',
+            round: true,
+            bordered: false,
+          },
+          {
+            default: `${row.serious_main_resolved_rate}%`,
+            icon: () => h(NIcon, {
+              component: CheckCircleFilled 
+            })
+          }
+        );
+      } else if (!row.serious_main_resolved_rate || !row.serious_main_resolved_baseline) {
+        return h(
+          NTag,
+          {
+            type: 'default',
+            round: true,
+            bordered: false,
+          },
+          {
+            default: 'unknown',
+            icon: () => h(NIcon, {
+              component: QuestionCircle16Filled 
+            })
+          }
+        );
+      }
+      return h(
+        NTag,
+        {
+          type: 'error',
+          round: true,
+          bordered: false,
+        },
+        {
+          default: `${row.serious_main_resolved_rate}%`,
+          icon: () => h(NIcon, {
+            component: CancelRound 
+          })
+        }
+      );
+    }
+  },
+  {
+    key: 'current_resolved_rate',
+    align: 'center',
+    title: '版本问题解决率',
+    render (row) {
+      if (row.current_resolved_baseline 
+        && row.current_resolved_rate
+        && row.current_resolved_rate > row.current_resolved_baseline) {
+        return h(
+          NTag,
+          {
+            type: 'success',
+            round: true,
+            bordered: false,
+          },
+          {
+            default: `${row.current_resolved_rate}%`,
+            icon: () => h(NIcon, {
+              component: CheckCircleFilled 
+            })
+          }
+        );
+      } else if (!row.current_resolved_rate || !row.current_resolved_baseline) {
+        return h(
+          NTag,
+          {
+            type: 'default',
+            round: true,
+            bordered: false,
+          },
+          {
+            default: 'unknown',
+            icon: () => h(NIcon, {
+              component: QuestionCircle16Filled 
+            })
+          }
+        );
+      }
+      return h(
+        NTag,
+        {
+          type: 'error',
+          round: true,
+          bordered: false,
+        },
+        {
+          default: `${row.current_resolved_rate}%`,
+          icon: () => h(NIcon, {
+            component: CancelRound 
+          })
+        }
+      );
     }
   },
   {
@@ -172,33 +314,30 @@ const columns = [
 ];
 function getDefaultCheckNode (id) {
   getProductMessage(id).then(res => {
-    if(res.data.length === 0){
-      getProductData(id);
-    }else{
-      dashboardId.value = res.data[0].id;
-      const rateData = res.data[0].current_milestone_issue_solved_rate;
-      for(let i in rateData){
-        if(rateData[i] === null){
-          rateData[i] = 0;
-        }
-        if(rateData[i] !== 0 && i.includes('_rate')){
-          rateData[i] = rateData[i].toString().substring(0, rateData[i].length - 1);
-        }
+    dashboardId.value = res.data[0].id;
+    const rateData = res.data[0].current_milestone_issue_solved_rate;
+    for(let i in rateData){
+      if(rateData[i] === null){
+        rateData[i] = 0;
       }
-      seriousSovledRate.value = rateData.serious_solved_rate;
-      currentSovledCnt.value  = rateData.current_solved_cnt;
-      currentAllCnt.value  = rateData.current_all_cnt;
-      currentSovledRate.value  = rateData.current_solved_rate;
-      mainSolvedRate.value  = rateData.main_solved_rate;
-      seriousMainSolvedCnt.value  = rateData.serious_main_solved_cnt;
-      seriousMainAllCnt.value  = rateData.serious_main_all_cnt;
-      seriousMainSolvedRate.value  = rateData.serious_main_solved_rate;
-      leftIssuesCnt.value = rateData.left_issues_cnt;
-      currentId.value = res.data[0].current_milestone_id;
-      const newArr = Object.keys(res.data[0].milestones)
-        .map(item => ({key: item, text: res.data[0].milestones[item].name}));
-      list.value = newArr;
+      if(rateData[i] !== 0 && i.includes('_rate')){
+        rateData[i] = rateData[i].toString().substring(0, rateData[i].length - 1);
+      }
     }
+    seriousResovledRate.value = rateData.serious_resolved_rate;
+    currentResovledCnt.value  = rateData.current_resolved_cnt;
+    currentAllCnt.value  = rateData.current_all_cnt;
+    currentResovledRate.value  = rateData.current_resolved_rate;
+    mainResolvedRate.value  = rateData.main_resolved_rate;
+    seriousMainResolvedCnt.value  = rateData.serious_main_resolved_cnt;
+    seriousMainAllCnt.value  = rateData.serious_main_all_cnt;
+    seriousMainResolvedRate.value  = rateData.serious_main_resolved_rate;
+    leftIssuesCnt.value = rateData.left_issues_cnt;
+    previousLeftResolvedRate.value = rateData.previous_left_resolved_rate ;
+    currentId.value = res.data[0].current_milestone_id;
+    const newArr = Object.keys(res.data[0].milestones)
+      .map(item => ({key: item, text: res.data[0].milestones[item].name}));
+    list.value = newArr;
     tableLoading.value = false;
   }).catch(() => {
     tableLoading.value = false;
@@ -218,17 +357,33 @@ function rowProps (row) {
 }
 function stepAdd() {
   if (list.value.length === 5) {
-    window.$message.info('已达到转测最大结点数!');
-    addmessage.value = '发布';
+    window.$message.info('已达到转测最大结点数');
     currentId.value = null;
     done.value = true;
-    window.$message.success('已结束迭代!');
+    window.$message.success('已结束迭代测试');
+  } else if(list.value.length === 0) {
+    createProductMessage(ProductId.value).then(() => {
+      window.$message?.info('成功开启第一轮迭代测试');
+      getDefaultCheckNode(ProductId.value).then(() => {
+        milestoneNext(dashboardId.value).then(res => {
+          if (res.error_code === '2000') {
+            const newArr = Object.keys(res.data.milestones)
+              .map(item => ({key: item, text: res.data.milestones[item].name}));
+            list.value = newArr;
+            currentId.value = res.data.current_milestone_id;
+          } else {
+            window.$message.success('节点信息不存在或当前不存在下一轮迭代节点!');
+          }
+          tableLoading.value = false;
+        }).catch(() => {
+          tableLoading.value = false;
+        });
+      });
+    });
   } else {
-    addmessage.value = '下一轮迭代';
     tableLoading.value = true;
     milestoneNext(dashboardId.value).then(res => {
       if (res.error_code === '2000') {
-        window.$message.success('迭代成功!');
         const newArr = Object.keys(res.data.milestones)
           .map(item => ({key: item, text: res.data.milestones[item].name}));
         list.value = newArr;
@@ -258,15 +413,13 @@ function handleValidateButtonClick(e) {
 function haveDone(){
   done.value = true;
   currentId.value = null;
-  if(list.value.length === 5){
-    addmessage.value = '发布';
-  }else{
-    addmessage.value = '下一轮迭代';
-  }
 }
 function haveRecovery(){
   done.value = false;
   getDefaultCheckNode (ProductId.value);
+}
+function handlePackageCardClick() {
+  showPackage.value = true;
 }
 export {
   ProductId,
@@ -277,22 +430,22 @@ export {
   dashboardId,
   formRef,
   message,
-  addmessage,
   model,
   tableData,
   columns,
   tableLoading,
   showModal,
   showCheckList,
-  seriousSovledRate,
-  currentSovledCnt,
+  seriousResovledRate,
+  currentResovledCnt,
   currentAllCnt,
-  currentSovledRate,
-  mainSolvedRate,
-  seriousMainSolvedCnt,
+  currentResovledRate,
+  mainResolvedRate,
+  seriousMainResolvedCnt,
   seriousMainAllCnt,
-  seriousMainSolvedRate,
+  seriousMainResolvedRate,
   leftIssuesCnt,
+  previousLeftResolvedRate,
   stepAdd,
   getTestList,
   handleClick,
@@ -304,5 +457,6 @@ export {
   haveDone,
   haveRecovery,
   getDefaultCheckNode,
-  releaseclick
+  releaseclick,
+  handlePackageCardClick
 };

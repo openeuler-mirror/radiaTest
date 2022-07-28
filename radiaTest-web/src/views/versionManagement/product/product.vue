@@ -20,28 +20,25 @@
       </template>
     </modal-card>
     <div class="product-head">
-      <div style="display:flex;width:100%">
+      <div>
         <create-button title="注册产品版本" @click="createModalRef.show()" />
-        <n-input
-          style="max-width:500px"
-          v-model:value="searchInfo"
-          round
-          placeholder="搜索"
-          size="large"
-        >
-          <template #suffix>
-            <n-icon :component="Search" />
-          </template>
-        </n-input>
       </div>
-      <n-icon size="35" style="right: 10px;cursor: pointer;" @click="showCheckList = true">
-        <MdMenu />
-      </n-icon>
-      <n-select
-        placeholder="请选择产品"
-        style="width:200px"
-        :options="productList"
-      />
+      <div style="display:flex">
+        <n-select
+          v-model:value="currentProduct"
+          placeholder="请选择产品"
+          style="width:200px"
+          :options="productList"
+        />
+        <n-button :disabled="!currentProduct" @click="showCheckList = true">
+          <template #icon>
+            <n-icon>
+              <ChecklistFilled />
+            </n-icon>
+          </template>
+          质量checklist
+        </n-button>
+      </div>
     </div>
     <div>
       <n-data-table
@@ -84,66 +81,126 @@
               </div>
               <n-progress
                 type="line"
-                status="success"
-                :percentage="90"
+                :status="
+                  thisLeftResolvedRate && thisLeftResolvedRateBaseline
+                    ? thisLeftResolvedRate > thisLeftResolvedRateBaseline 
+                      ? 'success' 
+                      : 'error'
+                    :
+                     'default'
+                "
+                :percentage="leftResolvedRateValue"
                 :height="20"
                 :border-radius="4"
                 :fill-border-radius="0"
                 processing
               />
-              <span style="width: 60px;">转测</span>
-              <div style="width: 145px;">
-                <span>遗留问题数:</span>
-                <span style="text-align: center;margin-left: 10px;">{{ leftIssuesCnt }}</span><br/>
-                <span style="color: #DAE0E8;margin-left: 22px;">前置迭代</span>
-              </div>
+              <span style="width: 60px;">
+                {{ thisLeftResolvedRate && thisLeftResolvedRateBaseline ? '转测' : null }}
+              </span>
             </n-gi>
             <n-gi :span="3" style="margin-top: 40px;margin-bottom: 20px;">
-              <autoSteps @stepClick="handleClick" @haveDone="haveDone" @haveRecovery="haveRecovery" @add="stepAdd" @releaseclick="releaseclick" :addTip="addmessage" :done="done" :list="list" :currentId="currentId" />
+              <autoSteps 
+                @stepClick="handleClick" 
+                @haveDone="haveDone" 
+                @haveRecovery="haveRecovery" 
+                @add="stepAdd" 
+                @releaseclick="releaseclick" 
+                :done="done" 
+                :list="list" 
+                :currentId="currentId" 
+              />
             </n-gi>
           </n-grid>
-          <n-grid x-gap="12" :cols="2">
-            <n-gi :span="1" v-show="!showPackage && !showList">
-              <div class="card" @click="cardClick" :style="{backgroundColor:currentSovledRate >= 70?'#D5E8D4':'#F8CECC',border:currentSovledRate >= 70?'1px solid #A2C790':'1px solid #B95854'}">
+          <n-grid x-gap="12" :cols="2" v-if="list.length">
+            <n-gi :span="1" v-if="!showPackage && !showList">
+              <div 
+                class="card" 
+                @click="cardClick" 
+                :style="{
+                  backgroundColor: currentResolvedRate && currentResolvedBaseline
+                    ? currentResovledRate >= currentResolvedBaseline
+                      ?'#D5E8D4'
+                      :'#F8CECC'
+                    : 'white',
+                  border: currentResovledRate && currentResolvedBaseline
+                    ? currentResovledRate >= currentResolvedBaseline
+                      ?'1px solid #A2C790'
+                      :'1px solid #B95854'
+                    : '1px solid #dddddd'
+                }"
+              >
                 <n-progress
                   style="width:190px;position:absolute;left:35px;"
                   class="topProgress"
                   type="circle"
-                  :status="currentSovledRate >= 70 ? 'success' : 'error'"
+                  :status="currentResovledRate >= currentResolvedBaseline ? 'success' : 'error'"
                   stroke-width="9"
-                  :percentage="currentSovledRate"
+                  :percentage="currentResovledRate"
                 >
-                  <span style="text-align: center;font-size: 33px;">{{ currentSovledRate + '%' }}</span>
+                  <span style="text-align: center;font-size: 33px;">
+                    {{ currentResovledRate ? `${currentResolvedRate}%` : '0%' }}
+                  </span>
                 </n-progress>
                 <div style="display: flex;position: absolute;top: 4%;left: 73%;">
                   <n-icon size="20" style="margin-right: 5px;">
-                    <CheckCircleFilled color="#18A058" v-if="currentSovledRate >= 70" />
+                    <CheckCircleFilled color="#18A058" v-if="currentResovledRate >= currentResolvedBaseline" />
+                    <QuestionCircle16Filled v-else-if="!currentResolvedRate || !currentResolvedBaseline" />
                     <CancelRound color="#D03050" v-else />
                   </n-icon>
-                  <span v-if="list.length < 5 && !done">下一轮迭代</span>
+                  <span v-if="list.length < 5 && !done">
+                    {{ currentResolvedRate >= currentResolvedBaseline ? '已达标' : '未达标' }}
+                  </span>
                   <span v-else>发布</span>
                 </div>
-                <div style="position:absolute;left: 61%;top: 24%;text-align: center;">
-                  <span style="font-size: 20px;">当前里程碑</span><br><span style="font-size: 20px;">问题解决统计</span>
-                  <p style="font-size: 30px;margin-top: 3px;">{{`${currentSovledCnt}/${currentAllCnt}`}}</p>
+                <div style="position:absolute;left: 61%;top: 16%;text-align: center;">
+                  <span style="font-size: 20px;">
+                    问题解决统计
+                  </span><br>
+                  <span style="font-size: 20px;color: #929292">
+                    当前迭代
+                  </span>
+                  <p style="font-size: 30px;margin-top: 3px;margin-bottom: 3px">
+                    {{ currentAllCnt && currentResolvedRate ? `${currentResovledCnt}/${currentAllCnt}` : '0/0' }}
+                  </p>
+                  <div style="display: flex;align-items: center;justify-content: space-around">
+                    <div style="display: flex;flex-direction: column">
+                      <p style="font-size: 14px;margin: 0">
+                        遗留问题数
+                      </p>
+                      <p style="font-size: 14px;margin: 0;color: #929292">
+                        前置迭代
+                      </p>
+                    </div>
+                    <p style="font-size: 30px;">
+                      {{ leftIssuesCnt ? leftIssuesCnt : '0' }}
+                    </p>
+                  </div>
                 </div>
-                <div class="description" style="font-size: 19px;position:absolute;top:69%;display:flex;justify-content:space-around;">
-                  <span>严重/主要问题解决率</span>
-                  <span>{{ `${seriousMainSolvedCnt}/${seriousMainAllCnt}` }}</span>
+                <div 
+                  class="description" 
+                  style="font-size: 19px;position:absolute;top:69%;display:flex;justify-content:space-around;"
+                >
+                  <span>
+                    严重/主要问题解决率
+                  </span>
+                  <span>
+                    {{ seriousMainResolvedCnt && seriousMainAllCnt ? `${seriousMainResolvedCnt}/${seriousMainAllCnt}` : '0/0' }}
+                  </span>
                 </div>
                 <n-progress
                   style="position: absolute;width: 78%;top: 80%;left: 11%;"
                   type="line"
                   status="error"
                   :indicator-placement="'inside'"
-                  :percentage="seriousMainSolvedRate"
+                  :percentage="seriousMainResolvedRate"
                   :height="20"
                   :border-radius="4"
                   :fill-border-radius="0"
                   processing
                 />
-                <n-progress style="position: absolute;width: 78%;top: 86%;left: 11%;" type="line" :percentage="seriousSovledRate" />
-                <n-progress style="position: absolute;width: 78%;top: 91%;left: 11%;" type="line" :percentage="mainSolvedRate" />
+                <n-progress style="position: absolute;width: 78%;top: 86%;left: 11%;" type="line" :percentage="seriousResovledRate" />
+                <n-progress style="position: absolute;width: 78%;top: 91%;left: 11%;" type="line" :percentage="mainResolvedRate" />
               </div>
             </n-gi>
             <n-gi
@@ -152,20 +209,16 @@
             >
               <div
                 class="transitionBox"
-                v-show="!showPackage"
+                v-if="!showPackage"
                 :style="{
                   width: showList === false ? '100%' : boxWidth + 'px',
                 }"
               >
                 <div
                   style="display:flex;justify-content:space-around;height:100%;"
-                  @click="
-                    () => {
-                      showList = true;
-                    }
-                  "
+                  @click="handleListClick"
                   class="card"
-                  v-show="!showList"
+                  v-if="!showList"
                 >
                   <div style="text-align:center">
                     <p>
@@ -195,7 +248,7 @@
                     </p>
                   </div>
                 </div>
-                <div v-show="showList">
+                <div v-if="showList">
                   <n-card style="height: auto;box-shadow: 0 2px 8px 0 rgb(2 24 42 / 10%);">
                     <template #header>
                       <n-tabs type="line" animated>
@@ -214,7 +267,7 @@
               </div>
               <n-card
                 class="cardbox"
-                v-show="!showList"
+                v-if="!showList"
                 :style="{height:showPackage?'auto':''}"
                 :bordered="false"
                 title="软件包变更"
@@ -233,12 +286,8 @@
                 >
                   <div
                     style="display:flex;justify-content:space-around;height:100%;"
-                    @click="
-                      () => {
-                        showPackage = true;
-                      }
-                    "
-                    v-show="!showPackage"
+                    @click="handlePackageCardClick"
+                    v-if="!showPackage"
                   >
                     <div class="packageCard transitionBox">
                       <div class="package-left">
@@ -261,7 +310,7 @@
                       </div>
                     </div>
                   </div>
-                  <div v-show="showPackage" style="width: 826px;">
+                  <div v-if="showPackage" style="width: 826px;">
                     <div class="packageCard">
                       <div class="package-left">
                         <n-h3>
@@ -292,8 +341,8 @@
                 <n-tab-pane tab="测试进展" name="testProgress"> </n-tab-pane>
                 <n-tab-pane tab="质量防护网" name="qualityProtect">
                 </n-tab-pane>
-                <n-tab-pane name="performance" tab="性能看板"> </n-tab-pane>
-                <n-tab-pane name="compatibility" tab="兼容性看板"> </n-tab-pane>
+                <n-tab-pane :disabled="true" name="performance" tab="性能看板"> </n-tab-pane>
+                <n-tab-pane :disabled="true" name="compatibility" tab="兼容性看板"> </n-tab-pane>
               </n-tabs>
               <div>
                 <keep-alive>
@@ -309,6 +358,12 @@
               </div>
             </n-gi>
           </n-grid>
+          <n-empty 
+            size="huge" 
+            style="justify-content:center;height:100%" 
+            description="未通过质量checklist，无法开启第一轮迭代测试" 
+            v-else 
+          />
           <n-drawer
             v-model:show="active"
             placement="bottom"
@@ -388,9 +443,9 @@ import Common from '@/components/CRUD';
 import Essential from '@/components/productComponents';
 import { Search } from '@vicons/carbon';
 import { modules } from './modules';
-import { ArrowLeft32Filled as ArrowLeft } from '@vicons/fluent';
-import { MdClose, MdMenu } from '@vicons/ionicons4';
-import { DoubleArrowFilled, CancelRound, CheckCircleFilled } from '@vicons/material';
+import { ArrowLeft32Filled as ArrowLeft, QuestionCircle16Filled } from '@vicons/fluent';
+import { MdClose } from '@vicons/ionicons4';
+import { DoubleArrowFilled, CancelRound, CheckCircleFilled, ChecklistFilled } from '@vicons/material';
 import autoSteps from '@/components/autoSteps/autoSteps.vue';
 import MilestoneIssuesCard from '@/components/milestoneComponents/MilestoneIssuesCard.vue';
 import testProgress from '@/components/productDrawer/testProgress.vue';
@@ -407,8 +462,9 @@ export default {
     DoubleArrowFilled,
     CancelRound,
     CheckCircleFilled,
-    MdMenu,
+    ChecklistFilled,
     qualityProtect,
+    QuestionCircle16Filled
   },
   data() {
     return {
@@ -436,12 +492,12 @@ export default {
 }
 .transitionBox {
   cursor: pointer;
-  // transition: all 0.5s;
   .package-middle{
     margin: 23px 43px;
   }
 }
 .drawer-content {
+  height: 100%;
   padding: 0 10px;
   .card {
     cursor: pointer;
@@ -467,9 +523,10 @@ export default {
 }
 .packageCard {
   display: flex;
-  justify-content: space-around;
+  justify-content: space-evenly;
   text-align: center;
   align-items: center;
+  width: 100%;
 }
 .cardbox{
   margin:9px 0 0 0;

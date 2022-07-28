@@ -7,6 +7,7 @@ from server.model.milestone import IssueSolvedRate, Milestone
 
 class QualityBoard(BaseModel, db.Model):
     __tablename__ = "qualityboard"
+
     id = db.Column(db.Integer(), primary_key=True)
     iteration_version = db.Column(db.String(256), nullable=True)
     product_id = db.Column(db.Integer(), db.ForeignKey("product.id"), nullable=True)
@@ -23,7 +24,7 @@ class QualityBoard(BaseModel, db.Model):
             mids = self.iteration_version.split("->")
             for _id in mids:
                 milestone = Milestone.query.filter_by(id=_id).first()
-                milestones.update({id: milestone.to_json()})
+                milestones.update({_id: milestone.to_json()})
         return milestones
 
     def to_json(self):

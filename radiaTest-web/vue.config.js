@@ -18,22 +18,23 @@ module.exports = {
   },
   productionSourceMap: false,
   devServer: {
-    host: '172.168.88.197',
-    // host: '0.0.0.0',
-    port: 8082,
+    host: '0.0.0.0',
+    port: 21500,
+    https: {
+      key: '/etc/radiaTest/server_ssl/private/cakey.pem',
+      cert: '/etc/radiaTest/server_ssl/cacert.pem'
+    },
     open: true,
     hot: false,
     compress: true,
     proxy: {
       '/api': {
-        target: 'http://123.60.114.22:1457/',
-        // target: 'http://0.0.0.0:21500/',
+        target: 'http://0.0.0.0:21500/',
         changeOrigin: true,
         secure: false,
       },
       '/static': {
-        target: 'http://123.60.114.22:1457/',
-        // target: 'http://0.0.0.0:21500/',
+        target: 'http://0.0.0.0:21500/',
         changeOrigin: true,
         secure: false,
       }

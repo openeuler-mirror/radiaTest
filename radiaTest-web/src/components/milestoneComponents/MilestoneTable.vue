@@ -72,7 +72,7 @@ export default defineComponent({
 .cols.product-name {
   width: 10% !important;
 }
-.cols.product-version {
+.cols.version-management {
   width: 10% !important;
 }
 .cols .milestone-name {

@@ -20,18 +20,19 @@ class QualityBoardEvent(Resource):
         if _db:
             return jsonify(
                 error_code=RET.DATA_EXIST_ERR,
-                error_msg="qualityboard for product {}  exitst".format(body.product_id)
+                error_msg="qualityboard for product {} exist".format(body.product_id)
             )
         _p = Product.query.filter_by(id=body.product_id).first()
         if not _p:
             return jsonify(
                 error_code=RET.NO_DATA_ERR,
-                error_msg="product {} not exitst".format(body.product_id)
+                error_msg="product {} not exist".format(body.product_id)
             )
         milestones = Milestone.query.filter_by(
             product_id=body.product_id,
             type="round",
-            is_sync=True).order_by(Milestone.start_time.asc()).all()
+            is_sync=True
+        ).order_by(Milestone.start_time.asc()).all()
         iteration_version = ""
         for _m in milestones:
             iteration_version = iteration_version + "->" + str(_m.id)

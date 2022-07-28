@@ -12,10 +12,10 @@ function cardClick () {
 }
 const activeTab = ref('testProgress');
 const testProgressList = ref([]);
-const newRequestCount = ref(20);
-const extendRequestCount = ref(13);
-const newRequestRate = ref(80);
-const extendRequestRate = ref(100);
+const newRequestCount = ref(0);
+const extendRequestCount = ref(0);
+const newRequestRate = ref(0);
+const extendRequestRate = ref(0);
 const showList = ref(false);
 
 const boxWidth = ref(0);
@@ -25,12 +25,12 @@ watch(showList, () => {
   });
 });
 const oldPackage = ref({
-  size: 2000,
-  name: 'openeuler 20.03 sp3'
+  size: 0,
+  name: null
 });
 const newPackage = ref({
-  size: 2800,
-  name: 'openeuler 20.04 sp4'
+  size: 0,
+  name: null
 });
 const showPackage = ref(false);
 const packageBox = ref(null);
@@ -40,6 +40,9 @@ watch(showPackage, () => {
     packageWidth.value = requestCard.value.$el.clientWidth;
   });
 });
+function handleListClick() {
+  showList.value = true;
+}
 export {
   packageBox,
   showPackage,
@@ -60,4 +63,5 @@ export {
   drawerShow,
   cardDescription,
   cardClick,
+  handleListClick,
 };

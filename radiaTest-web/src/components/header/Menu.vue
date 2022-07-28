@@ -7,26 +7,8 @@
   >
     <template #text> <n-text>主页</n-text></template>
   </my-tab>
-  <my-tab url="/home/pvm">
+  <my-tab url="/home/version-management" :has-arrow="false" @click="handlePvmClick">
     <template #text> <n-text>版本管理</n-text> </template>
-    <template #menu>
-      <animate-button url="/home/pvm/product" :size="270">
-        <template #icon>
-          <n-icon class="icon" size="160">
-            <logo-firebase />
-          </n-icon>
-        </template>
-        <template #text><n-text>产品版本</n-text> </template>
-      </animate-button>
-      <animate-button url="/home/pvm/milestone" :size="270">
-        <template #icon>
-          <n-icon class="icon" size="160">
-            <task-list />
-          </n-icon>
-        </template>
-        <template #text> <n-text>里程碑</n-text> </template>
-      </animate-button>
-    </template>
   </my-tab>
   <my-tab
     :has-arrow="false"
@@ -54,25 +36,20 @@
 <script>
 import { defineComponent } from 'vue';
 import { useRouter } from 'vue-router';
-import {
-  TaskListRtl20Filled as TaskList,
-} from '@vicons/fluent';
-import { LogoFirebase } from '@vicons/ionicons5';
 
 import MyTab from './MyTab.vue';
-import AnimateButton from '@/components/public/AnimateButton';
 
 export default defineComponent({
   components: {
     MyTab,
-    AnimateButton,
-    LogoFirebase,
-    TaskList,
   },
   setup() {
     const router = useRouter();
 
     return {
+      handlePvmClick() {
+        router.push('/home/version-management');
+      },
       handleTestClick() {
         router.push('/home/testing');
       },
