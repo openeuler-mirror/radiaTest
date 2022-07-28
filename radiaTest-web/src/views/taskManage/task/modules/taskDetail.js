@@ -953,7 +953,7 @@ function editTaskExecutor(id, editInfo) {
       initData();
       if (!Object.keys(editInfo).includes('is_delete')) {
         getDetailTask();
-        };
+      }
     })
     .catch((err) => {
       showLoading.value = false;
