@@ -281,7 +281,7 @@ class HandlerTask(object):
             query_filter = Task.query.join(TaskParticipant).filter(*filter_params)
         else:
             query_filter = Task.query.filter(*filter_params)
- 
+
         def page_func(item):
             item_dict = TaskBaseSchema(**item.__dict__).dict()
             creator = User.query.get(item.creator_id)
@@ -343,23 +343,7 @@ class HandlerTask(object):
         return jsonify(error_code=RET.OK, error_msg="OK")
 
     @staticmethod
-    @collect_sql_error
-    def update(task_id, body: UpdateTaskSchema):
-        task = Task.query.get(task_id)
-        old_executor_type = task.executor_type
-        old_executor_id = task.executor_id
-        if not task:
-            return jsonify(error_code=RET.NO_DATA_ERR, error_msg="task does not exist")
-        if task.task_status.name == "已完成":
-            return jsonify(
-                error_code=RET.SERVER_ERR,
-                error_msg="task has accomplished, not allowed edit !",
-            )
-        for key, value in body.dict().items():
-            if key in ["milestones", "frame", "status_id", "status_name"]:
-                continue
-            elif (value or value is False) and hasattr(task, key):
-                setattr(task, key, value)
+    def update_executor_permission(old_executor_type, old_executor_id, task, body):
         pm = PermissionManager()
         if task.executor_type == EnumsTaskExecutorType.GROUP.value and body.executor_id:
             relationship = ReUserGroup.query.filter_by(
@@ -381,7 +365,7 @@ class HandlerTask(object):
                     name="admin", type="group", group_id=task.group_id
                 ).first()
                 scope_data_allow, scope_data_deny = pm.get_api_list(
-                    "task", os.path.join(base_dir, "execute_task.yaml"), task_id
+                    "task", os.path.join(base_dir, "execute_task.yaml"), task.id
                 )
                 PermissionManager.unbind_scope_role(
                     scope_data_allow,
@@ -400,7 +384,7 @@ class HandlerTask(object):
                 )
         elif body.executor_id and int(old_executor_id) != int(body.executor_id):
             participant = TaskParticipant.query.filter_by(
-                task_id=task_id,
+                task_id=task.id,
                 participant_id=body.executor_id,
                 type=EnumsTaskExecutorType.PERSON.value,
             ).first()
@@ -411,7 +395,7 @@ class HandlerTask(object):
                 )
             task.executor_id = body.executor_id
             scope_data_allow, scope_data_deny = pm.get_api_list(
-                "task", os.path.join(base_dir, "execute_task.yaml"), task_id
+                "task", os.path.join(base_dir, "execute_task.yaml"), task.id
             )
 
             if int(task.creator_id) != int(old_executor_id):
@@ -427,6 +411,27 @@ class HandlerTask(object):
                     scope_datas_deny=scope_data_deny,
                     gitee_id=task.executor_id,
                 )
+
+    @staticmethod
+    @collect_sql_error
+    def update(task_id, body: UpdateTaskSchema):
+        task = Task.query.get(task_id)
+        old_executor_type = task.executor_type
+        old_executor_id = task.executor_id
+        if not task:
+            return jsonify(error_code=RET.NO_DATA_ERR, error_msg="task does not exist")
+        if task.task_status.name == "已完成":
+            return jsonify(
+                error_code=RET.SERVER_ERR,
+                error_msg="task has accomplished, not allowed edit !",
+            )
+        for key, value in body.dict().items():
+            if key in ["milestones", "frame", "status_id", "status_name"]:
+                continue
+            elif (value or value is False) and hasattr(task, key):
+                setattr(task, key, value)
+
+        HandlerTask.update_executor_permission(old_executor_type, old_executor_id, task, body)
 
         if task.task_status.name not in ["执行中", "已执行", "已完成"]:
             if body.is_manage_task:
@@ -556,7 +561,7 @@ class HandlerTask(object):
         group = None
         if task.group_id:
             group = Group.query.filter_by(is_delete=False, id=task.group_id).first()
-            
+
         return_data["executor_group"] = (
             GroupInfoSchema(**group.__dict__).dict() if group else None
         )
@@ -1101,7 +1106,9 @@ class HandlerTaskCase(object):
                 item_dict = item.to_json()
                 item_dict["milestone"] = None
                 if item.milestone_id:
-                    item_dict["milestone"] = Milestone.query.get(item.milestone_id).to_json()
+                    item_dict["milestone"] = Milestone.query.get(
+                        item.milestone_id
+                    ).to_json()
                 return_data.append(item_dict)
         else:
             task_milestone = TaskMilestone.query.filter_by(
@@ -1154,11 +1161,6 @@ class HandlerTaskCase(object):
             )
 
         task = Task.query.get(task_id)
-        if task and task.is_single_case:
-            return jsonify(
-                error_code=RET.PARMA_ERR,
-                error_msg="single-case task is not allowed associating more than 1 cases",
-            )
 
         cases = Case.query.filter(
             Case.id.in_(body.case_id), Case.deleted.is_(False)
@@ -1197,11 +1199,6 @@ class HandlerTaskCase(object):
             )
 
         task = Task.query.get(task_id)
-        if task and task.is_single_case:
-            return jsonify(
-                error_code=RET.PARMA_ERR,
-                error_msg="can not delete case in single-case task!",
-            )
 
         cases = Case.query.filter(Case.id.in_(query.case_id)).all()
         _ = [
@@ -1683,7 +1680,7 @@ class HandlerCaseTask(object):
     @staticmethod
     @collect_sql_error
     def get_task_info(case_id):
-        filter_param = [Case.id == case_id, Task.is_single_case.is_(True)]
+        filter_param = [Case.id == case_id]
         task = Task.query.filter(*filter_param).first()
         return HandlerTask.get(task.id)
 
