@@ -3,7 +3,7 @@
     title="任务管理"
     size="huge"
     :segmented="{
-      content: 'hard',
+      content: 'hard'
     }"
     header-style="
             font-size: 30px;
@@ -19,11 +19,7 @@
         <n-gi class="nav-header">任务管理</n-gi>
         <n-gi class="nav-body">
           <ul class="nav-wrapper">
-            <li
-              v-for="(item, index) in menu"
-              :key="index"
-              @click="menuClick(item, index)"
-            >
+            <li v-for="(item, index) in menu" :key="index" @click="menuClick(item, index)">
               <a :class="{ active: menuSelect == index }">{{ item.text }}</a>
             </li>
           </ul>
@@ -31,24 +27,14 @@
         <n-gi class="nav-footer">
           <div v-show="isTask" class="footer-wrapper">
             <a class="footer-item" v-show="kanban" @click="toggleView">
-              <n-icon size="16">
-                <LayoutKanban /> </n-icon
-              >表格视图
+              <n-icon size="16"> <LayoutKanban /> </n-icon>表格视图
             </a>
             <a class="footer-item" v-show="!kanban" @click="toggleView">
-              <n-icon size="16">
-                <Table /> </n-icon
-              >看板视图
+              <n-icon size="16"> <Table /> </n-icon>看板视图
             </a>
-            <a class="footer-item" @click="screen">
-              <n-icon size="16">
-                <Search /> </n-icon
-              >筛选
-            </a>
+            <filterButton class="footer-item" :filterRule="filterRule" @filterchange="filterchange"></filterButton>
             <a class="footer-item" @click="showRecycleBin">
-              <n-icon size="16">
-                <Delete48Regular /> </n-icon
-              >回收站
+              <n-icon size="16"> <Delete48Regular /> </n-icon>回收站
             </a>
             <a class="footer-item">
               <n-popover trigger="hover" placement="bottom">
@@ -82,102 +68,9 @@
       </n-grid>
     </template>
     <template #default>
-      <div id="drawer-target"></div>
-      <n-drawer v-model:show="active" to="#drawer-target" width="324px">
-        <n-drawer-content title="筛选" closable>
-          <n-form
-            :model="model"
-            :rules="rules"
-            ref="formRef"
-            label-placement="left"
-            :label-width="80"
-            size="medium"
-            :style="{}"
-          >
-            <n-form-item label="名称" path="title">
-              <n-input
-                placeholder="请输入任务名称"
-                v-model:value="model.title"
-              />
-            </n-form-item>
-            <n-form-item label="类型" path="type">
-              <n-select
-                placeholder="请选择"
-                clearable
-                :options="taskTypeOptions"
-                v-model:value="model.type"
-              />
-            </n-form-item>
-            <n-form-item label="创建者" path="originator">
-              <n-select
-                clearable
-                placeholder="请选择"
-                :options="originators"
-                v-model:value="model.originator"
-              />
-            </n-form-item>
-            <n-form-item label="执行者" path="executor_id">
-              <n-select
-                placeholder="请选择"
-                clearable
-                :options="executors"
-                v-model:value="model.executor_id"
-              />
-            </n-form-item>
-            <n-form-item label="协助人" path="participant_id">
-              <n-select
-                placeholder="请选择"
-                :options="participants"
-                clearable
-                v-model:value="model.participant_id"
-                multiple
-              />
-            </n-form-item>
-            <n-form-item label="里程碑" path="milestone_id">
-              <n-select
-                :options="milestones"
-                v-model:value="model.milestone_id"
-                clearable
-                multiple
-              ></n-select>
-            </n-form-item>
-            <n-form-item label="状态" path="status_id">
-              <n-select
-                placeholder="请选择"
-                clearable
-                :options="statusOptions"
-                v-model:value="model.status_id"
-              />
-            </n-form-item>
-            <n-form-item label="截止日期" path="deadline">
-              <n-date-picker type="date" v-model:value="model.deadline" />
-            </n-form-item>
-            <n-form-item label="开始日期" path="start_time">
-              <n-date-picker type="date" v-model:value="model.start_time" />
-            </n-form-item>
-            <div class="searchButtonBox">
-              <n-button class="btn" type="error" ghost @click="clearCondition"
-                >重置</n-button
-              >
-              <n-button
-                class="btn"
-                type="info"
-                ghost
-                @click="handleValidateButtonClick"
-                >搜索</n-button
-              >
-            </div>
-          </n-form>
-        </n-drawer-content>
-      </n-drawer>
       <div class="recycleWrap">
         <n-modal v-model:show="showRecycleBinModal">
-          <n-card
-            style="width: 1200px"
-            title="查看回收站"
-            :bordered="false"
-            size="huge"
-          >
+          <n-card style="width: 1200px" title="查看回收站" :bordered="false" size="huge">
             <n-data-table
               remote
               ref="recycleBinTaskTable"
@@ -212,19 +105,20 @@
 
 <script>
 import { defineComponent, onMounted, watch } from 'vue';
-import { LayoutKanban, Table, Search } from '@vicons/tabler';
+import { LayoutKanban, Table } from '@vicons/tabler';
 import { QuestionCircle20Regular, Delete48Regular } from '@vicons/fluent';
 import { modules } from './modules/index';
 import { useRoute } from 'vue-router';
 import config from '@/assets/config/settings';
+import filterButton from '@/components/filter/filterButton.vue';
 
 export default defineComponent({
   components: {
     LayoutKanban,
     Table,
-    Search,
     QuestionCircle20Regular,
     Delete48Regular,
+    filterButton
   },
   setup() {
     const route = useRoute();
@@ -244,18 +138,12 @@ export default defineComponent({
       }
     );
     onMounted(() => {
-      modules.taskTypeOptions.value = [
-        { label: '个人任务', value: 'PERSON' },
-        { label: '团队任务', value: 'GROUP' },
-        { label: '组织任务', value: 'ORGANIZATION' },
-        { label: '版本任务', value: 'VERSION' },
-      ];
       modules.initCondition();
     });
 
     return {
       config,
-      ...modules,
+      ...modules
     };
   },
   beforeRouteEnter(to) {
@@ -269,7 +157,7 @@ export default defineComponent({
       modules.menuSelect.value = 2;
       modules.isTask.value = false;
     }
-  },
+  }
 });
 </script>
 
@@ -346,17 +234,6 @@ export default defineComponent({
       &:hover {
         color: #3da8f5;
       }
-    }
-  }
-}
-
-#drawer-target {
-  .searchButtonBox {
-    display: flex;
-    justify-content: space-evenly;
-
-    .btn {
-      width: 100px;
     }
   }
 }

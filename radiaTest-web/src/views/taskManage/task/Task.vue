@@ -1377,7 +1377,7 @@ export default defineComponent({
 });
 </script>
 
-<style lang="less">
+<style lang="less" scoped>
 @font-face {
   font-family: "iconfont"; /* Project id  */
   src: url("iconfont.ttf?t=1637235844418") format("truetype");

@@ -3,7 +3,7 @@
     title="产品版本"
     size="huge"
     :segmented="{
-      content: 'hard',
+      content: 'hard'
     }"
     header-style="
             font-size: 30px;
@@ -44,20 +44,18 @@
           <!-- <delete-button title="产品版本" url="/v1/product" /> -->
         </n-space>
       </n-gi>
-      <n-gi :span="16">
-        <product-filter style="position: relative" />
-      </n-gi>
+      <n-gi :span="16"> </n-gi>
       <n-gi :span="2">
-        <n-space justify="end">
+        <div class="titleBtnWrap">
+          <filterButton class="item" :filterRule="filterRule" @filterchange="filterchange"></filterButton>
           <refresh-button @refresh="tableRef.refreshData()">
             刷新版本列表
           </refresh-button>
-        </n-space>
+        </div>
       </n-gi>
       <n-gi :span="24"></n-gi>
       <n-gi :span="24"></n-gi>
-      <n-gi :span="24">
-      </n-gi>
+      <n-gi :span="24"> </n-gi>
       <n-gi :span="24">
         <product-table ref="tableRef" @update="() => updateModalRef.show()" />
         <modal-card
@@ -104,18 +102,56 @@ import { ref, defineComponent } from 'vue';
 import settings from '@/assets/config/settings.js';
 import Common from '@/components/CRUD';
 import Essential from '@/components/productComponents';
+import filterButton from '@/components/filter/filterButton.vue';
+import { useStore } from 'vuex';
 
 export default defineComponent({
   components: {
     ...Common,
     ...Essential,
+    filterButton
   },
+  // eslint-disable-next-line max-lines-per-function
   setup() {
     const tableRef = ref(null);
     const createFormRef = ref(null);
     const updateFormRef = ref(null);
     const createModalRef = ref(null);
     const updateModalRef = ref(null);
+    const store = useStore();
+    const storeObj = ref({
+      name: '',
+      version: '',
+      description: ''
+    });
+    const filterRule = ref([
+      {
+        path: 'name',
+        name: '产品名称',
+        type: 'input'
+      },
+      {
+        path: 'version',
+        name: '版本名称',
+        type: 'input'
+      },
+      {
+        path: 'description',
+        name: '描述信息',
+        type: 'input'
+      }
+    ]);
+
+    const filterchange = (filterArray) => {
+      storeObj.value = { name: '', version: '', description: '' };
+      filterArray.forEach((v) => {
+        storeObj.value[v.path] = v.value;
+      });
+
+      store.commit('filterProduct/setName', storeObj.value.name);
+      store.commit('filterProduct/setVersion', storeObj.value.version);
+      store.commit('filterProduct/setDescription', storeObj.value.description);
+    };
 
     return {
       settings,
@@ -124,9 +160,20 @@ export default defineComponent({
       updateFormRef,
       createModalRef,
       updateModalRef,
+      filterRule,
+      filterchange
     };
-  },
+  }
 });
 </script>
 
-<style scoped></style>
+<style scoped lang="less">
+.titleBtnWrap {
+  display: flex;
+  align-items: center;
+
+  .item {
+    margin: 0 20px;
+  }
+}
+</style>
