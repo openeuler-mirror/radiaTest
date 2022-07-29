@@ -59,7 +59,7 @@ import { onUnmounted, defineComponent } from 'vue';
 
 import validation from '@/assets/utils/validation.js';
 import { createAjax } from '@/assets/CRUD/create';
-import createForm from '@/views/product/modules/createForm.js';
+import createForm from '@/views/versionManagement/product/modules/createForm.js';
 import { storage } from '@/assets/utils/storageUtils';
 
 export default defineComponent({

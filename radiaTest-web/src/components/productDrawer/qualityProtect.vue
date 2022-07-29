@@ -3,11 +3,14 @@
     <n-card>
       <n-grid x-gap="12" :cols="4">
         <n-gi 
+          :id="item.id"
           :span="1" 
           v-for="(item, index) in list" 
           :key="item.id" 
           class="item" 
-          @click="changeNum(index)" 
+          @click="changeNum(index)"
+          @mouseenter="handleMouseEnter(item.id)"
+          @mouseleave="handleMouseLeave(item.id)"
           style="cursor: pointer"
         >
           <n-progress
@@ -17,7 +20,15 @@
           />
           <p>{{item.label}}</p>
         </n-gi>
-        <n-gi :span="1" class="item" @click="() => {dailyBuildShow = true;}">
+        <n-gi 
+          id="dailyBuild"
+          :span="1" 
+          class="item" 
+          @click="() => {dailyBuildShow = true;}"
+          @mouseenter="handleMouseEnter('dailyBuild')"
+          @mouseleave="handleMouseLeave('dailyBuild')"
+          style="cursor: pointer"
+        >
           <div v-for="item in dailyBuild" :key="item.id">
             <p>
               <span>{{item.date}}</span>
@@ -96,7 +107,6 @@ export default {
       {progress: weeklyDefend.value, label: '周防护网', id:2},
       {progress: rpmCheck.value, label: 'rpm check', id:3},
     ]);
-
     return {
       num,
       list,

@@ -215,12 +215,12 @@ import ModalCard from '@/components/CRUD/ModalCard.vue';
 import ImageForm from '@/components/milestoneComponents/milestoneImageForm';
 
 import settings from '@/assets/config/settings';
-import imagesCard from '@/views/milestone/modules/images/imagesCard.js';
+import imagesCard from '@/views/versionManagement/milestone/modules/images/imagesCard.js';
 import {
   getData,
   devideIsoData,
   devideQcow2Data,
-} from '@/views/milestone/modules/images/imagesAjax.js';
+} from '@/views/versionManagement/milestone/modules/images/imagesAjax.js';
 
 export default defineComponent({
   components: {

@@ -131,12 +131,12 @@
 
 <script>
 import { ref, defineComponent } from 'vue';
-import issuesColumns, { issueStateDict } from '@/views/milestone/modules/issueTableColumns.js';
+import issuesColumns, { issueStateDict } from '@/views/versionManagement/milestone/modules/issueTableColumns.js';
 import {
   SyncCircle,
   ArrowForwardOutline
 } from '@vicons/ionicons5';
-// import milestoneIssuesAjax from '@/views/milestone/modules/milestoneIssuesAjax.js';
+// import milestoneIssuesAjax from '@/views/versionManagement/milestone/modules/milestoneIssuesAjax.js';
 import { getIssueType, getIssue, getIssueDetails } from '@/api/get';
 import IssueState from '@/components/public/IssueState.vue';
 import { User } from '@vicons/tabler';

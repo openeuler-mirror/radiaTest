@@ -62,6 +62,7 @@ function getProductData (id) {
 function getTestList (index) {
   testList.value = testProgressList.value[index];
 }
+
 function handleClick(id) {
   currentId.value = id;
   getMilestoneRate(id).then(res => {
@@ -100,15 +101,12 @@ function renderBtn (text, action, row, type = 'text') {
 function releaseclick () {
   currentId.value = null;
 }
-function editRow (row) {
-  console.log(row);
+function editRow () {
   showModal.value = true;
 }
-function reportRow (row) {
-  console.log(row);
+function reportRow () {
 }
-function deleteRow (row) {
-  console.log(row);
+function deleteRow () {
 }
 const columns = [
   {
@@ -120,6 +118,11 @@ const columns = [
     key: 'version',
     align: 'center',
     title: '版本'
+  },
+  {
+    key: 'description',
+    align: 'center',
+    title: '描述',
   },
   {
     key: 'start_time',
@@ -139,6 +142,7 @@ const columns = [
   {
     key: 'previous_left_resolved_rate',
     align: 'center',
+    className: 'resolvedRate',
     title: '遗留问题解决率',
     render (row) {
       if (row.left_resolved_baseline 
@@ -193,6 +197,7 @@ const columns = [
   {
     key: 'serious_main_resolved_rate',
     align: 'center',
+    className: 'seriousMain',
     title: '严重/主要问题解决率',
     render (row) {
       if (row.serious_main_resolved_baseline 
@@ -247,6 +252,7 @@ const columns = [
   {
     key: 'current_resolved_rate',
     align: 'center',
+    className: 'resolvedRate',
     title: '版本问题解决率',
     render (row) {
       if (row.current_resolved_baseline 

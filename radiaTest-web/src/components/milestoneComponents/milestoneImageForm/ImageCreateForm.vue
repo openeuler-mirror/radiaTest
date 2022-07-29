@@ -107,7 +107,7 @@ import { onUnmounted, defineComponent } from 'vue';
 
 import validation from '@/assets/utils/validation.js';
 import { createAjax } from '@/assets/CRUD/create';
-import createForm from '@/views/milestone/modules/images/createForm.js';
+import createForm from '@/views/versionManagement/milestone/modules/images/createForm.js';
 
 export default defineComponent({
   setup(props, context) {

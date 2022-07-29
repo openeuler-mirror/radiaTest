@@ -55,7 +55,7 @@ import MilestoneTaskTable from './MilestoneTaskTable.vue';
 import MilestoneIssuesCard from './MilestoneIssuesCard.vue';
 import { ArrowLeft32Filled as ArrowLeft } from '@vicons/fluent';
 
-import milestoneTable from '@/views/milestone/modules/milestoneTable.js';
+import milestoneTable from '@/views/versionManagement/milestone/modules/milestoneTable.js';
 
 export default defineComponent({
   components: {

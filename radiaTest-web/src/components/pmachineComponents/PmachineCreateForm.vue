@@ -173,7 +173,7 @@ import { storage } from '@/assets/utils/storageUtils';
 import { createAjax } from '@/assets/CRUD/create';
 import createForm from '@/views/pmachine/modules/createForm.js';
 import { removeKey } from '@/assets/utils/objectUtils.js';
-import extendForm from '@/views/product/modules/createForm.js';
+import extendForm from '@/views/versionManagement/product/modules/createForm.js';
 import router from '@/router';
 export default defineComponent({
   setup(props, context) {

@@ -22,6 +22,17 @@
     <div>
       <create-button title="注册里程碑" @click="createModalRef.show()" />
     </div>
+    <div style="display:flex;align-items:center">
+      <filterButton 
+        :filterRule="filterRule" 
+        @filterchange="filterchange"
+        style="display:flex;padding-right:20px;"
+      >
+      </filterButton>
+      <refresh-button @refresh="getTableData()">
+        刷新里程碑列表
+      </refresh-button>
+    </div>
   </div>
   <n-grid x-gap="24">
     <n-gi :span="24">
@@ -52,13 +63,16 @@
 
 <script>
 import { ref, defineComponent } from 'vue';
-
 import settings from '@/assets/config/settings.js';
+import milestoneTable from '@/views/versionManagement/milestone/modules/milestoneTable';
 import Common from '@/components/CRUD';
 import Essential from '@/components/milestoneComponents';
+import filterButton from '@/components/filter/filterButton.vue';
+
 
 export default defineComponent({
   components: {
+    filterButton,
     ...Common,
     ...Essential,
   },
@@ -68,7 +82,18 @@ export default defineComponent({
     const updateFormRef = ref(null);
     const createModalRef = ref(null);
     const updateModalRef = ref(null);
+    const filterRule = ref([
+      {
+        path: 'milestoneName',
+        name: '里程碑名',
+        type: 'input'
+      }
+    ]);
 
+    const filterchange = (filterArray) => {
+      milestoneTable.filter.value.name = filterArray[0].value;
+      milestoneTable.getTableData();
+    };
     return {
       settings,
       tableRef,
@@ -76,6 +101,9 @@ export default defineComponent({
       updateFormRef,
       createModalRef,
       updateModalRef,
+      filterchange,
+      filterRule,
+      ...milestoneTable,
     };
   },
 });

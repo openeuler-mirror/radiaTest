@@ -136,7 +136,7 @@ import { createTitle } from '@/assets/utils/createTitle';
 import createForm from '@/views/testCenter/template/modules/createForm.js';
 import casesForm from '@/views/testCenter/template/modules/casesForm.js';
 import createAjax from '@/views/testCenter/template/modules/createAjax.js';
-import extendForm from '@/views/product/modules/createForm.js';
+import extendForm from '@/views/versionManagement/product/modules/createForm.js';
 
 export default defineComponent({
   components: {

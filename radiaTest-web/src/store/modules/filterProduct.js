@@ -4,6 +4,9 @@ const state = {
   name: '',
   version: '',
   description: '',
+  start_time: '',
+  end_time: '',
+  publish_time: '',
 };
 const mutations = {
   setName: (newState, name) => {
@@ -14,11 +17,18 @@ const mutations = {
   },
   setDescription: (newState, description) => {
     newState.description = description;
-  }
+  },
+  setStartTime: (newState, startTime) => {
+    newState.start_time = startTime;
+  },
+  setEndTime: (newState, endTime) => {
+    newState.end_time = endTime;
+  },
+  setPublishTime: (newState, publishTime) => {
+    newState.publish_time = publishTime;
+  } 
 };
-const actions = {
-
-};
+const actions = {};
 
 export default {
   namespaced: true,

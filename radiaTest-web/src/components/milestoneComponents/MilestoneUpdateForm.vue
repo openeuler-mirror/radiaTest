@@ -52,7 +52,7 @@ import { useStore } from 'vuex';
 import { any2standard } from '@/assets/utils/dateFormatUtils.js';
 import validation from '@/assets/utils/validation.js';
 import updateAjax from '@/assets/CRUD/update/updateAjax.js';
-import updateForm from '@/views/milestone/modules/updateForm.js';
+import updateForm from '@/views/versionManagement/milestone/modules/updateForm.js';
 
 export default defineComponent({
   setup(props, context) {

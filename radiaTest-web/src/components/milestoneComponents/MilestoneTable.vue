@@ -5,7 +5,7 @@
     size="large"
     :bordered="false"
     :columns="columns"
-    :data="data"
+    :data="totalData"
     :loading="loading"
     :row-key="(row) => row.id"
     :row-props="rowProps"
@@ -24,8 +24,8 @@ import { Socket } from '@/socket';
 import settings from '@/assets/config/settings.js';
 import { get, selection } from '@/assets/CRUD/read';
 import { any2stamp } from '@/assets/utils/dateFormatUtils.js';
-import milestoneTable from '@/views/milestone/modules/milestoneTable.js';
-import createColumns from '@/views/milestone/modules/milestoneTableColumns.js';
+import milestoneTable from '@/views/versionManagement/milestone/modules/milestoneTable.js';
+import createColumns from '@/views/versionManagement/milestone/modules/milestoneTableColumns.js';
 
 export default defineComponent({
   setup(props, context) {
