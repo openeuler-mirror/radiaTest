@@ -343,24 +343,87 @@ class HandlerTask(object):
         return jsonify(error_code=RET.OK, error_msg="OK")
 
     @staticmethod
-    def update_executor_permission(old_executor_type, old_executor_id, task, body):
-        pm = PermissionManager()
-        if task.executor_type == EnumsTaskExecutorType.GROUP.value and body.executor_id:
+    def update_executor(task_id, body: UpdateTaskExecutorSchema):
+        task = Task.query.get(task_id)
+        if not task:
+            return jsonify(error_code=RET.NO_DATA_ERR, error_msg="task does not exist")
+        if task.task_status.name == "已完成":
+            return jsonify(
+                error_code=RET.SERVER_ERR,
+                error_msg="task has accomplished, not allowed edit !",
+            )
+  
+        if body.executor_type == EnumsTaskExecutorType.PERSON.value:
+            user = User.query.filter_by(gitee_id=body.executor_id).first()
+            if not user:
+                return jsonify(
+                    error_code=RET.NO_DATA_ERR, error_msg="user is not exists"
+                )
+        else:
             relationship = ReUserGroup.query.filter_by(
-                group_id=body.executor_id,
                 is_delete=False,
+                org_id=task.org_id,
+                group_id=body.executor_id,
                 role_type=GroupRole.create_user.value,
             ).first()
             if not relationship:
                 return jsonify(
                     error_code=RET.NO_DATA_ERR, error_msg="group is not exists"
                 )
-            task.executor_id = relationship.user.gitee_id
-            task.group_id = relationship.group.id
+        
+        participant = TaskParticipant.query.filter_by(
+            task_id=task.id,
+            participant_id=body.executor_id,
+            type=body.executor_type,
+        ).first()
+        if participant:
+            return jsonify(
+                error_code=RET.DATA_EXIST_ERR,
+                error_msg="the user has been a participant.",
+            )
 
-            if task.executor_type != old_executor_type or int(old_executor_id) != int(
-                body.executor_id
-            ):
+        old_executor_type = task.executor_type
+        old_executor_id = task.executor_id
+
+        pm = PermissionManager()
+        if old_executor_type == EnumsTaskExecutorType.GROUP.value:
+            if body.executor_type == EnumsTaskExecutorType.GROUP.value:
+                if int(old_executor_id) != int(body.executor_id):
+                    role = Role.query.filter_by(
+                        name="admin", type="group", group_id=task.group_id
+                    ).first()
+                    scope_data_allow, scope_data_deny = pm.get_api_list(
+                        "task", os.path.join(base_dir, "execute_task.yaml"), task.id
+                    )
+                    PermissionManager.unbind_scope_role(
+                        scope_data_allow,
+                        False,
+                        role.id,
+                    )
+                    relationship = ReUserGroup.query.filter_by(
+                        group_id=body.executor_id,
+                        is_delete=False,
+                        role_type=GroupRole.create_user.value,
+                    ).first()
+                    if not relationship:
+                        return jsonify(
+                            error_code=RET.NO_DATA_ERR, error_msg="group is not exists"
+                        )
+                    task.executor_id = relationship.user.gitee_id
+                    task.group_id = relationship.group.id
+                    task.executor_type = body.executor_type
+                    _data = {
+                        "permission_type": "group",
+                        "org_id": task.org_id,
+                        "group_id": task.group_id,
+                    }
+                    pm.bind_scope_nouser(
+                        scope_datas_allow=scope_data_allow,
+                        scope_datas_deny=scope_data_deny,
+                        _data=_data,
+                    )
+            else:
+                
                 role = Role.query.filter_by(
                     name="admin", type="group", group_id=task.group_id
                 ).first()
@@ -372,6 +435,41 @@ class HandlerTask(object):
                     False,
                     role.id,
                 )
+                task.executor_id = body.executor_id
+                task.executor_type = body.executor_type
+                if int(task.creator_id) != int(task.executor_id):
+                    pm.bind_scope_user(
+                        scope_datas_allow=scope_data_allow,
+                        scope_datas_deny=scope_data_deny,
+                        gitee_id=task.executor_id,
+                    )
+        else:
+            if body.executor_type == EnumsTaskExecutorType.GROUP.value:
+                scope_data_allow, scope_data_deny = pm.get_api_list(
+                    "task", os.path.join(base_dir, "execute_task.yaml"), task.id
+                )
+
+                relationship = ReUserGroup.query.filter_by(
+                    group_id=body.executor_id,
+                    is_delete=False,
+                    role_type=GroupRole.create_user.value,
+                ).first()
+                if not relationship:
+                    return jsonify(
+                        error_code=RET.NO_DATA_ERR, error_msg="group is not exists"
+                    )
+
+                if int(task.creator_id) != int(old_executor_id):
+                    role = Role.query.filter_by(name=old_executor_id).first()
+                    PermissionManager.unbind_scope_role(
+                        scope_data_allow,
+                        False,
+                        role.id,
+                    )
+
+                task.executor_id = relationship.user.gitee_id
+                task.group_id = relationship.group.id
+                task.executor_type = body.executor_type
                 _data = {
                     "permission_type": "group",
                     "org_id": task.org_id,
@@ -382,42 +480,34 @@ class HandlerTask(object):
                     scope_datas_deny=scope_data_deny,
                     _data=_data,
                 )
-        elif body.executor_id and int(old_executor_id) != int(body.executor_id):
-            participant = TaskParticipant.query.filter_by(
-                task_id=task.id,
-                participant_id=body.executor_id,
-                type=EnumsTaskExecutorType.PERSON.value,
-            ).first()
-            if participant:
-                return jsonify(
-                    error_code=RET.DATA_EXIST_ERR,
-                    error_msg="the user has been a participant.",
-                )
-            task.executor_id = body.executor_id
-            scope_data_allow, scope_data_deny = pm.get_api_list(
-                "task", os.path.join(base_dir, "execute_task.yaml"), task.id
-            )
+            else:
+                if int(body.executor_id) != int(old_executor_id):
+                    task.executor_id = body.executor_id
+                    scope_data_allow, scope_data_deny = pm.get_api_list(
+                        "task", os.path.join(base_dir, "execute_task.yaml"), task.id
+                    )
 
-            if int(task.creator_id) != int(old_executor_id):
-                role = Role.query.filter_by(name=old_executor_id).first()
-                PermissionManager.unbind_scope_role(
-                    scope_data_allow,
-                    False,
-                    role.id,
-                )
-            if int(task.creator_id) != int(body.executor_id):
-                pm.bind_scope_user(
-                    scope_datas_allow=scope_data_allow,
-                    scope_datas_deny=scope_data_deny,
-                    gitee_id=task.executor_id,
-                )
+                    if int(task.creator_id) != int(old_executor_id):
+                        role = Role.query.filter_by(name=old_executor_id).first()
+                        PermissionManager.unbind_scope_role(
+                            scope_data_allow,
+                            False,
+                            role.id,
+                        )
+                    if int(task.creator_id) != int(body.executor_id):
+                        pm.bind_scope_user(
+                            scope_datas_allow=scope_data_allow,
+                            scope_datas_deny=scope_data_deny,
+                            gitee_id=task.executor_id,
+                        )
+        task.add_update()
+        db.session.commit()
+        return jsonify(error_code=RET.OK, error_msg="OK")
 
     @staticmethod
     @collect_sql_error
     def update(task_id, body: UpdateTaskSchema):
         task = Task.query.get(task_id)
-        old_executor_type = task.executor_type
-        old_executor_id = task.executor_id
         if not task:
             return jsonify(error_code=RET.NO_DATA_ERR, error_msg="task does not exist")
         if task.task_status.name == "已完成":
@@ -430,8 +520,6 @@ class HandlerTask(object):
                 continue
             elif (value or value is False) and hasattr(task, key):
                 setattr(task, key, value)
-
-        HandlerTask.update_executor_permission(old_executor_type, old_executor_id, task, body)
 
         if task.task_status.name not in ["执行中", "已执行", "已完成"]:
             if body.is_manage_task:
@@ -704,6 +792,27 @@ class HandlerTaskParticipant(object):
                 error_code=RET.NO_DATA_ERR,
                 error_msg="task is not exists / user is no right",
             )
+     
+        executor_to_participant_type = task.executor_type
+        executor_to_participant_id = task.executor_id
+        if task.executor_type == EnumsTaskExecutorType.GROUP.value:
+            relationship = ReUserGroup.query.filter_by(
+                is_delete=False,
+                org_id=task.org_id,
+                user_gitee_id=task.executor_id,
+                role_type=GroupRole.create_user.value,
+            ).first()
+            executor_to_participant_id = relationship.group_id
+
+        for item in body.participants:
+            if (
+                int(executor_to_participant_id) == int(item.participant_id)
+                and executor_to_participant_type == item.type
+            ):
+                return jsonify(
+                    error_code=RET.DATA_EXIST_ERR,
+                    error_msg="%s %s has been executor." % (executor_to_participant_type, item.participant_id),
+                )
 
         participants = TaskParticipant.query.filter_by(task_id=task_id).all()
         del_pc = [_pc for _pc in participants]
@@ -719,18 +828,17 @@ class HandlerTaskParticipant(object):
             "task", os.path.join(base_dir, "execute_task.yaml"), task_id
         )
         for apc in add_pc:
-            participant = TaskParticipant(
-                task_id=task_id, participant_id=apc.participant_id, type=apc.type
-            )
-            db.session.add(participant)
-
             if apc.type == EnumsTaskExecutorType.GROUP.value:
                 relationship = ReUserGroup.query.filter_by(
-                    user_gitee_id=apc.participant_id,
                     is_delete=False,
                     org_id=task.org_id,
+                    group_id=apc.participant_id,
                     role_type=GroupRole.create_user.value,
                 ).first()
+                if not relationship:
+                    return jsonify(
+                        error_code=RET.NO_DATA_ERR, error_msg="group is not exists"
+                    )
                 _data = {
                     "permission_type": "group",
                     "org_id": task.org_id,
@@ -742,12 +850,21 @@ class HandlerTaskParticipant(object):
                     _data=_data,
                 )
             else:
+                user = User.query.filter_by(gitee_id=apc.participant_id).first()
+                if not user:
+                    return jsonify(
+                        error_code=RET.NO_DATA_ERR, error_msg="user is not exists"
+                    )
                 if int(task.creator_id) != int(apc.participant_id):
                     pm.bind_scope_user(
                         scope_datas_allow=scope_data_allow,
                         scope_datas_deny=scope_data_deny,
                         gitee_id=apc.participant_id,
                     )
+            participant = TaskParticipant(
+                task_id=task_id, participant_id=apc.participant_id, type=apc.type
+            )
+            db.session.add(participant)
             # add permission code
         for dpc in del_pc:
             # del permission code
@@ -756,14 +873,8 @@ class HandlerTaskParticipant(object):
                     continue
                 role = Role.query.filter_by(name=str(dpc.participant_id)).first()
             else:
-                relationship = ReUserGroup.query.filter_by(
-                    user_gitee_id=dpc.participant_id,
-                    is_delete=False,
-                    org_id=task.org_id,
-                    role_type=GroupRole.create_user.value,
-                ).first()
                 role = Role.query.filter_by(
-                    name="admin", type="group", group_id=relationship.group_id
+                    name="admin", type="group", group_id=dpc.participant_id
                 ).first()
             PermissionManager.unbind_scope_role(
                 scope_data_allow,

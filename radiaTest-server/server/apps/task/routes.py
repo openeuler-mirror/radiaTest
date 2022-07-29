@@ -109,6 +109,15 @@ class Participants(Resource):
         return HandlerTaskParticipant.get(None, query_task=True)
 
 
+class ExecutorItem(Resource):
+    @auth.login_required()
+    @response_collect
+    @validate()
+    @casbin_enforcer.enforcer
+    def put(self, task_id, body: UpdateTaskExecutorSchema):
+        return HandlerTask.update_executor(task_id, body)
+
+
 class Comment(Resource):
     @auth.login_required()
     @response_collect

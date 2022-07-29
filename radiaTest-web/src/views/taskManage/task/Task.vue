@@ -450,7 +450,7 @@
                                   "
                                   :groupId="modalData.detail.group_id"
                                   @getPerson="
-                                    getExecutor($event, modalData.detail.type)
+                                    getExecutors($event, modalData.detail.type)
                                   "
                                   :disabled="!editStatus"
                                   :defaultValue="

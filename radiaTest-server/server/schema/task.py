@@ -155,14 +155,17 @@ class ParticipantSchema(BaseModel):
     type: EnumsTaskExecutorType
 
 
+class UpdateTaskExecutorSchema(BaseModel):
+    executor_type: EnumsTaskExecutorType
+    executor_id: int
+
+
 class UpdateTaskSchema(BaseModel):
     title: str = None
     start_time: str = None
     deadline: str = None
     status_id: int = None
     status_name: str = None
-    executor_type: EnumsTaskExecutorType = None
-    executor_id: int = None
     group_id: int = None
     content: str = None
     is_delete: bool = None

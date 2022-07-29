@@ -943,6 +943,24 @@ function editTask(id, editInfo) {
     });
 }
 
+// 编辑任务选项
+function editTaskExecutor(id, editInfo) {
+  showLoading.value = true;
+  axios
+    .put(`/v1/tasks/${id}/executor`, editInfo)
+    .then(() => {
+      showLoading.value = false;
+      initData();
+      if (!Object.keys(editInfo).includes('is_delete')) {
+        getDetailTask();
+        };
+    })
+    .catch((err) => {
+      showLoading.value = false;
+      window.$message?.error(err.data.error_msg || '未知错误');
+    });
+}
+
 // 测试用例表格行id设置
 function caseRowKey(row) {
   return row.id;
@@ -1489,7 +1507,7 @@ function getExecutors(value) {
   const options = {};
   options.executor_id = value.id;
   options.executor_type = value.type;
-  editTask(modalData.value.detail.id, options);
+  editTaskExecutor(modalData.value.detail.id, options);
 }
 
 // 获取责任人
@@ -1506,7 +1524,7 @@ function getExecutor(value, type) {
     options.executor_id = value.id;
     options.executor_type = value.type;
   }
-  editTask(modalData.value.detail.id, options);
+  editTaskExecutor(modalData.value.detail.id, options);
 }
 
 function showReport(file) {
@@ -1617,6 +1635,7 @@ export {
   getDetailTask,
   getDetail,
   editTask,
+  editTaskExecutor,
   caseRowKey,
   getCase,
   handleCasePageChange,
