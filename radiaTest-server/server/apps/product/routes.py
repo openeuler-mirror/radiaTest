@@ -11,19 +11,20 @@ from server.utils.permission_utils import GetAllByPermission
 from server.utils.resource_utils import ResourceManager
 from server import casbin_enforcer
 
+
 class ProductEventItem(Resource):
     @auth.login_required
     @validate()
     @casbin_enforcer.enforcer
     def delete(self, product_id):
-        return ResourceManager("product").del_cascade_single(product_id, Milestone, [Milestone.product_id==product_id], False)
+        return ResourceManager("product").del_cascade_single(product_id, Milestone, [Milestone.product_id == product_id], False)
 
     @auth.login_required
     @validate()
     @casbin_enforcer.enforcer
     def get(self, product_id):
-        return Select(Product, {"id":product_id}).single()
-    
+        return Select(Product, {"id": product_id}).single()
+
     @auth.login_required
     @validate()
     @casbin_enforcer.enforcer
@@ -31,6 +32,7 @@ class ProductEventItem(Resource):
         _data = body.__dict__
         _data["id"] = product_id
         return Edit(Product, _data).single(Product, '/product')
+
 
 class ProductEvent(Resource):
     @auth.login_required
@@ -41,7 +43,7 @@ class ProductEvent(Resource):
     @auth.login_required
     def get(self):
         body = request.args.to_dict()
-        return GetAllByPermission(Product).fuzz(body)
+        return GetAllByPermission(Product).fuzz(body, [Product.name.asc(), Product.create_time.asc()])
 
 
 class PreciseProductEvent(Resource):
