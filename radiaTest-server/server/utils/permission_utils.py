@@ -1,5 +1,6 @@
 from asyncio import DatagramTransport
-import json, yaml
+import json
+import yaml
 from paramiko import SSHException
 import requests
 from server.utils.response_util import RET
@@ -102,14 +103,21 @@ class PermissionManager:
                 )
             ]
         elif _data["permission_type"] == "org":
-            org_id = int(redis_client.hget(RedisKey.user(g.gitee_id), "current_org_id"))
+            if redis_client.hget(RedisKey.user(g.gitee_id), "current_org_id"):
+                org_id = int(redis_client.hget(
+                    RedisKey.user(g.gitee_id), "current_org_id"))
+            else:
+                org_id = _data.get("org_id")
             role_filter = [
-                and_(Role.name == "admin", Role.type == "org", Role.org_id == org_id)
+                and_(Role.name == "admin", Role.type ==
+                     "org", Role.org_id == org_id)
             ]
             default_role_filter = [
-                and_(Role.name == "default", Role.type == "org", Role.org_id == org_id)
+                and_(Role.name == "default", Role.type ==
+                     "org", Role.org_id == org_id)
             ]
-        scope_allow_ids, get_scope_allow_ids = self.insert_scope(scope_datas_allow)
+        scope_allow_ids, get_scope_allow_ids = self.insert_scope(
+            scope_datas_allow)
         _, _ = self.insert_scope(scope_datas_deny)
         if _data["permission_type"] != "person":
             default_role = Role.query.filter(*default_role_filter).first()
@@ -127,7 +135,8 @@ class PermissionManager:
             if not admin_only:
                 try:
                     for _id in get_scope_allow_ids:
-                        scope_role_data = {"scope_id": _id, "role_id": default_role.id}
+                        scope_role_data = {"scope_id": _id,
+                                           "role_id": default_role.id}
                         rsr = ReScopeRole.query.filter_by(
                             scope_id=_id, role_id=default_role.id
                         ).first()
@@ -148,14 +157,16 @@ class PermissionManager:
             except (SQLAlchemyError, IntegrityError) as e:
                 raise RuntimeError(str(e)) from e
 
-        _role = Role.query.filter_by(name=str(g.gitee_id), type="person").first()
+        _role = Role.query.filter_by(
+            name=str(g.gitee_id), type="person").first()
         if not _role:
             return jsonify(
                 error_code=RET.NO_DATA_ERR, error_msg="Role has not been exist"
             )
         try:
             for _id in scope_allow_ids:
-                scope_role_data_creator = {"scope_id": _id, "role_id": _role.id}
+                scope_role_data_creator = {
+                    "scope_id": _id, "role_id": _role.id}
                 rsr = ReScopeRole.query.filter_by(
                     scope_id=_id, role_id=_role.id
                 ).first()
@@ -201,7 +212,8 @@ class PermissionManager:
         try:
             for _id in scope_allow_ids:
                 scope_role_data = {"scope_id": _id, "role_id": role.id}
-                rsr = ReScopeRole.query.filter_by(scope_id=_id, role_id=role.id).first()
+                rsr = ReScopeRole.query.filter_by(
+                    scope_id=_id, role_id=role.id).first()
                 if not rsr:
                     Insert(ReScopeRole, scope_role_data).insert_id()
         except (SQLAlchemyError, IntegrityError) as e:
@@ -218,7 +230,8 @@ class PermissionManager:
         _, _ = self.insert_scope(scope_datas_deny)
         try:
             for _id in scope_allow_ids:
-                scope_role_data_creator = {"scope_id": _id, "role_id": _role.id}
+                scope_role_data_creator = {
+                    "scope_id": _id, "role_id": _role.id}
                 rsr = ReScopeRole.query.filter_by(
                     scope_id=_id, role_id=_role.id
                 ).first()
@@ -236,7 +249,8 @@ class PermissionManager:
                 filter_params.append(Scope.uri.like(f"%{filter_str}%"))
                 scopes = Scope.query.filter(*filter_params).all()
                 for scope in scopes:
-                    rescoperoles = ReScopeRole.query.filter_by(scope_id=scope.id).all()
+                    rescoperoles = ReScopeRole.query.filter_by(
+                        scope_id=scope.id).all()
                     for rescoperole in rescoperoles:
                         db.session.delete(rescoperole)
                         db.session.commit()
@@ -278,7 +292,8 @@ class PermissionManager:
 class GetAllByPermission:
     def __init__(self, _table) -> None:
         self._table = _table
-        current_org_id = redis_client.hget(RedisKey.user(g.gitee_id), "current_org_id")
+        current_org_id = redis_client.hget(
+            RedisKey.user(g.gitee_id), "current_org_id")
         self.filter_params = [
             or_(
                 self._table.permission_type == "public",
@@ -298,7 +313,8 @@ class GetAllByPermission:
             user_gitee_id=int(g.gitee_id), org_id=int(current_org_id)
         ).all()
         if _re_user_groups:
-            group_ids = [re_user_group.group_id for re_user_group in _re_user_groups]
+            group_ids = [
+                re_user_group.group_id for re_user_group in _re_user_groups]
             self.filter_params = [
                 or_(
                     self._table.permission_type == "public",
@@ -329,7 +345,7 @@ class GetAllByPermission:
             data = [dt.to_json() for dt in tdata]
         return jsonify(error_code=RET.OK, error_msg="OK!", data=data)
 
-    def fuzz(self, _data):
+    def fuzz(self, _data, ords: list = None):
         for key, value in _data.items():
             if (
                 hasattr(self._table, key)
@@ -339,13 +355,19 @@ class GetAllByPermission:
                 self.filter_params.append(
                     getattr(self._table, key).like("%{}%".format(value))
                 )
-        tdata = self._table.query.filter(*self.filter_params).all()
+        if ords:
+            _query = self._table.query.filter(*self.filter_params)
+            for _ord in ords:
+                _query = _query.order_by(_ord)
+            tdata = _query.all()
+        else:
+            tdata = self._table.query.filter(*self.filter_params).all()
         data = []
         if tdata:
             data = [dt.to_json() for dt in tdata]
         return jsonify(error_code=RET.OK, error_msg="OK!", data=data)
 
-    def precise(self, _data):
+    def precise(self, _data, ords: list = None):
         for key, value in _data.items():
             if (
                 hasattr(self._table, key)
@@ -353,13 +375,19 @@ class GetAllByPermission:
                 and key not in ("permission_type", "group_id")
             ):
                 self.filter_params.append(getattr(self._table, key) == value)
-        tdata = self._table.query.filter(*self.filter_params).all()
+        if ords:
+            _query = self._table.query.filter(*self.filter_params)
+            for _ord in ords:
+                _query = _query.order_by(_ord)
+            tdata = _query.all()
+        else:
+            tdata = self._table.query.filter(*self.filter_params).all()
         data = []
         if tdata:
             data = [dt.to_json() for dt in tdata]
         return jsonify(error_code=RET.OK, error_msg="OK!", data=data)
 
-    def MultiCondition(self, _data):
+    def multicondition(self, _data, ords: list = None):
         for key, value in _data.items():
             if (
                 hasattr(self._table, key)
@@ -370,6 +398,13 @@ class GetAllByPermission:
                     value = [value]
                 self.filter_params.append(getattr(self._table, key).in_(value))
         tdata = self._table.query.filter(*self.filter_params).all()
+        if ords:
+            _query = self._table.query.filter(*self.filter_params)
+            for _ord in ords:
+                _query = _query.order_by(_ord)
+            tdata = _query.all()
+        else:
+            tdata = self._table.query.filter(*self.filter_params).all()
         data = []
         if tdata:
             data = [dt.to_json() for dt in tdata]
