@@ -19,13 +19,9 @@ const sortQuery = (order = 'ascend') => {
   const copiedData = totalData.value.map((v) => v);
   let orderedData;
   if (order === 'ascend') {
-    orderedData = copiedData.sort((rowA, rowB) =>
-      rowA.end_time.localeCompare(rowB.end_time)
-    );
+    orderedData = copiedData.sort((rowA, rowB) => rowA.end_time.localeCompare(rowB.end_time));
   } else if (order === 'descend') {
-    orderedData = copiedData.sort((rowA, rowB) =>
-      rowB.end_time.localeCompare(rowA.end_time)
-    );
+    orderedData = copiedData.sort((rowA, rowB) => rowB.end_time.localeCompare(rowA.end_time));
   } else {
     orderedData = copiedData;
   }
@@ -43,7 +39,10 @@ const handleSorterChange = (sorter) => {
 
 const getFilter = (item, filter) => {
   if (item && filter) {
-    return item.toLowerCase().includes(filter.toLowerCase());
+    return item
+      .toString()
+      .toLowerCase()
+      .includes(filter.toString().toLowerCase());
   } else if ((!item && !filter) || (item && !filter)) {
     return true;
   }
@@ -61,15 +60,7 @@ const data = computed(() => {
     const stateFilter = getFilter(item.state, filter.state);
     const descriptionFilter = getFilter(item.description, filter.description);
 
-    return (
-      macFilter &&
-      frameFilter &&
-      ipFilter &&
-      bmcIpFilter &&
-      occupierFilter &&
-      stateFilter &&
-      descriptionFilter
-    );
+    return macFilter && frameFilter && ipFilter && bmcIpFilter && occupierFilter && stateFilter && descriptionFilter;
   });
 });
 
@@ -81,5 +72,5 @@ export default {
   loading,
   handleCheck,
   handleExpand,
-  handleSorterChange,
+  handleSorterChange
 };

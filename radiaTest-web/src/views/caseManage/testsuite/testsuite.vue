@@ -3,12 +3,9 @@
     <n-grid x-gap="24" y-gap="6">
       <n-gi :span="22">
         <n-space>
-          <n-button @click="createModalRef.show()" size="large" type="primary" strong round>
-            <template #icon>
-              <file-plus />
-            </template>
-            创建测试套
-          </n-button>
+          <div>
+            <create-button title="创建测试套" @click="createModalRef.show()" />
+          </div>
           <modal-card :initY="100" :initX="300" title="新建测试套" ref="createModalRef" @validate="() => createFormRef.post()">
             <template #form>
               <testsuite-create
@@ -40,12 +37,10 @@
 
 <script>
 import { ref, defineComponent, getCurrentInstance } from 'vue';
-
 import settings from '@/assets/config/settings.js';
 import Common from '@/components/CRUD';
 import Essential from '@/components/testcaseComponents';
 import testsuiteCreate from '@/components/testsuiteComponents/testsuiteCreate.vue';
-import { FilePlus } from '@vicons/tabler';
 import testsuiteTable from '@/components/testsuiteComponents/testsuiteTable.vue';
 import filterButton from '@/components/filter/filterButton.vue';
 
@@ -55,7 +50,6 @@ export default defineComponent({
     testsuiteTable,
     ...Common,
     ...Essential,
-    FilePlus,
     filterButton
   },
   // eslint-disable-next-line max-lines-per-function

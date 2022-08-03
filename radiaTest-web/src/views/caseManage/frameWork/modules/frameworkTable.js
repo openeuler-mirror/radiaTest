@@ -3,13 +3,7 @@ import { NSpace, NButton, NIcon } from 'naive-ui';
 import { renderTooltip } from '@/assets/render/tooltip';
 import { Construct, CheckmarkCircleOutline } from '@vicons/ionicons5';
 import { Delete24Regular as Delete, Prohibited24Regular } from '@vicons/fluent';
-import {
-  isCreate,
-  showForm,
-  changeFramework,
-  frameworkForm,
-  deleteFramework,
-} from './frameWorkAction';
+import { isCreate, showForm, changeFramework, frameworkForm, deleteFramework } from './frameWorkAction';
 import axios from '@/axios';
 const frameLoading = ref(false);
 function getRepo(row) {
@@ -18,20 +12,21 @@ function getRepo(row) {
     .then((res) => {
       row.expand = true;
       frameLoading.value = false;
-      row.expandData = res.data.map((item) => ({...item,frameworkRow:row}));
+      row.expandData = res.data.map((item) => ({ ...item, frameworkRow: row }));
     })
     .catch((err) => {
       frameLoading.value = false;
       window.$message?.error(err.data.error_msg || '未知错误');
     });
 }
-const frameworkData = ref([]);
+const frameworkData = ref([]); // 框架数据
+const frameworkFilterData = ref([]); // 框架筛选数据
 
 const frameworkColumns = [
   {
     title: '框架名称',
     key: 'name',
-    align: 'center',
+    align: 'center'
   },
   {
     title: '仓库地址',
@@ -42,16 +37,16 @@ const frameworkColumns = [
         'a',
         {
           href: row.url,
-          target: '_blank',
+          target: '_blank'
         },
         row.url
       );
-    },
+    }
   },
   {
     title: '日志目录相对路径',
     key: 'logs_path',
-    align: 'center',
+    align: 'center'
   },
   {
     title: '是否已适配',
@@ -71,16 +66,16 @@ const frameworkColumns = [
       return h(
         'div',
         {
-          style: `color:${color};display:flex;align-items:center;justify-content:center`,
+          style: `color:${color};display:flex;align-items:center;justify-content:center`
         },
         [
           h(NIcon, null, {
-            default: () => h(icon),
+            default: () => h(icon)
           }),
-          text,
+          text
         ]
       );
-    },
+    }
   },
   {
     title: '操作',
@@ -91,7 +86,7 @@ const frameworkColumns = [
         NSpace,
         {
           justify: 'center',
-          align: 'center',
+          align: 'center'
         },
         [
           renderTooltip(
@@ -109,7 +104,7 @@ const frameworkColumns = [
                   frameworkForm.value.logs_path = row.logs_path;
                   isCreate.value = false;
                   showForm();
-                },
+                }
               },
               h(NIcon, { size: '20' }, h(Construct))
             ),
@@ -124,28 +119,26 @@ const frameworkColumns = [
                 circle: true,
                 onClick: () => {
                   deleteFramework(row.id);
-                },
+                }
               },
               h(NIcon, { size: '20' }, h(Delete))
             ),
             '删除'
-          ),
+          )
         ]
       );
-    },
-  },
+    }
+  }
 ];
 function frameRowProps(row) {
   return {
     onClick: (e) => {
-      const isTrigger = e.path.some((item) =>
-        item?.classList?.contains('n-data-table-expand-trigger')
-      );
+      const isTrigger = e.path.some((item) => item?.classList?.contains('n-data-table-expand-trigger'));
       if (!row.expand && isTrigger) {
         frameLoading.value = true;
-        getRepo(row,frameLoading);
+        getRepo(row, frameLoading);
       }
-    },
+    }
   };
 }
 // let frameworkId ;
@@ -154,24 +147,70 @@ function getFramework() {
     frameworkData.value = res.data.map((item) => {
       return {
         ...item,
-        expand: false,
+        expand: false
       };
     });
+    frameworkFilterData.value = frameworkData.value;
   });
 }
+
 function initData() {
-  
   getFramework();
 }
+
 const frameworkPagination = ref({ pageSize: 10 });
+
+const filterRule = ref([
+  {
+    path: 'name',
+    name: '框架名称',
+    type: 'input'
+  },
+  {
+    path: 'url',
+    name: '仓库地址',
+    type: 'input'
+  },
+  {
+    path: 'logs_path',
+    name: '日志地址',
+    type: 'input'
+  },
+  {
+    path: 'adaptive',
+    name: '适配',
+    type: 'select',
+    options: [
+      { label: '是', value: 'true' },
+      { label: '否', value: 'false' }
+    ]
+  }
+]);
+
+const filterchange = (filterArray) => {
+  frameworkFilterData.value = frameworkData.value;
+  filterArray.forEach((v) => {
+    frameworkFilterData.value = frameworkFilterData.value.filter((v2) => {
+      if (v.value) {
+        return v2[v.path]
+          .toString()
+          .toLowerCase()
+          .includes(v.value.toString().toLowerCase());
+      }
+      return true;
+    });
+  });
+};
 
 export {
   frameLoading,
   frameworkPagination,
-  frameworkData,
+  frameworkFilterData,
   frameworkColumns,
   initData,
   frameRowProps,
   getFramework,
-  getRepo
+  getRepo,
+  filterRule,
+  filterchange
 };

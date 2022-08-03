@@ -1,6 +1,5 @@
 <template>
-  <selection-button :top="101" @show="tableRef.showSelection()" @off="tableRef.offSelection()" />
-  <n-grid x-gap="24" y-gap="6">
+  <n-grid x-gap="24" y-gap="6" style="padding-top:20px">
     <n-gi :span="6">
       <n-space>
         <create-button title="注册物理机" @click="createModalRef.show()" />
@@ -48,6 +47,7 @@
     <n-gi :span="16"> </n-gi>
     <n-gi :span="2">
       <div class="titleBtnWrap">
+        <selection-button @show="tableRef.showSelection()" @off="tableRef.offSelection()" />
         <filterButton class="item" :filterRule="filterRule" @filterchange="filterchange"></filterButton>
         <refresh-button @refresh="tableRef.getData()">
           刷新物理机列表
