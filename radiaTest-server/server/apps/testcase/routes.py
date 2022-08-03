@@ -1,4 +1,4 @@
-from celeryservice.tasks import resolve_testcase_file_for_case_node
+from celeryservice.tasks import resolve_testcase_file, resolve_testcase_file_for_case_node
 from flask import request, g, jsonify
 from flask_restful import Resource
 from flask_pydantic import validate
@@ -276,6 +276,7 @@ class CaseImport(Resource):
         return CaseImportHandler.import_case(
             request.files.get("file"),
             request.form.get("group_id"),
+            request.form.get("case_node_id"),
         )
 
 
@@ -286,8 +287,7 @@ class ResolveTestcaseByFilepath(Resource):
     def post(self):
         body = request.json
 
-        _task = resolve_testcase_file_for_case_node.delay(
-            body.get("file_id"),
+        _task = resolve_testcase_file.delay(
             body.get("filepath"),
             CeleryTaskUserInfoSchema(
                 auth=request.headers.get("authorization"),
@@ -298,6 +298,7 @@ class ResolveTestcaseByFilepath(Resource):
                     'current_org_id'
                 )
             ).__dict__,
+            body.get("parent_id"),
         )
 
         return jsonify(
