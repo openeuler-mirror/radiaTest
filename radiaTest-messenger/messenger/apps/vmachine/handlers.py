@@ -767,7 +767,7 @@ class VmachineAsyncResultHandler:
 
         if repo:
             ssh.command(
-                "mv /etc/yum.repos.d/openEuler.repo /etc/yum.repos.d/openEuler.repo.bak && \
+                "mv /etc/yum.repos.d/* /tmp && \
                  echo -e '%s' > /etc/yum.repos.d/%s.repo"
                 % (
                     repo.get("content"),
