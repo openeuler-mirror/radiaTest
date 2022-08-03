@@ -87,7 +87,7 @@ supervisor控制的进程日志均在./log中
 #### Commit规范 && 质量要求
 
 1.  commit格式
-    1) commit名必须尊从格式 <type>(<scope>): <subject>
+    1) commit名必须尊从格式 type(scope): subject
     2) type只允许使用以下标识:
         feat：新功能（feature）
         fix/to：修复bug，可以是QA发现的BUG，也可以是研发自己发现的BUG。
