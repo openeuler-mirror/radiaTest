@@ -10,7 +10,6 @@ from server.model.user import User
 from server.model.pmachine import Pmachine
 from server.model.vmachine import Vmachine
 from server.model.permission import ReScopeRole, ReUserRole, Role, Scope
-from server.utils.permission_utils import PermissionItemsPool
 from server.utils.response_util import RET, ssl_cert_verify_error_collect
 from server.utils.db import Insert, Delete, collect_sql_error
 from server.utils.read_from_yaml import get_default_suffix
