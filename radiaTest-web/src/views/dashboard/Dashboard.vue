@@ -17,10 +17,10 @@
               </home-button>
               <home-button
                 class="quickButton"
-                @click="handleJobClick"
+                @click="handleGuideClick"
                 invert-color
               >
-                测试看板
+                使用指南
               </home-button>
               <div class="gitee" @click="handleGiteeClick">
                 <n-icon size="70" style="top: 3px">
@@ -412,7 +412,6 @@
 
 <script>
 import { defineComponent } from 'vue';
-import { useRouter } from 'vue-router';
 
 import HomeButton from '@/components/public/HomeButton';
 import modules from './index';
@@ -433,15 +432,15 @@ export default defineComponent({
     },
   },
   setup() {
-    const router = useRouter();
-
     modules.initData();
-
-    return Object.assign(modules, {
-      handleJobClick() {
-        modules.jobClick(router);
-      },
-    });
+    return {
+      ...modules,
+      handleGuideClick() {
+        window.open(
+          'https://gitee.com/openeuler/radiaTest/blob/master/doc/radiaTest%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97.md'
+        );
+      }
+    };
   },
 });
 </script>

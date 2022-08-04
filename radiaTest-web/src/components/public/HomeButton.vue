@@ -1,5 +1,5 @@
 <template>
-  <div ref="button" class="homeButton" @click="handleClick"><slot></slot></div>
+  <div ref="button" class="homeButton"><slot></slot></div>
 </template>
 
 <script>
@@ -12,7 +12,7 @@ export default defineComponent({
       default: false,
     },
   },
-  setup(props, context) {
+  setup(props) {
     const button = ref(null);
     onMounted(() => {
       if (computed(() => props.invertColor).value) {
@@ -27,9 +27,6 @@ export default defineComponent({
     });
     return {
       button,
-      handleClick() {
-        context.emit('click');
-      },
     };
   },
 });

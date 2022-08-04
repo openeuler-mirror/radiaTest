@@ -230,9 +230,13 @@
           </div>
         </n-tab-pane>
       </n-tabs>
+      <p style="text-align: center;margin-top:30%">
+        {{ `${config.name} ${config.version}·${config.license}` }}
+      </p>
       <template #footer>
-        <p style="text-align: center">
-          {{ `${config.name} ${config.version}·${config.license}` }}
+        <p style="display: flex;justify-content: space-around">
+          <n-button text @click="handleGuideClick">使用指南</n-button>
+          <n-button text @click="handleGiteeClick">项目仓库</n-button>
         </p>
       </template>
     </n-card>
@@ -389,6 +393,16 @@ export default {
       config,
       activeIndex,
       ...modules,
+      handleGiteeClick() {
+        window.open(
+          'https://gitee.com/openeuler/radiaTest'
+        );
+      },
+      handleGuideClick() {
+        window.open(
+          'https://gitee.com/openeuler/radiaTest/blob/master/doc/radiaTest%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97.md'
+        );
+      },
     };
   },
 };
