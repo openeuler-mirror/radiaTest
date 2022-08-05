@@ -25,6 +25,7 @@ from server.model.milestone import Milestone
 from server.model.testcase import Case, Suite, CaseNode
 from server.model.group import ReUserGroup, GroupRole
 from server.utils.db import Insert, Precise
+from server.utils.resource_utils import ResourceManager
 
 
 class UpdateTaskForm:
@@ -56,6 +57,16 @@ class UpdateTaskHandler:
                 Product,
                 product_body
             ).insert_id()
+            
+            ResourceManager("product").add_permission(
+                "api_infos.yaml",
+                {
+                    "creator_id": form.group.creator_id,
+                    "org_id": form.group.org_id,
+                    "permission_type": "org",
+                },
+                form.product_id,
+            )
         else:
             form.product_id = _product.id
 
@@ -74,10 +85,7 @@ class UpdateTaskHandler:
                     days=current_app.config.get("OE_QA_UPDATE_TASK_PERIOD")
                 )).strftime("%Y-%m-%d %H:%M:%S"),
                 "permission_type": "org",
-                "creator_id": ReUserGroup.query.filter_by(
-                    group_id=form.group.id,
-                    role_type=GroupRole.create_user.value
-                ).first().user_gitee_id,
+                "creator_id": form.group.creator_id,
                 "group_id": form.group.id,
                 "org_id": form.group.org_id
             }
@@ -85,6 +93,15 @@ class UpdateTaskHandler:
                 Milestone,
                 body
             ).insert_id()
+            ResourceManager("milestone").add_permission(
+                "api_infos.yaml",
+                {
+                    "creator_id": form.group.creator_id,
+                    "org_id": form.group.org_id,
+                    "permission_type": "org",
+                },
+                form.milestone_id,
+            )
         else:
             form.milestone_id = _milestone.id
 

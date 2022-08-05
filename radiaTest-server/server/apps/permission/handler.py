@@ -477,14 +477,14 @@ class AccessableMachinesHandler:
     @collect_sql_error
     @ssl_cert_verify_error_collect
     def get_all(query):
-        namespace, origin_pool = None, []
+        namespace, machine_pool = None, []
 
         user = User.query.filter_by(gitee_id=g.gitee_id).first()
 
         if query.machine_type == "physical":
             namespace = "pmachine"
             if query.machine_purpose != "create_vmachine":
-                origin_pool = Pmachine.query.filter(
+                machine_pool = Pmachine.query.filter(
                     Pmachine.machine_group_id == query.machine_group_id,
                     Pmachine.frame == query.frame,
                     Pmachine.state == "occupied",
@@ -503,7 +503,7 @@ class AccessableMachinesHandler:
                     ),
                 ).all()
             else:
-                origin_pool = Pmachine.query.filter(
+                machine_pool = Pmachine.query.filter(
                     Pmachine.machine_group_id == query.machine_group_id,
                     Pmachine.frame == query.frame,
                     Pmachine.state == "occupied",
@@ -516,7 +516,7 @@ class AccessableMachinesHandler:
 
         elif query.machine_type == "kvm":
             namespace = "vmachine"
-            origin_pool = Vmachine.query.join(Pmachine).filter(
+            machine_pool = Vmachine.query.join(Pmachine).filter(
                 Pmachine.machine_group_id == query.machine_group_id,
                 Vmachine.frame == query.frame,
                 Vmachine.status == "running",
@@ -528,17 +528,8 @@ class AccessableMachinesHandler:
                 error_msg="unsupported machine type"
             )
 
-        permission_pool = PermissionItemsPool(
-            origin_pool,
-            namespace,
-            "GET",
-            request.headers.get("authorization"),
-        )
-
-        allow_machines = permission_pool.allow_list
-
         return jsonify(
             error_code=RET.OK,
             error_msg="OK",
-            data=allow_machines
+            data=machine_pool
         )

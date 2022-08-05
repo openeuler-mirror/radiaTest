@@ -156,9 +156,12 @@ class PermissionManager:
                         Insert(ReScopeRole, scope_role_data).insert_id()
             except (SQLAlchemyError, IntegrityError) as e:
                 raise RuntimeError(str(e)) from e
+        creator_id = g.gitee_id
+        if _data.get("creator_id"):
+            creator_id = _data.get("creator_id")
 
         _role = Role.query.filter_by(
-            name=str(g.gitee_id), type="person").first()
+            name=str(creator_id), type="person").first()
         if not _role:
             return jsonify(
                 error_code=RET.NO_DATA_ERR, error_msg="Role has not been exist"
@@ -420,65 +423,3 @@ class GetAllByPermission:
                 self.filter_params.append(getattr(self._table, key) == value)
         tdata = self._table.query.filter(*self.filter_params).first()
         return tdata
-
-
-class PermissionItemsPool:
-    def __init__(self, origin_pool, namespace, act, auth):
-        self.origin_pool = origin_pool
-        self._root_url = "api/{}/{}".format(
-            current_app.config.get("OFFICIAL_API_VERSION"), namespace
-        )
-        self.act = act
-        self.auth = auth
-
-    def _get_items(self, eft):
-        return_data = []
-        verify = True
-        if current_app.config.get("CA_VERIFY") != "True":
-            verify = (current_app.config.get("CA_CERT"),)
-        for _item in self.origin_pool:
-            try:
-                _url = "{}/{}".format(self._root_url, _item.id)
-
-                _resp = requests.request(
-                    method=self.act,
-                    url="https://{}/{}".format(
-                        current_app.config.get("SERVER_ADDR"), _url
-                    ),
-                    headers={
-                        "Content-Type": "application/json;charset=utf8",
-                        "Authorization": self.auth,
-                    },
-                    verify=verify,
-                )
-
-                if _resp.status_code != 200:
-                    raise RuntimeError(_resp.text)
-
-                _output = None
-                try:
-                    _output = json.loads(_resp.text)
-                except AttributeError:
-                    try:
-                        _output = _resp.json
-                    except AttributeError as e:
-                        raise RuntimeError(str(e))
-
-                if (_output.get("error_code") != RET.UNAUTHORIZE_ERR) == (
-                    eft == "allow"
-                ):
-                    return_data.append(_item.to_json())
-
-            except (SSHException, RuntimeError) as e:
-                current_app.logger.warn(str(e))
-                continue
-
-        return return_data
-
-    @property
-    def allow_list(self):
-        return self._get_items("allow")
-
-    @property
-    def deny_list(self):
-        return self._get_items("deny")
