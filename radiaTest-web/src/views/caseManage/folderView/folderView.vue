@@ -65,7 +65,10 @@
           :showGroup="false"
           ref="importFormRef"
           @submitForm="extendSubmit"
-          @valid="() => importModalRef.submitCreateForm()"
+          @valid="() => {
+            importModalRef.submitCreateForm();
+            importModalRef.close();
+          }"
           @close="
             () => {
               importModalRef.close();

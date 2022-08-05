@@ -173,7 +173,7 @@ class TestcaseHandler(TaskAuthHandler):
 
             return case_node_id
 
-    def travelsal_case_node_tree(self, _file_id, _suites):
+    def travelsal_case_node_tree(self, _parent_id, _suites):
         for _suite_id in _suites:
             _suite = Suite.query.filter_by(id=_suite_id).first()
 
@@ -184,7 +184,7 @@ class TestcaseHandler(TaskAuthHandler):
                 _title=_suite.name,
                 _type="suite",
                 _suite_id=_suite.id,
-                _parent_id=_file_id,
+                _parent_id=_parent_id,
             )
 
             for case in _suite.case:
@@ -207,14 +207,14 @@ class TestcaseHandler(TaskAuthHandler):
         _ext = os.path.basename(_filepath).split('.')[-1]
 
         if os.path.isfile(_filepath) and _ext in ['xlsx', 'xls', 'csv'] and _name:
-            _file_id = self.get_case_node_id(
+            _parent_id = self.get_case_node_id(
                 _name,
                 "directory",
                 _parent_id,
             )
 
             body = {
-                "file_id": _file_id,
+                "parent_id": _parent_id,
                 "filepath": _filepath,
                 "group_id": self.user.get("group_id"),
                 "user_id": self.user.get("user_id"),
@@ -283,7 +283,7 @@ class TestcaseHandler(TaskAuthHandler):
                 _parent_id=_this_id,
             )
 
-    def resolve(self, filepath, file_id=None):
+    def resolve(self, filepath, parent_id=None):
         try:
             self.promise.update_state(
                 state="READING",
@@ -323,8 +323,8 @@ class TestcaseHandler(TaskAuthHandler):
                     }
                 )
 
-                if file_id is not None:
-                    self.travelsal_case_node_tree(file_id, suites)
+                if parent_id is not None:
+                    self.travelsal_case_node_tree(parent_id, suites)
 
                 self.next_period()
                 self.promise.update_state(

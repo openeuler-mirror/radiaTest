@@ -150,17 +150,10 @@ def async_read_git_repo():
 
 
 @celery.task(bind=True)
-def resolve_testcase_file(self, filepath, user):
+def resolve_testcase_file(self, filepath, user, parent_id=None):
     TestcaseHandler(user, logger, self).resolve(
         filepath,
-    )
-
-
-@celery.task(bind=True)
-def resolve_testcase_file_for_case_node(self, file_id, filepath, user):
-    TestcaseHandler(user, logger, self).resolve(
-        filepath,
-        file_id,
+        parent_id
     )
 
 

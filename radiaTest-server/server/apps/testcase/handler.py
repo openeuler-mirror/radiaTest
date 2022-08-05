@@ -1,12 +1,11 @@
 import os
-import re
 import json
 import shutil
 import datetime
 import uuid
 
 from flask import jsonify, g, current_app, request
-from sqlalchemy import or_, and_, func
+from sqlalchemy import func
 
 from server import db, redis_client
 from server.utils.redis_util import RedisKey
@@ -30,9 +29,8 @@ from server.schema.testcase import CaseNodeBaseSchema, AddCaseCommitSchema, \
 from server.schema.celerytask import CeleryTaskUserInfoSchema
 from server.utils.file_util import ZipImportFile, ExcelImportFile
 from server.utils.sheet import Excel, SheetExtractor
-from server.utils.read_from_yaml import get_api
-from server.utils.permission_utils import PermissionManager, GetAllByPermission
-from celeryservice.tasks import resolve_testcase_file, resolve_testcase_file_for_case_node, resolve_testcase_set
+from server.utils.permission_utils import GetAllByPermission
+from celeryservice.tasks import resolve_testcase_file, resolve_testcase_set
 
 
 class CaseImportHandler:
@@ -105,35 +103,19 @@ class CaseImportHandler:
                     current_app.config.get("TMP_FILE_SAVE_PATH")
                 )
 
-                _task = None
-
-                if case_node_id is not None:
-                    _task = resolve_testcase_file_for_case_node.delay(
-                        case_node_id,
-                        case_file.filepath,
-                        CeleryTaskUserInfoSchema(
-                            auth=request.headers.get("authorization"),
-                            user_id=int(g.gitee_id),
-                            group_id=group_id,
-                            org_id=redis_client.hget(
-                                RedisKey.user(g.gitee_id),
-                                'current_org_id'
-                            )
-                        ).__dict__,
-                    )
-                else:
-                    _task = resolve_testcase_file.delay(
-                        case_file.filepath,
-                        CeleryTaskUserInfoSchema(
-                            auth=request.headers.get("authorization"),
-                            user_id=int(g.gitee_id),
-                            group_id=group_id,
-                            org_id=redis_client.hget(
-                                RedisKey.user(g.gitee_id),
-                                'current_org_id'
-                            )
-                        ).__dict__,
-                    )
+                _task = resolve_testcase_file.delay(
+                    case_file.filepath,
+                    CeleryTaskUserInfoSchema(
+                        auth=request.headers.get("authorization"),
+                        user_id=int(g.gitee_id),
+                        group_id=group_id,
+                        org_id=redis_client.hget(
+                            RedisKey.user(g.gitee_id),
+                            'current_org_id'
+                        )
+                    ).__dict__,
+                    case_node_id
+                )
 
                 if not _task:
                     return jsonify(error_code=RET.SERVER_ERR, error_msg="could not send task to resolve file")
