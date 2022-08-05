@@ -11,6 +11,21 @@ def make_celery(app_name):
         broker=broker,
         backend=backend,
         task_routes={
+            'celeryservice.tasks.async_read_openqa_homepage': {
+                'queue': 'queue_read_openqa_homepage',
+                'routing_key': 'read_openqa_homepage',
+                'delivery_mode': 1,
+            },
+            'celeryservice.tasks.read_openqa_group_overview': {
+                'queue': 'queue_read_openqa_group_overview',
+                'routing_key': 'read_openqa_group_overview',
+                'delivery_mode': 1,
+            },
+            'celeryservice.tasks.read_openqa_tests_overview': {
+                'queue': 'queue_read_openqa_tests_overview',
+                'routing_key': 'read_openqa_tests_overview',
+                'delivery_mode': 1,
+            },
             'celeryservice.tasks.async_update_celerytask_status': {
                 'queue': 'queue_update_celerytask_status',
                 'routing_key': 'celerytask_status',

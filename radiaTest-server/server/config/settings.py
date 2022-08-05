@@ -19,6 +19,9 @@ class Config(object):
     # API 官方版本
     OFFICIAL_API_VERSION = "v1"
 
+    # 支持的架构
+    SUPPORTED_ARCHS = ["aarch64", "x86_64"]
+
     # 物理机
     # CI宿主机标志
     CI_HOST = "as the host of ci"
