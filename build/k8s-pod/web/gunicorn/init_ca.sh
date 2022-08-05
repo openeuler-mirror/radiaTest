@@ -12,10 +12,9 @@
 # @Date    : 2022/06/16 10:17:00
 # @License : Mulan PSL v2
 #####################################
+#!/bin/bash -c
 
-#! /bin/sh
-
-pushd /etc/radiaTest_ssl
+pushd /etc/radiaTest_ssl || exit
 
 mkdir conf certs newcerts crl csr private  
 
@@ -41,4 +40,4 @@ if [[ ! -f "cacert.pem" ]];then
         -config conf/ca.cnf
 fi
 
-popd
+popd || exit

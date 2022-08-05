@@ -13,7 +13,7 @@
 # @License : Mulan PSL v2
 #####################################
 
-#! /bin/sh
+#!/bin/sh
 
 python3 manage.py db init
 

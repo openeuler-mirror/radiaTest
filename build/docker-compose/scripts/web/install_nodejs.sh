@@ -13,7 +13,7 @@
 # @License : Mulan PSL v2
 #####################################
 
-#! /bin/sh
+#!/bin/bash -c
 
 # define env variables
 node_req_v="v16.14.2"
