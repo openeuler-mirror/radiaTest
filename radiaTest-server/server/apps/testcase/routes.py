@@ -1,4 +1,4 @@
-from celeryservice.tasks import resolve_testcase_file, resolve_testcase_file_for_case_node
+from celeryservice.tasks import resolve_testcase_file
 from flask import request, g, jsonify
 from flask_restful import Resource
 from flask_pydantic import validate
