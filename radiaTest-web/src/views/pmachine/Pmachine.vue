@@ -44,8 +44,8 @@
         <delete-button title="物理机" url="/v1/pmachine" />
       </n-space>
     </n-gi>
-    <n-gi :span="16"> </n-gi>
-    <n-gi :span="2">
+    <n-gi :span="15"> </n-gi>
+    <n-gi :span="3">
       <div class="titleBtnWrap">
         <selection-button @show="tableRef.showSelection()" @off="tableRef.offSelection()" />
         <filterButton class="item" :filterRule="filterRule" @filterchange="filterchange"></filterButton>

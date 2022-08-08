@@ -48,6 +48,7 @@ const ColumnDefault = [
   {
     title: 'IP 地址',
     key: 'ip',
+    align: 'center',
     className: 'cols ip',
     render(row) {
       return h(
@@ -96,21 +97,25 @@ const ColumnDefault = [
   },
   {
     title: '架构',
+    align: 'center',
     key: 'frame',
     className: 'cols frame',
   },
   {
     title: '宿主机 IP',
+    align: 'center',
     key: 'host_ip',
     className: 'cols ip',
   },
   {
     title: '使用描述',
+    align: 'center',
     key: 'description',
     className: 'cols description',
   },
   {
     title: '释放时间',
+    align: 'center',
     key: 'end_time',
     className: 'cols end-time',
     sorter: true,
@@ -146,6 +151,7 @@ const ColumnDefault = [
 
 const ColumnState = {
   title: '状态',
+  align: 'center',
   key: 'status',
   className: 'cols state',
   render: (row) => {
@@ -160,6 +166,7 @@ const ColumnState = {
 
 const ColumnOperate = {
   title: '操作',
+  align: 'center',
   key: 'action',
   className: 'cols vmachine-operation',
   render: (row) => {
