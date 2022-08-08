@@ -23,11 +23,7 @@
       <create-button title="注册里程碑" @click="createModalRef.show()" />
     </div>
     <div style="display:flex;align-items:center">
-      <filterButton 
-        :filterRule="filterRule" 
-        @filterchange="filterchange"
-        style="display:flex;padding-right:20px;"
-      >
+      <filterButton :filterRule="filterRule" @filterchange="filterchange" style="display:flex;padding-right:20px;">
       </filterButton>
       <refresh-button @refresh="getTableData()">
         刷新里程碑列表
@@ -56,6 +52,16 @@
           />
         </template>
       </modal-card>
+      <n-modal v-model:show="showSyncRepoModal" @after-leave="leaveSyncRepoModal">
+        <n-card style="width: 600px" title="同步企业仓" :bordered="false" size="huge" role="dialog" aria-modal="true">
+          <div class="itemWrap">
+            <n-select class="item" v-model:value="selectMilestoneValue" :options="selectMilestoneOptions" />
+            <n-button class="btn" type="info" ghost @click="syncMilestoneFn" :disabled="!selectMilestoneValue"
+              >同步</n-button
+            >
+          </div>
+        </n-card>
+      </n-modal>
       <extend-drawer />
     </n-gi>
   </n-grid>
@@ -65,17 +71,18 @@
 import { ref, defineComponent } from 'vue';
 import settings from '@/assets/config/settings.js';
 import milestoneTable from '@/views/versionManagement/milestone/modules/milestoneTable';
+import milestoneTableColumns from '@/views/versionManagement/milestone/modules/milestoneTableColumns.js';
 import Common from '@/components/CRUD';
 import Essential from '@/components/milestoneComponents';
 import filterButton from '@/components/filter/filterButton.vue';
-
 
 export default defineComponent({
   components: {
     filterButton,
     ...Common,
-    ...Essential,
+    ...Essential
   },
+  // eslint-disable-next-line max-lines-per-function
   setup() {
     const tableRef = ref(null);
     const createFormRef = ref(null);
@@ -94,6 +101,7 @@ export default defineComponent({
       milestoneTable.filter.value.name = filterArray[0].value;
       milestoneTable.getTableData();
     };
+
     return {
       settings,
       tableRef,
@@ -104,15 +112,26 @@ export default defineComponent({
       filterchange,
       filterRule,
       ...milestoneTable,
+      ...milestoneTableColumns
     };
-  },
+  }
 });
 </script>
 
-<style scoped>
+<style scoped lang="less">
 .milestone-head {
   display: flex;
   justify-content: space-between;
   margin: 10px 0;
+}
+
+.itemWrap {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
+
+  .item {
+    width: 450px;
+  }
 }
 </style>

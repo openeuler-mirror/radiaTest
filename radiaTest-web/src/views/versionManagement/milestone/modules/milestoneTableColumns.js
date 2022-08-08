@@ -1,9 +1,49 @@
-import { h } from 'vue';
+/* eslint-disable indent */
+import { h, ref } from 'vue';
 import { NIcon, NButton, NTag, NSpace } from 'naive-ui';
 import { Construct } from '@vicons/ionicons5';
 import { renderTooltip } from '@/assets/render/tooltip';
 // import { PlugDisconnected20Filled, Connector20Filled } from '@vicons/fluent';
 import { Link, Unlink } from '@vicons/carbon';
+import axios from '@/axios';
+
+const showSyncRepoModal = ref(false);
+const selectMilestoneValue = ref('');
+const selectMilestoneOptions = ref([]);
+const milestoneId = ref(null);
+
+const searchMilestoneFn = (data) => {
+  axios
+    .get('/v2/gitee-milestone', {
+      search: data.name
+    })
+    .then((res) => {
+      selectMilestoneOptions.value = [];
+      res.data.data.forEach((v) => {
+        selectMilestoneOptions.value.push({
+          label: v.title,
+          value: v.id
+        });
+      });
+      milestoneId.value = data.id;
+    });
+};
+
+const syncMilestoneFn = () => {
+  axios
+    .put(`/v2/milestone/${milestoneId.value}/sync`, {
+      is_sync: true,
+      gitee_milestone_id: selectMilestoneValue.value
+    })
+    .then(() => {
+      showSyncRepoModal.value = false;
+    });
+};
+
+const leaveSyncRepoModal = () => {
+  selectMilestoneValue.value = '';
+  milestoneId.value = null;
+};
 
 const constColumns = [
   {
@@ -18,80 +58,82 @@ const constColumns = [
         text = '';
         icon = Unlink;
       }
-      return row.is_sync?renderTooltip(
-        h(
-          NButton,
-          {
-            size: 'medium',
-            type: row.is_sync ? 'primary' : '',
-            circle: true,
-            onClick: () => {
-              console.log(row);
+      return row.is_sync
+        ? renderTooltip(
+            h(
+              NButton,
+              {
+                size: 'medium',
+                type: row.is_sync ? 'primary' : '',
+                circle: true,
+                onClick: (e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }
+              },
+              h(NIcon, { size: '20' }, h(icon))
+            ),
+            text
+          )
+        : h(
+            NButton,
+            {
+              size: 'medium',
+              type: row.is_sync ? 'primary' : '',
+              circle: true,
+              onClick: (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                showSyncRepoModal.value = true;
+                searchMilestoneFn(row);
+              }
             },
-          },
-          h(NIcon, { size: '20' }, h(icon))
-        ),
-        text
-      ): h(
-        NButton,
-        {
-          size: 'medium',
-          type: row.is_sync ? 'primary' : '',
-          circle: true,
-          onClick: () => {
-            console.log(row);
-          },
-        },
-        h(NIcon, { size: '20' }, h(icon))
-      );
-    },
+            h(NIcon, { size: '20' }, h(icon))
+          );
+    }
   },
   {
     title: '产品名',
     key: 'product_name',
-    className: 'cols product-name',
+    className: 'cols product-name'
   },
   {
     title: '版本名',
     key: 'product_version',
-    className: 'cols version-management',
+    className: 'cols version-management'
   },
   {
     title: '里程碑名',
     key: 'name',
-    className: 'cols milestone-name',
+    className: 'cols milestone-name'
   },
   {
     title: '里程碑类型',
     key: 'type',
-    className: 'cols milestone-type',
+    className: 'cols milestone-type'
   },
   {
     title: '状态',
     key: 'state',
     render(row) {
-      return h(
-        NButton,
-        { text: true, type: row.state === 'active' ? 'info' : 'error' },
-        row.state
-      );
-    },
+      return h(NButton, { text: true, type: row.state === 'active' ? 'info' : 'error' }, row.state);
+    }
   },
   {
     title: '开始时间',
     key: 'start_time',
-    className: 'cols start-time',
+    className: 'cols start-time'
   },
   {
     title: '结束时间',
     key: 'end_time',
-    className: 'cols end-time',
+    className: 'cols end-time'
   },
   {
     title: '任务数',
     key: 'task_num',
-    className: 'cols task',
-  },
+    className: 'cols task'
+  }
 ];
 
 const createColumns = (handler) => {
@@ -107,7 +149,7 @@ const createColumns = (handler) => {
             return h(
               NTag,
               {
-                type: 'success',
+                type: 'success'
               },
               item
             );
@@ -115,7 +157,7 @@ const createColumns = (handler) => {
           return h(NSpace, { justify: 'center' }, hTags);
         }
         return h();
-      },
+      }
     },
     {
       title: '操作',
@@ -129,15 +171,22 @@ const createColumns = (handler) => {
               size: 'medium',
               type: 'warning',
               circle: true,
-              onClick: () => handler(row),
+              onClick: () => handler(row)
             },
             h(NIcon, { size: '20' }, h(Construct))
           ),
           '修改'
         );
-      },
-    },
+      }
+    }
   ];
 };
 
-export default createColumns;
+export default {
+  createColumns,
+  showSyncRepoModal,
+  selectMilestoneValue,
+  selectMilestoneOptions,
+  syncMilestoneFn,
+  leaveSyncRepoModal
+};

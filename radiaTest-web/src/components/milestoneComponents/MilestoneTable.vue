@@ -25,7 +25,7 @@ import settings from '@/assets/config/settings.js';
 import { get, selection } from '@/assets/CRUD/read';
 import { any2stamp } from '@/assets/utils/dateFormatUtils.js';
 import milestoneTable from '@/views/versionManagement/milestone/modules/milestoneTable.js';
-import createColumns from '@/views/versionManagement/milestone/modules/milestoneTableColumns.js';
+import milestoneTableColumns from '@/views/versionManagement/milestone/modules/milestoneTableColumns.js';
 
 export default defineComponent({
   setup(props, context) {
@@ -34,9 +34,21 @@ export default defineComponent({
     milestoneSocket.connect();
 
     onMounted(() => {
-      get.list('/v2/milestone', milestoneTable.totalData, milestoneTable.loading, milestoneTable.filter.value, milestoneTable.pagination);
+      get.list(
+        '/v2/milestone',
+        milestoneTable.totalData,
+        milestoneTable.loading,
+        milestoneTable.filter.value,
+        milestoneTable.pagination
+      );
       milestoneSocket.listen('update', () => {
-        get.list('/v2/milestone', milestoneTable.totalData, milestoneTable.loading, milestoneTable.filter.value, milestoneTable.pagination);
+        get.list(
+          '/v2/milestone',
+          milestoneTable.totalData,
+          milestoneTable.loading,
+          milestoneTable.filter.value,
+          milestoneTable.pagination
+        );
       });
     });
     onUnmounted(() => {
@@ -44,7 +56,7 @@ export default defineComponent({
     });
 
     const columns = ref(
-      createColumns((row) => {
+      milestoneTableColumns.createColumns((row) => {
         let data = JSON.parse(JSON.stringify(row));
         data.start_time = any2stamp(data.start_time);
         data.end_time = any2stamp(data.end_time);
@@ -59,12 +71,13 @@ export default defineComponent({
       store,
       columns,
       ...milestoneTable,
+      ...milestoneTableColumns,
       showSelection: () => selection.show(columns),
       offSelection: () => selection.off(columns),
       refreshData: () =>
-        get.refresh('/v2/milestone', milestoneTable.data, milestoneTable.loading, milestoneTable.filter.value),
+        get.refresh('/v2/milestone', milestoneTable.data, milestoneTable.loading, milestoneTable.filter.value)
     };
-  },
+  }
 });
 </script>
 
