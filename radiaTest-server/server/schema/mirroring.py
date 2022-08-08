@@ -2,6 +2,7 @@ from typing import Optional
 from urllib import request, error
 
 from pydantic import BaseModel, HttpUrl, constr, validator, root_validator
+from flask import current_app
 
 
 from server.schema import Frame
@@ -34,8 +35,14 @@ class MirroringBase(BaseModel):
     def check_url(cls, v):
         try:
             request.urlopen(v)
-        except (error.HTTPError, error.URLError):
-            raise ValueError("url:%s is not available." % v)
+        except (error.HTTPError, error.URLError) as e:
+            current_app.logger.info(e)
+            raise ValueError(
+                "url {} is not available. because {}".format(
+                        v,
+                        e,
+                    )
+                )
 
         return v
 
