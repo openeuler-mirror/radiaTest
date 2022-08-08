@@ -530,5 +530,5 @@ class AccessableMachinesHandler:
         return jsonify(
             error_code=RET.OK,
             error_msg="OK",
-            data=machine_pool
+            data=[_m.to_json() for _m in machine_pool]
         )
