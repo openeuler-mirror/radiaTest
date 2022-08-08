@@ -37,7 +37,7 @@ class MirroringBase(BaseModel):
         iso_name = "openEuler-22.09-aarch64-dvd.iso"
         header = {"User-Agent": UserAgent().chrome}
         try:
-            resp = requests.get(url=v, timeout=0.5, headers=header)
+            resp = requests.get(url=v, headers=header)
             if resp.text.__contains__(iso_name):
                 current_app.logger.info("url contains the iso.")
         except (error.HTTPError, error.URLError) as e:
