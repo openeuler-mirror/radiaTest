@@ -32,25 +32,6 @@ class MirroringBase(BaseModel):
 
         return v
 
-    @validator("url")
-    def check_url(cls, v):
-        iso_name = "openEuler-22.09-aarch64-dvd.iso"
-        header = {"User-Agent": UserAgent().chrome}
-        try:
-            resp = requests.get(url=v, headers=header)
-            if resp.text.__contains__(iso_name):
-                current_app.logger.info("url contains the iso.")
-        except (error.HTTPError, error.URLError) as e:
-            current_app.logger.info(e)
-            raise ValueError(
-                "url {} is not available. because {}".format(
-                        v,
-                        e,
-                    )
-                )
-
-        return v
-
 
 class IMirroringBase(MirroringBase):
     efi: Optional[constr(max_length=255)]
