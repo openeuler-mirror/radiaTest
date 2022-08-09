@@ -53,7 +53,7 @@ def attribute_error_collect(func):
             return resp
         except AttributeError as e:
             return jsonify(
-                error_code=RET.NO_DATA_ERR,
+                error_code=RET.RUNTIME_ERROR,
                 error_msg=str(e)
             )
 
