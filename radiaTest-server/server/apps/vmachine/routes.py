@@ -120,10 +120,10 @@ class VmachineEvent(Resource):
         if _milestone.type == "update":
             _update_milestone = _milestone
         
-        _milestone = Milestone.query.filter_by(
-            product_id=_product_id,
-            type="release"
-        ).first()
+            _milestone = Milestone.query.filter_by(
+                product_id=_product_id,
+                type="release"
+            ).first()
 
         if self.body:
             _body = self.body.__dict__
