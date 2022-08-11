@@ -13,6 +13,13 @@ def remote_cmd(cmd, conn):
     return conn.command(cmd)
 
 
+def add_escape(value):
+    reserved_chars = r'''?&'''
+    replace = ['\\' + l for l in reserved_chars]
+    trans = str.maketrans(dict(zip(reserved_chars, replace)))
+    return value.translate(trans)
+
+
 class ShellCmd:
     def __init__(self, cmd, conn=None):
         self._cmd = cmd

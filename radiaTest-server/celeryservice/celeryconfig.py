@@ -49,6 +49,9 @@ task_ignore_result = False
 # Using mysql to store state and results
 result_backend = loads_config_ini("celery", "RESULT_BACKEND")
 
+# Using redis to store data of spiders
+scrapyspider_backend = loads_config_ini("celery", "SCRAPYSPIDER_BACKEND")
+
 # socketio pubsub redis url
 socketio_pubsub = loads_config_ini("celery", "SOCKETIO_PUBSUB")
 
@@ -74,6 +77,21 @@ beat_max_loop_interval = 3600
 # rabbitMQ routing配置
 # 队列属性定义
 task_queues = (
+    Queue(
+        "queue_read_openqa_homepage",
+        exchange=Exchange("server_exchange", type="direct"),
+        routing_key="read_openqa_homepage",
+    ),
+    Queue(
+        "queue_read_openqa_group_overview",
+        exchange=Exchange("server_exchange", type="direct"),
+        routing_key="read_openqa_group_overview",
+    ),
+    Queue(
+        "queue_read_openqa_tests_overview",
+        exchange=Exchange("server_exchange", type="direct"),
+        routing_key="read_openqa_tests_overview",
+    ),
     Queue(
         "queue_update_celerytask_status",
         exchange=Exchange("server_exchange", type="direct"),
@@ -126,3 +144,4 @@ task_default_exchange_type = "direct"
 # SSL file path(Warning: if you modify this item,
 # you need to change the corresponding build and deployment files)
 cacert_path = loads_config_ini("server", "CA_CERT")
+openqa_url = loads_config_ini("at", "OPENQA_URL")

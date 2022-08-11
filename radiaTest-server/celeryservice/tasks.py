@@ -15,6 +15,7 @@
 
 #####################################
 
+import subprocess
 import os
 import sys
 import json
@@ -29,6 +30,7 @@ from celery.schedules import crontab
 from server.model.framework import Framework, GitRepo
 from server.model.celerytask import CeleryTask
 from server.utils.db import Insert
+from server.utils.shell import add_escape
 from server import db
 from celeryservice import celeryconfig
 from celeryservice.lib.repo.handler import RepoTaskHandler
@@ -43,8 +45,10 @@ sys.path.append(BASE_DIR)
 logger = get_task_logger("manage")
 socketio = SocketIO(message_queue=celeryconfig.socketio_pubsub)
 
-# 建立redis backend连接池子
+# 建立redis backend连接池
 pool = redis.ConnectionPool.from_url(celeryconfig.result_backend, decode_responses=True)
+# 建立scrapyspider的存储redis池
+scrapyspider_pool = redis.ConnectionPool.from_url(celeryconfig.scrapyspider_backend, decode_responses=True)
 
 
 @task_postrun.connect
@@ -68,6 +72,77 @@ def setup_periodic_tasks(sender, **kwargs):
     sender.add_periodic_task(
         crontab(minute="*/30"), async_update_issue_rate.s(), name="update_issue_rate"
     )
+    sender.add_periodic_task(
+        crontab(minute="*/60"), async_read_openqa_homepage.s(), name="read_openqa"
+    )
+
+
+@celery.task
+def async_read_openqa_homepage():
+    exitcode, output = subprocess.getstatusoutput(
+        f"pushd scrapyspider && scrapy crawl openqa_home_spider -a openqa_url={celeryconfig.openqa_url}"
+    )
+    if exitcode != 0:
+        logger.error(f"crawl data from openQA homepage fail. Because {output}")
+
+    redis_client = redis.StrictRedis(connection_pool=scrapyspider_pool)
+    _keys = redis_client.keys("*_group_overview_url")
+    
+    if not _keys:
+        logger.warning("No products on openQA homepage, or the openQA server met some problems")
+        return
+
+    logger.info("crawl data from openQA homepage succeed")
+
+    for _key in _keys:
+        group_overview_url = redis_client.get(_key)
+        product_name = _key.split("_group_overview_url")[0]
+
+        logger.info(f"crawl group overview data of product {product_name}")
+
+        read_openqa_group_overview.delay(
+            product_name=product_name,
+            group_overview_url=group_overview_url
+        )
+        
+
+@celery.task
+def read_openqa_group_overview(product_name, group_overview_url):
+    exitcode, output = subprocess.getstatusoutput(
+        "pushd scrapyspider && scrapy crawl openqa_group_overview_spider "\
+            f"-a product_name={product_name} "\
+            f"-a group_overview_url={celeryconfig.openqa_url}{add_escape(group_overview_url)}"
+    )
+    if exitcode != 0:
+        logger.error(f"crawl group overview data of product {product_name} fail. Because {output}")
+    
+    logger.info(f"crawl group overview data of product {product_name} succeed")
+
+    redis_client = redis.StrictRedis(connection_pool=scrapyspider_pool)
+    _keys = redis_client.keys(f"{product_name}_*_tests_overview_url")
+    for _key in _keys:
+        tests_overview_url = redis_client.get(_key)
+        product_build = _key.split("_tests_overview_url")[0]
+
+        logger.info(f"crawl tests overview data of product {product_build}")
+
+        read_openqa_tests_overview.delay(
+            product_build=product_build,
+            tests_overview_url=tests_overview_url
+        )
+
+
+@celery.task
+def read_openqa_tests_overview(product_build, tests_overview_url):
+    exitcode, output = subprocess.getstatusoutput(
+        "pushd scrapyspider && scrapy crawl openqa_tests_overview_spider "\
+            f"-a product_build={product_build} "\
+            f"-a tests_overview_url={celeryconfig.openqa_url}{add_escape(tests_overview_url)}"
+    )
+    if exitcode != 0:
+        logger.error(f"crawl tests overview data of product {product_build} fail. Because {output}")
+    
+    logger.info(f"crawl tests overview data of product {product_build} succeed")
 
 
 @celery.task
