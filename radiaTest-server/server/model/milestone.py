@@ -16,6 +16,7 @@ class Milestone(BaseModel, PermissionBaseModel, db.Model):
     description = db.Column(TINYTEXT())
     state = db.Column(db.Enum("active", "closed"), default="active")
     is_sync = db.Column(db.Boolean(), default=False)
+    gitee_milestone_id = db.Column(db.Integer(), nullable=True)
 
     product_id = db.Column(db.Integer(), db.ForeignKey("product.id"))
 
@@ -67,6 +68,7 @@ class Milestone(BaseModel, PermissionBaseModel, db.Model):
 
         return {
             "id": self.id,
+            "gitee_milestone_id": self.gitee_milestone_id,
             "name": self.name,
             "type": self.type,
             "start_time": self.convert_time_format(self.start_time),

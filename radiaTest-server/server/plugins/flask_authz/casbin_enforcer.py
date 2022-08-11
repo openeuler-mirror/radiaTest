@@ -188,6 +188,8 @@ class CasbinEnforcer:
                     _api["body"] = ""
                 else:
                     _api["body"] = request.get_data() if not request.get_json() else request.get_json()
+                if isinstance(_api["body"], bytes):
+                    _api["body"] = str(_api["body"], "utf-8")
                 try:
                     MessageManager().run(_api)
                     return jsonify(error_code=RET.UNAUTHORIZE_ERR, error_msg="Unauthorized, Your request has been sent to the administrator for processing.")

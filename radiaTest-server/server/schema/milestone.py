@@ -28,7 +28,6 @@ class MilestoneQuerySchema(MilestoneBaseSchema):
 
 class MilestoneUpdateSchema(UpdateBaseModel, TimeBaseSchema):
     name: Optional[constr(max_length=64)]
-    state_event: Optional[MilestoneStateEvent]
 
     @root_validator
     def check_values(cls, values):
@@ -44,19 +43,40 @@ class MilestoneUpdateSchema(UpdateBaseModel, TimeBaseSchema):
 
         if start_time >= end_time:
             raise ValueError("end_time is earlier than start_time.")
-        milestone = (
+        milestones = (
             Milestone.query.filter(
                 Milestone.product_id == cur_milestone.product_id,
                 Milestone.type == cur_milestone.type,
                 Milestone.id != values.get("id"),
             )
-            .order_by(Milestone.end_time.desc())
-            .first()
+            .all()
         )
-        if milestone and start_time <= milestone.end_time.strftime("%Y-%m-%d"):
-            raise ValueError(
-                "start_time of modifying milestone is earlier than end_time of milestone existed."
-            )
+        for milestone in milestones:
+            if (
+                start_time >= milestone.start_time.strftime("%Y-%m-%d")
+                and
+                start_time <= milestone.end_time.strftime("%Y-%m-%d")
+            ) or (
+                end_time >= milestone.start_time.strftime("%Y-%m-%d")
+                and
+                end_time <= milestone.end_time.strftime("%Y-%m-%d")
+            ):
+                raise ValueError(
+                    "the period  of milestone overlaps period of milestone existed."
+                )
+            if (
+                milestone.start_time.strftime("%Y-%m-%d") >= start_time
+                and
+                milestone.start_time.strftime("%Y-%m-%d") <= end_time
+            ) or (
+                milestone.end_time.strftime("%Y-%m-%d") >= start_time
+                and
+                milestone.end_time.strftime("%Y-%m-%d") <= end_time
+            ):
+                raise ValueError(
+                    "the period  of milestone overlaps period of milestone existed."
+                )
+ 
         if not values.get("name"):
             return values
         milestone = Precise(Milestone, {"name": values.get("name")}).first()
@@ -81,19 +101,38 @@ class MilestoneCreateSchema(MilestoneBaseSchema, PermissionBase):
             raise ValueError("The bound product version does not exist.")
         if values.get("start_time") >= values.get("end_time"):
             raise ValueError("end_time is earlier than start_time.")
-        milestone = (
+        milestones = (
             Milestone.query.filter_by(
                 product_id=values.get("product_id"), type=values.get("type")
             )
-            .order_by(Milestone.end_time.desc())
-            .first()
+            .all()
         )
-        if milestone and values.get("start_time") <= milestone.end_time.strftime(
-            "%Y-%m-%d"
-        ):
-            raise ValueError(
-                "start_time of new milestone is earlier than end_time of milestone existed."
-            )
+        for milestone in milestones:
+            if (
+                values.get("start_time") >= milestone.start_time.strftime("%Y-%m-%d")
+                and
+                values.get("start_time") <= milestone.end_time.strftime("%Y-%m-%d")
+            ) or (
+                values.get("end_time") >= milestone.start_time.strftime("%Y-%m-%d")
+                and
+                values.get("end_time") <= milestone.end_time.strftime("%Y-%m-%d")
+            ):
+                raise ValueError(
+                    "the period  of new milestone overlaps period of milestone existed."
+                )
+            if (
+                milestone.start_time.strftime("%Y-%m-%d") >= values.get("start_time")
+                and
+                milestone.start_time.strftime("%Y-%m-%d") <= values.get("end_time")
+            ) or (
+                milestone.end_time.strftime("%Y-%m-%d") >= values.get("start_time")
+                and
+                milestone.end_time.strftime("%Y-%m-%d") <= values.get("end_time")
+            ):
+                raise ValueError(
+                    "the period  of milestone overlaps period of milestone existed."
+                )
+
         if not values.get("name"):
             milestone_type = values.get("type")
             prefix = product.name + " " + product.version
@@ -101,7 +140,8 @@ class MilestoneCreateSchema(MilestoneBaseSchema, PermissionBase):
                 values["name"] = (
                     prefix
                     + " update_"
-                    + datetime.now(tz=pytz.timezone("Asia/Shanghai")).strftime("%Y%m%d")
+                    + datetime.now(tz=pytz.timezone("Asia/Shanghai")
+                                   ).strftime("%Y%m%d")
                 )
             elif milestone_type == "round":
                 prefix = prefix + " round-"
@@ -115,13 +155,15 @@ class MilestoneCreateSchema(MilestoneBaseSchema, PermissionBase):
                 if not _max_round:
                     _max_round = "1"
                 else:
-                    _max_round = str(int(_max_round.name.replace(prefix, "")) + 1)
+                    _max_round = str(
+                        int(_max_round.name.replace(prefix, "")) + 1)
                 values["name"] = prefix + _max_round
             elif milestone_type == "release":
                 values["name"] = prefix + " release"
         milestone = Precise(Milestone, {"name": values.get("name")}).first()
         if milestone:
-            raise ValueError("The milestone  %s has existed." % values.get("name"))
+            raise ValueError("The milestone  %s has existed." %
+                             values.get("name"))
         return values
 
 
@@ -138,7 +180,6 @@ class GiteeMilestoneBase(GiteeTimeBaseModel):
 
 class GiteeMilestoneEdit(GiteeMilestoneBase):
     title: Optional[str] = Field(alias="name")
-    state_event: Optional[Literal["activate", "close"]]
 
 
 class GiteeIssueQueryV8(BaseModel):
@@ -179,3 +220,15 @@ class GiteeIssueQueryV5(BaseModel):
 
 class IssueQuerySchema(BaseModel):
     is_live: bool = False
+
+
+class GiteeMilestoneQuerySchema(BaseModel):
+    search: str
+
+
+class SyncMilestoneSchema(BaseModel):
+    gitee_milestone_id: int
+
+
+class MilestoneStateEventSchema(BaseModel):
+    state_event: Literal["activate", "close"]

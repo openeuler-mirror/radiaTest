@@ -8,3 +8,9 @@ milestone:
   - uri: /api/v2/milestone/{milestone_id}
     act: put
     alias: 修改Milestone
+  - uri: /api/v2/milestone/{milestone_id}/sync
+    act: put
+    alias: 同步Milestone
+  - uri: /api/v2/milestone/{milestone_id}/state
+    act: put
+    alias: 开启或关闭Milestone

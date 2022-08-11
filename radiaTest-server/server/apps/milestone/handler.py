@@ -15,7 +15,8 @@ from server.model.organization import Organization
 from server.model.milestone import Milestone, IssueSolvedRate
 from server.model.template import Template
 from server.model.product import Product
-from server.schema.milestone import GiteeMilestoneBase, GiteeMilestoneEdit
+from server.model.task import TaskMilestone
+from server.schema.milestone import GiteeMilestoneBase, GiteeMilestoneEdit, MilestoneStateEventSchema
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from server.utils.permission_utils import PermissionManager, GetAllByPermission
 from server.utils.resource_utils import ResourceManager
@@ -74,12 +75,11 @@ class DeleteMilestone:
             )
 
         if milestone.is_sync is True:
-            MilestoneOpenApiHandler().delete(milestone_id)
+            return MilestoneOpenApiHandler().delete(milestone_id)
         else:
-            ResourceManager("milestone").del_cascade_single(
+            return ResourceManager("milestone", "v2").del_cascade_single(
                 milestone_id, Template, [Template.milestone_id == milestone_id], False
             )
-        return jsonify(error_code=RET.OK, error_msg="Request processed successfully.")
 
 
 class MilestoneHandler:
@@ -98,7 +98,7 @@ class MilestoneHandler:
             filter_params.append(Milestone.is_sync == query.is_sync)
 
         query_filter = Milestone.query.filter(*filter_params).order_by(
-            Milestone.create_time
+            Milestone.product_id, Milestone.name, Milestone.create_time
         )
 
         def page_func(item):
@@ -214,7 +214,7 @@ class MilestoneOpenApiHandler(BaseOpenApiHandler):
 
         _body.update(
             {
-                "id": body.get("id"),
+                "gitee_milestone_id": body.get("id"),
                 "name": body.get("title"),
                 "type": self.type,
                 "product_id": self.product_id,
@@ -266,22 +266,51 @@ class MilestoneOpenApiHandler(BaseOpenApiHandler):
             return jsonify(
                 error_code=RET.NO_DATA_ERR, error_msg="the milestone not exist"
             )
+        _tm = TaskMilestone.query.filter_by(milestone_id=milestone_id).all()
+        if _tm:
+            return jsonify(
+                error_code=RET.DATA_EXIST_ERR,
+                error_msg="Delete failed, Some tasks have been associated with this milestone"
+            )
 
         _url = "https://api.gitee.com/enterprises/{}/milestones/{}".format(
             self.current_org.enterprise_id,
-            milestone_id,
+            milestone.gitee_milestone_id,
         )
-        _resp = json.loads(self.query(_url, {}).text)
+        _resp = self.query(_url).get_json()
         if _resp.get("error_code") == RET.OK:
-            if _resp.get("data").get("title") == milestone.name:
+            if json.loads(_resp.get("data")).get("title") == milestone.name:
                 return jsonify(
                     error_code=RET.RUNTIME_ERROR,
                     error_msg="you should delete this milestone in e.gitee.com first",
                 )
 
-        return ResourceManager("milestone").del_cascade_single(
+        return ResourceManager("milestone", "v2").del_cascade_single(
             milestone_id, Template, [Template.milestone_id == milestone_id], False
         )
+    
+    def edit_state_event(self, milestone_id):
+        _url = "https://api.gitee.com/enterprises/{}/milestones/{}".format(
+            self.current_org.enterprise_id,
+            milestone_id,
+        )
+        return self.add_update(
+            act="PUT",
+            url=_url,
+            data=self.body,
+            schema=MilestoneStateEventSchema,
+            handler=Edit,
+        )
+
+    def get_milestones(self, params):
+        _url = "https://api.gitee.com/enterprises/{}/milestones".format(
+            self.current_org.enterprise_id,
+        )
+        _resp = self.query(url=_url, params=params)
+        json_resp = _resp.get_json()
+        if json_resp.get("error_code") == RET.OK:
+            return jsonify(error_code=RET.OK, error_msg="OK", data=json.loads(json_resp.get("data")))
+        return _resp
 
 
 class IssueOpenApiHandlerV5:
