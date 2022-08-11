@@ -33,6 +33,11 @@ class QualityBoardEvent(Resource):
             type="round",
             is_sync=True
         ).order_by(Milestone.start_time.asc()).all()
+        if not milestones:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="qualityboard cannot be created， because the iteration of the product does not exist."
+            )
         iteration_version = ""
         for _m in milestones:
             iteration_version = iteration_version + "->" + str(_m.id)
