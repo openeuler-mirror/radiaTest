@@ -1,12 +1,5 @@
 <template>
-  <n-form
-    :label-width="40"
-    :model="formValue"
-    :rules="rules"
-    :size="size"
-    label-placement="top"
-    ref="formRef"
-  >
+  <n-form :label-width="40" :model="formValue" :rules="rules" :size="size" label-placement="top" ref="formRef">
     <n-grid :cols="18" :x-gap="24">
       <n-form-item-gi :span="18" label="里程碑名" path="name">
         <n-input
@@ -15,7 +8,7 @@
           clearable
         />
       </n-form-item-gi>
-      <n-form-item-gi :span="7" label="开始时间" path="start_time">
+      <n-form-item-gi :span="9" label="开始时间" path="start_time">
         <n-date-picker
           type="date"
           v-model:value="formValue.start_time"
@@ -23,23 +16,13 @@
           style="width: 100%"
         />
       </n-form-item-gi>
-      <n-form-item-gi :span="7" label="结束时间" path="end_time">
+      <n-form-item-gi :span="9" label="结束时间" path="end_time">
         <n-date-picker
           type="date"
           v-model:value="formValue.end_time"
           placeholder="选择版本的开始日期"
           style="width: 100%"
         />
-      </n-form-item-gi>
-      <n-form-item-gi :span="4" label="状态">
-        <n-switch
-          v-model:value="formValue.state"
-          checked-value="active"
-          unchecked-value="close"
-        >
-          <template #checked> active </template>
-          <template #unchecked> close </template>
-        </n-switch>
       </n-form-item-gi>
     </n-grid>
   </n-form>
@@ -59,9 +42,7 @@ export default defineComponent({
     const store = useStore();
 
     onMounted(() => {
-      updateForm.formValue.value = computed(
-        () => store.getters.getRowData
-      ).value;
+      updateForm.formValue.value = computed(() => store.getters.getRowData).value;
     });
 
     return {
@@ -74,14 +55,13 @@ export default defineComponent({
           id: updateForm.formValue.value.id,
           name: updateForm.formValue.value.name,
           start_time: start,
-          end_time: end,
-          state_event: updateForm.formValue.value.state === 'active' ? 'activate' : updateForm.formValue.value.state
+          end_time: end
         });
         updateAjax.putForm('/v2/milestone', data);
         context.emit('close');
-      },
+      }
     };
-  },
+  }
 });
 </script>
 

@@ -1,11 +1,15 @@
+/* eslint-disable max-lines-per-function */
 /* eslint-disable indent */
 import { h, ref } from 'vue';
-import { NIcon, NButton, NTag, NSpace } from 'naive-ui';
+import { NIcon, NButton, NTag, NSpace, NPopselect } from 'naive-ui';
 import { Construct } from '@vicons/ionicons5';
 import { renderTooltip } from '@/assets/render/tooltip';
+import { Delete24Regular as Delete } from '@vicons/fluent';
 // import { PlugDisconnected20Filled, Connector20Filled } from '@vicons/fluent';
 import { Link, Unlink } from '@vicons/carbon';
 import axios from '@/axios';
+import milestoneTable from '@/views/versionManagement/milestone/modules/milestoneTable.js';
+import textDialog from '@/assets/utils/dialog';
 
 const showSyncRepoModal = ref(false);
 const selectMilestoneValue = ref('');
@@ -32,12 +36,27 @@ const searchMilestoneFn = (data) => {
 const syncMilestoneFn = () => {
   axios
     .put(`/v2/milestone/${milestoneId.value}/sync`, {
-      is_sync: true,
       gitee_milestone_id: selectMilestoneValue.value
     })
     .then(() => {
       showSyncRepoModal.value = false;
     });
+};
+
+const changeState = (data) => {
+  axios
+    .put(`/v2/milestone/${data.row.id}/state`, {
+      state_event: data.value
+    })
+    .then(() => {
+      milestoneTable.getTableData();
+    });
+};
+
+const deleteMilestone = (data) => {
+  axios.delete(`/v2/milestone/${data}`).then(() => {
+    milestoneTable.getTableData();
+  });
 };
 
 const leaveSyncRepoModal = () => {
@@ -94,11 +113,13 @@ const constColumns = [
   },
   {
     title: '产品名',
+    align: 'center',
     key: 'product_name',
     className: 'cols product-name'
   },
   {
     title: '版本名',
+    align: 'center',
     key: 'product_version',
     className: 'cols version-management'
   },
@@ -109,28 +130,65 @@ const constColumns = [
   },
   {
     title: '里程碑类型',
+    align: 'center',
     key: 'type',
     className: 'cols milestone-type'
   },
   {
     title: '状态',
+    align: 'center',
     key: 'state',
     render(row) {
-      return h(NButton, { text: true, type: row.state === 'active' ? 'info' : 'error' }, row.state);
+      return h(
+        NPopselect,
+        {
+          trigger: 'click',
+          options: [
+            {
+              label: 'active',
+              value: 'activate'
+            },
+            {
+              label: 'closed',
+              value: 'close'
+            }
+          ],
+          'on-update:value': (value) => {
+            changeState({ row, value });
+          }
+        },
+        [
+          h(
+            NButton,
+            {
+              text: true,
+              type: row.state === 'active' ? 'info' : 'error',
+              onClick: (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }
+            },
+            row.state
+          )
+        ]
+      );
     }
   },
   {
     title: '开始时间',
+    align: 'center',
     key: 'start_time',
     className: 'cols start-time'
   },
   {
     title: '结束时间',
+    align: 'center',
     key: 'end_time',
     className: 'cols end-time'
   },
   {
     title: '任务数',
+    align: 'center',
     key: 'task_num',
     className: 'cols task'
   }
@@ -142,6 +200,7 @@ const createColumns = (handler) => {
     {
       title: '镜像标签',
       key: 'tags',
+      align: 'center',
       className: 'cols tags',
       render: (row) => {
         if (row.tags) {
@@ -163,19 +222,48 @@ const createColumns = (handler) => {
       title: '操作',
       key: 'action',
       className: 'cols operation',
+      align: 'center',
       render: (row) => {
-        return renderTooltip(
-          h(
-            NButton,
-            {
-              size: 'medium',
-              type: 'warning',
-              circle: true,
-              onClick: () => handler(row)
-            },
-            h(NIcon, { size: '20' }, h(Construct))
-          ),
-          '修改'
+        return h(
+          NSpace,
+          {
+            justify: 'center',
+            align: 'center'
+          },
+          [
+            renderTooltip(
+              h(
+                NButton,
+                {
+                  size: 'medium',
+                  type: 'warning',
+                  circle: true,
+                  onClick: () => handler(row)
+                },
+                h(NIcon, { size: '20' }, h(Construct))
+              ),
+              '修改'
+            ),
+            renderTooltip(
+              h(
+                NButton,
+                {
+                  size: 'medium',
+                  type: 'error',
+                  circle: true,
+                  onClick: (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    textDialog('warning', '警告', '确认删除里程碑？', () => {
+                      deleteMilestone(row.id);
+                    });
+                  }
+                },
+                h(NIcon, { size: '20' }, h(Delete))
+              ),
+              '删除'
+            )
+          ]
         );
       }
     }

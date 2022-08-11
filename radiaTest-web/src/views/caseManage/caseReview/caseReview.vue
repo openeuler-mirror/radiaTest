@@ -5,15 +5,10 @@
         <n-select
           v-model:value="filter"
           :options="filterOptions"
-          style="width:150px"
+          style="width:150px;margin-right: 10px;"
           @update:value="getData"
         />
-        <n-input
-          v-model:value="searchInfo"
-          placehoder="搜索"
-          style="width:100%"
-          @change="getData"
-        >
+        <n-input v-model:value="searchInfo" placeholder="搜索" style="width:100%" @change="getData">
           <template #suffix>
             <n-icon>
               <Search />
@@ -29,14 +24,14 @@
       </n-button>
     </div>
     <div class="review-tools">
-      <n-radio-group v-model:value="activeType" @update:value="setData">
-        <n-space>
-          <n-radio v-for="type in types" :key="type.value" :value="type.value">
-            {{ type.label }}
-            <n-badge :value="type.count" :max="15" color="grey" />
-          </n-radio>
-        </n-space>
-      </n-radio-group>
+      <n-button-group>
+        <n-button text v-for="item in types" :key="item.value" @click="clickTypeBtn(item.value)">
+          <div class="typeBtn">
+            <div :class="['typeLabel', activeType === item.value ? 'active' : '']">{{ item.label }}</div>
+            <n-badge class="typeCount" :value="item.count" :max="15" color="#f2f4f8" />
+          </div>
+        </n-button>
+      </n-button-group>
     </div>
     <div class="review-body">
       <n-spin :show="loading" stroke="rgba(0, 47, 167, 1)">
@@ -86,31 +81,58 @@ export default {
     Search,
     caseReviewList,
     ModalCard,
-    pendingReviewList,
+    pendingReviewList
   },
   setup() {
     modules.getData();
     return {
-      ...modules,
+      ...modules
     };
-  },
+  }
 };
 </script>
 <style lang="less" scoped>
 .review-box {
-  padding: 10px 20px;
+  padding: 20px 40px;
   display: flex;
   flex-direction: column;
+
   .review-tools {
     flex-shrink: 0;
     background: #fcfcfc;
     color: #8c92a4;
     padding: 20px 10px;
+
+    .typeBtn {
+      margin: 0 20px;
+      display: flex;
+      align-items: center;
+
+      .typeLabel {
+        color: #8c92a4;
+      }
+
+      .active {
+        color: #40485b;
+        font-weight: bold;
+        box-shadow: none;
+      }
+
+      .typeCount {
+        margin-left: 5px;
+
+        /deep/.n-base-slot-machine-current-number__inner {
+          color: #7687ab;
+        }
+      }
+    }
   }
+
   .review-body {
     height: 100%;
     overflow-y: auto;
   }
+
   .review-header {
     display: flex;
     flex-shrink: 0;

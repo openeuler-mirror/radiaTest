@@ -41,7 +41,8 @@ const types = ref([
   }
 ]);
 let allData;
-function setData () {
+
+function setData() {
   dataList.value = allData[`${activeType.value}_commit`]?.items || [];
   types.value[0].count = allData.all_count;
   types.value[1].count = allData.open_count;
@@ -49,18 +50,26 @@ function setData () {
   types.value[3].count = allData.rejected_count;
   pageCount.value = allData[`${activeType.value}_commit`]?.pages || 1;
 }
-function getData () {
-  loading.value = true;
-  getCaseReview({ page_num: page.value, page_size: 10, user_type: filter.value, title: searchInfo.value }).then(res => {
-    loading.value = false;
-    allData = res.data;
-    setData();
-  }).catch(err => {
-    loading.value = false;
-    errorMessage(err);
-  });
+
+function clickTypeBtn(value) {
+  activeType.value = value;
+  setData();
 }
-function pageChange (value) {
+
+function getData() {
+  loading.value = true;
+  getCaseReview({ page_num: page.value, page_size: 10, user_type: filter.value, title: searchInfo.value })
+    .then((res) => {
+      loading.value = false;
+      allData = res.data;
+      setData();
+    })
+    .catch((err) => {
+      loading.value = false;
+      errorMessage(err);
+    });
+}
+function pageChange(value) {
   page.value = value;
   getData();
 }
@@ -77,5 +86,6 @@ export {
   pageCount,
   pageChange,
   getData,
-  setData
+  setData,
+  clickTypeBtn
 };
