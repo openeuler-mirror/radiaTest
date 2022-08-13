@@ -261,13 +261,20 @@ class QualityDefendEvent(Resource):
 
         openqa_url = current_app.config.get("OPENQA_URL")
 
-        latest_build = scrapyspider_redis_client.zrange(
+        _builds = scrapyspider_redis_client.zrange(
             product_name, 
             0, 
             0, 
             desc=True,
-        )[0]
-
+        )
+        if not _builds:
+            return jsonify(
+                error_code=RET.OK,
+                error_msg="OK",
+                data={"at_statistic": {}}
+            )
+        
+        latest_build = _builds[0]
         _tests_overview_url = scrapyspider_redis_client.get(f"{product_name}_{latest_build}_tests_overview_url")
             
         # positively sync crawl latest data from openqa of latest build
