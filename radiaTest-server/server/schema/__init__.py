@@ -1,5 +1,9 @@
 from typing_extensions import Literal
 
+
+# 排序
+SortOrder = Literal["ascend", "descend"]
+
 # 里程碑
 ##类型
 MilestoneType = Literal["release", "round", "update"]

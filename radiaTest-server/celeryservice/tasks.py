@@ -137,7 +137,8 @@ def read_openqa_tests_overview(product_build, tests_overview_url):
     exitcode, output = subprocess.getstatusoutput(
         "pushd scrapyspider && scrapy crawl openqa_tests_overview_spider "\
             f"-a product_build={product_build} "\
-            f"-a tests_overview_url={celeryconfig.openqa_url}{add_escape(tests_overview_url)}"
+            f"-a openqa_url={celeryconfig.openqa_url} "\
+            f"-a tests_overview_url={add_escape(tests_overview_url)}"
     )
     if exitcode != 0:
         logger.error(f"crawl tests overview data of product {product_build} fail. Because {output}")

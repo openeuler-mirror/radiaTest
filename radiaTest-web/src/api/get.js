@@ -8,8 +8,8 @@ function getRequest (url, data) {
         resolve(res);
       })
       .catch((err) => {
-        reject(err);
         window.$notification?.error({ content: err.data.error_msg || unkonwnErrorMsg });
+        reject(err);
       });
   });
 }
@@ -153,4 +153,12 @@ export function getTermNode (id, data) {
 
 export function getGroupRepo (id) {
   return getRequest(`/v1/git-repo/${id}`);
+}
+
+export function getAtOverview (id, params) {
+  return getRequest(`/v1/qualityboard/${id}/at`, params);
+}
+
+export function getQualityDefend (id, params) {
+  return getRequest(`/v1/qualityboard/${id}/quality-defend`, params);
 }

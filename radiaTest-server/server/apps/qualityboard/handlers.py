@@ -1,12 +1,11 @@
 from importlib_metadata import abc
-from server import scrapyspider_redis_client
-
 
 class ATStatistic:
-    def __init__(self, archs, product):
-        self.archs = archs
+    def __init__(self, arches, product, redis_client):
+        self.arches = arches
         self.product = product
         self._init_stats()
+        self.redis_client = redis_client
 
     @property
     def stats(self):
@@ -32,9 +31,9 @@ class ATStatistic:
         pass
 
 class OpenqaATStatistic(ATStatistic):
-    def __init__(self, archs, product, build):
+    def __init__(self, arches, product, build, redis_client):
         self.build = build
-        super().__init__(archs, product)
+        super().__init__(arches, product, redis_client)
 
     @property
     def _keys_prefix(self):
@@ -46,7 +45,7 @@ class OpenqaATStatistic(ATStatistic):
     
     @property
     def _tests(self):
-        return scrapyspider_redis_client.keys(f"{self._keys_prefix}*")
+        return self.redis_client.keys(f"{self._keys_prefix}*")
 
     def calc_stats(self):
         self._init_stats()
@@ -55,10 +54,10 @@ class OpenqaATStatistic(ATStatistic):
             if test.endswith(self._pass_suffix):
                 continue
 
-            for arch in self.archs:
+            for arch in self.arches:
                 self.stats["total"] += 1
-                _res_status = scrapyspider_redis_client.hget(test, f"{arch}_res_status")
-                _failedmodule_name = scrapyspider_redis_client.hget(test, f"{arch}_failedmodule_name")
+                _res_status = self.redis_client.hget(test, f"{arch}_res_status")
+                _failedmodule_name = self.redis_client.hget(test, f"{arch}_failedmodule_name")
                 
                 if _res_status == "Done: passed" and _failedmodule_name == "-":
                     self.stats["success"] += 1
@@ -89,11 +88,11 @@ class OpenqaATStatistic(ATStatistic):
             overview = dict()
             overview["test"] = test.split(self._keys_prefix)[1]
 
-            for arch in self.archs:
-                overview[f"{arch}_res_status"] = scrapyspider_redis_client.hget(test, f"{arch}_res_status")
-                overview[f"{arch}_res_log"] = scrapyspider_redis_client.hget(test, f"{arch}_res_log")
-                overview[f"{arch}_failedmodule_name"] = scrapyspider_redis_client.hget(test, f"{arch}_failedmodule_name")
-                overview[f"{arch}_failedmodule_log"] = scrapyspider_redis_client.hget(test, f"{arch}_failedmodule_log")
+            for arch in self.arches:
+                overview[f"{arch}_res_status"] = self.redis_client.hget(test, f"{arch}_res_status")
+                overview[f"{arch}_res_log"] = self.redis_client.hget(test, f"{arch}_res_log")
+                overview[f"{arch}_failedmodule_name"] = self.redis_client.hget(test, f"{arch}_failedmodule_name")
+                overview[f"{arch}_failedmodule_log"] = self.redis_client.hget(test, f"{arch}_failedmodule_log")
             
             return_data.append(overview)
     

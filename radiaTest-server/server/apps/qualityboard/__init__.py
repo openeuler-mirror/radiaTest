@@ -5,6 +5,7 @@ from .routes import (
     QualityBoardItemEvent,
     QualityBoardDeleteVersionEvent,
     ATOverview,
+    QualityDefendEvent,
 )
 
 
@@ -20,4 +21,8 @@ def init_api(api: Api):
     api.add_resource(
         ATOverview,
         "/api/v1/qualityboard/<int:qualityboard_id>/at"
+    )
+    api.add_resource(
+        QualityDefendEvent,
+        "/api/v1/qualityboard/<int:qualityboard_id>/quality-defend"
     )

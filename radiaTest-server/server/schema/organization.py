@@ -22,7 +22,7 @@ class AddSchema(BaseModel):
     description: Optional[str]
     avatar_url: Optional[str]
 
-    enterprise_id: Optional[int]
+    enterprise_id: Optional[str]
     enterprise_join_url: Optional[str]
     oauth_client_id: Optional[str]
     oauth_client_secret: Optional[str]
@@ -71,7 +71,7 @@ class UpdateSchema(BaseModel):
     description: Optional[str]
     avatar_url: Optional[str]
 
-    enterprise_id: Optional[int]
+    enterprise_id: Optional[str]
     enterprise_join_url: Optional[str]
     oauth_client_id: Optional[str]
     oauth_client_secret: Optional[str]

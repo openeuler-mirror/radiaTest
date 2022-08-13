@@ -94,10 +94,12 @@ server.interceptors.response.use(
         error_msg: '服务端错误',
       };
     } else if (error.response?.status === 400) {
+      const msg = error.response.data.validation_error.body_params
+        ? error.response.data.validation_error.body_params[0].msg
+        : error.response.data.validation_error.query_params[0]?.msg;
+      
       error.response.data = {
-        error_msg:
-          error.response.data.validation_error.body_params[0]?.msg ||
-          error.response.data.validation_error.query_params[0]?.msg
+        error_msg: msg,
       };
     }
     return Promise.reject(error.response || error);

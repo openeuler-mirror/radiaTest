@@ -91,10 +91,10 @@ class RedisPipeline:
             self.db_conn.hset(_key, "aarch64_failedmodule_name", item["aarch64_failedmodule_name"])
             self.db_conn.hset(_key, "aarch64_failedmodule_log", item["aarch64_failedmodule_log"])
 
-            self.db_conn.hset(_key, "x86_64_res_status", item["aarch64_res_status"])
-            self.db_conn.hset(_key, "x86_64_res_log", item["aarch64_res_log"])
-            self.db_conn.hset(_key, "x86_64_failedmodule_name", item["aarch64_failedmodule_name"])
-            self.db_conn.hset(_key, "x86_64_failedmodule_log", item["aarch64_failedmodule_log"])
+            self.db_conn.hset(_key, "x86_64_res_status", item["x86_64_res_status"])
+            self.db_conn.hset(_key, "x86_64_res_log", item["x86_64_res_log"])
+            self.db_conn.hset(_key, "x86_64_failedmodule_name", item["x86_64_failedmodule_name"])
+            self.db_conn.hset(_key, "x86_64_failedmodule_log", item["x86_64_failedmodule_log"])
             
 
     def close_item(self, spider):

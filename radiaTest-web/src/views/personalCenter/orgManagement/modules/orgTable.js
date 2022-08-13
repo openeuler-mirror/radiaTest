@@ -24,19 +24,26 @@ function cloneRegisterModel(row){
   for(const key in row.cla_verify_body){
     registerModel.bodyParams.push({key, 'value': row.cla_verify_params[key]});
   }
-  registerModel.name = row.organization_name;
-  registerModel.claVerifyUrl = row.cla_verify_url;
-  registerModel.claSignUrl = row.cla_sign_url;
-  registerModel.claRequestMethod = row.cla_request_type;
-  registerModel.claPassFlag =  row.cla_pass_flag;
-  registerModel.enterprise = row.enterprise_id;
-  registerModel.enterpreise_join_url = row.enterpreise_join_url;
-  registerModel.oauth_client_id = row.oauth_client_id;
-  registerModel.oauth_client_secret = row.oauth_client_secret;
-  registerModel.oauth_client_scope = row.oauth_scope?.split(',');
-  registerModel.description = row.organization_description;
-  registerModel.org_id = row.organization_id;
-  registerModel.organization_avatar = row.organization_avatar;
+  const cloneData = JSON.parse(JSON.stringify(row));
+  Object.keys(cloneData).forEach((key) => {
+    if (!cloneData[key]) {
+      cloneData[key] = undefined;
+    }
+  });
+
+  registerModel.name = cloneData.organization_name;
+  registerModel.claVerifyUrl = cloneData.cla_verify_url;
+  registerModel.claSignUrl = cloneData.cla_sign_url;
+  registerModel.claRequestMethod = cloneData.cla_request_type;
+  registerModel.claPassFlag =  cloneData.cla_pass_flag;
+  registerModel.enterpriseId = cloneData.enterprise_id;
+  registerModel.enterpreiseJoinUrl = cloneData.enterpreise_join_url;
+  registerModel.oauthClientId = cloneData.oauth_client_id;
+  registerModel.oauthClientSecret = cloneData.oauth_client_secret;
+  registerModel.oauthClientScope = cloneData.oauth_scope?.split(',');
+  registerModel.description = cloneData.organization_description;
+  registerModel.orgId = cloneData.organization_id;
+  registerModel.organizationSvatar = cloneData.organization_avatar;
   fileList.value = [];
   if(row.organization_avatar){
     fileList.value.push({id: 'c',status: 'finished',url: row.organization_avatar});
