@@ -55,26 +55,31 @@ class OpenqaATStatistic(ATStatistic):
                 continue
 
             for arch in self.arches:
-                self.stats["total"] += 1
                 _res_status = self.redis_client.hget(test, f"{arch}_res_status")
+                if _res_status == "-":
+                    continue
+                self.stats["total"] += 1
+
                 _failedmodule_name = self.redis_client.hget(test, f"{arch}_failedmodule_name")
                 
                 if _res_status == "Done: passed" and _failedmodule_name == "-":
                     self.stats["success"] += 1
-                elif _res_status == "Done: passed" and _failedmodule_name != "-":
-                    self.stats["failure"] += 1
-                elif _res_status == "Done: failed":
-                    self.stats["failure"] += 1
-                elif _res_status == "Done: skipped":
-                    self.stats["skipping"] += 1
-                elif _res_status == "running":
+                elif _res_status.endswith("skipped"):
+                    self.stats["block"] += 1
+                elif _res_status == "running" or _res_status.startswith("schedule"):
                     self.stats["running"] += 1
+                else:
+                    self.stats["failure"] += 1
 
     @property
     def group_overview(self):
         self.calc_stats()
         return {
             "build": self.build,
+            "finish_timestamp": self.redis_client.zscore(
+                self.product,
+                self.build
+            ),
             **self.stats,
         }
 
