@@ -21,16 +21,6 @@ from server import db
 from server.model.casbin_rule import CasbinRule
 
 
-class Filter:
-    ptype = []
-    v0 = []
-    v1 = []
-    v2 = []
-    v3 = []
-    v4 = []
-    v5 = []
-
-
 class Adapter(persist.Adapter, persist.adapters.UpdateAdapter):
     """the interface for Casbin adapters."""
 

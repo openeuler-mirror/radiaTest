@@ -72,9 +72,8 @@ def create_app(**kwargs):
 
     # casbin
     from .plugins.casbin_sqlalchemy_adapter import Adapter
-    adapter = Adapter(
-        app.config.get("SQLALCHEMY_DATABASE_URI")
-    )
+    adapter = Adapter(filtered=True)
+    
     casbin_enforcer.init_app(app, adapter)
 
     # apps

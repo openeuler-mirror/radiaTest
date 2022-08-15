@@ -19,7 +19,7 @@ module.exports = {
   productionSourceMap: false,
   devServer: {
     host: '0.0.0.0',
-    port: 21500,
+    port: 8080,
     https: {
       key: '/etc/radiaTest/server_ssl/private/cakey.pem',
       cert: '/etc/radiaTest/server_ssl/cacert.pem'
