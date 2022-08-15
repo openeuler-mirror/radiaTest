@@ -2,7 +2,6 @@ import os
 import json
 import logging
 import logging.config
-from celery import current_app
 
 import pymysql
 from flask import Flask
@@ -19,7 +18,6 @@ from server.utils.celery_utils import init_celery
 
 db = SQLAlchemy()
 redis_client = RedisClient()
-scrapyspider_redis_client = RedisClient()
 socketio = SocketIO(
     cors_allowed_origins="*", 
     async_mode="gevent",
@@ -67,8 +65,6 @@ def create_app(**kwargs):
 
     # redis
     redis_client.init_app(app)
-    app.config["REDIS_DB"] = app.config.get("REDIS_SCRAPYSPIDER_DB")
-    scrapyspider_redis_client.init_app(app)
 
     # auth
     auth_util = import_module('server.utils.auth_util')

@@ -18,6 +18,10 @@ class Product(BaseModel, PermissionBaseModel, db.Model):
     milestone = db.relationship(
         "Milestone", backref="product", cascade="all, delete, delete-orphan"
     )
+    qualityboard = db.relationship(
+        "QualityBoard", backref="product", cascade="all, delete, delete-orphan"
+    )
+
     creator_id = db.Column(db.Integer(), db.ForeignKey("user.gitee_id"))
     group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
     org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))

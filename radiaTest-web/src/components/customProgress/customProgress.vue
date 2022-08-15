@@ -4,21 +4,35 @@
     <div v-if="progress.total !== 0" class="bar-item-wrap">
       <n-popover trigger="hover">
         <template #trigger>  
-          <div class="bar-check" :style="{width:checkWidth + '%'}"></div>
+          <div class="bar-running" :style="{width:runningWidth + '%'}">
+            {{ progress.running }}
+          </div>
         </template>
-        <span>已通过 {{ checkWidth.toFixed(2) }}%</span>
+        <span>running {{ runningWidth.toFixed(2) }}%</span>
       </n-popover>
       <n-popover trigger="hover">
         <template #trigger>  
-          <div class="bar-fail" :style="{width:failWidth + '%'}"></div>
+          <div class="bar-check" :style="{width:checkWidth + '%'}">
+            {{ progress.success }}
+          </div>
         </template>
-        <span>未通过 {{ failWidth.toFixed(2) }}%</span>
+        <span>passed {{ checkWidth.toFixed(2) }}%</span>
       </n-popover>
       <n-popover trigger="hover">
         <template #trigger>  
-          <div class="bar-apply" :style="{width:applyWidth + '%'}"></div>
+          <div class="bar-fail" :style="{width:failWidth + '%'}">
+            {{ progress.failure }}
+          </div>
         </template>
-        <span>待校验 {{ applyWidth.toFixed(2) }}%</span>
+        <span>failed {{ failWidth.toFixed(2) }}%</span>
+      </n-popover>
+      <n-popover trigger="hover">
+        <template #trigger>  
+          <div class="bar-skip" :style="{width:skippingWidth + '%'}">
+            {{ progress.skipping }}
+          </div>
+        </template>
+        <span>block {{ skippingWidth.toFixed(2) }}%</span>
       </n-popover>
     </div>
     <!--无状态时显示0,bg是灰色-->
@@ -30,6 +44,7 @@
           <span>无数据 100%</span>
         </n-popover>
     </div>
+    <span>{{ progress.success + progress.failure + progress.skipping + progress.running }}/{{ progress.total }}</span>
   </div>
 </template>
 
@@ -40,13 +55,16 @@ export default {
   },
   computed: {
     checkWidth() {
-      return (this.progress.checkNum / this.progress.total) * 100;
+      return (this.progress.success / this.progress.total) * 100;
     },
     failWidth() {
-      return (this.progress.failNum / this.progress.total) * 100;
+      return (this.progress.failure / this.progress.total) * 100;
     },
-    applyWidth() {
-      return (this.progress.applyNum / this.progress.total) * 100;
+    skippingWidth() {
+      return (this.progress.skipping / this.progress.total) * 100;
+    },
+    runningWidth() {
+      return (this.progress.running / this.progress.total) * 100;
     }
   },
   props: {
@@ -62,11 +80,14 @@ export default {
 
 <style lang="scss">
 .custom-progress-bar {
+  display: flex;
   box-sizing: border-box;
   width: 100%;
   $h: 26px;
 
   .bar-item-wrap {
+    text-align: center;
+    color: white;
     border: 1px solid #F0F8FF;
     display: flex;
     flex-direction: row;
@@ -74,33 +95,35 @@ export default {
     align-items: center;
     margin: 2px;
     height: 19px;
+    width: 90%;
     position: relative;
     border-radius: 13px;
     overflow: hidden;
     background: #e3e4ea;
-    width: 283px;
-    right: 30px;
     li {
         list-style: none;
     }
-
-    .bar-check {
-      height: 100%;
+    .bar-running {
+      overflow: hidden;
       background: #2080F0;
+    }
+    .bar-check {
+      overflow: hidden;
+      background: #18A058;
     }
 
     .bar-fail {
-      height: 100%;
-      background: #99c1e9;
+      overflow: hidden;
+      background: #c20000;
     }
 
-    .bar-apply {
-      height: 100%;
+    .bar-skip {
+      overflow: hidden;
       background: #F0F0F0;
     }
 
     .bar-no-data {
-      height: 100%;
+      overflow: hidden;
       background: #e3e4ea;
     }
   }

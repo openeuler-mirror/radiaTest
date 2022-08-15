@@ -151,7 +151,7 @@ export default defineComponent({
     userInfo
   },
   props: {
-    form: Object,
+    milestoneId: Number,
   },
   mounted() {
     this.getIssueStateType();
@@ -181,22 +181,16 @@ export default defineComponent({
       getIssue({
         page: this.pagination.page,
         per_page: this.pagination.pageSize,
-        milestone_id: this.form.id,
+        milestone_id: this.milestoneId,
         issue_type_id: this.stateType
       })
         .then((res) => {
           const resData = JSON.parse(res.data);
           this.rawData = resData.data;
           this.total = resData.total_count;
-          this.loading = false;
           this.pagination.pageCount = Math.ceil(Number(this.total) / this.pagination.pageSize) || 1;
         })
-        .catch((err) => {
-          if (err.data.validation_error) {
-            window.$message.error(err.data.validation_error.body_params[0].msg);
-          } else {
-            window.$message.error('发生未知错误，获取数据失败');
-          }
+        .finally(() => {
           this.loading = false;
         });
     },

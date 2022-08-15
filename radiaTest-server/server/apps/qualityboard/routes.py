@@ -1,9 +1,10 @@
-from asyncio import subprocess
+import subprocess
+
+import redis
 from flask import jsonify, current_app
 from flask_restful import Resource
 from flask_pydantic import validate
 
-from server import scrapyspider_redis_client
 from server.utils.auth_util import auth
 from server.utils.response_util import response_collect, RET
 from server.model import Milestone, Product
@@ -142,6 +143,7 @@ class QualityBoardDeleteVersionEvent(Resource):
 class ATOverview(Resource):
     @auth.login_required()
     @response_collect
+    @validate()
     def get(self, qualityboard_id, query: ATOverviewSchema):
         qualityboard = QualityBoard.query.filter_by(id=qualityboard_id).first()
         if not qualityboard:
@@ -150,15 +152,56 @@ class ATOverview(Resource):
                 error_msg="qualityboard {} not exitst".format(qualityboard_id)
             )
         product = qualityboard.product
+        product_name = f"{product.name}-{product.version}"
 
-        if not query.build_name and not query.tests_overview_url:
-            builds_list = scrapyspider_redis_client.connection.zrange(product.name, 0, -1, desc=True)
-            builds_data = list(
+        scrapyspider_pool = redis.ConnectionPool.from_url(
+            current_app.config.get("SCRAPYSPIDER_BACKEND"), 
+            decode_responses=True
+        )
+        scrapyspider_redis_client = redis.StrictRedis(connection_pool=scrapyspider_pool)
+
+        openqa_url = current_app.config.get("OPENQA_URL")
+
+        _start = (query.page_num - 1) * query.page_size
+        _end = query.page_num * query.page_size - 1
+
+        if not query.build_name:
+            builds_list = scrapyspider_redis_client.zrange(
+                product_name, 
+                _start, 
+                _end, 
+                desc=query.build_order == "descend",
+            )
+
+            if not builds_list:
+                return jsonify(
+                    error_code=RET.OK,
+                    error_msg="OK",
+                    data=[],
+                    total_num=0
+                )
+
+            _tests_overview_url = scrapyspider_redis_client.get(f"{product_name}_{builds_list[0]}_tests_overview_url")
+            
+            # positively sync crawl latest data from openqa of latest build
+            exitcode, output = subprocess.getstatusoutput(
+                "pushd scrapyspider && scrapy crawl openqa_tests_overview_spider "\
+                    f"-a product_build={product_name}_{builds_list[0]} "\
+                    f"-a openqa_url={openqa_url} "\
+                    f"-a tests_overview_url={add_escape(_tests_overview_url)}"
+            )
+            if exitcode != 0:
+                current_app.logger.error(
+                    f"crawl latest tests overview data of {product_name}_{builds_list[0]} fail. Because {output}"
+                )
+            
+            return_data = list(
                 map(
                     lambda build: OpenqaATStatistic(
-                        archs=current_app.config.get("SUPPORTED_ARCHS", ["aarch64", "x86_64"]),
-                        product=product.name,
-                        build=build
+                        arches=current_app.config.get("SUPPORTED_ARCHES"),
+                        product=product_name,
+                        build=build,
+                        redis_client=scrapyspider_redis_client,
                     ).group_overview,
                     builds_list
                 )
@@ -167,18 +210,20 @@ class ATOverview(Resource):
             return jsonify(
                 error_code=RET.OK,
                 error_msg="OK",
-                data=builds_data,
+                data=return_data,
+                total_num=scrapyspider_redis_client.zcard(product_name)
             )
         
-        elif query.build_name and query.tests_overview_url:
-            product_build = f"{product.name}{query.build_name}"
-            openqa_url = current_app.config.get("OPENQA_URL")
+        else:
+            product_build = f"{product_name}_{query.build_name}"
+            tests_overview_url = scrapyspider_redis_client.get(f"{product_build}_tests_overview_url")
 
             # positively crawl latest data from openqa of pointed build
             exitcode, output = subprocess.getstatusoutput(
                 "pushd scrapyspider && scrapy crawl openqa_tests_overview_spider "\
                     f"-a product_build={product_build} "\
-                    f"-a tests_overview_url={openqa_url}{add_escape(query.tests_overview_url)}"
+                    f"-a openqa_url={openqa_url} "\
+                    f"-a tests_overview_url={add_escape(tests_overview_url)}"
             )
             if exitcode != 0:
                 current_app.logger.error(f"crawl latest tests overview data of {product_build} fail. Because {output}")
@@ -186,9 +231,10 @@ class ATOverview(Resource):
             current_app.logger.info(f"crawl latest tests overview data of product {product_build} succeed")
 
             at_statistic = OpenqaATStatistic(
-                archs=current_app.config.get("SUPPORTED_ARCHS", ["aarch64", "x86_64"]),
-                product=product.name,
-                build=query.build_name
+                arches=current_app.config.get("SUPPORTED_ARCHES", ["aarch64", "x86_64"]),
+                product=product_name,
+                build=query.build_name,
+                redis_client=scrapyspider_redis_client
             )
 
             return jsonify(
@@ -196,8 +242,62 @@ class ATOverview(Resource):
                 error_msg="OK",
                 data=at_statistic.tests_overview,
             )
+
+
+class QualityDefendEvent(Resource):
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def get(self, qualityboard_id):
+        qualityboard = QualityBoard.query.filter_by(id=qualityboard_id).first()
+        if not qualityboard:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="qualityboard {} not exitst".format(qualityboard_id)
+            )
+        product = qualityboard.product
+        product_name = f"{product.name}-{product.version}"
+
+        scrapyspider_pool = redis.ConnectionPool.from_url(
+            current_app.config.get("SCRAPYSPIDER_BACKEND"), 
+            decode_responses=True
+        )
+        scrapyspider_redis_client = redis.StrictRedis(connection_pool=scrapyspider_pool)
+
+        openqa_url = current_app.config.get("OPENQA_URL")
+
+        latest_build = scrapyspider_redis_client.zrange(
+            product_name, 
+            0, 
+            0, 
+            desc=True,
+        )[0]
+
+        _tests_overview_url = scrapyspider_redis_client.get(f"{product_name}_{latest_build}_tests_overview_url")
+            
+        # positively sync crawl latest data from openqa of latest build
+        exitcode, output = subprocess.getstatusoutput(
+            "pushd scrapyspider && scrapy crawl openqa_tests_overview_spider "\
+                f"-a product_build={product_name}_{latest_build} "\
+                f"-a openqa_url={openqa_url} "\
+                f"-a tests_overview_url={add_escape(_tests_overview_url)}"
+        )
+        if exitcode != 0:
+            current_app.logger.error(
+                f"crawl latest tests overview data of {product_name}_{latest_build} fail. Because {output}"
+            )
         
+        at_statistic = OpenqaATStatistic(
+            arches=current_app.config.get("SUPPORTED_ARCHES", ["aarch64", "x86_64"]),
+            product=product_name,
+            build=latest_build,
+            redis_client=scrapyspider_redis_client
+        ).group_overview
+
         return jsonify(
-            error_code=RET.BAD_REQ_ERR,
-            error_msg="invalid query params"
+            error_code=RET.OK,
+            error_msg="OK",
+            data={
+                "at_statistic": at_statistic,
+            }
         )

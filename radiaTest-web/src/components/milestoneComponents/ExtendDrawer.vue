@@ -36,7 +36,7 @@
           </div>
         </n-tab-pane>
         <n-tab-pane name="issue" tab="Issues列表">
-          <milestone-issues-card :form="rowData" />
+          <milestone-issues-card :milestone-id="rowData.id" />
         </n-tab-pane>
         <n-tab-pane name="task" tab="任务列表">
           <MilestoneTaskTable :milestoneId="rowData.id"/>

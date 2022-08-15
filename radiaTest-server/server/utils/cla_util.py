@@ -98,7 +98,7 @@ class ClaShowAdminSchema(ClaShowUserSchema):
     cla_verify_url: Optional[str]
     cla_request_type: Optional[str]
     cla_pass_flag: Optional[str]
-    enterprise_id: Optional[int]
+    enterprise_id: Optional[str]
     oauth_client_id: Optional[str]
     oauth_client_secret: Optional[str]
     oauth_scope: Optional[str]

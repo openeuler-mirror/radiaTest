@@ -20,7 +20,7 @@ class Config(object):
     OFFICIAL_API_VERSION = "v1"
 
     # 支持的架构
-    SUPPORTED_ARCHS = ["aarch64", "x86_64"]
+    SUPPORTED_ARCHES = ["aarch64", "x86_64"]
 
     # 物理机
     # CI宿主机标志

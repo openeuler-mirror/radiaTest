@@ -126,10 +126,10 @@
           <n-form-item
             v-if="requireEnterprise"
             label="Gitee企业仓"
-            path="enterprise"
+            path="enterpriseId"
           >
             <n-input
-              v-model:value="registerModel.enterprise"
+              v-model:value="registerModel.enterpriseId"
               placeholder="请填写该组织码云企业仓ID"
               :maxlength="50"
             ></n-input>
@@ -137,39 +137,39 @@
           <n-form-item
             v-if="requireEnterprise"
             label="企业仓加入申请URL"
-            path="enterprise_join_url"
+            path="enterpriseJoinUrl"
           >
             <n-input
-              v-model:value="registerModel.enterprise_join_url"
+              v-model:value="registerModel.enterpriseJoinUrl"
               placeholder="若存在公开加入申请链接可填, URL必须存在协议头http或https"
             ></n-input>
           </n-form-item>
           <n-form-item
             v-if="requireEnterprise"
             label="oauth_client_id"
-            path="oauth_client_id"
+            path="oauthClientId"
           >
             <n-input
-              v-model:value="registerModel.oauth_client_id"
+              v-model:value="registerModel.oauthClientId"
               placeholder="请填写oauth_client_id"
             ></n-input>
           </n-form-item>
           <n-form-item
             v-if="requireEnterprise"
             label="oauth_client_secret"
-            path="oauth_client_secret"
+            path="oauthClientSecret"
           >
             <n-input
-              v-model:value="registerModel.oauth_client_secret"
+              v-model:value="registerModel.oauthClientSecret"
               placeholder="请填写oauth_client_secret"
             ></n-input>
           </n-form-item>
           <n-form-item
             v-if="requireEnterprise"
             label="oauth_scope"
-            path="oauth_client_scope"
+            path="oauthClientScope"
           >
-            <n-dynamic-tags v-model:value="registerModel.oauth_client_scope" />
+            <n-dynamic-tags v-model:value="registerModel.oauthClientScope" />
           </n-form-item>
         </n-form>
         <template #action>

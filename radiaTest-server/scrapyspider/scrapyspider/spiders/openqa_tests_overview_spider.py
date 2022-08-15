@@ -23,7 +23,7 @@ class OpenqaTestsOverviewSpider(Spider):
     
     def start_requests(self):
         urls = [
-            f"{self.tests_overview_url}"
+            f"{self.openqa_url}{self.tests_overview_url}"
         ]
         for url in urls:
             yield Request(url=url, callback=self.parse)
@@ -57,12 +57,12 @@ class OpenqaTestsOverviewSpider(Spider):
                     res = aarch64_selector.xpath('./a')
                 
                 item["aarch64_res_status"] = res.xpath('./i/@title').extract()[0]
-                item["aarch64_res_log"] = f"{res.xpath('./@href').extract()[0]}"
+                item["aarch64_res_log"] = f"{self.openqa_url}{res.xpath('./@href').extract()[0]}"
 
                 failedmodule = aarch64_selector.xpath('./span[@class="failedmodule"]')
                 if failedmodule:
                     item["aarch64_failedmodule_name"] = failedmodule.xpath('./a/span/text()').extract()[0]
-                    item["aarch64_failedmodule_log"] = f"{failedmodule.xpath('./a/@href').extract()[0]}"
+                    item["aarch64_failedmodule_log"] = f"{self.openqa_url}{failedmodule.xpath('./a/@href').extract()[0]}"
 
             try:
                 x86_64_selector = res_selectors[1]
@@ -75,12 +75,12 @@ class OpenqaTestsOverviewSpider(Spider):
                 if not res:
                     res = x86_64_selector.xpath('./a')
                 
-                item["x86_64_res_status"] = res.xpath('./i/@title').extract()
-                item["x86_64_res_log"] = f"{res.xpath('./@href').extract()[0]}"
+                item["x86_64_res_status"] = res.xpath('./i/@title').extract()[0]
+                item["x86_64_res_log"] = f"{self.openqa_url}{res.xpath('./@href').extract()[0]}"
 
                 failedmodule = x86_64_selector.xpath('./span[@class="failedmodule"]')
                 if failedmodule:
                     item["x86_64_failedmodule_name"] = failedmodule.xpath('./a/span/text()').extract()[0]
-                    item["x86_64_failedmodule_log"] = f"{failedmodule.xpath('./a/@href').extract()[0]}" 
+                    item["x86_64_failedmodule_log"] = f"{self.openqa_url}{failedmodule.xpath('./a/@href').extract()[0]}" 
 
             yield item

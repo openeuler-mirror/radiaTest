@@ -14,22 +14,23 @@ function openRegisterOrgWindow() {
 const requireEnterprise = ref(false);
 const requireCla = ref(false);
 const registerModel = reactive({
-  name: '',
-  claVerifyUrl: '',
-  claSignUrl: '',
-  claRequestMethod: '',
-  claPassFlag: '',
-  enterprise: '',
-  enterpreise_join_url: '',
+  name: undefined,
+  claVerifyUrl: undefined,
+  claSignUrl: undefined,
+  claRequestMethod: undefined,
+  claPassFlag: undefined,
+  enterpriseId: undefined,
+  enterpreiseJoinUrl: undefined,
   urlParams: [],
   bodyParams: [],
-  oauth_client_id: '',
-  oauth_client_secret: '',
-  oauth_client_scope: [],
-  description: '',
-  org_id:'',
-  organization_avatar:'',
+  oauthClientId: undefined,
+  oauthClientSecret: undefined,
+  oauthClientScope: [],
+  description: undefined,
+  orgId: undefined,
+  organizationAvatar: undefined,
 });
+
 const rules = {
   name: {
     required: true,
@@ -51,7 +52,7 @@ const rules = {
     trigger: ['blur', 'change'],
     message: '请选择验证地址的请求方式',
   },
-  enterprise: {
+  enterpriseId: {
     required: true,
     trigger: ['blur', 'input'],
     message: '请输入',
@@ -61,17 +62,17 @@ const rules = {
     trigger: ['blur', 'input'],
     message: '请输入cla验证通过的标志',
   },
-  oauth_client_id: {
+  oauthClientId: {
     required: true,
     trigger: ['blur', 'input'],
     message: '请输入',
   },
-  oauth_client_secret: {
+  oauthClientSecret: {
     required: true,
     trigger: ['blur', 'input'],
     message: '请输入',
   },
-  oauth_client_scope: {
+  oauthClientScope: {
     trigger: ['blur', 'input'],
     message: '请填写',
     validator(rule, value) {
@@ -107,21 +108,21 @@ function closeOrgFrom() {
   showRegisterOrgWindow.value = false;
   fileList.value = [];
 
-  registerModel.name = '';
-  registerModel.claVerifyUrl = '';
-  registerModel.claSignUrl = '';
-  registerModel.claRequestMethod = '';
-  registerModel.claPassFlag = '';
-  registerModel.enterprise = '';
-  registerModel.enterpreise_join_url = '';
+  registerModel.name = undefined;
+  registerModel.claVerifyUrl = undefined;
+  registerModel.claSignUrl = undefined;
+  registerModel.claRequestMethod = undefined;
+  registerModel.claPassFlag = undefined;
+  registerModel.enterpriseId = undefined;
+  registerModel.enterpreiseJoinUrl = undefined;
   registerModel.urlParams = [];
   registerModel.bodyParams = [];
-  registerModel.oauth_client_id = '';
-  registerModel.oauth_client_secret = '';
-  registerModel.oauth_client_scope = [];
-  registerModel.description = '';
-  registerModel.org_id = ''; 
-  registerModel.organization_avatar ='';
+  registerModel.oauthClientId = undefined;
+  registerModel.oauthClientSecret = undefined;
+  registerModel.oauthClientScope = undefined;
+  registerModel.description = undefined;
+  registerModel.orgId = undefined; 
+  registerModel.organizationAvatar = undefined;
 }
 
 function handleCreateOrg(formData) {
@@ -162,22 +163,19 @@ function submitOrgInfo() {
   });
   let formData = new FormData();
   formData.append('avatar_url', fileList.value[0]?.file);
-  formData.append('name', registerModel.name ? registerModel.name : undefined);
-  formData.append('cla_verify_url', registerModel.claVerifyUrl ? registerModel.claVerifyUrl : undefined);
-  formData.append('cla_sign_url', registerModel.claSignUrl ? registerModel.cla_sign_url : undefined);
-  formData.append('cla_request_type', registerModel.claRequestMethod ? registerModel.cla_request_type : undefined);
-  formData.append('cla_pass_flag', registerModel.claPassFlag ? registerModel.cla_pass_flag : undefined);
+  formData.append('name', registerModel.name);
+  formData.append('cla_verify_url', registerModel.claVerifyUrl);
+  formData.append('cla_sign_url', registerModel.claSignUrl);
+  formData.append('cla_request_type', registerModel.claRequestMethod);
+  formData.append('cla_pass_flag', registerModel.claPassFlag);
   formData.append('cla_verify_params', JSON.stringify(claVerifyParams));
   formData.append('cla_verify_body', JSON.stringify(claVerifyBody));
-  formData.append('enterprise_id', registerModel.enterprise ? registerModel.enterpreise : undefined);
-  formData.append('enterprise_join_url', registerModel.enterpreise_join_url);
-  formData.append('oauth_client_id', registerModel.oauth_client_id ? registerModel.oauth_client_id : undefined);
-  formData.append(
-    'oauth_client_secret', 
-    registerModel.oauth_client_secret ? registerModel.oauth_client_secret : undefined,
-  );
-  formData.append('oauth_scope', registerModel.oauth_client_scope?.join(','));
-  formData.append('description', registerModel.description ? registerModel.description : undefined);
+  formData.append('enterprise_id', registerModel.enterpriseId);
+  formData.append('enterprise_join_url', registerModel.enterpreiseJoinUrl);
+  formData.append('oauth_client_id', registerModel.oauthClientId);
+  formData.append('oauth_client_secret', registerModel.oauthClientSecret);
+  formData.append('oauth_scope', registerModel.oauthClientScope?.join(','));
+  formData.append('description', registerModel.description);
 
   regirsterRef.value.validate((errors) => {
     if (!errors) {
@@ -185,8 +183,8 @@ function submitOrgInfo() {
       if(isCreate.value){
         handleCreateOrg(formData);
       }else{
-        formData.append('org_id', registerModel.org_id);
-        handleUpdateOrg(registerModel.org_id, formData);
+        formData.append('org_id', registerModel.orgId);
+        handleUpdateOrg(registerModel.orgId, formData);
       }
     } else {
       window.$message?.error('请完善信息!');

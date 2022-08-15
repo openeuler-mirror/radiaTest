@@ -365,6 +365,7 @@
                   />
                   <quality-protect
                     v-else-if="activeTab === 'qualityProtect'"
+                    :quality-board-id="dashboardId"
                     :treeList="testProgressList"
                   />
                 </keep-alive>
@@ -386,7 +387,7 @@
             height="100%"
           >
             <n-drawer-content closable>
-              <MilestoneIssuesCard />
+              <MilestoneIssuesCard :milestone-id="currentId" />
             </n-drawer-content>
           </n-drawer>
         </div>
