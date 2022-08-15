@@ -1,3 +1,4 @@
+import json
 from flask import request, jsonify
 from flask_restful import Resource
 from flask_pydantic import validate
@@ -13,6 +14,9 @@ from server.schema.milestone import (
     MilestoneQuerySchema,
     MilestoneUpdateSchema,
     IssueQuerySchema,
+    GiteeMilestoneQuerySchema,
+    SyncMilestoneSchema,
+    MilestoneStateEventSchema,
 )
 from .handler import (
     IssueStatisticsHandlerV8,
@@ -57,20 +61,14 @@ class MilestoneItemEventV2(Resource):
         if milestone.is_sync is True:
             _data = body.__dict__
             if _data.get("start_time"):
-                _data["start_time"] = _data.get("start_time").strftime("%Y-%m-%d")
+                _data["start_time"] = _data.get(
+                    "start_time").strftime("%Y-%m-%d")
             if _data.get("end_time"):
                 _data["end_time"] = _data.get("end_time").strftime("%Y-%m-%d")
-            return MilestoneOpenApiHandler(_data).edit(milestone_id)
+            return MilestoneOpenApiHandler(_data).edit(milestone.gitee_milestone_id)
         else:
             _body = body.__dict__
             _body.update({"id": milestone_id})
-
-            if _body.get("state_event"):
-                state_event = _body.pop("state_event")
-                if state_event == "activate":
-                    _body.update({"state": "active"})
-                else:
-                    _body.update({"state": "closed"})
 
             return Edit(Milestone, _body).single(Milestone, "/milestone")
 
@@ -143,3 +141,68 @@ class UpdateGiteeIssuesStatistics(Resource):
     @auth.login_required
     def get(self):
         return IssueStatisticsHandlerV8.update_issue_rate()
+
+
+class GiteeMilestoneEventV2(Resource):
+    @auth.login_required
+    @validate()
+    def get(self, query: GiteeMilestoneQuerySchema):
+        return MilestoneOpenApiHandler().get_milestones(params=query.__dict__)
+
+
+class SyncMilestoneItemEventV2(Resource):
+    @auth.login_required()
+    @response_collect
+    @validate()
+    @casbin_enforcer.enforcer
+    def put(self, milestone_id, body: SyncMilestoneSchema):
+        milestone = Milestone.query.filter_by(id=milestone_id).first()
+        if not milestone:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="milestone {} not exist".format(milestone_id),
+            )
+
+        milestone.gitee_milestone_id = body.gitee_milestone_id
+        milestone.is_sync = True
+        milestone.add_update()
+
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+        )
+
+
+class MilestoneItemStateEventV2(Resource):
+    @auth.login_required
+    @response_collect
+    @validate()
+    @casbin_enforcer.enforcer
+    def put(self, milestone_id, body: MilestoneStateEventSchema):
+        milestone = Milestone.query.filter_by(id=milestone_id).first()
+        if not milestone:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="milestone {} not exist".format(milestone_id),
+            )
+        _body = body.__dict__
+        if _body.get("state_event"):
+            state_event = _body.pop("state_event")
+            if state_event == "activate":
+                _body.update({"state": "active"})
+            else:
+                _body.update({"state": "closed"})
+
+        if milestone.state == _body.get("state"):
+            return jsonify(
+                error_code=RET.DATA_EXIST_ERR,
+                error_msg="State event cannot transition when {}".format(
+                    milestone.state),
+            )
+
+        if milestone.is_sync is True:
+            return MilestoneOpenApiHandler(body.__dict__).edit_state_event(milestone.gitee_milestone_id)
+
+        milestone.state = _body.get("state")
+        milestone.add_update()
+        return jsonify(error_code=RET.OK, error_msg="OK.")
