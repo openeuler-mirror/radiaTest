@@ -17,7 +17,7 @@
 
 basearch=$(uname -m)
 
-if [[ "${basearch}" == "x86_64" || "${basearch}" == "aarch64" ]];then
+if [ "${basearch}" = "x86_64" ]||[ "${basearch}" = "aarch64" ];then
     basearch="x64"
 else
     echo "Error: Unsupported Arch"
@@ -26,7 +26,7 @@ fi
 
 RAR=$(which unrar 2>/dev/null)
 
-if [ ! -z "${RAR}" ]; then
+if [ -n "${RAR}" ]; then
     exit 0
 fi
 

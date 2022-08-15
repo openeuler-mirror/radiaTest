@@ -12,8 +12,7 @@
 # @Date    : 2022/05/09 19:59:00
 # @License : Mulan PSL v2
 #####################################
-
-#! /bin/sh
+#!/bin/sh
 
 # define env variables
 node_req_v="v16.14.2"
@@ -23,7 +22,7 @@ workdir="/usr/local/bin"
 basearch=$(uname -m)
 
 # prepare nodejs
-cd ${workdir}
+cd "${workdir}" || exit
 
 if [ "${basearch}" = "x86_64" ];then
     basearch="x64"
@@ -47,7 +46,7 @@ npm=$(npm -v)
 npx=$(npx -v)
 
 # check version
-if [[ "${node}" != "${node_req_v}" && "${npm}" != "${npm_req_v}" && "${npx}" != "${npx_req_v}" ]]; then
+if [ "${node}" != "${node_req_v}" ]&&[ "${npm}" != "${npm_req_v}" ]&&[ "${npx}" != "${npx_req_v}" ]; then
     echo "Internal Error: Install Nodejs ${node_req_v} Failed."
     echo "clean environment..."
     rm -rf "${workdir}"/node \

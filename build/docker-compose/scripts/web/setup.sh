@@ -12,15 +12,14 @@
 # @Date    : 2022/05/09 19:59:00
 # @License : Mulan PSL v2
 #####################################
+#!/bin/sh
 
-#! /bin/sh
-
-source "${OET_PATH}/lib/gen_ssl_cert.sh"
+. "${OET_PATH}"/lib/gen_ssl_cert.sh
 
 bash ./install_nodejs.sh || exit 1
 
-if [[ -d "${OET_PATH}/../../radiaTest-web" ]]; then
-    cd "${OET_PATH}/../../radiaTest-web"
+if [ -d "${OET_PATH}/../../radiaTest-web" ]; then
+    cd "${OET_PATH}/../../radiaTest-web" || exit
 else
     echo "lack of radiaTest-web, please update radiaTest"
     exit 1
@@ -46,34 +45,34 @@ mkdir -p /etc/radiaTest/server_ssl/newcerts
 mkdir -p /etc/radiaTest/server_ssl/private
 mkdir -p /etc/radiaTest/server_ssl/conf
 
-cd /etc/radiaTest/server_ssl/
-cat ${OET_PATH}/conf/ca_openssl.cnf > conf/ca.cnf
-cat ${OET_PATH}/conf/client_openssl.cnf > conf/client.cnf
+cd /etc/radiaTest/server_ssl/ || exit
+cat "${OET_PATH}"/conf/ca_openssl.cnf > conf/ca.cnf
+cat "${OET_PATH}"/conf/client_openssl.cnf > conf/client.cnf
 
-if [[ ! -f "index.txt" ]];then
+if [ ! -f "index.txt" ];then
     touch index.txt
 fi
-if [[ ! -f "serial" ]];then
+if [ ! -f "serial" ];then
     echo 01 > ./serial
 fi
 
-if [[ ! -f "./private/cakey.pem" ]];then
+if [ ! -f "./private/cakey.pem" ];then
     gen_ca_key
 fi
 
-if [[ ! -f "./cacert.pem" ]];then
+if [ ! -f "./cacert.pem" ];then
     gen_ca_cert
 fi
 
-if [[ ! -f "server.key" ]];then
+if [ ! -f "server.key" ];then
     gen_client_key "server"
 fi
 
-if [[ ! -f "csr/server.csr" && ! -f "certs/server.crt" ]];then
+if [ ! -f "csr/server.csr" ]&&[ ! -f "certs/server.crt" ];then
     gen_client_csr "server"
-elif [[ ! -f "certs/server.crt" ]];then
+elif [ ! -f "certs/server.crt" ];then
     echo "Using exist CSR: server.csr to ask CA Signature"
-    SAN=`gen_san_ext "[ SubjectAlternativeName ]\n"`
+    SAN=$(gen_san_ext "[ SubjectAlternativeName ]\n")
     gen_server_cert "$SAN"
 else
     echo "SSL Certfile already exist, please make sure they are validation. Otherwise, the service could not work normally."

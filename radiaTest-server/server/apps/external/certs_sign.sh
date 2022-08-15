@@ -1,8 +1,8 @@
-#! /bin/sh
-
+#!/bin/bash -c
+set -e
 main() {
     expect -c "
-    spawn openssl ca -in $1 -out $2 -extensions v3_req -config "<(cat $3 <(echo -e "$4"))"
+    spawn openssl ca -in $1 -out $2 -extensions v3_req -config "<(cat "$3" <(echo -e "$4"))"
     
     set timeout 10
     expect {
