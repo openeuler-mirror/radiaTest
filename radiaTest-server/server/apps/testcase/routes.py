@@ -179,12 +179,14 @@ class PreciseCaseEvent(Resource):
 
         return GetAllByPermission(Case).precise(body)
 
+
 class CaseNodeCommitEvent(Resource):
     @auth.login_required()
     @response_collect
     @validate()
     def post(self, body: CaseNodeCommitCreate):
         return CaseHandler.create_case_node_commit(body)
+
 
 class CaseEvent(Resource):
     @auth.login_required()
@@ -202,6 +204,7 @@ class CaseEvent(Resource):
             if value:
                 body[key] = value
         return GetAllByPermission(Case).precise(body)
+
 
 class CaseItemEvent(Resource):
     @auth.login_required()
@@ -243,6 +246,7 @@ class CaseItemEvent(Resource):
             error_msg="OK",
             data=case.to_json()
         )
+
 
 class TemplateCasesQuery(Resource):
     @auth.login_required()
@@ -336,6 +340,7 @@ class CaseCommit(Resource):
     def delete(self, commit_id):
         return HandlerCaseReview.delete(commit_id)
 
+
 class CommitHistory(Resource):
     @auth.login_required()
     @response_collect
@@ -375,6 +380,7 @@ class CaseCommitComment(Resource):
     @validate()
     def put(self, comment_id, body: UpdateCommitCommentSchema):
         return HandlerCommitComment.update(comment_id, body)
+
 
 class CommitStatus(Resource):
     @auth.login_required()
