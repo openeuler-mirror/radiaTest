@@ -68,14 +68,6 @@ def init_api(api: Api):
     api.add_resource(MileStoneCaseNode, "/api/v1/milestone/<int:milestone_id>/case-node")
     api.add_resource(ProductCaseNode, "/api/v1/product/<int:product_id>/case-node")
     api.add_resource(
-        ChecklistItem,
-        "/api/v1/checklist/<int:checklist_id>",
-    )
-    api.add_resource(
-        ChecklistEvent,
-        "/api/v1/checklist",
-    )
-    api.add_resource(
         GroupNodeItem,
         "/api/v1/group/<int:group_id>/resource",
     )

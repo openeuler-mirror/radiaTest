@@ -10,10 +10,10 @@ import { detail,drawerShow,showPackage,testProgressList } from './productDetailD
 const ProductId = ref(null);
 const done = ref(false);
 const dashboardId = ref(null);
-const seriousResovledRate = ref(null);
-const currentResovledCnt = ref(null);
+const seriousResolvedRate = ref(null);
+const currentResolvedCnt = ref(null);
 const currentAllCnt = ref(null);
-const currentResovledRate = ref(null);
+const currentResolvedRate = ref(null);
 const mainResolvedRate = ref(null);
 const seriousMainResolvedCnt = ref(null);
 const seriousMainAllCnt = ref(null);
@@ -75,10 +75,10 @@ function handleClick(id) {
         rateData[i] = rateData[i].toString().substring(0, rateData[i].length - 1);
       }
     }
-    seriousResovledRate.value = rateData.serious_resolved_rate;
-    currentResovledCnt.value  = rateData.current_resolved_cnt;
+    seriousResolvedRate.value = rateData.serious_resolved_rate;
+    currentResolvedCnt.value  = rateData.current_resolved_cnt;
     currentAllCnt.value  = rateData.current_all_cnt;
-    currentResovledRate.value  = rateData.current_resolved_rate;
+    currentResolvedRate.value  = rateData.current_resolved_rate;
     mainResolvedRate.value  = rateData.main_resolved_rate;
     seriousMainResolvedCnt.value  = rateData.serious_main_resolved_cnt;
     seriousMainAllCnt.value  = rateData.serious_main_all_cnt;
@@ -330,10 +330,10 @@ function getDefaultCheckNode (id) {
         rateData[i] = rateData[i].toString().substring(0, rateData[i].length - 1);
       }
     }
-    seriousResovledRate.value = rateData.serious_resolved_rate;
-    currentResovledCnt.value  = rateData.current_resolved_cnt;
+    seriousResolvedRate.value = rateData.serious_resolved_rate;
+    currentResolvedCnt.value  = rateData.current_resolved_cnt;
     currentAllCnt.value  = rateData.current_all_cnt;
-    currentResovledRate.value  = rateData.current_resolved_rate;
+    currentResolvedRate.value  = rateData.current_resolved_rate;
     mainResolvedRate.value  = rateData.main_resolved_rate;
     seriousMainResolvedCnt.value  = rateData.serious_main_resolved_cnt;
     seriousMainAllCnt.value  = rateData.serious_main_all_cnt;
@@ -442,10 +442,10 @@ export {
   tableLoading,
   showModal,
   showCheckList,
-  seriousResovledRate,
-  currentResovledCnt,
+  seriousResolvedRate,
+  currentResolvedCnt,
   currentAllCnt,
-  currentResovledRate,
+  currentResolvedRate,
   mainResolvedRate,
   seriousMainResolvedCnt,
   seriousMainAllCnt,

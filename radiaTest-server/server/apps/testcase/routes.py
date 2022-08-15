@@ -8,8 +8,8 @@ from server.utils.redis_util import RedisKey
 from server.utils.auth_util import auth
 from server.utils.response_util import RET, response_collect
 from server.utils.permission_utils import GetAllByPermission
-from server.model.testcase import Suite, Case, Checklist
-from server.utils.db import Insert, Edit, Delete, collect_sql_error
+from server.model.testcase import Suite, Case
+from server.utils.db import Edit, Delete, collect_sql_error
 from server.schema.base import PageBaseSchema
 from server.schema.celerytask import CeleryTaskUserInfoSchema
 from server.schema.testcase import (
@@ -29,9 +29,6 @@ from server.schema.testcase import (
     UpdateCommitCommentSchema,
     CaseCommitBatch,
     QueryHistorySchema,
-    AddChecklistSchema,
-    UpdateChecklistSchema,
-    QueryChecklistSchema
 )
 from server.apps.testcase.handler import (
     CaseImportHandler,
@@ -41,7 +38,6 @@ from server.apps.testcase.handler import (
     TemplateCasesHandler,
     HandlerCaseReview,
     HandlerCommitComment,
-    ChecklistHandler,
     ResourceItemHandler
 )
 
@@ -416,45 +412,6 @@ class ProductCaseNode(Resource):
     @response_collect
     def get(self, product_id):
         return CaseNodeHandler.get_product_case_node(product_id)
-
-
-class ChecklistItem(Resource):
-    @auth.login_required()
-    @response_collect
-    @validate()
-    def get(self, checklist_id):
-        return ChecklistHandler.handler_get_one(checklist_id)
-
-    @auth.login_required()
-    @response_collect
-    @validate()
-    def put(self, checklist_id, body: UpdateChecklistSchema):
-        _body = {
-            **body.__dict__,
-            "id": checklist_id,
-        }
-
-        return Edit(Checklist, _body).single(Checklist, "/checklist")
-
-    @auth.login_required()
-    @response_collect
-    @validate()
-    def delete(self, checklist_id):
-        return Delete(Checklist, {"id": checklist_id}).single()
-
-
-class ChecklistEvent(Resource):
-    @auth.login_required()
-    @response_collect
-    @validate()
-    def get(self, query: QueryChecklistSchema):
-        return ChecklistHandler.handler_get_checklist(query)
-
-    @auth.login_required()
-    @response_collect
-    @validate()
-    def post(self, body: AddChecklistSchema):
-        return Insert(Checklist, body.__dict__).single(Checklist, "/checklist")
 
 
 class GroupNodeItem(Resource):
