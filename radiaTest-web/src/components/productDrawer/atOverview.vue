@@ -115,6 +115,5 @@ export default defineComponent({
 .tests-res {
   display: flex;
   align-items: center;
-  justify-content: center;
 }
 </style>

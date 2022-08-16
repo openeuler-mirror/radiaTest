@@ -28,11 +28,11 @@
       </n-popover>
       <n-popover trigger="hover">
         <template #trigger>  
-          <div class="bar-skip" :style="{width:skippingWidth + '%'}">
-            {{ progress.skipping }}
+          <div class="bar-skip" :style="{width:blockWidth + '%'}">
+            {{ progress.block }}
           </div>
         </template>
-        <span>block {{ skippingWidth.toFixed(2) }}%</span>
+        <span>block {{ blockWidth.toFixed(2) }}%</span>
       </n-popover>
     </div>
     <!--无状态时显示0,bg是灰色-->
@@ -44,7 +44,7 @@
           <span>无数据 100%</span>
         </n-popover>
     </div>
-    <span>{{ progress.success + progress.failure + progress.skipping + progress.running }}/{{ progress.total }}</span>
+    <span>{{ progress.success + progress.failure + progress.block + progress.running }}/{{ progress.total }}</span>
   </div>
 </template>
 
@@ -60,8 +60,8 @@ export default {
     failWidth() {
       return (this.progress.failure / this.progress.total) * 100;
     },
-    skippingWidth() {
-      return (this.progress.skipping / this.progress.total) * 100;
+    blockWidth() {
+      return (this.progress.block / this.progress.total) * 100;
     },
     runningWidth() {
       return (this.progress.running / this.progress.total) * 100;

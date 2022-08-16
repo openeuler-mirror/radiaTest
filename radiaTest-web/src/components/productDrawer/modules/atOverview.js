@@ -14,8 +14,10 @@ function renderResColor (resStatus, failmodule) {
       return '#2080F0';
     case resStatus === 'Done: passed' && failmodule === '-':
       return '#18A058';
-    case resStatus === 'Done: skipped' || resStatus === 'cancelled':
+    case resStatus.endsWith('skipped') || resStatus === 'cancelled':
       return '#F0F0F0';
+    case resStatus === 'Done: incomplete':
+      return '#f88a8a';
     default:
       return '#c20000';
   }
@@ -110,7 +112,7 @@ const atTestsColumns = [
             NIcon,
             {
               size: 14,
-              color: renderResColor(row.x86_64_res_status, row.x86_64_failedmodule_name),
+              color: renderResColor(row.aarch64_res_status, row.aarch64_failedmodule_name),
               style: { cursor: 'pointer' },
               onClick: () => handleUrlClick(row.aarch64_res_log),
             },
