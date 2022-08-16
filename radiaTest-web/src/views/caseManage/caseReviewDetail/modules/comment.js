@@ -4,14 +4,14 @@ import { createComment } from '@/api/post';
 import router from '@/router';
 const comments = ref([]);
 const commentInput = ref('');
-function getComment () {
+function getComment() {
   const commit = router.currentRoute.value.params.commitId;
-  getCaseReviewComment(commit).then(res => {
+  getCaseReviewComment(commit).then((res) => {
     comments.value = res.data;
   });
 }
-function commentCase () {
-  createComment(router.currentRoute.value.params.commitId,{
+function commentCase() {
+  createComment(router.currentRoute.value.params.commitId, {
     parent_id: 0,
     content: commentInput.value
   }).then(() => {
@@ -19,9 +19,4 @@ function commentCase () {
     getComment();
   });
 }
-export {
-  comments,
-  commentInput,
-  getComment,
-  commentCase
-};
+export { comments, commentInput, getComment, commentCase };

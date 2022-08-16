@@ -35,13 +35,10 @@
         :key="index"
       />
     </div>
-    <editor
-      v-if="showComment"
-      v-model="commentInput"
-      tag-name="div"
-      :init="init"
-    />
-    <n-space v-show="showComment">
+    <div v-if="showComment">
+      <editor v-model="commentInput" tag-name="div" :init="init" />
+    </div>
+    <n-space v-if="showComment">
       <n-button type="primary" @click="replay">
         回复
       </n-button>
@@ -58,7 +55,9 @@ import Editor from '@tinymce/tinymce-vue';
 import userInfo from '@/components/user/userInfo.vue';
 import { createComment } from '@/api/post';
 import { formatTime } from '@/assets/utils/dateFormatUtils';
-import {deleteComment} from '@/api/delete';
+import { deleteComment } from '@/api/delete';
+import comment from '@/components/testcaseComponents/comment.vue';
+import { getComment } from '@/views/caseManage/caseReviewDetail/modules/comment.js';
 export default {
   name: 'comment',
   props: ['comment', 'isReply'],
@@ -66,18 +65,19 @@ export default {
     Chat,
     Editor,
     userInfo,
+    comment
   },
   data() {
     return {
       showComment: false,
       init,
-      commentInput: '',
+      commentInput: ''
     };
   },
   methods: {
-    deleteComment(){
-      deleteComment(this.comment.id).then(()=>{
-        this.$emit('update');
+    deleteComment() {
+      deleteComment(this.comment.id).then(() => {
+        getComment();
       });
     },
     formatTime(time, format) {
@@ -89,15 +89,15 @@ export default {
     replay() {
       createComment(this.comment.commit_id, {
         parent_id: this.comment.id,
-        content: this.commentInput,
+        content: this.commentInput
       }).then(() => {
         this.cancelReply();
-        this.$emit('update');
+        getComment();
       });
     },
     cancelReply() {
       this.showComment = false;
-    },
+    }
   },
 };
 </script>
@@ -105,10 +105,12 @@ export default {
 .comment-box {
   border-bottom: 1px solid #ccc;
 }
+
 .comment-title {
   display: flex;
   justify-content: space-between;
   align-items: center;
+
   .title-item {
     margin: 0 10px;
   }

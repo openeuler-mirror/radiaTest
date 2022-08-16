@@ -30,8 +30,8 @@
           <div class="item filterValue">
             <n-input type="text" v-if="!item.name" disabled />
             <n-input type="text" v-else-if="item.type === 'input'" @input="item.cb(item)" v-model:value="item.value" />
-            <n-select v-else-if="item.type === 'select'" v-model:value="item.value" :options="item.options" />
-            <n-select v-else-if="item.type === 'multipleselect'" multiple v-model:value="item.value" :options="item.options" />
+            <n-select v-else-if="item.type === 'select'" v-model:value="item.value" :options="item.options" filterable />
+            <n-select v-else-if="item.type === 'multipleselect'" multiple v-model:value="item.value" :options="item.options" filterable />
             <n-date-picker type="date" v-else-if="(item.type === 'startdate') | (item.type === 'enddate')" v-model:value="item.value" />
           </div>
           <div class="item filterDelete" @click="clickDelete(index)">
