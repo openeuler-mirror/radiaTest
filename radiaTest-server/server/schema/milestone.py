@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field, constr, root_validator, validator
 from server.model import Product, Milestone
 from server.utils.db import Precise
 from server.schema import MilestoneType, MilestoneState, MilestoneStateEvent
-from server.schema.base import TimeBaseSchema, PermissionBase, UpdateBaseModel
+from server.schema.base import TimeBaseSchema, PermissionBase, UpdateBaseModel, PageBaseSchema
 
 
 class MilestoneBaseSchema(BaseModel):
@@ -20,7 +20,7 @@ class MilestoneBaseSchema(BaseModel):
     is_sync: Optional[bool]
 
 
-class MilestoneQuerySchema(MilestoneBaseSchema):
+class MilestoneQuerySchema(MilestoneBaseSchema, PageBaseSchema):
     is_sync: Optional[bool]
     page_num: int = 1
     page_size: int = 10

@@ -75,6 +75,7 @@
 </template>
 
 <script>
+import { ref } from 'vue';
 export default {
   props: ['multiple', 'defaultValue'],
   data () {
@@ -102,7 +103,10 @@ export default {
     },
   },
   mounted () {
-    this.$axios.get('/v2/milestone').then((res) => {
+    const filterValue = ref({
+      paged: false
+    });
+    this.$axios.get('/v2/milestone', filterValue.value).then((res) => {
       this.milepostArray = res.data?.items||[];
       this.milepostArrayTemp = res.data?.items||[];
     });
