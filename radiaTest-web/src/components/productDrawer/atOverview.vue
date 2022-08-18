@@ -18,11 +18,11 @@
   />
   <n-drawer
     v-model:show="atTestsOverviewShow"
-    placement="bottom"
+    placement="right"
     :height="'100%'"
+    :width="1000"
     :trap-focus="false"
     :block-scroll="false"
-    to="#at-card"
   >
     <n-card 
       style="height: 100%;"
@@ -44,7 +44,6 @@
         :row-key="(rowData) => rowData.test"
       />
     </n-card>
-    
   </n-drawer>
 </template>
 

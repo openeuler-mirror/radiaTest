@@ -142,6 +142,11 @@ task_queues = (
         exchange=Exchange("server_exchange", type="direct"),
         routing_key="set",
     ),
+    Queue(
+        "queue_resolve_dailybuild",
+        exchange=Exchange("server_exchange", type="direct"),
+        routing_key="set",
+    )
 )
 
 task_default_exchange_type = "direct"

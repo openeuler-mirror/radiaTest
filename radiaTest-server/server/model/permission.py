@@ -112,7 +112,8 @@ class ReScopeRole(db.Model, CasbinRoleModel):
         _obj = self.scope.uri
         _act = self.scope.act.upper()
         _eft = self.scope.eft
-        return [_sub, _obj, _act, _eft]
+        _dom = self._get_dom(self.scope.uri)
+        return [_sub, _obj, _act, _eft, _dom]
 
     def add_update(self, table=None, namespace=None, broadcast=False):
         super().add_update(table, namespace, broadcast)

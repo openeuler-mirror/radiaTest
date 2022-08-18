@@ -1,4 +1,4 @@
-from sqlalchemy.dialects.mysql import TINYTEXT
+from sqlalchemy.dialects.mysql import LONGTEXT
 
 from server import db
 from server.model import BaseModel
@@ -64,4 +64,22 @@ class Checklist(db.Model, BaseModel):
             'innovation': self.innovation,
             'create_time': self.create_time.strftime("%Y-%m-%d %H:%M:%S"),
             'update_time': self.update_time.strftime("%Y-%m-%d %H:%M:%S")
+        }
+
+
+class DailyBuild(db.Model, BaseModel):
+    __tablename__ = "dailybuild"
+    id = db.Column(db.Integer(), primary_key=True, autoincrement=True)
+    name = db.Column(db.String(50), nullable=False)
+    completion = db.Column(db.Integer(), nullable=False, default=0)
+    detail = db.Column(LONGTEXT(), nullable=True)
+
+    product_id = db.Column(db.Integer(), db.ForeignKey("product.id"))
+
+    def to_json(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "completion": self.completion,
+            "product_id": self.product_id
         }

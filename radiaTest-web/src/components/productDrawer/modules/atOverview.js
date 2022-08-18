@@ -73,7 +73,6 @@ const atTestsColumns = [
     title: 'aarch64',
     key: 'aarch64',
     className: 'tests-col',
-    align: 'center',
     render: (row) => {
       if (row.aarch64_res_status === '-') { return row.aarch64_res_status; }
       if (row.aarch64_failedmodule_name !== '-') {
@@ -126,7 +125,6 @@ const atTestsColumns = [
     title: 'x86_64',
     key: 'x86_64',
     className: 'tests-col',
-    align: 'center',
     render: (row) => {
       if (row.x86_64_res_status === '-') { return row.x86_64_res_status; }
       if (row.x86_64_failedmodule_name !== '-') {

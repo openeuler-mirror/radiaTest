@@ -7,25 +7,13 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 ####################################
-# @Author  : 
-# @email   : 
-# @Date    : 
+# @Author  : Ethan-Zhang
+# @email   : ethanzhang55@outlook.com
+# @Date    : 2022/05/09 19:59:00
 # @License : Mulan PSL v2
-
-
 #####################################
 
-from flask_restful import Api
+FROM radia-test/gunicorn
+LABEL maintainer="ethanzhang55@outlook.com"
 
-from .routes import UpdateTaskEvent
-from .routes import LoginOrgList
-from .routes import VmachineExist
-from .routes import CaCert
-from .routes import DailyBuildEvent
-
-def init_api(api: Api):
-    api.add_resource(UpdateTaskEvent, "/api/v1/openeuler/task/update")
-    api.add_resource(LoginOrgList, "/api/v1/login/org/list")
-    api.add_resource(VmachineExist, "/api/v1/vmachine/check-exist")
-    api.add_resource(CaCert, "/api/v1/ca-cert")
-    api.add_resource(DailyBuildEvent, "/api/v1/dailybuild")
+CMD celery -A manage.my_celery worker --loglevel=info --hostname=celery_worker_resolve_dailybuild_detail --queues=queue_resolve_dailybuild

@@ -162,3 +162,11 @@ export function getAtOverview (id, params) {
 export function getQualityDefend (id, params) {
   return getRequest(`/v1/qualityboard/${id}/quality-defend`, params);
 }
+
+export function getDailyBuildSingle (id) {
+  return getRequest(`/v1/dailybuild/${id}`);
+}
+
+export function getDailyBuildBatch (id, params) {
+  return getRequest(`/v1/qualityboard/${id}/dailybuild`, params);
+}

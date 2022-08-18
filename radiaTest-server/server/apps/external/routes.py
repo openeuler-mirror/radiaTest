@@ -17,16 +17,14 @@
 
 import os
 import re
-import json
 import shlex
 from subprocess import getstatusoutput
-import requests
 
+import yaml
 from flask import current_app, jsonify, request, make_response, send_file
 from flask_restful import Resource
 from flask_pydantic import validate
 
-from server import casbin_enforcer
 from server.utils.auth_util import auth
 from server.schema.external import (
     LoginOrgListSchema,
@@ -38,9 +36,12 @@ from server.model.group import Group
 from server.model.mirroring import Repo
 from server.model.vmachine import Vmachine
 from server.model.organization import Organization
+from server.model.product import Product
+from server.model.qualityboard import DailyBuild
 from server.utils.db import Insert, Edit
-from server.utils.response_util import RET, ssl_cert_verify_error_collect
+from server.utils.response_util import RET
 from server.utils.file_util import ImportFile
+from celeryservice.tasks import resolve_dailybuild_detail
 from .handler import UpdateRepo, UpdateTaskHandler, UpdateTaskForm
 
 
@@ -249,3 +250,56 @@ class CaCert(Resource):
             error_code=RET.OK,
             error_msg="OK"
         )
+
+
+class DailyBuildEvent(Resource):
+    def post(self):
+        _product = request.form.get("product")
+        _build = request.form.get("build")
+        _file = request.files.get("file")
+        if not _product or len(_product.split("-")) != 2 or not _build or not _file:
+            return jsonify(
+                error_code=RET.PARMA_ERR,
+                error_msg="params invalid"
+            )
+        
+        _name, _version = _product.split("-")
+        product = Product.query.filter_by(name=_name, version=_version).first()
+        if not product:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="this build record belongs to a product not enrolled yet"
+            )
+
+        _dailybuild = DailyBuild.query.filter_by(product_id=product.id, name=_build).first()
+        if _dailybuild:
+            return jsonify(
+                error_code=RET.DATA_EXIST_ERR,
+                error_msg="this build record has already been resolved"
+            )
+        
+        _id = Insert(
+            DailyBuild, 
+            {
+                "name": _build,
+                "product_id": product.id,
+            }
+        ).insert_id()
+
+        _detail = yaml.load(_file, Loader=yaml.FullLoader)
+        if not isinstance(_detail, dict):
+             return jsonify(
+                error_code=RET.PARMA_ERR,
+                error_msg="the file with dailybuild detail is not in valid format"
+            )
+
+        resolve_dailybuild_detail.delay(
+            dailybuild_id = _id,
+            dailybuild_detail = _detail
+        )
+
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+        )
+
