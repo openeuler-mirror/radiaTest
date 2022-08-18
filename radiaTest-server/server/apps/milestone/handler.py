@@ -1,6 +1,7 @@
 import abc
 from datetime import datetime
-import json, os
+import json
+import os
 
 from flask.globals import current_app
 import requests
@@ -100,6 +101,20 @@ class MilestoneHandler:
         query_filter = Milestone.query.filter(*filter_params).order_by(
             Milestone.product_id, Milestone.name, Milestone.create_time
         )
+
+        if not query.paged:
+            milestones = query_filter.all()
+            data = dict()
+            items = []
+            for _m in milestones:
+                items.append(_m.to_json())
+            data.update(
+                {
+                    "total": query_filter.count(),
+                    "items": items,
+                }
+            )
+            return jsonify(error_code=RET.OK, error_msg="OK", data=data)
 
         def page_func(item):
             milestone_dict = item.to_json()

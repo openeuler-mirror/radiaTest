@@ -20,6 +20,7 @@ class UpdateBaseModel(BaseModel):
 class PageBaseSchema(BaseModel):
     page_size: int = 10
     page_num: int = 1
+    paged: bool = True
 
 
 class BaseEnum(Enum):
