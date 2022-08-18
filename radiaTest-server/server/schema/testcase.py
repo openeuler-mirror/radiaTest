@@ -104,8 +104,8 @@ class SuiteBase(BaseModel):
                 disks = list(map(int, v.strip().split(",")))
                 _ = [int(disk) for disk in disks]
             return v
-        except:
-            raise ValueError("The type of add_disk is not validate.")
+        except (ValueError, AttributeError, TypeError) as e:
+            raise ValueError("The type of add_disk is not validate.") from e
 
 
 class SuiteCreate(SuiteBase):

@@ -178,9 +178,6 @@ class CaseNodeHandler:
 
         children = CaseNode.query.filter(*filter_params).all()
 
-        # case_node_info = CaseNodeHandler.get_case_node_process(case_node)
-        # return_data["process"] = case_node_info["progress"]
-
         return_data["children"] = [child.to_json() for child in children]
 
         source = list()
@@ -571,7 +568,7 @@ class CaseHandler:
         insert_data['version'] = str(uuid.uuid4()).replace('-', '')
         insert_data['case_description'] = _body.get("description")
         insert_data['case_detail_id'] = _id
-        insert_data['remark'] = 'review new testcase '+ _body.get("name")
+        insert_data['remark'] = 'review new testcase ' + _body.get("name")
         insert_data['status'] = 'pending'
         insert_data['case_mod_type'] = 'add'
         insert_data['expectation'] = _body.get("expection")

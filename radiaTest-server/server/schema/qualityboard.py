@@ -30,9 +30,11 @@ class CheckRound(BaseModel):
                 if value not in [0, 1]:
                     raise ValueError("rounds value error! value should be 0 or 1")
             round_keys = list(rounds.keys())
-            if any(int(round_keys[i + 1].strip('R')) - int(round_keys[i].strip('R')) != 1 for i in
-                   range(0, len(round_keys) - 1)):
-                raise ValueError("rounds not in correct order!")
+
+            for i in range(0, len(round_keys) - 1):
+                if int(round_keys[i + 1].strip('R')) - int(round_keys[i].strip('R')) != 1:
+                    raise ValueError("rounds not in correct order!")
+
         return str(rounds)
 
 
@@ -48,8 +50,8 @@ class CheckBaseline(BaseModel):
         else:
             try:
                 _ = int(baseline)
-            except ValueError:
-                raise ValueError("baseline must be a ratio or a number")
+            except ValueError as e:
+                raise ValueError("baseline must be a ratio or a number") from e
 
         return baseline
 
