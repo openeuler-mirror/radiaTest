@@ -41,3 +41,27 @@ class QualityBoard(BaseModel, db.Model):
             "current_milestone_id": current_milestone_id,
             "current_milestone_issue_solved_rate": _isr.to_json() if _isr else {},
         }
+
+
+class Checklist(db.Model, BaseModel):
+    __tablename__ = "checklist"
+    id = db.Column(db.Integer(), primary_key=True, autoincrement=True)
+    check_item = db.Column(db.String(50), nullable=False, unique=True)
+    baseline = db.Column(db.String(50))
+    rounds = db.Column(db.String(128), default=False)
+    lts = db.Column(db.Boolean(), default=False)
+    lts_spx = db.Column(db.Boolean(), default=False)
+    innovation = db.Column(db.Boolean(), default=False)
+
+    def to_json(self):
+        return {
+            'id': self.id,
+            'check_item': self.check_item,
+            'baseline': self.baseline,
+            'rounds': self.rounds,
+            'lts': self.lts,
+            'lts_spx': self.lts_spx,
+            'innovation': self.innovation,
+            'create_time': self.create_time.strftime("%Y-%m-%d %H:%M:%S"),
+            'update_time': self.update_time.strftime("%Y-%m-%d %H:%M:%S")
+        }

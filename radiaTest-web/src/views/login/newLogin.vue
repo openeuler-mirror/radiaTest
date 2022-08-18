@@ -307,7 +307,7 @@
           >
             <div style="display: flex; align-items: center">
               <p style="width: 50px; flex-shrink: 0">组织:</p>
-              <n-select v-model:value="loginInfo.org" :options="orgList" />
+              <n-select v-model:value="loginInfo.org" :options="orgList" :disabled="true" />
             </div>
             <div style="text-align: center">
               <n-tooltip placement="bottom" trigger="hover">

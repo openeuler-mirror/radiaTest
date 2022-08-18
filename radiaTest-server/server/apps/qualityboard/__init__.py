@@ -6,6 +6,8 @@ from .routes import (
     QualityBoardDeleteVersionEvent,
     ATOverview,
     QualityDefendEvent,
+    ChecklistEvent,
+    ChecklistItem
 )
 
 
@@ -25,4 +27,12 @@ def init_api(api: Api):
     api.add_resource(
         QualityDefendEvent,
         "/api/v1/qualityboard/<int:qualityboard_id>/quality-defend"
+    )
+    api.add_resource(
+        ChecklistItem,
+        "/api/v1/checklist/<int:checklist_id>",
+    )
+    api.add_resource(
+        ChecklistEvent,
+        "/api/v1/checklist",
     )

@@ -8,11 +8,17 @@ from flask_pydantic import validate
 from server.utils.auth_util import auth
 from server.utils.response_util import response_collect, RET
 from server.model import Milestone, Product
-from server.model.qualityboard import QualityBoard
-from server.utils.db import Delete, Edit, Select
-from server.schema.qualityboard import QualityBoardSchema, ATOverviewSchema
+from server.model.qualityboard import QualityBoard, Checklist
+from server.utils.db import Delete, Edit, Select, Insert
+from server.schema.qualityboard import (
+    QualityBoardSchema,
+    AddChecklistSchema,
+    UpdateChecklistSchema,
+    QueryChecklistSchema,
+    ATOverviewSchema
+)
 from server import casbin_enforcer
-from server.apps.qualityboard.handlers import OpenqaATStatistic
+from server.apps.qualityboard.handlers import OpenqaATStatistic, ChecklistHandler
 from server.utils.shell import add_escape
 
 
@@ -138,6 +144,45 @@ class QualityBoardDeleteVersionEvent(Resource):
             }
     
         return Edit(QualityBoard, _body).single()
+
+
+class ChecklistItem(Resource):
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def get(self, checklist_id):
+        return ChecklistHandler.handler_get_one(checklist_id)
+
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def put(self, checklist_id, body: UpdateChecklistSchema):
+        _body = {
+            **body.__dict__,
+            "id": checklist_id,
+        }
+
+        return Edit(Checklist, _body).single(Checklist, "/checklist")
+
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def delete(self, checklist_id):
+        return Delete(Checklist, {"id": checklist_id}).single()
+
+
+class ChecklistEvent(Resource):
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def get(self, query: QueryChecklistSchema):
+        return ChecklistHandler.handler_get_checklist(query)
+
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def post(self, body: AddChecklistSchema):
+        return Insert(Checklist, body.__dict__).single(Checklist, "/checklist")
 
 
 class ATOverview(Resource):

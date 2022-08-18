@@ -132,12 +132,12 @@
                 @click="cardClick" 
                 :style="{
                   backgroundColor: currentResolvedRate && currentResolvedBaseline
-                    ? currentResovledRate >= currentResolvedBaseline
+                    ? currentResolvedRate >= currentResolvedBaseline
                       ?'#D5E8D4'
                       :'#F8CECC'
                     : 'white',
-                  border: currentResovledRate && currentResolvedBaseline
-                    ? currentResovledRate >= currentResolvedBaseline
+                  border: currentResolvedRate && currentResolvedBaseline
+                    ? currentResolvedRate >= currentResolvedBaseline
                       ?'1px solid #A2C790'
                       :'1px solid #B95854'
                     : '1px solid #dddddd'
@@ -147,17 +147,17 @@
                   style="width:190px;position:absolute;left:35px;"
                   class="topProgress"
                   type="circle"
-                  :status="currentResovledRate >= currentResolvedBaseline ? 'success' : 'error'"
+                  :status="currentResolvedRate >= currentResolvedBaseline ? 'success' : 'error'"
                   stroke-width="9"
-                  :percentage="currentResovledRate"
+                  :percentage="currentResolvedRate"
                 >
                   <span style="text-align: center;font-size: 33px;">
-                    {{ currentResovledRate ? `${currentResolvedRate}%` : '0%' }}
+                    {{ currentResolvedRate ? `${currentResolvedRate}%` : '0%' }}
                   </span>
                 </n-progress>
                 <div style="display: flex;position: absolute;top: 4%;left: 73%;">
                   <n-icon size="20" style="margin-right: 5px;">
-                    <CheckCircleFilled color="#18A058" v-if="currentResovledRate >= currentResolvedBaseline" />
+                    <CheckCircleFilled color="#18A058" v-if="currentResolvedRate >= currentResolvedBaseline" />
                     <QuestionCircle16Filled v-else-if="!currentResolvedRate || !currentResolvedBaseline" />
                     <CancelRound color="#D03050" v-else />
                   </n-icon>
@@ -174,7 +174,7 @@
                     当前迭代
                   </span>
                   <p style="font-size: 30px;margin-top: 3px;margin-bottom: 3px">
-                    {{ currentAllCnt && currentResolvedRate ? `${currentResovledCnt}/${currentAllCnt}` : '0/0' }}
+                    {{ currentAllCnt && currentResolvedRate ? `${currentResolvedCnt}/${currentAllCnt}` : '0/0' }}
                   </p>
                   <div style="display: flex;align-items: center;justify-content: space-around">
                     <div style="display: flex;flex-direction: column">
@@ -212,7 +212,7 @@
                   :fill-border-radius="0"
                   processing
                 />
-                <n-progress style="position: absolute;width: 78%;top: 86%;left: 11%;" type="line" :percentage="seriousResovledRate" />
+                <n-progress style="position: absolute;width: 78%;top: 86%;left: 11%;" type="line" :percentage="seriousResolvedRate" />
                 <n-progress style="position: absolute;width: 78%;top: 91%;left: 11%;" type="line" :percentage="mainResolvedRate" />
               </div>
             </n-gi>
