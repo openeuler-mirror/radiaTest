@@ -2,12 +2,9 @@
   <template v-if="dataList?.length">
     <n-checkbox-group v-model:value="value">
       <n-space>
-        <n-checkbox
-          v-for="(item, index) in dataList"
-          :key="index"
-          :value="item.id"
-        >
+        <n-checkbox v-for="(item, index) in dataList" :key="index" :value="item.id">
           <testReviewItem
+            style="margin-top:-6px"
             :key="index"
             :info="item"
             :options="options"
@@ -19,33 +16,21 @@
   </template>
   <n-empty style="height:300px" description="暂无数据" v-else> </n-empty>
   <div style="padding:10px 0;display:flex;justify-content:center">
-    <n-pagination
-      :page="page"
-      :page-count="pageCount"
-      @update:page="pageChange"
-    />
+    <n-pagination :page="page" :page-count="pageCount" @update:page="pageChange" />
   </div>
-  <caseModifyForm
-    :formValue="formValue"
-    ref="modifyModal"
-    @submit="submitModify"
-  />
+  <caseModifyForm :formValue="formValue" ref="modifyModal" @submit="submitModify" />
 </template>
 <script>
 import testReviewItem from '@/components/testcaseComponents/testReviwItem.vue';
 import { renderIcon } from '@/assets/utils/icon';
 import { BorderColorFilled } from '@vicons/material';
 import { ArrowAltCircleUpRegular } from '@vicons/fa';
-import {
-  modifyCommitStatus,
-  modifyCommitStatusBatch,
-  modifyCommitInfo,
-} from '@/api/put';
+import { modifyCommitStatus, modifyCommitStatusBatch, modifyCommitInfo } from '@/api/put';
 import caseModifyForm from '@/components/testcaseComponents/caseModifyForm.vue';
 export default {
   components: {
     testReviewItem,
-    caseModifyForm,
+    caseModifyForm
   },
   props: ['dataList', 'page', 'pageCount'],
   data() {
@@ -56,14 +41,14 @@ export default {
         {
           label: '修改',
           key: 'modify',
-          icon: renderIcon(BorderColorFilled, 'blue'),
+          icon: renderIcon(BorderColorFilled, 'blue')
         },
         {
           label: '提交',
           key: 'submit',
-          icon: renderIcon(ArrowAltCircleUpRegular, 'rgba(0, 47, 167, 1)'),
-        },
-      ],
+          icon: renderIcon(ArrowAltCircleUpRegular, 'rgba(0, 47, 167, 1)')
+        }
+      ]
     };
   },
   methods: {
@@ -85,14 +70,14 @@ export default {
           'steps',
           'expectation'
         ]),
-        open_edit: true,
-      }).then(()=>{
+        open_edit: true
+      }).then(() => {
         this.$refs.modifyModal.close();
       });
     },
     handleAction({ info, key }) {
       if (key === 'submit') {
-        modifyCommitStatus(info.id, { status: 'open' }).then(()=>{
+        modifyCommitStatus(info.id, { status: 'open' }).then(() => {
           this.$emit('update');
         });
       } else if (key === 'modify') {
@@ -101,14 +86,14 @@ export default {
       }
     },
     submitCommit() {
-      console.log(this.value);
-      modifyCommitStatusBatch({ commit_ids: this.value }).then(()=>{
+      modifyCommitStatusBatch({ commit_ids: this.value }).then(() => {
         this.$emit('update');
+        this.value = null;
       });
     },
     pageChange(page) {
       this.$emit('change', page);
-    },
-  },
+    }
+  }
 };
 </script>
