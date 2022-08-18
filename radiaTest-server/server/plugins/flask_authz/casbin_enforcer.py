@@ -27,6 +27,17 @@ from .utils import authorization_decoder, UnSupportedAuthType
 from server.utils.response_util import RET
 
 
+class Filter:
+    def __init__(self, ptype=[], **kwargs) -> None:
+        self.ptype = ptype
+        self.v0 = kwargs.get("v0") if kwargs.get("v0") else []
+        self.v1 = kwargs.get("v1") if kwargs.get("v1") else []
+        self.v2 = kwargs.get("v2") if kwargs.get("v2") else []
+        self.v3 = kwargs.get("v3") if kwargs.get("v3") else []
+        self.v4 = kwargs.get("v4") if kwargs.get("v4") else []
+        self.v5 = kwargs.get("v5") if kwargs.get("v5") else []
+
+
 class CasbinEnforcer:
     """
     Casbin Enforce decorator
@@ -82,7 +93,15 @@ class CasbinEnforcer:
         @wraps(func)
         def wrapper(*args, **kwargs):
             from server.utils.message_util import MessageManager
-            self.e.load_policy()
+            
+            # Set resource URI from request
+            uri = str(request.path)
+
+            _all_roles_filter = Filter(ptype=['g'])
+            _cur_uri_filter = Filter(ptype=['p'], v1=[uri])
+            self.e.load_filtered_policy(_all_roles_filter)
+            self.e.load_increment_filtered_policy(_cur_uri_filter)
+
             if self.e.watcher and self.e.watcher.should_reload():
                 self.e.watcher.update_callback()
             # String used to hold the owners user name for audit logging
@@ -93,8 +112,6 @@ class CasbinEnforcer:
                 "Enforce Headers Config: %s\nRequest Headers: %s"
                 % (self.app.config.get("CASBIN_OWNER_HEADERS"), request.headers)
             )
-            # Set resource URI from request
-            uri = str(request.path)
 
             # Get owner from owner_loader
             if self._owner_loader:

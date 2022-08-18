@@ -60,7 +60,7 @@ class ATStatistic:
             "total": 0,
             "success": 0,
             "failure": 0,
-            "skipping": 0,
+            "block": 0,
             "running": 0
         }
     
