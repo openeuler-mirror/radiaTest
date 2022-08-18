@@ -143,6 +143,41 @@ class UpdateGiteeIssuesStatistics(Resource):
         return IssueStatisticsHandlerV8.update_issue_rate()
 
 
+class UpdateGiteeIssuesTypeState(Resource):
+    @auth.login_required
+    def post(self):
+        from server import redis_client
+        from server.utils.redis_util import RedisKey
+        from server.model.organization import Organization
+        orgs = Organization.query.filter(
+            Organization.enterprise_id is not None).all()
+        for _org in orgs:
+            gitee_id = IssueStatisticsHandlerV8.get_gitee_id(_org.id)
+            if gitee_id:
+                isa = IssueOpenApiHandlerV8(gitee_id=gitee_id)
+                resp = isa.get_issue_types()
+                issue_types = json.loads(
+                    resp.get_json().get("data")).get("data")
+                t_issue_types = []
+                for _type in issue_types:
+                    t_issue_types.append({"id": _type.get("id"),
+                                         "title": _type.get("title"), })
+                redis_client.hmset(RedisKey.issue_types(_org.enterprise_id), {"data": t_issue_types})
+                resp = isa.get_issue_states()
+                issue_states = json.loads(
+                    resp.get_json().get("data")).get("data")
+                
+                t_issue_states = []
+                for _state in issue_states:
+                    t_issue_states.append({"id": _state.get("id"),
+                                         "title": _state.get("title"), })
+                redis_client.hmset(RedisKey.issue_states(_org.enterprise_id), {"data": t_issue_states})
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+        )
+
+
 class GiteeMilestoneEventV2(Resource):
     @auth.login_required
     @validate()

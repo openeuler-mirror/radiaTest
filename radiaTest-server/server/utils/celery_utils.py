@@ -41,6 +41,11 @@ def make_celery(app_name):
                 'routing_key': 'update_issue_rate',
                 'delivery_mode': 1,
             },
+            'celeryservice.tasks.async_update_issue_type_state': {
+                'queue': 'queue_update_issue_type_state',
+                'routing_key': 'update_issue_type_state',
+                'delivery_mode': 1,
+            },
             'celeryservice.tasks.async_read_git_repo': {
                 'queue': 'queue_read_git_repo',
                 'routing_key': 'git_repo',
