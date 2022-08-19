@@ -1,6 +1,12 @@
 <template>
   <div>
-    <n-popover trigger="manual" :show="showPopover" placement="bottom-end" :show-arrow="false" @clickoutside="clickOutside">
+    <n-popover
+      trigger="manual"
+      :show="showPopover"
+      placement="bottom-end"
+      :show-arrow="false"
+      @clickoutside="clickOutside"
+    >
       <template #trigger>
         <a class="filterWrap" @click="clickFilter">
           <n-icon size="16"><Filter /></n-icon>筛选
@@ -21,7 +27,11 @@
           <div class="circleNumber item">{{ index + 1 }}</div>
           <div class="item">{{ index === 0 ? '当' : '且' }}</div>
           <div class="item filterName">
-            <n-select v-model:value="item.name" :options="filterOption" @update:value="selectFilterName(index, $event)" />
+            <n-select
+              v-model:value="item.name"
+              :options="filterOption"
+              @update:value="selectFilterName(index, $event)"
+            />
           </div>
           <div class="item filterCondition">
             <n-select disabled v-if="!item.name" />
@@ -30,9 +40,24 @@
           <div class="item filterValue">
             <n-input type="text" v-if="!item.name" disabled />
             <n-input type="text" v-else-if="item.type === 'input'" @input="item.cb(item)" v-model:value="item.value" />
-            <n-select v-else-if="item.type === 'select'" v-model:value="item.value" :options="item.options" filterable />
-            <n-select v-else-if="item.type === 'multipleselect'" multiple v-model:value="item.value" :options="item.options" filterable />
-            <n-date-picker type="date" v-else-if="(item.type === 'startdate') | (item.type === 'enddate')" v-model:value="item.value" />
+            <n-select
+              v-else-if="item.type === 'select'"
+              v-model:value="item.value"
+              :options="item.options"
+              filterable
+            />
+            <n-select
+              v-else-if="item.type === 'multipleselect'"
+              multiple
+              v-model:value="item.value"
+              :options="item.options"
+              filterable
+            />
+            <n-date-picker
+              type="date"
+              v-else-if="(item.type === 'startdate') | (item.type === 'enddate') | (item.type === 'otherdate')"
+              v-model:value="item.value"
+            />
           </div>
           <div class="item filterDelete" @click="clickDelete(index)">
             <n-icon size="16"><Delete24Regular /></n-icon>
@@ -126,6 +151,9 @@ export default {
           break;
         case 'enddate':
           condition = '小于';
+          break;
+        case 'otherdate':
+          condition = '等于';
           break;
         default:
           condition = '';

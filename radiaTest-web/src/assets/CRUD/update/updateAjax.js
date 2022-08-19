@@ -12,7 +12,7 @@ const handleFailUpdate = (msg) => {
     content: '存在修改错误',
     meta: () => {
       return h('p', null, `原因： ${msg}`);
-    },
+    }
   });
 };
 const putForm = (url, formValue) => {
@@ -28,7 +28,11 @@ const putForm = (url, formValue) => {
         resolve();
       })
       .catch((error) => {
-        handleFailUpdate(error);
+        if (Object.prototype.toString.call(error) === '[object Object]') {
+          handleFailUpdate(error.data.error_msg);
+        } else {
+          handleFailUpdate(error);
+        }
         reject(error);
       });
   });
@@ -57,5 +61,5 @@ export default {
   handleFailUpdate,
   handleSuccessUpdate,
   putForm,
-  putFormEmitClose,
+  putFormEmitClose
 };

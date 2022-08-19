@@ -15,22 +15,22 @@ const filterRule = ref([
   {
     path: 'description',
     name: '描述',
-    type: 'input',
+    type: 'input'
   },
   {
     path: 'start_time',
     name: '开始时间',
-    type: 'startdate',
+    type: 'startdate'
   },
   {
     path: 'end_time',
     name: '结束时间',
-    type: 'enddate',
+    type: 'enddate'
   },
   {
     path: 'public_time',
     name: '发布时间',
-    type: 'enddate',
+    type: 'otherdate'
   }
 ]);
 
@@ -44,9 +44,9 @@ const storeObj = ref({
 });
 
 const filterchange = (filterArray) => {
-  storeObj.value = { 
-    name: '', 
-    version: '', 
+  storeObj.value = {
+    name: '',
+    version: '',
     description: '',
     start_time: '',
     end_time: '',
@@ -63,11 +63,4 @@ const filterchange = (filterArray) => {
   store.commit('filterProduct/setPublishTime', storeObj.value.publish_time);
 };
 
-const productList = ref([]);
-const searchInfo = ref('');
-export {
-  productList,
-  searchInfo,
-  filterRule,
-  filterchange,
-};
+export { filterRule, filterchange };

@@ -24,23 +24,11 @@
         <create-button title="注册产品版本" @click="createModalRef.show()" />
       </div>
       <div style="display:flex;align-items:center">
-        <filterButton 
-          :filterRule="filterRule" 
-          @filterchange="filterchange"
-          style="display:flex;padding-right:20px;"
-        >
+        <filterButton :filterRule="filterRule" @filterchange="filterchange" style="display:flex;padding-right:20px;">
         </filterButton>
-        <n-select
-          v-model:value="currentProduct"
-          placeholder="请选择产品"
-          style="width:200px"
-          :options="productList"
-        />
-        <n-button 
-          :disabled="!currentProduct" 
-          @click="showCheckList = true"
-          style="margin-right: 40px;"
-        >
+        <n-select v-model:value="currentProduct" placeholder="请选择产品" style="width:200px" :options="productList" />
+        <n-button @click="clickCheckList" style="margin-right: 40px;">
+          <!-- <n-button :disabled="!currentProduct" @click="clickCheckList" style="margin-right: 40px;"> -->
           <template #icon>
             <n-icon>
               <ChecklistFilled />
@@ -54,12 +42,7 @@
       </div>
     </div>
     <div>
-      <n-data-table
-        :loading="tableLoading"
-        :columns="columns"
-        :data="tableData"
-        :row-props="rowProps"
-      />
+      <n-data-table :loading="tableLoading" :columns="columns" :data="tableData" :row-props="rowProps" />
     </div>
     <n-drawer v-model:show="drawerShow" style="width: 60%">
       <n-drawer-content id="drawer-target">
@@ -87,20 +70,23 @@
         </template>
         <div class="drawer-content">
           <n-grid x-gap="12" :cols="3">
-            <n-gi :span="5" style="display: flex;margin-top: 15px;cursor: pointer;align-items: center;" @click="cardClick">
+            <n-gi
+              :span="5"
+              style="display: flex;margin-top: 15px;cursor: pointer;align-items: center;"
+              @click="cardClick"
+            >
               <div style="width: 150px;margin-right: 10px;">
-                <span>遗留问题解决率</span><br/>
+                <span>遗留问题解决率</span><br />
                 <span style="color: #DAE0E8;width: 135px;text-align: center;margin-left: 22px;">前置版本</span>
               </div>
               <n-progress
                 type="line"
                 :status="
                   thisLeftResolvedRate && thisLeftResolvedRateBaseline
-                    ? thisLeftResolvedRate > thisLeftResolvedRateBaseline 
-                      ? 'success' 
+                    ? thisLeftResolvedRate > thisLeftResolvedRateBaseline
+                      ? 'success'
                       : 'error'
-                    :
-                     'default'
+                    : 'default'
                 "
                 :percentage="leftResolvedRateValue"
                 :height="20"
@@ -168,9 +154,7 @@
                   <span v-else>发布</span>
                 </div>
                 <div style="position:absolute;left: 61%;top: 16%;text-align: center;">
-                  <span style="font-size: 20px;">
-                    问题解决统计
-                  </span><br>
+                  <span style="font-size: 20px;"> 问题解决统计 </span><br />
                   <span style="font-size: 20px;color: #929292">
                     当前迭代
                   </span>
@@ -191,15 +175,19 @@
                     </p>
                   </div>
                 </div>
-                <div 
-                  class="description" 
+                <div
+                  class="description"
                   style="font-size: 19px;position:absolute;top:69%;display:flex;justify-content:space-around;"
                 >
                   <span>
                     严重/主要问题解决率
                   </span>
                   <span>
-                    {{ seriousMainResolvedCnt && seriousMainAllCnt ? `${seriousMainResolvedCnt}/${seriousMainAllCnt}` : '0/0' }}
+                    {{
+                      seriousMainResolvedCnt && seriousMainAllCnt
+                        ? `${seriousMainResolvedCnt}/${seriousMainAllCnt}`
+                        : '0/0'
+                    }}
                   </span>
                 </div>
                 <n-progress
@@ -235,15 +223,12 @@
                 </n-tooltip>
               </div>
             </n-gi>
-            <n-gi
-              :span="showList || showPackage? 2 : 1"
-              ref="requestCard"
-            >
+            <n-gi :span="showList || showPackage ? 2 : 1" ref="requestCard">
               <div
                 class="transitionBox"
                 v-if="!showPackage"
                 :style="{
-                  width: showList === false ? '100%' : boxWidth + 'px',
+                  width: showList === false ? '100%' : boxWidth + 'px'
                 }"
               >
                 <div
@@ -384,8 +369,7 @@
             <n-gi :span="2" style="margin-top: 40px;">
               <n-tabs type="line" animated v-model:value="activeTab">
                 <n-tab-pane tab="测试进展" name="testProgress"> </n-tab-pane>
-                <n-tab-pane tab="质量防护网" name="qualityProtect">
-                </n-tab-pane>
+                <n-tab-pane tab="质量防护网" name="qualityProtect"> </n-tab-pane>
                 <n-tab-pane :disabled="true" name="performance" tab="性能看板"> </n-tab-pane>
                 <n-tab-pane :disabled="true" name="compatibility" tab="兼容性看板"> </n-tab-pane>
               </n-tabs>
@@ -404,11 +388,11 @@
               </div>
             </n-gi>
           </n-grid>
-          <n-empty 
-            size="huge" 
-            style="justify-content:center;height:100%" 
-            description="未通过质量checklist，无法开启第一轮迭代测试" 
-            v-else 
+          <n-empty
+            size="huge"
+            style="justify-content:center;height:100%"
+            description="未通过质量checklist，无法开启第一轮迭代测试"
+            v-else
           />
           <n-drawer
             v-model:show="active"
@@ -427,24 +411,75 @@
     </n-drawer>
     <n-modal v-model:show="showCheckList">
       <n-card
-        style="width: 600px"
+        style="width: 1000px"
         title="checkList信息"
         :bordered="false"
         size="huge"
         role="dialog"
         aria-modal="true"
+        class="checkListWrap"
       >
+        <div class="addBtn">
+          <n-button type="info" @click="addCheckItem">
+            新增检查项
+          </n-button>
+        </div>
+        <div>
+          <n-data-table
+            remote
+            :loading="checkListTableLoading"
+            :columns="checkListTableColumns"
+            :data="checkListTableData"
+            :pagination="checkListTablePagination"
+            @update:page="checkListTablePageChange"
+            @update:page-size="checkListTablePageSizeChange"
+          />
+        </div>
       </n-card>
     </n-modal>
+    <n-drawer
+      v-model:show="showCheckListDrawer"
+      :maskClosable="false"
+      width="324px"
+      placement="right"
+      class="checkListDrawer"
+    >
+      <n-drawer-content title="新增检查项">
+        <n-form
+          :model="checkListDrawerModel"
+          :rules="checkListDrawerRules"
+          ref="checkListDrawerFormRef"
+          label-placement="left"
+          :label-width="80"
+          size="medium"
+          :style="{}"
+        >
+          <n-form-item label="检查项" path="check_item">
+            <n-input placeholder="请输入检查项" v-model:value="checkListDrawerModel.check_item" />
+          </n-form-item>
+          <n-form-item label="基准数值" path="baseline">
+            <n-input
+              placeholder="请输入基准数值"
+              v-model:value="checkListDrawerModel.baseline"
+              :allow-input="onlyAllowNumber"
+            />
+          </n-form-item>
+          <n-form-item label="运算符" path="operation">
+            <n-select
+              v-model:value="checkListDrawerModel.operation"
+              placeholder="请选择运算符"
+              :options="operationOptions"
+            />
+          </n-form-item>
+          <div class="buttonWrap">
+            <n-button class="btn" type="error" ghost @click="cancelCheckListDrawer">取消</n-button>
+            <n-button class="btn" type="info" ghost @click="confirmCheckItem">新增</n-button>
+          </div>
+        </n-form>
+      </n-drawer-content>
+    </n-drawer>
     <n-modal v-model:show="showModal">
-      <n-card
-        style="width: 600px"
-        title="编辑产品信息"
-        :bordered="false"
-        size="huge"
-        role="dialog"
-        aria-modal="true"
-      >
+      <n-card style="width: 600px" title="编辑产品信息" :bordered="false" size="huge" role="dialog" aria-modal="true">
         <n-form ref="formRef" :model="model">
           <n-form-item path="name" label="产品">
             <n-input v-model:value="model.name" @keydown.enter.prevent />
@@ -467,12 +502,7 @@
           <n-row :gutter="[0, 24]">
             <n-col :span="24">
               <div style="display: flex; justify-content: flex-end">
-                <n-button
-                  :disabled="model.age === null"
-                  round
-                  type="primary"
-                  @click="handleValidateButtonClick"
-                >
+                <n-button :disabled="model.age === null" round type="primary" @click="handleValidateButtonClick">
                   确定
                 </n-button>
               </div>
@@ -480,7 +510,7 @@
           </n-row>
         </n-form>
       </n-card>
-  </n-modal>
+    </n-modal>
   </div>
 </template>
 <script>
@@ -522,9 +552,9 @@ export default {
     PackageTable,
   },
   data() {
-    return {
-    };
+    return {};
   },
+  // eslint-disable-next-line max-lines-per-function
   setup() {
     const store = useStore();
 
@@ -535,12 +565,14 @@ export default {
 
     watch(store.getters.filterProductState, () => {
       modules.tableLoading.value = true;
-      getProduct(store.getters.filterProductState).then(res => {
-        modules.tableData.value = res.data || [];
-        modules.tableLoading.value = false;
-      }).catch(() => {
-        modules.tableLoading.value = false;
-      });
+      getProduct(store.getters.filterProductState)
+        .then((res) => {
+          modules.tableData.value = res.data || [];
+          modules.tableLoading.value = false;
+        })
+        .catch(() => {
+          modules.tableLoading.value = false;
+        });
     });
 
     return {
@@ -548,34 +580,40 @@ export default {
       createModalRef: ref(),
       getProduct,
       Search,
-      ...modules,
+      ...modules
     };
-  },
+  }
 };
 </script>
+
 <style>
 .resolvedRate {
   width: 140px;
 }
-.seriousMain{
+
+.seriousMain {
   width: 160px;
 }
 </style>
+
 <style lang="less" scoped>
 .product-head {
   display: flex;
   justify-content: space-between;
   margin: 10px 0;
 }
+
 .transitionBox {
   cursor: pointer;
-  .package-middle{
+  .package-middle {
     margin: 23px 43px;
   }
 }
+
 .drawer-content {
   height: 100%;
   padding: 0 10px;
+
   .card {
     cursor: pointer;
     position: relative;
@@ -583,21 +621,25 @@ export default {
     box-shadow: 0 2px 8px 0 rgb(2 24 42 / 10%);
     height: 450px;
     align-items: center;
+
     .topProgress {
       position: absolute;
       left: 22%;
-      top:15%;
+      top: 15%;
     }
+
     .chart {
       width: 100px;
       flex-shrink: 0;
     }
+
     .description {
       width: 100%;
       word-break: break-word;
     }
   }
 }
+
 .packageCard {
   display: flex;
   justify-content: space-evenly;
@@ -605,13 +647,32 @@ export default {
   align-items: center;
   width: 100%;
 }
-.cardbox{
-  margin:9px 0 0 0;
-  padding:0;
-  height:220px;
+
+.cardbox {
+  margin: 9px 0 0 0;
+  padding: 0;
+  height: 220px;
   box-shadow: 0 2px 8px 0 rgb(2 24 42 / 10%);
 }
 .inout-animated{
   --animate-duration: 0.3s;
+}
+
+.checkListWrap {
+  .addBtn {
+    display: flex;
+    justify-content: right;
+    margin-bottom: 15px;
+  }
+}
+
+.checkListDrawer {
+  .buttonWrap {
+    display: flex;
+    justify-content: space-evenly;
+    .btn {
+      width: 100px;
+    }
+  }
 }
 </style>

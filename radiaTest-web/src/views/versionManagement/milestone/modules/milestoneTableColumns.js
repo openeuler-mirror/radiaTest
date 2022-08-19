@@ -10,6 +10,7 @@ import { Link, Unlink } from '@vicons/carbon';
 import axios from '@/axios';
 import milestoneTable from '@/views/versionManagement/milestone/modules/milestoneTable.js';
 import textDialog from '@/assets/utils/dialog';
+import deleteAjax from '@/assets/CRUD/delete/deleteAjax';
 
 const showSyncRepoModal = ref(false);
 const selectMilestoneValue = ref('');
@@ -54,9 +55,14 @@ const changeState = (data) => {
 };
 
 const deleteMilestone = (data) => {
-  axios.delete(`/v2/milestone/${data}`).then(() => {
-    milestoneTable.getTableData();
-  });
+  axios
+    .delete(`/v2/milestone/${data}`)
+    .then(() => {
+      milestoneTable.getTableData();
+    })
+    .catch((err) => {
+      deleteAjax.handleDeleteFail(data, err.data.error_msg);
+    });
 };
 
 const leaveSyncRepoModal = () => {

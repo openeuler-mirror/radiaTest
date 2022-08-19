@@ -8,15 +8,24 @@ module.exports = {
       msTileImage: 'favicon.ico'
     }
   },
-  chainWebpack: config => {
-    config
-      .plugin('html')
-      .tap(args => {
-        args[0].title = 'radiaTest测试平台';
-        return args;
-      });
+  chainWebpack: (config) => {
+    config.plugin('html').tap((args) => {
+      args[0].title = 'radiaTest测试平台';
+      return args;
+    });
   },
   productionSourceMap: false,
+  configureWebpack: {
+    plugins: [
+      require('unplugin-auto-import/webpack')({
+        imports: ['vue', 'vue-router'],
+        eslintrc: {
+          enabled: true
+        }
+      }),
+      require('unplugin-vue-components/webpack')({ dts: true })
+    ]
+  },
   devServer: {
     host: '0.0.0.0',
     port: 8080,
@@ -31,13 +40,13 @@ module.exports = {
       '/api': {
         target: 'http://0.0.0.0:21500/',
         changeOrigin: true,
-        secure: false,
+        secure: false
       },
       '/static': {
         target: 'http://0.0.0.0:21500/',
         changeOrigin: true,
-        secure: false,
+        secure: false
       }
     }
-  },
+  }
 };

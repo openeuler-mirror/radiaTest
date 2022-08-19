@@ -200,7 +200,7 @@ const menu = ref([
 
 //获取里程碑列表
 function getMilestones() {
-  axios.get('/v2/milestone').then((response) => {
+  axios.get('/v2/milestone', { page_num: 1, page_size: 999999 }).then((response) => {
     if (response?.data) {
       milestones.value =
         response.data?.items?.map((item) => ({
