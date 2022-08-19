@@ -72,7 +72,7 @@ def setup_periodic_tasks(sender, **kwargs):
     sender.add_periodic_task(
         crontab(minute="*/30"), async_update_issue_rate.s(), name="update_issue_rate"
     )
-	sender.add_periodic_task(
+    sender.add_periodic_task(
         crontab(minute=0, hour=0, day_of_month="15,30"), async_update_issue_type_state.s(), name="update_issue_type_state"
     )
     sender.add_periodic_task(
