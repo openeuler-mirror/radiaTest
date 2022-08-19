@@ -34,7 +34,7 @@ from server.utils.shell import add_escape
 from server import db
 from celeryservice import celeryconfig
 from celeryservice.lib.repo.handler import RepoTaskHandler
-from celeryservice.lib.monitor import LifecycleMonitor, UpdateIssueRate
+from celeryservice.lib.monitor import LifecycleMonitor, UpdateIssueRate, UpdateIssueTypeState
 from celeryservice.lib.testcase import TestcaseHandler
 
 
@@ -71,6 +71,9 @@ def setup_periodic_tasks(sender, **kwargs):
     )
     sender.add_periodic_task(
         crontab(minute="*/30"), async_update_issue_rate.s(), name="update_issue_rate"
+    )
+	sender.add_periodic_task(
+        crontab(minute=0, hour=0, day_of_month="15,30"), async_update_issue_type_state.s(), name="update_issue_type_state"
     )
     sender.add_periodic_task(
         crontab(minute="*/60"), async_read_openqa_homepage.s(), name="read_openqa"
@@ -239,3 +242,8 @@ def resolve_testcase_set(self, zip_filepath, unzip_filepath, user):
         zip_filepath,
         unzip_filepath,
     )
+
+
+@celery.task
+def async_update_issue_type_state():
+    UpdateIssueTypeState(logger).main()

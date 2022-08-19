@@ -11,9 +11,13 @@ class Product(BaseModel, PermissionBaseModel, db.Model):
     name = db.Column(db.String(32), nullable=False)
     version = db.Column(db.String(32), nullable=False)
     description = db.Column(TINYTEXT())
-    serious_solved_rate = db.Column(db.String(6), nullable=True)
-    current_solved_rate = db.Column(db.String(6), nullable=True)
-    left_issues_cnt = db.Column(db.Integer(), nullable=True)
+    serious_resolved_rate = db.Column(db.String(6), nullable=True)
+    serious_resolved_baseline = db.Column(db.String(6), nullable=True)
+    current_resolved_rate = db.Column(db.String(6), nullable=True)
+    current_resolved_baseline = db.Column(db.String(6), nullable=True)
+    left_resolved_rate = db.Column(db.String(6), nullable=True)
+    left_resolved_baseline = db.Column(db.String(6), nullable=True)
+    left_issues_cnt = db.Column(db.Integer(), nullable=True, default=0)
 
     milestone = db.relationship(
         "Milestone", backref="product", cascade="all, delete, delete-orphan"
@@ -32,6 +36,13 @@ class Product(BaseModel, PermissionBaseModel, db.Model):
             "name": self.name,
             "version": self.version,
             "description": self.description,
+            "serious_resolved_rate": self.serious_resolved_rate,
+            "serious_resolved_baseline": self.serious_resolved_baseline,
+            "current_resolved_rate": self.current_resolved_rate,
+            "current_resolved_baseline": self.current_resolved_baseline,
+            "left_resolved_rate": self.current_resolved_rate,
+            "left_resolved_baseline": self.current_resolved_baseline,
+            "left_issues_cnt": self.left_issues_cnt,
             "creator_id": self.creator_id,
             "permission_type": self.permission_type,
             "group_id": self.group_id,

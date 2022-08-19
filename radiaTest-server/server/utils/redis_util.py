@@ -89,3 +89,5 @@ class RedisKey(object):
     organization = lambda organization_id: f"organization_{organization_id}"
     login_org = lambda gitee_id: f"{gitee_id}_login_org"
     access_token = lambda gitee_id: f"access_token_{gitee_id}"
+    issue_types = lambda enterprise_id: f"issue_types_{enterprise_id}"
+    issue_states = lambda enterprise_id: f"issue_states_{enterprise_id}"

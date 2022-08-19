@@ -108,6 +108,11 @@ task_queues = (
         routing_key="update_issue_rate",
     ),
     Queue(
+        "queue_update_issue_type_state",
+        exchange=Exchange("server_exchange", type="direct"),
+        routing_key="update_issue_type_state",
+    ),
+    Queue(
         "queue_read_git_repo",
         exchange=Exchange("server_exchange", type="direct"),
         routing_key="git_repo",
