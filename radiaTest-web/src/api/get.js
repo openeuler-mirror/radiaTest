@@ -117,7 +117,7 @@ export function getProductMessage (productId, data) {
   return getRequest(`/v1/qualityboard?product_id=${productId}`, data);
 }
 export function getMilestoneRate (milestoneId, data) {
-  return getRequest(`/v2/issues/statistics/milestone/${milestoneId}?is_live=False`, data);
+  return getRequest(`/v2/milestone/${milestoneId}/issues-statistics?is_live=False`, data);
 }
 export function getMachineGroupDetails (id, data) {
   return getRequest(`/v1/machine-group/${id}`, data);
