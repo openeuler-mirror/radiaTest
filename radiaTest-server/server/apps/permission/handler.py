@@ -252,7 +252,7 @@ class ScopeHandler:
     @collect_sql_error
     def get_public_all(query):
         with open('server/config/role_init.yaml', 'r', encoding='utf-8') as f:
-            _role_infos = yaml.load(f.read(), Loader=yaml.FullLoader)
+            _role_infos = yaml.safe_load(f.read())
         _role_name = _role_infos.get('public').get("administrator")
         _filter_params = [
             Role.name == _role_name,
@@ -277,7 +277,7 @@ class ScopeHandler:
             )
         
         with open('server/config/role_init.yaml', 'r', encoding='utf-8') as f:
-            _role_infos = yaml.load(f.read(), Loader=yaml.FullLoader)
+            _role_infos = yaml.safe_load(f.read())
         _role_name = _role_infos.get(_type).get("administrator")
 
         _filter_params = [

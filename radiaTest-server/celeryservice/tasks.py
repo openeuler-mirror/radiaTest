@@ -251,8 +251,9 @@ def async_update_issue_type_state():
 
 
 @celery.task(bind=True)
-def resolve_dailybuild_detail(self, dailybuild_id, dailybuild_detail):
+def resolve_dailybuild_detail(self, dailybuild_id, dailybuild_detail, weekly_health_id):
     DailyBuildHandler(logger, self).resolve_detail(
         dailybuild_id,
-        dailybuild_detail
+        dailybuild_detail,
+        weekly_health_id,
     )

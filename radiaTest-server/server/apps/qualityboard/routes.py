@@ -8,7 +8,7 @@ from flask_pydantic import validate
 from server.utils.auth_util import auth
 from server.utils.response_util import response_collect, RET
 from server.model import Milestone, Product
-from server.model.qualityboard import QualityBoard, Checklist, DailyBuild
+from server.model.qualityboard import QualityBoard, Checklist, DailyBuild, WeeklyHealth
 from server.utils.db import Delete, Edit, Select, Insert
 from server.schema.base import PageBaseSchema
 from server.schema.qualityboard import (
@@ -18,9 +18,9 @@ from server.schema.qualityboard import (
     QueryChecklistSchema,
     ATOverviewSchema,
 )
-from server import casbin_enforcer
-from server.apps.qualityboard.handlers import OpenqaATStatistic, ChecklistHandler
+from server.apps.qualityboard.handlers import ChecklistHandler
 from server.utils.shell import add_escape
+from server.utils.at_utils import OpenqaATStatistic
 from server.utils.page_util import PageUtil
 
 
@@ -221,6 +221,7 @@ class ATOverview(Resource):
             )
 
             if not builds_list:
+                scrapyspider_pool.disconnect()
                 return jsonify(
                     error_code=RET.OK,
                     error_msg="OK",
@@ -254,6 +255,8 @@ class ATOverview(Resource):
                 )
             )
 
+            scrapyspider_pool.disconnect()
+
             return jsonify(
                 error_code=RET.OK,
                 error_msg="OK",
@@ -283,6 +286,8 @@ class ATOverview(Resource):
                 build=query.build_name,
                 redis_client=scrapyspider_redis_client
             )
+            
+            scrapyspider_pool.disconnect()
 
             return jsonify(
                 error_code=RET.OK,
@@ -304,6 +309,15 @@ class QualityDefendEvent(Resource):
             )
         product = qualityboard.product
 
+        product_name = f"{product.name}-{product.version}"
+        _arches = current_app.config.get("SUPPORTED_ARCHES", ["aarch64", "x86_64"])
+
+        scrapyspider_pool = redis.ConnectionPool.from_url(
+            current_app.config.get("SCRAPYSPIDER_BACKEND"), 
+            decode_responses=True
+        )
+        scrapyspider_redis_client = redis.StrictRedis(connection_pool=scrapyspider_pool)
+
         latest_dailybuild = DailyBuild.query.filter(
             DailyBuild.product_id==product.id
         ).order_by(
@@ -311,13 +325,22 @@ class QualityDefendEvent(Resource):
         ).first()
         dailybuild_statistic = latest_dailybuild.to_json() if latest_dailybuild else None
 
-        product_name = f"{product.name}-{product.version}"
+        latest_weekly_health = WeeklyHealth.query.order_by(
+            WeeklyHealth.end_time.desc()
+        ).first()
 
-        scrapyspider_pool = redis.ConnectionPool.from_url(
-            current_app.config.get("SCRAPYSPIDER_BACKEND"), 
-            decode_responses=True
-        )
-        scrapyspider_redis_client = redis.StrictRedis(connection_pool=scrapyspider_pool)
+        _health_rate = None
+        if latest_weekly_health:
+            _health_rate = latest_weekly_health.get_statistic(
+                scrapyspider_pool, 
+                _arches
+            ).get("health_rate")
+
+        weeklybuild_statistic = {
+            "health_rate": _health_rate,
+            # 临时返回值
+            "health_baseline": 100,
+        }
 
         openqa_url = current_app.config.get("OPENQA_URL")
 
@@ -328,6 +351,7 @@ class QualityDefendEvent(Resource):
             desc=True,
         )
         if not _builds:
+            scrapyspider_pool.disconnect()
             return jsonify(
                 error_code=RET.OK,
                 error_msg="OK",
@@ -350,11 +374,13 @@ class QualityDefendEvent(Resource):
             )
         
         at_statistic = OpenqaATStatistic(
-            arches=current_app.config.get("SUPPORTED_ARCHES", ["aarch64", "x86_64"]),
+            arches=_arches,
             product=product_name,
             build=latest_build,
             redis_client=scrapyspider_redis_client
         ).group_overview
+
+        scrapyspider_pool.disconnect()
 
         return jsonify(
             error_code=RET.OK,
@@ -362,6 +388,7 @@ class QualityDefendEvent(Resource):
             data={
                 "at_statistic": at_statistic,
                 "dailybuild_statistic": dailybuild_statistic,
+                "weeklybuild_statistic": weeklybuild_statistic
             }
         )
 
@@ -396,7 +423,6 @@ class DailyBuildOverview(Resource):
 class DailyBuildDetail(Resource):
     @auth.login_required()
     @response_collect
-    @validate()
     def get(self, dailybuild_id):
         dailybuild = DailyBuild.query.filter_by(id=dailybuild_id).first()
         if not dailybuild:
@@ -412,4 +438,79 @@ class DailyBuildDetail(Resource):
                 "name": dailybuild.name,
                 "detail": dailybuild.detail,
             }
+        )
+
+
+class WeeklybuildHealthOverview(Resource):
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def get(self, qualityboard_id, query: PageBaseSchema):
+        qualityboard = QualityBoard.query.filter_by(id=qualityboard_id).first()
+        if not qualityboard:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="qualityboard {} not exitst".format(qualityboard_id)
+            )
+        query_filter = WeeklyHealth.query.filter(
+            WeeklyHealth.product_id == qualityboard.product.id
+        ).order_by(
+            WeeklyHealth.create_time.desc()
+        )
+
+        _pool = redis.ConnectionPool.from_url(
+            current_app.config.get("SCRAPYSPIDER_BACKEND"), 
+            decode_responses=True
+        )
+        arches = current_app.config.get("SUPPORTED_ARCHES", ["aarch64", "x86_64"])
+        
+        def page_func(item):
+            weeklybuild_dict = item.to_json(_pool, arches)
+            # 临时返回值
+            weeklybuild_dict["health_baseline"] = 100
+            return weeklybuild_dict
+
+        page_dict, e = PageUtil.get_page_dict(query_filter, query.page_num, query.page_size, func=page_func)
+        _pool.disconnect()
+        if e:
+            return jsonify(error_code=RET.SERVER_ERR, error_msg=f'get health of weeklybuild page error {e}')
+        return jsonify(error_code=RET.OK, error_msg="OK", data=page_dict)
+        
+
+
+class WeeklybuildHealthEvent(Resource):
+    @auth.login_required()
+    @response_collect
+    def get(self, weeklybuild_id):
+        weekly_health = WeeklyHealth.query.filter_by(id=weeklybuild_id).first()
+        if not weekly_health:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="weeklyhealth {} not exitst".format(weeklybuild_id)
+            )
+
+        if not weekly_health.daily_records:
+            return jsonify(
+                error_code=RET.OK,
+                error_msg="OK",
+                data=[],
+            )
+
+        scrapyspider_pool = redis.ConnectionPool.from_url(
+            current_app.config.get("SCRAPYSPIDER_BACKEND"), 
+            decode_responses=True
+        )
+        arches = current_app.config.get("SUPPORTED_ARCHES", ["aarch64", "x86_64"])
+        return_data = [
+            record.to_health_json(
+                scrapyspider_pool, 
+                arches
+            ) for record in weekly_health.daily_records
+        ]
+        scrapyspider_pool.disconnect()
+
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+            data=return_data
         )

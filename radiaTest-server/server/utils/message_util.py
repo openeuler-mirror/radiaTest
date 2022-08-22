@@ -21,7 +21,7 @@ class MessageManager:
         with open(
             os.path.join(base_dir, "config/api_infos.yaml"), "r", encoding="utf-8"
         ) as f:
-            api_infos = yaml.load(f.read(), Loader=yaml.FullLoader)
+            api_infos = yaml.safe_load(f.read())
         uri_arr = uri.split("/")
         url_cnt = len(uri_arr)
         for _api in api_infos:
@@ -67,7 +67,7 @@ class MessageManager:
             current_app.logger.info("the creater user does not exsit in current org")
 
         with open("server/config/role_init.yaml", "r", encoding="utf-8") as f:
-            role_infos = yaml.load(f.read(), Loader=yaml.FullLoader)
+            role_infos = yaml.safe_load(f.read())
         role = Precise(
             Role,
             {

@@ -25,6 +25,9 @@ class Product(BaseModel, PermissionBaseModel, db.Model):
     qualityboard = db.relationship(
         "QualityBoard", backref="product", cascade="all, delete, delete-orphan"
     )
+    dailybuilds = db.relationship(
+        "DailyBuild", backref="product", cascade="all, delete, delete-orphan"
+    )
 
     creator_id = db.Column(db.Integer(), db.ForeignKey("user.gitee_id"))
     group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))

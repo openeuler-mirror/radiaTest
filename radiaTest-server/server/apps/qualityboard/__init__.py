@@ -9,7 +9,9 @@ from .routes import (
     ChecklistEvent,
     ChecklistItem,
     DailyBuildOverview,
-    DailyBuildDetail
+    DailyBuildDetail,
+    WeeklybuildHealthOverview,
+    WeeklybuildHealthEvent,
 )
 
 
@@ -45,4 +47,12 @@ def init_api(api: Api):
     api.add_resource(
         DailyBuildDetail,
         "/api/v1/dailybuild/<int:dailybuild_id>",
+    )
+    api.add_resource(
+        WeeklybuildHealthOverview,
+        "/api/v1/qualityboard/<int:qualityboard_id>/weeklybuild-health",
+    )
+    api.add_resource(
+        WeeklybuildHealthEvent,
+        "/api/v1/weeklybuild/<int:weeklybuild_id>",
     )

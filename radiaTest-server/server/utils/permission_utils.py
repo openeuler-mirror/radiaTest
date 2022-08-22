@@ -21,7 +21,7 @@ from server.model import ReUserGroup
 class PermissionManager:
     def get_api_list(self, table_name, path, item_id):
         with open(path, "r", encoding="utf-8") as f:
-            result = yaml.load(f.read(), Loader=yaml.FullLoader)
+            result = yaml.safe_load(f.read())
 
         allow_list = []
         deny_list = []

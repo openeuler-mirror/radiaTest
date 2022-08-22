@@ -56,3 +56,6 @@ export function organizationInfo (id, data) {
 export function milestoneNext (id, data) {
   return putRequest(`/v1/qualityboard/${id}`, data);
 }
+export function milestoneRollback (id) {
+  return putRequest(`/v1/qualityboard/${id}/rollback`);
+}

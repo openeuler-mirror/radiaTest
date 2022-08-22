@@ -1,8 +1,11 @@
+from math import floor
+import redis
 from sqlalchemy.dialects.mysql import LONGTEXT
 
 from server import db
 from server.model import BaseModel
 from server.model.milestone import IssueSolvedRate, Milestone
+from server.utils.at_utils import OpenqaATStatistic
 
 
 class QualityBoard(BaseModel, db.Model):
@@ -73,8 +76,25 @@ class DailyBuild(db.Model, BaseModel):
     name = db.Column(db.String(50), nullable=False)
     completion = db.Column(db.Integer(), nullable=False, default=0)
     detail = db.Column(LONGTEXT(), nullable=True)
+    at_passed = db.Column(db.Boolean(), default=False)
 
     product_id = db.Column(db.Integer(), db.ForeignKey("product.id"))
+    weekly_health_id = db.Column(db.Integer(), db.ForeignKey("weekly_health.id"))
+
+    def set_at_passed(self, pool, arches):
+        _client = redis.StrictRedis(connection_pool=pool)
+        at_statistic = OpenqaATStatistic(
+            arches=arches,
+            product=f"{self.product.name}-{self.product.version}",
+            build=self.name,
+            redis_client=_client
+        ).group_overview
+        self.at_passed = (
+            (
+                at_statistic.get("success") == at_statistic.get("total")
+            ) and at_statistic.get("total") != 0
+        )
+        self.add_update()
 
     def to_json(self):
         return {
@@ -82,4 +102,54 @@ class DailyBuild(db.Model, BaseModel):
             "name": self.name,
             "completion": self.completion,
             "product_id": self.product_id
+        }
+    
+    def to_health_json(self, pool, arches):
+        self.set_at_passed(pool, arches)
+        return {
+            "id": self.id,
+            "name": self.name,
+            "build_passed": self.completion == 100,
+            "at_passed": self.at_passed,
+        }
+
+
+class WeeklyHealth(db.Model, BaseModel):
+    __tablename__ = "weekly_health"
+    id = db.Column(db.Integer(), primary_key=True, autoincrement=True)
+    start_time = db.Column(db.String(50), nullable=False)
+    end_time = db.Column(db.String(50), nullable=False)
+
+    daily_records = db.relationship('DailyBuild')
+    product_id = db.Column(db.Integer(), db.ForeignKey("product.id"))
+
+    def get_statistic(self, pool, arches):
+        build_record_total = len(self.daily_records)
+
+        build_record_success = 0
+        at_record_success = 0
+        for record in self.daily_records:
+            record.set_at_passed(pool, arches)
+            if record.completion == 100:
+                build_record_success += 1
+            at_record_success += record.at_passed
+        
+        return {
+            "health_rate": floor(
+                at_record_success / build_record_total * 100
+            ) if build_record_total else None,
+            "at_passed_rate": floor(
+                at_record_success / build_record_success * 100
+            ) if build_record_success else None,
+            "build_passed_rate": floor(
+                build_record_success / build_record_total * 100
+            ) if build_record_total else None,
+        }
+
+    def to_json(self, pool, arches):
+        return {
+            "id": self.id,
+            "start_time": self.start_time,
+            "end_time": self.end_time,
+            **self.get_statistic(pool, arches)
         }
