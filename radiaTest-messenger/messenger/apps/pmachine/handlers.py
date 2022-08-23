@@ -131,12 +131,13 @@ class PmachineSshPassword:
         self._body = body
 
     def reset_password(self):
-        if self._body.get("random_flag"):
-            random_password = "".join([secrets.choice
-            (string.ascii_letters + string.digits) for _ in range(10)])
+        random_password = "".join(
+            [secrets.choice(string.ascii_letters) for _ in range(3)]
+            + [secrets.choice(string.digits) for _ in range(3)]
+            + [secrets.choice(current_app.config.get("RANDOM_PASSWORD_CHARACTER")) for _ in range(2)]
+        )
 
-        new_password = random_password if self._body.get("random_flag") \
-                    else self._body.get("password")
+        new_password = random_password
         ssh = ConnectionApi(
             ip=self._body.get("ip"),
             port=self._body.get("port"),
@@ -146,10 +147,8 @@ class PmachineSshPassword:
         conn = ssh.conn()
         if not conn:
             return jsonify(
-                {
-                    "error_code": RET.VERIFY_ERR,
-                    "error_msg": "Failed to connect to physical machine.",
-                }
+                error_code=RET.VERIFY_ERR,
+                error_msg="Failed to connect to physical machine.",
             )
 
         exitcode, output = ShellCmdApi(
@@ -161,13 +160,14 @@ class PmachineSshPassword:
 
         if exitcode:
             return jsonify(
-                error_code=exitcode,
-                error_msg=output)
+                error_code=RET.BASH_ERROR,
+                error_msg="bash execute error:{}".format(output)
+            )
 
         return update_request(
             "/api/v1/pmachine/{}".format(self._body.get("id")),
             {
-                "password": new_password,
+                "password": new_password
             },
             self._body.get("auth")
         )

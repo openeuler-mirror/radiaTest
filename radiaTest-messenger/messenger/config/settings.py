@@ -56,6 +56,9 @@ class Config(object):
     # 执行任务创建的虚拟机过期时间(单位:天)
     RUN_JOB_VM_EXPIRED = 1
 
+    # 随机密码元素
+    RANDOM_PASSWORD_CHARACTER = "!@#$"
+
 
 class TestingConfig(Config):
     TESTING = True

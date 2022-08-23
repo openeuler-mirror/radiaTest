@@ -187,7 +187,7 @@ class InstallVmachine(VmachineBaseSchema):
                 },
             )
 
-            self.logger.error(
+            self.logger.info(
                 "user {0} finish to create vmachine by autoinstall from {1}".format(
                     self._user,
                     self._body["location"],
@@ -197,8 +197,7 @@ class InstallVmachine(VmachineBaseSchema):
             self._body.update(
                 {
                     "mac": getoutput(
-                        "virsh dumpxml %s | grep -Pzo  \"<interface type='bridge'>[\s\S] \
-                        *<mac address.*\" |grep -Pzo '<mac address.*' | awk -F\\' '{print $2}' | head -1"
+                        "virsh dumpxml %s | grep -Pzo  \"<interface type='bridge'>[\s\S] *<mac address.*\" |grep -Pzo '<mac address.*' | awk -F\\' '{print $2}' | head -1"
                         % self._body.get("name")
                     ).strip(),
                     "status": output,
@@ -330,16 +329,14 @@ class InstallVmachine(VmachineBaseSchema):
             self._body.update(
                 {
                     "mac": getoutput(
-                        "virsh dumpxml %s | grep -Pzo  \"<interface type='bridge'>[\s\S] \
-                        *<mac address.*\" |grep -Pzo '<mac address.*' | awk -F\\' '{print $2}' | head -1"
+                        "virsh dumpxml %s | grep -Pzo  \"<interface type='bridge'>[\s\S] *<mac address.*\" |grep -Pzo '<mac address.*' | awk -F\\' '{print $2}' | head -1"
                         % self._body.get("name")
                     ).strip(),
                     "status": "running",
                     "vnc_port": domain_cli(
                         "vncdisplay", self._body.get("name"))[1]
                         .strip("\n")
-                        .split(":"
-                    )[-1],
+                        .split(":")[-1],
                 }
             )
 

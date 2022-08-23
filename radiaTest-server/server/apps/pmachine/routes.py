@@ -41,9 +41,9 @@ class MachineGroupEvent(Resource):
     @response_collect
     @collect_sql_error
     @validate()
-    def post(self, body: MachineGroupCreateSchema):  
+    def post(self, body: MachineGroupCreateSchema):
         return ResourceManager("machine_group").add_v2(
-            "pmachine/api_infos.yaml", 
+            "pmachine/api_infos.yaml",
             body.__dict__
         )
 
@@ -97,7 +97,7 @@ class MachineGroupHeartbeatEvent(Resource):
                 error_code=RET.NO_DATA_ERR,
                 error_msg="the machine group does not exist"
             )
-        
+
         _body = {
             "id": machine_group.id,
             **body.__dict__,
@@ -115,7 +115,7 @@ class PmachineItemEvent(Resource):
     def delete(self, pmachine_id):
         return ResourceManager("pmachine").del_cascade_single(
             pmachine_id, Vmachine, [Vmachine.pmachine_id == pmachine_id], False)
-    
+
     @auth.login_required
     @response_collect
     @validate()
@@ -127,7 +127,7 @@ class PmachineItemEvent(Resource):
                 error_code=RET.NO_DATA_ERR,
                 error_msg="the pmachine does not exist",
             )
-        
+
         return jsonify(
             error_code=RET.OK,
             error_msg="OK",
@@ -142,12 +142,12 @@ class PmachineItemEvent(Resource):
         pmachine = Pmachine.query.filter_by(id=pmachine_id).first()
         if not pmachine:
             return jsonify(
-                error_code = RET.NO_DATA_ERR,
-                error_msg = "The pmachine does not exist. Please check."
+                error_code=RET.NO_DATA_ERR,
+                error_msg="The pmachine does not exist. Please check."
             )
         _body = body.__dict__
         _body.update({"id": pmachine_id})
-         
+
         return Edit(Pmachine, _body).single(Pmachine, "/pmachine")
 
 
@@ -160,34 +160,34 @@ class PmachineOccupyEvent(Resource):
         pmachine = Pmachine.query.filter_by(id=pmachine_id).first()
         if not pmachine:
             return jsonify(
-                error_code = RET.NO_DATA_ERR,
-                error_msg = "The pmachine does not exist. Please check."
+                error_code=RET.NO_DATA_ERR,
+                error_msg="The pmachine does not exist. Please check."
             )
         if pmachine.state == "occupied":
             return jsonify(
-                error_code = RET.VERIFY_ERR,
-                error_msg = "Pmachine state has not been modified. Please check."
+                error_code=RET.VERIFY_ERR,
+                error_msg="Pmachine state has not been modified. Please check."
             )
-        
+
         # 赋权
         if not all((
                 pmachine.ip,
                 pmachine.user,
                 pmachine.password,
                 pmachine.port,
-            )):
+        )):
             return jsonify(
-                error_code = RET.VERIFY_ERR,
-                error_msg = "The pmachine lacks SSH parameters. Please add."
+                error_code=RET.VERIFY_ERR,
+                error_msg="The pmachine lacks SSH parameters. Please add."
             )
 
         if g.gitee_id != pmachine.creator_id:
             role = Role.query.filter_by(type='person', name=g.gitee_id).first()
             if not role:
                 return jsonify(
-                    error_code = RET.NO_DATA_ERR,
-                    error_msg = "The role policy info is invalid."
-                )     
+                    error_code=RET.NO_DATA_ERR,
+                    error_msg="The role policy info is invalid."
+                )
 
             scope_occupy = Scope.query.filter_by(
                 act='put',
@@ -196,9 +196,9 @@ class PmachineOccupyEvent(Resource):
             ).first()
             if not scope_occupy:
                 return jsonify(
-                    error_code = RET.NO_DATA_ERR,
-                    error_msg = "The scope_occupy policy info is invalid."
-                )  
+                    error_code=RET.NO_DATA_ERR,
+                    error_msg="The scope_occupy policy info is invalid."
+                )
 
             scope_release = Scope.query.filter_by(
                 act='put',
@@ -207,9 +207,9 @@ class PmachineOccupyEvent(Resource):
             ).first()
             if not scope_release:
                 return jsonify(
-                    error_code = RET.NO_DATA_ERR,
-                    error_msg = "The scope_release policy info is invalid."
-                )  
+                    error_code=RET.NO_DATA_ERR,
+                    error_msg="The scope_release policy info is invalid."
+                )
 
             scope_power = Scope.query.filter_by(
                 act='put',
@@ -218,9 +218,9 @@ class PmachineOccupyEvent(Resource):
             ).first()
             if not scope_power:
                 return jsonify(
-                    error_code = RET.NO_DATA_ERR,
-                    error_msg = "The scope_power policy info is invalid."
-                )  
+                    error_code=RET.NO_DATA_ERR,
+                    error_msg="The scope_power policy info is invalid."
+                )
 
             scope_install = Scope.query.filter_by(
                 act='put',
@@ -229,9 +229,9 @@ class PmachineOccupyEvent(Resource):
             ).first()
             if not scope_install:
                 return jsonify(
-                    error_code = RET.NO_DATA_ERR,
-                    error_msg = "The scope_install policy info is invalid."
-                ) 
+                    error_code=RET.NO_DATA_ERR,
+                    error_msg="The scope_install policy info is invalid."
+                )
 
             scope_update = Scope.query.filter_by(
                 act='put',
@@ -240,9 +240,9 @@ class PmachineOccupyEvent(Resource):
             ).first()
             if not scope_update:
                 return jsonify(
-                    error_code = RET.NO_DATA_ERR,
-                    error_msg = "The scope_update policy info is invalid."
-                ) 
+                    error_code=RET.NO_DATA_ERR,
+                    error_msg="The scope_update policy info is invalid."
+                )
 
             scope_ssh = Scope.query.filter_by(
                 act='put',
@@ -251,9 +251,9 @@ class PmachineOccupyEvent(Resource):
             ).first()
             if not scope_ssh:
                 return jsonify(
-                    error_code = RET.NO_DATA_ERR,
-                    error_msg = "The scope_ssh policy info is invalid."
-                ) 
+                    error_code=RET.NO_DATA_ERR,
+                    error_msg="The scope_ssh policy info is invalid."
+                )
 
             scope_occupy_role_data = {
                 "role_id": role.id,
@@ -286,31 +286,14 @@ class PmachineOccupyEvent(Resource):
             Insert(ReScopeRole, scope_install_role_data).single()
             Insert(ReScopeRole, scope_update_role_data).single()
             Insert(ReScopeRole, scope_ssh_role_data).single()
-   
+
         _body = body.__dict__
         _body.update({
             "id": pmachine_id,
             "state": "occupied",
         })
-        
-        Edit(Pmachine, _body).single(Pmachine, "/pmachine") 
 
-        # 修改随机密码
-        _body = body.__dict__
-        _body.update(
-            {
-                "id": pmachine.id,
-                "ip": pmachine.ip,
-                "user": pmachine.user,
-                "port": pmachine.port,
-                "old_password": pmachine.password,
-                "random_flag": True,
-            }
-        )      
-        return PmachineMessenger(_body).send_request(
-            pmachine.machine_group, 
-            "/api/v1/pmachine/ssh",
-        )
+        return Edit(Pmachine, _body).single(Pmachine, "/pmachine")
 
 
 class PmachineReleaseEvent(Resource):
@@ -322,21 +305,21 @@ class PmachineReleaseEvent(Resource):
         pmachine = Pmachine.query.filter_by(id=pmachine_id).first()
         if not pmachine:
             return jsonify(
-                error_code = RET.NO_DATA_ERR,
-                error_msg = "The pmachine does not exist. Please check."
+                error_code=RET.NO_DATA_ERR,
+                error_msg="The pmachine does not exist. Please check."
             )
         if pmachine.state == "idle":
             return jsonify(
-                error_code = RET.VERIFY_ERR,
-                error_msg = "Pmachine state has not been modified. Please check."
+                error_code=RET.VERIFY_ERR,
+                error_msg="Pmachine state has not been modified. Please check."
             )
         if pmachine.state == "occupied" and pmachine.description \
-            == current_app.config.get("CI_HOST"):
+                == current_app.config.get("CI_HOST"):
             vmachine = Vmachine.query.filter_by(pmachine_id=pmachine.id).first()
             if vmachine:
                 return jsonify(
-                    error_code = RET.NO_DATA_ERR,
-                    error_msg = "Pmachine has vmmachine, can't released."
+                    error_code=RET.NO_DATA_ERR,
+                    error_msg="Pmachine has vmmachine, can't released."
                 )
 
         # 修改随机密码
@@ -348,26 +331,36 @@ class PmachineReleaseEvent(Resource):
             "old_password": pmachine.password,
             "random_flag": True,
         }
-        _resp = PmachineMessenger(_body).send_request(
-            pmachine.machine_group, 
-            "/api/v1/pmachine/ssh",
-        )
 
-        _resp = json.loads(_resp.data.decode('UTF-8'))
-        if _resp.get("error_code") != RET.OK:
-            return jsonify(
-                error_code = RET.BAD_REQ_ERR,
-                error_msg = "Modify ssh password error, can't released."
+        if pmachine.description in [current_app.config.get("CI_HOST"),
+                                    current_app.config.get("CI_PURPOSE")]:
+            _body.update(
+                {
+                    "random_flag": False
+                }
             )
-        
+
+        if _body.get("random_flag"):
+            _resp = PmachineMessenger(_body).send_request(
+                pmachine.machine_group,
+                "/api/v1/pmachine/ssh",
+            )
+
+            _resp = json.loads(_resp.data.decode('UTF-8'))
+            if _resp.get("error_code") != RET.OK:
+                return jsonify(
+                    error_code=RET.BAD_REQ_ERR,
+                    error_msg="Modify ssh password error, can't released."
+                )
+
         if pmachine.state == "occupied":
             _body = {
-                    "description": sqlalchemy.null(),
-                    "occupier": sqlalchemy.null(),
-                    "start_time": sqlalchemy.null(),
-                    "end_time": sqlalchemy.null(),
-                    "state": "idle",
-                    "listen": sqlalchemy.null(),
+                "description": sqlalchemy.null(),
+                "occupier": sqlalchemy.null(),
+                "start_time": sqlalchemy.null(),
+                "end_time": sqlalchemy.null(),
+                "state": "idle",
+                "listen": sqlalchemy.null(),
             }
 
         # 删除权利
@@ -375,59 +368,59 @@ class PmachineReleaseEvent(Resource):
             role = Role.query.filter_by(type='person', name=g.gitee_id).first()
             if not role:
                 return jsonify(
-                    error_code = RET.NO_DATA_ERR,
-                    error_msg = "The role policy info is invalid."
+                    error_code=RET.NO_DATA_ERR,
+                    error_msg="The role policy info is invalid."
                 )
 
             scope_occupy = Scope.query.filter_by(
                 act='put',
                 uri='/api/v1/pmachine/{}/occupy'.format(pmachine_id),
                 eft='allow'
-                ).first()
+            ).first()
             if not scope_occupy:
                 return jsonify(
-                    error_code = RET.NO_DATA_ERR,
-                    error_msg = "The scope_occupy policy info is invalid."
+                    error_code=RET.NO_DATA_ERR,
+                    error_msg="The scope_occupy policy info is invalid."
                 )
             _occupy = ReScopeRole.query.filter_by(scope_id=scope_occupy.id, role_id=role.id).all()
             if not _occupy:
                 return jsonify(
-                    error_code = RET.NO_DATA_ERR,
-                    error_msg = "The _occupy policy info is invalid."
+                    error_code=RET.NO_DATA_ERR,
+                    error_msg="The _occupy policy info is invalid."
                 )
 
             scope_release = Scope.query.filter_by(
                 act='put',
                 uri='/api/v1/pmachine/{}/release'.format(pmachine_id),
                 eft='allow'
-                ).first()
+            ).first()
             if not scope_release:
                 return jsonify(
-                    error_code = RET.NO_DATA_ERR,
-                    error_msg = "The scope_release policy info is invalid."
+                    error_code=RET.NO_DATA_ERR,
+                    error_msg="The scope_release policy info is invalid."
                 )
             _release = ReScopeRole.query.filter_by(scope_id=scope_release.id, role_id=role.id).all()
             if not _release:
                 return jsonify(
-                    error_code = RET.NO_DATA_ERR,
-                    error_msg = "The _release policy info is invalid."
+                    error_code=RET.NO_DATA_ERR,
+                    error_msg="The _release policy info is invalid."
                 )
 
             scope_install = Scope.query.filter_by(
                 act='put',
                 uri='/api/v1/pmachine/{}/install'.format(pmachine_id),
-                eft='allow'           
+                eft='allow'
             ).first()
             if not scope_install:
                 return jsonify(
-                    error_code = RET.NO_DATA_ERR,
-                    error_msg = "The scope_install policy info is invalid."
+                    error_code=RET.NO_DATA_ERR,
+                    error_msg="The scope_install policy info is invalid."
                 )
             _install = ReScopeRole.query.filter_by(scope_id=scope_install.id, role_id=role.id).all()
             if not _install:
                 return jsonify(
-                    error_code = RET.NO_DATA_ERR,
-                    error_msg = "The _install policy info is invalid."
+                    error_code=RET.NO_DATA_ERR,
+                    error_msg="The _install policy info is invalid."
                 )
 
             scope_power = Scope.query.filter_by(
@@ -437,14 +430,14 @@ class PmachineReleaseEvent(Resource):
             ).first()
             if not scope_power:
                 return jsonify(
-                    error_code = RET.NO_DATA_ERR,
-                    error_msg = "The scope_power policy info is invalid."
+                    error_code=RET.NO_DATA_ERR,
+                    error_msg="The scope_power policy info is invalid."
                 )
             _power = ReScopeRole.query.filter_by(scope_id=scope_power.id, role_id=role.id).all()
             if not _power:
                 return jsonify(
-                    error_code = RET.NO_DATA_ERR,
-                    error_msg = "The _power policy info is invalid."
+                    error_code=RET.NO_DATA_ERR,
+                    error_msg="The _power policy info is invalid."
                 )
 
             scope_update = Scope.query.filter_by(
@@ -454,14 +447,14 @@ class PmachineReleaseEvent(Resource):
             ).first()
             if not scope_update:
                 return jsonify(
-                    error_code = RET.NO_DATA_ERR,
-                    error_msg = "The scope_update policy info is invalid."
+                    error_code=RET.NO_DATA_ERR,
+                    error_msg="The scope_update policy info is invalid."
                 )
             _update = ReScopeRole.query.filter_by(scope_id=scope_update.id, role_id=role.id).all()
             if not _update:
                 return jsonify(
-                    error_code = RET.NO_DATA_ERR,
-                    error_msg = "The _update policy info is invalid."
+                    error_code=RET.NO_DATA_ERR,
+                    error_msg="The _update policy info is invalid."
                 )
 
             scope_ssh = Scope.query.filter_by(
@@ -471,14 +464,14 @@ class PmachineReleaseEvent(Resource):
             ).first()
             if not scope_ssh:
                 return jsonify(
-                    error_code = RET.NO_DATA_ERR,
-                    error_msg = "The scope_ssh policy info is invalid."
+                    error_code=RET.NO_DATA_ERR,
+                    error_msg="The scope_ssh policy info is invalid."
                 )
             _ssh = ReScopeRole.query.filter_by(scope_id=scope_ssh.id, role_id=role.id).all()
             if not _ssh:
                 return jsonify(
-                    error_code = RET.NO_DATA_ERR,
-                    error_msg = "The _ssh policy info is invalid."
+                    error_code=RET.NO_DATA_ERR,
+                    error_msg="The _ssh policy info is invalid."
                 )
             for occ in _occupy:
                 Delete(ReScopeRole, {"id": occ.id}).single()
@@ -552,7 +545,6 @@ class PmachineBmcEvent(Resource):
             data=pmachine.to_bmc_json()
         )
 
-
     @auth.login_required
     @response_collect
     @validate()
@@ -578,9 +570,9 @@ class PmachineBmcEvent(Resource):
                 "port": pmachine.port,
                 "old_bmc_password": pmachine.bmc_password,
             }
-        )      
+        )
         return PmachineMessenger(_body).send_request(
-            pmachine.machine_group, 
+            pmachine.machine_group,
             "/api/v1/pmachine/bmc",
         )
 
@@ -601,7 +593,6 @@ class PmachineSshEvent(Resource):
             error_msg="OK",
             data=pmachine.to_ssh_json()
         )
-
 
     @auth.login_required
     @response_collect
@@ -628,9 +619,9 @@ class PmachineSshEvent(Resource):
                 "port": pmachine.port,
                 "old_password": pmachine.password,
             }
-        )      
+        )
         return PmachineMessenger(_body).send_request(
-            pmachine.machine_group, 
+            pmachine.machine_group,
             "/api/v1/pmachine/ssh",
         )
 
@@ -652,7 +643,7 @@ class PmachineDelayEvent(Resource):
             {
                 "id": pmachine_id
             }
-        )        
+        )
         return Edit(Pmachine, _body).single(Pmachine, "/pmachine")
 
 
@@ -667,7 +658,7 @@ class Install(Resource):
         ).first()
         if not pmachine:
             return jsonify(
-                error_code=RET.NO_DATA_ERR, 
+                error_code=RET.NO_DATA_ERR,
                 error_msg="the machine does not exist"
             )
 
@@ -680,10 +671,10 @@ class Install(Resource):
         ).first()
         if not imirroring:
             return jsonify(
-                error_code=RET.NO_DATA_ERR, 
+                error_code=RET.NO_DATA_ERR,
                 error_msg="the iso mirror of this milestone does not exist"
             )
-        
+
         _body = body.__dict__
         _body.update(
             {
@@ -708,7 +699,7 @@ class Power(Resource):
         ).first()
         if not pmachine:
             return jsonify(
-                error_code=RET.NO_DATA_ERR, 
+                error_code=RET.NO_DATA_ERR,
                 error_msg="the machine does not exist"
             )
 

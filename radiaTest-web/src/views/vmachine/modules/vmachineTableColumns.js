@@ -185,7 +185,7 @@ const ColumnOperate = {
             disabled: !row.ip,
             onClick: () =>
               textDialog('warning', '警告', '你确定删除该虚拟机？', () => {
-                deleteAjax.singleDelete(`/v1/vmachine/${row.id}`);
+                deleteAjax.singleDelete(`/v1/vmachine/${row.id}`, row.id);
               }),
           },
           '删除'

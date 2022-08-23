@@ -75,7 +75,7 @@ class PmachineSshSchema(BaseModel):
     port: int
     old_password: constr(min_length=6, max_length=256)
     password: Optional[constr(min_length=6, max_length=256)]
-    random_flag:Optional[bool] = False
+    random_flag: Optional[bool] = False
 
 
 class PmachineBmcSchema(PmachineBaseSchema):
