@@ -1,5 +1,6 @@
 import json
 import datetime
+import re
 
 from server import db, socketio
 
@@ -83,7 +84,10 @@ class ServiceModel(BaseModel):
 
 
 class CasbinRoleModel(BaseModel):
+    dom_pattern = r'^/api/v[0-9]+/([^/]+).*$'
+
     def _get_subject(self, role_type, role_name):
+        """get subject by relationship between group/organization and role"""
         if role_type == "public":
             return "{}@public".format(
                 role_name,
@@ -95,15 +99,16 @@ class CasbinRoleModel(BaseModel):
         elif role_type == "group":
             return "{}@group_{}".format(
                 role_name,
-                self.role.group.name
+                self.role.group.id
             )
         else:
             return "{}@org_{}".format(
                 role_name,
-                self.role.organization.name
+                self.role.organization.id
             )
 
     def _get_subject_(self, role_type, role_name):
+        """get subject by self group/organization"""
         if role_type == "public":
             return "{}@public".format(
                 role_name,
@@ -115,10 +120,18 @@ class CasbinRoleModel(BaseModel):
         elif role_type == "group":
             return "{}@group_{}".format(
                 role_name,
-                self.group.name
+                self.group.id
             )
         else:
             return "{}@org_{}".format(
                 role_name,
-                self.organization.name,
+                self.organization.id,
             )
+    
+    def _get_dom(self, uri: str):
+        """get domain of resource uri"""
+        _result = re.match(CasbinRoleModel.dom_pattern, uri)
+        if not _result:
+            return None
+        
+        return _result.group(1)

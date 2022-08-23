@@ -36,6 +36,7 @@ from celeryservice import celeryconfig
 from celeryservice.lib.repo.handler import RepoTaskHandler
 from celeryservice.lib.monitor import LifecycleMonitor, UpdateIssueRate, UpdateIssueTypeState
 from celeryservice.lib.testcase import TestcaseHandler
+from celeryservice.lib.dailybuild import DailyBuildHandler
 
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -247,3 +248,11 @@ def resolve_testcase_set(self, zip_filepath, unzip_filepath, user):
 @celery.task
 def async_update_issue_type_state():
     UpdateIssueTypeState(logger).main()
+
+
+@celery.task(bind=True)
+def resolve_dailybuild_detail(self, dailybuild_id, dailybuild_detail):
+    DailyBuildHandler(logger, self).resolve_detail(
+        dailybuild_id,
+        dailybuild_detail
+    )

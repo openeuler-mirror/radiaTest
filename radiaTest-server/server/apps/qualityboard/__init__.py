@@ -7,7 +7,9 @@ from .routes import (
     ATOverview,
     QualityDefendEvent,
     ChecklistEvent,
-    ChecklistItem
+    ChecklistItem,
+    DailyBuildOverview,
+    DailyBuildDetail
 )
 
 
@@ -35,4 +37,12 @@ def init_api(api: Api):
     api.add_resource(
         ChecklistEvent,
         "/api/v1/checklist",
+    )
+    api.add_resource(
+        DailyBuildOverview,
+        "/api/v1/qualityboard/<int:qualityboard_id>/dailybuild",
+    )
+    api.add_resource(
+        DailyBuildDetail,
+        "/api/v1/dailybuild/<int:dailybuild_id>",
     )

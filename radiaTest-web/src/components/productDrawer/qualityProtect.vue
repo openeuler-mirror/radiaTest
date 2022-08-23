@@ -11,16 +11,13 @@
           @mouseleave="handleMouseLeave('daily-build')"
           style="cursor: pointer"
         >
-          <div v-for="item in dailyBuild" :key="item.id">
-            <p>
-              <span>{{item.date}}</span>
-              <n-icon :color="item.success?'#18A058':'red'">
-                <CheckmarkCircleSharp v-if="item.success"/>
-                <CloseCircleSharp v-else/>
-              </n-icon>
-            </p>
-          </div>
-          <p style="margin-top: 25px;">每日构建</p>
+          <n-progress
+            :color="dailyBuildCompletion === 100 ? '#18A058' : '#C20000'"
+            type="dashboard"
+            gap-position="bottom"
+            :percentage="dailyBuildCompletion"
+          />
+          <p>每日构建</p>
         </n-gi>
         <n-gi 
           id="AT"
@@ -32,7 +29,7 @@
           style="cursor: pointer"
         >
           <n-progress
-            color="#18A058"
+            :color="atProgress === 100 ? '#18A058' : '#C20000'"
             type="dashboard"
             gap-position="bottom"
             :percentage="atProgress"
@@ -74,7 +71,7 @@
       </n-grid>
     </n-card>
     <n-card title="每日构建记录" v-if="showCard=='daily-build'">
-      <n-empty description="开发中"/>
+      <daily-build :quality-board-id="qualityBoardId" />
     </n-card>
     <n-card title="AT历史记录" v-if="showCard=='AT'">
       <at-overview :quality-board-id="qualityBoardId" />
@@ -89,14 +86,13 @@
 </template>
 <script>
 import {ref, onMounted} from 'vue';
-import {CheckmarkCircleSharp,CloseCircleSharp} from '@vicons/ionicons5';
 import atOverview from './atOverview';
+import dailyBuild from './dailyBuild';
 import { modules } from './modules';
 export default {
   components:{
     atOverview,
-    CheckmarkCircleSharp,
-    CloseCircleSharp
+    dailyBuild,
   },
   props: {
     qualityBoardId: Number,
@@ -104,31 +100,13 @@ export default {
   setup(props) {
     const rpmCheckProgress = ref(0);
     const weeklyDefendProgress = ref(0);
-    const todayBuildResult = ref(true);
-    const yesterdayBuildResult = ref(true);
-    const tdbyBuildResult = ref(true);
-    const dailyBuild = ref([]);
 
     onMounted(() => {
-      const date = new Date();
-      const today = `${date.getFullYear()}-${date.getMonth()+1}-${date.getDate()}`;
-      date.setTime(date.getTime()-(24*60*60*1000));
-      const yesterday = `${date.getFullYear()}-${date.getMonth()+1}-${date.getDate()}`;
-      date.setTime(date.getTime()-(24*60*60*1000));
-      const tdby = `${date.getFullYear()}-${date.getMonth()+1}-${date.getDate()}`;
-
-      dailyBuild.value = [
-        {date: today, success: todayBuildResult.value},
-        {date: yesterday, success: yesterdayBuildResult.value},
-        {date: tdby, success: tdbyBuildResult.value},
-      ];
-
       modules.getStatistic(props.qualityBoardId);
       modules.handleClick('daily-build');
     });
 
     return {
-      dailyBuild,
       pagenation: false,
       ...modules,
       rpmCheckProgress,

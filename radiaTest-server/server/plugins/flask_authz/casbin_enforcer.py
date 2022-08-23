@@ -15,6 +15,8 @@
 """
 flask-casbin: Flask module for using Casbin with flask apps
 """
+import re
+
 from sqlite3 import adapt
 import casbin
 from flask import request, jsonify, g
@@ -96,11 +98,19 @@ class CasbinEnforcer:
             
             # Set resource URI from request
             uri = str(request.path)
+            # Extract domain fo the resource URI
+            pattern = r'^/api/v[0-9]+/([^/]+).*$'
+            result = re.match(pattern, uri)
+            if not result:
+                return jsonify(error_code=RET.BAD_REQ_ERR, error_msg="resource uri is not valid")
+            dom = result.group(1)
+
+            act = str(request.method).upper()
 
             _all_roles_filter = Filter(ptype=['g'])
-            _cur_uri_filter = Filter(ptype=['p'], v1=[uri])
+            _cur_dom_filter = Filter(ptype=['p'], v2=[act], v4=[dom])
             self.e.load_filtered_policy(_all_roles_filter)
-            self.e.load_increment_filtered_policy(_cur_uri_filter)
+            self.e.load_increment_filtered_policy(_cur_dom_filter)
 
             if self.e.watcher and self.e.watcher.should_reload():
                 self.e.watcher.update_callback()
@@ -119,7 +129,7 @@ class CasbinEnforcer:
                 for owner in self._owner_loader():
                     owner = owner.strip('"') if isinstance(owner, str) else owner
                     
-                    if self.e.enforce(owner, uri, request.method):
+                    if self.e.enforce(owner, uri, act, dom):
                         return func(*args, **kwargs)
 
             for header in list(map(str.lower, self.app.config.get("CASBIN_OWNER_HEADERS"))):
@@ -147,7 +157,7 @@ class CasbinEnforcer:
                             str.lower, self.user_name_headers
                         ):
                             owner_audit = owner
-                        if self.e.enforce(owner, uri, request.method):
+                        if self.e.enforce(owner, uri, act, dom):
                             self.app.logger.info(
                                 "access granted: method: %s resource: %s%s"
                                 % (
@@ -173,7 +183,7 @@ class CasbinEnforcer:
                                 str.lower, self.user_name_headers
                             ):
                                 owner_audit = owner
-                            if self.e.enforce(owner.strip('"'), uri, request.method):
+                            if self.e.enforce(owner.strip('"'), uri, act, dom):
                                 self.app.logger.info(
                                     "access granted: method: %s resource: %s%s"
                                     % (

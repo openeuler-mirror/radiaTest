@@ -4,6 +4,7 @@ import { getQualityDefend } from '@/api/get';
 const showCard = ref('daily-build');
 
 const atProgress = ref(0);
+const dailyBuildCompletion = ref(0);
 
 const handleMouseEnter = (id) => {
   document.getElementById(id).style.boxShadow = '0px 0px 20px #f3f3f3';
@@ -26,6 +27,7 @@ function getStatistic (id) {
     .then(res => {
       const atStatistic = res.data.at_statistic;
       atProgress.value = Math.round(atStatistic.success / atStatistic.total * 100);
+      dailyBuildCompletion.value = res.data.dailybuild_statistic?.completion;
     });
 }
 
@@ -36,4 +38,5 @@ export {
   handleMouseLeave,
   handleClick,
   showCard,
+  dailyBuildCompletion
 };

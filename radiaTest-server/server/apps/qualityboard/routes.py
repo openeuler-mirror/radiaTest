@@ -8,18 +8,20 @@ from flask_pydantic import validate
 from server.utils.auth_util import auth
 from server.utils.response_util import response_collect, RET
 from server.model import Milestone, Product
-from server.model.qualityboard import QualityBoard, Checklist
+from server.model.qualityboard import QualityBoard, Checklist, DailyBuild
 from server.utils.db import Delete, Edit, Select, Insert
+from server.schema.base import PageBaseSchema
 from server.schema.qualityboard import (
     QualityBoardSchema,
     AddChecklistSchema,
     UpdateChecklistSchema,
     QueryChecklistSchema,
-    ATOverviewSchema
+    ATOverviewSchema,
 )
 from server import casbin_enforcer
 from server.apps.qualityboard.handlers import OpenqaATStatistic, ChecklistHandler
 from server.utils.shell import add_escape
+from server.utils.page_util import PageUtil
 
 
 class QualityBoardEvent(Resource):
@@ -301,6 +303,14 @@ class QualityDefendEvent(Resource):
                 error_msg="qualityboard {} not exitst".format(qualityboard_id)
             )
         product = qualityboard.product
+
+        latest_dailybuild = DailyBuild.query.filter(
+            DailyBuild.product_id==product.id
+        ).order_by(
+            DailyBuild.create_time.desc()
+        ).first()
+        dailybuild_statistic = latest_dailybuild.to_json() if latest_dailybuild else None
+
         product_name = f"{product.name}-{product.version}"
 
         scrapyspider_pool = redis.ConnectionPool.from_url(
@@ -351,5 +361,55 @@ class QualityDefendEvent(Resource):
             error_msg="OK",
             data={
                 "at_statistic": at_statistic,
+                "dailybuild_statistic": dailybuild_statistic,
+            }
+        )
+
+
+class DailyBuildOverview(Resource):
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def get(self, qualityboard_id, query: PageBaseSchema):
+        qualityboard = QualityBoard.query.filter_by(id=qualityboard_id).first()
+        if not qualityboard:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="qualityboard {} not exitst".format(qualityboard_id)
+            ) 
+        query_filter = DailyBuild.query.filter(
+            DailyBuild.product_id == qualityboard.product.id
+        ).order_by(
+            DailyBuild.create_time.desc()
+        )
+        
+        def page_func(item):
+            qualityboard_dict = item.to_json()
+            return qualityboard_dict
+
+        page_dict, e = PageUtil.get_page_dict(query_filter, query.page_num, query.page_size, func=page_func)
+        if e:
+            return jsonify(error_code=RET.SERVER_ERR, error_msg=f'get dailybuild page error {e}')
+        return jsonify(error_code=RET.OK, error_msg="OK", data=page_dict)
+
+
+class DailyBuildDetail(Resource):
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def get(self, dailybuild_id):
+        dailybuild = DailyBuild.query.filter_by(id=dailybuild_id).first()
+        if not dailybuild:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="build {} not exitst".format(dailybuild_id)
+            )
+        
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+            data={
+                "name": dailybuild.name,
+                "detail": dailybuild.detail,
             }
         )
