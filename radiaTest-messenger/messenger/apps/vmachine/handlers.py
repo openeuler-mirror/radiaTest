@@ -426,7 +426,12 @@ class Control(AuthMessageBody):
 
 class DeleteVmachine(AuthMessageBody):
     def run(self):
-        for vmachine in self._body:
+        vmachine_list = list()
+        if isinstance(self._body, dict):
+            vmachine_list.append(self._body.get("vmachine"))
+        else:
+            vmachine_list.append(self._body)
+        for vmachine in vmachine_list:
             pmachine = {
                 "ip": vmachine.get("host_ip"),
                 "listen": vmachine.get("host_listen"),

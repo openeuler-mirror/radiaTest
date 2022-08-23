@@ -67,8 +67,7 @@ class VmachineBaseSchema(BaseModel):
     capacity: Optional[conint(ge=10, le=Config.VM_MAX_CAPACITY)] = 50
     disk_cache: Optional[DiskCache] = "default"
     video_bus: Optional[VideoBus] = "virtio"
-    end_time: Optional[datetime] = datetime.now(pytz.timezone('Asia/Shanghai')) \
-     + timedelta(days=Config.VM_DEFAULT_DAYS)    
+    end_time: Optional[datetime] = None
 
 
 class VmachineDataCreateSchema(VmachineBaseSchema, PermissionBase):

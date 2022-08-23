@@ -383,7 +383,6 @@ class RunCaseHandler(TaskAuthHandler):
             ssh = self.connect_master(machines)
 
             self._update_job(status="DEPLOYING")
-
             
             git_repo = query_request(
                 "/api/v1/git-repo/{}".format(
@@ -526,7 +525,7 @@ class RunCaseHandler(TaskAuthHandler):
 
             if (
                     self._body.get("machine_type") == "kvm"
-                    and len(self._new_vmachines["id"]) > 0
+                    and len(new_machines) > 0
             ):
                 resp = DeleteVmachine(self.user.get("auth"), new_machines).run()
                 resp = json.loads(resp.data.decode('UTF-8'))
@@ -534,7 +533,7 @@ class RunCaseHandler(TaskAuthHandler):
                     raise RuntimeError(resp.get("error_msg"))
 
         finally:
-            if self._body.get("result") == "success" and len(self._new_vmachines["id"]) > 0:
+            if self._body.get("result") == "success" and len(new_machines) > 0 and machine_type == "kvm":
                 self._new_vmachines.update(
                     {
                         "end_time": datetime.datetime.now(

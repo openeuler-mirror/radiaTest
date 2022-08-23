@@ -33,7 +33,8 @@ RUN dnf install -y git \
     && dnf install -y openssl \
     && dnf install -y logrotate \
     && dnf install -y python3-pip \
-    && dnf install -y python3-devel
+    && dnf install -y python3-devel \
+    && dnf install -y iproute
 
 WORKDIR /opt/radiaTest/radiaTest-messenger/
 
