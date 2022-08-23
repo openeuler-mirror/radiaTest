@@ -166,7 +166,7 @@ class Edit(DataBase):
 
     @pdbc
     def batch(self, table=None, namespace=None, broadcast=False):
-        data = MultipleConditions(self._table, {"id":self._data.get("id")}).all()
+        data = MultipleConditions(self._table, {"id": self._data.get("id")}).all()
         if not data:
             raise ValueError("Batch update data has been exist.")
         self._data.pop("id")
@@ -175,6 +175,21 @@ class Edit(DataBase):
                 if value is not None:
                     setattr(d, key, value)
             d.add_update(table, namespace, broadcast)
+
+    @pdbc
+    def batch_update_status(self, table=None, namespace=None, broadcast=False):
+        data = self._table.query.filter(self._table.name.in_(self._data.get("domain"))).all()
+        if not data:
+            raise ValueError("Related data does not exist.")
+        self._data.pop("domain")
+        for d in data:
+            for key, value in self._data.items():
+                if value is not None:
+                    setattr(d, key, value)
+            if d.status in ["running", "shut off"]:
+                d.add_update(table, namespace, broadcast)
+            else:
+                pass
 
 
 class Select(DataBase):
@@ -199,7 +214,7 @@ class Select(DataBase):
                 "data": data
             }
         )
-    
+
     @pdbc
     def single(self):
         tdata = self._table.query.filter_by(id=self._data.get("id")).first()

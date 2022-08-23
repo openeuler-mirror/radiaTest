@@ -794,6 +794,12 @@ class VmachineAsyncResultHandler:
         update_body = deepcopy(body)
         update_body.pop("id")
 
+        update_body.update(
+            {
+                "status": "running"
+            }
+        )
+
         resp = update_request(
             "/api/v1/vmachine/{}/data".format(
                 body.get("id")
