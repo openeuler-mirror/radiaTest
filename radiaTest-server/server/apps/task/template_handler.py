@@ -348,11 +348,12 @@ class HandlerTaskDistributeCass:
 
     @staticmethod
     def add_milestone(task, milestone_id, cases=None):
-        task.automatic = True
+        task.automatic = False
         tm = TaskMilestone()
         tm.task_id = task.id
         tm.milestone_id = milestone_id
         if cases:
+            task.automatic = True
             tm.cases = Case.query.filter(
                 Case.id.in_(cases), Case.deleted.is_(False)
             ).all()
