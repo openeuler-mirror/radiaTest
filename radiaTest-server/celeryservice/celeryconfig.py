@@ -103,9 +103,14 @@ task_queues = (
         routing_key="vmachine_lifecycle",
     ),
     Queue(
-        "queue_update_issue_rate",
+        "queue_update_all_issue_rate",
         exchange=Exchange("server_exchange", type="direct"),
-        routing_key="update_issue_rate",
+        routing_key="update_all_issue_rate",
+    ),
+    Queue(
+        "queue_update_field_issue_rate",
+        exchange=Exchange("server_exchange", type="direct"),
+        routing_key="update_field_issue_rate",
     ),
     Queue(
         "queue_update_issue_type_state",

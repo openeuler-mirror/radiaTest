@@ -7,14 +7,13 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 ####################################
-# @Author  : 
-# @email   : 
-# @Date    : 
+# @Author  :
+# @email   :
+# @Date    :
 # @License : Mulan PSL v2
 
 
 #####################################
-
 from celery import current_app as celery
 from celery.utils.log import get_task_logger
 
@@ -93,3 +92,4 @@ def update_suite(suite_data, cases_data):
             "git_repo_id": _repo.id
         })
         _ = update_case.delay(case_data)
+

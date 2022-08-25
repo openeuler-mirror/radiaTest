@@ -14,6 +14,7 @@ from .routes import (
     SyncMilestoneItemEventV2,
     MilestoneItemStateEventV2,
     UpdateGiteeIssuesTypeState,
+    UpdateMilestoneIssueRateByField,
 )
 
 
@@ -29,6 +30,10 @@ def init_api(api: Api):
     api.add_resource(
         GiteeIssuesStatisticsByMilestone,
         "/api/v2/milestone/<int:milestone_id>/issues-statistics",
+    )
+    api.add_resource(
+        UpdateMilestoneIssueRateByField,
+        "/api/v2/milestone/<int:milestone_id>/issue-rate",
     )
     api.add_resource(UpdateGiteeIssuesStatistics, "/api/v2/issues/statistics")
     api.add_resource(UpdateGiteeIssuesTypeState, "/api/v2/issues/type-state")

@@ -36,9 +36,14 @@ def make_celery(app_name):
                 'routing_key': 'machine_lifecycle',
                 'delivery_mode': 1,
             },
-            'celeryservice.tasks.async_update_issue_rate': {
-                'queue': 'queue_update_issue_rate',
-                'routing_key': 'update_issue_rate',
+            'celeryservice.tasks.async_update_all_issue_rate': {
+                'queue': 'queue_update_all_issue_rate',
+                'routing_key': 'update_all_issue_rate',
+                'delivery_mode': 1,
+            },
+            'celeryservice.lib.issuerate.update_field_issue_rate': {
+                'queue': 'queue_update_field_issue_rate',
+                'routing_key': 'update_field_issue_rate',
                 'delivery_mode': 1,
             },
             'celeryservice.tasks.async_update_issue_type_state': {

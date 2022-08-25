@@ -17,6 +17,8 @@ class Product(BaseModel, PermissionBaseModel, db.Model):
     current_resolved_baseline = db.Column(db.String(6), nullable=True)
     left_resolved_rate = db.Column(db.String(6), nullable=True)
     left_resolved_baseline = db.Column(db.String(6), nullable=True)
+    serious_main_resolved_rate = db.Column(db.String(6), nullable=True)
+    serious_main_resolved_baseline = db.Column(db.String(6), nullable=True)
     left_issues_cnt = db.Column(db.Integer(), nullable=True, default=0)
 
     milestone = db.relationship(
@@ -38,6 +40,8 @@ class Product(BaseModel, PermissionBaseModel, db.Model):
             "description": self.description,
             "serious_resolved_rate": self.serious_resolved_rate,
             "serious_resolved_baseline": self.serious_resolved_baseline,
+            "serious_main_resolved_rate": self.serious_main_resolved_rate,
+            "serious_main_resolved_baseline": self.serious_main_resolved_baseline,
             "current_resolved_rate": self.current_resolved_rate,
             "current_resolved_baseline": self.current_resolved_baseline,
             "left_resolved_rate": self.current_resolved_rate,
