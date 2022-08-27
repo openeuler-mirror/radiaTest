@@ -651,10 +651,10 @@ def handler_get_user_machine(query: UserMachineSchema):
 
         filter_params = [
             or_(
-                Pmachine.user == g.gitee_id,
-                Pmachine.occupier == User.query.get(g.gitee_id).name,
-                Pmachine.creator_id == g.gitee_id
-            )
+                Pmachine.occupier == User.query.get(g.gitee_id).gitee_name,
+                Pmachine.creator_id == g.gitee_id,
+            ),
+            Pmachine.org_id == current_org_id
         ]
         if query.machine_name:
             filter_params.append(or_(
@@ -672,7 +672,8 @@ def handler_get_user_machine(query: UserMachineSchema):
             return item_dict
 
         filter_params = [
-            Vmachine.creator_id == g.gitee_id
+            Vmachine.creator_id == g.gitee_id,
+            Vmachine.org_id == current_org_id
         ]
         if query.machine_name:
             filter_params.append(or_(
