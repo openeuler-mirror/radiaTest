@@ -196,7 +196,7 @@ export default defineComponent({
     },
     getIssueStateType() {
       getIssueType().then(res => {
-        this.issueTypeOpts = JSON.parse(res.data).data.map(item => ({ label: item.title, value: String(item.id) }));
+        this.issueTypeOpts = res.data.map(item => ({ label: item.title, value: String(item.id) }));
         const defect = this.issueTypeOpts.find(item => item.label === '缺陷');
         if (defect) {
           this.stateType = defect.value;
