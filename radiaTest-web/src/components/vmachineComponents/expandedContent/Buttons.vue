@@ -83,7 +83,7 @@
 </template>
 
 <script>
-import { defineComponent } from 'vue';
+import { ref, defineComponent } from 'vue';
 import { ChevronDown } from '@vicons/ionicons5';
 
 import buttons from '@/views/vmachine/modules/expandedContent/buttons.js';
@@ -97,12 +97,14 @@ export default defineComponent({
     status: String,
   },
   setup(props) {
+    const disabledAll = ref(false);
     const handleClick = (status) =>
-      buttons.changeState(props.id, status);
+      buttons.changeState(props.id, status, disabledAll);
 
     return {
       ...buttons,
       handleClick,
+      disabledAll,
     };
   },
 });

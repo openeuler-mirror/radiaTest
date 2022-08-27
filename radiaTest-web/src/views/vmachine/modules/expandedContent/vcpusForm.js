@@ -35,8 +35,7 @@ const initData = (data) => {
 
 const onValidSubmit = (context) => {
   axios
-    .put('/v1/vmachine', {
-      id: propsData.value.id,
+    .put(`/v1/vmachine/${propsData.value.id}`, {
       sockets: model.value.sockets,
       cores: model.value.cores,
       threads: model.value.threads,
