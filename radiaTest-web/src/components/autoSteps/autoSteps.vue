@@ -2,9 +2,16 @@
   <div>
     <div style="display:flex;align-items:center">
       <template v-for="(item, index) in list" :key="index">
-        <n-popover trigger="hover">
+        <n-popover
+          placement="top-start"
+          trigger="manual" 
+          style="box-shadow: none; padding: 0px;"
+          :show="handleTipShow(item.key)"
+        >
           <template #trigger>
             <n-radio
+              @mouseenter="() => { ratioHover = item.key; }"
+              @mouseleave="() => { ratioHover = null; }"
               :checked="currentId === item.key"
               :value="item.text"
               size="large"
@@ -13,8 +20,22 @@
               style="--n-radio-size: 26px;"
             />
           </template>
-          <div>
-            <span class="step-label">{{ item.text }}</span><br>
+          <div style="display: flex;align-items: center;">
+            <span class="step-label">{{ item.text }}</span>
+            <n-tooltip v-if="index === list.length - 1 && !done">
+              <template #trigger>
+                <n-button 
+                  v-if="index === list.length - 1  && !done"
+                  text 
+                  @click="handleRollbackStepClick"
+                >
+                  <n-icon :size="18">
+                    <DeleteArrowBack16Filled />
+                  </n-icon>
+                </n-button>
+              </template>
+              回退至上一迭代
+            </n-tooltip>
           </div>
         </n-popover>
         <div class="divline" v-if="index !== list.length - 1"></div>
@@ -31,10 +52,15 @@
       </n-tooltip>
       <div v-if="!done" class="noneline"></div>
       <div v-else class="releaseline" />
-      <n-popover trigger="hover" v-if="list.length" :disabled="!done">
+      <n-popover 
+        trigger="manual" 
+        v-if="list.length" 
+        :disabled="!done"
+        :show="handleTipShow(list[-1]?.key)"
+      >
         <template #trigger>
           <n-radio
-            :checked="releaseRef"
+            :checked="currentId === list[-1]?.key && done"
             size="large"
             name="basic-demo"
             style="--n-radio-size: 26px;margin-right: 17px;"
@@ -49,7 +75,6 @@
       <n-icon size="20" style="cursor: pointer;" v-if="list.length">
         <n-popconfirm
           @positive-click="doneEvent"
-          @negative-click="handleNegativeClick"
         >
           <template #trigger>
             <ConnectTarget v-if="!done" />
@@ -63,7 +88,7 @@
 </template>
 <script>
 import { toRefs, computed } from 'vue';
-import { Play16Filled, ArrowRight20Regular } from '@vicons/fluent';
+import { Play16Filled, ArrowRight20Regular, DeleteArrowBack16Filled } from '@vicons/fluent';
 import { ConnectTarget } from '@vicons/carbon';
 import { FileDoneOutlined } from '@vicons/antd';
 import { modules } from './modules';
@@ -85,23 +110,15 @@ export default {
   },
   components: {
     ArrowRight20Regular,
+    DeleteArrowBack16Filled,
     FileDoneOutlined,
     ConnectTarget,
     Play16Filled,
   },
-  watch: {
-    done: {
-      handler(val) {
-        this.$nextTick(()=>{
-          if (val) {
-            this.releaseRef = true;
-          } else {
-            this.releaseRef = false;
-          }
-        });
-      },
-      deep: true,
-    },
+  mounted() {
+    setTimeout(() => {
+      this.tipShow = true;
+    }, 300);
   },
   setup(props) {
     const { list } = toRefs(props);
@@ -121,6 +138,8 @@ export default {
   data() {
     return {
       hover: false,
+      ratioHover: null,
+      tipShow: false,
     };
   },
   methods: {
@@ -129,13 +148,9 @@ export default {
     },
     doneEvent(){
       if(!this.done){
-        this.releaseRef = true;
         this.$emit('haveDone');
-        window.$message.success('已结束迭代!');
       }else{
-        this.releaseRef = false;
         this.$emit('haveRecovery');
-        window.$message.success('已恢复迭代!');
       }
     },
     changeHover(show) {
@@ -144,15 +159,19 @@ export default {
       });
     },
     releaseClick() {
-      this.releaseRef = true;
-      this.$emit('releaseclick');
+      this.$emit('release');
     },
     handleClick(milestoneId) {
-      this.releaseRef = false;
       this.$emit('stepClick', milestoneId);
     },
-    handleNegativeClick() {
-      window.$message.info('取消操作!');
+    handleRollbackStepClick() {
+      this.$emit('rollback');
+    },
+    handleTipShow(key) {
+      if (key === this.currentId && !this.done) {
+        return this.tipShow;
+      }
+      return this.ratioHover === key;
     }
   },
 };
@@ -161,7 +180,6 @@ export default {
 .step-label{
   width: 200px;
   display: inline-block;
-  text-align: center;
 }
 .elementline{
   color: blue;

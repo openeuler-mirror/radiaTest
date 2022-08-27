@@ -170,3 +170,11 @@ export function getDailyBuildSingle (id) {
 export function getDailyBuildBatch (id, params) {
   return getRequest(`/v1/qualityboard/${id}/dailybuild`, params);
 }
+
+export function getWeeklybuildData (id, params) {
+  return getRequest(`/v1/qualityboard/${id}/weeklybuild-health`, params);
+}
+
+export function getWeeklybuildDetail (id) {
+  return getRequest(`/v1/weeklybuild/${id}`);
+}

@@ -4,7 +4,7 @@ import { CancelRound, CheckCircleFilled } from '@vicons/material';
 import { QuestionCircle16Filled } from '@vicons/fluent';
 import { getProduct, getProductMessage, getMilestoneRate } from '@/api/get';
 import { createProductMessage } from '@/api/post';
-import { milestoneNext } from '@/api/put';
+import { milestoneNext, milestoneRollback } from '@/api/put';
 import { detail,drawerShow,showPackage,testProgressList } from './productDetailDrawer';
 
 const ProductId = ref(null);
@@ -63,7 +63,22 @@ function getTestList (index) {
   testList.value = testProgressList.value[index];
 }
 
+function dynamicAnimateCss(elementsClass, animationCssClass) {
+  const elements = document.querySelectorAll(`.${elementsClass}`);
+  elements.forEach((el) => {
+    el.classList.add('animate__animated', animationCssClass);
+    el.addEventListener('animationend', () => {
+      el.classList.remove('animate__animated', animationCssClass);
+    }, { once: true });
+  });
+}
+
 function handleClick(id) {
+  if (id > currentId.value) {
+    dynamicAnimateCss('inout-animated', 'animate__fadeInRight');
+  } else {
+    dynamicAnimateCss('inout-animated', 'animate__fadeInLeft');
+  }
   currentId.value = id;
   getMilestoneRate(id).then(res => {
     const rateData = res.data;
@@ -98,7 +113,7 @@ function renderBtn (text, action, row, type = 'text') {
     }
   }, text);
 }
-function releaseclick () {
+function releaseClick () {
   currentId.value = null;
 }
 function editRow () {
@@ -145,9 +160,9 @@ const columns = [
     className: 'resolvedRate',
     title: '遗留问题解决率',
     render (row) {
-      if (row.left_resolved_baseline 
-        && row.left_resolved_rate
-        && row.left_resolved_rate > row.left_resolved_baseline) {
+      if (row.left_resolved_baseline !== null
+        && row.left_resolved_rate !== null
+        && row.left_resolved_rate >= row.left_resolved_baseline) {
         return h(
           NTag,
           {
@@ -162,7 +177,7 @@ const columns = [
             })
           }
         );
-      } else if (!row.left_resolved_rate || !row.left_resolved_baseline) {
+      } else if (row.left_resolved_rate === null || row.left_resolved_baseline === null) {
         return h(
           NTag,
           {
@@ -200,9 +215,9 @@ const columns = [
     className: 'seriousMain',
     title: '严重/主要问题解决率',
     render (row) {
-      if (row.serious_main_resolved_baseline 
-        && row.serious_main_resolved_rate
-        && row.serious_main_resolved_rate > row.serious_main_resolved_baseline) {
+      if (row.serious_main_resolved_baseline !== null
+        && row.serious_main_resolved_rate !== null
+        && row.serious_main_resolved_rate >= row.serious_main_resolved_baseline) {
         return h(
           NTag,
           {
@@ -217,7 +232,7 @@ const columns = [
             })
           }
         );
-      } else if (!row.serious_main_resolved_rate || !row.serious_main_resolved_baseline) {
+      } else if (row.serious_main_resolved_rate === null || row.serious_main_resolved_baseline === null) {
         return h(
           NTag,
           {
@@ -255,9 +270,9 @@ const columns = [
     className: 'resolvedRate',
     title: '版本问题解决率',
     render (row) {
-      if (row.current_resolved_baseline 
-        && row.current_resolved_rate
-        && row.current_resolved_rate > row.current_resolved_baseline) {
+      if (row.current_resolved_baseline !== null
+        && row.current_resolved_rate !== null
+        && row.current_resolved_rate >= row.current_resolved_baseline) {
         return h(
           NTag,
           {
@@ -272,7 +287,7 @@ const columns = [
             })
           }
         );
-      } else if (!row.current_resolved_rate || !row.current_resolved_baseline) {
+      } else if (row.current_resolved_rate === null || row.current_resolved_baseline === null) {
         return h(
           NTag,
           {
@@ -361,31 +376,45 @@ function rowProps (row) {
     }
   };
 }
+
+function haveDone() {
+  tableLoading.value = true;
+  milestoneNext(dashboardId.value, { released: true }).then(res => {
+    if (res.error_code === '2000') {
+      const newArr = Object.keys(res.data.milestones)
+        .map(item => ({key: item, text: res.data.milestones[item].name}));
+      list.value = newArr;
+      currentId.value = res.data.current_milestone_id;
+      done.value = true;
+      window.$message.error('已正式发布');
+    } else {
+      window.$message.error('发布失败');
+    }
+    tableLoading.value = false;
+    getDefaultCheckNode(ProductId.value);
+  }).catch(() => {
+    window.$message.error('发布失败');
+    done.value = false;
+    tableLoading.value = false;
+  });
+}
+
 function stepAdd() {
   if (list.value.length === 5) {
     window.$message.info('已达到转测最大结点数');
-    currentId.value = null;
-    done.value = true;
-    window.$message.success('已结束迭代测试');
+    haveDone();
   } else if(list.value.length === 0) {
-    createProductMessage(ProductId.value).then(() => {
-      window.$message?.info('成功开启第一轮迭代测试');
-      getDefaultCheckNode(ProductId.value).then(() => {
-        milestoneNext(dashboardId.value).then(res => {
-          if (res.error_code === '2000') {
-            const newArr = Object.keys(res.data.milestones)
-              .map(item => ({key: item, text: res.data.milestones[item].name}));
-            list.value = newArr;
-            currentId.value = res.data.current_milestone_id;
-          } else {
-            window.$message.success('节点信息不存在或当前不存在下一轮迭代节点!');
-          }
-          tableLoading.value = false;
-        }).catch(() => {
-          tableLoading.value = false;
-        });
+    createProductMessage(ProductId.value)
+      .then(() => {
+        window.$message?.info('第一轮迭代已转测');
+        getDefaultCheckNode(ProductId.value);
+      })
+      .catch(() => {
+        window.$message?.info('第一轮迭代转测失败');
+      })
+      .finally(() => {
+        tableLoading.value = false;
       });
-    });
   } else {
     tableLoading.value = true;
     milestoneNext(dashboardId.value).then(res => {
@@ -394,11 +423,14 @@ function stepAdd() {
           .map(item => ({key: item, text: res.data.milestones[item].name}));
         list.value = newArr;
         currentId.value = res.data.current_milestone_id;
+        window.$message.success('下一轮迭代已转测');
       } else {
-        window.$message.success('节点信息不存在或当前不存在下一轮迭代节点!');
+        window.$message.error('下一轮迭代转测失败');
       }
-      tableLoading.value = false;
+      getDefaultCheckNode(ProductId.value);
     }).catch(() => {
+      window.$message.error('下一轮迭代转测失败');
+    }).finally(() => {
       tableLoading.value = false;
     });
   }
@@ -416,17 +448,26 @@ function handleValidateButtonClick(e) {
     }
   });
 }
-function haveDone(){
-  done.value = true;
-  currentId.value = null;
+function handleRollback() {
+  milestoneRollback(dashboardId.value)
+    .then(() => {
+      getDefaultCheckNode(ProductId.value);
+      window.$message?.success('当前进展已回退至上一轮迭代');
+    })
+    .catch(() => {
+      window.$message?.error('回退失败');
+    });
 }
 function haveRecovery(){
-  done.value = false;
-  getDefaultCheckNode (ProductId.value);
+  handleRollback()
+    .then(() => {
+      done.value = false;
+    });
 }
 function handlePackageCardClick() {
   showPackage.value = true;
 }
+
 export {
   ProductId,
   done,
@@ -463,6 +504,7 @@ export {
   haveDone,
   haveRecovery,
   getDefaultCheckNode,
-  releaseclick,
-  handlePackageCardClick
+  releaseClick,
+  handlePackageCardClick,
+  handleRollback
 };

@@ -25,7 +25,7 @@ def init_scope(db, app):
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         with open(os.path.join(base_dir, "config" + os.sep + "scope_init.yaml"), 'r', encoding='utf-8') as f:
             try:
-                result = yaml.load(f.read(), Loader=yaml.FullLoader)
+                result = yaml.safe_load(f.read())
             except yaml.YAMLError as e:
                 raise RuntimeError(e)
         eft_dict = {'allow': '允许', 'deny': '拒绝'}
@@ -56,7 +56,7 @@ def init_role(db, app):
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         with open(os.path.join(base_dir, "config" + os.sep + "role_init.yaml"), 'r', encoding='utf-8') as f:
             try:
-                result = yaml.load(f.read(), Loader=yaml.FullLoader)
+                result = yaml.safe_load(f.read())
             except yaml.YAMLError as e:
                 raise RuntimeError(e)
         role_list = result['public']
@@ -86,7 +86,7 @@ def create_role(_type, group=None, org=None):
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     with open(os.path.join(base_dir, "config" + os.sep + "role_init.yaml"), 'r', encoding='utf-8') as f:
         try:
-            result = yaml.load(f.read(), Loader=yaml.FullLoader)
+            result = yaml.safe_load(f.read())
         except yaml.YAMLError as e:
             current_app.logger.error(f'init role when creating org/group error -> {e}')
             raise RuntimeError(e)
@@ -137,7 +137,7 @@ def get_api(_path, file, matching_word, id):
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     with open(os.path.join(base_dir, "apps" + os.sep + _path + os.sep + file), 'r', encoding='utf-8') as f:
         try:
-            result = yaml.load(f.read(), Loader=yaml.FullLoader)
+            result = yaml.safe_load(f.read())
         except yaml.YAMLError as e:
             current_app.logger.error(f'get api error -> {e}')
             raise RuntimeError(e)
@@ -164,7 +164,7 @@ def get_default_suffix(role_type):
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     with open(os.path.join(base_dir, "config" + os.sep + "role_init.yaml"), 'r', encoding='utf-8') as f:
         try:
-            result = yaml.load(f.read(), Loader=yaml.FullLoader)
+            result = yaml.safe_load(f.read())
         except yaml.YAMLError as e:
             current_app.logger.error(f'get_default_suffix error -> {e}')
             raise RuntimeError(e)

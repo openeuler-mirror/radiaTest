@@ -114,11 +114,12 @@
             </n-gi>
             <n-gi :span="3" style="margin-top: 40px;margin-bottom: 20px;">
               <autoSteps 
-                @stepClick="handleClick" 
+                @stepClick="handleClick"
+                @rollback="handleRollback"
                 @haveDone="haveDone" 
                 @haveRecovery="haveRecovery" 
                 @add="stepAdd" 
-                @releaseclick="releaseclick" 
+                @release="releaseClick" 
                 :done="done" 
                 :list="list" 
                 :currentId="currentId" 
@@ -128,7 +129,7 @@
           <n-grid x-gap="12" :cols="2" v-if="list.length">
             <n-gi :span="1" v-if="!showPackage && !showList">
               <div 
-                class="card" 
+                class="card inout-animated" 
                 @click="cardClick" 
                 :style="{
                   backgroundColor: currentResolvedRate && currentResolvedBaseline
@@ -212,8 +213,26 @@
                   :fill-border-radius="0"
                   processing
                 />
-                <n-progress style="position: absolute;width: 78%;top: 86%;left: 11%;" type="line" :percentage="seriousResolvedRate" />
-                <n-progress style="position: absolute;width: 78%;top: 91%;left: 11%;" type="line" :percentage="mainResolvedRate" />
+                <n-tooltip>
+                  <template #trigger>
+                    <n-progress 
+                      style="position: absolute;width: 78%;top: 86%;left: 11%;" 
+                      type="line" 
+                      :percentage="seriousResolvedRate" 
+                    />
+                  </template>
+                  严重问题解决率
+                </n-tooltip>
+                <n-tooltip>
+                  <template #trigger>
+                    <n-progress 
+                      style="position: absolute;width: 78%;top: 91%;left: 11%;" 
+                      type="line" 
+                      :percentage="mainResolvedRate" 
+                    />
+                  </template>
+                  主要问题解决率
+                </n-tooltip>
               </div>
             </n-gi>
             <n-gi
@@ -228,7 +247,7 @@
                 }"
               >
                 <div
-                  style="display:flex;justify-content:space-around;height:100%;"
+                  style="display:flex;justify-content:space-around;height:100%;background:white;"
                   @click="handleListClick"
                   class="card"
                   v-if="!showList"
@@ -279,7 +298,7 @@
                 </div>
               </div>
               <n-card
-                class="cardbox"
+                class="cardbox inout-animated"
                 v-if="!showList"
                 :style="{height:showPackage?'auto':''}"
                 :bordered="false"
@@ -380,11 +399,11 @@
           />
           <n-drawer
             v-model:show="active"
-            placement="bottom"
+            placement="right"
             :mask-closable="false"
             :trap-focus="false"
-            to="#drawer-target"
             height="100%"
+            width="1800"
           >
             <n-drawer-content closable>
               <MilestoneIssuesCard :milestone-id="currentId" />
@@ -574,5 +593,8 @@ export default {
   padding:0;
   height:220px;
   box-shadow: 0 2px 8px 0 rgb(2 24 42 / 10%);
+}
+.inout-animated{
+  --animate-duration: 0.3s;
 }
 </style>

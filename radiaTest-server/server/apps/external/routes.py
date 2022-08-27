@@ -15,10 +15,12 @@
 
 #####################################
 
+from datetime import datetime, timedelta
 import os
 import re
 import shlex
 from subprocess import getstatusoutput
+import pytz
 
 import yaml
 from flask import current_app, jsonify, request, make_response, send_file
@@ -37,7 +39,7 @@ from server.model.mirroring import Repo
 from server.model.vmachine import Vmachine
 from server.model.organization import Organization
 from server.model.product import Product
-from server.model.qualityboard import DailyBuild
+from server.model.qualityboard import DailyBuild, WeeklyHealth
 from server.utils.db import Insert, Edit
 from server.utils.response_util import RET
 from server.utils.file_util import ImportFile
@@ -271,12 +273,10 @@ class DailyBuildEvent(Resource):
                 error_msg="this build record belongs to a product not enrolled yet"
             )
 
+        _id = None
         _dailybuild = DailyBuild.query.filter_by(product_id=product.id, name=_build).first()
         if _dailybuild:
-            return jsonify(
-                error_code=RET.DATA_EXIST_ERR,
-                error_msg="this build record has already been resolved"
-            )
+            _id = _dailybuild.id
         
         _id = Insert(
             DailyBuild, 
@@ -284,18 +284,41 @@ class DailyBuildEvent(Resource):
                 "name": _build,
                 "product_id": product.id,
             }
-        ).insert_id()
+        ).insert_id(DailyBuild, "/dailybuild")
 
-        _detail = yaml.load(_file, Loader=yaml.FullLoader)
+        weekly_health = WeeklyHealth.query.filter_by(
+            product_id=product.id
+        ).order_by(
+            WeeklyHealth.end_time.desc()
+        ).first()
+        _date = datetime.now(tz=pytz.timezone('Asia/Shanghai'))
+        _date_formated = _date.strftime("%Y-%m-%d")
+
+        if _date.weekday() == 0 or not weekly_health or _date_formated > weekly_health.end_time:
+            _weekly_health_id = Insert(
+                WeeklyHealth,
+                {
+                    "start_time": _date_formated,
+                    "end_time": (
+                        _date + timedelta(days=(6 - _date.weekday()))
+                    ).strftime("%Y-%m-%d"),
+                    "product_id": product.id,
+                }
+            ).insert_id(WeeklyHealth, "/weeklybuild-health")
+        else:
+            _weekly_health_id = weekly_health.id
+
+        _detail = yaml.safe_load(_file)
         if not isinstance(_detail, dict):
-             return jsonify(
+            return jsonify(
                 error_code=RET.PARMA_ERR,
                 error_msg="the file with dailybuild detail is not in valid format"
             )
 
         resolve_dailybuild_detail.delay(
             dailybuild_id = _id,
-            dailybuild_detail = _detail
+            dailybuild_detail = _detail,
+            weekly_health_id = _weekly_health_id
         )
 
         return jsonify(
