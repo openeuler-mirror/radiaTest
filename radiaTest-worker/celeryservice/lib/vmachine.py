@@ -200,7 +200,7 @@ class InstallVmachine(VmachineBaseSchema):
                         "virsh dumpxml %s | grep -Pzo  \"<interface type='bridge'>[\s\S] *<mac address.*\" |grep -Pzo '<mac address.*' | awk -F\\' '{print $2}' | head -1"
                         % self._body.get("name")
                     ).strip(),
-                    "status": output,
+                    "status": "blocking",
                     "vnc_port": domain_cli("vncdisplay", self._body.get("name"))[1]
                     .strip("\n")
                     .split(":")[-1],
@@ -332,7 +332,7 @@ class InstallVmachine(VmachineBaseSchema):
                         "virsh dumpxml %s | grep -Pzo  \"<interface type='bridge'>[\s\S] *<mac address.*\" |grep -Pzo '<mac address.*' | awk -F\\' '{print $2}' | head -1"
                         % self._body.get("name")
                     ).strip(),
-                    "status": "running",
+                    "status": "blocking",
                     "vnc_port": domain_cli(
                         "vncdisplay", self._body.get("name"))[1]
                         .strip("\n")

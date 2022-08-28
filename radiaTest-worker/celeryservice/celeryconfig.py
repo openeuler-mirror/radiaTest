@@ -6,6 +6,7 @@ from kombu import Exchange, Queue
 
 celery_ini_path = "/etc/radiaTest/worker.ini"
 
+
 def loads_config_ini(section, option):
     config_ini = Path(celery_ini_path)
 
@@ -19,7 +20,7 @@ def loads_config_ini(section, option):
 
 
 # Broker settings
-broker_url = loads_config_ini("celery","BROKER_URL")
+broker_url = loads_config_ini("celery", "BROKER_URL")
 broker_pool_limit = 10
 
 imports = ('tasks', )
@@ -29,7 +30,7 @@ worker_state_db = 'celeryservice/celerymain/celery_revokes_state_db'
 # Task结果储存配置
 task_ignore_result = True
 
-## Using mysql to store state and results
+# Using mysql to store state and results
 result_backend = loads_config_ini("celery", "RESULT_BACKEND")
 
 # 频次限制配置
@@ -49,7 +50,7 @@ enable_utc = True
 celeryd_log_file = 'celeryservice/celerymain/celery.log'
 
 # rabbitMQ routing配置
-## 队列属性定义
+# 队列属性定义
 task_queues = (
     Queue(
         'queue_create_vmachine', 
@@ -67,10 +68,18 @@ task_queues = (
         ),
         routing_key='illegal_monitor',
     ),
+    Queue(
+        'queue_vmachines_status_monitor',
+        exchange=Exchange(
+            'worker_exchange',
+            type='direct'
+        ),
+        routing_key='vmachines_status_monitor',
+    ),
 )
 
 # worker相关配置 
-storage_pool = loads_config_ini("worker","STORAGE_POOL")
+storage_pool = loads_config_ini("worker", "STORAGE_POOL")
 network_interface_source= loads_config_ini(
     "worker",
     "NETWORK_INTERFACE_SOURCE"

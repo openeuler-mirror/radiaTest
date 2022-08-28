@@ -20,6 +20,7 @@ from .routes import (
     VmachineIpaddrItem,
     VmachineSshEvent,
     VmachineBatchEvent,
+    VmachineStatusEvent
 )
 
 
@@ -43,3 +44,4 @@ def init_api(api: Api):
     api.add_resource(VnicItemData, "/api/v1/vnic/<int:vnic_id>/data")
     api.add_resource(VdiskData, "/api/v1/vdisk/data")
     api.add_resource(VdiskItemData, "/api/v1/vdisk/<int:vdisk_id>/data")
+    api.add_resource(VmachineStatusEvent, "/api/v1/vmachine/update-status")

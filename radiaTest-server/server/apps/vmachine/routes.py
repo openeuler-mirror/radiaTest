@@ -107,7 +107,6 @@ class VmachineEvent(Resource):
         super().__init__()
         self.body = body
 
-
     @auth.login_required
     @response_collect
     @attribute_error_collect
@@ -119,7 +118,7 @@ class VmachineEvent(Resource):
         update_milestone = None
         if _milestone.type == "update":
             _update_milestone = _milestone
-        
+
             _milestone = Milestone.query.filter_by(
                 product_id=_product_id,
                 type="release"
@@ -144,7 +143,7 @@ class VmachineEvent(Resource):
             )
 
         machine_group = None
-        
+
         if body.pm_select_mode == "assign":
             pmachine = Pmachine.query.filter_by(id=body.pmachine_id).first()
             machine_group = pmachine.machine_group
@@ -158,7 +157,7 @@ class VmachineEvent(Resource):
             machine_group = MachineGroup.query.filter_by(
                 id=body.machine_group_id
             ).first()
-        
+
         return VmachineMessenger(_body).send_request(
             machine_group,
             "/api/v1/vmachine",
@@ -170,7 +169,6 @@ class VmachineEvent(Resource):
     @validate()
     def get(self, query: VmachineQuerySchema):
         return VmachineHandler.get_all(query)
-
 
     @auth.login_required
     @response_collect
@@ -191,11 +189,11 @@ class VmachineBatchEvent(Resource):
         names = []
         try:
             for i in range(body.count):
-                body.description = ( des + "_" + str(i))
-                body.name = ( name + str(i) + "-"
-                + "".join(
-                    random.choice(string.ascii_lowercase + string.digits)
-                    for _ in range(3)))
+                body.description = (des + "_" + str(i))
+                body.name = (name + str(i) + "-"
+                             + "".join(
+                            random.choice(string.ascii_lowercase + string.digits)
+                            for _ in range(3)))
 
                 obj = VmachineEvent(body)
                 obj.post()
@@ -205,12 +203,12 @@ class VmachineBatchEvent(Resource):
             return jsonify(
                 error_code=RET.NO_DATA_ERR,
                 error_msg="the vmachines creation failed."
-            ) 
-        return jsonify(
-                data=names,
-                error_code=RET.OK,
-                error_msg="OK."
             )
+        return jsonify(
+            data=names,
+            error_code=RET.OK,
+            error_msg="OK."
+        )
 
 
 class VmachineControl(Resource):
@@ -343,7 +341,7 @@ class VnicEvent(Resource):
             "/api/v1/vnic",
             "post",
         )
-    
+
     @auth.login_required
     @response_collect
     @attribute_error_collect
@@ -436,8 +434,8 @@ class VmachineData(Resource):
     @validate()
     def post(self, body: VmachineDataCreateSchema):
         vmachine = Insert(Vmachine, body.__dict__).insert_obj(
-            Vmachine, 
-            "/vmachine", 
+            Vmachine,
+            "/vmachine",
             True
         )
         cur_file_dir = os.path.abspath(__file__)
@@ -462,7 +460,7 @@ class VmachineItemData(Resource):
 
     @auth.login_required
     @response_collect
-    def delete(self, vmachine_id):    
+    def delete(self, vmachine_id):
         return ResourceManager("vmachine").del_single(vmachine_id)
 
 
@@ -472,8 +470,8 @@ class VnicData(Resource):
     @validate()
     def post(self, body: VnicCreateSchema):
         vnic = Insert(Vnic, body.__dict__).insert_obj(
-            Vnic, 
-            "/vnic", 
+            Vnic,
+            "/vnic",
             True
         )
 
@@ -497,7 +495,7 @@ class VnicItemData(Resource):
     @response_collect
     def delete(self, vnic_id):
         return Delete(
-            Vnic, 
+            Vnic,
             {
                 "id": vnic_id
             }
@@ -510,8 +508,8 @@ class VdiskData(Resource):
     @validate()
     def post(self, body: VdiskCreateSchema):
         vdisk = Insert(Vdisk, body.__dict__).insert_obj(
-            Vdisk, 
-            "/vdisk", 
+            Vdisk,
+            "/vdisk",
             True
         )
         return jsonify(
@@ -534,8 +532,32 @@ class VdiskItemData(Resource):
     @response_collect
     def delete(self, vdisk_id):
         return Delete(
-            Vdisk, 
+            Vdisk,
             {
                 "id": vdisk_id
             }
         ).single(Vdisk, "/vdisk", True)
+
+
+class VmachineStatusEvent(Resource):
+    @validate()
+    def put(self):
+        _body = request.get_json()
+        domains_run = dict()
+        domains_shut_off = dict()
+
+        if len(_body.get("domains_run").get("domain")) != 0:
+            domains_run.update(_body.get("domains_run"))
+            Edit(Vmachine, domains_run).batch_update_status(Vmachine, "/vmachine", True)
+
+        if len(_body.get("domains_shut_off").get("domain")) != 0:
+            domains_shut_off.update(_body.get("domains_shut_off"))
+            Edit(Vmachine, domains_shut_off).batch_update_status(Vmachine, "/vmachine", True)
+
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="vmachines status update success:{},{}".format(
+                _body.get("domains_run"),
+                _body.get("domains_shut_off")
+            )
+        )
