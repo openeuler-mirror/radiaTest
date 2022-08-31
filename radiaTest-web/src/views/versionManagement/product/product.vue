@@ -294,7 +294,7 @@
                       <n-tab-pane name="addition" tab="新增测试需求">
                         <feature-table type="addition" :qualityboard-id="dashboardId"/>
                       </n-tab-pane>
-                      <n-tab-pane name="inherit" tab="继承测试需求" :disabled="true">
+                      <n-tab-pane name="inherit" tab="继承测试需求">
                         <feature-table type="inherit" :qualityboard-id="dashboardId"/>
                       </n-tab-pane>
                     </n-tabs>

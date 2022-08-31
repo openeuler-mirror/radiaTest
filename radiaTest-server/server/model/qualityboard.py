@@ -171,6 +171,8 @@ class FeatureList(db.Model, BaseModel):
     owner = db.Column(LONGTEXT())
     release_to = db.Column(db.String(50)) 
     pkgs = db.Column(LONGTEXT())
+    is_new = db.Column(db.Boolean(), nullable=False, default=True)
+    done = db.Column(db.Boolean(), nullable=False, default=False)
     
     qualityboard_id = db.Column(db.Integer(), db.ForeignKey("qualityboard.id"))
     task_id = db.Column(db.Integer(), db.ForeignKey("task.id"))
@@ -186,4 +188,6 @@ class FeatureList(db.Model, BaseModel):
             "release_to": self.release_to,
             "pkgs": None if not self.pkgs else self.pkgs.split(','),
             "task_status": self.task.task_status.name if self.task else None,
+            "is_new": self.is_new,
+            "done": self.done,
         }

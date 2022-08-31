@@ -1,10 +1,13 @@
+from math import floor
 import subprocess
 
 import redis
-from flask import jsonify, current_app, request
+from flask import jsonify, current_app
 from flask_restful import Resource
 from flask_pydantic import validate
+from sqlalchemy import func
 
+from server import db
 from server.utils.auth_util import auth
 from server.utils.response_util import response_collect, RET
 from server.model import Milestone, Product, Organization
@@ -18,6 +21,7 @@ from server.model.qualityboard import (
 from server.utils.db import Delete, Edit, Select, Insert, collect_sql_error
 from server.schema.base import PageBaseSchema
 from server.schema.qualityboard import (
+    FeatureListQuerySchema,
     QualityBoardSchema,
     AddChecklistSchema,
     UpdateChecklistSchema,
@@ -522,11 +526,12 @@ class WeeklybuildHealthEvent(Resource):
         )
 
 
-class AdditionFeatureListEvent(Resource):
+class FeatureListEvent(Resource):
     @auth.login_required
     @response_collect
     @collect_sql_error
-    def get(self, qualityboard_id):
+    @validate()
+    def get(self, qualityboard_id, query: FeatureListQuerySchema):
         qualityboard = QualityBoard.query.filter_by(id=qualityboard_id).first()
         if not qualityboard:
             return jsonify(
@@ -541,21 +546,24 @@ class AdditionFeatureListEvent(Resource):
                 feature_list_handler = feature_list_handlers.get("default")
             
             handler = feature_list_handler(FeatureList)
-            md_content = handler.get_md_content(f"{qualityboard.product.name}-{qualityboard.product.version}")
-            if not md_content:
-                return jsonify(
-                    error_code=RET.NO_DATA_ERR,
-                    error_msg="there is no release plan of {}-{} of {}".format(
-                        qualityboard.product.name,
-                        qualityboard.product.version,
-                        org.name
+            if query.new:
+                md_content = handler.get_md_content(f"{qualityboard.product.name}-{qualityboard.product.version}")
+                if not md_content:
+                    return jsonify(
+                        error_code=RET.NO_DATA_ERR,
+                        error_msg="there is no release plan of {}-{} of {}".format(
+                            qualityboard.product.name,
+                            qualityboard.product.version,
+                            org.name
+                        )
                     )
-                )
+                handler.resolve(md_content)
+                handler.store(qualityboard_id)
+            else:
+                # 社区暂未统一继承特性的定义
+                pass
 
-            handler.resolve(md_content)
-            handler.store(qualityboard_id)
-
-        feature_list = qualityboard.feature_list
+        feature_list = FeatureList.query.filter_by(qualityboard_id=qualityboard_id, is_new=query.new).all()
         return jsonify(
             error_code=RET.OK,
             error_msg="OK",
@@ -574,13 +582,39 @@ class FeatureListSummary(Resource):
                 error_msg="qualityboard {} not exitst".format(qualityboard_id)
             )
 
+        addition_feature_count = db.session.query(func.count(FeatureList.id)).filter_by(
+            qualityboard_id=qualityboard_id, 
+            is_new=True
+        ).scalar()
+        _addition_feature_finish_count = db.session.query(func.count(FeatureList.id)).filter_by(
+            qualityboard_id=qualityboard_id, 
+            is_new=True, 
+            done=True
+        ).scalar()
+        addition_feature_rate = 0
+        if addition_feature_count != 0:
+            addition_feature_rate = floor(_addition_feature_finish_count / addition_feature_count * 100)
+
+        inherit_feature_count = db.session.query(func.count(FeatureList.id)).filter_by(
+            qualityboard_id=qualityboard_id, 
+            is_new=False
+        ).scalar()
+        _inherit_feature_finish_count = db.session.query(func.count(FeatureList.id)).filter_by(
+            qualityboard_id=qualityboard_id, 
+            is_new=False, 
+            done=True
+        ).scalar()
+        inherit_feature_rate = 0
+        if inherit_feature_count != 0:
+         inherit_feature_rate = floor(_inherit_feature_finish_count / inherit_feature_count * 100)
+
         return jsonify(
             error_code=RET.OK,
             error_msg="OK",
             data={
-                "addition_feature_count": 0,
-                "addition_feature_rate": 0,
-                "inherit_feature_count": 0,
-                "inherit_feature_rate": 0,
+                "addition_feature_count": addition_feature_count,
+                "addition_feature_rate": addition_feature_rate,
+                "inherit_feature_count": inherit_feature_count,
+                "inherit_feature_rate": inherit_feature_rate,
             }
         )
