@@ -1,7 +1,7 @@
 import re
 from typing import Optional
 
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, HttpUrl, validator
 
 from server.schema import SortOrder
 
@@ -78,3 +78,13 @@ class QueryChecklistSchema(PageBaseSchema):
 class ATOverviewSchema(PageBaseSchema):
     build_name: Optional[str]
     build_order: Optional[SortOrder] = "descend"
+
+
+class FeatureListCreateSchema(BaseModel):
+    no: str
+    url: Optional[HttpUrl]
+    feature: str
+    sig: str
+    owner: str
+    release_to: str
+    pkgs: str
