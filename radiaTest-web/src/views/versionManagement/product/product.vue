@@ -61,7 +61,7 @@
         :row-props="rowProps"
       />
     </div>
-    <n-drawer v-model:show="drawerShow" :width="950">
+    <n-drawer v-model:show="drawerShow" style="width: 60%">
       <n-drawer-content id="drawer-target">
         <template #header>
           <div style="display:flex;align-items:center">
@@ -145,7 +145,7 @@
                 }"
               >
                 <n-progress
-                  style="width:190px;position:absolute;left:35px;"
+                  style="width:190px;left:15$;"
                   class="topProgress"
                   type="circle"
                   :status="currentResolvedRate >= currentResolvedBaseline ? 'success' : 'error'"
@@ -254,12 +254,12 @@
                 >
                   <div style="text-align:center">
                     <p>
-                      新增测试需求: <span>{{ newRequestCount }}</span>
+                      新增测试需求: <span>{{ additionFeatureCount }}</span>
                     </p>
                     <n-progress
                       type="dashboard"
                       gap-position="bottom"
-                      :percentage="newRequestRate"
+                      :percentage="additionFeatureRate"
                     />
                     <p class="description">
                       完成度
@@ -268,12 +268,12 @@
                   <n-divider vertical style="height:100%" />
                   <div style="text-align:center">
                     <p>
-                      继承测试需求: <span>{{ extendRequestCount }}</span>
+                      继承测试需求: <span>{{ inheritFeatureCount }}</span>
                     </p>
                     <n-progress
                       type="dashboard"
                       gap-position="bottom"
-                      :percentage="extendRequestRate"
+                      :percentage="inheritFeatureRate"
                     />
                     <p class="description">
                       完成度
@@ -283,17 +283,22 @@
                 <div v-if="showList">
                   <n-card style="height: auto;box-shadow: 0 2px 8px 0 rgb(2 24 42 / 10%);">
                     <template #header>
-                      <n-tabs type="line" animated>
-                        <n-tab-pane name="new" tab="新增测试需求"> </n-tab-pane>
-                        <n-tab-pane name="extend" tab="继承测试需求"> </n-tab-pane>
-                      </n-tabs>
+                      <span>新增/继承特性测试任务跟踪</span>
                     </template>
                     <template #header-extra>
                       <n-icon @click="showList = false" style="cursor:pointer">
                         <MdClose />
                       </n-icon>
                     </template>
-                    <n-data-table />
+                    <n-tabs type="line" animated>
+                      <n-tab-pane name="addition" tab="新增测试需求">
+                        <feature-table type="addition" :qualityboard-id="dashboardId"/>
+                      </n-tab-pane>
+                      <n-tab-pane name="inherit" tab="继承测试需求" :disabled="true">
+                        <feature-table type="inherit" :qualityboard-id="dashboardId"/>
+                      </n-tab-pane>
+                    </n-tabs>
+                    
                   </n-card>
                 </div>
               </div>
@@ -485,6 +490,7 @@ import autoSteps from '@/components/autoSteps/autoSteps.vue';
 import MilestoneIssuesCard from '@/components/milestoneComponents/MilestoneIssuesCard.vue';
 import testProgress from '@/components/productDrawer/testProgress.vue';
 import qualityProtect from '@/components/productDrawer/qualityProtect.vue';
+import FeatureTable from '@/components/productDrawer/FeatureTable.vue';
 import filterButton from '@/components/filter/filterButton.vue';
 
 export default {
@@ -502,7 +508,8 @@ export default {
     CheckCircleFilled,
     ChecklistFilled,
     qualityProtect,
-    QuestionCircle16Filled
+    QuestionCircle16Filled,
+    FeatureTable,
   },
   data() {
     return {

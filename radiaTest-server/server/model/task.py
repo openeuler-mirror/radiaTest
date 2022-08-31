@@ -169,6 +169,8 @@ class Task(db.Model, PermissionBaseModel, BaseModel):
 
     milestones = db.relationship('TaskMilestone', backref='task')  # 关联的测试用例
 
+    feature = db.relationship('FeatureList', backref='task') # 关联的特性
+
     def compare_type(self, child_type):
         if child_type == "PERSON":
             return True
