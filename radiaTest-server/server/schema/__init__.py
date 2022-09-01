@@ -1,6 +1,9 @@
 from typing_extensions import Literal
 
 
+#操作符
+Operation = Literal["<", ">", "=", "<=", ">="]
+
 # 排序
 SortOrder = Literal["ascend", "descend"]
 

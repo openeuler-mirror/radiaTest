@@ -17,6 +17,7 @@ from server.schema.milestone import (
     GiteeMilestoneQuerySchema,
     SyncMilestoneSchema,
     MilestoneStateEventSchema,
+    IssueRateFieldSchema,
 )
 from .handler import (
     IssueStatisticsHandlerV8,
@@ -124,7 +125,7 @@ class GiteeIssuesItemV2(Resource):
 class GiteeIssuesTypeV2(Resource):
     @auth.login_required
     def get(self):
-        return IssueOpenApiHandlerV8().get_issue_types()
+        return IssueStatisticsHandlerV8.get_issue_type()
 
 
 class GiteeIssuesStatisticsByMilestone(Resource):
@@ -143,6 +144,13 @@ class UpdateGiteeIssuesStatistics(Resource):
         return IssueStatisticsHandlerV8.update_issue_rate()
 
 
+class UpdateMilestoneIssueRateByField(Resource):
+    @auth.login_required
+    @validate()
+    def put(self, milestone_id, body: IssueRateFieldSchema):
+        return IssueStatisticsHandlerV8.update_milestone_issue_rate_by_field(milestone_id, body.field)
+
+
 class UpdateGiteeIssuesTypeState(Resource):
     @auth.login_required
     def post(self):
@@ -155,23 +163,46 @@ class UpdateGiteeIssuesTypeState(Resource):
             gitee_id = IssueStatisticsHandlerV8.get_gitee_id(_org.id)
             if gitee_id:
                 isa = IssueOpenApiHandlerV8(gitee_id=gitee_id)
-                resp = isa.get_issue_types()
-                issue_types = json.loads(
-                    resp.get_json().get("data")).get("data")
-                t_issue_types = []
-                for _type in issue_types:
-                    t_issue_types.append({"id": _type.get("id"),
-                                         "title": _type.get("title"), })
-                redis_client.hmset(RedisKey.issue_types(_org.enterprise_id), {"data": t_issue_types})
-                resp = isa.get_issue_states()
-                issue_states = json.loads(
-                    resp.get_json().get("data")).get("data")
-                
-                t_issue_states = []
-                for _state in issue_states:
-                    t_issue_states.append({"id": _state.get("id"),
-                                         "title": _state.get("title"), })
-                redis_client.hmset(RedisKey.issue_states(_org.enterprise_id), {"data": t_issue_states})
+                _resp = isa.get_issue_types()
+                resp = _resp.get_json()
+                if resp.get("error_code") == RET.OK:
+                    issue_types = json.loads(
+                        resp.get("data")).get("data")
+                    t_issue_types = []
+                    for _type in issue_types:
+                        t_issue_types.append(
+                            {
+                                "id": _type.get("id"),
+                                "title": _type.get("title"),
+                            }
+                        )
+                    redis_client.hmset(
+                        RedisKey.issue_types(_org.enterprise_id),
+                        {"data": t_issue_types}
+                    )
+                else:
+                    return _resp
+                _resp = isa.get_issue_states()
+                resp = _resp.get_json()
+                if resp.get("error_code") == RET.OK:
+                    issue_states = json.loads(
+                        resp.get("data")
+                    ).get("data")
+
+                    t_issue_states = []
+                    for _state in issue_states:
+                        t_issue_states.append(
+                            {
+                                "id": _state.get("id"),
+                                "title": _state.get("title"),
+                            }
+                        )
+                    redis_client.hmset(
+                        RedisKey.issue_states(_org.enterprise_id),
+                        {"data": t_issue_states}
+                    )
+                else:
+                    return _resp
         return jsonify(
             error_code=RET.OK,
             error_msg="OK",

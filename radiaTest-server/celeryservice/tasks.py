@@ -34,7 +34,8 @@ from server.utils.shell import add_escape
 from server import db
 from celeryservice import celeryconfig
 from celeryservice.lib.repo.handler import RepoTaskHandler
-from celeryservice.lib.monitor import LifecycleMonitor, UpdateIssueRate, UpdateIssueTypeState
+from celeryservice.lib.monitor import LifecycleMonitor
+from celeryservice.lib.issuerate import UpdateIssueRate, UpdateIssueTypeState
 from celeryservice.lib.testcase import TestcaseHandler
 from celeryservice.lib.dailybuild import DailyBuildHandler
 
@@ -71,7 +72,7 @@ def setup_periodic_tasks(sender, **kwargs):
         crontab(minute="*/60"), async_read_git_repo.s(), name="read_git_repo"
     )
     sender.add_periodic_task(
-        crontab(minute="*/30"), async_update_issue_rate.s(), name="update_issue_rate"
+        crontab(minute="*/30"), async_update_all_issue_rate.s(), name="update_all_issue_rate"
     )
     sender.add_periodic_task(
         crontab(minute=0, hour=0, day_of_month="15,30"), async_update_issue_type_state.s(), name="update_issue_type_state"
@@ -189,7 +190,7 @@ def async_check_machine_lifecycle():
 
 
 @celery.task
-def async_update_issue_rate():
+def async_update_all_issue_rate():
     UpdateIssueRate(logger).main()
 
 

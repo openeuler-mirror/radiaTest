@@ -39,7 +39,8 @@ class CreateMilestone:
             resp = MilestoneOpenApiHandler(body).create()
             if resp.get_json().get("error_code") != RET.OK:
                 return resp
-            milestone = Milestone.query.filter_by(name=body.get("name")).first()
+            milestone = Milestone.query.filter_by(
+                name=body.get("name")).first()
             CreateMilestone.bind_scope(milestone.id, body, "api_infos.yaml")
             return jsonify(
                 error_code=RET.OK, error_msg="Request processed successfully."
@@ -86,7 +87,8 @@ class DeleteMilestone:
                     error_msg="Delete failed, Some tasks have been associated with this milestone"
                 )
             return ResourceManager("milestone", "v2").del_cascade_single(
-                milestone_id, Template, [Template.milestone_id == milestone_id], False
+                milestone_id, Template, [
+                    Template.milestone_id == milestone_id], False
             )
 
 
@@ -157,7 +159,8 @@ class BaseOpenApiHandler:
 
     @property
     def current_org(self):
-        org_id = redis_client.hget(RedisKey.user(self.gitee_id), "current_org_id")
+        org_id = redis_client.hget(
+            RedisKey.user(self.gitee_id), "current_org_id")
         org = Organization.query.filter_by(id=org_id).first()
         return org
 
@@ -308,9 +311,10 @@ class MilestoneOpenApiHandler(BaseOpenApiHandler):
                 )
 
         return ResourceManager("milestone", "v2").del_cascade_single(
-            milestone_id, Template, [Template.milestone_id == milestone_id], False
+            milestone_id, Template, [
+                Template.milestone_id == milestone_id], False
         )
-    
+
     def edit_state_event(self, milestone_id):
         _url = "https://api.gitee.com/enterprises/{}/milestones/{}".format(
             self.current_org.enterprise_id,
@@ -448,13 +452,15 @@ class IssueStatisticsHandlerV8:
         org = Organization.query.filter_by(id=org_id).first()
         self.issue_types = redis_client.hget(
             RedisKey.issue_types(org.enterprise_id), "data")
-        self.issue_types = self.issue_types[1:-1].replace("\'","\"").replace("}, {", "}#{").split("#")
+        self.issue_types = self.issue_types[1:-1].replace(
+            "\'", "\"").replace("}, {", "}#{").split("#")
 
         self.bug_issue_type_id = self.get_bug_issue_type_id(self.bug_title)
 
         self.issue_states = redis_client.hget(
             RedisKey.issue_states(org.enterprise_id), "data")
-        self.issue_states = self.issue_states[1:-1].replace("\'","\"").replace("}, {", "}#{").split("#")
+        self.issue_states = self.issue_states[1:-1].replace(
+            "\'", "\"").replace("}, {", "}#{").split("#")
 
         all_state_ids = ""
         for _type in self.issue_states:
@@ -481,13 +487,14 @@ class IssueStatisticsHandlerV8:
                 gitee_id = _token.split("_")[-1]
                 break
         return gitee_id
-    
+
     @staticmethod
     def calculate_rate(solved_cnt, all_cnt):
         solved_rate = None
         if int(all_cnt) != 0:
             solved_rate = int(solved_cnt) / int(all_cnt)
-        solved_rate = None if solved_rate is None else "%.f%%" % (solved_rate * 100)
+        if solved_rate:
+            solved_rate = "%.f%%" % (solved_rate * 100)
         return solved_rate
 
     def get_bug_issue_type_id(self, title):
@@ -498,6 +505,29 @@ class IssueStatisticsHandlerV8:
                 type_id = _type.get("id")
                 break
         return type_id
+
+    @staticmethod
+    def get_issue_type():
+        org_id = redis_client.hget(RedisKey.user(g.gitee_id), "current_org_id")
+        org = Organization.query.filter(
+            Organization.id == org_id, Organization.enterprise_id is not None).first()
+        if not org:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="this organization has no right",
+            )
+        issue_types = redis_client.hget(
+            RedisKey.issue_types(org.enterprise_id), "data")
+        issue_types = issue_types[1:-
+                                  1].replace("\'", "\"").replace("}, {", "}#{").split("#")
+        _data = list()
+        for _type in issue_types:
+            _data.append(json.loads(_type))
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+            data=_data
+        )
 
     def get_state_ids(self, solved_state):
         state_ids = ""
@@ -512,98 +542,26 @@ class IssueStatisticsHandlerV8:
         return state_ids
 
     def get_issue_cnt_rate(self, param1, param2):
-        resp = self.issv8.get_all(param1)
-        solved_cnt = json.loads(resp.get_json().get("data")).get("total_count")
+        solved_cnt, all_cnt, solved_rate = None, None, None
+        solved_cnt = self.get_issues_cnt(param2)
+        all_cnt = self.get_issues_cnt(param1)
 
-        resp = self.issv8.get_all(param2)
-        all_cnt = json.loads(resp.get_json().get("data")).get("total_count")
-        solved_rate = None
-        if int(all_cnt) != 0:
+        if solved_cnt and all_cnt and int(all_cnt) != 0:
             solved_rate = int(solved_cnt) / int(all_cnt)
-        solved_rate = None if solved_rate is None else "%.f%%" % (solved_rate * 100)
+        if solved_rate:
+            solved_rate = "%.f%%" % (solved_rate * 100)
         return solved_cnt, all_cnt, solved_rate
 
     def get_issues_cnt(self, param):
+        cnt = None
+        if not param:
+            return cnt
         resp = self.issv8.get_all(param)
-        cnt = json.loads(resp.get_json().get("data")).get("total_count")
-        return int(cnt)
-
-    def get_issues_cnts(self, param1, param2):
-        resp = self.issv8.get_all(param1)
-        solved_cnt = json.loads(resp.get_json().get("data")).get("total_count")
-
-        resp = self.issv8.get_all(param2)
-        all_cnt = json.loads(resp.get_json().get("data")).get("total_count")
-
-        return solved_cnt, all_cnt
-
-    def update_product_issue_solved_rate(self, product_id):
-        serious_resolved_cnt = 0
-        serious_all_cnt = 0
-        current_resolved_cnt = 0
-        current_all_cnt = 0
-        left_all_cnt = 0
-
-        milestones = Milestone.query.filter_by(
-            product_id=product_id, is_sync=True
-        ).all()
-        for _milestone in milestones:
-            solved_cnt, all_cnt = self.get_issues_cnts(
-                {
-                    "milestone_id": _milestone.gitee_milestone_id,
-                    "priority": 4,
-                    "issue_state_ids": self.serious_state_ids,
-                    "issue_type_id": self.bug_issue_type_id,
-                },
-                {
-                    "milestone_id": _milestone.gitee_milestone_id,
-                    "priority": 4,
-                    "issue_type_id": self.bug_issue_type_id,
-                },
-            )
-            serious_resolved_cnt += solved_cnt
-            serious_all_cnt += all_cnt
-
-            solved_cnt, all_cnt = self.get_issues_cnts(
-                {
-                    "milestone_id": _milestone.gitee_milestone_id,
-                    "issue_state_ids": self.current_resolved_state_ids,
-                    "issue_type_id": self.bug_issue_type_id,
-                },
-                {
-                    "milestone_id": _milestone.gitee_milestone_id,
-                    "issue_state_ids": self.all_state_ids,
-                    "issue_type_id": self.bug_issue_type_id,
-                },
-            )
-            current_resolved_cnt += solved_cnt
-            current_all_cnt += all_cnt
-
-            left_issues_cnt = self.get_issues_cnt(
-                {
-                    "milestone_id": _milestone.gitee_milestone_id,
-                    "issue_state_ids": self.left_state_ids,
-                    "issue_type_id": self.bug_issue_type_id,
-                }
-            )
-            left_all_cnt += left_issues_cnt
-
-        serious_resolved_rate = IssueStatisticsHandlerV8.calculate_rate(
-            serious_resolved_cnt, serious_all_cnt
-        )
-        current_resolved_rate = IssueStatisticsHandlerV8.calculate_rate(
-            current_resolved_cnt, current_all_cnt
-        )
-        issue_resolved_rate_dict = dict()
-        issue_resolved_rate_dict.update(
-            {
-                "id": product_id,
-                "serious_resolved_rate": serious_resolved_rate,
-                "current_resolved_rate": current_resolved_rate,
-                "left_issues_cnt": left_all_cnt,
-            }
-        )
-        Edit(Product, issue_resolved_rate_dict).single(Product, "/product")
+        resp = resp.get_json()
+        if resp.get("error_code") == RET.OK:
+            cnt = json.loads(resp.get("data")).get("total_count")
+            return int(cnt)
+        return cnt
 
     def get_milestone_issue_solved_rate(self, milestone):
         _, _, serious_resolved_rate = self.get_issue_cnt_rate(
@@ -689,103 +647,6 @@ class IssueStatisticsHandlerV8:
             "left_issues_cnt": left_issues_cnt,
         }
 
-    def update_milestone_issue_solved_rate(self, gitee_milestone_id):
-        _, _, serious_resolved_rate = self.get_issue_cnt_rate(
-            {
-                "milestone_id": gitee_milestone_id,
-                "priority": 4,
-                "issue_state_ids": self.serious_state_ids,
-                "issue_type_id": self.bug_issue_type_id,
-            },
-            {
-                "milestone_id": gitee_milestone_id,
-                "priority": 4,
-                "issue_type_id": self.bug_issue_type_id,
-            },
-        )
-
-        _, _, main_resolved_rate = self.get_issue_cnt_rate(
-            {
-                "milestone_id": gitee_milestone_id,
-                "priority": 3,
-                "issue_state_ids": self.serious_state_ids,
-                "issue_type_id": self.bug_issue_type_id,
-            },
-            {
-                "milestone_id": gitee_milestone_id,
-                "priority": 3,
-                "issue_type_id": self.bug_issue_type_id,
-            },
-        )
-
-        (
-            serious_main_resolved_cnt,
-            serious_main_all_cnt,
-            serious_main_resolved_rate,
-        ) = self.get_issue_cnt_rate(
-            {
-                "milestone_id": gitee_milestone_id,
-                "priority": "3,4",
-                "issue_state_ids": self.serious_state_ids,
-                "issue_type_id": self.bug_issue_type_id,
-            },
-            {
-                "milestone_id": gitee_milestone_id,
-                "priority": "3,4",
-                "issue_type_id": self.bug_issue_type_id,
-            },
-        )
-
-        (
-            current_resolved_cnt,
-            current_all_cnt,
-            current_resolved_rate,
-        ) = self.get_issue_cnt_rate(
-            {
-                "milestone_id": gitee_milestone_id,
-                "issue_state_ids": self.current_resolved_state_ids,
-                "issue_type_id": self.bug_issue_type_id,
-            },
-            {
-                "milestone_id": gitee_milestone_id,
-                "issue_state_ids": self.all_state_ids,
-                "issue_type_id": self.bug_issue_type_id,
-            },
-        )
-
-        left_issues_cnt = self.get_issues_cnt(
-            {
-                "milestone_id": gitee_milestone_id,
-                "issue_state_ids": self.left_state_ids,
-                "issue_type_id": self.bug_issue_type_id,
-            }
-        )
-        issue_resolved_rate_dict = dict()
-        _m = Milestone.query.filter_by(
-            gitee_milestone_id=gitee_milestone_id).first()
-        issue_resolved_rate_dict.update(
-            {
-                "milestone_id": _m.id,
-                "gitee_milestone_id": gitee_milestone_id,
-                "serious_resolved_rate": serious_resolved_rate,
-                "main_resolved_rate": main_resolved_rate,
-                "serious_main_resolved_cnt": serious_main_resolved_cnt,
-                "serious_main_all_cnt": serious_main_all_cnt,
-                "serious_main_resolved_rate": serious_main_resolved_rate,
-                "current_resolved_cnt": current_resolved_cnt,
-                "current_all_cnt": current_all_cnt,
-                "current_resolved_rate": current_resolved_rate,
-                "left_issues_cnt": left_issues_cnt,
-            }
-        )
-        issue_rate = IssueSolvedRate.query.filter_by(
-            gitee_milestone_id=gitee_milestone_id).first()
-        if not issue_rate:
-            Insert(IssueSolvedRate, issue_resolved_rate_dict).single()
-        else:
-            issue_resolved_rate_dict.update({"id": issue_rate.id})
-            Edit(IssueSolvedRate, issue_resolved_rate_dict).single()
-
     @staticmethod
     def get_rate_by_milestone(milestone_id):
         _milestones = Milestone.query.filter_by(
@@ -822,25 +683,40 @@ class IssueStatisticsHandlerV8:
 
     @staticmethod
     def update_issue_rate():
-        products = Product.query.order_by(Product.org_id).all()
-        t_org_id = -1
-        _ishv8 = None
-        for _p in products:
-            if _p.org_id != t_org_id:
-                gitee_id = IssueStatisticsHandlerV8.get_gitee_id(_p.org_id)
-                if gitee_id:
-                    _ishv8 = IssueStatisticsHandlerV8(gitee_id=gitee_id)
-                else:
-                    _ishv8 = None
-            if _ishv8:
-                _ishv8.update_product_issue_solved_rate(product_id=_p.id)
-                milestones = Milestone.query.filter_by(
-                    is_sync=True, product_id=_p.id
-                ).all()
-                for _m in milestones:
-                    _ishv8.update_milestone_issue_solved_rate(
-                        gitee_milestone_id=_m.gitee_milestone_id)
-            t_org_id = _p.org_id
+        from celeryservice.lib.issuerate import UpdateIssueRate
+        from celeryservice.tasks import logger
+        UpdateIssueRate(logger).main()
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+        )
+
+    @staticmethod
+    def update_milestone_issue_rate_by_field(milestone_id, field):
+        from celeryservice.lib.issuerate import update_field_issue_rate
+        milestone = Milestone.query.filter_by(
+            id=milestone_id, is_sync=True).first()
+        if not milestone:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="milestone does not exist/has no right",
+            )
+        issue_rate = IssueSolvedRate.query.filter_by(
+            gitee_milestone_id=milestone.gitee_milestone_id).first()
+        if not issue_rate:
+            Insert(
+                IssueSolvedRate,
+                {"milestone_id": milestone.id,
+                    "gitee_milestone_id": milestone.gitee_milestone_id}
+            ).single(IssueSolvedRate, "/issue_solved_rate")
+
+        update_field_issue_rate.delay(
+            "milestone",
+            g.gitee_id,
+            {"org_id": milestone.org_id},
+            field,
+            milestone.gitee_milestone_id
+        )
         return jsonify(
             error_code=RET.OK,
             error_msg="OK",

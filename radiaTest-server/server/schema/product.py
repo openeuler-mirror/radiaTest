@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Literal
 
 from pydantic import BaseModel, constr, root_validator
 
@@ -41,3 +41,8 @@ class ProductQueryBase(BaseModel):
     name: Optional[constr(max_length=32)]
     version: Optional[constr(max_length=32)]
     description: Optional[constr(max_length=255)]
+
+
+class ProductIssueRateFieldSchema(BaseModel):
+    field: Literal["serious_resolved_rate", "main_resolved_rate",
+                   "serious_main_resolved_rate", "current_resolved_rate", "left_issues_cnt"]

@@ -76,7 +76,7 @@ class MilestoneUpdateSchema(UpdateBaseModel, TimeBaseSchema):
                 raise ValueError(
                     "the period  of milestone overlaps period of milestone existed."
                 )
- 
+
         if not values.get("name"):
             return values
         milestone = Precise(Milestone, {"name": values.get("name")}).first()
@@ -109,25 +109,33 @@ class MilestoneCreateSchema(MilestoneBaseSchema, PermissionBase):
         )
         for milestone in milestones:
             if (
-                values.get("start_time") >= milestone.start_time.strftime("%Y-%m-%d")
+                values.get("start_time") >= milestone.start_time.strftime(
+                    "%Y-%m-%d")
                 and
-                values.get("start_time") <= milestone.end_time.strftime("%Y-%m-%d")
+                values.get("start_time") <= milestone.end_time.strftime(
+                    "%Y-%m-%d")
             ) or (
-                values.get("end_time") >= milestone.start_time.strftime("%Y-%m-%d")
+                values.get("end_time") >= milestone.start_time.strftime(
+                    "%Y-%m-%d")
                 and
-                values.get("end_time") <= milestone.end_time.strftime("%Y-%m-%d")
+                values.get("end_time") <= milestone.end_time.strftime(
+                    "%Y-%m-%d")
             ):
                 raise ValueError(
                     "the period  of new milestone overlaps period of milestone existed."
                 )
             if (
-                milestone.start_time.strftime("%Y-%m-%d") >= values.get("start_time")
+                milestone.start_time.strftime(
+                    "%Y-%m-%d") >= values.get("start_time")
                 and
-                milestone.start_time.strftime("%Y-%m-%d") <= values.get("end_time")
+                milestone.start_time.strftime(
+                    "%Y-%m-%d") <= values.get("end_time")
             ) or (
-                milestone.end_time.strftime("%Y-%m-%d") >= values.get("start_time")
+                milestone.end_time.strftime(
+                    "%Y-%m-%d") >= values.get("start_time")
                 and
-                milestone.end_time.strftime("%Y-%m-%d") <= values.get("end_time")
+                milestone.end_time.strftime(
+                    "%Y-%m-%d") <= values.get("end_time")
             ):
                 raise ValueError(
                     "the period  of milestone overlaps period of milestone existed."
@@ -232,3 +240,8 @@ class SyncMilestoneSchema(BaseModel):
 
 class MilestoneStateEventSchema(BaseModel):
     state_event: Literal["activate", "close"]
+
+
+class IssueRateFieldSchema(BaseModel):
+    field: Literal["serious_resolved_rate", "main_resolved_rate",
+                   "serious_main_resolved_rate", "current_resolved_rate", "left_issues_cnt"]
