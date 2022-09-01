@@ -85,10 +85,10 @@ class VmachineItemEvent(Resource):
 
     @auth.login_required
     @response_collect
-    @casbin_enforcer.enforcer()
+    @casbin_enforcer.enforcer
     @validate()
     def put(self, vmachine_id, body: VmachineItemUpdateSchema):
-        vmachine = Vmachine.query.filter_by(id=body.id).first()
+        vmachine = Vmachine.query.filter_by(id=vmachine_id).first()
         pmachine = vmachine.pmachine
         machine_group = pmachine.machine_group
 
@@ -97,13 +97,13 @@ class VmachineItemEvent(Resource):
             {
                 "pmachine": pmachine.to_json(),
                 "vmachine": vmachine.to_json(),
-
+                "name": vmachine.name
             }
         )
 
         return VmachineMessenger(_body).send_request(
             machine_group,
-            "/api/v1/vmachine/{}".format(body.id),
+            "/api/v1/vmachine/{}".format(vmachine_id),
             "put",
         )
 

@@ -28,11 +28,13 @@ class VmachineItemSchema(AuthBaseModel):
     vmachine: dict
     pmachine: dict
 
+
 class PermissionBase(BaseModel):
     creator_id: int
     permission_type: PermissionType
     group_id: Optional[int] = None
     org_id: int
+
 
 class VmachineCreateSchema(PermissionBase):
     frame: Frame
@@ -97,12 +99,11 @@ class VmachineBaseSchema(AuthBaseModel, PermissionBase):
         return v
 
 
-class VmachineUpdateSchema(AuthBaseModel):
+class VmachineUpdateSchema(VmachineItemSchema):
     memory: Optional[conint(ge=2048, le=Config.VM_MAX_MEMEORY)]
     sockets: Optional[conint(ge=1, le=Config.VM_MAX_SOCKET)]
     cores: Optional[conint(ge=1, le=Config.VM_MAX_CORE)]
     threads: Optional[conint(ge=1, le=Config.VM_MAX_THREAD)]
-    pmachine: dict
     name: constr(min_length=10, max_length=255)
 
 
