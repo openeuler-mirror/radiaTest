@@ -83,6 +83,30 @@ class VmachineItemEvent(Resource):
             data=vmachine.to_public_json()
         )
 
+    @auth.login_required
+    @response_collect
+    @casbin_enforcer.enforcer()
+    @validate()
+    def put(self, vmachine_id, body: VmachineItemUpdateSchema):
+        vmachine = Vmachine.query.filter_by(id=body.id).first()
+        pmachine = vmachine.pmachine
+        machine_group = pmachine.machine_group
+
+        _body = body.__dict__
+        _body.update(
+            {
+                "pmachine": pmachine.to_json(),
+                "vmachine": vmachine.to_json(),
+
+            }
+        )
+
+        return VmachineMessenger(_body).send_request(
+            machine_group,
+            "/api/v1/vmachine/{}".format(body.id),
+            "put",
+        )
+
 
 class PreciseVmachineEvent(Resource):
     @auth.login_required
