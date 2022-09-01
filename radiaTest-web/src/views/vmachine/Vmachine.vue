@@ -74,34 +74,6 @@
       </modal-card>
     </n-gi>
   </n-grid>
-  <!-- <n-card
-    size="huge"
-    :segmented="{
-      content: 'hard',
-    }"
-    header-style="
-            font-size: 30px; 
-            height: 80px; 
-            font-family: 'v-sans';
-            background-color: rgb(242,242,242);
-        "
-    style="height: 100%"
-  >
-    
-    <template #action>
-      <n-divider />
-      <div
-        style="
-          text-align: center;
-          color: grey;
-          padding-top: 15px;
-          padding-bottom: 0;
-        "
-      >
-        {{ settings.name }} {{ settings.version }} · {{ settings.license }}
-      </div>
-    </template>
-  </n-card> -->
 </template>
 
 <script>

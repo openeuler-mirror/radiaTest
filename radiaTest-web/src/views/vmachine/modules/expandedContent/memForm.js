@@ -27,8 +27,7 @@ const initData = (data) => {
 
 const onValidSubmit = (context) => {
   axios
-    .put('/v1/vmachine', {
-      id: propsData.value.id,
+    .put(`/v1/vmachine/${propsData.value.id}`, {
       memory: model.value.memory,
     })
     .then((res) => {

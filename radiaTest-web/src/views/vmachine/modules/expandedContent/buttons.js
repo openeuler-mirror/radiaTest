@@ -1,7 +1,6 @@
 import { ref } from 'vue';
 import axios from '@/axios';
 
-const disabledAll = ref(false);
 const restartValue = ref('reboot');
 const shutdownValue = ref('shutdown');
 
@@ -26,7 +25,7 @@ const shutdownOpts = ref([
   },
 ]);
 
-const changeState = (machineId, nextStatus) => {
+const changeState = (machineId, nextStatus, disabledAll) => {
   disabledAll.value = true;
   axios
     .put('/v1/vmachine/power', {
@@ -55,7 +54,6 @@ const changeState = (machineId, nextStatus) => {
 };
 
 export default {
-  disabledAll,
   restartValue,
   shutdownValue,
   restartOpts,
