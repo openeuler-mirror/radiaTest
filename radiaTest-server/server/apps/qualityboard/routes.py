@@ -138,7 +138,7 @@ class QualityBoardItemEvent(Resource):
         resolve_pkglist_after_resolve_rc_name.delay(
             repo_url=current_app.config.get("OPENEULER_DAILYBUILD_REPO_URL"),
             product=f"{milestone.product.name}-{milestone.product.version}",
-            round=len(qualityboard.iteration_version.split('->')),
+            _round=len(qualityboard.iteration_version.split('->')),
         )
 
         return jsonify(

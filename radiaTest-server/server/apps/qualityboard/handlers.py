@@ -270,7 +270,7 @@ class PackageListHandler:
             resolve_pkglist_after_resolve_rc_name.delay(
                 repo_url=self.pkgs_repo_url,
                 product=_product_version,
-                round=_round,
+                _round=_round,
             )         
             raise RuntimeError(
                 f"the packages of {self.milestone.name} " \
