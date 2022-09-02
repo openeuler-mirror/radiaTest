@@ -19,11 +19,15 @@ import subprocess
 
 from flask import jsonify, current_app
 
-from server.model.qualityboard import Checklist
-from server.utils.db import collect_sql_error, Insert
+from server.model.qualityboard import Checklist, QualityBoard
+from server.model.milestone import Milestone
+from server.model.organization import Organization
+from server.utils.db import Edit, collect_sql_error, Insert
 from server.utils.response_util import RET
 from server.utils.page_util import PageUtil
 from server.utils.md_util import MdUtil
+from server.utils.rpm_util import RpmName, RpmNameComparator, RpmNameLoader
+from celeryservice.tasks import resolve_pkglist_after_resolve_rc_name
 
 
 class ChecklistHandler:
@@ -230,3 +234,72 @@ feature_list_handlers = {
     "default": FeatureListHandler,
     "openEuler": OpenEulerReleasePlanHandler,
 }
+
+
+class PackageListHandler:
+    def __init__(self, qualityboard_id, milestone_id) -> None:
+        self.qualityboard = QualityBoard.query.filter_by(id=qualityboard_id).first()
+        if not self.qualityboard:
+            raise ValueError(f"qualityborad {qualityboard_id} does not exist")
+        self.milestone = Milestone.query.filter_by(id=milestone_id).first()
+        if not self.milestone:
+            raise ValueError(f"milestone {milestone_id} does not exist")
+
+        org_id = self.milestone.org_id
+        org = Organization.query.filter_by(id=org_id).first()
+        if not org:
+            raise ValueError(f"this api only serves for milestones of organizations")
+        
+        self.pkgs_repo_url = current_app.config.get(f"{org.name.upper()}_PACKAGELIST_REPO_URL")
+        if not self.pkgs_repo_url:
+            raise ValueError(
+                f"lack of definition of {org.name.upper()}_PACKAGELIST_REPO_URL, please check the settings"
+            )
+
+        self.packages = self.get_packages()
+
+    def get_packages(self):
+        _path = current_app.config.get("PRODUCT_PKGLIST_PATH")
+        _product_version = f"{self.milestone.product.name}-{self.milestone.product.version}"
+        _round = None
+
+        if self.milestone.type == "round":
+            _round = self.qualityboard.iteration_version.split("->").index(str(self.milestone.id)) + 1
+
+        if not os.path.isfile(f"{_path}/{_product_version}.pkgs"):
+            resolve_pkglist_after_resolve_rc_name.delay(
+                repo_url=self.pkgs_repo_url,
+                product=_product_version,
+                round=_round,
+            )         
+            raise RuntimeError(
+                f"the packages of {self.milestone.name} " \
+                f"have not been resolved yet, please try again after several minutes"
+            )
+
+        try:
+            if self.milestone.type != "round":
+                return RpmNameLoader.load_rpmlist_from_file(
+                    f"{_path}/{_product_version}.pkgs",
+                )
+            else:
+                return RpmNameLoader.load_rpmlist_from_file(
+                    f"{_path}/{_product_version}-round-{_round}.pkgs",
+                )
+        except FileNotFoundError as e:
+            raise RuntimeError(
+                f"resolve packages of {_product_version}-round-{_round} failed, " \
+                f"please check whether it exists in {self.pkgs_repo_url}"
+            ) from e
+
+    def compare(self, packages):
+        if not self.packages or not packages:
+            return None
+        
+        rpm_name_dict_comparee = RpmNameLoader.rpmlist2rpmdict(self.packages)
+        rpm_name_dict_comparer = RpmNameLoader.rpmlist2rpmdict(packages)
+
+        return RpmNameComparator.compare_rpm_dict(
+            rpm_name_dict_comparee,
+            rpm_name_dict_comparer,
+        )

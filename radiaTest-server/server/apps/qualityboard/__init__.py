@@ -2,6 +2,8 @@ from flask_restful import Api
 
 from .routes import (
     FeatureListSummary,
+    PackageListCompareEvent,
+    PackageListEvent,
     QualityBoardEvent,
     QualityBoardItemEvent,
     QualityBoardDeleteVersionEvent,
@@ -65,4 +67,12 @@ def init_api(api: Api):
     api.add_resource(
         FeatureListSummary,
         "/api/v1/qualityboard/<int:qualityboard_id>/feature-list/summary"
+    )
+    api.add_resource(
+        PackageListEvent,
+        "/api/v1/qualityboard/<int:qualityboard_id>/milestone/<int:milestone_id>/packages",
+    )
+    api.add_resource(
+        PackageListCompareEvent,
+        "/api/v1/qualityboard/<int:qualityboard_id>/compare/<int:milestone_id>/with/<int:comparee_milestone_id>/packages"
     )

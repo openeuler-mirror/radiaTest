@@ -92,3 +92,7 @@ class FeatureListCreateSchema(BaseModel):
 
 class FeatureListQuerySchema(BaseModel):
     new: bool = True
+
+
+class PackageListQuerySchema(BaseModel):
+    summary: bool = False

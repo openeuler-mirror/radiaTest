@@ -66,7 +66,8 @@ SERVER_INI_PATH = "/etc/radiaTest/server.ini"
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
 ITEM_PIPELINES = {
     'scrapyspider.pipelines.RedisPipeline': 300,
-    'scrapyspider.pipelines.ScrapyspiderPipeline': 500,
+    'scrapyspider.pipelines.ScrapyspiderPipeline': 400,
+    'scrapyspider.pipelines.FilePipeline': 500,
 }
 
 # Enable and configure the AutoThrottle extension (disabled by default)

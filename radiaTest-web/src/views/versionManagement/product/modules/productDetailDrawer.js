@@ -1,6 +1,11 @@
 import { h,ref,watch,nextTick } from 'vue';
-import { getFeatureCompletionRates, getFeatureList as getData } from '@/api/get';
+import { 
+  getFeatureCompletionRates, 
+  getFeatureList as getFeatureData, 
+  getPackageListComparationSummary as getPackageData 
+} from '@/api/get';
 import { NButton, NTag, NSpace } from 'naive-ui';
+import { list, currentId, preId } from './productTable';
 
 const detail = ref({});
 const drawerShow = ref(false);
@@ -26,6 +31,41 @@ const newPackage = ref({
   size: 0,
   name: null
 });
+
+function cleanPackageData() {
+  oldPackage.value.size = 0;
+  oldPackage.value.name = null;
+  newPackage.value.size = 0;
+  newPackage.value.name = null;
+}
+
+function getPackageListComparationSummary(qualityboardId) {
+  const idList = list.value.map(item => item.key);
+  const currentIndex = idList.indexOf(currentId.value);
+  cleanPackageData();
+  if ( currentIndex === 0) {
+    // 暂时设为round1，未来设置为前正式发布版本的release里程碑
+    preId.value = currentId.value;
+    getPackageData(qualityboardId, currentId.value, { summary: true })
+      .then((res) => {
+        newPackage.value.size = res.data.size;
+        newPackage.value.name = res.data.name;
+      });
+  } else {
+    preId.value = idList[currentIndex - 1];
+    getPackageData(qualityboardId, preId.value, { summary: true })
+      .then((res) => {
+        oldPackage.value.size = res.data.size;
+        oldPackage.value.name = res.data.name;
+      });
+    getPackageData(qualityboardId, currentId.value, { summary: true })
+      .then((res) => {
+        newPackage.value.size = res.data.size;
+        newPackage.value.name = res.data.name;
+      });
+  }
+}
+
 const showPackage = ref(false);
 const packageBox = ref(null);
 const packageWidth = ref(0);
@@ -138,7 +178,7 @@ function handleListClick() {
 
 function getFeatureList(qualityboardId, _type) {
   featureLoading.value = true;
-  getData(qualityboardId, { new: _type === 'addition' })
+  getFeatureData(qualityboardId, { new: _type === 'addition' })
     .then((res) => {
       featureListData.value = res.data;
     })
@@ -193,4 +233,5 @@ export {
   featureListColumns,
   featureListData,
   featureLoading,
+  getPackageListComparationSummary,
 };

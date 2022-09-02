@@ -22,6 +22,13 @@ class PageBaseSchema(BaseModel):
     page_num: int = 1
     paged: bool = True
 
+    @root_validator
+    def _validate(cls, values):
+        if values["page_size"] < 1 or values["page_num"] < 1:
+            raise ValueError("page_size or page_num must be more then zero")
+        
+        return values
+
 
 class BaseEnum(Enum):
     @classmethod

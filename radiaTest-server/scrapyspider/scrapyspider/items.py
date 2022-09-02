@@ -48,3 +48,8 @@ class OpenqaTestsOverviewItem(scrapy.Item):
     x86_64_failedmodule_name = scrapy.Field()
     x86_64_failedmodule_log = scrapy.Field()
     
+
+class OpeneulerPkgsListItem(scrapy.Item):
+    rpm_file_name = scrapy.Field()
+    build = scrapy.Field()
+    product = scrapy.Field()
