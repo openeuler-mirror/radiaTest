@@ -29,6 +29,7 @@ from celery.utils.log import get_task_logger
 from celery.signals import task_postrun
 from celery.schedules import crontab
 
+from server import redis_client
 from server.model.framework import Framework, GitRepo
 from server.model.celerytask import CeleryTask
 from server.utils.db import Insert
@@ -263,7 +264,7 @@ def resolve_dailybuild_detail(self, dailybuild_id, dailybuild_detail, weekly_hea
 
 
 @celery.task
-def resolve_openeuler_pkglist(repo_url, product, build):
+def resolve_openeuler_pkglist(repo_url, product, build, lock_key):
     exitcode, output = subprocess.getstatusoutput(
         "pushd scrapyspider && scrapy crawl openeuler_pkgs_list_spider "\
             f"-a openeuler_repo_url={repo_url} "\
@@ -272,8 +273,11 @@ def resolve_openeuler_pkglist(repo_url, product, build):
     )
     if exitcode != 0:
         logger.error(f"crawl openeuler's packages list of build {build} of {product} fail. Because {output}")
-    
+        return
+
     logger.info(f"crawl openeuler's packages list of build {build} of {product} succeed")
+    redis_client.delete(lock_key)
+    logger.info(f"the lock of crawling has been removed")
 
 
 @celery.task
@@ -283,17 +287,23 @@ def resolve_pkglist_after_resolve_rc_name(repo_url, product, _round: int = None)
             repo_url,
             product,
             product,
+            f"resolving_{product}_pkglist"
         )
     else:
         resp = requests.get(f"{repo_url}/{product}/")
         root_etree = etree.HTML(resp.text, parser=etree.HTMLParser(encoding="utf-8"))
         trs_etree = root_etree.xpath("//table[@id='list']/tbody/tr")
         for tr_etree in trs_etree:
-            rc_name = tr_etree.xpath("./td[@class='link']/a").text
-            if rc_name.startswith(f"rc{_round}"):
-                resolve_openeuler_pkglist.delay(
-                    repo_url,
-                    product,
-                    rc_name,
-                )
-                break
+            rc_list = tr_etree.xpath("./td[@class='link']/a")
+            if len(rc_list):
+                rc_elem = tr_etree.xpath("./td[@class='link']/a")[0]
+                if rc_elem is not None:
+                    rc_name = rc_elem.text
+                    if isinstance(rc_name, str) and rc_name.startswith(f"rc{_round}"):
+                        resolve_openeuler_pkglist.delay(
+                            repo_url,
+                            product,
+                            rc_name.rstrip('/'),
+                            f"resolving_{product}-round-{_round}_pkglist"
+                        )
+                        break

@@ -646,10 +646,11 @@ class PackageListEvent(Resource):
             handler = PackageListHandler(
                 qualityboard_id, 
                 milestone_id,
+                query.refresh
             )
         except RuntimeError as e:
             return jsonify(
-                error_code=RET.RUNTIME_ERROR,
+                error_code=RET.OK,
                 error_msg=str(e),
             )
         except ValueError as e:
@@ -686,10 +687,12 @@ class PackageListCompareEvent(Resource):
             handler1 = PackageListHandler(
                 qualityboard_id, 
                 milestone_id,
+                False
             )
             handler2 = PackageListHandler(
                 qualityboard_id, 
                 comparee_milestone_id,
+                False
             )
         except RuntimeError as e:
             return jsonify(

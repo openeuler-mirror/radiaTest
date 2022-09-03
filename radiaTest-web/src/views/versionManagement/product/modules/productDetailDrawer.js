@@ -32,36 +32,40 @@ const newPackage = ref({
   name: null
 });
 
-function cleanPackageData() {
-  oldPackage.value.size = 0;
-  oldPackage.value.name = null;
-  newPackage.value.size = 0;
-  newPackage.value.name = null;
-}
-
-function getPackageListComparationSummary(qualityboardId) {
+function getPackageListComparationSummary(qualityboardId, _refresh = false) {
   const idList = list.value.map(item => item.key);
   const currentIndex = idList.indexOf(currentId.value);
-  cleanPackageData();
   if ( currentIndex === 0) {
     // 暂时设为round1，未来设置为前正式发布版本的release里程碑
     preId.value = currentId.value;
-    getPackageData(qualityboardId, currentId.value, { summary: true })
+    getPackageData(qualityboardId, currentId.value, { summary: true, refresh: _refresh })
       .then((res) => {
-        newPackage.value.size = res.data.size;
-        newPackage.value.name = res.data.name;
+        if (!_refresh) {
+          newPackage.value.size = res.data.size;
+          newPackage.value.name = res.data.name;
+        } else {
+          window.$message?.info(res.error_msg, { duration: 8e3 });
+        }
       });
   } else {
     preId.value = idList[currentIndex - 1];
-    getPackageData(qualityboardId, preId.value, { summary: true })
+    getPackageData(qualityboardId, preId.value, { summary: true, refresh: _refresh })
       .then((res) => {
-        oldPackage.value.size = res.data.size;
-        oldPackage.value.name = res.data.name;
+        if (!_refresh) {
+          oldPackage.value.size = res.data.size;
+          oldPackage.value.name = res.data.name;
+        } else {
+          window.$message?.info(res.error_msg, { duration: 8e3 });
+        }
       });
-    getPackageData(qualityboardId, currentId.value, { summary: true })
+    getPackageData(qualityboardId, currentId.value, { summary: true, refresh: _refresh })
       .then((res) => {
-        newPackage.value.size = res.data.size;
-        newPackage.value.name = res.data.name;
+        if (!_refresh) {
+          newPackage.value.size = res.data.size;
+          newPackage.value.name = res.data.name;
+        } else {
+          window.$message?.info(res.error_msg, { duration: 8e3 });
+        }
       });
   }
 }

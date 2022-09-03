@@ -10,7 +10,7 @@
         circle
         ghost
       >
-        <n-icon size="40" class="refresh-icon">
+        <n-icon :size="size" class="refresh-icon">
           <refresh />
         </n-icon>
       </n-button>
@@ -26,6 +26,12 @@ import { MdRefresh as Refresh } from '@vicons/ionicons4';
 export default defineComponent({
   components: {
     Refresh,
+  },
+  props: {
+    size: {
+      type: Number,
+      default: 40,
+    }
   },
   setup(props, context) {
     const button = ref(null);
