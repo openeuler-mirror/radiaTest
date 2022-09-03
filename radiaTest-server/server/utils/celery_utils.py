@@ -86,6 +86,16 @@ def make_celery(app_name):
                 'routing_key': 'set',
                 'delivery_mode': 1,
             },
+            'celeryservice.tasks.resolve_openeuler_pkglist': {
+                'queue': 'queue_resolve_openeuler_pkglist',
+                'routing_key': 'pkglist',
+                'delivery_mode': 1,
+            },
+            'celeryservice.tasks.resolve_pkglist_after_resolve_rc_name': {
+                'queue': 'queue_resolve_pkglist_after_resolve_rc_name',
+                'routing_key': 'rc_name',
+                'delivery_mode': 1,
+            },
         }
     )
 
