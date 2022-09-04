@@ -2,7 +2,8 @@ import { h,ref,watch,nextTick } from 'vue';
 import { 
   getFeatureCompletionRates, 
   getFeatureList as getFeatureData, 
-  getPackageListComparationSummary as getPackageData 
+  getPackageListComparationSummary as getPackageData,
+  getPackageListComparationDetail as getPackageChangeSummary,
 } from '@/api/get';
 import { NButton, NTag, NSpace } from 'naive-ui';
 import { list, currentId, preId } from './productTable';
@@ -31,6 +32,10 @@ const newPackage = ref({
   size: 0,
   name: null
 });
+const packageChangeSummary = ref({
+  addPackagesNum: 0,
+  delPackagesNum: 0
+});
 
 function getPackageListComparationSummary(qualityboardId, _refresh = false) {
   const idList = list.value.map(item => item.key);
@@ -43,6 +48,10 @@ function getPackageListComparationSummary(qualityboardId, _refresh = false) {
         if (!_refresh) {
           newPackage.value.size = res.data.size;
           newPackage.value.name = res.data.name;
+          oldPackage.value.size = res.data.size;
+          oldPackage.value.name = res.data.name;
+          packageChangeSummary.value.addPackagesNum = 0;
+          packageChangeSummary.value.delPackagesNum = 0;
         } else {
           window.$message?.info(res.error_msg, { duration: 8e3 });
         }
@@ -66,6 +75,15 @@ function getPackageListComparationSummary(qualityboardId, _refresh = false) {
         } else {
           window.$message?.info(res.error_msg, { duration: 8e3 });
         }
+      });
+    getPackageChangeSummary(qualityboardId, preId.value, currentId.value, { summary: true })
+      .then((res) => {
+        packageChangeSummary.value.addPackagesNum = res.data.add_pkgs_num;
+        packageChangeSummary.value.delPackagesNum = res.data.del_pkgs_num;
+      })
+      .catch(() => {
+        packageChangeSummary.value.addPackagesNum = '?';
+        packageChangeSummary.value.delPackagesNum = '?';
       });
   }
 }
@@ -238,4 +256,5 @@ export {
   featureListData,
   featureLoading,
   getPackageListComparationSummary,
+  packageChangeSummary,
 };

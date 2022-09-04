@@ -2,19 +2,21 @@ from math import floor
 import subprocess
 
 import redis
-from flask import jsonify, current_app, request
+from flask import jsonify, current_app
 from flask_restful import Resource
 from flask_pydantic import validate
-from sqlalchemy import func
+from sqlalchemy import func, or_
 
 from server import db
 from server.utils.auth_util import auth
 from server.utils.response_util import response_collect, RET
 from server.model import Milestone, Product, Organization
+from server.model.milestone import MilestoneGroup
 from server.model.qualityboard import (
     QualityBoard, 
     Checklist, 
-    DailyBuild, 
+    DailyBuild,
+    RpmCompare, 
     WeeklyHealth,
     FeatureList,
 )
@@ -22,6 +24,7 @@ from server.utils.db import Delete, Edit, Select, Insert, collect_sql_error
 from server.schema.base import PageBaseSchema
 from server.schema.qualityboard import (
     FeatureListQuerySchema,
+    PackageCompareQuerySchema,
     PackageListQuerySchema,
     QualityBoardSchema,
     AddChecklistSchema,
@@ -644,7 +647,7 @@ class PackageListEvent(Resource):
     def get(self, qualityboard_id, milestone_id, query: PackageListQuerySchema):
         try:
             handler = PackageListHandler(
-                qualityboard_id, 
+                qualityboard_id,
                 milestone_id,
                 query.refresh
             )
@@ -660,21 +663,22 @@ class PackageListEvent(Resource):
             )
 
         _pkgs = handler.packages
+        pkgs_dict = RpmNameLoader.rpmlist2rpmdict(_pkgs)
+
         if query.summary:
             return jsonify(
                 error_code=RET.OK,
                 error_msg="OK",
                 data={
                     "name": handler.milestone.name,
-                    "size": len(_pkgs)
+                    "size": len(pkgs_dict)
                 },
             )
         
-        return_data = RpmNameLoader.get_parsed_rpmlist(_pkgs)
         return jsonify(
            error_code=RET.OK,
            error_msg="OK",
-           data=return_data, 
+           data=[ pkg.to_dict() for pkg in pkgs_dict.values() ], 
         )
 
 
@@ -682,15 +686,15 @@ class PackageListCompareEvent(Resource):
     @auth.login_required
     @response_collect
     @validate()
-    def get(self, qualityboard_id, milestone_id, comparee_milestone_id):
+    def post(self, qualityboard_id, comparee_milestone_id, comparer_milestone_id):
         try:
-            handler1 = PackageListHandler(
-                qualityboard_id, 
-                milestone_id,
+            comparer = PackageListHandler(
+                qualityboard_id,
+                comparer_milestone_id,
                 False
             )
-            handler2 = PackageListHandler(
-                qualityboard_id, 
+            comparee = PackageListHandler(
+                qualityboard_id,
                 comparee_milestone_id,
                 False
             )
@@ -705,8 +709,128 @@ class PackageListCompareEvent(Resource):
                 error_msg=str(e),
             )
 
+        compare_results = comparer.compare(comparee.packages)
+        
+        milestone_group = MilestoneGroup.query.filter_by(
+            milestone_1_id=comparee_milestone_id,
+            milestone_2_id=comparer_milestone_id,
+        ).first()
+        milestone_group_id = None
+        if not milestone_group:
+            milestone_group_id = Insert(
+                MilestoneGroup,
+                {
+                    "milestone_1_id": comparee_milestone_id,
+                    "milestone_2_id": comparer_milestone_id
+                }
+            ).insert_id()
+        else:
+            milestone_group_id = milestone_group.id
+
+        for result in compare_results:
+            _ = Insert(
+                RpmCompare, 
+                {
+                    "arch": result.get("arch"),
+                    "rpm_comparee": result.get("rpm_list_1"),
+                    "rpm_comparer": result.get("rpm_list_2"),
+                    "compare_result": result.get("compare_result"),
+                    "milestone_group_id": milestone_group_id,
+                }
+            ).single()
+
         return jsonify(
             error_code=RET.OK,
-            error_msg="OK",
-            data=handler1.compare(handler2.packages)
+            error_msg="OK"
         )
+
+    @auth.login_required
+    @response_collect
+    @validate()
+    def get(self, qualityboard_id, comparer_milestone_id, comparee_milestone_id, query: PackageCompareQuerySchema):
+        milestone_group = MilestoneGroup.query.filter_by(
+            milestone_1_id=comparee_milestone_id,
+            milestone_2_id=comparer_milestone_id,
+        ).first()
+        if not milestone_group:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="no comparation record for milestone {} and milestone {}".format(
+                    comparee_milestone_id,
+                    comparer_milestone_id
+                )
+            )
+        
+        _add_num = db.session.query(
+            func.count(RpmCompare.id)
+        ).filter(
+            RpmCompare.milestone_group_id == milestone_group.id,
+            RpmCompare.compare_result == "ADD"
+        ).scalar()
+        _del_num = db.session.query(
+            func.count(RpmCompare.id)
+        ).filter(
+            RpmCompare.milestone_group_id == milestone_group.id,
+            RpmCompare.compare_result == "DEL"
+        ).scalar()
+
+        if query.summary:
+            return jsonify(
+                error_code=RET.OK,
+                error_msg="OK",
+                data={
+                    "add_pkgs_num": _add_num,
+                    "del_pkgs_num": _del_num, 
+                }
+            )
+
+        filter_params = [
+            RpmCompare.milestone_group_id == milestone_group.id
+        ]
+
+        if query.arches:
+            arches_filter_params = []
+            for _arch in query.arches:
+                arches_filter_params.append(
+                    RpmCompare.arch == _arch
+                )
+            filter_params.append(or_(*arches_filter_params))
+        if query.search:
+            filter_params.append(
+                or_(
+                    RpmCompare.rpm_comparee.like(f"%{query.search}%"),
+                    RpmCompare.rpm_comparer.like(f"%{query.search}%")
+                )
+            )
+        if query.compare_result_list:
+            status_filter_params = []
+            for result in query.compare_result_list:
+                status_filter_params.append(
+                    RpmCompare.compare_result == result
+                )
+            filter_params.append(or_(*status_filter_params))
+        
+        _order = None
+        if query.desc:
+            _order = [RpmCompare.rpm_comparee.desc(), RpmCompare.rpm_comparer.desc()]
+        else:
+            _order = [RpmCompare.rpm_comparee.asc(), RpmCompare.rpm_comparer.asc()]
+        
+        query_filter = RpmCompare.query.filter(*filter_params).order_by(*_order)
+
+        def page_func(item):
+            rpm_compare_dict = item.to_json()
+            return rpm_compare_dict
+
+        page_dict, e = PageUtil.get_page_dict(
+            query_filter, query.page_num, query.page_size, func=page_func
+        )
+        if e:
+            return jsonify(
+                error_code=RET.SERVER_ERR, error_msg=f"get comparation page error {e}"
+            )
+        return jsonify(error_code=RET.OK, error_msg="OK", data={
+            "add_pkgs_num": _add_num,
+            "del_pkgs_num": _del_num, 
+            **page_dict
+        })

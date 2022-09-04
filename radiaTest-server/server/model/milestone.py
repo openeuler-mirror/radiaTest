@@ -5,6 +5,18 @@ from server import db
 from server.model import BaseModel, PermissionBaseModel
 
 
+class MilestoneGroup(db.Model, BaseModel):
+    __tablename__ = "milestone_group"
+
+    id = db.Column(db.Integer(), primary_key=True, autoincrement=True)
+    milestone_1_id = db.Column(
+        db.Integer(), db.ForeignKey('milestone.id', ondelete="CASCADE"), primary_key=True
+    )
+    milestone_2_id = db.Column(
+        db.Integer(), db.ForeignKey('milestone.id', ondelete="CASCADE"), primary_key=True
+    )
+
+
 class Milestone(BaseModel, PermissionBaseModel, db.Model):
     __tablename__ = "milestone"
 

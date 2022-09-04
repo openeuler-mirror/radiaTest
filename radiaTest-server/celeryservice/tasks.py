@@ -274,7 +274,7 @@ def resolve_openeuler_pkglist(repo_url, product, build, lock_key):
     if exitcode != 0:
         logger.error(f"crawl openeuler's packages list of build {build} of {product} fail. Because {output}")
         return
-
+    
     logger.info(f"crawl openeuler's packages list of build {build} of {product} succeed")
     redis_client.delete(lock_key)
     logger.info(f"the lock of crawling has been removed")
