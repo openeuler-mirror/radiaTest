@@ -1,15 +1,21 @@
 import subprocess
 
 import redis
-from flask import jsonify, current_app
+from flask import jsonify, current_app, request
 from flask_restful import Resource
 from flask_pydantic import validate
 
 from server.utils.auth_util import auth
 from server.utils.response_util import response_collect, RET
-from server.model import Milestone, Product
-from server.model.qualityboard import QualityBoard, Checklist, DailyBuild, WeeklyHealth
-from server.utils.db import Delete, Edit, Select, Insert
+from server.model import Milestone, Product, Organization
+from server.model.qualityboard import (
+    QualityBoard, 
+    Checklist, 
+    DailyBuild, 
+    WeeklyHealth,
+    FeatureList,
+)
+from server.utils.db import Delete, Edit, Select, Insert, collect_sql_error
 from server.schema.base import PageBaseSchema
 from server.schema.qualityboard import (
     QualityBoardSchema,
@@ -17,8 +23,9 @@ from server.schema.qualityboard import (
     UpdateChecklistSchema,
     QueryChecklistSchema,
     ATOverviewSchema,
+    FeatureListCreateSchema,
 )
-from server.apps.qualityboard.handlers import ChecklistHandler
+from server.apps.qualityboard.handlers import ChecklistHandler, feature_list_handlers
 from server.utils.shell import add_escape
 from server.utils.at_utils import OpenqaATStatistic
 from server.utils.page_util import PageUtil
@@ -477,7 +484,6 @@ class WeeklybuildHealthOverview(Resource):
         return jsonify(error_code=RET.OK, error_msg="OK", data=page_dict)
         
 
-
 class WeeklybuildHealthEvent(Resource):
     @auth.login_required()
     @response_collect
@@ -513,4 +519,45 @@ class WeeklybuildHealthEvent(Resource):
             error_code=RET.OK,
             error_msg="OK",
             data=return_data
+        )
+
+
+class FeatureListEvent(Resource):
+    @auth.login_required
+    @response_collect
+    @collect_sql_error
+    def get(self, qualityboard_id):
+        qualityboard = QualityBoard.query.filter_by(id=qualityboard_id).first()
+        if not qualityboard:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="qualityboard {} not exitst".format(qualityboard_id)
+            )
+        if not qualityboard.feature_list and qualityboard.product:
+            org_id = qualityboard.product.org_id
+            org = Organization.query.filter_by(id=org_id).first()
+            feature_list_handler = feature_list_handlers.get(org.name)
+            if not feature_list_handler:
+                feature_list_handler = feature_list_handlers.get("default")
+            
+            handler = feature_list_handler(FeatureList)
+            md_content = handler.get_md_content(f"{qualityboard.product.name}-{qualityboard.product.version}")
+            if not md_content:
+                return jsonify(
+                    error_code=RET.NO_DATA_ERR,
+                    error_msg="there is no release plan of {}-{} of {}".format(
+                        qualityboard.product.name,
+                        qualityboard.product.version,
+                        org.name
+                    )
+                )
+
+            handler.resolve(md_content)
+            handler.store(qualityboard_id)
+
+        feature_list = qualityboard.feature_list
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+            data=[feature.to_json() for feature in feature_list],
         )

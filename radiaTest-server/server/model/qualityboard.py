@@ -15,6 +15,8 @@ class QualityBoard(BaseModel, db.Model):
     iteration_version = db.Column(db.String(256), nullable=True)
     product_id = db.Column(db.Integer(), db.ForeignKey("product.id"), nullable=True)
 
+    feature_list = db.relationship('FeatureList', backref="qualityboard", cascade="all, delete")
+
     def get_current_version(self):
         vers = None
         if len(self.iteration_version) > 0:
@@ -48,6 +50,7 @@ class QualityBoard(BaseModel, db.Model):
 
 class Checklist(db.Model, BaseModel):
     __tablename__ = "checklist"
+
     id = db.Column(db.Integer(), primary_key=True, autoincrement=True)
     check_item = db.Column(db.String(50), nullable=False, unique=True)
     baseline = db.Column(db.String(50))
@@ -72,6 +75,7 @@ class Checklist(db.Model, BaseModel):
 
 class DailyBuild(db.Model, BaseModel):
     __tablename__ = "dailybuild"
+
     id = db.Column(db.Integer(), primary_key=True, autoincrement=True)
     name = db.Column(db.String(50), nullable=False)
     completion = db.Column(db.Integer(), nullable=False, default=0)
@@ -116,6 +120,7 @@ class DailyBuild(db.Model, BaseModel):
 
 class WeeklyHealth(db.Model, BaseModel):
     __tablename__ = "weekly_health"
+
     id = db.Column(db.Integer(), primary_key=True, autoincrement=True)
     start_time = db.Column(db.String(50), nullable=False)
     end_time = db.Column(db.String(50), nullable=False)
@@ -152,4 +157,31 @@ class WeeklyHealth(db.Model, BaseModel):
             "start_time": self.start_time,
             "end_time": self.end_time,
             **self.get_statistic(pool, arches)
+        }
+
+
+class FeatureList(db.Model, BaseModel):
+    __tablename__ = "feature_list"
+
+    id = db.Column(db.Integer(), primary_key=True, autoincrement=True)
+    no = db.Column(db.String(50), nullable=False, unique=True)
+    url = db.Column(db.String(512))
+    feature = db.Column(db.String(512), nullable=False)
+    sig = db.Column(db.String(50))
+    owner = db.Column(LONGTEXT())
+    release_to = db.Column(db.String(50)) 
+    pkgs = db.Column(LONGTEXT())
+    
+    qualityboard_id = db.Column(db.Integer(), db.ForeignKey("qualityboard.id"))
+
+    def to_json(self):
+        return {
+            "id": self.id,
+            "no": self.no,
+            "url": self.url,
+            "feature": self.feature,
+            "sig": None if not self.sig else self.sig.split(','),
+            "owner": None if not self.owner else self.owner.split(','),
+            "release_to": self.release_to,
+            "pkgs": None if not self.pkgs else self.pkgs.split(','),
         }

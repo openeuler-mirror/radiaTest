@@ -12,6 +12,7 @@ from .routes import (
     DailyBuildDetail,
     WeeklybuildHealthOverview,
     WeeklybuildHealthEvent,
+    FeatureListEvent,
 )
 
 
@@ -55,4 +56,8 @@ def init_api(api: Api):
     api.add_resource(
         WeeklybuildHealthEvent,
         "/api/v1/weeklybuild/<int:weeklybuild_id>",
+    )
+    api.add_resource(
+        FeatureListEvent,
+        "/api/v1/qualityboard/<int:qualityboard_id>/feature-list"
     )

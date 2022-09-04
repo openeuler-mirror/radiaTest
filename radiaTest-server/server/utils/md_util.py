@@ -52,7 +52,7 @@ class MdUtil:
         return table_list
 
     @staticmethod
-    def get_md_tables2list(md_content):
+    def get_md_tables2list(md_content, resolver):
         """parse md table 2 python list
 
         Args:
@@ -66,79 +66,7 @@ class MdUtil:
         tables_content_list = []
         for table in table_list:
             tables_content_list.append(
-                HtmlUtil.parse_table(table)
+                resolver(table).parse_table()
             )
         return tables_content_list
 
-
-class HtmlUtil:
-    """parse html format text
-    table format as follow
-    <table>
-        <thead>
-            <tr><th>xxx</th><th>xxx</th></tr>
-        </thead>
-        <tbody>
-            <tr><td>xxx</td><td>xxx</td></tr>
-            <tr><td>xxx</td><td>xxx</td></tr>
-        </tbody>
-    </table>
-    """
-
-    @staticmethod
-    def parse_table(table_content):
-        """parse xpath table element 2 python list
-
-        Args:
-            table_content (xpath node): result of html.xpath("//table") element
-        
-        return:
-            list: [[th list],[td list 1], [td list 2]]
-        """
-        table_result = []
-        # 解析 thead
-        thead_list = table_content.xpath("thead/tr/th")
-        if not thead_list:
-            current_app.logger.debug("html content has no table info")
-            return []
-        thead_content_list = []
-        for thead in thead_list:
-            thead_content_list.append(thead.text)
-        table_result.append(thead_content_list)
-        # 解析 tbody
-        tbody_tr_list = table_content.xpath("tbody/tr")
-        for tbody_tr in tbody_tr_list:
-            td_content_list = []
-            td_list = tbody_tr.xpath("td")
-            # 渲染md过程中,该组件会将连在表格后面的内容一起转换在table标签下,对这些内容进行过滤
-            if td_list and (not HtmlUtil.parse_td_text(td_list[0])):
-                break
-            for td in td_list:
-                td_content_list.append(HtmlUtil.parse_td_text(td))
-            table_result.append(td_content_list)
-        return table_result
-
-    @staticmethod
-    def parse_td_text(td_content):
-        """parse td’s text and chile nodes' text
-
-        Args:
-            td_content (xpath node): result of html.xpath("td") element
-
-        td format as follow:
-            <td>text</td>
-            <td><a>text1</a><a>text1</a></td>
-        
-        return:
-            list: [tds' text]
-        """
-        if td_content.text:
-            return td_content.text
-        a_list = td_content.xpath("a")
-        if a_list:
-            result = []
-            for a_content in a_list:
-                if a_content.text:
-                    result.append(a_content.text) 
-            return " ".join(result)
-        return ""
