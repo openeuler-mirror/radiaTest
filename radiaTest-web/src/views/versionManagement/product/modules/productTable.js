@@ -5,7 +5,7 @@ import { QuestionCircle16Filled } from '@vicons/fluent';
 import { getProduct, getProductMessage, getMilestoneRate } from '@/api/get';
 import { createProductMessage } from '@/api/post';
 import { milestoneNext, milestoneRollback } from '@/api/put';
-import { detail,drawerShow,showPackage,testProgressList } from './productDetailDrawer';
+import { detail,drawerShow,getFeatureSummary,showPackage,testProgressList } from './productDetailDrawer';
 
 const ProductId = ref(null);
 const done = ref(false);
@@ -360,6 +360,7 @@ function getDefaultCheckNode (id) {
       .map(item => ({key: item, text: res.data[0].milestones[item].name}));
     list.value = newArr;
     tableLoading.value = false;
+    getFeatureSummary(dashboardId.value);
   }).catch(() => {
     tableLoading.value = false;
   });

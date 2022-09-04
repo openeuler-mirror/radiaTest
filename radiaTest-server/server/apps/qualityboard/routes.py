@@ -522,7 +522,7 @@ class WeeklybuildHealthEvent(Resource):
         )
 
 
-class FeatureListEvent(Resource):
+class AdditionFeatureListEvent(Resource):
     @auth.login_required
     @response_collect
     @collect_sql_error
@@ -560,4 +560,27 @@ class FeatureListEvent(Resource):
             error_code=RET.OK,
             error_msg="OK",
             data=[feature.to_json() for feature in feature_list],
+        )
+
+
+class FeatureListSummary(Resource):
+    @auth.login_required
+    @response_collect
+    def get(self, qualityboard_id):
+        qualityboard = QualityBoard.query.filter_by(id=qualityboard_id).first()
+        if not qualityboard:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="qualityboard {} not exitst".format(qualityboard_id)
+            )
+
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+            data={
+                "addition_feature_count": 0,
+                "addition_feature_rate": 0,
+                "inherit_feature_count": 0,
+                "inherit_feature_rate": 0,
+            }
         )

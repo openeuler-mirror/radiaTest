@@ -173,6 +173,7 @@ class FeatureList(db.Model, BaseModel):
     pkgs = db.Column(LONGTEXT())
     
     qualityboard_id = db.Column(db.Integer(), db.ForeignKey("qualityboard.id"))
+    task_id = db.Column(db.Integer(), db.ForeignKey("task.id"))
 
     def to_json(self):
         return {
@@ -180,8 +181,9 @@ class FeatureList(db.Model, BaseModel):
             "no": self.no,
             "url": self.url,
             "feature": self.feature,
-            "sig": None if not self.sig else self.sig.split(','),
-            "owner": None if not self.owner else self.owner.split(','),
+            "sig": None if not self.sig else self.sig.split(' '),
+            "owner": None if not self.owner else self.owner.split(' '),
             "release_to": self.release_to,
             "pkgs": None if not self.pkgs else self.pkgs.split(','),
+            "task_status": self.task.task_status.name if self.task else None,
         }
