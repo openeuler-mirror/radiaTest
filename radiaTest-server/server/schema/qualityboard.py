@@ -88,3 +88,7 @@ class FeatureListCreateSchema(BaseModel):
     owner: str
     release_to: str
     pkgs: str
+
+
+class FeatureListQuerySchema(BaseModel):
+    new: bool = True

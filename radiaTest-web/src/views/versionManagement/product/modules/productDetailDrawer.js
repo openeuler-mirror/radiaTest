@@ -1,5 +1,5 @@
 import { h,ref,watch,nextTick } from 'vue';
-import { getFeatureCompletionRates, getAdditionFeatureList, getInheritFeatureList } from '@/api/get';
+import { getFeatureCompletionRates, getFeatureList as getData } from '@/api/get';
 import { NButton, NTag, NSpace } from 'naive-ui';
 
 const detail = ref({});
@@ -138,19 +138,11 @@ function handleListClick() {
 
 function getFeatureList(qualityboardId, _type) {
   featureLoading.value = true;
-  if (_type === 'addition') {
-    getAdditionFeatureList(qualityboardId)
-      .then((res) => {
-        featureListData.value = res.data;
-      })
-      .finally(() => { featureLoading.value = false; });
-  } else {
-    getInheritFeatureList(qualityboardId)
-      .then((res) => {
-        featureListData.value = res.data;
-      })
-      .finally(() => { featureLoading.value = false; });
-  }
+  getData(qualityboardId, { new: _type === 'addition' })
+    .then((res) => {
+      featureListData.value = res.data;
+    })
+    .finally(() => { featureLoading.value = false; });
 } 
 
 function getFeatureSummary(qualityboardId) {
@@ -166,10 +158,6 @@ function getFeatureSummary(qualityboardId) {
 function cleanData() {
   featureLoading.value = false;
   featureListData.value = [];
-  additionFeatureCount.value = 0;
-  additionFeatureRate.value = 0;
-  inheritFeatureCount.value = 0;
-  inheritFeatureCount.value = 0;
 }
 
 watch(showList, () => {

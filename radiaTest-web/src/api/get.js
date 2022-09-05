@@ -183,10 +183,6 @@ export function getFeatureCompletionRates (id) {
   return getRequest(`/v1/qualityboard/${id}/feature-list/summary`);
 }
 
-export function getAdditionFeatureList (id) {
-  return getRequest(`/v1/qualityboard/${id}/feature-list/addition-features`);
-}
-
-export function getInheritFeatureList (id) {
-  return getRequest(`/v1/qualityboard/${id}/feature-list/inherit-features`);
+export function getFeatureList (id, params) {
+  return getRequest(`/v1/qualityboard/${id}/feature-list`, params);
 }
