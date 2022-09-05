@@ -179,8 +179,8 @@ const featureListColumns = [
     }
   },
   {
-    key: 'task_status',
-    title: '测试任务状态',
+    key: 'status',
+    title: '特性状态',
     className: 'feature-task-status',
   }
 ];
