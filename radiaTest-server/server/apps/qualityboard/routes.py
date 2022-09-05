@@ -42,6 +42,7 @@ from server.utils.at_utils import OpenqaATStatistic
 from server.utils.page_util import PageUtil
 from server.utils.rpm_util import RpmNameLoader
 from celeryservice.tasks import resolve_pkglist_after_resolve_rc_name
+from celeryservice.sub_tasks import update_compare_result
 
 
 class QualityBoardEvent(Resource):
@@ -648,7 +649,7 @@ class FeatureListEvent(Resource):
                 error_code=RET.NO_DATA_ERR,
                 error_msg="qualityboard {} not exitst".format(qualityboard_id)
             )
-        if not qualityboard.feature_list and qualityboard.product:
+        if qualityboard.product:
             org_id = qualityboard.product.org_id
             org = Organization.query.filter_by(id=org_id).first()
             feature_list_handler = feature_list_handlers.get(org.name)
@@ -826,16 +827,7 @@ class PackageListCompareEvent(Resource):
             milestone_group_id = milestone_group.id
 
         for result in compare_results:
-            _ = Insert(
-                RpmCompare, 
-                {
-                    "arch": result.get("arch"),
-                    "rpm_comparee": result.get("rpm_list_1"),
-                    "rpm_comparer": result.get("rpm_list_2"),
-                    "compare_result": result.get("compare_result"),
-                    "milestone_group_id": milestone_group_id,
-                }
-            ).single()
+            update_compare_result.delay(milestone_group.id, result)
 
         return jsonify(
             error_code=RET.OK,

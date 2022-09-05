@@ -162,6 +162,11 @@ task_queues = (
         exchange=Exchange("server_exchange", type="direct"),
         routing_key="pkglist",
     ),
+    Queue(
+        "queue_update_compare_result",
+        exchange=Exchange("compare_result", type="direct"),
+        routing_key="compare_result",
+    )
 )
 
 task_default_exchange_type = "direct"
