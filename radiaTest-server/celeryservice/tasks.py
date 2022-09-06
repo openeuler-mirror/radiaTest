@@ -19,8 +19,10 @@ import subprocess
 import os
 import sys
 import json
+import requests
 
 import redis
+from lxml import etree
 from flask_socketio import SocketIO
 from celery import current_app as celery
 from celery.utils.log import get_task_logger
@@ -258,3 +260,40 @@ def resolve_dailybuild_detail(self, dailybuild_id, dailybuild_detail, weekly_hea
         dailybuild_detail,
         weekly_health_id,
     )
+
+
+@celery.task
+def resolve_openeuler_pkglist(repo_url, product, build):
+    exitcode, output = subprocess.getstatusoutput(
+        "pushd scrapyspider && scrapy crawl openeuler_pkgs_list_spider "\
+            f"-a openeuler_repo_url={repo_url} "\
+            f"-a product={product} "\
+            f"-a build={build}"
+    )
+    if exitcode != 0:
+        logger.error(f"crawl openeuler's packages list of build {build} of {product} fail. Because {output}")
+    
+    logger.info(f"crawl openeuler's packages list of build {build} of {product} succeed")
+
+
+@celery.task
+def resolve_pkglist_after_resolve_rc_name(repo_url, product, _round: int = None):
+    if _round is None:
+        resolve_openeuler_pkglist.delay(
+            repo_url,
+            product,
+            product,
+        )
+    else:
+        resp = requests.get(f"{repo_url}/{product}/")
+        root_etree = etree.HTML(resp.text, parser=etree.HTMLParser(encoding="utf-8"))
+        trs_etree = root_etree.xpath("//table[@id='list']/tbody/tr")
+        for tr_etree in trs_etree:
+            rc_name = tr_etree.xpath("./td[@class='link']/a").text
+            if rc_name.startswith(f"rc{_round}"):
+                resolve_openeuler_pkglist.delay(
+                    repo_url,
+                    product,
+                    rc_name,
+                )
+                break

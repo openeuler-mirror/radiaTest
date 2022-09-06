@@ -5,7 +5,14 @@ import { QuestionCircle16Filled } from '@vicons/fluent';
 import { getProduct, getProductMessage, getMilestoneRate } from '@/api/get';
 import { createProductMessage } from '@/api/post';
 import { milestoneNext, milestoneRollback } from '@/api/put';
-import { detail,drawerShow,getFeatureSummary,showPackage,testProgressList } from './productDetailDrawer';
+import { 
+  detail,
+  drawerShow,
+  getFeatureSummary,
+  getPackageListComparationSummary,
+  showPackage,
+  testProgressList 
+} from './productDetailDrawer';
 
 const ProductId = ref(null);
 const done = ref(false);
@@ -24,6 +31,7 @@ const tableData = ref([]);
 const testList = ref([]);
 const list = ref([]);
 const currentId = ref('');
+const preId = ref('');
 const tableLoading = ref(false);
 const showModal = ref(false);
 const showCheckList = ref(false);
@@ -103,6 +111,7 @@ function handleClick(id) {
   }).catch(() => {
   });
   getTestList(id);
+  getPackageListComparationSummary(dashboardId.value);
 }
 function renderBtn (text, action, row, type = 'text') {
   return h(NButton, {
@@ -361,6 +370,7 @@ function getDefaultCheckNode (id) {
     list.value = newArr;
     tableLoading.value = false;
     getFeatureSummary(dashboardId.value);
+    getPackageListComparationSummary(dashboardId.value);
   }).catch(() => {
     tableLoading.value = false;
   });
@@ -475,6 +485,7 @@ export {
   testList,
   list,
   currentId,
+  preId,
   dashboardId,
   formRef,
   message,

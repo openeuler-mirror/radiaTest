@@ -25,7 +25,8 @@ class RpmCompareStatus(Enum):
     VER_DOWN = 2 # name same, version downgrade, ignore release change
     REL_UP = 3 # name version same, release changed
     REL_DOWN = 4 # name version same, release downgrade
-    DIFF_RPM = 100 # rpm name if diff
+    ADD = 5 # rpm packages has been added
+    DEL = 6 # rpm packages has been removed
     ERROR = 200 # unexpected compare
 
 class RpmName():
@@ -38,14 +39,29 @@ class RpmName():
     epoch = "" # rpm epoch版本信息，即spec中的Epoch字段，默认为0
     arch = "" # rpm 架构信息，即spec中的Epoch字段，根据架构由不同ok
  
-    def __init__(self, rpm_file_name) -> None:
+    def __init__(self, **kwargs) -> None:
         """_
 
         Args:
-            rpm_file_name (str): <name>-<version>-<release>.<arch>.rpm
+            - rpm_file_name (str): <name>-<version>-<release>.<arch>.rpm
+            
+            while using parsed data init a RpmName object, args belows should be provided
+            - name (str): <name>
+            - version (str): <version>
+            - release (str): <release>
+            - arch (str): <arch>
         """
-        self.file_name = rpm_file_name
-        [self.name, self.version, self.release, self.arch] = RpmName.parse_rpm_file_name(rpm_file_name)
+        if kwargs.get("rpm_file_name"):
+            self.file_name = kwargs.get("rpm_file_name")
+            [self.name, self.version, self.release, self.arch] = RpmName.parse_rpm_file_name(self.file_name)
+        elif kwargs.keys() == set(["rpm_file_name", "name", "version", "release", "arch"]):
+            self.file_name = kwargs.get("rpm_file_name")
+            self.name = kwargs.get("name")
+            self.version = kwargs.get("version")
+            self.release = kwargs.get("release")
+            self.arch = kwargs.get("arch")
+        else:
+            raise ValueError("Arguments are invalid to init a RpmName Object")
     
     def __str__(self) -> str:
         if not self.is_parsed:
@@ -98,26 +114,41 @@ class RpmName():
             return False
         return True
 
+    def to_dict(self):
+        return {
+            "name": self.name,
+            "version": self.version,
+            "release": self.release,
+            "arch": self.arch,
+            "rpm_file_name": self.file_name,
+        }
+
+
 
 class RpmNameLoader():
     @staticmethod
-    def load_rpm_from_list(rpmlist):
+    def rpmlist2rpmdict(rpmlist):
         """parse list of string <rpm name> to dict { str: [Rpname] }
 
         Args:
             rpmlist : list of rpmname [<rpm name 1>, <rpm name 2>, ...]
         
         return:
-            dict : { <rpm name 1>: [ RpmName2, RpmName2], ...}
+            dict : { <rpm name 1>.<rpm arch 1>: [ RpmName2, RpmName2], ...}
         """
         rpm_name_dict = {}
         for rpm_name in rpmlist:
-            tmp_rpm_info = RpmName(rpm_name)
+            tmp_rpm_info = RpmName(rpm_file_name=rpm_name)
             if tmp_rpm_info.is_parsed:
-                if not tmp_rpm_info.name in rpm_name_dict:
-                    rpm_name_dict[tmp_rpm_info.name] = []
-                rpm_name_dict[tmp_rpm_info.name].append(tmp_rpm_info)
+                _rpm_name_arch = f"{tmp_rpm_info.name}.{tmp_rpm_info.arch}"
+                if _rpm_name_arch not in rpm_name_dict:
+                    rpm_name_dict[_rpm_name_arch] = []
+                rpm_name_dict[_rpm_name_arch].append(tmp_rpm_info)
         return rpm_name_dict
+
+    @staticmethod
+    def get_parsed_rpmlist(rpmlist):
+        return [RpmName(rpm_file_name=_r).to_dict() for _r in rpmlist]
 
     @staticmethod
     def load_rpmlist_from_file(filepath):
@@ -137,7 +168,7 @@ class RpmNameLoader():
             lines = f.readlines()
             for line in lines:
                 rpmlist.append(line.strip())
-        return RpmNameLoader.load_rpm_from_list(rpmlist)
+        return rpmlist
 
 
 class RpmNameComparator():
@@ -151,19 +182,26 @@ class RpmNameComparator():
             rpm_info_2 (RpmName): rpm name info from class RpmName
             get_dist (bool, optional): either to . Defaults to False.
         """
-        if not (rpm_info_1.is_parsed or rpm_info_2.is_parsed):
-            current_app.logger.error("unsuported rpm name format")
-            return RpmCompareStatus.ERROR
-        if rpm_info_1.name != rpm_info_2.name:
-            return RpmCompareStatus.DIFF_RPM
-        if rpm_info_1.version == rpm_info_2.version:
-            # todo for compare dist diff
-            if rpm_info_1.release == rpm_info_2.release:
-                return RpmCompareStatus.SAME
+        if isinstance(rpm_info_1, RpmName) and isinstance(rpm_info_2, RpmName):
+            if not (rpm_info_1.is_parsed or rpm_info_2.is_parsed):
+                current_app.logger.error("unsuported rpm name format")
+                return RpmCompareStatus.ERROR
+            if rpm_info_1.version == rpm_info_2.version:
+                # todo for compare dist diff
+                if rpm_info_1.release == rpm_info_2.release:
+                    return RpmCompareStatus.SAME
+                else:
+                    if rpm_info_1.release > rpm_info_2.release:
+                        return RpmCompareStatus.REL_DOWN
+                    return RpmCompareStatus.REL_UP
             else:
-                return RpmCompareStatus.REL_DOWN if rpm_info_1.release > rpm_info_2.release else RpmCompareStatus.REL_UP 
+                return RpmCompareStatus.VER_DOWN if rpm_info_1.version > rpm_info_2.version else RpmCompareStatus.VER_UP
+        elif isinstance(rpm_info_1, RpmName):
+            return RpmCompareStatus.DEL
+        elif isinstance(rpm_info_2, RpmName):
+            return RpmCompareStatus.ADD
         else:
-            return RpmCompareStatus.VER_DOWN if rpm_info_1.version > rpm_info_2.version else RpmCompareStatus.VER_UP
+            raise ValueError("params value invalid, because one of rpm_info must a RpmName instance at least")
 
     @staticmethod
     def compare_version(ver1, ver2):
@@ -180,39 +218,29 @@ class RpmNameComparator():
 
     @staticmethod
     def compare_rpm_name(rpm_name1:str, rpm_name2:str, get_dict=False):
-        return RpmNameComparator.compare_rpm_name_cls(RpmName(rpm_name1), RpmName(rpm_name2))
+        return RpmNameComparator.compare_rpm_name_cls(
+            RpmName(rpm_file_name=rpm_name1), 
+            RpmName(rpm_file_name=rpm_name2)
+        )
 
     @staticmethod
     def compare_rpm_dict(rpmdict1, rpmdict2):
         compare_result_list = []
-        compare_result_list.append(["rpm_list_1, rpm_list_2, compare_result"])
-        for rpm_name in rpmdict1:
-            if rpm_name in rpmdict2:
-                tmp_result = RpmNameComparator.compare_rpm_name_cls(rpmdict1[rpm_name][0], rpmdict2[rpm_name][0])
-                compare_result_list.append([
-                    rpmdict1[rpm_name][0].file_name,
-                    rpmdict2[rpm_name][0].file_name,
-                    tmp_result.name
-                ])
-            else:
-                compare_result_list.append([
-                    rpmdict1[rpm_name][0].file_name,
-                    "",
-                    "1 ONLY"
-                ])
-        for rpm_name in rpmdict2:
-            if not rpm_name in rpmdict1:
-                compare_result_list.append([
-                    "",
-                    rpmdict2[rpm_name][0].file_name,
-                    "2 ONLY"
-                ])
+        for rpm_name in set(list(rpmdict1.keys()) + list(rpmdict2.keys())):
+            rpm_1 = rpmdict1.get(rpm_name)[0] if isinstance(rpmdict1.get(rpm_name), list) else None
+            rpm_2 = rpmdict2.get(rpm_name)[0] if isinstance(rpmdict2.get(rpm_name), list) else None
+            tmp_result = RpmNameComparator.compare_rpm_name_cls(rpm_1, rpm_2)
+            compare_result_list.append({
+                "rpm_list_1": rpm_1.file_name if rpm_1 else '',
+                "rpm_list_2": rpm_2.file_name if rpm_2 else '',
+                "compare_result": tmp_result.name
+            })
         return compare_result_list
 
 
 def parse_rpm_name(args):
     rpm_name = args.rpmname
-    rpm_name_info = RpmName(rpm_name)
+    rpm_name_info = RpmName(rpm_file_name=rpm_name)
     current_app.logger.debug(f"{str(rpm_name_info)}")
     return rpm_name_info
 

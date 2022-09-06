@@ -2,7 +2,7 @@ from math import floor
 import subprocess
 
 import redis
-from flask import jsonify, current_app
+from flask import jsonify, current_app, request
 from flask_restful import Resource
 from flask_pydantic import validate
 from sqlalchemy import func
@@ -22,17 +22,19 @@ from server.utils.db import Delete, Edit, Select, Insert, collect_sql_error
 from server.schema.base import PageBaseSchema
 from server.schema.qualityboard import (
     FeatureListQuerySchema,
+    PackageListQuerySchema,
     QualityBoardSchema,
     AddChecklistSchema,
     UpdateChecklistSchema,
     QueryChecklistSchema,
     ATOverviewSchema,
-    FeatureListCreateSchema,
 )
-from server.apps.qualityboard.handlers import ChecklistHandler, feature_list_handlers
+from server.apps.qualityboard.handlers import ChecklistHandler, PackageListHandler, feature_list_handlers
 from server.utils.shell import add_escape
 from server.utils.at_utils import OpenqaATStatistic
 from server.utils.page_util import PageUtil
+from server.utils.rpm_util import RpmNameLoader
+from celeryservice.tasks import resolve_pkglist_after_resolve_rc_name
 
 
 class QualityBoardEvent(Resource):
@@ -70,6 +72,13 @@ class QualityBoardEvent(Resource):
 
         qualityboard = QualityBoard(product_id=body.product_id, iteration_version=iteration_version)
         qualityboard.add_update()
+
+        # 启动爬取正式发布版本的软件包清单
+        resolve_pkglist_after_resolve_rc_name.delay(
+            repo_url=current_app.config.get("OPENEULER_DAILYBUILD_REPO_URL"),
+            product=f"{_p.name}-{_p.version}",
+        )
+
         return jsonify(
             error_code=RET.OK,
             error_msg="OK.",
@@ -124,6 +133,14 @@ class QualityBoardItemEvent(Resource):
         
         qualityboard.iteration_version = iteration_version
         qualityboard.add_update()
+
+        # 启动爬取对应迭代版本的软件包清单
+        resolve_pkglist_after_resolve_rc_name.delay(
+            repo_url=current_app.config.get("OPENEULER_DAILYBUILD_REPO_URL"),
+            product=f"{milestone.product.name}-{milestone.product.version}",
+            round=len(qualityboard.iteration_version.split('->')),
+        )
+
         return jsonify(
             error_code=RET.OK,
             error_msg="OK.",
@@ -617,4 +634,76 @@ class FeatureListSummary(Resource):
                 "inherit_feature_count": inherit_feature_count,
                 "inherit_feature_rate": inherit_feature_rate,
             }
+        )
+
+
+class PackageListEvent(Resource):
+    @auth.login_required
+    @response_collect
+    @validate()
+    def get(self, qualityboard_id, milestone_id, query: PackageListQuerySchema):
+        try:
+            handler = PackageListHandler(
+                qualityboard_id, 
+                milestone_id,
+            )
+        except RuntimeError as e:
+            return jsonify(
+                error_code=RET.RUNTIME_ERROR,
+                error_msg=str(e),
+            )
+        except ValueError as e:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg=str(e),
+            )
+
+        _pkgs = handler.packages
+        if query.summary:
+            return jsonify(
+                error_code=RET.OK,
+                error_msg="OK",
+                data={
+                    "name": handler.milestone.name,
+                    "size": len(_pkgs)
+                },
+            )
+        
+        return_data = RpmNameLoader.get_parsed_rpmlist(_pkgs)
+        return jsonify(
+           error_code=RET.OK,
+           error_msg="OK",
+           data=return_data, 
+        )
+
+
+class PackageListCompareEvent(Resource):
+    @auth.login_required
+    @response_collect
+    @validate()
+    def get(self, qualityboard_id, milestone_id, comparee_milestone_id):
+        try:
+            handler1 = PackageListHandler(
+                qualityboard_id, 
+                milestone_id,
+            )
+            handler2 = PackageListHandler(
+                qualityboard_id, 
+                comparee_milestone_id,
+            )
+        except RuntimeError as e:
+            return jsonify(
+                error_code=RET.RUNTIME_ERROR,
+                error_msg=str(e),
+            )
+        except ValueError as e:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg=str(e),
+            )
+
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+            data=handler1.compare(handler2.packages)
         )

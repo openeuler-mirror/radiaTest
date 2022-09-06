@@ -150,8 +150,18 @@ task_queues = (
     Queue(
         "queue_resolve_dailybuild",
         exchange=Exchange("server_exchange", type="direct"),
-        routing_key="set",
-    )
+        routing_key="dailybuild",
+    ),
+    Queue(
+        "queue_resolve_pkglist_after_resolve_rc_name",
+        exchange=Exchange("server_exchange", type="direct"),
+        routing_key="rc_name",
+    ),
+    Queue(
+        "queue_resolve_openeuler_pkglist",
+        exchange=Exchange("server_exchange", type="direct"),
+        routing_key="pkglist",
+    ),
 )
 
 task_default_exchange_type = "direct"

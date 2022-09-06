@@ -247,7 +247,7 @@
                 }"
               >
                 <div
-                  style="display:flex;justify-content:space-around;height:100%;background:white;"
+                  style="display:flex;justify-content:space-evenly;height:100%;background:white;"
                   @click="handleListClick"
                   class="card"
                   v-if="!showList"
@@ -305,7 +305,9 @@
               <n-card
                 class="cardbox inout-animated"
                 v-if="!showList"
-                :style="{height:showPackage?'auto':''}"
+                :style="{
+                  height: showPackage ? 'auto' : '',
+                }"
                 :bordered="false"
                 title="软件包变更"
               >
@@ -316,10 +318,6 @@
                 </template>
                 <div
                   class="transitionBox"
-                  :style="{
-                    width:
-                      showPackage === false ? '100%' : packageWidth + 'px',
-                  }"
                 >
                   <div
                     style="display:flex;justify-content:space-around;height:100%;"
@@ -334,7 +332,10 @@
                         <p>{{ oldPackage.name }}</p>
                       </div>
                       <div class="package-middle">
-                        <p style="font-size: 15px;">+{{ newPackage.size - oldPackage.size }}</p>
+                        <p style="font-size: 15px;margin-top: 0px;">
+                          <span>{{ newPackage.size - oldPackage.size > 0 ? '+' : '-' }}</span>
+                          <span>{{ newPackage.size - oldPackage.size }}</span>
+                        </p>
                         <n-icon size="20" color="green">
                           <DoubleArrowFilled />
                         </n-icon>
@@ -347,7 +348,7 @@
                       </div>
                     </div>
                   </div>
-                  <div v-if="showPackage" style="width: 826px;">
+                  <div v-if="showPackage">
                     <div class="packageCard">
                       <div class="package-left">
                         <n-h3>
@@ -356,7 +357,10 @@
                         <p>{{ oldPackage.name }}</p>
                       </div>
                       <div class="package-middle">
-                        <p>+{{ newPackage.size - oldPackage.size }}</p>
+                        <p style="margin-top: 0px;">
+                          <span>{{ newPackage.size - oldPackage.size > 0 ? '+' : '-' }}</span>
+                          <span>{{ newPackage.size - oldPackage.size }}</span>
+                        </p>
                         <n-icon color="green">
                           <DoubleArrowFilled />
                         </n-icon>
@@ -368,7 +372,11 @@
                         <p>{{ newPackage.name }}</p>
                       </div>
                     </div>
-                    <n-data-table />
+                    <package-table 
+                      :qualityboard-id="dashboardId"
+                      :milestone-pre-id="preId"
+                      :milestone-cur-id="currentId"
+                    />
                   </div>
                 </div>
               </n-card>
@@ -492,6 +500,7 @@ import testProgress from '@/components/productDrawer/testProgress.vue';
 import qualityProtect from '@/components/productDrawer/qualityProtect.vue';
 import FeatureTable from '@/components/productDrawer/FeatureTable.vue';
 import filterButton from '@/components/filter/filterButton.vue';
+import PackageTable from '@/components/productDrawer/PackageTable.vue';
 
 export default {
   components: {
@@ -510,6 +519,7 @@ export default {
     qualityProtect,
     QuestionCircle16Filled,
     FeatureTable,
+    PackageTable,
   },
   data() {
     return {

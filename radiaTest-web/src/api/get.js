@@ -186,3 +186,14 @@ export function getFeatureCompletionRates (id) {
 export function getFeatureList (id, params) {
   return getRequest(`/v1/qualityboard/${id}/feature-list`, params);
 }
+
+export function getPackageListComparationSummary (qualityboardId, milestoneId, params) {
+  return getRequest(`/v1/qualityboard/${qualityboardId}/milestone/${milestoneId}/packages`, params);
+}
+
+export function getPackageListComparationDetail (qualityboardId, milestonePreId, milestoneCurId, params) {
+  return getRequest(
+    `/v1/qualityboard/${qualityboardId}/compare/${milestonePreId}/with/${milestoneCurId}/packages`, 
+    params
+  );
+}
