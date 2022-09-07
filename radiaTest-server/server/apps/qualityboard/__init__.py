@@ -11,6 +11,7 @@ from .routes import (
     QualityDefendEvent,
     ChecklistEvent,
     ChecklistItem,
+    ChecklistRoundsCountEvent,
     DailyBuildOverview,
     DailyBuildDetail,
     WeeklybuildHealthOverview,
@@ -43,6 +44,10 @@ def init_api(api: Api):
     api.add_resource(
         ChecklistEvent,
         "/api/v1/checklist",
+    )
+    api.add_resource(
+        ChecklistRoundsCountEvent,
+        "/api/v1/checklist/rounds-count/<int:product_id>",
     )
     api.add_resource(
         DailyBuildOverview,

@@ -13,9 +13,14 @@ class QualityBoard(BaseModel, db.Model):
 
     id = db.Column(db.Integer(), primary_key=True)
     iteration_version = db.Column(db.String(256), nullable=True)
-    product_id = db.Column(db.Integer(), db.ForeignKey("product.id"), nullable=True)
+    released = db.Column(db.Boolean(), default=False)
+    product_id = db.Column(
+        db.Integer(), db.ForeignKey("product.id"), nullable=True
+    )
 
-    feature_list = db.relationship('FeatureList', backref="qualityboard", cascade="all, delete")
+    feature_list = db.relationship(
+        'FeatureList', backref="qualityboard", cascade="all, delete"
+    )
 
     def get_current_version(self):
         vers = None
@@ -43,6 +48,7 @@ class QualityBoard(BaseModel, db.Model):
             "product_id": self.product_id,
             "iteration_version": self.iteration_version,
             "milestones": self.get_milestones(),
+            "released": self.released,
             "current_milestone_id": current_milestone_id,
             "current_milestone_issue_solved_rate": _isr.to_json() if _isr else {},
         }
@@ -50,14 +56,15 @@ class QualityBoard(BaseModel, db.Model):
 
 class Checklist(db.Model, BaseModel):
     __tablename__ = "checklist"
-
     id = db.Column(db.Integer(), primary_key=True, autoincrement=True)
     check_item = db.Column(db.String(50), nullable=False, unique=True)
     baseline = db.Column(db.String(50))
-    rounds = db.Column(db.String(128), default=False)
+    rounds = db.Column(db.String(128))
     lts = db.Column(db.Boolean(), default=False)
     lts_spx = db.Column(db.Boolean(), default=False)
     innovation = db.Column(db.Boolean(), default=False)
+    operation = db.Column(db.Enum("<", ">", "=", "<=", ">="))
+    product_id = db.Column(db.Integer(), db.ForeignKey("product.id"))
 
     def to_json(self):
         return {
@@ -68,6 +75,8 @@ class Checklist(db.Model, BaseModel):
             'lts': self.lts,
             'lts_spx': self.lts_spx,
             'innovation': self.innovation,
+            "operation": self.operation,
+            "product_id": self.product_id,
             'create_time': self.create_time.strftime("%Y-%m-%d %H:%M:%S"),
             'update_time': self.update_time.strftime("%Y-%m-%d %H:%M:%S")
         }
@@ -83,7 +92,9 @@ class DailyBuild(db.Model, BaseModel):
     at_passed = db.Column(db.Boolean(), default=False)
 
     product_id = db.Column(db.Integer(), db.ForeignKey("product.id"))
-    weekly_health_id = db.Column(db.Integer(), db.ForeignKey("weekly_health.id"))
+    weekly_health_id = db.Column(
+        db.Integer(), db.ForeignKey("weekly_health.id")
+    )
 
     def set_at_passed(self, pool, arches):
         _client = redis.StrictRedis(connection_pool=pool)
@@ -107,7 +118,7 @@ class DailyBuild(db.Model, BaseModel):
             "completion": self.completion,
             "product_id": self.product_id
         }
-    
+
     def to_health_json(self, pool, arches):
         self.set_at_passed(pool, arches)
         return {
@@ -138,7 +149,7 @@ class WeeklyHealth(db.Model, BaseModel):
             if record.completion == 100:
                 build_record_success += 1
             at_record_success += record.at_passed
-        
+
         return {
             "health_rate": floor(
                 at_record_success / build_record_total * 100
@@ -169,11 +180,11 @@ class FeatureList(db.Model, BaseModel):
     feature = db.Column(db.String(512), nullable=False)
     sig = db.Column(db.String(50))
     owner = db.Column(LONGTEXT())
-    release_to = db.Column(db.String(50)) 
+    release_to = db.Column(db.String(50))
     pkgs = db.Column(LONGTEXT())
     is_new = db.Column(db.Boolean(), nullable=False, default=True)
     done = db.Column(db.Boolean(), nullable=False, default=False)
-    
+
     qualityboard_id = db.Column(db.Integer(), db.ForeignKey("qualityboard.id"))
     task_id = db.Column(db.Integer(), db.ForeignKey("task.id"))
 

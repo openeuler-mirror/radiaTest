@@ -2,16 +2,25 @@ import json
 import re
 from typing import List, Optional
 
-from pydantic import BaseModel, HttpUrl, validator
+from pydantic import BaseModel, HttpUrl, validator, root_validator
 
-from server.schema import Frame, SortOrder
+from server.schema import Operation, SortOrder
 
 
 from server.schema.base import PageBaseSchema
 
 
 class QualityBoardUpdateSchema(BaseModel):
-    milestone_id: int
+    milestone_id: int = None
+    released: bool = False
+
+    @root_validator
+    def check_values(cls, values):
+        if values.get("released") is True and not values.get("milestone_id"):
+            raise ValueError(
+                "when released is true, milestone_id can not be null."
+            )
+        return values
 
 
 class QualityBoardSchema(BaseModel):
@@ -19,24 +28,19 @@ class QualityBoardSchema(BaseModel):
 
 
 class CheckRound(BaseModel):
-    rounds: dict = None
+    rounds: str = None
 
     @validator("rounds")
     def check_rounds(cls, rounds):
         if rounds:
-            for key, value in rounds.items():
-                pattern = re.compile(r"^R[1-9]\d*$")
-                if not pattern.findall(key):
-                    raise ValueError("rounds key error! key should be like Rx")
-                if value not in [0, 1]:
-                    raise ValueError("rounds value error! value should be 0 or 1")
-            round_keys = list(rounds.keys())
-
-            for i in range(0, len(round_keys) - 1):
-                if int(round_keys[i + 1].strip('R')) - int(round_keys[i].strip('R')) != 1:
-                    raise ValueError("rounds not in correct order!")
-
-        return str(rounds)
+            pattern = re.compile(r"^[0,1]*1$")
+            if len(rounds) == 1:
+                pattern = re.compile(r"^[0,1]$")
+            if not pattern.findall(rounds):
+                raise ValueError(
+                    "rounds can only contain 1 and 0, when length of round is bigger than 1, rounds must ends with 1."
+                )
+        return rounds
 
 
 class CheckBaseline(BaseModel):
@@ -59,10 +63,12 @@ class CheckBaseline(BaseModel):
 
 class AddChecklistSchema(CheckRound, CheckBaseline):
     check_item: str
-    rounds: dict
+    rounds: str = "0"
     lts: bool = False
     lts_spx: bool = False
     innovation: bool = False
+    product_id: int
+    operation: Operation = None
 
 
 class UpdateChecklistSchema(CheckRound, CheckBaseline):
@@ -70,10 +76,12 @@ class UpdateChecklistSchema(CheckRound, CheckBaseline):
     lts: bool = None
     lts_spx: bool = None
     innovation: bool = None
+    operation: Operation = None
 
 
 class QueryChecklistSchema(PageBaseSchema):
     check_item: str = None
+    product_id: int = None
 
 
 class ATOverviewSchema(PageBaseSchema):

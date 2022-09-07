@@ -17,6 +17,9 @@ from server.model.qualityboard import (
     Checklist, 
     DailyBuild,
     RpmCompare, 
+    QualityBoard,
+    Checklist,
+    DailyBuild,
     WeeklyHealth,
     FeatureList,
 )
@@ -27,6 +30,7 @@ from server.schema.qualityboard import (
     PackageCompareQuerySchema,
     PackageListQuerySchema,
     QualityBoardSchema,
+    QualityBoardUpdateSchema,
     AddChecklistSchema,
     UpdateChecklistSchema,
     QueryChecklistSchema,
@@ -49,7 +53,8 @@ class QualityBoardEvent(Resource):
         if _db:
             return jsonify(
                 error_code=RET.DATA_EXIST_ERR,
-                error_msg="qualityboard for product {} exist".format(body.product_id)
+                error_msg="qualityboard for product {} exist".format(
+                    body.product_id)
             )
         _p = Product.query.filter_by(id=body.product_id).first()
         if not _p:
@@ -57,23 +62,20 @@ class QualityBoardEvent(Resource):
                 error_code=RET.NO_DATA_ERR,
                 error_msg="product {} not exist".format(body.product_id)
             )
-        milestones = Milestone.query.filter_by(
+        milestone = Milestone.query.filter_by(
             product_id=body.product_id,
             type="round",
             is_sync=True
-        ).order_by(Milestone.start_time.asc()).all()
-        if not milestones:
+        ).order_by(Milestone.start_time.asc()).first()
+        if not milestone:
             return jsonify(
                 error_code=RET.NO_DATA_ERR,
-                error_msg="qualityboard cannot be created， because the iteration of the product does not exist."
+                error_msg="qualityboard cannot be created, because the iteration of the product does not exist."
             )
-        iteration_version = ""
-        for _m in milestones:
-            iteration_version = iteration_version + "->" + str(_m.id)
-        if len(iteration_version) > 0:
-            iteration_version = iteration_version[2:]
+        iteration_version = str(milestone.id)
 
-        qualityboard = QualityBoard(product_id=body.product_id, iteration_version=iteration_version)
+        qualityboard = QualityBoard(
+            product_id=body.product_id, iteration_version=iteration_version)
         qualityboard.add_update()
 
         # 启动爬取正式发布版本的软件包清单
@@ -87,12 +89,12 @@ class QualityBoardEvent(Resource):
             error_msg="OK.",
             data=qualityboard.to_json()
         )
-    
+
     @auth.login_required()
     @validate()
     def get(self, query: QualityBoardSchema):
         return Select(QualityBoard, query.__dict__).precise()
-    
+
     @auth.login_required()
     @response_collect
     @validate()
@@ -103,37 +105,57 @@ class QualityBoardEvent(Resource):
 class QualityBoardItemEvent(Resource):
     @auth.login_required()
     @response_collect
-    def put(self, qualityboard_id):
+    @validate()
+    def put(self, qualityboard_id, body: QualityBoardUpdateSchema):
         qualityboard = QualityBoard.query.filter_by(id=qualityboard_id).first()
         if not qualityboard:
             return jsonify(
                 error_code=RET.NO_DATA_ERR,
                 error_msg="qualityboard {} not exitst".format(qualityboard_id)
             )
-
-        milestones = Milestone.query.filter_by(
-            product_id=qualityboard.product_id,
-            type="round",
-            is_sync=True
-            ).order_by(Milestone.start_time.asc()).all()
         milestone = None
-        for _m in milestones:
-            if str(_m.id) in qualityboard.iteration_version:
-                continue
-            else:
-                milestone = _m
-                break
-        if not milestone:
-            return jsonify(
-                error_code=RET.NO_DATA_ERR,
-                error_msg="there is no milestone for next itration."
-            )
+        if body.released:
+            milestone = Milestone.query.filter_by(
+                product_id=qualityboard.product_id,
+                type="release",
+                is_sync=True,
+                id=body.milestone_id
+            ).order_by(Milestone.start_time.asc()).first()
+            if not milestone:
+                return jsonify(
+                    error_code=RET.NO_DATA_ERR,
+                    error_msg="the released milestone does not exist."
+                )
+            if qualityboard.iteration_version == "":
+                return jsonify(
+                    error_code=RET.NO_DATA_ERR,
+                    error_msg="the product cannot be released because the itration has not ended."
+                )
+        else:
+            milestones = Milestone.query.filter_by(
+                product_id=qualityboard.product_id,
+                type="round",
+                is_sync=True
+            ).order_by(Milestone.start_time.asc()).all()
+
+            for _m in milestones:
+                if str(_m.id) in qualityboard.iteration_version:
+                    continue
+                else:
+                    milestone = _m
+                    break
+            if not milestone:
+                return jsonify(
+                    error_code=RET.NO_DATA_ERR,
+                    error_msg="there is no milestone for next itration."
+                )
         iteration_version = ""
         if qualityboard.iteration_version == "":
             iteration_version = str(milestone.id)
         else:
-            iteration_version = qualityboard.iteration_version + "->" + str(milestone.id)
-        
+            iteration_version = qualityboard.iteration_version + \
+                "->" + str(milestone.id)
+
         qualityboard.iteration_version = iteration_version
         qualityboard.add_update()
 
@@ -161,7 +183,7 @@ class QualityBoardDeleteVersionEvent(Resource):
                 error_code=RET.NO_DATA_ERR,
                 error_msg="qualityboard {} not exitst".format(qualityboard_id)
             )
-        
+
         if qualityboard.iteration_version == "":
             return jsonify(
                 error_code=RET.NO_DATA_ERR,
@@ -170,12 +192,15 @@ class QualityBoardDeleteVersionEvent(Resource):
         iteration_version = ""
         _versions = qualityboard.iteration_version.split("->")
         if len(_versions) > 1:
-            iteration_version = qualityboard.iteration_version.replace("->"+_versions[-1], "")
+            iteration_version = qualityboard.iteration_version.replace(
+                "->"+_versions[-1], "")
+        if iteration_version == "":
+            return Delete(QualityBoard, {"id": qualityboard_id}).single()
         _body = {
             "id": qualityboard_id,
-            "iteration_version":iteration_version
-            }
-    
+            "iteration_version": iteration_version
+        }
+
         return Edit(QualityBoard, _body).single()
 
 
@@ -190,6 +215,13 @@ class ChecklistItem(Resource):
     @response_collect
     @validate()
     def put(self, checklist_id, body: UpdateChecklistSchema):
+        if body.check_item:
+            _cl = Checklist.query.filter_by(check_item=body.check_item).first()
+            if _cl and _cl.id != checklist_id:
+                return jsonify(
+                    error_code=RET.DB_DATA_ERR,
+                    error_msg="Checklist {} has existed".format(body.check_item)
+                )
         _body = {
             **body.__dict__,
             "id": checklist_id,
@@ -215,7 +247,41 @@ class ChecklistEvent(Resource):
     @response_collect
     @validate()
     def post(self, body: AddChecklistSchema):
+        _cl = Checklist.query.filter_by(check_item=body.check_item).first()
+        if _cl:
+            return jsonify(
+                error_code=RET.DB_DATA_ERR,
+                error_msg="Checklist {} has existed".format(body.check_item)
+            )
+        _p = Product.query.filter_by(id=body.product_id).first()
+        if not _p:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="product {} not exist".format(body.product_id)
+            )
         return Insert(Checklist, body.__dict__).single(Checklist, "/checklist")
+
+
+class ChecklistRoundsCountEvent(Resource):
+    @auth.login_required()
+    @response_collect
+    def get(self, product_id):
+        _p = Product.query.filter_by(id=product_id).first()
+        if not _p:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="product {} not exist".format(product_id)
+            )
+        count = None
+        _cl = db.session.query(func.max(func.length(Checklist.rounds)).label("count")).filter_by(
+            product_id=product_id).first()
+        if _cl:
+            count = _cl.count
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+            count=count
+        )
 
 
 class ATOverview(Resource):
@@ -233,10 +299,12 @@ class ATOverview(Resource):
         product_name = f"{product.name}-{product.version}"
 
         scrapyspider_pool = redis.ConnectionPool.from_url(
-            current_app.config.get("SCRAPYSPIDER_BACKEND"), 
+            current_app.config.get("SCRAPYSPIDER_BACKEND"),
             decode_responses=True
         )
-        scrapyspider_redis_client = redis.StrictRedis(connection_pool=scrapyspider_pool)
+        scrapyspider_redis_client = redis.StrictRedis(
+            connection_pool=scrapyspider_pool
+        )
 
         openqa_url = current_app.config.get("OPENQA_URL")
 
@@ -245,9 +313,9 @@ class ATOverview(Resource):
 
         if not query.build_name:
             builds_list = scrapyspider_redis_client.zrange(
-                product_name, 
-                _start, 
-                _end, 
+                product_name,
+                _start,
+                _end,
                 desc=query.build_order == "descend",
             )
 
@@ -260,20 +328,22 @@ class ATOverview(Resource):
                     total_num=0
                 )
 
-            _tests_overview_url = scrapyspider_redis_client.get(f"{product_name}_{builds_list[0]}_tests_overview_url")
-            
+            _tests_overview_url = scrapyspider_redis_client.get(
+                f"{product_name}_{builds_list[0]}_tests_overview_url"
+            )
+
             # positively sync crawl latest data from openqa of latest build
             exitcode, output = subprocess.getstatusoutput(
-                "pushd scrapyspider && scrapy crawl openqa_tests_overview_spider "\
-                    f"-a product_build={product_name}_{builds_list[0]} "\
-                    f"-a openqa_url={openqa_url} "\
-                    f"-a tests_overview_url={add_escape(_tests_overview_url)}"
+                "pushd scrapyspider && scrapy crawl openqa_tests_overview_spider "
+                f"-a product_build={product_name}_{builds_list[0]} "
+                f"-a openqa_url={openqa_url} "
+                f"-a tests_overview_url={add_escape(_tests_overview_url)}"
             )
             if exitcode != 0:
                 current_app.logger.error(
                     f"crawl latest tests overview data of {product_name}_{builds_list[0]} fail. Because {output}"
                 )
-            
+
             return_data = list(
                 map(
                     lambda build: OpenqaATStatistic(
@@ -294,30 +364,38 @@ class ATOverview(Resource):
                 data=return_data,
                 total_num=scrapyspider_redis_client.zcard(product_name)
             )
-        
+
         else:
             product_build = f"{product_name}_{query.build_name}"
-            tests_overview_url = scrapyspider_redis_client.get(f"{product_build}_tests_overview_url")
+            tests_overview_url = scrapyspider_redis_client.get(
+                f"{product_build}_tests_overview_url"
+            )
 
             # positively crawl latest data from openqa of pointed build
             exitcode, output = subprocess.getstatusoutput(
-                "pushd scrapyspider && scrapy crawl openqa_tests_overview_spider "\
-                    f"-a product_build={product_build} "\
-                    f"-a openqa_url={openqa_url} "\
-                    f"-a tests_overview_url={add_escape(tests_overview_url)}"
+                "pushd scrapyspider && scrapy crawl openqa_tests_overview_spider "
+                f"-a product_build={product_build} "
+                f"-a openqa_url={openqa_url} "
+                f"-a tests_overview_url={add_escape(tests_overview_url)}"
             )
             if exitcode != 0:
-                current_app.logger.error(f"crawl latest tests overview data of {product_build} fail. Because {output}")
-            
-            current_app.logger.info(f"crawl latest tests overview data of product {product_build} succeed")
+                current_app.logger.error(
+                    f"crawl latest tests overview data of {product_build} fail. Because {output}"
+                )
+
+            current_app.logger.info(
+                f"crawl latest tests overview data of product {product_build} succeed"
+            )
 
             at_statistic = OpenqaATStatistic(
-                arches=current_app.config.get("SUPPORTED_ARCHES", ["aarch64", "x86_64"]),
+                arches=current_app.config.get(
+                    "SUPPORTED_ARCHES", ["aarch64", "x86_64"]
+                ),
                 product=product_name,
                 build=query.build_name,
                 redis_client=scrapyspider_redis_client
             )
-            
+
             scrapyspider_pool.disconnect()
 
             return jsonify(
@@ -341,16 +419,20 @@ class QualityDefendEvent(Resource):
         product = qualityboard.product
 
         product_name = f"{product.name}-{product.version}"
-        _arches = current_app.config.get("SUPPORTED_ARCHES", ["aarch64", "x86_64"])
+        _arches = current_app.config.get(
+            "SUPPORTED_ARCHES", ["aarch64", "x86_64"]
+        )
 
         scrapyspider_pool = redis.ConnectionPool.from_url(
-            current_app.config.get("SCRAPYSPIDER_BACKEND"), 
+            current_app.config.get("SCRAPYSPIDER_BACKEND"),
             decode_responses=True
         )
-        scrapyspider_redis_client = redis.StrictRedis(connection_pool=scrapyspider_pool)
+        scrapyspider_redis_client = redis.StrictRedis(
+            connection_pool=scrapyspider_pool
+            )
 
         latest_dailybuild = DailyBuild.query.filter(
-            DailyBuild.product_id==product.id
+            DailyBuild.product_id == product.id
         ).order_by(
             DailyBuild.create_time.desc()
         ).first()
@@ -363,7 +445,7 @@ class QualityDefendEvent(Resource):
         _health_rate = None
         if latest_weekly_health:
             _health_rate = latest_weekly_health.get_statistic(
-                scrapyspider_pool, 
+                scrapyspider_pool,
                 _arches
             ).get("health_rate")
 
@@ -376,9 +458,9 @@ class QualityDefendEvent(Resource):
         openqa_url = current_app.config.get("OPENQA_URL")
 
         _builds = scrapyspider_redis_client.zrange(
-            product_name, 
-            0, 
-            0, 
+            product_name,
+            0,
+            0,
             desc=True,
         )
         if not _builds:
@@ -388,22 +470,24 @@ class QualityDefendEvent(Resource):
                 error_msg="OK",
                 data={"at_statistic": {}}
             )
-        
+
         latest_build = _builds[0]
-        _tests_overview_url = scrapyspider_redis_client.get(f"{product_name}_{latest_build}_tests_overview_url")
-            
+        _tests_overview_url = scrapyspider_redis_client.get(
+            f"{product_name}_{latest_build}_tests_overview_url"
+        )
+
         # positively sync crawl latest data from openqa of latest build
         exitcode, output = subprocess.getstatusoutput(
-            "pushd scrapyspider && scrapy crawl openqa_tests_overview_spider "\
-                f"-a product_build={product_name}_{latest_build} "\
-                f"-a openqa_url={openqa_url} "\
-                f"-a tests_overview_url={add_escape(_tests_overview_url)}"
+            "pushd scrapyspider && scrapy crawl openqa_tests_overview_spider "
+            f"-a product_build={product_name}_{latest_build} "
+            f"-a openqa_url={openqa_url} "
+            f"-a tests_overview_url={add_escape(_tests_overview_url)}"
         )
         if exitcode != 0:
             current_app.logger.error(
                 f"crawl latest tests overview data of {product_name}_{latest_build} fail. Because {output}"
             )
-        
+
         at_statistic = OpenqaATStatistic(
             arches=_arches,
             product=product_name,
@@ -434,18 +518,20 @@ class DailyBuildOverview(Resource):
             return jsonify(
                 error_code=RET.NO_DATA_ERR,
                 error_msg="qualityboard {} not exitst".format(qualityboard_id)
-            ) 
+            )
         query_filter = DailyBuild.query.filter(
             DailyBuild.product_id == qualityboard.product.id
         ).order_by(
             DailyBuild.create_time.desc()
         )
-        
+
         def page_func(item):
             qualityboard_dict = item.to_json()
             return qualityboard_dict
 
-        page_dict, e = PageUtil.get_page_dict(query_filter, query.page_num, query.page_size, func=page_func)
+        page_dict, e = PageUtil.get_page_dict(
+            query_filter, query.page_num, query.page_size, func=page_func
+        )
         if e:
             return jsonify(error_code=RET.SERVER_ERR, error_msg=f'get dailybuild page error {e}')
         return jsonify(error_code=RET.OK, error_msg="OK", data=page_dict)
@@ -461,7 +547,7 @@ class DailyBuildDetail(Resource):
                 error_code=RET.NO_DATA_ERR,
                 error_msg="build {} not exitst".format(dailybuild_id)
             )
-        
+
         return jsonify(
             error_code=RET.OK,
             error_msg="OK",
@@ -490,23 +576,25 @@ class WeeklybuildHealthOverview(Resource):
         )
 
         _pool = redis.ConnectionPool.from_url(
-            current_app.config.get("SCRAPYSPIDER_BACKEND"), 
+            current_app.config.get("SCRAPYSPIDER_BACKEND"),
             decode_responses=True
         )
-        arches = current_app.config.get("SUPPORTED_ARCHES", ["aarch64", "x86_64"])
-        
+        arches = current_app.config.get(
+            "SUPPORTED_ARCHES", ["aarch64", "x86_64"])
+
         def page_func(item):
             weeklybuild_dict = item.to_json(_pool, arches)
             # 临时返回值
             weeklybuild_dict["health_baseline"] = 100
             return weeklybuild_dict
 
-        page_dict, e = PageUtil.get_page_dict(query_filter, query.page_num, query.page_size, func=page_func)
+        page_dict, e = PageUtil.get_page_dict(
+            query_filter, query.page_num, query.page_size, func=page_func)
         _pool.disconnect()
         if e:
             return jsonify(error_code=RET.SERVER_ERR, error_msg=f'get health of weeklybuild page error {e}')
         return jsonify(error_code=RET.OK, error_msg="OK", data=page_dict)
-        
+
 
 class WeeklybuildHealthEvent(Resource):
     @auth.login_required()
@@ -527,13 +615,15 @@ class WeeklybuildHealthEvent(Resource):
             )
 
         scrapyspider_pool = redis.ConnectionPool.from_url(
-            current_app.config.get("SCRAPYSPIDER_BACKEND"), 
+            current_app.config.get("SCRAPYSPIDER_BACKEND"),
             decode_responses=True
         )
-        arches = current_app.config.get("SUPPORTED_ARCHES", ["aarch64", "x86_64"])
+        arches = current_app.config.get(
+            "SUPPORTED_ARCHES", ["aarch64", "x86_64"]
+        )
         return_data = [
             record.to_health_json(
-                scrapyspider_pool, 
+                scrapyspider_pool,
                 arches
             ) for record in weekly_health.daily_records
         ]
@@ -564,10 +654,12 @@ class FeatureListEvent(Resource):
             feature_list_handler = feature_list_handlers.get(org.name)
             if not feature_list_handler:
                 feature_list_handler = feature_list_handlers.get("default")
-            
+
             handler = feature_list_handler(FeatureList)
             if query.new:
-                md_content = handler.get_md_content(f"{qualityboard.product.name}-{qualityboard.product.version}")
+                md_content = handler.get_md_content(
+                    f"{qualityboard.product.name}-{qualityboard.product.version}"
+                )
                 if not md_content:
                     return jsonify(
                         error_code=RET.NO_DATA_ERR,
@@ -583,7 +675,9 @@ class FeatureListEvent(Resource):
                 # 社区暂未统一继承特性的定义
                 pass
 
-        feature_list = FeatureList.query.filter_by(qualityboard_id=qualityboard_id, is_new=query.new).all()
+        feature_list = FeatureList.query.filter_by(
+            qualityboard_id=qualityboard_id, is_new=query.new
+        ).all()
         return jsonify(
             error_code=RET.OK,
             error_msg="OK",
@@ -603,30 +697,34 @@ class FeatureListSummary(Resource):
             )
 
         addition_feature_count = db.session.query(func.count(FeatureList.id)).filter_by(
-            qualityboard_id=qualityboard_id, 
+            qualityboard_id=qualityboard_id,
             is_new=True
         ).scalar()
         _addition_feature_finish_count = db.session.query(func.count(FeatureList.id)).filter_by(
-            qualityboard_id=qualityboard_id, 
-            is_new=True, 
+            qualityboard_id=qualityboard_id,
+            is_new=True,
             done=True
         ).scalar()
         addition_feature_rate = 0
         if addition_feature_count != 0:
-            addition_feature_rate = floor(_addition_feature_finish_count / addition_feature_count * 100)
+            addition_feature_rate = floor(
+                _addition_feature_finish_count / addition_feature_count * 100
+            )
 
         inherit_feature_count = db.session.query(func.count(FeatureList.id)).filter_by(
-            qualityboard_id=qualityboard_id, 
+            qualityboard_id=qualityboard_id,
             is_new=False
         ).scalar()
         _inherit_feature_finish_count = db.session.query(func.count(FeatureList.id)).filter_by(
-            qualityboard_id=qualityboard_id, 
-            is_new=False, 
+            qualityboard_id=qualityboard_id,
+            is_new=False,
             done=True
         ).scalar()
         inherit_feature_rate = 0
         if inherit_feature_count != 0:
-         inherit_feature_rate = floor(_inherit_feature_finish_count / inherit_feature_count * 100)
+            inherit_feature_rate = floor(
+                _inherit_feature_finish_count / inherit_feature_count * 100
+            )
 
         return jsonify(
             error_code=RET.OK,
