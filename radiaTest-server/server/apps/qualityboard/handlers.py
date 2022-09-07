@@ -14,11 +14,14 @@
 #####################################
 
 import abc
+from datetime import datetime
 import os
 import subprocess
 
-from flask import jsonify, current_app
+from flask import jsonify, current_app, g
+import pytz
 
+from server import redis_client
 from server.model.qualityboard import Checklist, QualityBoard
 from server.model.milestone import Milestone
 from server.model.organization import Organization
@@ -237,7 +240,9 @@ feature_list_handlers = {
 
 
 class PackageListHandler:
-    def __init__(self, qualityboard_id, milestone_id) -> None:
+    def __init__(self, qualityboard_id, milestone_id, refresh : bool = False) -> None:
+        self.refresh = refresh
+
         self.qualityboard = QualityBoard.query.filter_by(id=qualityboard_id).first()
         if not self.qualityboard:
             raise ValueError(f"qualityborad {qualityboard_id} does not exist")
@@ -261,34 +266,48 @@ class PackageListHandler:
     def get_packages(self):
         _path = current_app.config.get("PRODUCT_PKGLIST_PATH")
         _product_version = f"{self.milestone.product.name}-{self.milestone.product.version}"
+        _filename = _product_version
         _round = None
-
         if self.milestone.type == "round":
             _round = self.qualityboard.iteration_version.split("->").index(str(self.milestone.id)) + 1
+            _filename = f"{_product_version}-round-{_round}"
 
-        if not os.path.isfile(f"{_path}/{_product_version}.pkgs"):
+        if self.refresh and not redis_client.hgetall(f"resolving_{_filename}_pkglist"):
+            redis_client.hset(
+                f"resolving_{_filename}_pkglist", "gitee_id", g.gitee_id
+            )
+            redis_client.hset(
+                f"resolving_{_filename}_pkglist", 
+                "resolve_time", 
+                datetime.now(
+                    tz=pytz.timezone('Asia/Shanghai')
+                ).strftime("%Y-%m-%d %H:%M:%S")
+            )
+            redis_client.expire(f"resolving_{_filename}_pkglist", 1800)
+            
             resolve_pkglist_after_resolve_rc_name.delay(
                 repo_url=self.pkgs_repo_url,
                 product=_product_version,
                 _round=_round,
-            )         
+            )
             raise RuntimeError(
                 f"the packages of {self.milestone.name} " \
-                f"have not been resolved yet, please try again after several minutes"
+                f"start resolving, please wait for several minutes"
+            )
+        elif self.refresh:
+            raise RuntimeError(
+                f"LOCKED: the packages of {self.milestone.name} " \
+                f"has been in resolving process, " \
+                "please wait in patient or try again after a half hour"
             )
 
         try:
-            if self.milestone.type != "round":
-                return RpmNameLoader.load_rpmlist_from_file(
-                    f"{_path}/{_product_version}.pkgs",
-                )
-            else:
-                return RpmNameLoader.load_rpmlist_from_file(
-                    f"{_path}/{_product_version}-round-{_round}.pkgs",
-                )
+            return RpmNameLoader.load_rpmlist_from_file(
+                f"{_path}/{_filename}.pkgs",
+            )
         except FileNotFoundError as e:
-            raise RuntimeError(
-                f"resolve packages of {_product_version}-round-{_round} failed, " \
+            raise ValueError(
+                f"resolve packages of {_filename} failed, " \
                 f"please check whether it exists in {self.pkgs_repo_url}"
             ) from e
 

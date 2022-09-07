@@ -96,3 +96,4 @@ class FeatureListQuerySchema(BaseModel):
 
 class PackageListQuerySchema(BaseModel):
     summary: bool = False
+    refresh: bool = False

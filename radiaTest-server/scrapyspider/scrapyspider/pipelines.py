@@ -54,7 +54,7 @@ class FilePipeline:
         if not os.path.isdir(self.pkglist_storage_path):
             os.mkdir(self.pkglist_storage_path)
 
-        self.filename = datetime.now(tz=pytz.timezone('Asia/Shanghai')).strftime('%Y%m%d%H%M%S')
+        self.timestamp = datetime.now(tz=pytz.timezone('Asia/Shanghai')).strftime('%Y%m%d%H%M%S')
 
     def process_item(self, item, spider):
         if isinstance(item, OpeneulerPkgsListItem):
@@ -62,7 +62,7 @@ class FilePipeline:
             self.build = item["build"]
 
             exitcode, output = subprocess.getstatusoutput(
-                f"echo {item['rpm_file_name']} >> {self.pkglist_storage_path}/{self.filename}.pkgs"
+                f"echo {item['rpm_file_name']} >> {self.pkglist_storage_path}/{self.build}-{self.timestamp}.pkgs"
             )
             if exitcode != 0:
                 raise RuntimeError(output)
@@ -74,14 +74,14 @@ class FilePipeline:
             if os.path.isfile(f"{self.pkglist_storage_path}/{self.product}-round-{result.group(1)}.pkgs"):
                 os.remove(f"{self.pkglist_storage_path}/{self.product}-round-{result.group(1)}.pkgs")
             os.rename(
-                f"{self.pkglist_storage_path}/{self.filename}.pkgs",
+                f"{self.pkglist_storage_path}/{self.build}-{self.timestamp}.pkgs",
                 f"{self.pkglist_storage_path}/{self.product}-round-{result.group(1)}.pkgs"
             )
         else:
             if os.path.isfile(f"{self.pkglist_storage_path}/{self.product}.pkgs"):
                 os.remove(f"{self.pkglist_storage_path}/{self.product}.pkgs")
             os.rename(
-                f"{self.pkglist_storage_path}/{self.filename}.pkgs",
+                f"{self.pkglist_storage_path}/{self.build}-{self.timestamp}.pkgs",
                 f"{self.pkglist_storage_path}/{self.product}.pkgs"
             )
 

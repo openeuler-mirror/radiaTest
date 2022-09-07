@@ -316,6 +316,14 @@
                     <MdClose />
                   </n-icon>
                 </template>
+                <template #header-extra v-else>
+                  <refresh-button 
+                    :size="24"
+                    @refresh="getPackageListComparationSummary(dashboardId, true)"
+                  >
+                    获取最新软件包变更数据
+                  </refresh-button>
+                </template>
                 <div
                   class="transitionBox"
                 >
@@ -333,7 +341,7 @@
                       </div>
                       <div class="package-middle">
                         <p style="font-size: 15px;margin-top: 0px;">
-                          <span>{{ newPackage.size - oldPackage.size > 0 ? '+' : '-' }}</span>
+                          <span>{{ newPackage.size - oldPackage.size > 0 ? '+' : '' }}</span>
                           <span>{{ newPackage.size - oldPackage.size }}</span>
                         </p>
                         <n-icon size="20" color="green">
@@ -358,7 +366,7 @@
                       </div>
                       <div class="package-middle">
                         <p style="margin-top: 0px;">
-                          <span>{{ newPackage.size - oldPackage.size > 0 ? '+' : '-' }}</span>
+                          <span>{{ newPackage.size - oldPackage.size > 0 ? '+' : '' }}</span>
                           <span>{{ newPackage.size - oldPackage.size }}</span>
                         </p>
                         <n-icon color="green">
@@ -501,6 +509,7 @@ import qualityProtect from '@/components/productDrawer/qualityProtect.vue';
 import FeatureTable from '@/components/productDrawer/FeatureTable.vue';
 import filterButton from '@/components/filter/filterButton.vue';
 import PackageTable from '@/components/productDrawer/PackageTable.vue';
+import RefreshButton from '@/components/CRUD/RefreshButton';
 
 export default {
   components: {
@@ -512,6 +521,7 @@ export default {
     MilestoneIssuesCard,
     testProgress,
     MdClose,
+    RefreshButton,
     DoubleArrowFilled,
     CancelRound,
     CheckCircleFilled,
