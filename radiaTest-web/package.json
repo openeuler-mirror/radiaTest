@@ -24,6 +24,8 @@
     "qs": "^6.10.1",
     "socket.io-client": "^4.2.0",
     "tinymce": "^5.10.2",
+    "unplugin-auto-import": "^0.11.2",
+    "unplugin-vue-components": "^0.22.4",
     "v-code-diff": "^0.3.10",
     "vue": "^3.0.4",
     "vue-grid-layout": "^3.0.0-beta1",
@@ -69,7 +71,8 @@
     },
     "extends": [
       "plugin:vue/vue3-essential",
-      "eslint:recommended"
+      "eslint:recommended",
+      "./.eslintrc-auto-import.json"
     ],
     "parserOptions": {
       "parser": "@babel/eslint-parser",

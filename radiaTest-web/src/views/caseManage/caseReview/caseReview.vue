@@ -121,7 +121,7 @@ export default {
       .typeCount {
         margin-left: 5px;
 
-        /deep/.n-base-slot-machine-current-number__inner {
+        :deep(.n-base-slot-machine-current-number__inner) {
           color: #7687ab;
         }
       }

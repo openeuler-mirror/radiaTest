@@ -1,7 +1,10 @@
+/* eslint-disable no-use-before-define */
+/* eslint-disable max-lines-per-function */
 import { ref, h } from 'vue';
-import { NButton, NIcon, NSpace, NTag, useMessage } from 'naive-ui';
+import { NButton, NIcon, NSpace, NTag, useMessage, NCheckbox } from 'naive-ui';
 import { CancelRound, CheckCircleFilled } from '@vicons/material';
 import { QuestionCircle16Filled } from '@vicons/fluent';
+import { AddAlt } from '@vicons/carbon';
 import { getProduct, getProductMessage, getMilestoneRate } from '@/api/get';
 import { createProductMessage } from '@/api/post';
 import { milestoneNext, milestoneRollback } from '@/api/put';
@@ -13,6 +16,7 @@ import {
   showPackage,
   testProgressList 
 } from './productDetailDrawer';
+import axios from '@/axios';
 
 const ProductId = ref(null);
 const done = ref(false);
@@ -47,27 +51,31 @@ const model = ref({
   serious_main_resolved_rate: null,
   current_resolved_rate: null
 });
-function getDefaultList () {
+function getDefaultList() {
   testList.value = testProgressList.value[testProgressList.value.length - 1];
 }
-function getTableData () {
+function getTableData() {
   tableLoading.value = true;
-  getProduct().then(res => {
-    tableData.value = res.data || [];
-    tableLoading.value = false;
-  }).catch(() => {
-    tableLoading.value = false;
-  });
+  getProduct()
+    .then((res) => {
+      tableData.value = res.data || [];
+      tableLoading.value = false;
+    })
+    .catch(() => {
+      tableLoading.value = false;
+    });
 }
-function getProductData (id) {
+function getProductData(id) {
   tableLoading.value = true;
-  createProductMessage(id).then(() => {
-    tableLoading.value = false;
-  }).catch(() => {
-    tableLoading.value = false;
-  });
+  createProductMessage(id)
+    .then(() => {
+      tableLoading.value = false;
+    })
+    .catch(() => {
+      tableLoading.value = false;
+    });
 }
-function getTestList (index) {
+function getTestList(index) {
   testList.value = testProgressList.value[index];
 }
 
@@ -113,25 +121,27 @@ function handleClick(id) {
   getTestList(id);
   getPackageListComparationSummary(dashboardId.value);
 }
-function renderBtn (text, action, row, type = 'text') {
-  return h(NButton, {
-    text: type === 'text',
-    onClick: (e) => {
-      e.stopPropagation();
-      action(row);
-    }
-  }, text);
+function renderBtn(text, action, row, type = 'text') {
+  return h(
+    NButton,
+    {
+      text: type === 'text',
+      onClick: (e) => {
+        e.stopPropagation();
+        action(row);
+      }
+    },
+    text
+  );
 }
 function releaseClick () {
   currentId.value = null;
 }
-function editRow () {
+function editRow() {
   showModal.value = true;
 }
-function reportRow () {
-}
-function deleteRow () {
-}
+function reportRow() {}
+function deleteRow() {}
 const columns = [
   {
     key: 'name',
@@ -146,7 +156,7 @@ const columns = [
   {
     key: 'description',
     align: 'center',
-    title: '描述',
+    title: '描述'
   },
   {
     key: 'start_time',
@@ -177,13 +187,14 @@ const columns = [
           {
             type: 'success',
             round: true,
-            bordered: false,
+            bordered: false
           },
           {
             default: `${row.left_resolved_rate}%`,
-            icon: () => h(NIcon, {
-              component: CheckCircleFilled 
-            })
+            icon: () =>
+              h(NIcon, {
+                component: CheckCircleFilled
+              })
           }
         );
       } else if (row.left_resolved_rate === null || row.left_resolved_baseline === null) {
@@ -192,13 +203,14 @@ const columns = [
           {
             type: 'default',
             round: true,
-            bordered: false,
+            bordered: false
           },
           {
             default: 'unknown',
-            icon: () => h(NIcon, {
-              component: QuestionCircle16Filled 
-            })
+            icon: () =>
+              h(NIcon, {
+                component: QuestionCircle16Filled
+              })
           }
         );
       }
@@ -207,13 +219,14 @@ const columns = [
         {
           type: 'error',
           round: true,
-          bordered: false,
+          bordered: false
         },
         {
           default: `${row.left_resolved_rate}%`,
-          icon: () => h(NIcon, {
-            component: CancelRound 
-          })
+          icon: () =>
+            h(NIcon, {
+              component: CancelRound
+            })
         }
       );
     }
@@ -232,13 +245,14 @@ const columns = [
           {
             type: 'success',
             round: true,
-            bordered: false,
+            bordered: false
           },
           {
             default: `${row.serious_main_resolved_rate}%`,
-            icon: () => h(NIcon, {
-              component: CheckCircleFilled 
-            })
+            icon: () =>
+              h(NIcon, {
+                component: CheckCircleFilled
+              })
           }
         );
       } else if (row.serious_main_resolved_rate === null || row.serious_main_resolved_baseline === null) {
@@ -247,13 +261,14 @@ const columns = [
           {
             type: 'default',
             round: true,
-            bordered: false,
+            bordered: false
           },
           {
             default: 'unknown',
-            icon: () => h(NIcon, {
-              component: QuestionCircle16Filled 
-            })
+            icon: () =>
+              h(NIcon, {
+                component: QuestionCircle16Filled
+              })
           }
         );
       }
@@ -262,13 +277,14 @@ const columns = [
         {
           type: 'error',
           round: true,
-          bordered: false,
+          bordered: false
         },
         {
           default: `${row.serious_main_resolved_rate}%`,
-          icon: () => h(NIcon, {
-            component: CancelRound 
-          })
+          icon: () =>
+            h(NIcon, {
+              component: CancelRound
+            })
         }
       );
     }
@@ -287,13 +303,14 @@ const columns = [
           {
             type: 'success',
             round: true,
-            bordered: false,
+            bordered: false
           },
           {
             default: `${row.current_resolved_rate}%`,
-            icon: () => h(NIcon, {
-              component: CheckCircleFilled 
-            })
+            icon: () =>
+              h(NIcon, {
+                component: CheckCircleFilled
+              })
           }
         );
       } else if (row.current_resolved_rate === null || row.current_resolved_baseline === null) {
@@ -302,13 +319,14 @@ const columns = [
           {
             type: 'default',
             round: true,
-            bordered: false,
+            bordered: false
           },
           {
             default: 'unknown',
-            icon: () => h(NIcon, {
-              component: QuestionCircle16Filled 
-            })
+            icon: () =>
+              h(NIcon, {
+                component: QuestionCircle16Filled
+              })
           }
         );
       }
@@ -317,13 +335,14 @@ const columns = [
         {
           type: 'error',
           round: true,
-          bordered: false,
+          bordered: false
         },
         {
           default: `${row.current_resolved_rate}%`,
-          icon: () => h(NIcon, {
-            component: CancelRound 
-          })
+          icon: () =>
+            h(NIcon, {
+              component: CancelRound
+            })
         }
       );
     }
@@ -331,14 +350,14 @@ const columns = [
   {
     title: '操作',
     align: 'center',
-    render (row) {
-      return h(NSpace, {
-        style: 'justify-content: center'
-      }, [
-        renderBtn('编辑', editRow, row),
-        renderBtn('删除', deleteRow, row),
-        renderBtn('报告', reportRow, row),
-      ]);
+    render(row) {
+      return h(
+        NSpace,
+        {
+          style: 'justify-content: center'
+        },
+        [renderBtn('编辑', editRow, row), renderBtn('删除', deleteRow, row), renderBtn('报告', reportRow, row)]
+      );
     }
   }
 ];
@@ -375,15 +394,15 @@ function getDefaultCheckNode (id) {
     tableLoading.value = false;
   });
 }
-function rowProps (row) {
+function rowProps(row) {
   return {
-    style:'cursor:pointer',
+    style: 'cursor:pointer',
     onClick: () => {
       detail.value = row;
       drawerShow.value = true;
       list.value = [];
       ProductId.value = row.id;
-      getDefaultCheckNode (ProductId.value);
+      getDefaultCheckNode(ProductId.value);
     }
   };
 }
@@ -479,7 +498,273 @@ function handlePackageCardClick() {
   showPackage.value = true;
 }
 
+const productList = ref([]);
+const currentProduct = ref('');
+const searchInfo = ref('');
+const checkListTableLoading = ref(false);
+const checkListTablePagination = ref({
+  page: 1,
+  pageSize: 10, //受控模式下的分页大小
+  pageCount: 1, //总页数
+  showSizePicker: true,
+  pageSizes: [5, 10, 20, 50]
+});
+
+const checkListTableData = ref([]);
+
+const rounds = ref({});
+
+const checkListTableColumns = ref([
+  {
+    key: 'check_item',
+    title: '检查项',
+    align: 'center'
+  },
+  {
+    key: 'baseline',
+    title: '基准',
+    align: 'center'
+  },
+  {
+    key: 'operation',
+    title: '运算符',
+    align: 'center'
+  },
+  {
+    key: 'lts',
+    title: 'lts',
+    align: 'center',
+    render: (row) => {
+      return h(NCheckbox, {
+        focusable: false,
+        checked: row.lts ? true : false,
+        'on-update:checked': (checked) => {
+          updateCheckListTable(row, { lts: checked });
+        }
+      });
+    }
+  },
+  {
+    key: 'lts_spx',
+    title: 'lts_spx',
+    align: 'center',
+    render: (row) => {
+      return h(NCheckbox, {
+        focusable: false,
+        checked: row.lts_spx ? true : false,
+        'on-update:checked': (checked) => {
+          updateCheckListTable(row, { lts_spx: checked });
+        }
+      });
+    }
+  },
+  {
+    key: 'innovation',
+    title: 'innovation',
+    align: 'center',
+    render: (row) => {
+      return h(NCheckbox, {
+        focusable: false,
+        checked: row.innovation ? true : false,
+        'on-update:checked': (checked) => {
+          updateCheckListTable(row, { innovation: checked });
+        }
+      });
+    }
+  },
+  {
+    key: 'addCol',
+    align: 'center',
+    title() {
+      return h(
+        NButton,
+        {
+          bordered: false,
+          'on-click': () => {
+            let index = Object.keys(rounds.value).length;
+            let keyName = `R${index + 1}`;
+            addRounds(index, keyName);
+          }
+        },
+        {
+          default: () => {
+            return h(NIcon, {
+              component: AddAlt
+            });
+          }
+        }
+      );
+    }
+  }
+]);
+
+const showCheckListDrawer = ref(false);
+const checkListDrawerFormRef = ref(null);
+
+const checkListDrawerModel = ref({
+  check_item: null,
+  baseline: null,
+  operation: null,
+  rounds: {}
+});
+
+const checkListDrawerRules = ref({
+  check_item: {
+    required: true,
+    message: '检查项必填',
+    trigger: ['blur', 'input']
+  },
+  baseline: {
+    required: true,
+    message: '基准数值必填',
+    trigger: ['blur', 'input']
+  },
+  operation: {
+    required: true,
+    message: '请选择运算符',
+    trigger: ['blur', 'change']
+  }
+});
+
+const operationOptions = ref([
+  {
+    label: '>',
+    value: '>'
+  },
+  {
+    label: '<',
+    value: '<'
+  },
+  {
+    label: '=',
+    value: '='
+  },
+  {
+    label: '>=',
+    value: '>='
+  },
+  {
+    label: '<=',
+    value: '<='
+  }
+]);
+
+const onlyAllowNumber = (value) => !value || /^-?\d*\.?\d{0,2}%?$/.test(value);
+
+const getCheckListTableData = (currentPage, pageSize) => {
+  checkListTableLoading.value = true;
+  axios.get('/v1/checklist', { page_num: currentPage, page_size: pageSize }).then((res) => {
+    checkListTableLoading.value = false;
+    checkListTableData.value = [];
+    res.data.items?.forEach((item) => {
+      checkListTableData.value.push({
+        id: item.id,
+        check_item: item.check_item,
+        baseline: item.baseline,
+        operation: item.operation,
+        lts: item.lts,
+        lts_spx: item.lts_spx,
+        innovation: item.innovation,
+        rounds: item.rounds
+      });
+    });
+    checkListTablePagination.value.page = currentPage;
+    checkListTablePagination.value.pageSize = pageSize;
+    checkListTablePagination.value.pageCount = res.data.pages;
+  });
+};
+
+const updateCheckListTable = (row, data) => {
+  let [key] = Object.keys(data);
+  axios.put(`/v1/checklist/${row.id}`, data).then(() => {
+    console.log(row);
+    row[key] = data[key];
+  });
+};
+
+const checkListTablePageChange = (page) => {
+  getCheckListTableData(page, checkListTablePagination.value.pageSize);
+};
+
+const checkListTablePageSizeChange = (pageSize) => {
+  getCheckListTableData(1, pageSize);
+};
+
+// 点击质量checklist按钮
+const clickCheckList = async () => {
+  await getCheckListTableData(1, checkListTablePagination.value.pageSize);
+  showCheckList.value = true;
+};
+
+// 添加checklist表格rounds列
+const addRounds = (index, keyName) => {
+  checkListTableColumns.value.splice(index + 6, 0, {
+    key: keyName,
+    title: keyName,
+    align: 'center',
+    render: (row) => {
+      return h(NCheckbox, {
+        focusable: false,
+        checked: row[keyName] ? true : false,
+        'on-update:checked': (checked) => {
+          updateCheckListTable(row, { [keyName]: checked });
+        }
+      });
+    }
+  });
+  console.log(checkListTableColumns.value);
+};
+
+const cancelCheckListDrawer = () => {
+  showCheckListDrawer.value = false;
+  checkListDrawerModel.value = {
+    check_item: null,
+    baseline: null,
+    operation: null,
+    rounds: {}
+  };
+};
+
+// 确认新增检查项
+const confirmCheckItem = () => {
+  checkListDrawerFormRef.value?.validate((error) => {
+    if (error) {
+      window.$message?.error('请填写相关信息');
+    } else {
+      axios.post('/v1/checklist', checkListDrawerModel.value).then(() => {
+        getCheckListTableData();
+        cancelCheckListDrawer();
+      });
+    }
+  });
+};
+
+// 点击新增检查项按钮
+const addCheckItem = () => {
+  showCheckListDrawer.value = true;
+};
+
 export {
+  checkListTablePageChange,
+  checkListTablePageSizeChange,
+  checkListTablePagination,
+  onlyAllowNumber,
+  checkListDrawerFormRef,
+  cancelCheckListDrawer,
+  confirmCheckItem,
+  operationOptions,
+  checkListDrawerRules,
+  checkListDrawerModel,
+  showCheckListDrawer,
+  addCheckItem,
+  rounds,
+  checkListTableColumns,
+  checkListTableData,
+  checkListTableLoading,
+  clickCheckList,
+  productList,
+  currentProduct,
+  searchInfo,
   ProductId,
   done,
   testList,

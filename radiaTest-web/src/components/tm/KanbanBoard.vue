@@ -9,11 +9,7 @@
             <span>{{ taskData.tasks.length }}</span>
           </div>
           <div v-if="taskData.statusItem === '已完成'">
-            <n-switch
-              v-model:value="showTaskList"
-              size="small"
-              @update:value="handleChange"
-            >
+            <n-switch v-model:value="showTaskList" size="small" @update:value="handleChange">
               <template #checked>全任务</template>
               <template #unchecked>仅本人</template>
             </n-switch>
@@ -21,16 +17,10 @@
         </div>
         <div v-else>
           <div class="inputWrap">
-            <n-input
-              v-model:value="statusItemValue"
-              type="text"
-              placeholder="请输入新的状态名"
-            />
+            <n-input v-model:value="statusItemValue" type="text" placeholder="请输入新的状态名" />
           </div>
           <div class="btnWrap">
-            <n-button type="error" ghost @click="cancelStatusItem"
-              >取消</n-button
-            >
+            <n-button type="error" ghost @click="cancelStatusItem">取消</n-button>
             <n-button type="info" ghost @click="editStatusItem">确定</n-button>
           </div>
         </div>
@@ -47,6 +37,14 @@
     </div>
     <n-scrollbar style="max-height: 840px">
       <div class="main">
+        <div class="task-creator" v-show="taskData.statusItem === '待办中'">
+          <a @click="showCreateTask">
+            <n-icon size="16">
+              <AddCircle24Regular />
+            </n-icon>
+            <span>添加任务</span>
+          </a>
+        </div>
         <div class="stage-tasks">
           <draggable
             class="list-group"
@@ -60,27 +58,15 @@
             <template #item="{ element }">
               <div class="list-group-item" :class="isDrag(element)">
                 <div class="task-card">
-                  <div
-                    class="task-priority"
-                    :style="{ backgroundColor: tagColor(element.type) }"
-                  ></div>
+                  <div class="task-priority" :style="{ backgroundColor: tagColor(element.type) }"></div>
                   <div class="task-main">
                     <div class="task-content-wrapper">
                       <div class="task-content" @click="taskDetail(element)">
                         {{ element.title }}
                       </div>
-                      <img
-                        class="avatar"
-                        :src="
-                          element.creator?.avatar_url ||
-                          element.originator?.avatar_url
-                        "
-                      />
+                      <img class="avatar" :src="element.creator?.avatar_url || element.originator?.avatar_url" />
                     </div>
-                    <div
-                      class="task-info-wrapper"
-                      v-show="element?.tasks?.length"
-                    >
+                    <div class="task-info-wrapper" v-show="element?.tasks?.length">
                       <div class="task-infos">
                         <span class="icon-wrapper">
                           <n-icon size="14">
@@ -95,23 +81,10 @@
             </template>
           </draggable>
         </div>
-        <div class="task-creator" v-show="taskData.statusItem === '待办中'">
-          <a @click="showCreateTask">
-            <n-icon size="16">
-              <AddCircle24Regular />
-            </n-icon>
-            <span>添加任务</span>
-          </a>
-        </div>
       </div>
     </n-scrollbar>
     <n-modal v-model:show="deleteTasksModal">
-      <n-card
-        style="width: 600px"
-        title="批量删除任务"
-        :bordered="false"
-        size="huge"
-      >
+      <n-card style="width: 600px" title="批量删除任务" :bordered="false" size="huge">
         <div style="display: flex">
           <n-select
             placeholder="请选择任务"
@@ -121,15 +94,8 @@
             :options="deleteTasksOption"
           />
           <div style="width: 30%; display: flex; justify-content: space-evenly">
-            <n-button type="error" ghost @click="cancelDeleteTasks"
-              >取消</n-button
-            >
-            <n-button
-              type="info"
-              ghost
-              @click="deleteTasksBtn(deleteTasksValue)"
-              >删除</n-button
-            >
+            <n-button type="error" ghost @click="cancelDeleteTasks">取消</n-button>
+            <n-button type="info" ghost @click="deleteTasksBtn(deleteTasksValue)">删除</n-button>
           </div>
         </div>
       </n-card>
@@ -140,19 +106,14 @@
 <script>
 import { h } from 'vue';
 import { Dots } from '@vicons/tabler';
-import {
-  AddCircle24Regular,
-  TextBulletListLtr20Filled,
-  Delete20Regular,
-  Edit24Regular,
-} from '@vicons/fluent';
+import { AddCircle24Regular, TextBulletListLtr20Filled, Delete20Regular, Edit24Regular } from '@vicons/fluent';
 import { NIcon } from 'naive-ui';
 import draggable from 'vuedraggable';
 
 const renderIcon = (icon) => {
   return () => {
     return h(NIcon, null, {
-      default: () => h(icon),
+      default: () => h(icon)
     });
   };
 };
@@ -162,7 +123,7 @@ export default {
     Dots,
     TextBulletListLtr20Filled,
     AddCircle24Regular,
-    draggable,
+    draggable
   },
   props: ['taskData'],
   emits: ['showDetail', 'toggleComplete'],
@@ -172,26 +133,26 @@ export default {
         {
           label: '编辑状态',
           key: 'edit',
-          icon: renderIcon(Edit24Regular),
+          icon: renderIcon(Edit24Regular)
         },
         {
           label: '删除状态',
           key: 'delete',
-          icon: renderIcon(Delete20Regular),
+          icon: renderIcon(Delete20Regular)
         },
         {
           label: '批量删除任务',
           key: 'deleteTasks',
           disabled: this.taskData.statusItem !== '待办中',
-          icon: renderIcon(Delete20Regular),
-        },
+          icon: renderIcon(Delete20Regular)
+        }
       ],
       showStatusItem: true,
       statusItemValue: null,
       deleteTasksModal: false,
       deleteTasksValue: null,
       deleteTasksOption: [],
-      showTaskList: true,
+      showTaskList: true
     };
   },
   methods: {
@@ -207,7 +168,7 @@ export default {
           this.deleteTasksOption = this.taskData.tasks.map((v) => {
             return {
               label: v.title,
-              value: v.id,
+              value: v.id
             };
           });
         }
@@ -267,14 +228,14 @@ export default {
     deleteTasksBtn() {
       this.$emit('select', {
         key: 'deleteTasks',
-        value: this.deleteTasksValue,
+        value: this.deleteTasksValue
       });
       this.deleteTasksModal = false;
     },
     handleChange(value) {
       this.$emit('toggleComplete', value);
-    },
-  },
+    }
+  }
 };
 </script>
 

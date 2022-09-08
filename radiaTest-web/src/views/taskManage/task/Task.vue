@@ -686,7 +686,7 @@
                               >
                                 <CheckSquareOutlined />
                               </n-icon>
-                              <span class="field-name" title="当所有子任务'已完成'时,自动完成本任务">自动完成</span>
+                              <span class="field-name" title="当关联子任务均'已完成'时,是否此任务自动完成">自动关联完成</span>
                             </div>
                             <div class="field-right" :class="{'editable':editStatus}">
                               <n-popselect
