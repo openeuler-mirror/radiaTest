@@ -6,14 +6,34 @@
         <n-checkbox value="x86_64" label="x86_64" />
         <n-checkbox value="noarch" label="noarch" />
       </n-space>
-      <refresh-button 
-        :size="18" 
-        @refresh="() => {
-          getData(qualityboardId, milestonePreId, milestoneCurId);
-        }"
-      >
-        刷新软件包比对结果
-      </refresh-button>
+      <n-space>
+        <n-popover>
+          <template #trigger>
+            <n-button
+              style="height: auto;"
+              circle
+              quaternary
+              :disabled="buttonDisabled"
+              @click="handleCreateClick(qualityboardId, milestonePreId, milestoneCurId)"
+            >
+              <template #icon>
+                <n-icon>
+                  <compare />
+                </n-icon>
+              </template>
+            </n-button>
+          </template>
+          重新比对
+        </n-popover>
+        <refresh-button 
+          :size="18" 
+          @refresh="() => {
+            getData(qualityboardId, milestonePreId, milestoneCurId);
+          }"
+        >
+          刷新数据（非重新比对）
+        </refresh-button>
+      </n-space>
     </n-space>
   </n-checkbox-group>
   <n-input-group>
@@ -27,7 +47,6 @@
     </n-input-group-label>
   </n-input-group>
   <n-data-table
-    v-if="data && data.length"
     remote
     :loading="loading"
     :columns="columns"
@@ -36,17 +55,6 @@
     :pagination="pagination"
     @update:filters="handleFiltersChange"
   />
-  <n-empty v-else size="large" description="无比对结果" style="padding: 40px;">
-    <template #extra>
-      <n-button
-        :disabled="buttonDisabled"
-        size="small" 
-        @click="handleCreateClick(qualityboardId, milestonePreId, milestoneCurId)"
-      >
-        获取新的比对结果
-      </n-button>
-    </template>
-  </n-empty>
 </template>
 
 <script>
@@ -67,10 +75,12 @@ import {
   pagination
 } from './modules/packageTable.js';
 import RefreshButton from '@/components/CRUD/RefreshButton';
+import { CompareArrowsFilled as Compare } from '@vicons/material';
 
 export default defineComponent({
   components: {
     RefreshButton,
+    Compare,
   },
   props: {
     qualityboardId: Number,
@@ -104,6 +114,8 @@ export default defineComponent({
       archesParam,
       handleFiltersChange(filters) {
         compareResultColumn.filterOptionValues = filters.compare_result || [];
+        pagination.page = 1;
+        thisParams.value.page_num = 1;
         getData(qualityboardId.value, milestonePreId.value, milestoneCurId.value);
       },
     };
