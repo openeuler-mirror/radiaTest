@@ -54,6 +54,8 @@ export function setOrgUserRole (id, data) {
   });
 }
 export function setGroupRepo (data) {
-  return postRequest('/v1/git-repo',data);
+  return postRequest('/v1/git-repo', data);
 }
-
+export function setPackageListComparationDetail (qualityboardId, milestonePreId, milestoneCurId) {
+  return postRequest(`/v1/qualityboard/${qualityboardId}/milestone/${milestonePreId}/with/${milestoneCurId}/pkg-compare`);
+}

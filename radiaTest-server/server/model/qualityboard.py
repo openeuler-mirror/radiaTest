@@ -191,3 +191,25 @@ class FeatureList(db.Model, BaseModel):
             "is_new": self.is_new,
             "done": self.done,
         }
+
+
+class RpmCompare(db.Model, BaseModel):
+    __tablename__ = "rpm_compare"
+
+    id = db.Column(db.Integer(), primary_key=True, autoincrement=True)
+    arch = db.Column(db.String(50), nullable=False)
+    rpm_comparee = db.Column(db.String(128))
+    rpm_comparer = db.Column(db.String(128))
+    compare_result = db.Column(db.String(50))
+
+    milestone_group_id = db.Column(
+        db.Integer(), db.ForeignKey('milestone_group.id', ondelete="CASCADE"), nullable=False
+    )
+
+    def to_json(self):
+        return {
+            "id": self.id,
+            "rpm_comparee": self.rpm_comparee,
+            "rpm_comparer": self.rpm_comparer,
+            "compare_result": self.compare_result,
+        }

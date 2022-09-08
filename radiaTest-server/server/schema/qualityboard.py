@@ -1,9 +1,10 @@
+import json
 import re
-from typing import Optional
+from typing import List, Optional
 
 from pydantic import BaseModel, HttpUrl, validator
 
-from server.schema import SortOrder
+from server.schema import Frame, SortOrder
 
 
 from server.schema.base import PageBaseSchema
@@ -97,3 +98,25 @@ class FeatureListQuerySchema(BaseModel):
 class PackageListQuerySchema(BaseModel):
     summary: bool = False
     refresh: bool = False
+
+
+class PackageCompareQuerySchema(PageBaseSchema):
+    summary: bool = False
+    search: Optional[str]
+    arches: Optional[str]
+    compare_result_list: Optional[str]
+    desc: bool = False
+
+    @validator("arches")
+    def validate_arches(cls, v):
+        if isinstance(v, str):
+            return json.loads(v)
+        
+        raise ValueError("the format of arches is not valid")
+
+    @validator("compare_result_list")
+    def validate_status(cls, v):
+        if isinstance(v, str):
+            return json.loads(v)
+        
+        raise ValueError("the format of compare status list is not valid")

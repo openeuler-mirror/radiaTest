@@ -188,12 +188,12 @@ export function getFeatureList (id, params) {
 }
 
 export function getPackageListComparationSummary (qualityboardId, milestoneId, params) {
-  return getRequest(`/v1/qualityboard/${qualityboardId}/milestone/${milestoneId}/packages`, params);
+  return getRequest(`/v1/qualityboard/${qualityboardId}/milestone/${milestoneId}/pkg-list`, params);
 }
 
 export function getPackageListComparationDetail (qualityboardId, milestonePreId, milestoneCurId, params) {
   return getRequest(
-    `/v1/qualityboard/${qualityboardId}/compare/${milestonePreId}/with/${milestoneCurId}/packages`, 
+    `/v1/qualityboard/${qualityboardId}/milestone/${milestonePreId}/with/${milestoneCurId}/pkg-compare`, 
     params
   );
 }

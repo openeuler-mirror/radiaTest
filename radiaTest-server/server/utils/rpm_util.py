@@ -158,8 +158,7 @@ class RpmNameLoader():
             filepath : path of file which contain list of rpm name
         
         return:
-            dict : { <rpm name 1>: [ RpmName2, RpmName2], ...}
-            result is same to result of `load_rpm_from_list`
+            rpmlist : list of rpmname [<rpm name 1>, <rpm name 2>, ...]
         """
         real_path = os.path.realpath(filepath)
         rpmlist = []
@@ -231,6 +230,7 @@ class RpmNameComparator():
             rpm_2 = rpmdict2.get(rpm_name)[0] if isinstance(rpmdict2.get(rpm_name), list) else None
             tmp_result = RpmNameComparator.compare_rpm_name_cls(rpm_1, rpm_2)
             compare_result_list.append({
+                "arch": rpm_1.arch if rpm_1 else rpm_2.arch,
                 "rpm_list_1": rpm_1.file_name if rpm_1 else '',
                 "rpm_list_2": rpm_2.file_name if rpm_2 else '',
                 "compare_result": tmp_result.name

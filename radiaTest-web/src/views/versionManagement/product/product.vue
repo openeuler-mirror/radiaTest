@@ -326,8 +326,10 @@
                       </div>
                       <div class="package-middle">
                         <p style="font-size: 15px;margin-top: 0px;">
-                          <span>{{ newPackage.size - oldPackage.size > 0 ? '+' : '' }}</span>
-                          <span>{{ newPackage.size - oldPackage.size }}</span>
+                          <span>+{{ packageChangeSummary.addPackagesNum }}</span>
+                        </p>
+                        <p style="font-size: 15px;margin-top: 0px;">
+                          <span>-{{ packageChangeSummary.delPackagesNum }}</span>
                         </p>
                         <n-icon size="20" color="green">
                           <DoubleArrowFilled />
@@ -350,9 +352,11 @@
                         <p>{{ oldPackage.name }}</p>
                       </div>
                       <div class="package-middle">
-                        <p style="margin-top: 0px;">
-                          <span>{{ newPackage.size - oldPackage.size > 0 ? '+' : '' }}</span>
-                          <span>{{ newPackage.size - oldPackage.size }}</span>
+                        <p style="font-size: 15px;margin-top: 0px;">
+                          <span>+{{ packageChangeSummary.addPackagesNum }}</span>
+                        </p>
+                        <p style="font-size: 15px;margin-top: 0px;">
+                          <span>-{{ packageChangeSummary.delPackagesNum }}</span>
                         </p>
                         <n-icon color="green">
                           <DoubleArrowFilled />

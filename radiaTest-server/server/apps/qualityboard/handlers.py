@@ -245,7 +245,8 @@ class PackageListHandler:
 
         self.qualityboard = QualityBoard.query.filter_by(id=qualityboard_id).first()
         if not self.qualityboard:
-            raise ValueError(f"qualityborad {qualityboard_id} does not exist")
+            raise ValueError(f"qualityboard {qualityboard_id} does not exist")
+
         self.milestone = Milestone.query.filter_by(id=milestone_id).first()
         if not self.milestone:
             raise ValueError(f"milestone {milestone_id} does not exist")
@@ -315,8 +316,8 @@ class PackageListHandler:
         if not self.packages or not packages:
             return None
         
-        rpm_name_dict_comparee = RpmNameLoader.rpmlist2rpmdict(self.packages)
-        rpm_name_dict_comparer = RpmNameLoader.rpmlist2rpmdict(packages)
+        rpm_name_dict_comparer = RpmNameLoader.rpmlist2rpmdict(self.packages)
+        rpm_name_dict_comparee = RpmNameLoader.rpmlist2rpmdict(packages)
 
         return RpmNameComparator.compare_rpm_dict(
             rpm_name_dict_comparee,

@@ -70,9 +70,9 @@ def init_api(api: Api):
     )
     api.add_resource(
         PackageListEvent,
-        "/api/v1/qualityboard/<int:qualityboard_id>/milestone/<int:milestone_id>/packages",
+        "/api/v1/qualityboard/<int:qualityboard_id>/milestone/<int:milestone_id>/pkg-list",
     )
     api.add_resource(
         PackageListCompareEvent,
-        "/api/v1/qualityboard/<int:qualityboard_id>/compare/<int:milestone_id>/with/<int:comparee_milestone_id>/packages"
+        "/api/v1/qualityboard/<int:qualityboard_id>/milestone/<int:comparee_milestone_id>/with/<int:comparer_milestone_id>/pkg-compare"
     )
