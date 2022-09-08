@@ -1,6 +1,20 @@
+# Copyright (c) [2022] Huawei Technologies Co.,Ltd.ALL rights reserved.
+# This program is licensed under Mulan PSL v2.
+# You can use it according to the terms and conditions of the Mulan PSL v2.
+#          http://license.coscl.org.cn/MulanPSL2
+# THIS PROGRAM IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+# EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+# MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+# See the Mulan PSL v2 for more details.
+####################################
+# @Author  : Ethan-Zhang,凹凸曼打小怪兽
+# @email   : 15710801006@163.com
+# @Date    : 2022/09/05
+# @License : Mulan PSL v2
+#####################################
+
 import configparser
 from pathlib import Path
-import socket
 
 from kombu import Exchange, Queue
 
@@ -23,7 +37,7 @@ def loads_config_ini(section, option):
 broker_url = loads_config_ini("celery", "BROKER_URL")
 broker_pool_limit = 10
 
-imports = ('tasks', )
+imports = ('tasks',)
 
 worker_state_db = 'celeryservice/celerymain/celery_revokes_state_db'
 
@@ -53,7 +67,7 @@ celeryd_log_file = 'celeryservice/celerymain/celery.log'
 # 队列属性定义
 task_queues = (
     Queue(
-        'queue_create_vmachine', 
+        'queue_create_vmachine',
         exchange=Exchange(
             'worker_exchange',
             type='direct'
@@ -61,7 +75,7 @@ task_queues = (
         routing_key='create_vmachine',
     ),
     Queue(
-        'queue_illegal_monitor', 
+        'queue_illegal_monitor',
         exchange=Exchange(
             'worker_exchange',
             type='direct'
@@ -80,7 +94,7 @@ task_queues = (
 
 # worker相关配置 
 storage_pool = loads_config_ini("worker", "STORAGE_POOL")
-network_interface_source= loads_config_ini(
+network_interface_source = loads_config_ini(
     "worker",
     "NETWORK_INTERFACE_SOURCE"
 )
@@ -100,4 +114,6 @@ cdromstatus_state = ("CREATING", "CDROMMING", "INSTALLING", "SUCCESS")
 wait_vm_shutdown = 20
 wait_vm_install = 6000
 
-
+# 本地源配置
+disk_cache_on = loads_config_ini("worker", "DISK_CACHE_ON")
+local_source_storage_pool = loads_config_ini("worker", "LOCAL_SOURCE_STORAGE_POOL")

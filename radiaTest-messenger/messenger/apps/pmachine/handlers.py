@@ -17,6 +17,7 @@ from messenger.utils.pxe import PxeInstall, CheckInstall
 from messenger.utils.response_util import RET
 from messenger.utils.requests_util import update_request
 from messenger.utils.pssh import ConnectionApi
+from messenger.utils.mail_util import Mail
 
 
 class AutoInstall:
@@ -50,8 +51,8 @@ class AutoInstall:
             )
 
         result = PxeInstall(
-            self.pmachine["mac"], 
-            self.pmachine["ip"], 
+            self.pmachine["mac"],
+            self.pmachine["ip"],
             self.mirroring["efi"]
         ).bind_efi_mac_ip()
 
@@ -68,15 +69,15 @@ class AutoInstall:
 
         if exitcode:
             error_msg = (
-                "Failed to boot pxe to start the physical machine:%s."
-                % self.pmachine["ip"]
+                    "Failed to boot pxe to start the physical machine:%s."
+                    % self.pmachine["ip"]
             )
             current_app.logger.error(error_msg)
             current_app.logger.error(output)
 
             return jsonify(
-                error_code=RET.INSTALL_CONF_ERR, 
-                error_msg= error_msg
+                error_code=RET.INSTALL_CONF_ERR,
+                error_msg=error_msg
             )
 
         result = CheckInstall(self.pmachine["ip"]).check()
@@ -85,7 +86,7 @@ class AutoInstall:
             return result
 
         return jsonify(
-            error_code=RET.OK, 
+            error_code=RET.OK,
             error_msg="os install succeed"
         )
 
@@ -120,7 +121,7 @@ class OnOff:
                 self.pmachine.get("id")
             ),
             {
-                "status":output.split()[-1]
+                "status": output.split()[-1]
             },
             self._body.get("auth")
         )
@@ -150,7 +151,18 @@ class PmachineSshPassword:
                 error_code=RET.VERIFY_ERR,
                 error_msg="Failed to connect to physical machine.",
             )
-
+        mail_resp = Mail(
+            self._body.get("ip"),
+            text="{} new password:{}".format(
+                self._body.get("ip"),
+                new_password)
+        ).send_text_mail()
+        mail_resp = json.loads(mail_resp.data.decode('UTF-8'))
+        if mail_resp.get("error_code") != RET.OK:
+            return jsonify(
+                error_code=RET.MAIL_ERROR,
+                error_msg=mail_resp.get("error_msg")
+            )
         exitcode, output = ShellCmdApi(
             pmachine_reset_password(
                 self._body.get("user"),
@@ -176,7 +188,6 @@ class PmachineSshPassword:
 class PmachineBmcPassword:
     def __init__(self, body) -> None:
         self._body = body
-
 
     def reset_bmc_password(self):
         ssh = ConnectionApi(

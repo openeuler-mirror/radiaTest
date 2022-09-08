@@ -1,21 +1,34 @@
+# Copyright (c) [2022] Huawei Technologies Co.,Ltd.ALL rights reserved.
+# This program is licensed under Mulan PSL v2.
+# You can use it according to the terms and conditions of the Mulan PSL v2.
+#          http://license.coscl.org.cn/MulanPSL2
+# THIS PROGRAM IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+# EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+# MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+# See the Mulan PSL v2 for more details.
+####################################
+# @Author  : Ethan-Zhang,凹凸曼打小怪兽
+# @email   : 15710801006@163.com
+# @Date    : 2022/09/05
+# @License : Mulan PSL v2
+#####################################
+
+import os
 import time
 import shlex
 import json
 from subprocess import getoutput, getstatusoutput
-from flask import current_app, jsonify, request
-from flask_restful import Resource
+from urllib.parse import urlparse
 import requests
 
 from celeryservice import celeryconfig
 from celeryservice.lib import AuthTaskHandler
 from celeryservice.sub_tasks import async_vmstatus_monitor
 from worker.utils.bash import (
-    get_bridge_source,
     get_network_source,
     install_base,
     rm_disk_image,
     domain_cli,
-    domain_state,
     undefine_domain,
 )
 
@@ -27,16 +40,14 @@ class VmachineBaseSchema(AuthTaskHandler):
         self._vmachine = body["name"] if body.get("name") else "unknown"
         super().__init__(logger, auth)
 
-
     def delete_vmachine(self, body):
         domain_cli("destroy", body.get("name"))
         exitcode, output = undefine_domain(body.get("name"))
         self.logger.info(output)
         if exitcode:
             self.logger.error("Fail to delete vmachine {0}.").format(
-                        body.get("id"),
-                    )
-        
+                body.get("id"),
+            )
 
     def update_vmachine(self, body):
         _ = requests.put(
@@ -52,11 +63,10 @@ class VmachineBaseSchema(AuthTaskHandler):
             verify=celeryconfig.cacert_path,
         )
 
-
     def update_task_status(self, body):
         url = "https://{}/api/v1/vmachine/{}/data".format(
             celeryconfig.server_addr,
-            body.get("id"),)
+            body.get("id"), )
         self.logger.info(url)
 
         _ = requests.put(
@@ -86,7 +96,7 @@ class InstallVmachine(VmachineBaseSchema):
             meta={
                 "start_time": self.start_time,
                 "running_time": self.running_time,
-                
+
             },
         )
         try:
@@ -125,7 +135,7 @@ class InstallVmachine(VmachineBaseSchema):
                 meta={
                     "start_time": self.start_time,
                     "running_time": self.running_time,
-                    
+
                 },
             )
 
@@ -152,7 +162,7 @@ class InstallVmachine(VmachineBaseSchema):
                 meta={
                     "start_time": self.start_time,
                     "running_time": self.running_time,
-                    
+
                 },
             )
 
@@ -160,10 +170,10 @@ class InstallVmachine(VmachineBaseSchema):
                 exitcode = getstatusoutput(
                     "export LANG=en_US.utf-8 ; test \"$(eval echo $(virsh list --all | \
                      grep '{}' | awk -F '{} *' ".format(
-                    shlex.quote(self._body.get("name")), shlex.quote(self._body.get("name"))
+                        shlex.quote(self._body.get("name")), shlex.quote(self._body.get("name"))
                     )
                     + "'{print $NF}'))\" == 'shut off'"
-                    )[0]
+                )[0]
                 if exitcode == 0:
                     exitcode, output = getstatusoutput(
                         "virsh start {}".format(shlex.quote(self._body.get("name")))
@@ -200,10 +210,10 @@ class InstallVmachine(VmachineBaseSchema):
                         "virsh dumpxml %s | grep -Pzo  \"<interface type='bridge'>[\s\S] *<mac address.*\" |grep -Pzo '<mac address.*' | awk -F\\' '{print $2}' | head -1"
                         % self._body.get("name")
                     ).strip(),
-                    "status": "blocking",
+                    "status": "running",
                     "vnc_port": domain_cli("vncdisplay", self._body.get("name"))[1]
-                    .strip("\n")
-                    .split(":")[-1],
+                        .strip("\n")
+                        .split(":")[-1],
                 }
             )
 
@@ -233,7 +243,6 @@ class InstallVmachine(VmachineBaseSchema):
                 },
             )
 
-
     def import_type(self, promise):
         self.logger.info(
             "user {0} attempt to create vmachine imported from {1}".format(
@@ -241,7 +250,7 @@ class InstallVmachine(VmachineBaseSchema):
                 self._body["url"],
             )
         )
-        
+
         self.next_period()
         promise.update_state(
             state="DOWNLOADING",
@@ -254,15 +263,65 @@ class InstallVmachine(VmachineBaseSchema):
         self._body.update(
             {"source": celeryconfig.network_interface_source}
         )
+        block_file = str()
+        sha256_filename = "/tmp/" + self._body.get("name") + ".sha256sum"
         try:
-
-            exitcode, output = getstatusoutput(
-                "sudo wget -nv -c {} -O {}/{}.qcow2 2>&1".format(
-                    shlex.quote(self._body.get("url")),
-                    shlex.quote(celeryconfig.storage_pool),
-                    shlex.quote(self._body.get("name")),
+            if celeryconfig.disk_cache_on == "True":
+                url_analyse_resp = urlparse(self._body.get("url"))
+                source_qcow2_file = os.path.join(celeryconfig.local_source_storage_pool, url_analyse_resp.path[1:])
+                source_path = os.path.dirname(source_qcow2_file)
+                qcow2_name = os.path.basename(source_qcow2_file)
+                block_file = os.path.join(source_path, "block.txt")
+                source_qcow2_sha256 = source_qcow2_file + ".sha256sum"
+                if not os.path.exists(source_qcow2_file):
+                    os.makedirs(os.path.dirname(source_qcow2_file))
+                    self._download_qcow2(block_file, source_qcow2_file)
+                else:
+                    while True:
+                        if os.path.exists(block_file):
+                            self.logger.info("waiting for local source download...")
+                            time.sleep(30)
+                        else:
+                            break
+                    if os.path.exists(source_qcow2_sha256):
+                        _, local_sha256 = getstatusoutput(
+                            "head -1 %s | awk '{print $1}'" % source_qcow2_sha256
+                        )
+                    else:
+                        _, local_sha256 = getstatusoutput(
+                            "sha256sum %s | awk '{print $1}'" % source_qcow2_file
+                        )
+                    exitcode, output = getstatusoutput(
+                        "wget -nv -c {} -O {} 2>&1".format(
+                            self._body.get("url") + ".sha256sum",
+                            sha256_filename
+                        )
+                    )
+                    if exitcode:
+                        self.logger.error(
+                            "{} did not  have sha256sum file,can't make sure local qcow2 is latest".format(qcow2_name)
+                        )
+                        raise RuntimeError(output)
+                    _, remote_sha256 = getstatusoutput(
+                        "head -1 %s | awk '{print $1}'" % sha256_filename
+                    )
+                    if local_sha256 != remote_sha256:
+                        self._download_qcow2(block_file, source_qcow2_file)
+                exitcode, output = getstatusoutput(
+                    "cp {} {}/{}.qcow2 2>&1".format(
+                        source_qcow2_file,
+                        shlex.quote(celeryconfig.storage_pool),
+                        shlex.quote(self._body.get("name")),
+                    )
                 )
-            )
+            else:
+                exitcode, output = getstatusoutput(
+                    "sudo wget -nv -c {} -O {}/{}.qcow2 2>&1".format(
+                        shlex.quote(self._body.get("url")),
+                        shlex.quote(celeryconfig.storage_pool),
+                        shlex.quote(self._body.get("name")),
+                    )
+                )
             if exitcode:
                 self.logger.error(
                     "user {0} fail to create vmachine imported from {1}, because {2}".format(
@@ -310,7 +369,7 @@ class InstallVmachine(VmachineBaseSchema):
                 exitcode, result = undefine_domain(self._body.get("name"))
                 if not exitcode:
                     self.logger.error(
-                    "user {0} fail to create vmachine imported from {1}, because {2}".format(
+                        "user {0} fail to create vmachine imported from {1}, because {2}".format(
                             self._user,
                             self._body["url"],
                             output + "&" + result,
@@ -332,14 +391,22 @@ class InstallVmachine(VmachineBaseSchema):
                         "virsh dumpxml %s | grep -Pzo  \"<interface type='bridge'>[\s\S] *<mac address.*\" |grep -Pzo '<mac address.*' | awk -F\\' '{print $2}' | head -1"
                         % self._body.get("name")
                     ).strip(),
-                    "status": "blocking",
+                    "status": "running",
                     "vnc_port": domain_cli(
                         "vncdisplay", self._body.get("name"))[1]
                         .strip("\n")
                         .split(":")[-1],
                 }
             )
-
+            exitcode, output = getstatusoutput("sh {} {} {} {}".format(
+                os.path.join(os.path.dirname(__file__), "worker/utils/virsh_config.sh"),
+                self._body.get("name"),
+                "vncport",
+                int(self._body.get("vnc_port")) + 5900
+            )
+            )
+            if not exitcode:
+                self.logger.error("vmachine vncport failed to edit:{}".format(output))
             self.update_vmachine(self._body)
 
             self.logger.info(
@@ -355,7 +422,7 @@ class InstallVmachine(VmachineBaseSchema):
                 meta={
                     "start_time": self.start_time,
                     "running_time": self.running_time,
-                    
+
                 },
             )
         except (RuntimeError, TypeError, KeyError, AttributeError):
@@ -364,6 +431,7 @@ class InstallVmachine(VmachineBaseSchema):
                 self._body.get("name"),
                 celeryconfig.storage_pool,
             )
+
             self.update_task_status(self._body)
 
             exitcode, output = getstatusoutput(
@@ -382,7 +450,11 @@ class InstallVmachine(VmachineBaseSchema):
                     "running_time": self.running_time,
                 },
             )
-
+        finally:
+            if os.path.exists(block_file):
+                os.remove(block_file)
+            if os.path.exists(sha256_filename):
+                os.remove(sha256_filename)
 
     def cd_rom(self, promise):
         self.logger.info(
@@ -391,7 +463,7 @@ class InstallVmachine(VmachineBaseSchema):
                 self._body.get("url"),
             )
         )
-        
+
         self.next_period()
         promise.update_state(
             state="CREATING",
@@ -446,7 +518,6 @@ class InstallVmachine(VmachineBaseSchema):
                 )
                 raise RuntimeError(output)
 
-
             exitcode, output = getstatusoutput(
                 "export LANG=en_US.utf-8 ; eval echo $(virsh list --all | grep '{}' ".format(
                     shlex.quote(self._body.get("name"))
@@ -462,8 +533,8 @@ class InstallVmachine(VmachineBaseSchema):
                     ).strip(),
                     "status": output,
                     "vnc_port": domain_cli("vncdisplay", self._body.get("name"))[1]
-                    .strip("\n")
-                    .split(":")[-1],
+                        .strip("\n")
+                        .split(":")[-1],
                 }
             )
 
@@ -475,7 +546,7 @@ class InstallVmachine(VmachineBaseSchema):
                 meta={
                     "start_time": self.start_time,
                     "running_time": self.running_time,
-                    
+
                 },
             )
 
@@ -522,3 +593,27 @@ class InstallVmachine(VmachineBaseSchema):
                     "running_time": self.running_time,
                 },
             )
+
+    def _download_qcow2(self, block_file, source_qcow2_file):
+        exitcode, output = getstatusoutput(
+            "echo block > {};sudo wget -nv -c {} -O {} 2>&1".format(
+                block_file,
+                self._body.get("url"),
+                source_qcow2_file
+            )
+        )
+        if exitcode:
+            self.logger.error(
+                "user {0} fail to store vmachine in local from {1}, because {2}".format(
+                    self._user,
+                    self._body["url"],
+                    output,
+                )
+            )
+            raise RuntimeError(output)
+        _, _ = getstatusoutput(
+            "wget -nv -c {} -O {} 2>&1".format(
+                self._body.get("url") + ".sha256sum",
+                source_qcow2_file + ".sha256sum"
+            )
+        )
