@@ -97,6 +97,9 @@ def update_suite(suite_data, cases_data):
 
 @celery.task
 def update_compare_result(milestone_group_id: int, result: dict):
+    if not milestone_group_id:
+        raise ValueError("lack of param milestone_group_id")
+
     rpm_compare = RpmCompare.query.filter_by(
         rpm_comparee=result.get("rpm_list_1"),
         rpm_comparer=result.get("rpm_list_2"),
