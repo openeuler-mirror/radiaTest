@@ -187,21 +187,25 @@ export function getFeatureList(id, params) {
   return getRequest(`/v1/qualityboard/${id}/feature-list`, params);
 }
 
-export function getPackageListComparationSummary (qualityboardId, milestoneId, params) {
+export function getPackageListComparationSummary(qualityboardId, milestoneId, params) {
   return getRequest(`/v1/qualityboard/${qualityboardId}/milestone/${milestoneId}/pkg-list`, params);
 }
 
 export function getPackageListComparationDetail(qualityboardId, milestonePreId, milestoneCurId, params) {
   return getRequest(
-    `/v1/qualityboard/${qualityboardId}/milestone/${milestonePreId}/with/${milestoneCurId}/pkg-compare`, 
+    `/v1/qualityboard/${qualityboardId}/milestone/${milestonePreId}/with/${milestoneCurId}/pkg-compare`,
     params
   );
 }
 
-export function getCheckListTableRounds(productId) {
-  return getRequest(`/v1/checklist/rounds-count/${productId}`);
+export function getCheckListTableRounds(data) {
+  return getRequest('/v1/checklist/rounds-count', data);
 }
 
 export function getCheckListTableDataAxios(data) {
   return getRequest('/v1/checklist', data);
+}
+
+export function getMilestonesByName(data) {
+  return getRequest('/v2/gitee-milestone', data);
 }

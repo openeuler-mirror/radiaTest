@@ -1,6 +1,7 @@
 import { ref } from 'vue';
 import store from '@/store';
 import { get } from '@/assets/CRUD/read';
+import milestoneTableColumns from '@/views/versionManagement/milestone/modules/milestoneTableColumns';
 
 const totalData = ref([]);
 const rowData = ref({});
@@ -10,9 +11,9 @@ const showIssueDrawer = ref(false);
 const isCheck = ref(false);
 const loading = ref(true);
 const isUpdating = ref(false);
-const pagination = ref({ 
-  page: 1, 
-  pageCount: 1, 
+const pagination = ref({
+  page: 1,
+  pageCount: 1,
   pageSize: 10,
   showSizePicker: true,
   pageSizes: [5, 10, 20, 50]
@@ -20,13 +21,13 @@ const pagination = ref({
 const filter = ref({
   name: '',
   page_num: pagination.value.page,
-  page_size: pagination.value.pageSize,
+  page_size: pagination.value.pageSize
 });
 
 const rowProps = (row) => {
   return {
     style: {
-      cursor: 'pointer',
+      cursor: 'pointer'
     },
     onClick: () => {
       if (!isUpdating.value && !isCheck.value) {
@@ -35,7 +36,7 @@ const rowProps = (row) => {
       }
       isCheck.value = false;
       isUpdating.value = false;
-    },
+    }
   };
 };
 
@@ -57,6 +58,20 @@ function changePageSize(pageSize) {
   getTableData();
 }
 
+function handleSorterChange(sorter) {
+  if (!sorter || sorter.columnKey === 'start_time') {
+    if (sorter.order === 'descend') {
+      filter.value.create_time_order = 'descend';
+    } else if (sorter.order === 'ascend') {
+      filter.value.create_time_order = 'ascend';
+    } else {
+      filter.value.create_time_order = null;
+    }
+    milestoneTableColumns.startTimeColumn.sortOrder = !sorter ? false : sorter.order;
+    getTableData();
+  }
+}
+
 export default {
   filter,
   totalData,
@@ -73,4 +88,5 @@ export default {
   changePage,
   changePageSize,
   getTableData,
+  handleSorterChange
 };

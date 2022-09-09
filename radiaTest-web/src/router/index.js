@@ -29,6 +29,7 @@ import testsuite from '@/views/caseManage/testsuite/testsuite.vue';
 import rulesManagement from '@/views/personalCenter/authorityManagement/rulesManagement/rulesManagement.vue';
 import rolesManagement from '@/views/personalCenter/authorityManagement/rolesManagement/rolesManagement.vue';
 import usersManagement from '@/views/personalCenter/usersManagement/usersManagement.vue';
+import configManagement from '@/views/personalCenter/configManagement.vue';
 import caseReview from '@/views/caseManage/caseReview/caseReview.vue';
 import caseReviewDetail from '@/views/caseManage/caseReviewDetail/caseReviewDetail.vue';
 import resourcePool from '@/views/resourcePool/resourcePool.vue';
@@ -43,7 +44,7 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      redirect: '/login',
+      redirect: '/login'
     },
     {
       path: '/home/',
@@ -51,15 +52,15 @@ const router = createRouter({
       component: Home,
       name: 'home',
       meta: {
-        title: 'raidaTest测试平台',
+        title: 'raidaTest测试平台'
       },
       children: [
         {
           path: 'dashboard/',
           component: Dashboard,
           meta: {
-            title: 'raidaTest测试平台',
-          },
+            title: 'raidaTest测试平台'
+          }
         },
         {
           path: 'version-management/',
@@ -70,17 +71,17 @@ const router = createRouter({
               path: 'product/',
               component: Product,
               meta: {
-                title: '产品版本管理',
-              },
+                title: '产品版本管理'
+              }
             },
             {
               path: 'milestone/',
               component: Milestone,
               meta: {
-                title: '里程碑管理',
-              },
-            },
-          ],
+                title: '里程碑管理'
+              }
+            }
+          ]
         },
         {
           path: 'resource-pool/',
@@ -95,33 +96,33 @@ const router = createRouter({
                 {
                   path: 'pmachine/:machineId',
                   component: Pmachine,
-                  name: 'pmachine',
+                  name: 'pmachine'
                 },
                 {
                   path: 'vmachine/:machineId',
                   component: Vmachine,
-                  name: 'vmachine',
-                },
+                  name: 'vmachine'
+                }
               ],
               meta: {
-                title: '资源池管理',
-              },
+                title: '资源池管理'
+              }
             },
             {
               path: 'pmachine/',
               component: Pmachine,
               meta: {
-                title: '物理机资源池',
-              },
+                title: '物理机资源池'
+              }
             },
             {
               path: 'vmachine/',
               component: Vmachine,
               meta: {
-                title: '虚拟机资源池',
-              },
-            },
-          ],
+                title: '虚拟机资源池'
+              }
+            }
+          ]
         },
         {
           path: 'testing/',
@@ -132,45 +133,45 @@ const router = createRouter({
               path: 'jobs/',
               component: Job,
               meta: {
-                title: '测试看板',
-              },
+                title: '测试看板'
+              }
             },
             {
               path: 'template/',
               component: Template,
               meta: {
-                title: '模板仓库',
-              },
-            },
-          ],
+                title: '模板仓库'
+              }
+            }
+          ]
         },
         {
           path: 'tcm/',
           redirect: '/home/tcm/testcase',
           component: CaseManagement,
           meta: {
-            title: '用例管理',
+            title: '用例管理'
           },
           children: [
             {
               path: 'case-review/',
               component: caseReview,
-              name: 'caseReview',
+              name: 'caseReview'
             },
             {
               path: 'case-review-detail/:commitId',
               component: caseReviewDetail,
-              name: 'caseReviewDetail',
+              name: 'caseReviewDetail'
             },
             {
               path: 'testcase/',
               component: Testcase,
-              name: 'testcase',
+              name: 'testcase'
             },
             {
               path: 'testsuite/',
               component: testsuite,
-              name: 'testsuite',
+              name: 'testsuite'
             },
             {
               path: 'folderview/',
@@ -180,26 +181,26 @@ const router = createRouter({
                 {
                   path: 'node-detail/:taskid/',
                   component: taskDetails,
-                  name: 'taskDetails',
+                  name: 'taskDetails'
                 },
                 {
                   path: 'org-node',
                   component: orgNode,
-                  name: 'orgNode',
+                  name: 'orgNode'
                 },
                 {
                   path: 'term-node',
                   component: termNode,
-                  name: 'termNode',
-                },
-              ],
+                  name: 'termNode'
+                }
+              ]
             },
             {
               path: 'framework',
               component: frameWork,
-              name: 'frameWork',
-            },
-          ],
+              name: 'frameWork'
+            }
+          ]
         },
         {
           path: 'tm/',
@@ -208,27 +209,27 @@ const router = createRouter({
           children: [
             {
               path: 'task/',
-              component: Task,
+              component: Task
             },
             {
               path: 'report/',
-              component: Report,
+              component: Report
             },
             {
               path: 'distribution/',
-              component: Distribution,
-            },
-          ],
-        },
-      ],
+              component: Distribution
+            }
+          ]
+        }
+      ]
     },
     {
       path: '/login/',
       component: newLogin,
       name: 'login',
       meta: {
-        title: '登陆',
-      },
+        title: '登陆'
+      }
     },
     {
       path: '/personal-center/',
@@ -237,31 +238,31 @@ const router = createRouter({
       children: [
         {
           path: '',
-          redirect: '/personal-center/account-management/',
+          redirect: '/personal-center/account-management/'
         },
         {
           path: 'account-management/',
           component: AccountManagement,
           name: 'accountManagement',
           meta: {
-            title: '账号管理',
-          },
+            title: '账号管理'
+          }
         },
         {
           path: 'account-info/',
           component: AccountInfo,
           name: 'accountInfo',
           meta: {
-            title: '基本信息',
-          },
+            title: '基本信息'
+          }
         },
         {
           path: 'org-management/',
           component: OrgManagement,
           name: 'orgManagement',
           meta: {
-            title: '组织管理',
-          },
+            title: '组织管理'
+          }
         },
         {
           path: 'authority-management/',
@@ -271,41 +272,49 @@ const router = createRouter({
             {
               path: 'rules-management/',
               component: rulesManagement,
-              name: 'rulesManagement',
+              name: 'rulesManagement'
             },
             {
               path: 'roles-management/:roleId',
               component: rolesManagement,
-              name: 'rolesManagement',
-            },
+              name: 'rolesManagement'
+            }
           ],
           meta: {
-            title: '权限管理',
-          },
+            title: '权限管理'
+          }
         },
         {
           path: 'users-management/',
           component: usersManagement,
           name: 'usersManagement',
           meta: {
-            title: '成员管理',
-          },
+            title: '成员管理'
+          }
+        },
+        {
+          path: 'config-management/',
+          component: configManagement,
+          name: 'configManagement',
+          meta: {
+            title: '配置管理'
+          }
         },
         {
           path: 'news/',
           component: News,
           name: 'news',
           meta: {
-            title: '消息中心',
-          },
-        },
-      ],
+            title: '消息中心'
+          }
+        }
+      ]
     },
     {
       path: '/:catchAll(.*)',
       component: NotFound,
-      name: 'NotFound',
+      name: 'NotFound'
     }
-  ],
+  ]
 });
 export default router;

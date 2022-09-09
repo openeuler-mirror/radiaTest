@@ -63,3 +63,15 @@ export function milestoneRollback(id) {
 export function updateCheckListItem(id, data) {
   return putRequest(`/v1/checklist/${id}`, data);
 }
+
+export function updateCheckItem(id, data) {
+  return putRequest(`/v1/checkitem/${id}`, data);
+}
+
+export function updateSyncMilestone(id, data) {
+  return putRequest(`/v2/milestone/${id}/sync`, data);
+}
+
+export function updateMilestoneState(id, data) {
+  return putRequest(`/v2/milestone/${id}/state`, data);
+}

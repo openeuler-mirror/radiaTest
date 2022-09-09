@@ -28,7 +28,7 @@ const model = ref({
   childTask: null,
   keyword: null,
   abstract: null,
-  abbreviation: null,
+  abbreviation: null
 });
 
 // 新建版本任务参数
@@ -44,7 +44,7 @@ const modelVersion = ref({
   taskType: '',
   abbreviation: null,
   fatherTask: null,
-  childTask: null,
+  childTask: null
 });
 
 // 创建版本任务表单检验规则
@@ -52,26 +52,26 @@ const rulesVersion = ref({
   name: {
     required: true,
     message: '任务名称必填',
-    trigger: ['blur', 'input'],
+    trigger: ['blur', 'input']
   },
   orgTask: {
     required: true,
     message: '执行者必填',
-    trigger: ['blur', 'change'],
+    trigger: ['blur', 'change']
   },
   versionMilepost: {
     type: 'array',
     required: true,
     message: '里程碑必填',
-    trigger: ['blur', 'change'],
-  },
+    trigger: ['blur', 'change']
+  }
 });
 
 // 任务类型
 const taskTypes = ref([
   { label: '个人任务', value: 'PERSON' },
   { label: '团队任务', value: 'GROUP' },
-  { label: '组织任务', value: 'ORGANIZATION' },
+  { label: '组织任务', value: 'ORGANIZATION' }
 ]);
 
 // 任务类型
@@ -79,7 +79,7 @@ const task = {
   PERSON: '个人任务',
   GROUP: '团队任务',
   ORGANIZATION: '组织任务',
-  VERSION: '版本任务',
+  VERSION: '版本任务'
 };
 
 // 组织任务执行者选项
@@ -88,14 +88,14 @@ const orgOptions = ref([
     label: '团队',
     value: 'GROUP',
     depth: 1,
-    isLeaf: false,
+    isLeaf: false
   },
   {
     label: '个人',
     value: 'PERSON',
     depth: 1,
-    isLeaf: false,
-  },
+    isLeaf: false
+  }
 ]);
 
 // 创建任务表单检验规则
@@ -103,28 +103,28 @@ const rules = ref({
   name: {
     required: true,
     message: '任务名称必填',
-    trigger: ['blur', 'input'],
+    trigger: ['blur', 'input']
   },
   type: {
     required: true,
     message: '任务类型必填',
-    trigger: ['blur', 'change'],
+    trigger: ['blur', 'change']
   },
   group: {
     required: true,
     message: '执行团队必填',
-    trigger: ['blur', 'change'],
+    trigger: ['blur', 'change']
   },
   executor: {
     required: true,
     message: '执行者必填',
-    trigger: ['blur', 'change'],
+    trigger: ['blur', 'change']
   },
   orgTask: {
     required: true,
     message: '执行者必填',
-    trigger: ['blur', 'change'],
-  },
+    trigger: ['blur', 'change']
+  }
 });
 
 // 设置创建任务等级、状态id
@@ -141,7 +141,7 @@ function createBaseTask(element) {
     childTask: null,
     keyword: null,
     abstract: null,
-    abbreviation: null,
+    abbreviation: null
   };
   detailTask.level = 0;
   detailTask.statusId = element.id;
@@ -157,7 +157,7 @@ function getGroup() {
   groups.value = [];
   getGroups({
     page_num: 1,
-    page_size: 99999,
+    page_size: 99999
   })
     .then((res) => {
       showLoading.value = false;
@@ -165,7 +165,7 @@ function getGroup() {
         groups.value.push({
           label: item.name,
           value: String(item.id),
-          avatar_url: item.avatar_url,
+          avatar_url: item.avatar_url
         });
       }
     })
@@ -183,8 +183,8 @@ function taskTypeChange(value) {
     personArray.value = [
       {
         label: storage.getValue('gitee_name'),
-        value: String(storage.getValue('gitee_id')),
-      },
+        value: String(storage.getValue('gitee_id'))
+      }
     ];
     groups.value = [{ label: '个人', value: '0' }];
     nextTick(() => {
@@ -209,7 +209,7 @@ function getUserByGroup(value) {
   axios
     .get(`/v1/groups/${model.value.group}/users`, {
       page_num: 1,
-      page_size: 99999,
+      page_size: 99999
     })
     .then((res) => {
       showLoading.value = false;
@@ -217,7 +217,7 @@ function getUserByGroup(value) {
         personArray.value.push({
           label: item.gitee_name,
           value: String(item.gitee_id),
-          avatar_url: item.avatar_url,
+          avatar_url: item.avatar_url
         });
       }
     })
@@ -237,7 +237,7 @@ function cancelCreateTask() {
     executor: null,
     closingTime: null,
     orgTask: '',
-    taskType: '',
+    taskType: ''
   };
 }
 
@@ -254,7 +254,7 @@ function handleLoad(option) {
       axios
         .get(`/v1/org/${storage.getValue('orgId')}/groups`, {
           page_num: 1,
-          page_size: 99999,
+          page_size: 99999
         })
         .then((res) => {
           option.children = [];
@@ -263,7 +263,7 @@ function handleLoad(option) {
               label: item.name,
               value: String(item.id),
               avatar_url: item.avatar_url,
-              type: 'GROUP',
+              type: 'GROUP'
             });
           }
           resolve();
@@ -276,7 +276,7 @@ function handleLoad(option) {
       axios
         .get(`/v1/org/${storage.getValue('orgId')}/users`, {
           page_num: 1,
-          page_size: 99999,
+          page_size: 99999
         })
         .then((res) => {
           option.children = [];
@@ -285,7 +285,7 @@ function handleLoad(option) {
               label: item.gitee_name,
               value: String(item.gitee_id),
               avatar_url: item.avatar_url,
-              type: 'PERSON',
+              type: 'PERSON'
             });
           }
           resolve();
@@ -317,7 +317,7 @@ function createVersionTask() {
     taskType: '',
     abbreviation: null,
     fatherTask: null,
-    childTask: null,
+    childTask: null
   };
   store.commit('taskManage/toggleNewTaskDrawer');
   showVersionTaskModal.value = true;
@@ -339,13 +339,10 @@ function createVersionTaskBtn() {
           parent_id: modelVersion.value.fatherTask,
           child_id: modelVersion.value.childTask,
           executor_id: Number(modelVersion.value.orgTask),
-          deadline: formatTime(
-            new Date(modelVersion.value.closingTime),
-            'yyyy-MM-dd hh:mm:ss'
-          ),
+          deadline: formatTime(new Date(modelVersion.value.closingTime), 'yyyy-MM-dd hh:mm:ss'),
           keywords: modelVersion.value.keyword,
           abstract: modelVersion.value.abstract,
-          abbreviation: modelVersion.value.abbreviation,
+          abbreviation: modelVersion.value.abbreviation
         })
         .then(() => {
           if (showRelation.value) {
@@ -384,19 +381,12 @@ function createTask(e, versionTask = false) {
           executor_type: model.value.taskType,
           parent_id: model.value.fatherTask,
           child_id: model.value.childTask,
-          group_id:
-            model.value.type === 'GROUP' ? Number(model.value.group) : null,
-          executor_id:
-            model.value.type === 'ORGANIZATION'
-              ? Number(model.value.orgTask)
-              : Number(model.value.executor),
-          deadline: formatTime(
-            new Date(model.value.closingTime),
-            'yyyy-MM-dd hh:mm:ss'
-          ),
+          group_id: model.value.type === 'GROUP' ? Number(model.value.group) : null,
+          executor_id: model.value.type === 'ORGANIZATION' ? Number(model.value.orgTask) : Number(model.value.executor),
+          deadline: formatTime(new Date(model.value.closingTime), 'yyyy-MM-dd hh:mm:ss'),
           keywords: model.value.keyword,
           abstract: model.value.abstract,
-          abbreviation: model.value.abbreviation,
+          abbreviation: model.value.abbreviation
         })
         .then(() => {
           if (showRelation.value) {
@@ -426,13 +416,14 @@ function renderLabel(option) {
       style: {
         display: 'flex',
         alignItems: 'center',
-      },
+        'justify-content': 'left'
+      }
     },
     [
       h(NAvatar, {
         src: option.avatar_url,
         round: true,
-        size: 'small',
+        size: 'small'
       }),
       h(
         'div',
@@ -440,10 +431,11 @@ function renderLabel(option) {
           style: {
             marginLeft: '12px',
             padding: '4px 0',
-          },
+            width: '110px'
+          }
         },
         [h('div', null, [option.label])]
-      ),
+      )
     ]
   );
 }
@@ -455,7 +447,7 @@ function getRelationTask() {
     res.data.forEach((item) => {
       relationTasks.value.push({
         label: item.title,
-        value: item.id,
+        value: item.id
       });
     });
   });
@@ -489,5 +481,5 @@ export {
   cancelCreateVersionTask,
   createTask,
   versionSelect,
-  renderLabel,
+  renderLabel
 };

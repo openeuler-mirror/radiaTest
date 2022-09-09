@@ -62,7 +62,9 @@
                   <div class="task-main">
                     <div class="task-content-wrapper">
                       <div class="task-content" @click="taskDetail(element)">
-                        {{ element.title }}
+                        <n-ellipsis style="max-width: 200px">
+                          {{ element.title }}
+                        </n-ellipsis>
                       </div>
                       <img class="avatar" :src="element.creator?.avatar_url || element.originator?.avatar_url" />
                     </div>

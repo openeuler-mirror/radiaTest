@@ -271,18 +271,13 @@
                   </n-icon>
                 </template>
                 <template #header-extra v-else>
-                  <refresh-button 
-                    :size="24"
-                    @refresh="getPackageListComparationSummary(dashboardId, true)"
-                  >
+                  <refresh-button :size="24" @refresh="getPackageListComparationSummary(dashboardId, true)">
                     获取最新软件包变更数据
                   </refresh-button>
                 </template>
-                <div
-                  class="transitionBox"
-                >
+                <div class="transitionBox">
                   <div
-                    style="display:flex;justify-content:space-around;height:100%;"
+                    style="display: flex; justify-content: space-around; height: 100%"
                     @click="handlePackageCardClick"
                     v-if="!showPackage"
                   >
@@ -294,10 +289,10 @@
                         <p>{{ oldPackage.name }}</p>
                       </div>
                       <div class="package-middle">
-                        <p style="font-size: 15px;margin-top: 0px;">
+                        <p style="font-size: 15px; margin-top: 0px">
                           <span>+{{ packageChangeSummary.addPackagesNum }}</span>
                         </p>
-                        <p style="font-size: 15px;margin-top: 0px;">
+                        <p style="font-size: 15px; margin-top: 0px">
                           <span>-{{ packageChangeSummary.delPackagesNum }}</span>
                         </p>
                         <n-icon size="20" color="green">
@@ -321,10 +316,10 @@
                         <p>{{ oldPackage.name }}</p>
                       </div>
                       <div class="package-middle">
-                        <p style="font-size: 15px;margin-top: 0px;">
+                        <p style="font-size: 15px; margin-top: 0px">
                           <span>+{{ packageChangeSummary.addPackagesNum }}</span>
                         </p>
-                        <p style="font-size: 15px;margin-top: 0px;">
+                        <p style="font-size: 15px; margin-top: 0px">
                           <span>-{{ packageChangeSummary.delPackagesNum }}</span>
                         </p>
                         <n-icon color="green">
@@ -430,15 +425,20 @@
           size="medium"
           :style="{}"
         >
-          <n-form-item label="产品版本" path="product_id">
+          <n-form-item label="产品名称" path="product_name">
             <n-select
-              v-model:value="checkListDrawerModel.product_id"
-              placeholder="请选择产品版本"
+              v-model:value="checkListDrawerModel.product_name"
+              placeholder="请选择产品名称"
               :options="productList"
             />
           </n-form-item>
-          <n-form-item label="检查项" path="check_item">
-            <n-input placeholder="请输入检查项" v-model:value="checkListDrawerModel.check_item" />
+          <n-form-item label="检查项" path="checkitem_id">
+            <n-select
+              v-model:value="checkListDrawerModel.checkitem_id"
+              placeholder="请选择检查项"
+              :options="checkItemList"
+              filterable
+            />
           </n-form-item>
           <n-form-item label="基准数值" path="baseline">
             <n-input
@@ -515,6 +515,7 @@ import FeatureTable from '@/components/productDrawer/FeatureTable.vue';
 import filterButton from '@/components/filter/filterButton.vue';
 import PackageTable from '@/components/productDrawer/PackageTable.vue';
 import RefreshButton from '@/components/CRUD/RefreshButton';
+import { getProductOpts, getCheckItemOpts } from '@/assets/utils/getOpts';
 import echart from '@/components/echart/echart.vue';
 
 export default {
@@ -552,6 +553,8 @@ export default {
     onMounted(() => {
       modules.getTableData();
       modules.getDefaultList();
+      getProductOpts(modules.productList);
+      getCheckItemOpts(modules.checkItemList);
       modules.setFeatureOption(
         additionFeatureOption, '新增特性', modules.additionFeatureSummary.value
       );
