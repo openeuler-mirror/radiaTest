@@ -20,6 +20,11 @@ from scrapyspider.items import OpenqaTestsOverviewItem
 
 class OpenqaTestsOverviewSpider(Spider):
     name = "openqa_tests_overview_spider"
+    custom_settings = {
+        'ITEM_PIPELINES': {
+            'scrapyspider.pipelines.RedisPipeline': 300,
+        }
+    }
     
     def start_requests(self):
         urls = [
