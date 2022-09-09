@@ -55,8 +55,11 @@ class ChecklistHandler:
         _filter = []
         if query.check_item:
             _filter.append(Checklist.check_item.like(f'%{query.check_item}%'))
+        if query.product_id:
+            _filter.append(Checklist.product_id == query.product_id)
         filter_chain = Checklist.query.filter(*_filter)
-        page_dict, e = PageUtil.get_page_dict(filter_chain, query.page_num, query.page_size, func=lambda x: x.to_json())
+        page_dict, e = PageUtil.get_page_dict(
+            filter_chain, query.page_num, query.page_size, func=lambda x: x.to_json())
         if e:
             return jsonify(
                 error_code=RET.SERVER_ERR,
@@ -85,7 +88,7 @@ class FeatureListResolver:
 
     def __init__(self, table_content):
         self.table_content = table_content
-    
+
     @abc.abstractmethod
     def parse_table(self):
         pass
@@ -101,7 +104,7 @@ class OpenEulerFeatureListResolver(FeatureListResolver):
 
         Args:
             table_content (xpath node): result of html.xpath("//table") element
-        
+
         return:
             list: [[th list],[td list 1], [td list 2]]
         """
@@ -137,7 +140,7 @@ class OpenEulerFeatureListResolver(FeatureListResolver):
         td format as follow:
             <td>text</td>
             <td><a>text1</a><a>text1</a></td>
-        
+
         return:
             list: [tds' text]
         """
@@ -148,7 +151,7 @@ class OpenEulerFeatureListResolver(FeatureListResolver):
             result = []
             for a_content in a_list:
                 if a_content.text:
-                    result.append(a_content.text) 
+                    result.append(a_content.text)
             return " ".join(result)
         return ""
 
@@ -160,7 +163,7 @@ class FeatureListHandler:
     colname_dict = {}
 
     def __init__(self, table) -> None:
-        self.table = table 
+        self.table = table
 
     def get_md_content(self, product_version) -> str:
         return None
@@ -175,7 +178,7 @@ class FeatureListHandler:
         for i, colname in enumerate(colnames):
             if self.colname_dict.get(colname):
                 colnames[i] = self.colname_dict.get(colname)
-        
+
     def extract(self, _list):
         rows = _list[self.target_index]
         if not isinstance(rows, list):
@@ -183,16 +186,16 @@ class FeatureListHandler:
         colnames = rows.pop(0)
         if not isinstance(colnames, list):
             return None
-        
+
         if self.colname_dict:
             self.transform_colname(colnames)
 
         for i, row in enumerate(rows):
             rows[i] = dict(zip(colnames, row))
-        
+
         return rows
-        
-    def store(self, qualityboard_id, socket_namespace=None):       
+
+    def store(self, qualityboard_id, socket_namespace=None):
         for data in self.rows:
             Insert(
                 self.table,
@@ -217,22 +220,22 @@ class OpenEulerReleasePlanHandler(FeatureListHandler):
     def get_md_content(self, product_version) -> str:
         if os.path.isdir("/tmp/release-management"):
             exitcode, _ = subprocess.getstatusoutput(
-                "pushd /tmp/release-management && git pull && popd"\
+                "pushd /tmp/release-management && git pull && popd"
             )
         else:
             exitcode, _ = subprocess.getstatusoutput(
-                "pushd /tmp && git clone https://gitee.com/openeuler/release-management && popd"\
+                "pushd /tmp && git clone https://gitee.com/openeuler/release-management && popd"
             )
         if exitcode != 0:
             return None
-        
+
         md_content = None
         with open(f"/tmp/release-management/{product_version}/release-plan.md", 'r') as f:
             md_content = f.read()
 
         return md_content
 
-    
+
 feature_list_handlers = {
     "default": FeatureListHandler,
     "openEuler": OpenEulerReleasePlanHandler,
