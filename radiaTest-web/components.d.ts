@@ -9,6 +9,7 @@ declare module '@vue/runtime-core' {
   export interface GlobalComponents {
     AccountInfo: typeof import('./src/components/pmachineComponents/expandedContent/AccountInfo.vue')['default']
     AnalysisTimeline: typeof import('./src/components/jobComponents/logsDrawerComponents/AnalysisTimeline.vue')['default']
+    AtOverview: typeof import('./src/components/productDrawer/atOverview.vue')['default']
     AutoSteps: typeof import('./src/components/autoSteps/autoSteps.vue')['default']
     BatchButton: typeof import('./src/components/CRUD/BatchButton.vue')['default']
     Blank: typeof import('./src/components/public/Blank.vue')['default']
@@ -33,6 +34,7 @@ declare module '@vue/runtime-core' {
     CreateButton: typeof import('./src/components/CRUD/CreateButton.vue')['default']
     CreateDrawer: typeof import('./src/components/task/createDrawer.vue')['default']
     CustomProgress: typeof import('./src/components/customProgress/customProgress.vue')['default']
+    DailyBuild: typeof import('./src/components/productDrawer/dailyBuild.vue')['default']
     DeleteButton: typeof import('./src/components/CRUD/DeleteButton.vue')['default']
     DeleteItem: typeof import('./src/components/common/deleteItem.vue')['default']
     DeviceForm: typeof import('./src/components/vmachineComponents/expandedContent/editForms/DeviceForm.vue')['default']
@@ -44,8 +46,9 @@ declare module '@vue/runtime-core' {
     EditModal: typeof import('./src/components/vmachineComponents/expandedContent/EditModal.vue')['default']
     ExecTemplate: typeof import('./src/components/templateComponents/execTemplate.vue')['default']
     ExpandedCard: typeof import('./src/components/pmachineComponents/ExpandedCard.vue')['default']
-    ExtendDrawer: typeof import('./src/components/testcaseComponents/ExtendDrawer.vue')['default']
+    ExtendDrawer: typeof import('./src/components/milestoneComponents/ExtendDrawer.vue')['default']
     FailureUpdateForm: typeof import('./src/components/jobComponents/FailureUpdateForm.vue')['default']
+    FeatureTable: typeof import('./src/components/productDrawer/FeatureTable.vue')['default']
     FilterButton: typeof import('./src/components/filter/filterButton.vue')['default']
     FixNavgation: typeof import('./src/components/fixNavigation/fixNavgation.vue')['default']
     Header: typeof import('./src/components/header/Header.vue')['default']
@@ -75,6 +78,7 @@ declare module '@vue/runtime-core' {
     NicsForm: typeof import('./src/components/vmachineComponents/expandedContent/createForms/NicsForm.vue')['default']
     NormalMenu: typeof import('./src/components/common/NormalMenu.vue')['default']
     NoVnc: typeof import('./src/components/vmachineComponents/expandedContent/consoles/NoVnc.vue')['default']
+    PackageTable: typeof import('./src/components/productDrawer/PackageTable.vue')['default']
     PendingReviewList: typeof import('./src/components/testcaseComponents/pendingReviewList.vue')['default']
     PmachineBatchButtonGroup: typeof import('./src/components/pmachineComponents/PmachineBatchButtonGroup.vue')['default']
     PmachineCreateForm: typeof import('./src/components/pmachineComponents/PmachineCreateForm.vue')['default']
@@ -120,5 +124,6 @@ declare module '@vue/runtime-core' {
     VHtml: typeof import('./src/components/common/vHtml.vue')['default']
     VmachineCreateForm: typeof import('./src/components/vmachineComponents/VmachineCreateForm.vue')['default']
     VmachineTable: typeof import('./src/components/vmachineComponents/VmachineTable.vue')['default']
+    WeeklybuildHealth: typeof import('./src/components/productDrawer/weeklybuildHealth.vue')['default']
   }
 }

@@ -5,18 +5,24 @@ import { NButton, NIcon, NSpace, NTag, useMessage, NCheckbox } from 'naive-ui';
 import { CancelRound, CheckCircleFilled } from '@vicons/material';
 import { QuestionCircle16Filled } from '@vicons/fluent';
 import { AddAlt } from '@vicons/carbon';
-import { getProduct, getProductMessage, getMilestoneRate } from '@/api/get';
-import { createProductMessage } from '@/api/post';
-import { milestoneNext, milestoneRollback } from '@/api/put';
-import { 
+import {
+  getProduct,
+  getProductMessage,
+  getMilestoneRate,
+  getCheckListTableRounds,
+  getCheckListTableDataAxios
+} from '@/api/get';
+import { createProductMessage, addCheckListItem } from '@/api/post';
+import { milestoneNext, milestoneRollback, updateCheckListItem } from '@/api/put';
+import {
   detail,
   drawerShow,
   getFeatureSummary,
   getPackageListComparationSummary,
   showPackage,
-  testProgressList 
+  testProgressList
 } from './productDetailDrawer';
-import axios from '@/axios';
+import _ from 'lodash';
 
 const ProductId = ref(null);
 const done = ref(false);
@@ -51,6 +57,9 @@ const model = ref({
   serious_main_resolved_rate: null,
   current_resolved_rate: null
 });
+const productList = ref([]); // 产品列表
+const currentProduct = ref(''); // 当前产品
+
 function getDefaultList() {
   testList.value = testProgressList.value[testProgressList.value.length - 1];
 }
@@ -60,6 +69,10 @@ function getTableData() {
     .then((res) => {
       tableData.value = res.data || [];
       tableLoading.value = false;
+      productList.value = [];
+      res.data?.forEach((v) => {
+        productList.value.push({ label: `${v.name} ${v.version}`, value: v.id });
+      });
     })
     .catch(() => {
       tableLoading.value = false;
@@ -83,9 +96,13 @@ function dynamicAnimateCss(elementsClass, animationCssClass) {
   const elements = document.querySelectorAll(`.${elementsClass}`);
   elements.forEach((el) => {
     el.classList.add('animate__animated', animationCssClass);
-    el.addEventListener('animationend', () => {
-      el.classList.remove('animate__animated', animationCssClass);
-    }, { once: true });
+    el.addEventListener(
+      'animationend',
+      () => {
+        el.classList.remove('animate__animated', animationCssClass);
+      },
+      { once: true }
+    );
   });
 }
 
@@ -96,28 +113,29 @@ function handleClick(id) {
     dynamicAnimateCss('inout-animated', 'animate__fadeInLeft');
   }
   currentId.value = id;
-  getMilestoneRate(id).then(res => {
-    const rateData = res.data;
-    for(let i in rateData){
-      if(rateData[i] === null){
-        rateData[i] = 0;
+  getMilestoneRate(id)
+    .then((res) => {
+      const rateData = res.data;
+      for (let i in rateData) {
+        if (rateData[i] === null) {
+          rateData[i] = 0;
+        }
+        if (rateData[i] !== 0 && i.includes('_rate')) {
+          rateData[i] = rateData[i].toString().substring(0, rateData[i].length - 1);
+        }
       }
-      if(rateData[i] !== 0 && i.includes('_rate')){
-        rateData[i] = rateData[i].toString().substring(0, rateData[i].length - 1);
-      }
-    }
-    seriousResolvedRate.value = rateData.serious_resolved_rate;
-    currentResolvedCnt.value  = rateData.current_resolved_cnt;
-    currentAllCnt.value  = rateData.current_all_cnt;
-    currentResolvedRate.value  = rateData.current_resolved_rate;
-    mainResolvedRate.value  = rateData.main_resolved_rate;
-    seriousMainResolvedCnt.value  = rateData.serious_main_resolved_cnt;
-    seriousMainAllCnt.value  = rateData.serious_main_all_cnt;
-    seriousMainResolvedRate.value  = rateData.serious_main_resolved_rate;
-    leftIssuesCnt.value = rateData.left_issues_cnt;
-    previousLeftResolvedRate.value = rateData.previous_left_resolved_rate ;
-  }).catch(() => {
-  });
+      seriousResolvedRate.value = rateData.serious_resolved_rate;
+      currentResolvedCnt.value = rateData.current_resolved_cnt;
+      currentAllCnt.value = rateData.current_all_cnt;
+      currentResolvedRate.value = rateData.current_resolved_rate;
+      mainResolvedRate.value = rateData.main_resolved_rate;
+      seriousMainResolvedCnt.value = rateData.serious_main_resolved_cnt;
+      seriousMainAllCnt.value = rateData.serious_main_all_cnt;
+      seriousMainResolvedRate.value = rateData.serious_main_resolved_rate;
+      leftIssuesCnt.value = rateData.left_issues_cnt;
+      previousLeftResolvedRate.value = rateData.previous_left_resolved_rate;
+    })
+    .catch(() => {});
   getTestList(id);
   getPackageListComparationSummary(dashboardId.value);
 }
@@ -134,7 +152,7 @@ function renderBtn(text, action, row, type = 'text') {
     text
   );
 }
-function releaseClick () {
+function releaseClick() {
   currentId.value = null;
 }
 function editRow() {
@@ -178,10 +196,12 @@ const columns = [
     align: 'center',
     className: 'resolvedRate',
     title: '遗留问题解决率',
-    render (row) {
-      if (row.left_resolved_baseline !== null
-        && row.left_resolved_rate !== null
-        && row.left_resolved_rate >= row.left_resolved_baseline) {
+    render(row) {
+      if (
+        row.left_resolved_baseline !== null &&
+        row.left_resolved_rate !== null &&
+        row.left_resolved_rate >= row.left_resolved_baseline
+      ) {
         return h(
           NTag,
           {
@@ -236,10 +256,12 @@ const columns = [
     align: 'center',
     className: 'seriousMain',
     title: '严重/主要问题解决率',
-    render (row) {
-      if (row.serious_main_resolved_baseline !== null
-        && row.serious_main_resolved_rate !== null
-        && row.serious_main_resolved_rate >= row.serious_main_resolved_baseline) {
+    render(row) {
+      if (
+        row.serious_main_resolved_baseline !== null &&
+        row.serious_main_resolved_rate !== null &&
+        row.serious_main_resolved_rate >= row.serious_main_resolved_baseline
+      ) {
         return h(
           NTag,
           {
@@ -294,10 +316,12 @@ const columns = [
     align: 'center',
     className: 'resolvedRate',
     title: '版本问题解决率',
-    render (row) {
-      if (row.current_resolved_baseline !== null
-        && row.current_resolved_rate !== null
-        && row.current_resolved_rate >= row.current_resolved_baseline) {
+    render(row) {
+      if (
+        row.current_resolved_baseline !== null &&
+        row.current_resolved_rate !== null &&
+        row.current_resolved_rate >= row.current_resolved_baseline
+      ) {
         return h(
           NTag,
           {
@@ -361,38 +385,42 @@ const columns = [
     }
   }
 ];
-function getDefaultCheckNode (id) {
-  getProductMessage(id).then(res => {
-    dashboardId.value = res.data[0].id;
-    const rateData = res.data[0].current_milestone_issue_solved_rate;
-    for(let i in rateData){
-      if(rateData[i] === null){
-        rateData[i] = 0;
+function getDefaultCheckNode(id) {
+  getProductMessage(id)
+    .then((res) => {
+      dashboardId.value = res.data[0].id;
+      const rateData = res.data[0].current_milestone_issue_solved_rate;
+      for (let i in rateData) {
+        if (rateData[i] === null) {
+          rateData[i] = 0;
+        }
+        if (rateData[i] !== 0 && i.includes('_rate')) {
+          rateData[i] = rateData[i].toString().substring(0, rateData[i].length - 1);
+        }
       }
-      if(rateData[i] !== 0 && i.includes('_rate')){
-        rateData[i] = rateData[i].toString().substring(0, rateData[i].length - 1);
-      }
-    }
-    seriousResolvedRate.value = rateData.serious_resolved_rate;
-    currentResolvedCnt.value  = rateData.current_resolved_cnt;
-    currentAllCnt.value  = rateData.current_all_cnt;
-    currentResolvedRate.value  = rateData.current_resolved_rate;
-    mainResolvedRate.value  = rateData.main_resolved_rate;
-    seriousMainResolvedCnt.value  = rateData.serious_main_resolved_cnt;
-    seriousMainAllCnt.value  = rateData.serious_main_all_cnt;
-    seriousMainResolvedRate.value  = rateData.serious_main_resolved_rate;
-    leftIssuesCnt.value = rateData.left_issues_cnt;
-    previousLeftResolvedRate.value = rateData.previous_left_resolved_rate ;
-    currentId.value = res.data[0].current_milestone_id;
-    const newArr = Object.keys(res.data[0].milestones)
-      .map(item => ({key: item, text: res.data[0].milestones[item].name}));
-    list.value = newArr;
-    tableLoading.value = false;
-    getFeatureSummary(dashboardId.value);
-    getPackageListComparationSummary(dashboardId.value);
-  }).catch(() => {
-    tableLoading.value = false;
-  });
+      seriousResolvedRate.value = rateData.serious_resolved_rate;
+      currentResolvedCnt.value = rateData.current_resolved_cnt;
+      currentAllCnt.value = rateData.current_all_cnt;
+      currentResolvedRate.value = rateData.current_resolved_rate;
+      mainResolvedRate.value = rateData.main_resolved_rate;
+      seriousMainResolvedCnt.value = rateData.serious_main_resolved_cnt;
+      seriousMainAllCnt.value = rateData.serious_main_all_cnt;
+      seriousMainResolvedRate.value = rateData.serious_main_resolved_rate;
+      leftIssuesCnt.value = rateData.left_issues_cnt;
+      previousLeftResolvedRate.value = rateData.previous_left_resolved_rate;
+      currentId.value = res.data[0].current_milestone_id;
+      const newArr = Object.keys(res.data[0].milestones).map((item) => ({
+        key: item,
+        text: res.data[0].milestones[item].name
+      }));
+      list.value = newArr;
+      tableLoading.value = false;
+      getFeatureSummary(dashboardId.value);
+      getPackageListComparationSummary(dashboardId.value);
+    })
+    .catch(() => {
+      tableLoading.value = false;
+    });
 }
 function rowProps(row) {
   return {
@@ -409,31 +437,35 @@ function rowProps(row) {
 
 function haveDone() {
   tableLoading.value = true;
-  milestoneNext(dashboardId.value, { released: true }).then(res => {
-    if (res.error_code === '2000') {
-      const newArr = Object.keys(res.data.milestones)
-        .map(item => ({key: item, text: res.data.milestones[item].name}));
-      list.value = newArr;
-      currentId.value = res.data.current_milestone_id;
-      done.value = true;
-      window.$message.error('已正式发布');
-    } else {
+  milestoneNext(dashboardId.value, { released: true })
+    .then((res) => {
+      if (res.error_code === '2000') {
+        const newArr = Object.keys(res.data.milestones).map((item) => ({
+          key: item,
+          text: res.data.milestones[item].name
+        }));
+        list.value = newArr;
+        currentId.value = res.data.current_milestone_id;
+        done.value = true;
+        window.$message.error('已正式发布');
+      } else {
+        window.$message.error('发布失败');
+      }
+      tableLoading.value = false;
+      getDefaultCheckNode(ProductId.value);
+    })
+    .catch(() => {
       window.$message.error('发布失败');
-    }
-    tableLoading.value = false;
-    getDefaultCheckNode(ProductId.value);
-  }).catch(() => {
-    window.$message.error('发布失败');
-    done.value = false;
-    tableLoading.value = false;
-  });
+      done.value = false;
+      tableLoading.value = false;
+    });
 }
 
 function stepAdd() {
   if (list.value.length === 5) {
     window.$message.info('已达到转测最大结点数');
     haveDone();
-  } else if(list.value.length === 0) {
+  } else if (list.value.length === 0) {
     createProductMessage(ProductId.value)
       .then(() => {
         window.$message?.info('第一轮迭代已转测');
@@ -447,22 +479,27 @@ function stepAdd() {
       });
   } else {
     tableLoading.value = true;
-    milestoneNext(dashboardId.value).then(res => {
-      if (res.error_code === '2000') {
-        const newArr = Object.keys(res.data.milestones)
-          .map(item => ({key: item, text: res.data.milestones[item].name}));
-        list.value = newArr;
-        currentId.value = res.data.current_milestone_id;
-        window.$message.success('下一轮迭代已转测');
-      } else {
+    milestoneNext(dashboardId.value)
+      .then((res) => {
+        if (res.error_code === '2000') {
+          const newArr = Object.keys(res.data.milestones).map((item) => ({
+            key: item,
+            text: res.data.milestones[item].name
+          }));
+          list.value = newArr;
+          currentId.value = res.data.current_milestone_id;
+          window.$message.success('下一轮迭代已转测');
+        } else {
+          window.$message.error('下一轮迭代转测失败');
+        }
+        getDefaultCheckNode(ProductId.value);
+      })
+      .catch(() => {
         window.$message.error('下一轮迭代转测失败');
-      }
-      getDefaultCheckNode(ProductId.value);
-    }).catch(() => {
-      window.$message.error('下一轮迭代转测失败');
-    }).finally(() => {
-      tableLoading.value = false;
-    });
+      })
+      .finally(() => {
+        tableLoading.value = false;
+      });
   }
 }
 function handleValidateButtonClick(e) {
@@ -488,18 +525,15 @@ function handleRollback() {
       window.$message?.error('回退失败');
     });
 }
-function haveRecovery(){
-  handleRollback()
-    .then(() => {
-      done.value = false;
-    });
+function haveRecovery() {
+  handleRollback().then(() => {
+    done.value = false;
+  });
 }
 function handlePackageCardClick() {
   showPackage.value = true;
 }
 
-const productList = ref([]);
-const currentProduct = ref('');
 const searchInfo = ref('');
 const checkListTableLoading = ref(false);
 const checkListTablePagination = ref({
@@ -512,9 +546,10 @@ const checkListTablePagination = ref({
 
 const checkListTableData = ref([]);
 
-const rounds = ref({});
+const rounds = ref({}); // checkList表格Rounds数
+const checkListTableColumns = ref([]);
 
-const checkListTableColumns = ref([
+const checkListTableColumnsDefault = [
   {
     key: 'check_item',
     title: '检查项',
@@ -581,9 +616,9 @@ const checkListTableColumns = ref([
         {
           bordered: false,
           'on-click': () => {
-            let index = Object.keys(rounds.value).length;
-            let keyName = `R${index + 1}`;
-            addRounds(index, keyName);
+            let keyName = `R${rounds.value + 1}`;
+            addRounds(rounds.value, keyName);
+            rounds.value = rounds.value + 1;
           }
         },
         {
@@ -596,16 +631,16 @@ const checkListTableColumns = ref([
       );
     }
   }
-]);
+];
 
 const showCheckListDrawer = ref(false);
 const checkListDrawerFormRef = ref(null);
 
 const checkListDrawerModel = ref({
+  product_id: null,
   check_item: null,
   baseline: null,
-  operation: null,
-  rounds: {}
+  operation: null
 });
 
 const checkListDrawerRules = ref({
@@ -651,9 +686,9 @@ const operationOptions = ref([
 
 const onlyAllowNumber = (value) => !value || /^-?\d*\.?\d{0,2}%?$/.test(value);
 
-const getCheckListTableData = (currentPage, pageSize) => {
+const getCheckListTableData = (currentPage, pageSize, productId) => {
   checkListTableLoading.value = true;
-  axios.get('/v1/checklist', { page_num: currentPage, page_size: pageSize }).then((res) => {
+  getCheckListTableDataAxios({ page_num: currentPage, page_size: pageSize, product_id: productId }).then((res) => {
     checkListTableLoading.value = false;
     checkListTableData.value = [];
     res.data.items?.forEach((item) => {
@@ -674,26 +709,35 @@ const getCheckListTableData = (currentPage, pageSize) => {
   });
 };
 
+// 更新checkList表格检查项状态
 const updateCheckListTable = (row, data) => {
   let [key] = Object.keys(data);
-  axios.put(`/v1/checklist/${row.id}`, data).then(() => {
-    console.log(row);
+  if (data.rounds) {
+    data.rounds = data.rounds.replace(/(0+)\b/gi, '');
+  }
+  updateCheckListItem(row.id, data).then(() => {
     row[key] = data[key];
   });
 };
 
 const checkListTablePageChange = (page) => {
-  getCheckListTableData(page, checkListTablePagination.value.pageSize);
+  getCheckListTableData(page, checkListTablePagination.value.pageSize, currentProduct.value);
 };
 
 const checkListTablePageSizeChange = (pageSize) => {
-  getCheckListTableData(1, pageSize);
+  getCheckListTableData(1, pageSize, currentProduct.value);
 };
 
 // 点击质量checklist按钮
 const clickCheckList = async () => {
-  await getCheckListTableData(1, checkListTablePagination.value.pageSize);
   showCheckList.value = true;
+  checkListTableColumns.value = _.cloneDeep(checkListTableColumnsDefault);
+  rounds.value = (await getCheckListTableRounds(currentProduct.value)).count;
+  for (let i = 0; i < rounds.value; i++) {
+    let keyName = `R${i + 1}`;
+    addRounds(i, keyName);
+  }
+  await getCheckListTableData(1, checkListTablePagination.value.pageSize, currentProduct.value);
 };
 
 // 添加checklist表格rounds列
@@ -703,25 +747,30 @@ const addRounds = (index, keyName) => {
     title: keyName,
     align: 'center',
     render: (row) => {
+      if (row.rounds.length < rounds.value) {
+        row.rounds = `${row.rounds}0`;
+      }
       return h(NCheckbox, {
         focusable: false,
-        checked: row[keyName] ? true : false,
+        checked: Number(row.rounds[index]) ? true : false,
         'on-update:checked': (checked) => {
-          updateCheckListTable(row, { [keyName]: checked });
+          let tempArr = row.rounds.split('');
+          checked ? (tempArr[index] = 1) : (tempArr[index] = 0);
+          row.rounds = tempArr.join('');
+          updateCheckListTable(row, { rounds: row.rounds });
         }
       });
     }
   });
-  console.log(checkListTableColumns.value);
 };
 
 const cancelCheckListDrawer = () => {
   showCheckListDrawer.value = false;
   checkListDrawerModel.value = {
+    product_id: null,
     check_item: null,
     baseline: null,
-    operation: null,
-    rounds: {}
+    operation: null
   };
 };
 
@@ -731,8 +780,8 @@ const confirmCheckItem = () => {
     if (error) {
       window.$message?.error('请填写相关信息');
     } else {
-      axios.post('/v1/checklist', checkListDrawerModel.value).then(() => {
-        getCheckListTableData();
+      addCheckListItem(checkListDrawerModel.value).then(() => {
+        getCheckListTableData(1, checkListTablePagination.value.pageSize, currentProduct.value);
         cancelCheckListDrawer();
       });
     }
@@ -742,6 +791,7 @@ const confirmCheckItem = () => {
 // 点击新增检查项按钮
 const addCheckItem = () => {
   showCheckListDrawer.value = true;
+  checkListDrawerModel.value.product_id = currentProduct.value;
 };
 
 export {

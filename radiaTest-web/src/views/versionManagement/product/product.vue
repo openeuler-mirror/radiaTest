@@ -23,12 +23,11 @@
       <div>
         <create-button title="注册产品版本" @click="createModalRef.show()" />
       </div>
-      <div style="display:flex;align-items:center">
-        <filterButton :filterRule="filterRule" @filterchange="filterchange" style="display:flex;padding-right:20px;">
+      <div style="display: flex; align-items: center">
+        <filterButton :filterRule="filterRule" @filterchange="filterchange" style="display: flex; padding-right: 20px">
         </filterButton>
-        <n-select v-model:value="currentProduct" placeholder="请选择产品" style="width:200px" :options="productList" />
-        <n-button @click="clickCheckList" style="margin-right: 40px;">
-          <!-- <n-button :disabled="!currentProduct" @click="clickCheckList" style="margin-right: 40px;"> -->
+        <n-select v-model:value="currentProduct" placeholder="请选择产品" style="width: 200px" :options="productList" />
+        <n-button :disabled="!currentProduct" @click="clickCheckList" style="margin-right: 40px">
           <template #icon>
             <n-icon>
               <ChecklistFilled />
@@ -36,9 +35,7 @@
           </template>
           质量checklist
         </n-button>
-        <refresh-button @refresh="getProduct()">
-          刷新产品版本列表
-        </refresh-button>
+        <refresh-button @refresh="getProduct()"> 刷新产品版本列表 </refresh-button>
       </div>
     </div>
     <div>
@@ -47,14 +44,14 @@
     <n-drawer v-model:show="drawerShow" style="width: 60%">
       <n-drawer-content id="drawer-target">
         <template #header>
-          <div style="display:flex;align-items:center">
+          <div style="display: flex; align-items: center">
             <n-button
               @click="
                 () => {
                   drawerShow = false;
                 }
               "
-              style="margin-right:20px"
+              style="margin-right: 20px"
               size="medium"
               quaternary
               circle
@@ -63,7 +60,7 @@
                 <arrow-left />
               </n-icon>
             </n-button>
-            <n-h3 style="margin:0;padding:0">
+            <n-h3 style="margin: 0; padding: 0">
               {{ `${detail.name}-${detail.version}` }}
             </n-h3>
           </div>
@@ -72,12 +69,12 @@
           <n-grid x-gap="12" :cols="3">
             <n-gi
               :span="5"
-              style="display: flex;margin-top: 15px;cursor: pointer;align-items: center;"
+              style="display: flex; margin-top: 15px; cursor: pointer; align-items: center"
               @click="cardClick"
             >
-              <div style="width: 150px;margin-right: 10px;">
+              <div style="width: 150px; margin-right: 10px">
                 <span>遗留问题解决率</span><br />
-                <span style="color: #DAE0E8;width: 135px;text-align: center;margin-left: 22px;">前置版本</span>
+                <span style="color: #dae0e8; width: 135px; text-align: center; margin-left: 22px">前置版本</span>
               </div>
               <n-progress
                 type="line"
@@ -94,56 +91,58 @@
                 :fill-border-radius="0"
                 processing
               />
-              <span style="width: 60px;">
+              <span style="width: 60px">
                 {{ thisLeftResolvedRate && thisLeftResolvedRateBaseline ? '转测' : null }}
               </span>
             </n-gi>
-            <n-gi :span="3" style="margin-top: 40px;margin-bottom: 20px;">
-              <autoSteps 
+            <n-gi :span="3" style="margin-top: 40px; margin-bottom: 20px">
+              <autoSteps
                 @stepClick="handleClick"
                 @rollback="handleRollback"
-                @haveDone="haveDone" 
-                @haveRecovery="haveRecovery" 
-                @add="stepAdd" 
-                @release="releaseClick" 
-                :done="done" 
-                :list="list" 
-                :currentId="currentId" 
+                @haveDone="haveDone"
+                @haveRecovery="haveRecovery"
+                @add="stepAdd"
+                @release="releaseClick"
+                :done="done"
+                :list="list"
+                :currentId="currentId"
               />
             </n-gi>
           </n-grid>
           <n-grid x-gap="12" :cols="2" v-if="list.length">
             <n-gi :span="1" v-if="!showPackage && !showList">
-              <div 
-                class="card inout-animated" 
-                @click="cardClick" 
+              <div
+                class="card inout-animated"
+                @click="cardClick"
                 :style="{
-                  backgroundColor: currentResolvedRate && currentResolvedBaseline
-                    ? currentResolvedRate >= currentResolvedBaseline
-                      ?'#D5E8D4'
-                      :'#F8CECC'
-                    : 'white',
-                  border: currentResolvedRate && currentResolvedBaseline
-                    ? currentResolvedRate >= currentResolvedBaseline
-                      ?'1px solid #A2C790'
-                      :'1px solid #B95854'
-                    : '1px solid #dddddd'
+                  backgroundColor:
+                    currentResolvedRate && currentResolvedBaseline
+                      ? currentResolvedRate >= currentResolvedBaseline
+                        ? '#D5E8D4'
+                        : '#F8CECC'
+                      : 'white',
+                  border:
+                    currentResolvedRate && currentResolvedBaseline
+                      ? currentResolvedRate >= currentResolvedBaseline
+                        ? '1px solid #A2C790'
+                        : '1px solid #B95854'
+                      : '1px solid #dddddd'
                 }"
               >
                 <n-progress
-                  style="width:190px;left:15$;"
+                  style="width: 190px; left: 15$"
                   class="topProgress"
                   type="circle"
                   :status="currentResolvedRate >= currentResolvedBaseline ? 'success' : 'error'"
                   stroke-width="9"
                   :percentage="currentResolvedRate"
                 >
-                  <span style="text-align: center;font-size: 33px;">
+                  <span style="text-align: center; font-size: 33px">
                     {{ currentResolvedRate ? `${currentResolvedRate}%` : '0%' }}
                   </span>
                 </n-progress>
-                <div style="display: flex;position: absolute;top: 4%;left: 73%;">
-                  <n-icon size="20" style="margin-right: 5px;">
+                <div style="display: flex; position: absolute; top: 4%; left: 73%">
+                  <n-icon size="20" style="margin-right: 5px">
                     <CheckCircleFilled color="#18A058" v-if="currentResolvedRate >= currentResolvedBaseline" />
                     <QuestionCircle16Filled v-else-if="!currentResolvedRate || !currentResolvedBaseline" />
                     <CancelRound color="#D03050" v-else />
@@ -153,35 +152,27 @@
                   </span>
                   <span v-else>发布</span>
                 </div>
-                <div style="position:absolute;left: 61%;top: 16%;text-align: center;">
-                  <span style="font-size: 20px;"> 问题解决统计 </span><br />
-                  <span style="font-size: 20px;color: #929292">
-                    当前迭代
-                  </span>
-                  <p style="font-size: 30px;margin-top: 3px;margin-bottom: 3px">
+                <div style="position: absolute; left: 61%; top: 16%; text-align: center">
+                  <span style="font-size: 20px"> 问题解决统计 </span><br />
+                  <span style="font-size: 20px; color: #929292"> 当前迭代 </span>
+                  <p style="font-size: 30px; margin-top: 3px; margin-bottom: 3px">
                     {{ currentAllCnt && currentResolvedRate ? `${currentResolvedCnt}/${currentAllCnt}` : '0/0' }}
                   </p>
-                  <div style="display: flex;align-items: center;justify-content: space-around">
-                    <div style="display: flex;flex-direction: column">
-                      <p style="font-size: 14px;margin: 0">
-                        遗留问题数
-                      </p>
-                      <p style="font-size: 14px;margin: 0;color: #929292">
-                        前置迭代
-                      </p>
+                  <div style="display: flex; align-items: center; justify-content: space-around">
+                    <div style="display: flex; flex-direction: column">
+                      <p style="font-size: 14px; margin: 0">遗留问题数</p>
+                      <p style="font-size: 14px; margin: 0; color: #929292">前置迭代</p>
                     </div>
-                    <p style="font-size: 30px;">
+                    <p style="font-size: 30px">
                       {{ leftIssuesCnt ? leftIssuesCnt : '0' }}
                     </p>
                   </div>
                 </div>
                 <div
                   class="description"
-                  style="font-size: 19px;position:absolute;top:69%;display:flex;justify-content:space-around;"
+                  style="font-size: 19px; position: absolute; top: 69%; display: flex; justify-content: space-around"
                 >
-                  <span>
-                    严重/主要问题解决率
-                  </span>
+                  <span> 严重/主要问题解决率 </span>
                   <span>
                     {{
                       seriousMainResolvedCnt && seriousMainAllCnt
@@ -191,7 +182,7 @@
                   </span>
                 </div>
                 <n-progress
-                  style="position: absolute;width: 78%;top: 80%;left: 11%;"
+                  style="position: absolute; width: 78%; top: 80%; left: 11%"
                   type="line"
                   status="error"
                   :indicator-placement="'inside'"
@@ -203,20 +194,20 @@
                 />
                 <n-tooltip>
                   <template #trigger>
-                    <n-progress 
-                      style="position: absolute;width: 78%;top: 86%;left: 11%;" 
-                      type="line" 
-                      :percentage="seriousResolvedRate" 
+                    <n-progress
+                      style="position: absolute; width: 78%; top: 86%; left: 11%"
+                      type="line"
+                      :percentage="seriousResolvedRate"
                     />
                   </template>
                   严重问题解决率
                 </n-tooltip>
                 <n-tooltip>
                   <template #trigger>
-                    <n-progress 
-                      style="position: absolute;width: 78%;top: 91%;left: 11%;" 
-                      type="line" 
-                      :percentage="mainResolvedRate" 
+                    <n-progress
+                      style="position: absolute; width: 78%; top: 91%; left: 11%"
+                      type="line"
+                      :percentage="mainResolvedRate"
                     />
                   </template>
                   主要问题解决率
@@ -232,58 +223,45 @@
                 }"
               >
                 <div
-                  style="display:flex;justify-content:space-evenly;height:100%;background:white;"
+                  style="display: flex; justify-content: space-evenly; height: 100%; background: white"
                   @click="handleListClick"
                   class="card"
                   v-if="!showList"
                 >
-                  <div style="text-align:center">
+                  <div style="text-align: center">
                     <p>
                       新增测试需求: <span>{{ additionFeatureCount }}</span>
                     </p>
-                    <n-progress
-                      type="dashboard"
-                      gap-position="bottom"
-                      :percentage="additionFeatureRate"
-                    />
-                    <p class="description">
-                      完成度
-                    </p>
+                    <n-progress type="dashboard" gap-position="bottom" :percentage="additionFeatureRate" />
+                    <p class="description">完成度</p>
                   </div>
-                  <n-divider vertical style="height:100%" />
-                  <div style="text-align:center">
+                  <n-divider vertical style="height: 100%" />
+                  <div style="text-align: center">
                     <p>
                       继承测试需求: <span>{{ inheritFeatureCount }}</span>
                     </p>
-                    <n-progress
-                      type="dashboard"
-                      gap-position="bottom"
-                      :percentage="inheritFeatureRate"
-                    />
-                    <p class="description">
-                      完成度
-                    </p>
+                    <n-progress type="dashboard" gap-position="bottom" :percentage="inheritFeatureRate" />
+                    <p class="description">完成度</p>
                   </div>
                 </div>
                 <div v-if="showList">
-                  <n-card style="height: auto;box-shadow: 0 2px 8px 0 rgb(2 24 42 / 10%);">
+                  <n-card style="height: auto; box-shadow: 0 2px 8px 0 rgb(2 24 42 / 10%)">
                     <template #header>
                       <span>新增/继承特性测试任务跟踪</span>
                     </template>
                     <template #header-extra>
-                      <n-icon @click="showList = false" style="cursor:pointer">
+                      <n-icon @click="showList = false" style="cursor: pointer">
                         <MdClose />
                       </n-icon>
                     </template>
                     <n-tabs type="line" animated>
                       <n-tab-pane name="addition" tab="新增测试需求">
-                        <feature-table type="addition" :qualityboard-id="dashboardId"/>
+                        <feature-table type="addition" :qualityboard-id="dashboardId" />
                       </n-tab-pane>
                       <n-tab-pane name="inherit" tab="继承测试需求">
-                        <feature-table type="inherit" :qualityboard-id="dashboardId"/>
+                        <feature-table type="inherit" :qualityboard-id="dashboardId" />
                       </n-tab-pane>
                     </n-tabs>
-                    
                   </n-card>
                 </div>
               </div>
@@ -291,13 +269,13 @@
                 class="cardbox inout-animated"
                 v-if="!showList"
                 :style="{
-                  height: showPackage ? 'auto' : '',
+                  height: showPackage ? 'auto' : ''
                 }"
                 :bordered="false"
                 title="软件包变更"
               >
                 <template #header-extra v-if="showPackage">
-                  <n-icon @click="showPackage = false" style="cursor:pointer">
+                  <n-icon @click="showPackage = false" style="cursor: pointer">
                     <MdClose />
                   </n-icon>
                 </template>
@@ -319,7 +297,7 @@
                   >
                     <div class="packageCard transitionBox">
                       <div class="package-left">
-                        <n-h3 style="font-size: 33px;">
+                        <n-h3 style="font-size: 33px">
                           {{ oldPackage.size }}
                         </n-h3>
                         <p>{{ oldPackage.name }}</p>
@@ -336,7 +314,7 @@
                         </n-icon>
                       </div>
                       <div class="package-right">
-                        <n-h3 style="font-size: 33px;">
+                        <n-h3 style="font-size: 33px">
                           {{ newPackage.size }}
                         </n-h3>
                         <p>{{ newPackage.name }}</p>
@@ -369,7 +347,7 @@
                         <p>{{ newPackage.name }}</p>
                       </div>
                     </div>
-                    <package-table 
+                    <package-table
                       :qualityboard-id="dashboardId"
                       :milestone-pre-id="preId"
                       :milestone-cur-id="currentId"
@@ -378,7 +356,7 @@
                 </div>
               </n-card>
             </n-gi>
-            <n-gi :span="2" style="margin-top: 40px;">
+            <n-gi :span="2" style="margin-top: 40px">
               <n-tabs type="line" animated v-model:value="activeTab">
                 <n-tab-pane tab="测试进展" name="testProgress"> </n-tab-pane>
                 <n-tab-pane tab="质量防护网" name="qualityProtect"> </n-tab-pane>
@@ -387,10 +365,7 @@
               </n-tabs>
               <div>
                 <keep-alive>
-                  <test-progress
-                    v-if="activeTab === 'testProgress'"
-                    :treeList="testList"
-                  />
+                  <test-progress v-if="activeTab === 'testProgress'" :treeList="testList" />
                   <quality-protect
                     v-else-if="activeTab === 'qualityProtect'"
                     :quality-board-id="dashboardId"
@@ -402,7 +377,7 @@
           </n-grid>
           <n-empty
             size="huge"
-            style="justify-content:center;height:100%"
+            style="justify-content: center; height: 100%"
             description="未通过质量checklist，无法开启第一轮迭代测试"
             v-else
           />
@@ -432,9 +407,7 @@
         class="checkListWrap"
       >
         <div class="addBtn">
-          <n-button type="info" @click="addCheckItem">
-            新增检查项
-          </n-button>
+          <n-button type="info" @click="addCheckItem"> 新增检查项 </n-button>
         </div>
         <div>
           <n-data-table
@@ -466,6 +439,13 @@
           size="medium"
           :style="{}"
         >
+          <n-form-item label="产品版本" path="product_id">
+            <n-select
+              v-model:value="checkListDrawerModel.product_id"
+              placeholder="请选择产品版本"
+              :options="productList"
+            />
+          </n-form-item>
           <n-form-item label="检查项" path="check_item">
             <n-input placeholder="请输入检查项" v-model:value="checkListDrawerModel.check_item" />
           </n-form-item>
@@ -563,7 +543,7 @@ export default {
     qualityProtect,
     QuestionCircle16Filled,
     FeatureTable,
-    PackageTable,
+    PackageTable
   },
   data() {
     return {};
@@ -668,7 +648,7 @@ export default {
   height: 220px;
   box-shadow: 0 2px 8px 0 rgb(2 24 42 / 10%);
 }
-.inout-animated{
+.inout-animated {
   --animate-duration: 0.3s;
 }
 
