@@ -165,8 +165,9 @@ class FeatureListHandler:
     def __init__(self, table) -> None:
         self.table = table
 
+    @abc.abstractmethod
     def get_md_content(self, product_version) -> str:
-        return None
+        pass
 
     def resolve(self, md_content):
         resolver = self.resolver
@@ -194,18 +195,10 @@ class FeatureListHandler:
             rows[i] = dict(zip(colnames, row))
 
         return rows
-
+    
+    @abc.abstractmethod
     def store(self, qualityboard_id, socket_namespace=None):
-        for data in self.rows:
-            Insert(
-                self.table,
-                {
-                    "qualityboard_id": qualityboard_id,
-                    **data,
-                }
-            ).single(
-                self.table, socket_namespace
-            )
+        pass
 
 
 class OpenEulerReleasePlanHandler(FeatureListHandler):
@@ -216,6 +209,7 @@ class OpenEulerReleasePlanHandler(FeatureListHandler):
         "发布方式": "release_to",
         "涉及软件包列表": "pkgs",
     }
+
 
     def get_md_content(self, product_version) -> str:
         if os.path.isdir("/tmp/release-management"):
@@ -234,6 +228,41 @@ class OpenEulerReleasePlanHandler(FeatureListHandler):
             md_content = f.read()
 
         return md_content
+    
+    def store(self, qualityboard_id, socket_namespace=None):       
+        for data in self.rows:
+            if data.get("status") == "discussion":
+                continue
+            
+            _is_done = False
+            if isinstance(data.get("status"), str):
+                _is_done = data.get("status").lower() == "accepted"
+
+            _row = self.table.query.filter_by(
+                no=data.get("no")
+            ).first()
+            if not _row:
+                Insert(
+                    self.table,
+                    {
+                        "qualityboard_id": qualityboard_id,
+                        "done": _is_done,
+                        **data,
+                    }
+                ).single(
+                    self.table, socket_namespace
+                )
+            else:
+                Edit(
+                    self.table,
+                    {
+                        "id": _row.id,
+                        "done": _is_done,
+                        **data,
+                    }
+                ).single(
+                    self.table, socket_namespace
+                )
 
 
 feature_list_handlers = {

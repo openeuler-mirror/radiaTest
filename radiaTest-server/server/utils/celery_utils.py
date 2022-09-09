@@ -96,6 +96,11 @@ def make_celery(app_name):
                 'routing_key': 'rc_name',
                 'delivery_mode': 1,
             },
+            'celeryservice.sub_tasks.update_compare_result': {
+                'queue': 'queue_update_compare_result',
+                'routing_key': 'compare_result',
+                'delivery_mode': 1,
+            }
         }
     )
 

@@ -177,6 +177,7 @@ class FeatureList(db.Model, BaseModel):
     id = db.Column(db.Integer(), primary_key=True, autoincrement=True)
     no = db.Column(db.String(50), nullable=False, unique=True)
     url = db.Column(db.String(512))
+    status = db.Column(db.String(50))
     feature = db.Column(db.String(512), nullable=False)
     sig = db.Column(db.String(50))
     owner = db.Column(LONGTEXT())
@@ -193,6 +194,7 @@ class FeatureList(db.Model, BaseModel):
             "id": self.id,
             "no": self.no,
             "url": self.url,
+            "status": self.status,
             "feature": self.feature,
             "sig": None if not self.sig else self.sig.split(' '),
             "owner": None if not self.owner else self.owner.split(' '),
