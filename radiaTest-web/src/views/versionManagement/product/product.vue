@@ -228,20 +228,11 @@
                   class="card"
                   v-if="!showList"
                 >
-                  <div style="text-align: center">
-                    <p>
-                      新增测试需求: <span>{{ additionFeatureCount }}</span>
-                    </p>
-                    <n-progress type="dashboard" gap-position="bottom" :percentage="additionFeatureRate" />
-                    <p class="description">完成度</p>
+                  <div class="featureProgress">
+                    <echart :option="additionFeatureOption" chartId="additionFeaturePieChart" />
                   </div>
-                  <n-divider vertical style="height: 100%" />
-                  <div style="text-align: center">
-                    <p>
-                      继承测试需求: <span>{{ inheritFeatureCount }}</span>
-                    </p>
-                    <n-progress type="dashboard" gap-position="bottom" :percentage="inheritFeatureRate" />
-                    <p class="description">完成度</p>
+                  <div class="featureProgress">
+                    <echart :option="inheritFeatureOption" chartId="inheritFeaturePieChart" />
                   </div>
                 </div>
                 <div v-if="showList">
@@ -524,6 +515,7 @@ import FeatureTable from '@/components/productDrawer/FeatureTable.vue';
 import filterButton from '@/components/filter/filterButton.vue';
 import PackageTable from '@/components/productDrawer/PackageTable.vue';
 import RefreshButton from '@/components/CRUD/RefreshButton';
+import echart from '@/components/echart/echart.vue';
 
 export default {
   components: {
@@ -543,20 +535,30 @@ export default {
     qualityProtect,
     QuestionCircle16Filled,
     FeatureTable,
-    PackageTable
+    PackageTable,
+    echart,
   },
   data() {
     return {};
   },
-  // eslint-disable-next-line max-lines-per-function
   setup() {
     const store = useStore();
-
+    const additionFeatureOption = reactive(
+      JSON.parse(JSON.stringify(modules.featureOption))
+    );
+    const inheritFeatureOption = reactive(
+      JSON.parse(JSON.stringify(modules.featureOption))
+    );
     onMounted(() => {
       modules.getTableData();
       modules.getDefaultList();
+      modules.setFeatureOption(
+        additionFeatureOption, '新增特性', modules.additionFeatureSummary.value
+      );
+      modules.setFeatureOption(
+        inheritFeatureOption, '继承特性', modules.inheritFeatureSummary.value
+      );
     });
-
     watch(store.getters.filterProductState, () => {
       modules.tableLoading.value = true;
       getProduct(store.getters.filterProductState)
@@ -568,13 +570,22 @@ export default {
           modules.tableLoading.value = false;
         });
     });
-
+    watch([modules.additionFeatureSummary, modules.inheritFeatureSummary], () => {
+      modules.setFeatureOption(
+        additionFeatureOption, '新增特性', modules.additionFeatureSummary.value
+      );
+      modules.setFeatureOption(
+        inheritFeatureOption, '继承特性', modules.inheritFeatureSummary.value
+      );
+    });
     return {
       createFormRef: ref(),
       createModalRef: ref(),
       getProduct,
       Search,
-      ...modules
+      ...modules,
+      inheritFeatureOption,
+      additionFeatureOption,
     };
   }
 };
@@ -615,6 +626,11 @@ export default {
     box-shadow: 0 2px 8px 0 rgb(2 24 42 / 10%);
     height: 450px;
     align-items: center;
+
+    .featureProgress {
+      height: 220px;
+      width: 50%;
+    }
 
     .topProgress {
       position: absolute;

@@ -1,4 +1,3 @@
-from math import floor
 import subprocess
 
 import redis
@@ -663,7 +662,7 @@ class FeatureListEvent(Resource):
             if not feature_list_handler:
                 feature_list_handler = feature_list_handlers.get("default")
 
-            handler = feature_list_handler(FeatureList)
+            handler = feature_list_handler(FeatureList, qualityboard_id)
             if query.new:
                 md_content = handler.get_md_content(
                     f"{qualityboard.product.name}-{qualityboard.product.version}"
@@ -678,7 +677,7 @@ class FeatureListEvent(Resource):
                         )
                     )
                 handler.resolve(md_content)
-                handler.store(qualityboard_id)
+                handler.store()
             else:
                 # 社区暂未统一继承特性的定义
                 pass
@@ -704,44 +703,26 @@ class FeatureListSummary(Resource):
                 error_msg="qualityboard {} not exitst".format(qualityboard_id)
             )
 
-        addition_feature_count = db.session.query(func.count(FeatureList.id)).filter_by(
-            qualityboard_id=qualityboard_id,
-            is_new=True
-        ).scalar()
-        _addition_feature_finish_count = db.session.query(func.count(FeatureList.id)).filter_by(
-            qualityboard_id=qualityboard_id,
-            is_new=True,
-            done=True
-        ).scalar()
-        addition_feature_rate = 0
-        if addition_feature_count != 0:
-            addition_feature_rate = floor(
-                _addition_feature_finish_count / addition_feature_count * 100
-            )
+        addition_feature_summary = dict()
+        inherit_feature_summary = dict()
 
-        inherit_feature_count = db.session.query(func.count(FeatureList.id)).filter_by(
-            qualityboard_id=qualityboard_id,
-            is_new=False
-        ).scalar()
-        _inherit_feature_finish_count = db.session.query(func.count(FeatureList.id)).filter_by(
-            qualityboard_id=qualityboard_id,
-            is_new=False,
-            done=True
-        ).scalar()
-        inherit_feature_rate = 0
-        if inherit_feature_count != 0:
-            inherit_feature_rate = floor(
-                _inherit_feature_finish_count / inherit_feature_count * 100
-            )
+        if qualityboard.product:
+            org_id = qualityboard.product.org_id
+            org = Organization.query.filter_by(id=org_id).first()
+            feature_list_handler = feature_list_handlers.get(org.name)
+            if not feature_list_handler:
+                feature_list_handler = feature_list_handlers.get("default")
+
+            handler = feature_list_handler(FeatureList, qualityboard_id)
+            addition_feature_summary = handler.statistic(_is_new=True)
+            inherit_feature_summary = handler.statistic(_is_new=False)
 
         return jsonify(
             error_code=RET.OK,
             error_msg="OK",
             data={
-                "addition_feature_count": addition_feature_count,
-                "addition_feature_rate": addition_feature_rate,
-                "inherit_feature_count": inherit_feature_count,
-                "inherit_feature_rate": inherit_feature_rate,
+                "addition_feature_summary": addition_feature_summary,
+                "inherit_feature_summary": inherit_feature_summary
             }
         )
 

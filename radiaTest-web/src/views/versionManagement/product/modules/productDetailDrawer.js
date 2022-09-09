@@ -185,10 +185,8 @@ const featureListColumns = [
   }
 ];
 
-const additionFeatureCount = ref(0);
-const inheritFeatureCount = ref(0);
-const additionFeatureRate = ref(0);
-const inheritFeatureRate = ref(0);
+const additionFeatureSummary = ref({});
+const inheritFeatureSummary = ref({});
 
 const featureLoading = ref(false);
 const featureListData = ref([]);
@@ -210,10 +208,8 @@ function getFeatureList(qualityboardId, _type) {
 function getFeatureSummary(qualityboardId) {
   getFeatureCompletionRates(qualityboardId)
     .then((res) => {
-      additionFeatureRate.value = res.data.addition_feature_rate;
-      additionFeatureCount.value = res.data.addition_feature_count;
-      inheritFeatureRate.value = res.data.inherit_feature_rate;
-      inheritFeatureCount.value = res.data.inherit_feature_count;
+      additionFeatureSummary.value = res.data.addition_feature_summary;
+      inheritFeatureSummary.value = res.data.inherit_feature_summary;
     });
 }
 
@@ -237,10 +233,8 @@ export {
   oldPackage,
   packageWidth,
   boxWidth,
-  additionFeatureRate,
-  inheritFeatureRate,
-  additionFeatureCount,
-  inheritFeatureCount,
+  additionFeatureSummary,
+  inheritFeatureSummary,
   activeTab,
   active,
   detail,
