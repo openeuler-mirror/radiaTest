@@ -16,4 +16,4 @@
 FROM radia-test/gunicorn
 LABEL maintainer="ethanzhang55@outlook.com"
 
-CMD celery -A manage.my_celery worker --loglevel=info --hostname=celery_openqa_reader --queues=queue_read_openqa_group_overview,queue_read_openqa_tests_overview --pool=gevent --concurrency=80
+CMD celery -A manage.my_celery worker --loglevel=warning --hostname=celery_openqa_reader --queues=queue_read_openqa_group_overview,queue_read_openqa_tests_overview --pool=gevent --concurrency=80
