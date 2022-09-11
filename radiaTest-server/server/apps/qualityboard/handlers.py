@@ -322,11 +322,18 @@ class PackageListHandler:
         if not org:
             raise ValueError(f"this api only serves for milestones of organizations")
         
-        self.pkgs_repo_url = current_app.config.get(f"{org.name.upper()}_PACKAGELIST_REPO_URL")
-        if not self.pkgs_repo_url:
-            raise ValueError(
-                f"lack of definition of {org.name.upper()}_PACKAGELIST_REPO_URL, please check the settings"
-            )
+        if self.milestone.type == "round":
+            self.pkgs_repo_url = current_app.config.get(f"{org.name.upper()}_DAILYBUILD_REPO_URL")
+            if not self.pkgs_repo_url:
+                raise ValueError(
+                    f"lack of definition of {org.name.upper()}_DAILYBUILD_REPO_URL, please check the settings"
+                )
+        elif self.milestone.type == "release":
+            self.pkgs_repo_url = current_app.config.get(f"{org.name.upper()}_OFFICIAL_REPO_URL")
+            if not self.pkgs_repo_url:
+                raise ValueError(
+                    f"lack of definition of {org.name.upper()}_OFFICIAL_REPO_URL, please check the settings"
+                )
 
         self.packages = self.get_packages()
 

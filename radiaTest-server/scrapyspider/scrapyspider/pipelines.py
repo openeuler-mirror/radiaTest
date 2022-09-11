@@ -68,6 +68,8 @@ class FilePipeline:
                 raise RuntimeError(output)
 
     def close_spider(self, spider):
+        if not self.product or not self.build:
+            return
         pattern = r'^rc([1-9])_+'
         result = re.match(pattern, self.build)
         if result:
