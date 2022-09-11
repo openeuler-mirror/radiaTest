@@ -765,7 +765,7 @@ class PackageListEvent(Resource):
         return jsonify(
            error_code=RET.OK,
            error_msg="OK",
-           data=[ pkg.to_dict() for pkg in pkgs_dict.values() ], 
+           data=[ pkg[0].to_dict() for pkg in pkgs_dict.values() ], 
         )
 
 

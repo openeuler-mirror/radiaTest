@@ -134,7 +134,7 @@ class RpmNameLoader():
             rpmlist : list of rpmname [<rpm name 1>, <rpm name 2>, ...]
         
         return:
-            dict : { <rpm name 1>.<rpm arch 1>: [ RpmName2, RpmName2], ...}
+            dict : { <rpm name 1>.<rpm arch 1>: [ RpmName1, RpmName2], ...}
         """
         rpm_name_dict = {}
         for rpm_name in rpmlist:
