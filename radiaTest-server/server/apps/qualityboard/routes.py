@@ -120,7 +120,6 @@ class QualityBoardItemEvent(Resource):
                 product_id=qualityboard.product_id,
                 type="release",
                 is_sync=True,
-                id=body.milestone_id
             ).order_by(Milestone.start_time.asc()).first()
             if not milestone:
                 return jsonify(

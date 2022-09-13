@@ -479,23 +479,17 @@ function stepAdd() {
       });
   } else {
     tableLoading.value = true;
-    milestoneNext(dashboardId.value)
-      .then((res) => {
+    milestoneNext(dashboardId.value, { released: false })
+      .then(res => {
         if (res.error_code === '2000') {
-          const newArr = Object.keys(res.data.milestones).map((item) => ({
-            key: item,
-            text: res.data.milestones[item].name
-          }));
+          const newArr = Object.keys(res.data.milestones)
+            .map(item => ({key: item, text: res.data.milestones[item].name}));
           list.value = newArr;
           currentId.value = res.data.current_milestone_id;
           window.$message.success('下一轮迭代已转测');
         } else {
           window.$message.error('下一轮迭代转测失败');
         }
-        getDefaultCheckNode(ProductId.value);
-      })
-      .catch(() => {
-        window.$message.error('下一轮迭代转测失败');
       })
       .finally(() => {
         tableLoading.value = false;

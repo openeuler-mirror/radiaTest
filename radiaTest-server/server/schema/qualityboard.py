@@ -11,16 +11,7 @@ from server.schema.base import PageBaseSchema
 
 
 class QualityBoardUpdateSchema(BaseModel):
-    milestone_id: int = None
     released: bool = False
-
-    @root_validator
-    def check_values(cls, values):
-        if values.get("released") is True and not values.get("milestone_id"):
-            raise ValueError(
-                "when released is true, milestone_id can not be null."
-            )
-        return values
 
 
 class QualityBoardSchema(BaseModel):
