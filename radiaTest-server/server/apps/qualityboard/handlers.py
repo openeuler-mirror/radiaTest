@@ -14,14 +14,17 @@
 #####################################
 
 import abc
+from collections import defaultdict
 from datetime import datetime
+from math import floor
 import os
 import subprocess
 
 from flask import jsonify, current_app, g
+from sqlalchemy import func
 import pytz
 
-from server import redis_client
+from server import db, redis_client
 from server.model.qualityboard import Checklist, QualityBoard
 from server.model.milestone import Milestone
 from server.model.organization import Organization
@@ -162,8 +165,9 @@ class FeatureListHandler:
     target_index = 0
     colname_dict = {}
 
-    def __init__(self, table) -> None:
+    def __init__(self, table, qualityboard_id) -> None:
         self.table = table
+        self.qualityboard_id = qualityboard_id
 
     @abc.abstractmethod
     def get_md_content(self, product_version) -> str:
@@ -197,7 +201,7 @@ class FeatureListHandler:
         return rows
     
     @abc.abstractmethod
-    def store(self, qualityboard_id, socket_namespace=None):
+    def store(self, socket_namespace=None):
         pass
 
 
@@ -229,14 +233,16 @@ class OpenEulerReleasePlanHandler(FeatureListHandler):
 
         return md_content
     
-    def store(self, qualityboard_id, socket_namespace=None):       
+    def store(self, socket_namespace=None):       
         for data in self.rows:
             if data.get("status") == "discussion":
                 continue
             
-            _is_done = False
+            _is_done, _is_testing, _is_developing = False, False, False
             if isinstance(data.get("status"), str):
                 _is_done = data.get("status").lower() == "accepted"
+                _is_testing = data.get("status").lower() == "testing"
+                _is_developing = data.get("status").lower() == "developing"
 
             _row = self.table.query.filter_by(
                 no=data.get("no")
@@ -245,8 +251,7 @@ class OpenEulerReleasePlanHandler(FeatureListHandler):
                 Insert(
                     self.table,
                     {
-                        "qualityboard_id": qualityboard_id,
-                        "done": _is_done,
+                        "qualityboard_id": self.qualityboard_id,
                         **data,
                     }
                 ).single(
@@ -257,12 +262,41 @@ class OpenEulerReleasePlanHandler(FeatureListHandler):
                     self.table,
                     {
                         "id": _row.id,
-                        "done": _is_done,
                         **data,
                     }
                 ).single(
                     self.table, socket_namespace
                 )
+        
+    def statistic(self, _is_new: bool):
+        result = defaultdict(int)
+
+        _query = db.session.query(func.count(self.table.id))
+        result["developing_count"] = _query.filter_by(
+            qualityboard_id=self.qualityboard_id,
+            is_new=_is_new,
+            status='Developing',
+        ).scalar()
+        result["testing_count"] = _query.filter_by(
+            qualityboard_id=self.qualityboard_id,
+            is_new=_is_new,
+            status="Testing",
+        ).scalar()
+        result["accepted_count"] = _query.filter_by(
+            qualityboard_id=self.qualityboard_id,
+            is_new=_is_new,
+            status="Accepted",
+        ).scalar()
+
+        accepted_count = result["developing_count"] + result["testing_count"] + result["accepted_count"]
+
+        result["accepted_rate"] = 100
+        if accepted_count != 0:
+            result["accepted_rate"] = floor(
+                result["accepted_count"] / accepted_count * 100
+            )
+        
+        return result
 
 
 feature_list_handlers = {
