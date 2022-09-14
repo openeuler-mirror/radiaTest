@@ -282,6 +282,9 @@ def resolve_openeuler_pkglist(repo_url, product, build, lock_key):
 
 @celery.task
 def resolve_pkglist_after_resolve_rc_name(repo_url, product, _round: int = None):
+    if not repo_url or not product:
+        raise ValueError("neither param repo_url nor param product could be None.")
+
     if _round is None:
         resolve_openeuler_pkglist.delay(
             repo_url,

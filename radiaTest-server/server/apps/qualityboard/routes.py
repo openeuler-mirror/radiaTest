@@ -79,11 +79,15 @@ class QualityBoardEvent(Resource):
             product_id=body.product_id, iteration_version=iteration_version)
         qualityboard.add_update()
 
-        # 启动爬取正式发布版本的软件包清单
-        resolve_pkglist_after_resolve_rc_name.delay(
-            repo_url=current_app.config.get("OPENEULER_DAILYBUILD_REPO_URL"),
-            product=f"{_p.name}-{_p.version}",
-        )
+        # 若为组织/社区里程碑，按组织配置的repo启动爬取正式发布版本的软件包清单
+        org_id = self.milestone.org_id
+        org = Organization.query.filter_by(id=org_id).first()
+        if org:  
+            _pkgs_repo_url = current_app.config.get(f"{org.name.upper()}_PACKAGELIST_REPO_URL")
+            resolve_pkglist_after_resolve_rc_name.delay(
+                repo_url=_pkgs_repo_url,
+                product=f"{_p.name}-{_p.version}",
+            )
 
         return jsonify(
             error_code=RET.OK,
@@ -159,12 +163,16 @@ class QualityBoardItemEvent(Resource):
         qualityboard.iteration_version = iteration_version
         qualityboard.add_update()
 
-        # 启动爬取对应迭代版本的软件包清单
-        resolve_pkglist_after_resolve_rc_name.delay(
-            repo_url=current_app.config.get("OPENEULER_DAILYBUILD_REPO_URL"),
-            product=f"{milestone.product.name}-{milestone.product.version}",
-            _round=len(qualityboard.iteration_version.split('->')),
-        )
+        # 若为组织/社区里程碑，按组织配置的repo启动爬取迭代版本的软件包清单
+        org_id = self.milestone.org_id
+        org = Organization.query.filter_by(id=org_id).first()
+        if org:  
+            _pkgs_repo_url = current_app.config.get(f"{org.name.upper()}_PACKAGELIST_REPO_URL")
+            resolve_pkglist_after_resolve_rc_name.delay(
+                repo_url=_pkgs_repo_url,
+                product=f"{milestone.product.name}-{milestone.product.version}",
+                _round=len(qualityboard.iteration_version.split('->')),
+            )
 
         return jsonify(
             error_code=RET.OK,
@@ -826,7 +834,7 @@ class PackageListCompareEvent(Resource):
             milestone_group_id = milestone_group.id
 
         for result in compare_results:
-            update_compare_result.delay(milestone_group.id, result)
+            update_compare_result.delay(milestone_group_id, result)
 
         return jsonify(
             error_code=RET.OK,
