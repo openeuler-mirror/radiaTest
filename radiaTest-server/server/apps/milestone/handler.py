@@ -110,6 +110,15 @@ class MilestoneHandler:
         query_filter = Milestone.query.filter(*filter_params).order_by(
             Milestone.product_id, Milestone.name, Milestone.create_time
         )
+        if query.create_time_order:
+            if query.create_time_order == "ascend":
+                query_filter = Milestone.query.filter(*filter_params).order_by(
+                    Milestone.create_time.asc()
+                )
+            if query.create_time_order == "descend":
+                query_filter = Milestone.query.filter(*filter_params).order_by(
+                    Milestone.create_time.desc()
+                )
 
         if not query.paged:
             milestones = query_filter.all()
@@ -543,8 +552,10 @@ class IssueStatisticsHandlerV8:
 
     def get_issue_cnt_rate(self, param1, param2):
         solved_cnt, all_cnt, solved_rate = None, None, None
-        solved_cnt = self.get_issues_cnt(param2)
         all_cnt = self.get_issues_cnt(param1)
+        if all_cnt and all_cnt == 0:
+            return 0, 0, "100%"
+        solved_cnt = self.get_issues_cnt(param2)
 
         if solved_cnt and all_cnt and int(all_cnt) != 0:
             solved_rate = int(solved_cnt) / int(all_cnt)
@@ -713,7 +724,7 @@ class IssueStatisticsHandlerV8:
         update_field_issue_rate.delay(
             "milestone",
             g.gitee_id,
-            {"org_id": milestone.org_id},
+            {"org_id": milestone.org_id, "product_id": milestone.product_id},
             field,
             milestone.gitee_milestone_id
         )

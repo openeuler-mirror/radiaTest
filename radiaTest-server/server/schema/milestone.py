@@ -3,11 +3,13 @@ from typing import Literal, Optional
 import pytz
 
 from pydantic import BaseModel, Field, constr, root_validator, validator
+from sqlalchemy import func
+from server import db
 
 
 from server.model import Product, Milestone
 from server.utils.db import Precise
-from server.schema import MilestoneType, MilestoneState, MilestoneStateEvent
+from server.schema import MilestoneType, MilestoneState, MilestoneStateEvent, SortOrder
 from server.schema.base import TimeBaseSchema, PermissionBase, UpdateBaseModel, PageBaseSchema
 
 
@@ -24,6 +26,7 @@ class MilestoneQuerySchema(MilestoneBaseSchema, PageBaseSchema):
     is_sync: Optional[bool]
     page_num: int = 1
     page_size: int = 10
+    create_time_order: Optional[SortOrder] = None
 
 
 class MilestoneUpdateSchema(UpdateBaseModel, TimeBaseSchema):
@@ -154,17 +157,19 @@ class MilestoneCreateSchema(MilestoneBaseSchema, PermissionBase):
             elif milestone_type == "round":
                 prefix = prefix + " round-"
                 _max_round = (
-                    Milestone.query.filter(
-                        Milestone.name.op("regexp")(prefix + "[1-9]*")
+                    db.session.query(
+                        func.max(func.cast(func.replace(Milestone.name, prefix, ""), db.Integer))
                     )
-                    .order_by(Milestone.name.desc())
-                    .first()
+                    .filter(
+                        Milestone.name.op("regexp")(prefix + "[1-9][0-9]*")
+                    )
+                    .scalar()
                 )
                 if not _max_round:
                     _max_round = "1"
                 else:
                     _max_round = str(
-                        int(_max_round.name.replace(prefix, "")) + 1)
+                        int(_max_round) + 1)
                 values["name"] = prefix + _max_round
             elif milestone_type == "release":
                 values["name"] = prefix + " release"

@@ -1,4 +1,5 @@
 import subprocess
+from types import prepare_class
 
 import redis
 from flask import jsonify, current_app
@@ -10,7 +11,7 @@ from server import db
 from server.utils.auth_util import auth
 from server.utils.response_util import response_collect, RET
 from server.model import Milestone, Product, Organization
-from server.model.milestone import MilestoneGroup
+from server.model.milestone import MilestoneGroup, IssueSolvedRate
 from server.model.qualityboard import (
     QualityBoard, 
     Checklist, 
@@ -21,6 +22,7 @@ from server.model.qualityboard import (
     DailyBuild,
     WeeklyHealth,
     FeatureList,
+    CheckItem,
 )
 from server.utils.db import Delete, Edit, Select, Insert, collect_sql_error
 from server.schema.base import PageBaseSchema
@@ -34,8 +36,18 @@ from server.schema.qualityboard import (
     UpdateChecklistSchema,
     QueryChecklistSchema,
     ATOverviewSchema,
+    CheckItemSchema,
+    QueryCheckItemSchema,
+    QueryQualityResultSchema,
+    ChecklistBaseSchema,
 )
-from server.apps.qualityboard.handlers import ChecklistHandler, PackageListHandler, feature_list_handlers
+from server.apps.qualityboard.handlers import (
+    ChecklistHandler,
+    PackageListHandler,
+    feature_list_handlers,
+    CheckItemHandler,
+    QualityResultCompareHandler,
+)
 from server.utils.shell import add_escape
 from server.utils.at_utils import OpenqaATStatistic
 from server.utils.page_util import PageUtil
@@ -222,12 +234,18 @@ class ChecklistItem(Resource):
     @response_collect
     @validate()
     def put(self, checklist_id, body: UpdateChecklistSchema):
-        if body.check_item:
-            _cl = Checklist.query.filter_by(check_item=body.check_item).first()
+        if body.checkitem_id:
+            ci = CheckItem.query.filter_by(id=body.checkitem_id).first()
+            if not ci:
+                return jsonify(
+                    error_code=RET.NO_DATA_ERR,
+                    error_msg="Checkitem {} does not exist".format(ci.id)
+                )
+            _cl = Checklist.query.filter_by(checkitem_id=body.checkitem_id).first()
             if _cl and _cl.id != checklist_id:
                 return jsonify(
                     error_code=RET.DB_DATA_ERR,
-                    error_msg="Checklist {} has existed".format(body.check_item)
+                    error_msg="Checklist {} has existed".format(ci.title)
                 )
         _body = {
             **body.__dict__,
@@ -254,41 +272,155 @@ class ChecklistEvent(Resource):
     @response_collect
     @validate()
     def post(self, body: AddChecklistSchema):
-        _cl = Checklist.query.filter_by(check_item=body.check_item).first()
+        ci = CheckItem.query.filter_by(id=body.checkitem_id).first()
+        if not ci:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="Checkitem {} does not exist".format(ci.id)
+            )
+
+        _ps = Product.query.filter_by(name=body.product_name, is_forced_check=True).all()
+        if not _ps:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="product {} doesn't exist, or doesn't need to be checked".format(body.product_name)
+            )
+        _filter = []
+        for _p in _ps:
+            _filter.append(
+                Checklist.products.contains(_p)
+            )
+        _cl = Checklist.query.filter(
+            Checklist.checkitem_id == body.checkitem_id,
+            or_(*_filter),
+        ).first()
         if _cl:
             return jsonify(
                 error_code=RET.DB_DATA_ERR,
-                error_msg="Checklist {} has existed".format(body.check_item)
+                error_msg="Checklist {} has existed".format(ci.title)
             )
-        _p = Product.query.filter_by(id=body.product_id).first()
-        if not _p:
-            return jsonify(
-                error_code=RET.NO_DATA_ERR,
-                error_msg="product {} not exist".format(body.product_id)
-            )
-        return Insert(Checklist, body.__dict__).single(Checklist, "/checklist")
+        cl = Insert(Checklist, body.__dict__).insert_obj(Checklist, "/checklist")
+        for _p in _ps:
+            cl.products.append(_p)
+        cl.add_update()
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK."
+        )
+
+
+class ChecklistSyncProduct(Resource):
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def put(self, body: ChecklistBaseSchema):
+        return ChecklistHandler.checklist_sync_product_all(body.product_name)
 
 
 class ChecklistRoundsCountEvent(Resource):
     @auth.login_required()
     @response_collect
-    def get(self, product_id):
-        _p = Product.query.filter_by(id=product_id).first()
+    @validate()
+    def get(self, query: QueryChecklistSchema):
+        _p = Product.query.filter_by(name=query.product_name).first()
         if not _p:
             return jsonify(
                 error_code=RET.NO_DATA_ERR,
-                error_msg="product {} not exist".format(product_id)
+                error_msg="product {} not exist".format(query.product_name)
             )
-        count = None
-        _cl = db.session.query(func.max(func.length(Checklist.rounds)).label("count")).filter_by(
-            product_id=product_id).first()
-        if _cl:
-            count = _cl.count
+        count = db.session.query(func.max(func.length(Checklist.rounds))).filter(
+            Checklist.products.contains(_p)
+        ).scalar()
         return jsonify(
             error_code=RET.OK,
             error_msg="OK",
             count=count
         )
+
+
+class CheckItemEvent(Resource):
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def get(self, query: QueryCheckItemSchema):
+        return CheckItemHandler.get_all(query)
+
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def post(self, body: CheckItemSchema):
+        _ci = CheckItem.query.filter(
+            or_(
+                CheckItem.title == body.title,
+                CheckItem.field_name == body.field_name
+            )
+        ).first()
+        if _ci:
+            return jsonify(
+                error_code=RET.DB_DATA_ERR,
+                error_msg="Checkitem has existed."
+            )
+        return Insert(CheckItem, body.__dict__).single(CheckItem, "/checkitem")
+
+
+class CheckItemSingleEvent(Resource):
+    @auth.login_required()
+    @response_collect
+    def get(self, checkitem_id):
+        _ci = CheckItem.query.filter_by(id=checkitem_id).first()
+        if not _ci:
+            return jsonify(
+                error_code=RET.DB_DATA_ERR,
+                error_msg="Checkitem does not existed."
+            )
+
+        return Select(CheckItem, {"id": checkitem_id}).single()
+
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def put(self, checkitem_id, body: CheckItemSchema):
+        _ci = CheckItem.query.filter_by(
+            id=checkitem_id
+        ).first()
+        if not _ci:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="Checkitem doesn't exist."
+            )
+        _ci = CheckItem.query.filter(
+            or_(
+                CheckItem.title == body.title,
+                CheckItem.field_name == body.field_name
+            )
+        ).first()
+        if _ci and _ci.id != checkitem_id:
+            return jsonify(
+                error_code=RET.DB_DATA_ERR,
+                error_msg="Checkitem has existed."
+            )
+        _body = {
+            "id": checkitem_id
+        }
+        _body.update(body.__dict__)
+        return Edit(CheckItem, _body).single(CheckItem, "/checkitem")
+
+    @auth.login_required()
+    @response_collect
+    def delete(self, checkitem_id):
+        _ci = CheckItem.query.filter_by(id=checkitem_id).first()
+        if not _ci:
+            return jsonify(
+                error_code=RET.DB_DATA_ERR,
+                error_msg="Checkitem does not existed."
+            )
+        _cl = Checklist.query.filter_by(checkitem_id=checkitem_id).first()
+        if _cl:
+            return jsonify(
+                error_code=RET.DATA_EXIST_ERR,
+                error_msg="Deletion failed because this check item is used."
+            )
+        return Delete(CheckItem, {"id": checkitem_id}).single()
 
 
 class ATOverview(Resource):
@@ -912,3 +1044,97 @@ class PackageListCompareEvent(Resource):
             "del_pkgs_num": _del_num, 
             **page_dict
         })
+
+
+class QualityResultCompare(Resource):
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def get(self, query: QueryQualityResultSchema):
+        if query.type == "issue":
+            qrsh = QualityResultCompareHandler(query.product_id, query.milestone_id)
+            ret = qrsh.compare_issue_rate(query.field)
+        else:
+            #预留接口
+            ret = None
+            pass
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+            data = ret
+        )
+
+
+class QualityResult(Resource):
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def get(self, milestone_id):
+        m = Milestone.query.filter_by(id=milestone_id, is_sync=True).first()
+        if not m:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="milestone doesn't exist."
+            )
+        isr = IssueSolvedRate.query.filter_by(milestone_id=milestone_id).first()
+        if not isr:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="no issue solved rate data."
+            )
+        param = {
+            "serious_resolved_rate": {
+                "result": "serious_resolved_rate",
+                "passed":"serious_resolved_passed"
+            },
+            "main_resolved_rate": {
+                "result": "main_resolved_rate",
+                "passed": "main_resolved_passed",
+            },
+            "serious_main_resolved_rate": {
+                "result": "serious_main_resolved_rate",
+                "passed": "serious_main_resolved_passed",
+            },
+            "current_resolved_rate": {
+                "result": "current_resolved_rate",
+                "passed": "current_resolved_passed"
+            },
+            "left_issues_cnt": {
+                "result": "left_issues_cnt",
+                "passed": "left_issues_passed",
+            },
+        }
+        isr_json = isr.to_json()
+        p = Product.query.filter_by(id=m.product_id).first()
+        _filter = []
+        for k in param.keys():
+            _filter.append(CheckItem.field_name == k)
+        cls = Checklist.query.join(CheckItem).filter(
+            Checklist.products.contains(p),
+            or_(*_filter),
+            Checklist.checkitem_id == CheckItem.id
+        ).all()
+        data = dict()
+        items = []
+        for cl in cls:
+            items.append(
+                {
+                    "check_item": cl.checkitem.title,
+                    "baseline": cl.baseline,
+                    "operation": cl.operation,
+                    "result": isr_json.get(cl.checkitem.field_name),
+                    "passed": isr_json.get(param.get(cl.checkitem.field_name).get("passed")),
+                }
+            )
+        data.update(
+            {
+                "total": len(cls),
+                "items": items
+            }
+        ) 
+
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+            data = data
+        )

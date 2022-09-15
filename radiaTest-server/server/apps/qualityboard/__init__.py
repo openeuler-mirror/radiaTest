@@ -12,11 +12,16 @@ from .routes import (
     ChecklistEvent,
     ChecklistItem,
     ChecklistRoundsCountEvent,
+    ChecklistSyncProduct,
     DailyBuildOverview,
     DailyBuildDetail,
     WeeklybuildHealthOverview,
     WeeklybuildHealthEvent,
     FeatureListEvent,
+    CheckItemEvent,
+    CheckItemSingleEvent,
+    QualityResultCompare,
+    QualityResult,
 )
 
 
@@ -38,6 +43,14 @@ def init_api(api: Api):
         "/api/v1/qualityboard/<int:qualityboard_id>/quality-defend"
     )
     api.add_resource(
+        CheckItemSingleEvent,
+        "/api/v1/checkitem/<int:checkitem_id>",
+    )
+    api.add_resource(
+        CheckItemEvent,
+        "/api/v1/checkitem",
+    )
+    api.add_resource(
         ChecklistItem,
         "/api/v1/checklist/<int:checklist_id>",
     )
@@ -47,7 +60,11 @@ def init_api(api: Api):
     )
     api.add_resource(
         ChecklistRoundsCountEvent,
-        "/api/v1/checklist/rounds-count/<int:product_id>",
+        "/api/v1/checklist/rounds-count",
+    )
+    api.add_resource(
+        ChecklistSyncProduct,
+        "/api/v1/checklist/<int:checklist_id>/product/<int:product_id>",
     )
     api.add_resource(
         DailyBuildOverview,
@@ -80,4 +97,12 @@ def init_api(api: Api):
     api.add_resource(
         PackageListCompareEvent,
         "/api/v1/qualityboard/<int:qualityboard_id>/milestone/<int:comparee_milestone_id>/with/<int:comparer_milestone_id>/pkg-compare"
+    )
+    api.add_resource(
+        QualityResultCompare,
+        "/api/v1/quality-compare"
+    )
+    api.add_resource(
+        QualityResult,
+        "/api/v1/quality-result/<int:milestone_id>"
     )

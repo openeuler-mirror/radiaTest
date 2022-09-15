@@ -1,6 +1,6 @@
 import json
 import re
-from typing import List, Optional
+from typing import List, Optional, Literal
 
 from pydantic import BaseModel, HttpUrl, validator, root_validator
 
@@ -53,31 +53,44 @@ class CheckBaseline(BaseModel):
 
 
 class AddChecklistSchema(CheckRound, CheckBaseline):
-    check_item: str
+    checkitem_id: int
     rounds: str = "0"
     lts: bool = False
     lts_spx: bool = False
     innovation: bool = False
-    product_id: int
+    product_name: str
     operation: Operation = None
 
 
 class UpdateChecklistSchema(CheckRound, CheckBaseline):
-    check_item: str = None
+    checkitem_id: int = None
     lts: bool = None
     lts_spx: bool = None
     innovation: bool = None
     operation: Operation = None
 
 
+class ChecklistBaseSchema(BaseModel):
+    product_name: str
+
+
 class QueryChecklistSchema(PageBaseSchema):
-    check_item: str = None
-    product_id: int = None
+    product_name: str = None
 
 
 class ATOverviewSchema(PageBaseSchema):
     build_name: Optional[str]
     build_order: Optional[SortOrder] = "descend"
+
+
+class CheckItemSchema(BaseModel):
+    field_name : str
+    title: str
+
+
+class QueryCheckItemSchema(PageBaseSchema):
+    field_name : Optional[str]
+    title: Optional[str]
 
 
 class FeatureListCreateSchema(BaseModel):
@@ -119,3 +132,11 @@ class PackageCompareQuerySchema(PageBaseSchema):
             return json.loads(v)
         
         raise ValueError("the format of compare status list is not valid")
+
+
+class QueryQualityResultSchema(BaseModel):
+    type: Literal["issue", "AT"]
+    product_id: int
+    milestone_id: Optional[int]
+    field: Literal["serious_resolved_rate", "main_resolved_rate",
+                   "serious_main_resolved_rate", "current_resolved_rate", "left_issues_cnt"]

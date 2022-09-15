@@ -111,7 +111,20 @@ class GiteeIssuesV2(Resource):
     @response_collect
     @validate()
     def get(self, query: GiteeIssueQueryV8):
-        return IssueOpenApiHandlerV8().get_all(query.__dict__)
+        milestone = Milestone.query.filter_by(id=query.milestone_id).first()
+        if not milestone or milestone.is_sync is False:
+            return jsonify(
+                error_code=RET.OK,
+                error_msg="OK",
+                data={}
+            )
+        _body = query.__dict__
+        _body.update(
+            {
+                "milestone_id": milestone.gitee_milestone_id,
+            }
+        )
+        return IssueOpenApiHandlerV8().get_all(_body)
 
 
 class GiteeIssuesItemV2(Resource):

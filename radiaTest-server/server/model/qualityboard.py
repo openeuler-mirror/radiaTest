@@ -8,6 +8,14 @@ from server.model.milestone import IssueSolvedRate, Milestone
 from server.utils.at_utils import OpenqaATStatistic
 
 
+
+checklist_product = db.Table(
+    'checklist_product',
+    db.Column('checklist_id', db.Integer, db.ForeignKey('checklist.id')),
+    db.Column('product_id', db.Integer, db.ForeignKey('product.id'))
+)
+
+
 class QualityBoard(BaseModel, db.Model):
     __tablename__ = "qualityboard"
 
@@ -57,28 +65,46 @@ class QualityBoard(BaseModel, db.Model):
 class Checklist(db.Model, BaseModel):
     __tablename__ = "checklist"
     id = db.Column(db.Integer(), primary_key=True, autoincrement=True)
-    check_item = db.Column(db.String(50), nullable=False, unique=True)
     baseline = db.Column(db.String(50))
     rounds = db.Column(db.String(128))
     lts = db.Column(db.Boolean(), default=False)
     lts_spx = db.Column(db.Boolean(), default=False)
     innovation = db.Column(db.Boolean(), default=False)
     operation = db.Column(db.Enum("<", ">", "=", "<=", ">="))
-    product_id = db.Column(db.Integer(), db.ForeignKey("product.id"))
+    checkitem_id = db.Column(db.Integer(), db.ForeignKey("checkitem.id")) 
+    products = db.relationship("Product", secondary=checklist_product, backref="checklist")
 
     def to_json(self):
+        ci = CheckItem.query.filter_by(id=self.checkitem_id).first()
         return {
             'id': self.id,
-            'check_item': self.check_item,
+            'check_item': ci.title if ci else None,
             'baseline': self.baseline,
             'rounds': self.rounds,
             'lts': self.lts,
             'lts_spx': self.lts_spx,
             'innovation': self.innovation,
             "operation": self.operation,
-            "product_id": self.product_id,
+            "checkitem_id": self.checkitem_id,
             'create_time': self.create_time.strftime("%Y-%m-%d %H:%M:%S"),
             'update_time': self.update_time.strftime("%Y-%m-%d %H:%M:%S")
+        }
+
+
+class CheckItem(db.Model, BaseModel):
+    __tablename__ = "checkitem"
+    id = db.Column(db.Integer(), primary_key=True, autoincrement=True)
+    field_name = db.Column(db.String(50), nullable=False, unique=True)
+    title = db.Column(db.String(50), nullable=False, unique=True)
+    checklist = db.relationship(
+        'Checklist', backref="checkitem"
+    )
+
+    def to_json(self):
+        return {
+            'id': self.id,
+            'field_name': self.field_name,
+            'title': self.title,
         }
 
 
