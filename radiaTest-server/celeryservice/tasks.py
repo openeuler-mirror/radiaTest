@@ -93,8 +93,8 @@ def async_read_openqa_homepage():
     if exitcode != 0:
         logger.error(f"crawl data from openQA homepage fail. Because {output}")
 
-    redis_client = redis.StrictRedis(connection_pool=scrapyspider_pool)
-    _keys = redis_client.keys("*_group_overview_url")
+    _redis_client = redis.StrictRedis(connection_pool=scrapyspider_pool)
+    _keys = _redis_client.keys("*_group_overview_url")
     
     if not _keys:
         logger.warning("No products on openQA homepage, or the openQA server met some problems")
@@ -103,7 +103,7 @@ def async_read_openqa_homepage():
     logger.info("crawl data from openQA homepage succeed")
 
     for _key in _keys:
-        group_overview_url = redis_client.get(_key)
+        group_overview_url = _redis_client.get(_key)
         product_name = _key.split("_group_overview_url")[0]
 
         logger.info(f"crawl group overview data of product {product_name}")
@@ -126,10 +126,10 @@ def read_openqa_group_overview(product_name, group_overview_url):
     
     logger.info(f"crawl group overview data of product {product_name} succeed")
 
-    redis_client = redis.StrictRedis(connection_pool=scrapyspider_pool)
-    _keys = redis_client.keys(f"{product_name}_*_tests_overview_url")
+    _redis_client = redis.StrictRedis(connection_pool=scrapyspider_pool)
+    _keys = _redis_client.keys(f"{product_name}_*_tests_overview_url")
     for _key in _keys:
-        tests_overview_url = redis_client.get(_key)
+        tests_overview_url = _redis_client.get(_key)
         product_build = _key.split("_tests_overview_url")[0]
 
         logger.info(f"crawl tests overview data of product {product_build}")
@@ -157,13 +157,13 @@ def read_openqa_tests_overview(product_build, tests_overview_url):
 @celery.task
 def async_update_celerytask_status():
     # 创建redis client连接实例
-    redis_client = redis.StrictRedis(connection_pool=pool)
+    _redis_client = redis.StrictRedis(connection_pool=pool)
 
     # 查询数据库持久化存储的celery task
     _tasks = CeleryTask.query.all()
 
     for _task in _tasks:
-        str_t = redis_client.get("celery-task-meta-{}".format(_task.tid))
+        str_t = _redis_client.get("celery-task-meta-{}".format(_task.tid))
 
         if not str_t:
             db.session.delete(_task)
