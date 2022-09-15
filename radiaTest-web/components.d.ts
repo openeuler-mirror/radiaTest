@@ -94,6 +94,7 @@ declare module '@vue/runtime-core' {
     RotateIcon: typeof import('./src/components/public/RotateIcon.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    RpmCheck: typeof import('./src/components/productDrawer/rpmCheck.vue')['default']
     RuleForm: typeof import('./src/components/form/ruleForm.vue')['default']
     SearchUserModal: typeof import('./src/components/form/searchUserModal.vue')['default']
     SelectBox: typeof import('./src/components/common/SelectBox.vue')['default']

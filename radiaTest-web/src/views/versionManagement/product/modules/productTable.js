@@ -462,10 +462,7 @@ function haveDone() {
 }
 
 function stepAdd() {
-  if (list.value.length === 5) {
-    window.$message.info('已达到转测最大结点数');
-    haveDone();
-  } else if (list.value.length === 0) {
+  if (list.value.length === 0) {
     createProductMessage(ProductId.value)
       .then(() => {
         window.$message?.info('第一轮迭代已转测');
