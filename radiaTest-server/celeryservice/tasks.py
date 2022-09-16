@@ -287,7 +287,7 @@ def resolve_pkglist_after_resolve_rc_name(repo_url, product, _round: int = None)
 
     if _round is None:
         resolve_openeuler_pkglist.delay(
-            repo_url,
+            f"{repo_url}/{product}",
             product,
             product,
             f"resolving_{product}_pkglist"
@@ -304,7 +304,7 @@ def resolve_pkglist_after_resolve_rc_name(repo_url, product, _round: int = None)
                     rc_name = rc_elem.text
                     if isinstance(rc_name, str) and rc_name.startswith(f"rc{_round}"):
                         resolve_openeuler_pkglist.delay(
-                            repo_url,
+                            f"{repo_url}/{product}/{rc_name.rstrip('/')}",
                             product,
                             rc_name.rstrip('/'),
                             f"resolving_{product}-round-{_round}_pkglist"

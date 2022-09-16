@@ -28,8 +28,8 @@ class OpeneulerPkgsListSpider(Spider):
     
     def start_requests(self):
         urls = [
-            f"{self.openeuler_repo_url}/{self.product}/{self.build}/everything/aarch64/Packages/",
-            f"{self.openeuler_repo_url}/{self.product}/{self.build}/everything/x86_64/Packages/",
+            f"{self.openeuler_repo_url}/everything/aarch64/Packages/",
+            f"{self.openeuler_repo_url}/everything/x86_64/Packages/",
         ]
         for url in urls:
             yield Request(url=url, callback=self.parse)
