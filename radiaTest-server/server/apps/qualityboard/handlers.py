@@ -14,7 +14,6 @@
 #####################################
 
 import abc
-from ast import operator
 from collections import defaultdict
 from datetime import datetime
 from math import floor
@@ -25,8 +24,7 @@ from flask import jsonify, current_app, g
 from sqlalchemy import func, or_
 import pytz
 
-from server import redis_client
-from sqlalchemy import and_
+from server import db, redis_client
 from server.model.qualityboard import Checklist, QualityBoard, CheckItem
 from server.model.milestone import IssueSolvedRate, Milestone
 from server.model.organization import Organization

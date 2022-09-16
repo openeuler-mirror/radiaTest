@@ -210,7 +210,7 @@ const columns = [
             bordered: false
           },
           {
-            default: `${row.left_resolved_rate}%`,
+            default: row.left_resolved_rate,
             icon: () =>
               h(NIcon, {
                 component: CheckCircleFilled
@@ -270,7 +270,7 @@ const columns = [
             bordered: false
           },
           {
-            default: `${row.serious_main_resolved_rate}%`,
+            default: row.serious_main_resolved_rate,
             icon: () =>
               h(NIcon, {
                 component: CheckCircleFilled
@@ -302,7 +302,7 @@ const columns = [
           bordered: false
         },
         {
-          default: `${row.serious_main_resolved_rate}%`,
+          default: row.serious_main_resolved_rate,
           icon: () =>
             h(NIcon, {
               component: CancelRound
