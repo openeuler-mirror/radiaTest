@@ -79,11 +79,11 @@
               <n-progress
                 type="line"
                 :status="
-                  previousLeftResolvedPassed === null
-                    ? previousLeftResolvedPassed
-                      ? 'success'
-                      : 'error'
-                    : 'default'
+                  previousLeftResolvedPassed !== true
+                    ? previousLeftResolvedPassed === false
+                      ? 'error'
+                      : 'default'
+                    : 'success'
                 "
                 :percentage="previousLeftResolvedRate"
                 :height="20"
@@ -133,7 +133,13 @@
                 <n-progress
                   class="topProgress"
                   type="circle"
-                  :status="currentResolvedPassed ? 'success' : 'error'"
+                  :status="
+                    currentResolvedPassed !== true 
+                      ? currentResolvedPassed === false
+                        ? 'error'
+                        : 'default' 
+                      : 'success'
+                  "
                   :stroke-width="9"
                   :percentage="currentResolvedRate"
                 >
@@ -147,10 +153,9 @@
                     <QuestionCircle16Filled v-else-if="issuesResolvedPassed === null" />
                     <CancelRound color="#D03050" v-else />
                   </n-icon>
-                  <span v-if="list.length < 5 && !done">
+                  <span>
                     {{ issuesResolvedPassed !== null ? issuesResolvedPassed ? '已达标' : '未达标' : 'unknown' }}
                   </span>
-                  <span v-else>发布</span>
                 </div>
                 <div style="position: absolute; left: 61%; top: 16%; text-align: center">
                   <span style="font-size: 20px"> 问题解决统计 </span><br />
@@ -184,7 +189,13 @@
                 <n-progress
                   style="position: absolute; width: 78%; top: 80%; left: 11%"
                   type="line"
-                  :status="seriousMainResolvedPassed ? 'success' : 'error'"
+                  :status="
+                    seriousMainResolvedPassed !== true 
+                      ? seriousMainResolvedPassed === false
+                        ? 'error'
+                        : 'default' 
+                      : 'success'
+                  "
                   :indicator-placement="'inside'"
                   :percentage="seriousMainResolvedRate"
                   :height="20"
@@ -195,7 +206,13 @@
                 <n-tooltip>
                   <template #trigger>
                     <n-progress
-                      :status="seriousResolvedPassed ? 'success' : 'error'"
+                      :status="
+                        seriousResolvedPassed !== true 
+                          ? seriousResolvedPassed === false
+                            ? 'error'
+                            : 'default' 
+                          : 'success'
+                      "
                       style="position: absolute; width: 78%; top: 86%; left: 11%"
                       type="line"
                       :percentage="seriousResolvedRate"
@@ -206,7 +223,13 @@
                 <n-tooltip>
                   <template #trigger>
                     <n-progress
-                      :status="mainResolvedPassed ? 'success' : 'error'"
+                      :status="
+                        mainResolvedPassed !== true 
+                          ? mainResolvedPassed === false
+                            ? 'error'
+                            : 'default' 
+                          : 'success'
+                      "
                       style="position: absolute; width: 78%; top: 91%; left: 11%"
                       type="line"
                       :percentage="mainResolvedRate"
