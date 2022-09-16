@@ -1,6 +1,5 @@
 /* eslint-disable no-use-before-define */
 /* eslint-disable max-lines-per-function */
-import { ref, h } from 'vue';
 import { NButton, NIcon, NSpace, NTag, useMessage, NCheckbox } from 'naive-ui';
 import { CancelRound, CheckCircleFilled } from '@vicons/material';
 import { QuestionCircle16Filled } from '@vicons/fluent';
@@ -30,16 +29,52 @@ import { CheckmarkCircle, CloseCircleOutline } from '@vicons/ionicons5';
 const ProductId = ref(null);
 const done = ref(false);
 const dashboardId = ref(null);
+
 const seriousResolvedRate = ref(null);
-const currentResolvedCnt = ref(null);
-const currentAllCnt = ref(null);
-const currentResolvedRate = ref(null);
+const seriousResolvedPassed = ref(null);
 const mainResolvedRate = ref(null);
+const mainResolvedPassed = ref(null);
 const seriousMainResolvedCnt = ref(null);
 const seriousMainAllCnt = ref(null);
 const seriousMainResolvedRate = ref(null);
+const seriousMainResolvedPassed = ref(null);
+
+const currentResolvedCnt = ref(null);
+const currentAllCnt = ref(null);
+const currentResolvedRate = ref(null);
+const currentResolvedPassed = ref(null);
+
 const leftIssuesCnt = ref(null);
+const leftIssuesPassed = ref(null);
 const previousLeftResolvedRate = ref(null);
+const previousLeftResolvedPassed = ref(null);
+const issuesResolvedPassed = ref(null);
+watch(
+  [
+    currentResolvedPassed, 
+    seriousMainResolvedPassed, 
+    seriousResolvedPassed, 
+    mainResolvedPassed, 
+    leftIssuesPassed
+  ],
+  () => {
+    let passedList = [
+      currentResolvedPassed.value, 
+      seriousMainResolvedPassed.value, 
+      seriousResolvedPassed.value, 
+      mainResolvedPassed.value, 
+      leftIssuesPassed.value
+    ];
+    if (passedList.filter((item) => item === false).length > 0) {
+      issuesResolvedPassed.value = false;
+    } else if (passedList.filter((item) => item === true).length === 0) {
+      issuesResolvedPassed.value = null;
+    } else {
+      issuesResolvedPassed.value = true;
+    }
+  }
+);
+
 const tableData = ref([]);
 const testList = ref([]);
 const list = ref([]);
@@ -125,15 +160,23 @@ function handleClick(id) {
         }
       }
       seriousResolvedRate.value = rateData.serious_resolved_rate;
+      seriousResolvedPassed.value = rateData.serious_resolved_passed;
+      mainResolvedRate.value = rateData.main_resolved_rate;
+      mainResolvedPassed.value = rateData.main_resolved_passed;
+      seriousMainAllCnt.value = rateData.serious_main_all_cnt;
+      seriousMainResolvedCnt.value = rateData.serious_main_resolved_cnt;
+      seriousMainResolvedRate.value = rateData.serious_main_resolved_rate;
+      seriousMainResolvedPassed.value = rateData.serious_main_resolved_passed;
+
       currentResolvedCnt.value = rateData.current_resolved_cnt;
       currentAllCnt.value = rateData.current_all_cnt;
       currentResolvedRate.value = rateData.current_resolved_rate;
-      mainResolvedRate.value = rateData.main_resolved_rate;
-      seriousMainResolvedCnt.value = rateData.serious_main_resolved_cnt;
-      seriousMainAllCnt.value = rateData.serious_main_all_cnt;
-      seriousMainResolvedRate.value = rateData.serious_main_resolved_rate;
+      currentResolvedPassed.value = rateData.current_resolved_passed;
+
       leftIssuesCnt.value = rateData.left_issues_cnt;
+      leftIssuesPassed.value = rateData.left_issues_passed;
       previousLeftResolvedRate.value = rateData.previous_left_resolved_rate;
+      previousLeftResolvedPassed.value = rateData.previous_left_resolved_passed;
     })
     .catch(() => {});
   getTestList(id);
@@ -197,11 +240,7 @@ const columns = [
     className: 'resolvedRate',
     title: '遗留问题解决率',
     render(row) {
-      if (
-        row.left_resolved_baseline !== null &&
-        row.left_resolved_rate !== null &&
-        row.left_resolved_rate >= row.left_resolved_baseline
-      ) {
+      if (row.left_resolved_passed === true) {
         return h(
           NTag,
           {
@@ -217,7 +256,7 @@ const columns = [
               })
           }
         );
-      } else if (row.left_resolved_rate === null || row.left_resolved_baseline === null) {
+      } else if (row.left_resolved_passed !== false) {
         return h(
           NTag,
           {
@@ -242,7 +281,7 @@ const columns = [
           bordered: false
         },
         {
-          default: `${row.left_resolved_rate}%`,
+          default: row.left_resolved_rate,
           icon: () =>
             h(NIcon, {
               component: CancelRound
@@ -257,11 +296,7 @@ const columns = [
     className: 'seriousMain',
     title: '严重/主要问题解决率',
     render(row) {
-      if (
-        row.serious_main_resolved_baseline !== null &&
-        row.serious_main_resolved_rate !== null &&
-        row.serious_main_resolved_rate >= row.serious_main_resolved_baseline
-      ) {
+      if (row.serious_main_resolved_passed === true) {
         return h(
           NTag,
           {
@@ -277,7 +312,7 @@ const columns = [
               })
           }
         );
-      } else if (row.serious_main_resolved_rate === null || row.serious_main_resolved_baseline === null) {
+      } else if (row.serious_main_resolved_passed !== false) {
         return h(
           NTag,
           {
@@ -317,11 +352,7 @@ const columns = [
     className: 'resolvedRate',
     title: '版本问题解决率',
     render(row) {
-      if (
-        row.current_resolved_baseline !== null &&
-        row.current_resolved_rate !== null &&
-        row.current_resolved_rate >= row.current_resolved_baseline
-      ) {
+      if (row.current_resolved_passed === true) {
         return h(
           NTag,
           {
@@ -330,14 +361,14 @@ const columns = [
             bordered: false
           },
           {
-            default: `${row.current_resolved_rate}%`,
+            default: row.current_resolved_rate,
             icon: () =>
               h(NIcon, {
                 component: CheckCircleFilled
               })
           }
         );
-      } else if (row.current_resolved_rate === null || row.current_resolved_baseline === null) {
+      } else if (row.current_resolved_passed !== false) {
         return h(
           NTag,
           {
@@ -362,7 +393,7 @@ const columns = [
           bordered: false
         },
         {
-          default: `${row.current_resolved_rate}%`,
+          default: row.current_resolved_rate,
           icon: () =>
             h(NIcon, {
               component: CancelRound
@@ -399,15 +430,24 @@ function getDefaultCheckNode(id) {
         }
       }
       seriousResolvedRate.value = rateData.serious_resolved_rate;
+      seriousResolvedPassed.value = rateData.serious_resolved_passed;
+      mainResolvedRate.value = rateData.main_resolved_rate;
+      mainResolvedPassed.value = rateData.main_resolved_passed;
+      seriousMainAllCnt.value = rateData.serious_main_all_cnt;
+      seriousMainResolvedCnt.value = rateData.serious_main_resolved_cnt;
+      seriousMainResolvedRate.value = rateData.serious_main_resolved_rate;
+      seriousMainResolvedPassed.value = rateData.serious_main_resolved_passed;
+
       currentResolvedCnt.value = rateData.current_resolved_cnt;
       currentAllCnt.value = rateData.current_all_cnt;
       currentResolvedRate.value = rateData.current_resolved_rate;
-      mainResolvedRate.value = rateData.main_resolved_rate;
-      seriousMainResolvedCnt.value = rateData.serious_main_resolved_cnt;
-      seriousMainAllCnt.value = rateData.serious_main_all_cnt;
-      seriousMainResolvedRate.value = rateData.serious_main_resolved_rate;
+      currentResolvedPassed.value = rateData.current_resolved_passed;
+
       leftIssuesCnt.value = rateData.left_issues_cnt;
+      leftIssuesPassed.value = rateData.left_issues_passed;
       previousLeftResolvedRate.value = rateData.previous_left_resolved_rate;
+      previousLeftResolvedPassed.value = rateData.previous_left_resolved_passed;
+
       currentId.value = res.data[0].current_milestone_id;
       const newArr = Object.keys(res.data[0].milestones).map((item) => ({
         key: item,
@@ -822,44 +862,7 @@ const addCheckItem = () => {
 
 const showChecklistBoard = ref(false);
 const checklistBoardTableLoading = ref(false);
-// const checklistBoardTableData = ref([]);
-const checklistBoardTableData = ref([
-  {
-    check_item: 'test1',
-    baseline: '100',
-    operation: '>',
-    currentValue: '99',
-    result: true
-  },
-  {
-    check_item: 'test1',
-    baseline: '100',
-    operation: '>',
-    currentValue: '99',
-    result: false
-  },
-  {
-    check_item: 'test1',
-    baseline: '100',
-    operation: '>',
-    currentValue: '99',
-    result: true
-  },
-  {
-    check_item: 'test1',
-    baseline: '100',
-    operation: '>',
-    currentValue: '99',
-    result: false
-  },
-  {
-    check_item: 'test1',
-    baseline: '100',
-    operation: '>',
-    currentValue: '99',
-    result: true
-  }
-]);
+const checklistBoardTableData = ref([]);
 
 const checklistBoardTablePagination = ref({
   page: 1,
@@ -966,16 +969,23 @@ export {
   tableLoading,
   showModal,
   showCheckList,
+  seriousMainResolvedCnt,
+  seriousMainAllCnt,
   seriousResolvedRate,
+  seriousResolvedPassed,
+  mainResolvedPassed,
+  mainResolvedRate,
+  seriousMainResolvedRate,
+  seriousMainResolvedPassed,
   currentResolvedCnt,
   currentAllCnt,
   currentResolvedRate,
-  mainResolvedRate,
-  seriousMainResolvedCnt,
-  seriousMainAllCnt,
-  seriousMainResolvedRate,
+  currentResolvedPassed,
   leftIssuesCnt,
+  leftIssuesPassed,
   previousLeftResolvedRate,
+  previousLeftResolvedPassed,
+  issuesResolvedPassed,
   checkItemList,
   stepAdd,
   getTestList,

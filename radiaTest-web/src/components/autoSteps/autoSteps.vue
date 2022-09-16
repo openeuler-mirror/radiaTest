@@ -32,13 +32,13 @@
             <span class="step-label">{{ item.text }}</span>
             <n-tooltip>
               <template #trigger>
-                <n-button class="step-button" :bordered="false" text @click="handleChecklistBoard">
+                <n-button type="primary" class="step-button" :bordered="false" text @click="handleChecklistBoard">
                   <n-icon :size="18">
-                    <DashboardFilled />
+                    <ChecklistFilled />
                   </n-icon>
                 </n-button>
               </template>
-              质量看板
+              CheckList
             </n-tooltip>
             <n-tooltip v-if="index === list.length - 1 && !done">
               <template #trigger>
@@ -112,7 +112,7 @@ import { toRefs, computed } from 'vue';
 import { Play16Filled, ArrowRight20Regular, DeleteArrowBack16Filled } from '@vicons/fluent';
 import { ConnectTarget } from '@vicons/carbon';
 import { FileDoneOutlined } from '@vicons/antd';
-import { DashboardFilled } from '@vicons/material';
+import { ChecklistFilled } from '@vicons/material';
 import { modules } from './modules';
 export default {
   props: {
@@ -136,7 +136,7 @@ export default {
     FileDoneOutlined,
     ConnectTarget,
     Play16Filled,
-    DashboardFilled
+    ChecklistFilled
   },
   mounted() {
     setTimeout(() => {
