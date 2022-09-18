@@ -102,11 +102,11 @@
                 @haveDone="haveDone"
                 @haveRecovery="haveRecovery"
                 @add="stepAdd"
-                @release="releaseClick"
                 @handleChecklistBoard="handleChecklistBoard"
                 :done="done"
                 :list="list"
                 :currentId="currentId"
+                :productName="`${detail.name}-${detail.version}`"
               />
             </n-gi>
           </n-grid>
@@ -534,7 +534,6 @@
   </div>
 </template>
 <script>
-import { ref, watch, onMounted } from 'vue';
 import { useStore } from 'vuex';
 import { getProduct } from '@/api/get';
 import Common from '@/components/CRUD';
@@ -603,6 +602,7 @@ export default {
       modules.setFeatureOption(additionFeatureOption, '新增特性', modules.additionFeatureSummary.value);
       modules.setFeatureOption(inheritFeatureOption, '继承特性', modules.inheritFeatureSummary.value);
     });
+    onUnmounted(() => { modules.cleanPackageListData(); });
     return {
       createFormRef: ref(),
       createModalRef: ref(),

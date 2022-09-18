@@ -55,6 +55,13 @@ function getPackageListComparationSummary(qualityboardId, _refresh = false) {
         } else {
           window.$message?.info(res.error_msg, { duration: 8e3 });
         }
+      })
+      .catch(() => {
+        window.$message?.warning('软件包列表数据缺失，请点击软件包范围变更卡片刷新按钮重新获取');
+        oldPackage.value.size = '?';
+        oldPackage.value.name = null;
+        newPackage.value.size = '?';
+        newPackage.value.name = null;
       });
   } else {
     preId.value = idList[currentIndex - 1];
@@ -66,6 +73,11 @@ function getPackageListComparationSummary(qualityboardId, _refresh = false) {
         } else {
           window.$message?.info(res.error_msg, { duration: 8e3 });
         }
+      })
+      .catch(() => {
+        window.$message?.warning('前置软件包列表数据缺失，请点击软件包范围变更卡片刷新按钮重新获取');
+        oldPackage.value.size = '?';
+        oldPackage.value.name = null;
       });
     getPackageData(qualityboardId, currentId.value, { summary: true, refresh: _refresh })
       .then((res) => {
@@ -75,6 +87,11 @@ function getPackageListComparationSummary(qualityboardId, _refresh = false) {
         } else {
           window.$message?.info(res.error_msg, { duration: 8e3 });
         }
+      })
+      .catch(() => {
+        window.$message?.warning('当前软件包列表数据缺失，请点击软件包范围变更卡片刷新按钮重新获取');
+        newPackage.value.size = '?';
+        newPackage.value.name = null;
       });
     getPackageChangeSummary(qualityboardId, preId.value, currentId.value, { summary: true })
       .then((res) => {
@@ -213,9 +230,17 @@ function getFeatureSummary(qualityboardId) {
     });
 }
 
-function cleanData() {
+function cleanFeatureListData() {
   featureLoading.value = false;
   featureListData.value = [];
+}
+function cleanPackageListData() {
+  packageChangeSummary.value = {
+    addPackagesNum: 0,
+    delPackagesNum: 0
+  };
+  newPackage.value = {};
+  oldPackage.value = {};
 }
 
 watch(showList, () => {
@@ -244,7 +269,8 @@ export {
   cardClick,
   handleListClick,
   getFeatureSummary,
-  cleanData,
+  cleanFeatureListData,
+  cleanPackageListData,
   getFeatureList,
   featureListColumns,
   featureListData,

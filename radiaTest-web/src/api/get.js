@@ -13,6 +13,18 @@ function getRequest(url, data) {
       });
   });
 }
+function getRequestWithoutCatch(url, data) {
+  return new Promise((resolve, reject) => {
+    axios
+      .get(url, data)
+      .then((res) => {
+        resolve(res);
+      })
+      .catch((err) => {
+        reject(err);
+      });
+  });
+}
 export function getRepo(data) {
   return getRequest('/v1/git-repo', data);
 }
@@ -188,11 +200,11 @@ export function getFeatureList(id, params) {
 }
 
 export function getPackageListComparationSummary(qualityboardId, milestoneId, params) {
-  return getRequest(`/v1/qualityboard/${qualityboardId}/milestone/${milestoneId}/pkg-list`, params);
+  return getRequestWithoutCatch(`/v1/qualityboard/${qualityboardId}/milestone/${milestoneId}/pkg-list`, params);
 }
 
 export function getPackageListComparationDetail(qualityboardId, milestonePreId, milestoneCurId, params) {
-  return getRequest(
+  return getRequestWithoutCatch(
     `/v1/qualityboard/${qualityboardId}/milestone/${milestonePreId}/with/${milestoneCurId}/pkg-compare`,
     params
   );
