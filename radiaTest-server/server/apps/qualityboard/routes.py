@@ -79,7 +79,7 @@ class QualityBoardEvent(Resource):
         qualityboard.add_update()
 
         # 若为组织/社区里程碑，按组织配置的repo启动爬取正式发布版本的软件包清单
-        org_id = self.milestone.org_id
+        org_id = milestone.org_id
         org = Organization.query.filter_by(id=org_id).first()
         if org:  
             _pkgs_repo_url = current_app.config.get(f"{org.name.upper()}_PACKAGELIST_REPO_URL")
@@ -163,7 +163,7 @@ class QualityBoardItemEvent(Resource):
         qualityboard.add_update()
 
         # 若为组织/社区里程碑，按组织配置的repo启动爬取迭代版本的软件包清单
-        org_id = self.milestone.org_id
+        org_id = milestone.org_id
         org = Organization.query.filter_by(id=org_id).first()
         if org:  
             _pkgs_repo_url = current_app.config.get(f"{org.name.upper()}_PACKAGELIST_REPO_URL")
