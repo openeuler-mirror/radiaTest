@@ -53,13 +53,22 @@ export function setOrgUserRole(id, data) {
     ...data
   });
 }
-export function setGroupRepo (data) {
+export function setGroupRepo(data) {
   return postRequest('/v1/git-repo', data);
 }
-export function setPackageListComparationDetail (qualityboardId, milestonePreId, milestoneCurId) {
-  return postRequest(`/v1/qualityboard/${qualityboardId}/milestone/${milestonePreId}/with/${milestoneCurId}/pkg-compare`);
+export function setPackageListComparationDetail(qualityboardId, milestonePreId, milestoneCurId) {
+  return postRequest(
+    `/v1/qualityboard/${qualityboardId}/milestone/${milestonePreId}/with/${milestoneCurId}/pkg-compare`
+  );
 }
 
 export function addCheckListItem(data) {
+  if (data.checkitem_id) {
+    data.checkitem_id = Number(data.checkitem_id);
+  }
   return postRequest('/v1/checklist', data);
+}
+
+export function addCheckItem(data) {
+  return postRequest('/v1/checkitem', data);
 }

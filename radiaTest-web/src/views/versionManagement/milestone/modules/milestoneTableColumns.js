@@ -7,10 +7,11 @@ import { renderTooltip } from '@/assets/render/tooltip';
 import { Delete24Regular as Delete } from '@vicons/fluent';
 // import { PlugDisconnected20Filled, Connector20Filled } from '@vicons/fluent';
 import { Link, Unlink } from '@vicons/carbon';
-import axios from '@/axios';
 import milestoneTable from '@/views/versionManagement/milestone/modules/milestoneTable.js';
 import textDialog from '@/assets/utils/dialog';
-import deleteAjax from '@/assets/CRUD/delete/deleteAjax';
+import { getMilestonesByName } from '@/api/get';
+import { updateSyncMilestone, updateMilestoneState } from '@/api/put';
+import { deleteMilestoneAjax } from '@/api/delete';
 
 const showSyncRepoModal = ref(false);
 const selectMilestoneValue = ref('');
@@ -18,57 +19,55 @@ const selectMilestoneOptions = ref([]);
 const milestoneId = ref(null);
 
 const searchMilestoneFn = (data) => {
-  axios
-    .get('/v2/gitee-milestone', {
-      search: data.name
-    })
-    .then((res) => {
-      selectMilestoneOptions.value = [];
-      res.data.data.forEach((v) => {
-        selectMilestoneOptions.value.push({
-          label: v.title,
-          value: v.id
-        });
+  getMilestonesByName({
+    search: data.name
+  }).then((res) => {
+    selectMilestoneOptions.value = [];
+    res.data.data.forEach((v) => {
+      selectMilestoneOptions.value.push({
+        label: v.title,
+        value: v.id
       });
-      milestoneId.value = data.id;
     });
+    milestoneId.value = data.id;
+  });
 };
 
 const syncMilestoneFn = () => {
-  axios
-    .put(`/v2/milestone/${milestoneId.value}/sync`, {
-      gitee_milestone_id: selectMilestoneValue.value
-    })
-    .then(() => {
-      showSyncRepoModal.value = false;
-    });
+  updateSyncMilestone(milestoneId.value, {
+    gitee_milestone_id: selectMilestoneValue.value
+  }).then(() => {
+    showSyncRepoModal.value = false;
+  });
 };
 
 const changeState = (data) => {
-  axios
-    .put(`/v2/milestone/${data.row.id}/state`, {
-      state_event: data.value
-    })
-    .then(() => {
-      milestoneTable.getTableData();
-    });
+  updateMilestoneState(data.row.id, {
+    state_event: data.value
+  }).then(() => {
+    milestoneTable.getTableData();
+  });
 };
 
 const deleteMilestone = (data) => {
-  axios
-    .delete(`/v2/milestone/${data}`)
-    .then(() => {
-      milestoneTable.getTableData();
-    })
-    .catch((err) => {
-      deleteAjax.handleDeleteFail(data, err.data.error_msg);
-    });
+  deleteMilestoneAjax(data).then(() => {
+    milestoneTable.getTableData();
+  });
 };
 
 const leaveSyncRepoModal = () => {
   selectMilestoneValue.value = '';
   milestoneId.value = null;
 };
+
+const startTimeColumn = reactive({
+  title: '开始时间',
+  align: 'center',
+  key: 'start_time',
+  className: 'cols start-time',
+  sorter: true,
+  sortOrder: false
+});
 
 const constColumns = [
   {
@@ -180,12 +179,7 @@ const constColumns = [
       );
     }
   },
-  {
-    title: '开始时间',
-    align: 'center',
-    key: 'start_time',
-    className: 'cols start-time'
-  },
+  startTimeColumn,
   {
     title: '结束时间',
     align: 'center',
@@ -282,5 +276,6 @@ export default {
   selectMilestoneValue,
   selectMilestoneOptions,
   syncMilestoneFn,
-  leaveSyncRepoModal
+  leaveSyncRepoModal,
+  startTimeColumn
 };

@@ -13,6 +13,7 @@
     :pagination="pagination"
     @update:page="changePage"
     @update:page-size="changePageSize"
+    @update:sorter="handleSorterChange"
   />
 </template>
 
@@ -61,7 +62,6 @@ export default defineComponent({
         data.start_time = any2stamp(data.start_time);
         data.end_time = any2stamp(data.end_time);
         store.commit('rowData/set', data);
-        console.log(data);
         milestoneTable.isUpdating.value = true;
         context.emit('update', row);
       })
