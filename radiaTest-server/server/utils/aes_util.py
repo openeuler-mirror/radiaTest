@@ -2,6 +2,8 @@ import base64
 from Crypto.Cipher import AES
 from flask import current_app
 
+from server.plugins.flask_authz.utils import UnSupportedAuthType
+
 
 class FileAES:
     def __init__(self):
@@ -23,4 +25,9 @@ class FileAES:
         text = bytes(text, encoding='utf-8')
         text = base64.b64decode(text)
         de_text = file_aes.decrypt(text)
-        return str(de_text, encoding='utf-8').strip(b'\x00'.decode())
+
+        try:
+            return_text = str(de_text, encoding='utf-8').strip(b'\x00'.decode())
+        except UnicodeDecodeError as e:
+            raise UnSupportedAuthType(f"{text} is not in valid encripted coding, cause error {e}")
+        return return_text
