@@ -8,7 +8,9 @@ const formValue = ref({
   name: undefined,
   version: undefined,
   permission_type: null,
-  description: undefined,
+  version_type: '',
+  is_forced_check: true,
+  description: undefined
 });
 
 const clean = () => {
@@ -16,63 +18,70 @@ const clean = () => {
     name: null,
     version: null,
     permission_type: null,
-    description: null,
+    version_type: '',
+    is_forced_check: true,
+    description: null
   };
 };
 
 const defaultOptions = [
   {
     label: 'openEuler',
-    value: 'openEuler',
+    value: 'openEuler'
   },
   {
     label: 'EulerOS',
-    value: 'EulerOS',
+    value: 'EulerOS'
   },
   {
     label: 'SUSE Euler',
-    value: 'SUSE Euler',
+    value: 'SUSE Euler'
   },
   {
     label: 'KylinSec',
-    value: 'KylinSec',
+    value: 'KylinSec'
   },
   {
     label: 'UOS',
-    value: 'UOS',
+    value: 'UOS'
   }
 ];
 
 const nameOptions = computed(() => [
   {
     label: formValue.value.name,
-    value: formValue.value.name,
+    value: formValue.value.name
   },
-  ...defaultOptions,
+  ...defaultOptions
 ]);
 
 const rules = ref({
   name: {
     required: true,
     message: '版本全称不可为空',
-    trigger: ['blur'],
+    trigger: ['blur']
   },
   version: {
     required: true,
     message: '版本全称不可为空',
-    trigger: ['blur'],
+    trigger: ['blur']
   },
   permission_type: {
     required: true,
     message: '请选择类型',
-    trigger: ['change', 'blur'],
+    trigger: ['change', 'blur']
   },
+  version_type: {
+    required: true,
+    message: '请选择版本类型',
+    trigger: ['change', 'blur']
+  }
 });
 const typeOptions = ref([
   { label: '公共', value: 'public', isLeaf: true },
   { label: '组织', value: 'org', isLeaf: true },
   { label: '团队', value: 'group', isLeaf: false },
-  { label: '个人', value: 'person', isLeaf: true },
+  { label: '个人', value: 'person', isLeaf: true }
 ]);
 function handleLoad(option) {
   return new Promise((resolve, reject) => {
@@ -80,7 +89,7 @@ function handleLoad(option) {
       .then((res) => {
         option.children = res.data.items.map((item) => ({
           label: item.name,
-          value: `group-${item.id}`,
+          value: `group-${item.id}`
         }));
         resolve();
       })
@@ -96,5 +105,5 @@ export default {
   formRef,
   nameOptions,
   formValue,
-  clean,
+  clean
 };

@@ -1,5 +1,5 @@
 <template>
-  <n-grid :cols="24" :y-gap="6" style="padding-top:20px">
+  <n-grid :cols="24" :y-gap="6" style="padding-top: 20px">
     <n-gi :span="6">
       <n-space>
         <create-button title="注册虚拟机" @click="createModalRef.show()" />
@@ -28,9 +28,7 @@
     <n-gi :span="2">
       <div class="titleBtnWrap">
         <filterButton class="item" :filterRule="filterRule" @filterchange="filterchange"></filterButton>
-        <refresh-button @refresh="tableRef.getData()">
-          刷新虚拟机列表
-        </refresh-button>
+        <refresh-button @refresh="tableRef.getData()"> 刷新虚拟机列表 </refresh-button>
       </div>
     </n-gi>
     <n-gi :span="24"></n-gi>
@@ -49,7 +47,12 @@
       <modal-card title="延期" ref="delayModalRef" @validate="submitDelay">
         <template #form>
           <n-form-item label="释放时间">
-            <n-date-picker style="width: 100%" v-model:value="delay.time" type="date" :is-date-disabled="(current) => delay.time > current" />
+            <n-date-picker
+              style="width: 100%"
+              v-model:value="delay.time"
+              type="date"
+              :is-date-disabled="(current) => delay.time > current"
+            />
           </n-form-item>
         </template>
       </modal-card>
@@ -82,7 +85,15 @@ import { ref, defineComponent } from 'vue';
 import settings from '@/assets/config/settings.js';
 import Common from '@/components/CRUD';
 import Essential from '@/components/vmachineComponents';
-import { ipaddrModalRef, delayModalRef, ipaddr, delay, submitIpaddr, submitDelay, ipaddrRule } from './modules/vmachineTableColumns';
+import {
+  ipaddrModalRef,
+  delayModalRef,
+  ipaddr,
+  delay,
+  submitIpaddr,
+  submitDelay,
+  ipaddrRule
+} from './modules/vmachineTableColumns';
 import filterButton from '@/components/filter/filterButton.vue';
 import { useStore } from 'vuex';
 import vmachineFilter from '@/views/vmachine/modules/vmachineFilter.js';
@@ -134,6 +145,7 @@ export default defineComponent({
     ]);
 
     const filterchange = (filterArray) => {
+      tableRef.value.pagination.page = 1;
       vmachineFilter.filterValue.value = {
         name: '',
         frame: null,

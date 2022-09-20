@@ -1,5 +1,5 @@
 <template>
-  <n-grid x-gap="24" y-gap="6" style="padding-top:20px">
+  <n-grid x-gap="24" y-gap="6" style="padding-top: 20px">
     <n-gi :span="6">
       <n-space>
         <create-button title="注册物理机" @click="createModalRef.show()" />
@@ -49,9 +49,7 @@
       <div class="titleBtnWrap">
         <selection-button @show="tableRef.showSelection()" @off="tableRef.offSelection()" />
         <filterButton class="item" :filterRule="filterRule" @filterchange="filterchange"></filterButton>
-        <refresh-button @refresh="tableRef.getData()">
-          刷新物理机列表
-        </refresh-button>
+        <refresh-button @refresh="tableRef.getData()"> 刷新物理机列表 </refresh-button>
       </div>
     </n-gi>
     <n-gi :span="24"></n-gi>
@@ -61,7 +59,12 @@
       <modal-card title="延长占用时间" ref="delayModalRef" @validate="submitDelay">
         <template #form>
           <n-form-item label="释放时间">
-            <n-date-picker style="width: 100%" v-model:value="delay.time" type="date" :is-date-disabled="(current) => delay.time > current" />
+            <n-date-picker
+              style="width: 100%"
+              v-model:value="delay.time"
+              type="date"
+              :is-date-disabled="(current) => delay.time > current"
+            />
           </n-form-item>
         </template>
       </modal-card>
@@ -164,7 +167,10 @@ export default defineComponent({
 
     const macInputCb = (inputItem) => {
       if ((inputItem.value.length - 1) % 3 === 2 && inputItem.value.length < 18) {
-        inputItem.value = `${inputItem.value.substr(0, inputItem.value.length - 1)}:${inputItem.value.substr(inputItem.value.length - 1, 1)}`;
+        inputItem.value = `${inputItem.value.substr(0, inputItem.value.length - 1)}:${inputItem.value.substr(
+          inputItem.value.length - 1,
+          1
+        )}`;
       } else if (inputItem.value.length === 18) {
         inputItem.value = inputItem.value.substr(0, 17);
       }
@@ -221,6 +227,7 @@ export default defineComponent({
     ]);
 
     const filterchange = (filterArray) => {
+      tableRef.value.pagination.page = 1;
       pmachineFilter.filterValue.value = {
         mac: '',
         frame: null,

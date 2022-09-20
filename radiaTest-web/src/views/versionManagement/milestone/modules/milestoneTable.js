@@ -55,6 +55,7 @@ function changePage(page) {
 function changePageSize(pageSize) {
   pagination.value.page = 1;
   pagination.value.pageSize = pageSize;
+  filter.value.page_size = pageSize;
   getTableData();
 }
 

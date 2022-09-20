@@ -4,6 +4,7 @@ const size = ref('medium');
 const formRef = ref(null);
 const productOpts = ref([]);
 const versionOpts = ref([]);
+const milestoneNameActive = ref(true);
 const formValue = ref({
   name: undefined,
   product: undefined,
@@ -12,7 +13,7 @@ const formValue = ref({
   start_time: undefined,
   end_time: undefined,
   is_sync: false,
-  permission_type:undefined
+  permission_type: undefined
 });
 
 const clean = () => {
@@ -24,7 +25,7 @@ const clean = () => {
     start_time: undefined,
     end_time: undefined,
     is_sync: false,
-    permission_type:undefined
+    permission_type: undefined
   };
 };
 
@@ -32,22 +33,22 @@ const rules = ref({
   product: {
     required: true,
     message: '产品名不可为空',
-    trigger: ['blur'],
+    trigger: ['blur']
   },
   permission_type: {
     required: true,
     message: '请选择类型',
-    trigger: ['change', 'blur'],
+    trigger: ['change', 'blur']
   },
   product_id: {
     required: true,
     message: '版本名不可为空',
-    trigger: ['blur'],
+    trigger: ['blur']
   },
   type: {
     required: true,
     message: '里程碑类型不可为空',
-    trigger: ['blur'],
+    trigger: ['blur']
   },
   end_time: {
     validator: (rule, value) => {
@@ -56,9 +57,15 @@ const rules = ref({
       }
       return true;
     },
-    trigger: ['blur'],
-  },
+    trigger: ['blur']
+  }
 });
+
+const milestoneNameActiveChange = (value) => {
+  if (value) {
+    formValue.value.name = null;
+  }
+};
 
 export default {
   size,
@@ -67,5 +74,7 @@ export default {
   formValue,
   productOpts,
   versionOpts,
+  milestoneNameActive,
   clean,
+  milestoneNameActiveChange
 };

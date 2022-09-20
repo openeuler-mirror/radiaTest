@@ -91,7 +91,7 @@
               v-model:value="formValue.password"
               @keydown.enter.prevent
               type="password"
-              show-password-on="mousedown"
+              show-password-on="click"
               placeholder="请输入SSH密码"
               :style="{ width: '90%' }"
             />
