@@ -706,15 +706,14 @@ class VmachineAsyncResultHandler:
         update_body = deepcopy(body)
         update_body.pop("id")
 
-        resp = update_request(
-            "/api/v1/vmachine/{}/data".format(
-                body.get("id")
-            ),
-            update_body,
-            auth
-        )
-
         if body.get("method") == "cdrom":
+            resp = update_request(
+                "/api/v1/vmachine/{}/data".format(
+                    body.get("id")
+                ),
+                update_body,
+                auth
+            )
             return jsonify(resp)
         if body.get("method") == "auto":
             body.update(
@@ -762,58 +761,78 @@ class VmachineAsyncResultHandler:
             mesg = "Failed to configure the repo source address."
             current_app.logger.warning(mesg)
             body.get("description") + " \n" + mesg
+            ip = None
 
-        body.update({"ip": ip})
-
-        repo = query_request(
-            "/api/v1/repo",
-            {
-                "milestone_id": body.get("milestone_id"),
-                "frame": body.get("frame"),
-            },
-            auth
-        )[0]
-
-        update_repo = None
-        if body.get("update_milestone_id"):
-            update_repo = query_request(
+        repo = None
+        try:
+            repo = query_request(
                 "/api/v1/repo",
                 {
-                    "milestone_id": body.get("update_milestone_id"),
+                    "milestone_id": body.get("milestone_id"),
                     "frame": body.get("frame"),
                 },
                 auth
             )[0]
+        except IndexError as e:
+            current_app.logger.error(e)
+            pass
 
-        if repo:
-            ssh.command(
-                "mv /etc/yum.repos.d/* /tmp && \
-                 echo -e '%s' > /etc/yum.repos.d/%s.repo"
-                % (
-                    repo.get("content"),
-                    body.get("milestone").replace(" ", "-")
+        update_repo = None
+        if body.get("update_milestone_id"):
+            try:
+                update_repo = query_request(
+                    "/api/v1/repo",
+                    {
+                        "milestone_id": body.get("update_milestone_id"),
+                        "frame": body.get("frame"),
+                    },
+                    auth
+                )[0]
+            except IndexError as e:
+                current_app.logger.error(e)
+                pass
+        try:
+            if repo:
+                ssh.command(
+                    "mv /etc/yum.repos.d/* /tmp && \
+                     echo -e '%s' > /etc/yum.repos.d/%s.repo"
+                    % (
+                        repo.get("content"),
+                        body.get("milestone").replace(" ", "-")
+                    )
                 )
-            )
 
-        if update_repo:
-            ssh.command(
-                "echo -e '%s' > /etc/yum.repos.d/%s.repo"
-                % (
-                    update_repo.get("content"),
-                    body.get("update_milestone").name.replace(" ", "-")
+            if update_repo:
+                ssh.command(
+                    "echo -e '%s' > /etc/yum.repos.d/%s.repo"
+                    % (
+                        update_repo.get("content"),
+                        body.get("update_milestone").name.replace(" ", "-")
+                    )
                 )
-            )
 
-        ssh.close()
-
-        update_body = deepcopy(body)
-        update_body.pop("id")
+            ssh.close()
+        except ConnectionError as e:
+            current_app.logger.error(e)
+            pass
 
         resp = update_request(
-            "/api/v1/vmachine/{}/data".format(
+            "/api/v1/vmachine/{}/callback".format(
                 body.get("id")
             ),
-            update_body,
+            {
+                "ip": ip,
+                "name": body.get("name"),
+                "status": body.get("status"),
+                "frame": body.get("frame"),
+                "mac": body.get("mac"),
+                "password": body.get("password"),
+                "user": body.get("user"),
+                "vnc_port": body.get("vnc_port"),
+                "vnc_token": body.get("vnc_token"),
+                "pmachine_id": body.get("pmachine_id"),
+                "spcial_device": body.get("special_device")
+            },
             auth
         )
 

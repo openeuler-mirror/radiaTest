@@ -1,3 +1,18 @@
+# Copyright (c) [2022] Huawei Technologies Co.,Ltd.ALL rights reserved.
+# This program is licensed under Mulan PSL v2.
+# You can use it according to the terms and conditions of the Mulan PSL v2.
+#          http://license.coscl.org.cn/MulanPSL2
+# THIS PROGRAM IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+# EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+# MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+# See the Mulan PSL v2 for more details.
+####################################
+# @Author  : Ethan-Zhang,凹凸曼打小怪兽
+# @email   : 15710801006@163.com
+# @Date    : 2022/09/20
+# @License : Mulan PSL v2
+#####################################
+
 class Config(object):
     # Config.ini 文件目录
     INI_PATH = "/etc/radiaTest/server.ini"
@@ -39,7 +54,6 @@ class Config(object):
 
     # HTTP请求头
     HEADERS = {"Content-Type": "application/json;charset=utf8"}
-
 
     # 虚拟机
     # 虚拟机创建基础信息
@@ -86,7 +100,7 @@ class Config(object):
 
     # 上传服务端文件的暂存地址
     TMP_FILE_SAVE_PATH = "/tmp/"
-    
+
     # openEuler-QA团队配置
     # openEuler-QA团队名
     OE_QA_GROUP_NAME = "openEuler测试组"
@@ -121,6 +135,12 @@ class Config(object):
     CASBIN_MODEL = "/etc/radiaTest/casbinmodel.conf"
     CASBIN_OWNER_HEADERS = {"X-User", "X-Group", "Authorization"}
     CASBIN_USER_NAME_HEADERS = {"X-User", "X-Group", "Authorization"}
+
+    # 创建虚拟机回调超时(单位:s)
+    CALLBACK_EXPIRE_TIME = 3600
+
+    # 默认虚拟机容量(单位:G)
+    VM_DEFAULT_CAPACITY = 50
 
 
 class TestingConfig(Config):
