@@ -50,7 +50,12 @@ def authorization_decoder(config, auth_str: str):
 
     if _type == "JWT":
         """return only the identity， depends on JWT 2.x"""
-        decode_payload = FileAES().decrypt(_token.split('.')[1])
+        try:
+            decode_payload = FileAES().decrypt(_token.split('.')[1])
+        except UnicodeDecodeError as e:
+            raise UnSupportedAuthType(
+                f"{_token} is not in valid encripted coding, cause error {e}"
+            ) from e
         token = _token.replace(_token.split('.')[1], decode_payload)
 
         decoded_jwt = jwt.decode(
