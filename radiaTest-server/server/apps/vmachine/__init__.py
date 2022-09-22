@@ -1,3 +1,18 @@
+# Copyright (c) [2022] Huawei Technologies Co.,Ltd.ALL rights reserved.
+# This program is licensed under Mulan PSL v2.
+# You can use it according to the terms and conditions of the Mulan PSL v2.
+#          http://license.coscl.org.cn/MulanPSL2
+# THIS PROGRAM IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+# EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+# MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+# See the Mulan PSL v2 for more details.
+####################################
+# @Author  : Ethan-Zhang,凹凸曼打小怪兽
+# @email   : 15710801006@163.com
+# @Date    : 2022/09/20
+# @License : Mulan PSL v2
+#####################################
+
 from flask_restful import Api
 
 from .routes import (
@@ -7,7 +22,7 @@ from .routes import (
     VmachineControl,
     AttachDevice,
     VmachineItemEvent,
-	VmachineDelayEvent,
+    VmachineDelayEvent,
     VmachineBatchDelayEvent,
     VmachineItemForceEvent,
     VmachineData,
@@ -20,7 +35,8 @@ from .routes import (
     VmachineIpaddrItem,
     VmachineSshEvent,
     VmachineBatchEvent,
-    VmachineStatusEvent
+    VmachineStatusEvent,
+    VmachineCallBackEvent
 )
 
 
@@ -45,3 +61,4 @@ def init_api(api: Api):
     api.add_resource(VdiskData, "/api/v1/vdisk/data")
     api.add_resource(VdiskItemData, "/api/v1/vdisk/<int:vdisk_id>/data")
     api.add_resource(VmachineStatusEvent, "/api/v1/vmachine/update-status")
+    api.add_resource(VmachineCallBackEvent, "/api/v1/vmachine/<int:vmachine_id>/callback")

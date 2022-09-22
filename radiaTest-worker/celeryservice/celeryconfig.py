@@ -117,3 +117,6 @@ wait_vm_install = 6000
 # 本地源配置
 disk_cache_on = loads_config_ini("worker", "DISK_CACHE_ON")
 local_source_storage_pool = loads_config_ini("worker", "LOCAL_SOURCE_STORAGE_POOL")
+
+#自动安
+autoinstall_expired_time = loads_config_ini("worker", "AUTOINSTALL_EXPIRED_TIME")

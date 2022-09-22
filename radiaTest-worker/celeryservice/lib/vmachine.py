@@ -23,7 +23,6 @@ import requests
 
 from celeryservice import celeryconfig
 from celeryservice.lib import AuthTaskHandler
-from celeryservice.sub_tasks import async_vmstatus_monitor
 from worker.utils.bash import (
     get_network_source,
     install_base,
@@ -78,7 +77,7 @@ class VmachineBaseSchema(AuthTaskHandler):
                 "authorization": self.auth,
                 **celeryconfig.headers,
             },
-            verify=celeryconfig.cacert_path,
+            verify=True if celeryconfig.ca_verify == "True" else celeryconfig.cacert_path
         )
 
 
@@ -166,7 +165,7 @@ class InstallVmachine(VmachineBaseSchema):
                 },
             )
 
-            for _ in range(900):
+            for _ in range(int(celeryconfig.autoinstall_expired_time)):
                 exitcode = getstatusoutput(
                     "export LANG=en_US.utf-8 ; test \"$(eval echo $(virsh list --all | \
                      grep '{}' | awk -F '{} *' ".format(
@@ -175,13 +174,13 @@ class InstallVmachine(VmachineBaseSchema):
                     + "'{print $NF}'))\" == 'shut off'"
                 )[0]
                 if exitcode == 0:
-                    exitcode, output = getstatusoutput(
+                    _, _ = getstatusoutput(
                         "virsh start {}".format(shlex.quote(self._body.get("name")))
                     )
                     break
-                time.sleep(1)
+                time.sleep(3)
 
-            exitcode, output = getstatusoutput(
+            _, _ = getstatusoutput(
                 "export LANG=en_US.utf-8 ; eval echo $(virsh list --all | grep '{}' ".format(
                     shlex.quote(self._body.get("name"))
                 )
@@ -216,6 +215,8 @@ class InstallVmachine(VmachineBaseSchema):
                         .split(":")[-1],
                 }
             )
+
+            self._set_static_vncport()
 
             self.update_vmachine(self._body)
 
@@ -398,15 +399,9 @@ class InstallVmachine(VmachineBaseSchema):
                         .split(":")[-1],
                 }
             )
-            exitcode, output = getstatusoutput("sh {} {} {} {}".format(
-                os.path.join(os.path.dirname(__file__), "worker/utils/virsh_config.sh"),
-                self._body.get("name"),
-                "vncport",
-                int(self._body.get("vnc_port")) + 5900
-            )
-            )
-            if not exitcode:
-                self.logger.error("vmachine vncport failed to edit:{}".format(output))
+
+            self._set_static_vncport()
+
             self.update_vmachine(self._body)
 
             self.logger.info(
@@ -527,8 +522,7 @@ class InstallVmachine(VmachineBaseSchema):
             self._body.update(
                 {
                     "mac": getoutput(
-                        "virsh dumpxml %s | grep -Pzo  \"<interface type='bridge'>[\s\S] \
-                        *<mac address.*\" |grep -Pzo '<mac address.*' | awk -F\\' '{print $2}' | head -1"
+                        "virsh dumpxml %s | grep -Pzo  \"<interface type='bridge'>[\s\S] *<mac address.*\" |grep -Pzo '<mac address.*' | awk -F\\' '{print $2}' | head -1"
                         % self._body.get("name")
                     ).strip(),
                     "status": output,
@@ -537,6 +531,8 @@ class InstallVmachine(VmachineBaseSchema):
                         .split(":")[-1],
                 }
             )
+
+            self._set_static_vncport()
 
             self.update_vmachine(self._body)
 
@@ -549,8 +545,6 @@ class InstallVmachine(VmachineBaseSchema):
 
                 },
             )
-
-            _task = async_vmstatus_monitor.delay(self.auth, self._body)
 
             self.next_period()
             promise.update_state(
@@ -617,3 +611,19 @@ class InstallVmachine(VmachineBaseSchema):
                 source_qcow2_file + ".sha256sum"
             )
         )
+
+    def _set_static_vncport(self):
+        cmd = "sh {} {} {} {}".format(
+            shlex.quote(
+                os.path.join(
+                    os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+                    "worker/utils/virsh_config.sh"
+                )
+            ),
+            shlex.quote(self._body.get("name")),
+            shlex.quote("vncport"),
+            shlex.quote(int(self._body.get("vnc_port")) + 5900)
+        )
+        exitcode, output = getstatusoutput(cmd)
+        if exitcode:
+            self.logger.error("vmachine vncport failed to edit:{}".format(output))

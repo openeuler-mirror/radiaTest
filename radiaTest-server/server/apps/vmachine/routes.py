@@ -1,3 +1,18 @@
+# Copyright (c) [2022] Huawei Technologies Co.,Ltd.ALL rights reserved.
+# This program is licensed under Mulan PSL v2.
+# You can use it according to the terms and conditions of the Mulan PSL v2.
+#          http://license.coscl.org.cn/MulanPSL2
+# THIS PROGRAM IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+# EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+# MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+# See the Mulan PSL v2 for more details.
+####################################
+# @Author  : Ethan-Zhang,凹凸曼打小怪兽
+# @email   : 15710801006@163.com
+# @Date    : 2022/09/20
+# @License : Mulan PSL v2
+#####################################
+
 import json
 import string
 import random
@@ -5,7 +20,6 @@ from flask import current_app, request
 from flask.json import jsonify
 from flask_restful import Resource
 from flask_pydantic import validate
-from server import casbin_enforcer
 from server.apps.vmachine.handlers import (
     VmachineHandler,
     search_device,
@@ -14,12 +28,10 @@ from server.apps.vmachine.handlers import (
 )
 from server.model.pmachine import Pmachine, MachineGroup
 from server.model.milestone import Milestone
-from server.schema.base import DeleteBaseModel
 from server.schema.vmachine import (
     DeviceBaseSchema,
     DeviceDeleteSchema,
     PowerSchema,
-    VdiskBaseSchema,
     VdiskCreateSchema,
     VdiskUpdateSchema,
     VmachineCreateSchema,
@@ -29,20 +41,21 @@ from server.schema.vmachine import (
     VmachinePreciseQuerySchema,
     VmachineQuerySchema,
     VnicBaseSchema,
-    VdiskBaseSchema,
     VnicCreateSchema,
     VmachineIpaddrSchema,
     VmachineItemUpdateSchema,
     VmachineBatchCreateSchema,
 )
 from server.utils.auth_util import auth
-from server.utils.db import Delete, Edit, Like, Select, Insert
+from server.utils.db import Delete, Edit, Insert
 from server.utils.response_util import attribute_error_collect, response_collect, RET
 from server.model import Vmachine, Vdisk, Vnic
 from server.utils.permission_utils import PermissionManager, GetAllByPermission
 import os
 from server.utils.resource_utils import ResourceManager
 from server import casbin_enforcer
+from server.utils.callback_auth_util import callback_auth
+from server import redis_client
 
 
 class VmachineItemEvent(Resource):
@@ -136,6 +149,8 @@ class VmachineEvent(Resource):
     @attribute_error_collect
     @validate()
     def post(self, body: VmachineCreateSchema):
+        if not body.capacity:
+            body.capacity = current_app.config.get("VM_DEFAULT_CAPACITY")
         _milestone = Milestone.query.filter_by(id=body.milestone_id).first()
         _product_id = _milestone.product_id
 
@@ -182,11 +197,19 @@ class VmachineEvent(Resource):
                 id=body.machine_group_id
             ).first()
 
-        return VmachineMessenger(_body).send_request(
+        resp = VmachineMessenger(_body).send_request(
             machine_group,
             "/api/v1/vmachine",
             "post",
         )
+        resp_analyse = json.loads(resp.data.decode('UTF-8'))
+        if resp_analyse.get("error_code") == RET.OK and body.method in ["auto", "import"]:
+            redis_client.set(
+                body.name,
+                request.headers.get("authorization"),
+                ex=current_app.config.get("CALLBACK_EXPIRE_TIME")
+            )
+        return resp
 
     @auth.login_required
     @response_collect
@@ -223,7 +246,7 @@ class VmachineBatchEvent(Resource):
                 obj.post()
                 names.append(body.name)
 
-        except (RuntimeError):
+        except RuntimeError:
             return jsonify(
                 error_code=RET.NO_DATA_ERR,
                 error_msg="the vmachines creation failed."
@@ -585,3 +608,12 @@ class VmachineStatusEvent(Resource):
                 _body.get("domains_shut_off")
             )
         )
+
+
+class VmachineCallBackEvent(Resource):
+    @callback_auth
+    @response_collect
+    def put(self, vmachine_id):
+        _body = request.get_json()
+        _body.update({"id": vmachine_id})
+        return Edit(Vmachine, _body).single(Vmachine, "/vmachine", True)
