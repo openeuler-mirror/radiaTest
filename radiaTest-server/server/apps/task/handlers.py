@@ -1,8 +1,10 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 import json
 import math
 import ast
 import os
+import parser
+import pytz
 from celery import current_app
 
 from flask import jsonify, g, request, Response
@@ -17,8 +19,35 @@ from server.model.user import User
 from server.model.organization import Organization
 from server.model.milestone import Milestone
 from server.model.testcase import Case, CaseNode
-from server.model.permission import Scope, ReScopeRole, Role
-from server.schema.task import *
+from server.model.permission import Role
+from server.schema.task import (
+    UpdateTaskExecutorSchema,
+    AddTaskSchema,
+    EnumsTaskExecutorType,
+    UpdateTaskStatusOrderSchema,
+    UpdateTaskSchema,
+    AddTaskCaseSchema,
+    TaskBaseSchema,
+    TaskInfoSchema,
+    TagInfoSchema,
+    PageBaseSchema,
+    TaskCaseResultSchema,
+    TaskRecycleBinInfo,
+    DeleteTaskList,
+    AddTaskTagSchema,
+    DelTaskCaseSchema,
+    DelTaskTagSchema,
+    DelFamilyMemberSchema,
+    AddFamilyMemberSchema,
+    QueryFamilySchema,
+    TaskReportContentSchema,
+    QueryTaskCaseSchema,
+    DistributeTaskCaseSchema,
+    TaskJobResultSchema,
+    QueryTaskStatisticsSchema,
+    OutAddTaskSchema,
+)
+from server.schema import Frame
 from server.schema.milestone import GiteeIssueQueryV8
 from server.schema.user import UserBaseSchema
 from server.schema.group import GroupInfoSchema
@@ -28,7 +57,7 @@ from server.utils.response_util import RET
 from server.utils.page_util import PageUtil
 from server.utils.read_from_yaml import get_api
 from server.utils.permission_utils import PermissionManager, GetAllByPermission
-from server.apps.milestone.handler import IssueOpenApiHandlerV5, IssueOpenApiHandlerV8
+from server.apps.milestone.handler import IssueOpenApiHandlerV8
 from .services import (
     UpdateTaskStatusService,
     get_family_member,
@@ -1189,11 +1218,6 @@ class HandlerTaskReport(object):
     @collect_sql_error
     def get(task_id):
         report = TaskReportContent.query.get(task_id)
-        # return_data = []
-        # for item in contents:
-        #     item_dict = TaskReportSchema(**item.report_model.__dict__).dict()
-        #     item_dict['content'] = item.content
-        #     return_data.append(item_dict)
         return_data = (
             dict(title=report.title, content=report.content) if report else None
         )
@@ -1335,9 +1359,7 @@ class HandlerTaskCase(object):
         if not task:
             return dict(error_code=RET.NO_DATA_ERR, error_msg="task is not exists")
         # 获取子任务
-        # children = get_task_children(tasks=[task], children=[])
         # 所有的任务
-        # children.append(task)
         tasks = [task]
         # 里程碑 开始时间 结束时间 测试用例数 问题单数 用例执行结果
         job_list = []
@@ -1536,14 +1558,14 @@ class HandlerTaskStatistics(object):
                 self.accomplish_tasks.append(task)
                 accomplish += 1
                 no_accomplish -= 1
-            if task.deadline and task.deadline.date() == datetime.now().date():
+            if task.deadline and task.deadline.date() == datetime.now(tz=pytz.timezone('Asia/Shanghai')).date():
                 today_expire += 1
             if task.deadline and (
                 not task.accomplish_time or task.deadline <= task.accomplish_time
             ):
                 self.expired_tasks.append(task)
                 expired += 1
-        return total, accomplish, no_accomplish, today_expire, expired
+        return [total, accomplish, no_accomplish, today_expire, expired]
 
     @staticmethod
     @collect_sql_error
@@ -1617,7 +1639,7 @@ class HandlerTaskStatistics(object):
             start_time = (
                 parser.parser("1970-01-01") if not start_task else start_task.start_time
             )
-        end_time = self.query.end_time if self.query.end_time else datetime.now()
+        end_time = self.query.end_time if self.query.end_time else datetime.now(tz=pytz.timezone('Asia/Shanghai'))
         x_axis, date_list = self.analyze_date_step(start_time.date(), end_time.date())
 
         total = len(self.tasks)
@@ -1682,6 +1704,7 @@ class HandlerTaskStatistics(object):
                 "state": "active",
                 "sort": "created",
                 "direction": "desc",
+                "milestone_id": milestone.gitee_milestone_id,
             }
         )
 

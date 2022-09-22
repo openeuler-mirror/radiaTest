@@ -14,6 +14,7 @@
 #####################################
 
 import abc
+from ast import operator
 from collections import defaultdict
 from datetime import datetime
 from math import floor
@@ -21,13 +22,15 @@ import os
 import subprocess
 
 from flask import jsonify, current_app, g
-from sqlalchemy import func
+from sqlalchemy import func, or_
 import pytz
 
-from server import db, redis_client
-from server.model.qualityboard import Checklist, QualityBoard
-from server.model.milestone import Milestone
+from server import redis_client
+from sqlalchemy import and_
+from server.model.qualityboard import Checklist, QualityBoard, CheckItem
+from server.model.milestone import IssueSolvedRate, Milestone
 from server.model.organization import Organization
+from server.model.product import Product
 from server.utils.db import Edit, collect_sql_error, Insert
 from server.utils.response_util import RET
 from server.utils.page_util import PageUtil
@@ -56,10 +59,13 @@ class ChecklistHandler:
     @collect_sql_error
     def handler_get_checklist(query):
         _filter = []
-        if query.check_item:
-            _filter.append(Checklist.check_item.like(f'%{query.check_item}%'))
-        if query.product_id:
-            _filter.append(Checklist.product_id == query.product_id)
+        if query.product_name:
+            _ps = Product.query.filter_by(name=query.product_name).all()
+            if _ps:
+                for _p in _ps:
+                    _filter.append(
+                        Checklist.products.contains(_p)
+                    )
         filter_chain = Checklist.query.filter(*_filter)
         page_dict, e = PageUtil.get_page_dict(
             filter_chain, query.page_num, query.page_size, func=lambda x: x.to_json())
@@ -67,6 +73,193 @@ class ChecklistHandler:
             return jsonify(
                 error_code=RET.SERVER_ERR,
                 error_msg=f'get checklist page error {e}'
+            )
+        return jsonify(
+            error_code=RET.OK,
+            error_msg='OK',
+            data=page_dict
+        )
+
+    @staticmethod
+    @collect_sql_error
+    def checklist_sync_product_all(product_name):
+        _ps = Product.query.filter_by(name=product_name, is_forced_check=True).all()
+        if _ps:
+            _filter = []
+            for _p in _ps:
+                _filter.append(
+                    Checklist.products.contains(_p)
+                )
+            cls = Checklist.query.filter(or_(*_filter)).all()
+            for cl in cls:
+                for _p in _ps:
+                    if cl.products.index(_p) < 0:
+                        cl.products.append(_p)
+                cl.add_update()
+            return jsonify(
+                error_code=RET.OK,
+                error_msg="OK."
+            )
+        else:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="product doesn't exist,or doesn't need to be checked."
+            )
+
+    @staticmethod
+    @collect_sql_error
+    def checklist_sync_product_single(checklist_id, product_id):
+        _cl = Checklist.query.filter_by(id=checklist_id).first()
+        if not _cl:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="Checklist  dodes not exist"
+            )
+        cp = _cl.products[0]
+        if product_id == 0:
+            ps = Product.query.filter_by(name=cp.name).all()
+            for _p in ps:
+                if _cl.products.index(_p) < 0:
+                    _cl.products.append(_p)
+                    _cl.add_update()
+        else:
+            p = Product.query.filter_by(id=product_id).first()
+            if not p:
+                return jsonify(
+                    error_code=RET.NO_DATA_ERR,
+                    error_msg="product dodes not exist"
+                )
+            if cp.name != p.name:
+                return jsonify(
+                    error_code=RET.NO_DATA_ERR,
+                    error_msg="checklist dodes not match product"
+                )
+            if _cl.products.index(p) >= 0:
+                return jsonify(
+                    error_code=RET.DATA_EXIST_ERR,
+                    error_msg="checklist has matched product"
+                )
+            _cl.products.append(p)
+            _cl.add_update()
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK."
+        )
+
+
+class QualityResultCompareHandler:
+    def __init__(self, product_id, milestone_id=None) -> None:
+        self.product_id = product_id
+        self.milestone_id = milestone_id
+
+    def compare_issue_rate(self, field: str):
+        if self.milestone_id:
+            isr = IssueSolvedRate.query.filter_by(
+                milestone_id=self.milestone_id
+            ).first()
+        else:
+            isr = Product.query.filter_by(
+                id=self.product_id
+            ).first()
+        if not isr:
+            return None
+        isr_json = isr.to_json()
+        field_val = isr_json.get(field)
+        baseline, operation = self.get_baseline(field)
+        if not field_val or not baseline:
+            return None
+        if "rate" in field:
+            field_val = field_val.replace("%", "")
+            baseline = baseline.replace("%", "")
+
+        lt =  lambda x, y: x < y
+        gt =  lambda x, y: x > y
+        le =  lambda x, y: x <= y
+        ge =  lambda x, y: x >= y
+        eq =  lambda x, y: x == y
+        operation_dict = {
+            "<": lt,
+            ">": gt,
+            "<=": le,
+            ">=": ge,
+            "=": eq,
+        }
+        ret = operation_dict.get(operation)(int(field_val), int(baseline))
+        return ret
+
+    @collect_sql_error
+    def get_baseline(self, field):
+        baseline, operation = None, None
+        p = Product.query.filter_by(id=self.product_id).first()
+        cl = Checklist.query.join(CheckItem).filter(
+            Checklist.products.contains(p),
+            CheckItem.field_name == field,
+            Checklist.checkitem_id == CheckItem.id,
+        ).first()
+        if not cl:
+            return None, None
+
+        if self.milestone_id:
+            m = Milestone.query.filter_by(id=self.milestone_id).first()
+            if m.type == "round":
+                iter_num = int(m.name.split("-")[-1])
+                if len(cl.rounds) < iter_num:
+                    return None, None
+                r_flag = cl.rounds[iter_num - 1]
+                if r_flag == "1":
+                    return cl.baseline, cl.operation 
+                else:
+                    return None, None 
+        
+        if p.version_type == "LTS-SPx":
+            if cl.lts_spx:
+                baseline = cl.baseline
+                operation = cl.operation
+        elif p.version_type == "LTS":
+            if cl.lts:
+                baseline = cl.baseline
+                operation = cl.operation
+        else:
+            if cl.innovation:
+                baseline = cl.baseline
+                operation = cl.operation
+        return baseline, operation
+
+
+class CheckItemHandler:
+    @staticmethod
+    @collect_sql_error
+    def get_all(query):
+        _filter = []
+        if query.field_name:
+            _filter.append(CheckItem.field_name.like(f'%{query.field_name}%'))
+        if query.title:
+            _filter.append(CheckItem.title.like(f'%{query.title}%'))
+        filter_chain = CheckItem.query.filter(*_filter)
+        if not query.paged:
+            cis = filter_chain.all()
+            data = dict()
+            items = []
+            for _ci in cis:
+                items.append(_ci.to_json())
+            data.update(
+                {
+                    "total": filter_chain.count(),
+                    "items": items,
+                }
+            )
+            return jsonify(
+                error_code=RET.OK,
+                error_msg='OK',
+                data=data
+            )
+        
+        page_dict, e = PageUtil.get_page_dict(
+            filter_chain, query.page_num, query.page_size, func=lambda x: x.to_json())
+        if e:
+            return jsonify(
+                error_code=RET.SERVER_ERR,
+                error_msg=f'get checkitem page error {e}'
             )
         return jsonify(
             error_code=RET.OK,

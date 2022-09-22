@@ -33,8 +33,13 @@ class UpdateIssueRateData:
                     "issue_state_ids": self.issue_v8.serious_state_ids,
                     "issue_type_id": self.issue_v8.bug_issue_type_id,
                 },
-                "fields": {
-                    "serious_resolved_rate": ""
+                "p_fields": {
+                    "serious_resolved_rate": "",
+                    "serious_resolved_passed": None,
+                },
+                "m_fields": {
+                    "serious_resolved_rate": "",
+                    "serious_resolved_passed": None,
                 }
             },
             "main_resolved_rate": {
@@ -49,9 +54,14 @@ class UpdateIssueRateData:
                     "issue_state_ids": self.issue_v8.serious_state_ids,
                     "issue_type_id": self.issue_v8.bug_issue_type_id,
                 },
-                "fields": {
-                    "main_resolved_rate": ""
-                }
+                "p_fields": {
+                    "main_resolved_rate": "",
+                    "main_resolved_passed": None,
+                },
+                "m_fields": {
+                    "main_resolved_rate": "",
+                    "main_resolved_passed": None,
+                },
             },
             "serious_main_resolved_rate": {
                 "all": {
@@ -65,10 +75,15 @@ class UpdateIssueRateData:
                     "issue_state_ids": self.issue_v8.serious_state_ids,
                     "issue_type_id": self.issue_v8.bug_issue_type_id,
                 },
-                "fields": {
+                "p_fields": {
+                    "serious_main_resolved_rate": "",
+                    "serious_main_resolved_passed": None,
+                },
+                "m_fields": {
                     "serious_main_resolved_rate": "",
                     "serious_main_resolved_cnt": "",
                     "serious_main_all_cnt": "",
+                    "serious_main_resolved_passed": None,
                 }
             },
             "current_resolved_rate": {
@@ -82,10 +97,15 @@ class UpdateIssueRateData:
                     "issue_state_ids": self.issue_v8.current_resolved_state_ids,
                     "issue_type_id": self.issue_v8.bug_issue_type_id,
                 },
-                "fields": {
+                "p_fields": {
+                    "current_resolved_rate": "",
+                    "current_resolved_passed": None,
+                },
+                "m_fields": {
                     "current_resolved_rate": "",
                     "current_resolved_cnt": "",
                     "current_all_cnt": "",
+                    "current_resolved_passed": None,
                 }
             },
             "left_issues_cnt": {
@@ -94,14 +114,20 @@ class UpdateIssueRateData:
                     "issue_state_ids": self.issue_v8.left_state_ids,
                     "issue_type_id": self.issue_v8.bug_issue_type_id,
                 },
-                "fields": {
-                    "left_issues_cnt": ""
+                "p_fields": {
+                    "left_issues_cnt": "",
+                    "left_issues_passed": None,
+                },
+                "m_fields": {
+                    "left_issues_cnt": "",
+                    "left_issues_passed": None,
                 }
             },
 
         }
 
     def update_product_issue_resolved_rate(self, field: str):
+        from server.apps.qualityboard.handlers import QualityResultCompareHandler
         milestones = Milestone.query.filter_by(
             product_id=self.products.get("product_id"), is_sync=True
         ).all()
@@ -123,32 +149,36 @@ class UpdateIssueRateData:
             )
 
         param1.update({"milestone_id": milestone_ids})
-        all_cnt = self.issue_v8.get_issues_cnt(param1)
-        if not all_cnt:
-            return
-
         param2 = self.param.get(field).get("part")
         if param2:
             param2.update({"milestone_id": milestone_ids})
-            resolved_cnt = self.issue_v8.get_issues_cnt(param2)
-            resolved_rate = None
-            if resolved_cnt and all_cnt and int(all_cnt) != 0:
-                resolved_rate = int(resolved_cnt) / int(all_cnt)
-            if resolved_rate:
-                resolved_rate = "%.f%%" % (resolved_rate * 100)
-            else:
-                return
 
-            issue_resolved_rate_dict.update(
-                {field: resolved_rate}
-            )
-        else:
-            issue_resolved_rate_dict.update(
-                {field: all_cnt}
-            )
+        resolved_cnt, all_cnt, resolved_rate = self.issue_v8.get_issue_cnt_rate(
+            param1, param2
+        )
+        if not all_cnt:
+            return
+        if not resolved_cnt and param2:
+            return
+        
+        if all_cnt == 0:
+            resolved_rate = "100%"
+        qrsh = QualityResultCompareHandler(self.products.get("product_id"))
+        passed = qrsh.compare_issue_rate(field)
+        
+        _issuerate_dict = self.param.get(field).get("p_fields")
+        for k in _issuerate_dict.keys():
+            if "resolved_rate" in k:
+                issue_resolved_rate_dict.update({k: resolved_rate})
+            if "passed" in k:
+                issue_resolved_rate_dict.update({k: passed})
+            if "all_cnt" in k:
+                issue_resolved_rate_dict.update({k: all_cnt})
+
         Edit(Product, issue_resolved_rate_dict).single(Product, "/product")
 
     def update_milestone_issue_resolved_rate(self,  gitee_milestone_id, field: str):
+        from server.apps.qualityboard.handlers import QualityResultCompareHandler
         param1 = self.param.get(field).get("all")
         if not param1:
             return
@@ -163,17 +193,19 @@ class UpdateIssueRateData:
             return
         if not resolved_cnt and param2:
             return
-
-        issue_resolved_rate_dict = dict()
         _m = Milestone.query.filter_by(
             gitee_milestone_id=gitee_milestone_id).first()
+        qrsh = QualityResultCompareHandler(self.products.get("product_id"), _m.id)
+        passed = qrsh.compare_issue_rate(field)
+        issue_resolved_rate_dict = dict()
+        
         issue_resolved_rate_dict.update(
             {
                 "milestone_id": _m.id,
                 "gitee_milestone_id": gitee_milestone_id,
             }
         )
-        _issuerate_dict = self.param.get(field).get("fields")
+        _issuerate_dict = self.param.get(field).get("m_fields")
         for k in _issuerate_dict.keys():
             if "resolved_rate" in k:
                 issue_resolved_rate_dict.update({k: resolved_rate})
@@ -181,6 +213,8 @@ class UpdateIssueRateData:
                 issue_resolved_rate_dict.update({k: resolved_cnt})
             if "all_cnt" in k:
                 issue_resolved_rate_dict.update({k: all_cnt})
+            if "passed" in k:
+                issue_resolved_rate_dict.update({k: passed})
 
         issue_rate = IssueSolvedRate.query.filter_by(
             gitee_milestone_id=gitee_milestone_id).first()
