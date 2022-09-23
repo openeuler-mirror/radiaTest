@@ -1,32 +1,52 @@
 <template>
   <div>
-    <div style="display:flex;align-items:center">
+    <div style="display: flex; align-items: center">
       <template v-for="(item, index) in list" :key="index">
         <n-popover
           placement="top-start"
-          trigger="manual" 
-          style="box-shadow: none; padding: 0px;"
+          trigger="manual"
+          style="box-shadow: none; padding: 0px"
           :show="handleTipShow(item.key)"
         >
           <template #trigger>
             <n-radio
-              @mouseenter="() => { ratioHover = item.key; }"
-              @mouseleave="() => { ratioHover = null; }"
+              @mouseenter="
+                () => {
+                  ratioHover = item.key;
+                }
+              "
+              @mouseleave="
+                () => {
+                  ratioHover = null;
+                }
+              "
               :checked="currentId === item.key"
               :value="item.text"
               size="large"
               name="basic-demo"
               @click="handleClick(item.key)"
-              style="--n-radio-size: 26px;"
+              style="--n-radio-size: 26px"
             />
           </template>
-          <div style="display: flex;align-items: center;">
+          <div style="display: flex; align-items: center">
             <span class="step-label">{{ item.text }}</span>
+            <n-tooltip>
+              <template #trigger>
+                <n-button class="step-button" :bordered="false" text @click="handleChecklistBoard">
+                  <n-icon :size="18">
+                    <DashboardFilled />
+                  </n-icon>
+                </n-button>
+              </template>
+              质量看板
+            </n-tooltip>
             <n-tooltip v-if="index === list.length - 1 && !done">
               <template #trigger>
-                <n-button 
-                  v-if="index === list.length - 1  && !done"
-                  text 
+                <n-button
+                  class="step-button"
+                  v-if="index === list.length - 1 && !done"
+                  :bordered="false"
+                  text
                   @click="handleRollbackStepClick"
                 >
                   <n-icon :size="18">
@@ -43,44 +63,45 @@
       <div v-if="list.length !== 0 && !done" class="solidline" style=""></div>
       <n-tooltip v-if="!done" :show-arrow="false" trigger="hover">
         <template #trigger>
-            <n-icon size="26" :color="hover ? '#4098fc' : ''" @click="addStep" style="cursor: pointer;top: 1px;" @mouseenter="changeHover(true)" @mouseleave="changeHover(false)">
-              <ArrowRight20Regular v-if="list.length !== 0" />
-              <Play16Filled v-else />
-            </n-icon>
+          <n-icon
+            size="26"
+            :color="hover ? '#4098fc' : ''"
+            @click="addStep"
+            style="cursor: pointer; top: 1px"
+            @mouseenter="changeHover(true)"
+            @mouseleave="changeHover(false)"
+          >
+            <ArrowRight20Regular v-if="list.length !== 0" />
+            <Play16Filled v-else />
+          </n-icon>
         </template>
         {{ addTip }}
       </n-tooltip>
       <div v-if="!done" class="noneline"></div>
       <div v-else class="releaseline" />
-      <n-popover 
-        trigger="manual" 
-        v-if="list.length" 
-        :disabled="!done"
-        :show="handleTipShow(list[-1]?.key)"
-      >
+      <n-popover trigger="manual" v-if="list.length" :disabled="!done" :show="handleTipShow(list[-1]?.key)">
         <template #trigger>
           <n-radio
             :checked="currentId === list[-1]?.key && done"
             size="large"
             name="basic-demo"
-            style="--n-radio-size: 26px;margin-right: 17px;"
+            style="--n-radio-size: 26px; margin-right: 17px"
             :disabled="!done"
             @click="releaseClick"
           />
         </template>
         <div>
-          <span class="step-label">{{ list[-1]?.text }}</span><br>
+          <span class="step-label">{{ list[-1]?.text }}</span
+          ><br />
         </div>
       </n-popover>
-      <n-icon size="20" style="cursor: pointer;" v-if="list.length">
-        <n-popconfirm
-          @positive-click="doneEvent"
-        >
+      <n-icon size="20" style="cursor: pointer" v-if="list.length">
+        <n-popconfirm @positive-click="doneEvent">
           <template #trigger>
             <ConnectTarget v-if="!done" />
             <FileDoneOutlined v-else />
           </template>
-          确定要{{ done ? '恢复':'结束' }}迭代吗？
+          确定要{{ done ? '恢复' : '结束' }}迭代吗？
         </n-popconfirm>
       </n-icon>
     </div>
@@ -91,22 +112,23 @@ import { toRefs, computed } from 'vue';
 import { Play16Filled, ArrowRight20Regular, DeleteArrowBack16Filled } from '@vicons/fluent';
 import { ConnectTarget } from '@vicons/carbon';
 import { FileDoneOutlined } from '@vicons/antd';
+import { DashboardFilled } from '@vicons/material';
 import { modules } from './modules';
 export default {
   props: {
     list: Array,
     doneTip: {
       type: String,
-      default: '点击后结束迭代测试',
+      default: '点击后结束迭代测试'
     },
     done: {
       type: Boolean,
-      default: false,
+      default: false
     },
     currentId: {
       type: String,
-      default: '',
-    },
+      default: ''
+    }
   },
   components: {
     ArrowRight20Regular,
@@ -114,6 +136,7 @@ export default {
     FileDoneOutlined,
     ConnectTarget,
     Play16Filled,
+    DashboardFilled
   },
   mounted() {
     setTimeout(() => {
@@ -132,24 +155,24 @@ export default {
     });
     return {
       addTip,
-      ...modules,
+      ...modules
     };
   },
   data() {
     return {
       hover: false,
       ratioHover: null,
-      tipShow: false,
+      tipShow: false
     };
   },
   methods: {
-    addStep(){
+    addStep() {
       this.$emit('add');
     },
-    doneEvent(){
-      if(!this.done){
+    doneEvent() {
+      if (!this.done) {
         this.$emit('haveDone');
-      }else{
+      } else {
         this.$emit('haveRecovery');
       }
     },
@@ -172,30 +195,36 @@ export default {
         return this.tipShow;
       }
       return this.ratioHover === key;
+    },
+    handleChecklistBoard() {
+      this.$emit('handleChecklistBoard');
     }
-  },
+  }
 };
 </script>
 <style lang="less" scoped>
-.step-label{
-  width: 200px;
+.step-label {
+  width: auto;
   display: inline-block;
 }
-.elementline{
+.step-button {
+  margin: 0 5px;
+}
+.elementline {
   color: blue;
 }
-.divline{
+.divline {
   width: 60%;
   border-bottom: 1.5px solid #303030;
 }
-.solidline{
+.solidline {
   width: 60%;
   border-bottom: 1.5px dashed #303030;
 }
-.noneline{
+.noneline {
   width: 60%;
 }
-.releaseline{
+.releaseline {
   width: 60%;
   border-bottom: 1.5px solid #303030;
 }
