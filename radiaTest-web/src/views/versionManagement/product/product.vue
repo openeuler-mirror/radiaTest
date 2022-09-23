@@ -165,13 +165,9 @@
                   <div style="display: flex; align-items: center; justify-content: space-around">
                     <div style="display: flex; flex-direction: column">
                       <p style="font-size: 14px; margin: 0">遗留问题数</p>
-                      <p style="font-size: 14px; margin: 0; color: #929292">前置迭代</p>
                     </div>
                     <p 
-                      :style="{
-                        fontSize: '30px', 
-                        color: leftIssuesPassed !== null ? leftIssuesPassed ? 'black' : '#D03050' : 'black',
-                      }"
+                      :style="{fontSize: '30px'}"
                     >
                       {{ leftIssuesCnt ? leftIssuesCnt : '0' }}
                     </p>
