@@ -106,7 +106,6 @@
                 :done="done"
                 :list="list"
                 :currentId="currentId"
-                :productName="`${detail.name}-${detail.version}`"
               />
             </n-gi>
           </n-grid>
@@ -120,7 +119,7 @@
                     issuesResolvedPassed !== null
                       ? issuesResolvedPassed
                         ? '#D5E8D4'
-                        : '#F8CECC'
+                        : 'white'
                       : 'white',
                   border:
                     issuesResolvedPassed !== null
@@ -168,7 +167,12 @@
                       <p style="font-size: 14px; margin: 0">遗留问题数</p>
                       <p style="font-size: 14px; margin: 0; color: #929292">前置迭代</p>
                     </div>
-                    <p style="font-size: 30px">
+                    <p 
+                      :style="{
+                        fontSize: '30px', 
+                        color: leftIssuesPassed !== null ? leftIssuesPassed ? 'black' : '#D03050' : 'black',
+                      }"
+                    >
                       {{ leftIssuesCnt ? leftIssuesCnt : '0' }}
                     </p>
                   </div>
