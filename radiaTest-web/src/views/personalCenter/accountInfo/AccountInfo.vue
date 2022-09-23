@@ -24,7 +24,7 @@
           </n-grid>
         </div>
         <div class="info-item">
-          <n-grid :cols="12">
+          <n-grid :cols="12" class="info-item-box">
             <n-gi :span="1">
               <p>手机号</p>
             </n-gi>
@@ -199,6 +199,10 @@ export default {
 
 .info-item {
   margin: 10px 0;
+
+  .info-item-box{
+    align-items: center;
+  }
 }
 
 .info-operation-btn {

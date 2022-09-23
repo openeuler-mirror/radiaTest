@@ -16,7 +16,6 @@
     </n-grid>
     <n-data-table
       :row-props="frameRowProps"
-      :pagination="frameworkPagination"
       :columns="frameworkColumns"
       :data="frameworkFilterData"
       :row-key="(row) => row.id"

@@ -22,12 +22,10 @@
     <div>
       <create-button title="注册里程碑" @click="createModalRef.show()" />
     </div>
-    <div style="display:flex;align-items:center">
-      <filterButton :filterRule="filterRule" @filterchange="filterchange" style="display:flex;padding-right:20px;">
+    <div style="display: flex; align-items: center">
+      <filterButton :filterRule="filterRule" @filterchange="filterchange" style="display: flex; padding-right: 20px">
       </filterButton>
-      <refresh-button @refresh="getTableData()">
-        刷新里程碑列表
-      </refresh-button>
+      <refresh-button @refresh="getTableData()"> 刷新里程碑列表 </refresh-button>
     </div>
   </div>
   <n-grid x-gap="24">
@@ -99,6 +97,8 @@ export default defineComponent({
 
     const filterchange = (filterArray) => {
       milestoneTable.filter.value.name = filterArray[0].value;
+      milestoneTable.pagination.value.page = 1;
+      milestoneTable.filter.value.page_num = 1;
       milestoneTable.getTableData();
     };
 

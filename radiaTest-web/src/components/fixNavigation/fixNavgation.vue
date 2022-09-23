@@ -1,42 +1,45 @@
 <template>
   <div class="fix-container">
-    <vue3-draggable-resizable :draggable="true" :resizable="false">
-      <div style="overflow: hidden;width:50px">
-        <div ref="expandContainer">
-          <n-tooltip trigger="hover" placement="right">
-            <template #trigger>
-              <p class="fix-item expand" @click="handleExpand">
-                <n-icon size="40" color="#fff" :class="{ expandBack: expand }">
-                  <add />
-                </n-icon>
-              </p>
-            </template>
-            {{ expand ? '隐藏' : '更多' }}
-          </n-tooltip>
-          <n-tooltip trigger="hover" placement="right">
-            <template #trigger>
-              <p class="fix-item expandable disabled">
-                <n-icon size="40" color="#fff">
-                  <ArrowSwap20Filled />
-                </n-icon>
-              </p>
-            </template>
-            语言切换
-          </n-tooltip>
-          <n-tooltip trigger="hover" placement="right">
-            <template #trigger>
-              <p class="fix-item expandable disabled">
-                <n-icon size="40" color="#fff" v-if="lightTheme">
-                  <MoonSharp />
-                </n-icon>
-                <n-icon size="40" color="#fff" v-else>
-                  <Sunny />
-                </n-icon>
-              </p>
-            </template>
-            主题切换
-          </n-tooltip>
-        </div>
+    <vue3-draggable-resizable
+      :draggable="true"
+      :resizable="false"
+      classNameDraggable="wrapbox"
+      v-model:h="dragboxHeight"
+    >
+      <div ref="expandContainer" class="expandWrap">
+        <n-tooltip trigger="hover" placement="right">
+          <template #trigger>
+            <p class="fix-item expand" @click="handleExpand">
+              <n-icon size="40" color="#fff" :class="{ expandBack: expand }">
+                <add />
+              </n-icon>
+            </p>
+          </template>
+          {{ expand ? '隐藏' : '更多' }}
+        </n-tooltip>
+        <n-tooltip trigger="hover" placement="right">
+          <template #trigger>
+            <p class="fix-item expandable disabled">
+              <n-icon size="40" color="#fff">
+                <ArrowSwap20Filled />
+              </n-icon>
+            </p>
+          </template>
+          语言切换
+        </n-tooltip>
+        <n-tooltip trigger="hover" placement="right">
+          <template #trigger>
+            <p class="fix-item expandable disabled">
+              <n-icon size="40" color="#fff" v-if="lightTheme">
+                <MoonSharp />
+              </n-icon>
+              <n-icon size="40" color="#fff" v-else>
+                <Sunny />
+              </n-icon>
+            </p>
+          </template>
+          主题切换
+        </n-tooltip>
       </div>
       <n-tooltip trigger="hover" placement="right">
         <template #trigger>
@@ -75,10 +78,8 @@ export default {
     return {
       expand: false,
       lightTheme: true,
+      dragboxHeight: 150
     };
-  },
-  mounted() {
-    this.$refs.expandContainer.style.transform = `translateY(${2 * (document.querySelector('.expandable').clientHeight + 10)}px)`;
   },
   methods: {
     backToTop() {
@@ -94,12 +95,13 @@ export default {
     },
     handleExpand() {
       this.expand = !this.expand;
-      const itemHeight = document.querySelector('.expandable').clientHeight;
-      this.$refs.expandContainer.style.transition = 'transform 1s';
+      this.$refs.expandContainer.style.transition = 'all 1s';
       if (this.expand) {
-        this.$refs.expandContainer.style.transform = 'translateY(0)';
+        this.dragboxHeight = 250;
+        this.$refs.expandContainer.style.height = '150px';
       } else {
-        this.$refs.expandContainer.style.transform = `translateY(${2 * (itemHeight + 10)}px)`;
+        this.dragboxHeight = 150;
+        this.$refs.expandContainer.style.height = '50px';
       }
     },
     backToBottom() {
@@ -113,9 +115,20 @@ export default {
   position: fixed;
   right: 50px;
   bottom: 350px;
-  width: 50px;
+  width: 40px;
   z-index: 9999;
   cursor: move;
+
+  .wrapbox {
+    border-style: none !important;
+
+    .expandWrap {
+      overflow: hidden;
+      width: 40px;
+      height: 50px;
+    }
+  }
+
   .disabled {
     background: #ccc !important;
     cursor: not-allowed !important;
@@ -126,15 +139,15 @@ export default {
   .fix-item {
     cursor: pointer;
     background: rgba(204, 204, 204, 0.5);
-    display: flex;
     margin: 0;
     margin-bottom: 10px;
+    display: flex;
     justify-content: center;
     align-items: center;
     border-radius: 50%;
     overflow: hidden;
-    height: 50px;
-    width: 50px;
+    height: 40px;
+    width: 40px;
     transition: all 1s;
     .expandBack {
       transform: rotateZ(45deg);

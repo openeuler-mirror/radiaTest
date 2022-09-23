@@ -1,29 +1,12 @@
 <template>
   <div>
-    <n-form
-      :label-width="40"
-      :model="formValue"
-      :rules="rules"
-      :size="size"
-      label-placement="top"
-      ref="formRef"
-    >
+    <n-form :label-width="40" :model="formValue" :rules="rules" :size="size" label-placement="top" ref="formRef">
       <n-grid :cols="18" :x-gap="24">
         <n-form-item-gi :span="6" label="产品" path="product">
-          <n-select
-            v-model:value="formValue.product"
-            :options="productOpts"
-            placeholder="选择产品"
-            filterable
-          />
+          <n-select v-model:value="formValue.product" :options="productOpts" placeholder="选择产品" filterable />
         </n-form-item-gi>
         <n-form-item-gi :span="6" label="版本" path="product_id">
-          <n-select
-            v-model:value="formValue.product_id"
-            :options="versionOpts"
-            placeholder="选择版本"
-            filterable
-          />
+          <n-select v-model:value="formValue.product_id" :options="versionOpts" placeholder="选择版本" filterable />
         </n-form-item-gi>
         <n-form-item-gi :span="6" label="里程碑类型" path="type">
           <n-select
@@ -31,16 +14,16 @@
             :options="[
               {
                 label: 'update版本',
-                value: 'update',
+                value: 'update'
               },
               {
                 label: '迭代版本',
-                value: 'round',
+                value: 'round'
               },
               {
                 label: '发布版本',
-                value: 'release',
-              },
+                value: 'release'
+              }
             ]"
             placeholder="选择里程碑类型"
             filterable
@@ -56,9 +39,17 @@
             :on-load="handleLoad"
           />
         </n-form-item-gi>
-        <n-form-item-gi :span="12" label="里程碑名" path="name">
+        <n-form-item-gi :span="12" path="name">
+          <template #label>
+            <span class="milestoneNameBox">里程碑名</span>
+            <n-switch v-model:value="milestoneNameActive" @update:value="milestoneNameActiveChange">
+              <template #checked> 自动生成 </template>
+              <template #unchecked> 手动输入 </template>
+            </n-switch>
+          </template>
           <n-input
             v-model:value="formValue.name"
+            :disabled="milestoneNameActive"
             placeholder="若不填写，将根据已选字段自动生成里程碑名"
             clearable
           />
@@ -99,7 +90,7 @@ import createForm from '@/views/versionManagement/milestone/modules/createForm.j
 import { getProductOpts, getVersionOpts } from '@/assets/utils/getOpts';
 import { storage } from '@/assets/utils/storageUtils';
 import { formatTime } from '@/assets/utils/dateFormatUtils';
-import  extendForm from '@/views/versionManagement/product/modules/createForm.js';
+import extendForm from '@/views/versionManagement/product/modules/createForm.js';
 
 export default defineComponent({
   setup(props, context) {
@@ -115,18 +106,15 @@ export default defineComponent({
       () => createForm.formValue.value.product,
       () => {
         if (createForm.formValue.value.product) {
-          getVersionOpts(
-            createForm.versionOpts,
-            createForm.formValue.value.product
-          );
+          getVersionOpts(createForm.versionOpts, createForm.formValue.value.product);
         }
       }
     );
     const hasEnterprise = storage.getValue('hasEnterprise');
 
     return {
-      typeOptions:extendForm.typeOptions,
-      handleLoad:extendForm.handleLoad,
+      typeOptions: extendForm.typeOptions,
+      handleLoad: extendForm.handleLoad,
       ...createForm,
       hasEnterprise,
       handlePropsButtonClick: () => validation(createForm.formRef, context),
@@ -145,8 +133,12 @@ export default defineComponent({
         context.emit('close');
       }
     };
-  },
+  }
 });
 </script>
 
-<style scoped></style>
+<style scoped>
+.milestoneNameBox {
+  margin-right: 20px;
+}
+</style>

@@ -80,6 +80,7 @@ const frameworkColumns = [
   {
     title: '操作',
     key: 'action',
+    align: 'center',
     className: 'cols operation',
     render: (row) => {
       return h(
@@ -158,8 +159,6 @@ function initData() {
   getFramework();
 }
 
-const frameworkPagination = ref({ pageSize: 10 });
-
 const filterRule = ref([
   {
     path: 'name',
@@ -204,7 +203,6 @@ const filterchange = (filterArray) => {
 
 export {
   frameLoading,
-  frameworkPagination,
   frameworkFilterData,
   frameworkColumns,
   initData,

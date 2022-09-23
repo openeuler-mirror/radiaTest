@@ -146,7 +146,7 @@
       </n-form-item-gi>
       <n-form-item-gi
         :span="9"
-        label="指定物理机"
+        label="指定物理机（需先选择架构）"
         path="pmachine_id"
         v-if="formValue.pm_select_mode === 'assign'"
       >
