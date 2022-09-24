@@ -146,9 +146,7 @@ export default {
   setup(props) {
     const { list } = toRefs(props);
     const addTip = computed(() => {
-      if (list.value.length === 5) {
-        return '发布';
-      } else if (list.value.length !== 0) {
+      if (list.value.length !== 0) {
         return '开启下一轮迭代测试';
       }
       return '开启第一轮迭代测试';
