@@ -1,5 +1,4 @@
 import subprocess
-from types import prepare_class
 
 import redis
 from flask import jsonify, current_app
