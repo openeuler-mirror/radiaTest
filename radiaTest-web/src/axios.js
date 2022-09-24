@@ -88,6 +88,9 @@ server.interceptors.response.use(
       router.push({
         name: 'login',
       });
+      error.response.data = {
+        error_msg: '登陆失效',
+      };
     } else if (error.response?.status === 500) {
       window.$message?.destroyAll();
       error.response.data = {

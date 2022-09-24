@@ -19,9 +19,11 @@ def init(app):
 
 
 def generate_token(gitee_id, gitee_login, ex=60 * 60 * 2):
-    # 根据user_id去获取用户token,防止用户多次创建token值
+    # 保证后来者登陆有效，旧令牌清除
     if redis_client.exists(RedisKey.token(gitee_id)):
-        return redis_client.get(RedisKey.token(gitee_id))
+        pre_token = redis_client.get(RedisKey.token(gitee_id))
+        redis_client.delete(RedisKey.token(pre_token))
+    
     token_data = dict(gitee_id=gitee_id, gitee_login=gitee_login)
     _token = str(serializer.dumps(token_data), encoding='utf-8')
     aes_payload = FileAES().encrypt(_token.split('.')[1])
@@ -36,6 +38,9 @@ def generate_token(gitee_id, gitee_login, ex=60 * 60 * 2):
 def verify_token(token):
     data = None
     try:
+        if not redis_client.exists(RedisKey.token(token)):
+            return False
+
         aes = FileAES()
         decode_payload = aes.decrypt(token.split('.')[1])
         _token = token.replace(token.split('.')[1], decode_payload)
