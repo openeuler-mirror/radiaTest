@@ -141,6 +141,12 @@ class GiteeIssuesTypeV2(Resource):
         return IssueStatisticsHandlerV8.get_issue_type()
 
 
+class GiteeIssuesStateV2(Resource):
+    @auth.login_required
+    def get(self):
+        return IssueStatisticsHandlerV8.get_issue_state()
+
+
 class GiteeIssuesStatisticsByMilestone(Resource):
     @auth.login_required
     @validate()

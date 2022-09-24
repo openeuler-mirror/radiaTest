@@ -18,10 +18,15 @@ class Product(BaseModel, PermissionBaseModel, db.Model):
     is_forced_check = db.Column(db.Boolean(), nullable=False, default=True)
     serious_resolved_rate = db.Column(db.String(6), nullable=True)
     serious_resolved_passed = db.Column(db.Boolean(), nullable=True)
+    current_resolved_cnt = db.Column(db.Integer(), nullable=False, default=0)
+    current_all_cnt = db.Column(db.Integer(), nullable=False, default=0)
     current_resolved_rate = db.Column(db.String(6), nullable=True)
     current_resolved_passed = db.Column(db.Boolean(), nullable=True)
     left_resolved_rate = db.Column(db.String(6), nullable=True)
     left_resolved_passed = db.Column(db.Boolean(), nullable=True)
+    serious_main_resolved_cnt = db.Column(
+        db.Integer(), nullable=False, default=0)
+    serious_main_all_cnt = db.Column(db.Integer(), nullable=False, default=0)
     serious_main_resolved_rate = db.Column(db.String(6), nullable=True)
     serious_main_resolved_passed = db.Column(db.Boolean(), nullable=True)
     left_issues_cnt = db.Column(db.Integer(), nullable=True, default=0)
@@ -49,8 +54,12 @@ class Product(BaseModel, PermissionBaseModel, db.Model):
             "description": self.description,
             "serious_resolved_rate": self.serious_resolved_rate,
             "serious_resolved_passed": self.serious_resolved_passed,
+            "serious_main_resolved_cnt": self.serious_main_resolved_cnt,
+            "serious_main_all_cnt": self.serious_main_all_cnt,
             "serious_main_resolved_rate": self.serious_main_resolved_rate,
             "serious_main_resolved_passed": self.serious_main_resolved_passed,
+            "current_resolved_cnt": self.current_resolved_cnt,
+            "current_all_cnt": self.current_all_cnt,
             "current_resolved_rate": self.current_resolved_rate,
             "current_resolved_passed": self.current_resolved_passed,
             "left_resolved_rate": self.current_resolved_rate,

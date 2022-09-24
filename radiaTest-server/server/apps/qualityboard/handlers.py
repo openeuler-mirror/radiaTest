@@ -25,6 +25,7 @@ from sqlalchemy import func, or_
 import pytz
 
 from server import db, redis_client
+from sqlalchemy import and_
 from server.model.qualityboard import Checklist, QualityBoard, CheckItem
 from server.model.milestone import IssueSolvedRate, Milestone
 from server.model.organization import Organization
@@ -150,21 +151,22 @@ class QualityResultCompareHandler:
         self.product_id = product_id
         self.milestone_id = milestone_id
 
-    def compare_issue_rate(self, field: str):
-        if self.milestone_id:
-            isr = IssueSolvedRate.query.filter_by(
-                milestone_id=self.milestone_id
-            ).first()
-        else:
-            isr = Product.query.filter_by(
-                id=self.product_id
-            ).first()
-        if not isr:
-            return None
-        isr_json = isr.to_json()
-        field_val = isr_json.get(field)
+    def compare_issue_rate(self, field: str, field_val=None):
+        if field_val is None:
+            if self.milestone_id:
+                isr = IssueSolvedRate.query.filter_by(
+                    milestone_id=self.milestone_id
+                ).first()
+            else:
+                isr = Product.query.filter_by(
+                    id=self.product_id
+                ).first()
+            if not isr:
+                return None
+            isr_json = isr.to_json()
+            field_val = isr_json.get(field)
         baseline, operation = self.get_baseline(field)
-        if not field_val or not baseline:
+        if field_val is None or baseline is None:
             return None
         if "rate" in field:
             field_val = field_val.replace("%", "")

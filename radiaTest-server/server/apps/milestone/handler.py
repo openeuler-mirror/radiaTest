@@ -450,10 +450,6 @@ class IssueOpenApiHandlerV8(BaseOpenApiHandler):
 
 class IssueStatisticsHandlerV8:
     def __init__(self, gitee_id=None, org_id=None) -> None:
-        self.serious_resolved_state = set(["已完成", "已验收", "已挂起", "已取消"])
-        self.current_resolved_state = set(["已完成", "已验收"])
-        self.left_state = set(["待办的", "修复中", "已确认", "已挂起"])
-        self.bug_title = "缺陷"
         self.issv8 = IssueOpenApiHandlerV8(gitee_id=gitee_id)
         if org_id is None:
             org_id = redis_client.hget(
@@ -464,27 +460,28 @@ class IssueStatisticsHandlerV8:
         self.issue_types = self.issue_types[1:-1].replace(
             "\'", "\"").replace("}, {", "}#{").split("#")
 
-        self.bug_issue_type_id = self.get_bug_issue_type_id(self.bug_title)
+        self.bug_issue_type_id = self.get_bug_issue_type_id("缺陷")
 
         self.issue_states = redis_client.hget(
             RedisKey.issue_states(org.enterprise_id), "data")
         self.issue_states = self.issue_states[1:-1].replace(
             "\'", "\"").replace("}, {", "}#{").split("#")
 
-        all_state_ids = ""
-        for _type in self.issue_states:
-            _type = json.loads(_type)
-            if _type.get("title") != "已挂起" and _type.get("title") != "已取消":
-                all_state_ids = all_state_ids + str(_type.get("id")) + ","
-        if len(all_state_ids) > 0:
-            all_state_ids = all_state_ids[:-1]
-        self.all_state_ids = all_state_ids
-
+        self.all_state_ids = self.get_state_ids_inversion(
+            set(["已挂起", "已取消", "已拒绝"])
+        )
         self.serious_state_ids = self.get_state_ids(
-            self.serious_resolved_state)
+            set(["已完成", "已验收", "已挂起", "已取消", "已拒绝"])
+        )
         self.current_resolved_state_ids = self.get_state_ids(
-            self.current_resolved_state)
-        self.left_state_ids = self.get_state_ids(self.left_state)
+            set(["已完成", "已验收"])
+        )
+        self.left_state_ids = self.get_state_ids(
+            set(["已挂起"])
+        )
+        self.invalid_state_ids = self.get_state_ids(
+            set(["已取消", "已拒绝"])
+        )
 
     @staticmethod
     def get_gitee_id(org_id):
@@ -537,6 +534,29 @@ class IssueStatisticsHandlerV8:
             error_msg="OK",
             data=_data
         )
+    
+    @staticmethod
+    def get_issue_state():
+        org_id = redis_client.hget(RedisKey.user(g.gitee_id), "current_org_id")
+        org = Organization.query.filter(
+            Organization.id == org_id, Organization.enterprise_id is not None).first()
+        if not org:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="this organization has no right",
+            )
+        issue_states = redis_client.hget(
+            RedisKey.issue_states(org.enterprise_id), "data")
+        issue_states = issue_states[1:-
+                                  1].replace("\'", "\"").replace("}, {", "}#{").split("#")
+        _data = list()
+        for _state in issue_states:
+            _data.append(json.loads(_state))
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+            data=_data
+        )
 
     def get_state_ids(self, solved_state):
         state_ids = ""
@@ -550,16 +570,26 @@ class IssueStatisticsHandlerV8:
             state_ids = state_ids[:-1]
         return state_ids
 
+    def get_state_ids_inversion(self, inversion_solved_state: set):
+        state_ids = ""
+        for _type in self.issue_states:
+            _type = json.loads(_type)
+            if _type.get("title") not in inversion_solved_state:
+                state_ids = state_ids + str(_type.get("id")) + ","
+        if len(state_ids) > 0:
+            state_ids = state_ids[:-1]
+        return state_ids
+
     def get_issue_cnt_rate(self, param1, param2):
         solved_cnt, all_cnt, solved_rate = None, None, None
         all_cnt = self.get_issues_cnt(param1)
-        if all_cnt and all_cnt == 0:
+        if all_cnt is not None and int(all_cnt) == 0 and param2 is not None:
             return 0, 0, "100%"
         solved_cnt = self.get_issues_cnt(param2)
 
-        if solved_cnt and all_cnt and int(all_cnt) != 0:
+        if solved_cnt is not None and all_cnt is not None and int(all_cnt) != 0:
             solved_rate = int(solved_cnt) / int(all_cnt)
-        if solved_rate:
+        if solved_rate is not None:
             solved_rate = "%.f%%" % (solved_rate * 100)
         return solved_cnt, all_cnt, solved_rate
 
@@ -645,6 +675,13 @@ class IssueStatisticsHandlerV8:
                 "issue_type_id": self.bug_issue_type_id,
             }
         )
+        invalid_issues_cnt = self.get_issues_cnt(
+            {
+                "milestone_id": milestone.gitee_milestone_id,
+                "issue_state_ids": self.invalid_state_ids,
+                "issue_type_id": self.bug_issue_type_id,
+            }
+        )
 
         return {
             "serious_resolved_rate": serious_resolved_rate,
@@ -656,6 +693,7 @@ class IssueStatisticsHandlerV8:
             "current_all_cnt": current_all_cnt,
             "current_resolved_rate": current_resolved_rate,
             "left_issues_cnt": left_issues_cnt,
+            "invalid_issues_cnt": invalid_issues_cnt,
         }
 
     @staticmethod

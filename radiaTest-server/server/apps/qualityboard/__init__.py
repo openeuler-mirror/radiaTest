@@ -64,7 +64,7 @@ def init_api(api: Api):
     )
     api.add_resource(
         ChecklistSyncProduct,
-        "/api/v1/checklist/<int:checklist_id>/product/<int:product_id>",
+        "/api/v1/checklist/sync/product",
     )
     api.add_resource(
         DailyBuildOverview,

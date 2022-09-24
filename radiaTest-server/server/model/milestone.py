@@ -117,6 +117,8 @@ class IssueSolvedRate(BaseModel, db.Model):
     current_resolved_passed = db.Column(db.Boolean(), nullable=True)
     left_issues_cnt = db.Column(db.Integer(), nullable=False, default=0)
     left_issues_passed = db.Column(db.Boolean(), nullable=True)
+    invalid_issues_cnt = db.Column(db.Integer(), nullable=False, default=0)
+    invalid_issues_passed = db.Column(db.Boolean(), nullable=True)
     previous_left_resolved_rate = db.Column(db.String(6), nullable=True)
     gitee_milestone_id = db.Column(db.Integer(), nullable=False)
     milestone_id = db.Column(
@@ -140,6 +142,8 @@ class IssueSolvedRate(BaseModel, db.Model):
             "current_resolved_passed": self.current_resolved_passed,
             "left_issues_cnt": self.left_issues_cnt,
             "left_issues_passed": self.left_issues_passed,
+            "invalid_issues_cnt": self.invalid_issues_cnt,
+            "invalid_issues_passed": self.invalid_issues_passed,
             "previous_left_resolved_rate": self.previous_left_resolved_rate,
             "milestone_id": self.milestone_id,
             "gitee_milestone_id": self.gitee_milestone_id
