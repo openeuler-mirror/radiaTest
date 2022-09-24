@@ -33,7 +33,7 @@
               <ChecklistFilled />
             </n-icon>
           </template>
-          质量checklist
+          质量CheckList
         </n-button>
         <refresh-button @refresh="getProduct()"> 刷新产品版本列表 </refresh-button>
       </div>
@@ -79,20 +79,20 @@
               <n-progress
                 type="line"
                 :status="
-                  thisLeftResolvedRate && thisLeftResolvedRateBaseline
-                    ? thisLeftResolvedRate > thisLeftResolvedRateBaseline
+                  previousLeftResolvedPassed === null
+                    ? previousLeftResolvedPassed
                       ? 'success'
                       : 'error'
                     : 'default'
                 "
-                :percentage="leftResolvedRateValue"
+                :percentage="previousLeftResolvedRate"
                 :height="20"
                 :border-radius="4"
                 :fill-border-radius="0"
                 processing
               />
               <span style="width: 60px">
-                {{ thisLeftResolvedRate && thisLeftResolvedRateBaseline ? '转测' : null }}
+                {{ previousLeftResolvedPassed ? '转测' : null }}
               </span>
             </n-gi>
             <n-gi :span="3" style="margin-top: 40px; margin-bottom: 20px">
@@ -117,25 +117,24 @@
                 @click="cardClick"
                 :style="{
                   backgroundColor:
-                    currentResolvedRate && currentResolvedBaseline
-                      ? currentResolvedRate >= currentResolvedBaseline
+                    issuesResolvedPassed !== null
+                      ? issuesResolvedPassed
                         ? '#D5E8D4'
                         : '#F8CECC'
                       : 'white',
                   border:
-                    currentResolvedRate && currentResolvedBaseline
-                      ? currentResolvedRate >= currentResolvedBaseline
+                    issuesResolvedPassed !== null
+                      ? issuesResolvedPassed
                         ? '1px solid #A2C790'
                         : '1px solid #B95854'
-                      : '1px solid #dddddd'
+                      : '1px solid #ddddd',
                 }"
               >
                 <n-progress
-                  style="width: 190px; left: 15$"
                   class="topProgress"
                   type="circle"
-                  :status="currentResolvedRate >= currentResolvedBaseline ? 'success' : 'error'"
-                  stroke-width="9"
+                  :status="currentResolvedPassed ? 'success' : 'error'"
+                  :stroke-width="9"
                   :percentage="currentResolvedRate"
                 >
                   <span style="text-align: center; font-size: 33px">
@@ -144,12 +143,12 @@
                 </n-progress>
                 <div style="display: flex; position: absolute; top: 4%; left: 73%">
                   <n-icon size="20" style="margin-right: 5px">
-                    <CheckCircleFilled color="#18A058" v-if="currentResolvedRate >= currentResolvedBaseline" />
-                    <QuestionCircle16Filled v-else-if="!currentResolvedRate || !currentResolvedBaseline" />
+                    <CheckCircleFilled color="#18A058" v-if="issuesResolvedPassed" />
+                    <QuestionCircle16Filled v-else-if="issuesResolvedPassed === null" />
                     <CancelRound color="#D03050" v-else />
                   </n-icon>
                   <span v-if="list.length < 5 && !done">
-                    {{ currentResolvedRate >= currentResolvedBaseline ? '已达标' : '未达标' }}
+                    {{ issuesResolvedPassed !== null ? issuesResolvedPassed ? '已达标' : '未达标' : 'unknown' }}
                   </span>
                   <span v-else>发布</span>
                 </div>
@@ -185,7 +184,7 @@
                 <n-progress
                   style="position: absolute; width: 78%; top: 80%; left: 11%"
                   type="line"
-                  status="error"
+                  :status="seriousMainResolvedPassed ? 'success' : 'error'"
                   :indicator-placement="'inside'"
                   :percentage="seriousMainResolvedRate"
                   :height="20"
@@ -196,6 +195,7 @@
                 <n-tooltip>
                   <template #trigger>
                     <n-progress
+                      :status="seriousResolvedPassed ? 'success' : 'error'"
                       style="position: absolute; width: 78%; top: 86%; left: 11%"
                       type="line"
                       :percentage="seriousResolvedRate"
@@ -206,6 +206,7 @@
                 <n-tooltip>
                   <template #trigger>
                     <n-progress
+                      :status="mainResolvedPassed ? 'success' : 'error'"
                       style="position: absolute; width: 78%; top: 91%; left: 11%"
                       type="line"
                       :percentage="mainResolvedRate"
@@ -374,7 +375,7 @@
             :mask-closable="false"
             :trap-focus="false"
             height="100%"
-            width="1800"
+            width="95%"
           >
             <n-drawer-content closable>
               <MilestoneIssuesCard :milestone-id="currentId" />
@@ -382,7 +383,7 @@
           </n-drawer>
         </div>
         <n-modal v-model:show="showChecklistBoard">
-          <n-card style="width: 1000px" title="质量看板" :bordered="false" size="huge" role="dialog" aria-modal="true">
+          <n-card style="width: 1000px" title="CheckList" :bordered="false" size="huge" role="dialog" aria-modal="true">
             <n-data-table
               :loading="checklistBoardTableLoading"
               :columns="checklistBoardTableColumns"
@@ -398,7 +399,7 @@
     <n-modal v-model:show="showCheckList">
       <n-card
         style="width: 1000px"
-        title="checkList信息"
+        title="CheckList设置"
         :bordered="false"
         size="huge"
         role="dialog"
@@ -552,9 +553,6 @@ export default {
     PackageTable,
     echart
   },
-  data() {
-    return {};
-  },
   setup() {
     const store = useStore();
     const additionFeatureOption = reactive(JSON.parse(JSON.stringify(modules.featureOption)));
@@ -638,7 +636,8 @@ export default {
 
     .topProgress {
       position: absolute;
-      left: 22%;
+      width: 190px; 
+      left: 15%;
       top: 15%;
     }
 
