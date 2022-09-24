@@ -103,6 +103,7 @@
                 @haveRecovery="haveRecovery"
                 @add="stepAdd"
                 @release="releaseClick"
+                @handleChecklistBoard="handleChecklistBoard"
                 :done="done"
                 :list="list"
                 :currentId="currentId"
@@ -380,6 +381,18 @@
             </n-drawer-content>
           </n-drawer>
         </div>
+        <n-modal v-model:show="showChecklistBoard">
+          <n-card style="width: 1000px" title="质量看板" :bordered="false" size="huge" role="dialog" aria-modal="true">
+            <n-data-table
+              :loading="checklistBoardTableLoading"
+              :columns="checklistBoardTableColumns"
+              :data="checklistBoardTableData"
+              :pagination="checklistBoardTablePagination"
+              @update:page="checklistBoardTablePageChange"
+              @update:page-size="checklistBoardTablePageSizeChange"
+            />
+          </n-card>
+        </n-modal>
       </n-drawer-content>
     </n-drawer>
     <n-modal v-model:show="showCheckList">
@@ -537,30 +550,22 @@ export default {
     QuestionCircle16Filled,
     FeatureTable,
     PackageTable,
-    echart,
+    echart
   },
   data() {
     return {};
   },
   setup() {
     const store = useStore();
-    const additionFeatureOption = reactive(
-      JSON.parse(JSON.stringify(modules.featureOption))
-    );
-    const inheritFeatureOption = reactive(
-      JSON.parse(JSON.stringify(modules.featureOption))
-    );
+    const additionFeatureOption = reactive(JSON.parse(JSON.stringify(modules.featureOption)));
+    const inheritFeatureOption = reactive(JSON.parse(JSON.stringify(modules.featureOption)));
     onMounted(() => {
       modules.getTableData();
       modules.getDefaultList();
       getProductOpts(modules.productList);
       getCheckItemOpts(modules.checkItemList);
-      modules.setFeatureOption(
-        additionFeatureOption, '新增特性', modules.additionFeatureSummary.value
-      );
-      modules.setFeatureOption(
-        inheritFeatureOption, '继承特性', modules.inheritFeatureSummary.value
-      );
+      modules.setFeatureOption(additionFeatureOption, '新增特性', modules.additionFeatureSummary.value);
+      modules.setFeatureOption(inheritFeatureOption, '继承特性', modules.inheritFeatureSummary.value);
     });
     watch(store.getters.filterProductState, () => {
       modules.tableLoading.value = true;
@@ -574,12 +579,8 @@ export default {
         });
     });
     watch([modules.additionFeatureSummary, modules.inheritFeatureSummary], () => {
-      modules.setFeatureOption(
-        additionFeatureOption, '新增特性', modules.additionFeatureSummary.value
-      );
-      modules.setFeatureOption(
-        inheritFeatureOption, '继承特性', modules.inheritFeatureSummary.value
-      );
+      modules.setFeatureOption(additionFeatureOption, '新增特性', modules.additionFeatureSummary.value);
+      modules.setFeatureOption(inheritFeatureOption, '继承特性', modules.inheritFeatureSummary.value);
     });
     return {
       createFormRef: ref(),
@@ -588,7 +589,7 @@ export default {
       Search,
       ...modules,
       inheritFeatureOption,
-      additionFeatureOption,
+      additionFeatureOption
     };
   }
 };

@@ -25,6 +25,7 @@ import {
 } from './productDetailDrawer';
 import _ from 'lodash';
 import textDialog from '@/assets/utils/dialog';
+import { CheckmarkCircle, CloseCircleOutline } from '@vicons/ionicons5';
 
 const ProductId = ref(null);
 const done = ref(false);
@@ -476,10 +477,12 @@ function stepAdd() {
   } else {
     tableLoading.value = true;
     milestoneNext(dashboardId.value, { released: false })
-      .then(res => {
+      .then((res) => {
         if (res.error_code === '2000') {
-          const newArr = Object.keys(res.data.milestones)
-            .map(item => ({key: item, text: res.data.milestones[item].name}));
+          const newArr = Object.keys(res.data.milestones).map((item) => ({
+            key: item,
+            text: res.data.milestones[item].name
+          }));
           list.value = newArr;
           currentId.value = res.data.current_milestone_id;
           window.$message.success('下一轮迭代已转测');
@@ -817,7 +820,117 @@ const addCheckItem = () => {
   checkListDrawerModel.value.product_name = currentProduct.value;
 };
 
+const showChecklistBoard = ref(false);
+const checklistBoardTableLoading = ref(false);
+// const checklistBoardTableData = ref([]);
+const checklistBoardTableData = ref([
+  {
+    check_item: 'test1',
+    baseline: '100',
+    operation: '>',
+    currentValue: '99',
+    result: true
+  },
+  {
+    check_item: 'test1',
+    baseline: '100',
+    operation: '>',
+    currentValue: '99',
+    result: false
+  },
+  {
+    check_item: 'test1',
+    baseline: '100',
+    operation: '>',
+    currentValue: '99',
+    result: true
+  },
+  {
+    check_item: 'test1',
+    baseline: '100',
+    operation: '>',
+    currentValue: '99',
+    result: false
+  },
+  {
+    check_item: 'test1',
+    baseline: '100',
+    operation: '>',
+    currentValue: '99',
+    result: true
+  }
+]);
+
+const checklistBoardTablePagination = ref({
+  page: 1,
+  pageSize: 3, //受控模式下的分页大小
+  pageCount: 1, //总页数
+  showSizePicker: true,
+  pageSizes: [1, 3, 5, 10]
+  // pageSizes: [5, 10, 20, 50]
+});
+const checklistBoardTableColumns = ref([
+  {
+    key: 'check_item',
+    title: '检查项',
+    align: 'center'
+  },
+  {
+    key: 'baseline',
+    title: '基准值',
+    align: 'center'
+  },
+  {
+    key: 'operation',
+    title: '运算符',
+    align: 'center'
+  },
+  {
+    key: 'currentValue',
+    title: '现值',
+    align: 'center'
+  },
+  {
+    key: 'result',
+    title: '检查结果',
+    align: 'center',
+    render: (row) => {
+      return h(
+        NTag,
+        {
+          type: row.result ? 'success' : 'error'
+        },
+        {
+          icon: () => h(NIcon, { component: row.result ? CheckmarkCircle : CloseCircleOutline }),
+          default: () => (row.result ? '检查通过' : '检查未通过')
+        }
+      );
+    }
+  }
+]);
+
+const handleChecklistBoard = () => {
+  showChecklistBoard.value = true;
+};
+
+const checklistBoardTablePageChange = (page) => {
+  checklistBoardTablePagination.value.page = page;
+};
+
+const checklistBoardTablePageSizeChange = (pageSize) => {
+  checklistBoardTablePagination.value.page = 1;
+  checklistBoardTablePagination.value.pageSize = pageSize;
+};
+
 export {
+  checklistBoardTablePageSizeChange,
+  checklistBoardTablePageChange,
+  checklistBoardTablePagination,
+  checklistBoardTableData,
+  checklistBoardTableColumns,
+  checklistBoardTableLoading,
+  showChecklistBoard,
+  handleChecklistBoard,
   checkListTablePageChange,
   checkListTablePageSizeChange,
   checkListTablePagination,
