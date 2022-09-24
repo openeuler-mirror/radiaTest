@@ -169,6 +169,10 @@ class RpmNameLoader():
                 rpmlist.append(line.strip())
         return rpmlist
 
+    @staticmethod
+    def load_rpmdict_from_file(filepath):
+        return RpmNameLoader.rpmlist2rpmdict(RpmNameLoader.load_rpmlist_from_file(filepath))
+
 
 class RpmNameComparator():
     
@@ -238,32 +242,37 @@ class RpmNameComparator():
         return compare_result_list
 
 
-def parse_rpm_name(args):
-    rpm_name = args.rpmname
+def parse_rpm_name(rpm_args):
+    rpm_name = rpm_args.rpmname
     rpm_name_info = RpmName(rpm_file_name=rpm_name)
     current_app.logger.debug(f"{str(rpm_name_info)}")
     return rpm_name_info
 
 
-def compare_rpm_name(args):
-    if len(args.rpmlist) != 2:
+def compare_rpm_name(rpm_args):
+    if len(rpm_args.rpmlist) != 2:
         current_app.logger.warning("this cli only support 2 rpm name compare")
         return RpmCompareStatus.ERROR
-    result = RpmNameComparator.compare_rpm_name(args.rpmlist[0], args.rpmlist[1])
-    return [args.rpmlist[0], args.rpmlist[1], result]
+    result = RpmNameComparator.compare_rpm_name(rpm_args.rpmlist[0], rpm_args.rpmlist[1])
+    return [rpm_args.rpmlist[0], rpm_args.rpmlist[1], result]
 
 
-def compare_rpm_list(args, save_file=True, output_file="output.csv"): 
-    if len(args.rpmlistfile) != 2:
+def compare_rpm_list(rpm_args, save_file=True, output_file="output.csv"): 
+    if len(rpm_args.rpmlistfile) != 2:
         current_app.logger.warning("this cli only support 2 rpmlist file compare")
         return []
-    rpmdict1 = RpmNameLoader.load_rpmlist_from_file(args.rpmlistfile[0])
-    rpmdict2 = RpmNameLoader.load_rpmlist_from_file(args.rpmlistfile[1])
+    rpmdict1 = RpmNameLoader.load_rpmdict_from_file(rpm_args.rpmlistfile[0])
+    rpmdict2 = RpmNameLoader.load_rpmdict_from_file(rpm_args.rpmlistfile[1])
     result = RpmNameComparator.compare_rpm_dict(rpmdict1, rpmdict2)
     if save_file:
         with open(output_file, "w") as f:
             for line in result:
-                f.write(",".join(line))
+                f.write("{},{},{},{}".format(
+                    line.get("arch", ""),
+                    line.get("rpm_list_1", ""),
+                    line.get("rpm_list_2", ""),
+                    line.get("compare_result", "")
+                ))
                 # 为保证CSV文件换行无空白行，故强制使用\n作为换行符
                 f.write("\n")
     return result
@@ -304,5 +313,5 @@ def load_compare_rpm_name_args():
 
 if __name__ == "__main__":
     args = load_compare_rpm_name_args()
-    result = args.func(args)
-    print(result)
+    compare_result = args.func(args)
+    print(compare_result)
