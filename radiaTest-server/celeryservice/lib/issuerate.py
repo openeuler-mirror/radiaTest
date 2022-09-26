@@ -76,6 +76,8 @@ class UpdateIssueRateData:
                     "issue_type_id": self.issue_v8.bug_issue_type_id,
                 },
                 "p_fields": {
+                    "serious_main_resolved_cnt": "",
+                    "serious_main_all_cnt": "",
                     "serious_main_resolved_rate": "",
                     "serious_main_resolved_passed": None,
                 },
@@ -98,6 +100,8 @@ class UpdateIssueRateData:
                     "issue_type_id": self.issue_v8.bug_issue_type_id,
                 },
                 "p_fields": {
+                    "current_resolved_cnt": "",
+                    "current_all_cnt": "",
                     "current_resolved_rate": "",
                     "current_resolved_passed": None,
                 },
@@ -121,6 +125,21 @@ class UpdateIssueRateData:
                 "m_fields": {
                     "left_issues_cnt": "",
                     "left_issues_passed": None,
+                }
+            },
+            "invalid_issues_cnt": {
+                "all": {
+                    "milestone_id": "",
+                    "issue_state_ids": self.issue_v8.invalid_state_ids,
+                    "issue_type_id": self.issue_v8.bug_issue_type_id,
+                },
+                "p_fields": {
+                    "invalid_issues_cnt": "",
+                    "invalid_issues_passed": None,
+                },
+                "m_fields": {
+                    "invalid_issues_cnt": "",
+                    "invalid_issues_passed": None,
                 }
             },
 
@@ -156,23 +175,29 @@ class UpdateIssueRateData:
         resolved_cnt, all_cnt, resolved_rate = self.issue_v8.get_issue_cnt_rate(
             param1, param2
         )
-        if not all_cnt:
+        if all_cnt is None:
             return
-        if not resolved_cnt and param2:
+        if resolved_cnt is None and param2 is not None:
             return
-        
-        if all_cnt == 0:
-            resolved_rate = "100%"
-        qrsh = QualityResultCompareHandler(self.products.get("product_id"))
-        passed = qrsh.compare_issue_rate(field)
-        
+        field_val = all_cnt
+        if "rate" in field:
+            field_val = resolved_rate
+        passed = None
+        if field_val is not None:
+            qrsh = QualityResultCompareHandler(self.products.get("product_id"))
+            passed = qrsh.compare_issue_rate(field, field_val)
+
         _issuerate_dict = self.param.get(field).get("p_fields")
         for k in _issuerate_dict.keys():
             if "resolved_rate" in k:
                 issue_resolved_rate_dict.update({k: resolved_rate})
             if "passed" in k:
                 issue_resolved_rate_dict.update({k: passed})
+            if "resolved_cnt" in k:
+                issue_resolved_rate_dict.update({k: resolved_cnt})
             if "all_cnt" in k:
+                issue_resolved_rate_dict.update({k: all_cnt})
+            if "issues_cnt" in k:
                 issue_resolved_rate_dict.update({k: all_cnt})
 
         Edit(Product, issue_resolved_rate_dict).single(Product, "/product")
@@ -189,14 +214,20 @@ class UpdateIssueRateData:
         resolved_cnt, all_cnt, resolved_rate = self.issue_v8.get_issue_cnt_rate(
             param1, param2
         )
-        if not all_cnt:
+        if all_cnt is None:
             return
-        if not resolved_cnt and param2:
+        if resolved_cnt is None and param2 is not None:
             return
+        field_val = all_cnt
+        if "rate" in field:
+            field_val = resolved_rate
+
         _m = Milestone.query.filter_by(
             gitee_milestone_id=gitee_milestone_id).first()
-        qrsh = QualityResultCompareHandler(self.products.get("product_id"), _m.id)
-        passed = qrsh.compare_issue_rate(field)
+        passed = None
+        if field_val is not None:
+            qrsh = QualityResultCompareHandler(self.products.get("product_id"), _m.id)
+            passed = qrsh.compare_issue_rate(field, field_val)
         issue_resolved_rate_dict = dict()
         
         issue_resolved_rate_dict.update(
@@ -212,6 +243,8 @@ class UpdateIssueRateData:
             if "resolved_cnt" in k:
                 issue_resolved_rate_dict.update({k: resolved_cnt})
             if "all_cnt" in k:
+                issue_resolved_rate_dict.update({k: all_cnt})
+            if "issues_cnt" in k:
                 issue_resolved_rate_dict.update({k: all_cnt})
             if "passed" in k:
                 issue_resolved_rate_dict.update({k: passed})
@@ -249,7 +282,7 @@ class UpdateIssueRate(TaskHandlerBase):
     @staticmethod
     def update_milestone_issue_resolved_rate(gitee_id, products: dict, gitee_milestone_id):
         fields = ["serious_resolved_rate", "main_resolved_rate", "serious_main_resolved_rate",
-                  "current_resolved_rate", "left_issues_cnt"]
+                  "current_resolved_rate", "left_issues_cnt", "invalid_issues_cnt"]
         for _f in fields:
             update_field_issue_rate.delay(
                 "milestone",
