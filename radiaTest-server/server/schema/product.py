@@ -11,6 +11,8 @@ class ProductBase(PermissionBase):
     name: constr(max_length=32)
     version: constr(max_length=32)
     description: Optional[constr(max_length=255)]
+    version_type: Literal["LTS", "LTS-SPx", "INNOVATION"]
+    is_forced_check: Optional[bool]
 
     @root_validator
     def check_duplicate(cls, values):
