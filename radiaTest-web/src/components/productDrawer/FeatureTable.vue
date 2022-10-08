@@ -14,7 +14,7 @@ import {
   featureListColumns, 
   featureListData,
   getFeatureList,
-  cleanData 
+  cleanFeatureListData 
 } from '@/views/versionManagement/product/modules/productDetailDrawer.js';
 
 export default defineComponent({
@@ -30,7 +30,7 @@ export default defineComponent({
       getFeatureList(props.qualityboardId, props.type);
     });
     onUnmounted(() => {
-      cleanData();
+      cleanFeatureListData();
     });
     
     return {

@@ -79,15 +79,14 @@
       </n-tooltip>
       <div v-if="!done" class="noneline"></div>
       <div v-else class="releaseline" />
-      <n-popover trigger="manual" v-if="list.length" :disabled="!done" :show="handleTipShow(list[-1]?.key)">
+      <n-popover trigger="manual" v-if="list.length" :show="handleTipShow(list[-1]?.key)">
         <template #trigger>
           <n-radio
-            :checked="currentId === list[-1]?.key && done"
+            v-show="!done"
             size="large"
             name="basic-demo"
             style="--n-radio-size: 26px; margin-right: 17px"
             :disabled="!done"
-            @click="releaseClick"
           />
         </template>
         <div>
@@ -101,7 +100,7 @@
             <ConnectTarget v-if="!done" />
             <FileDoneOutlined v-else />
           </template>
-          确定要{{ done ? '恢复' : '结束' }}迭代吗？
+          {{ !done ? `发布${productName}` : '取消发布，恢复至最后一轮迭代' }}
         </n-popconfirm>
       </n-icon>
     </div>
@@ -117,6 +116,7 @@ import { modules } from './modules';
 export default {
   props: {
     list: Array,
+    productName: String,
     doneTip: {
       type: String,
       default: '点击后结束迭代测试'
@@ -179,9 +179,6 @@ export default {
         this.hover = show;
       });
     },
-    releaseClick() {
-      this.$emit('release');
-    },
     handleClick(milestoneId) {
       this.$emit('stepClick', milestoneId);
     },
@@ -189,7 +186,7 @@ export default {
       this.$emit('rollback');
     },
     handleTipShow(key) {
-      if (key === this.currentId && !this.done) {
+      if (key === this.currentId) {
         return this.tipShow;
       }
       return this.ratioHover === key;
@@ -223,7 +220,6 @@ export default {
   width: 60%;
 }
 .releaseline {
-  width: 60%;
-  border-bottom: 1.5px solid #303030;
+  width: 50px;
 }
 </style>

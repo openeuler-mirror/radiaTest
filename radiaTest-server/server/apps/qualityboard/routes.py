@@ -177,7 +177,10 @@ class QualityBoardItemEvent(Resource):
         org_id = milestone.org_id
         org = Organization.query.filter_by(id=org_id).first()
         if org:  
-            _pkgs_repo_url = current_app.config.get(f"{org.name.upper()}_PACKAGELIST_REPO_URL")
+            if milestone.type == "release":
+                _pkgs_repo_url = current_app.config.get(f"{org.name.upper()}_OFFICIAL_REPO_URL")
+            else:
+                _pkgs_repo_url = current_app.config.get(f"{org.name.upper()}_DAILYBUILD_REPO_URL")
             resolve_pkglist_after_resolve_rc_name.delay(
                 repo_url=_pkgs_repo_url,
                 product=f"{milestone.product.name}-{milestone.product.version}",

@@ -195,9 +195,6 @@ function renderBtn(text, action, row, type = 'text') {
     text
   );
 }
-function releaseClick() {
-  currentId.value = null;
-}
 function editRow() {
   showModal.value = true;
 }
@@ -451,14 +448,19 @@ function getDefaultCheckNode(id) {
       currentId.value = res.data[0].current_milestone_id;
       const newArr = Object.keys(res.data[0].milestones).map((item) => ({
         key: item,
-        text: res.data[0].milestones[item].name
+        text: res.data[0].milestones[item].name,
+        type: res.data[0].milestones[item].type
       }));
       list.value = newArr;
       tableLoading.value = false;
-      getFeatureSummary(dashboardId.value);
-      getPackageListComparationSummary(dashboardId.value);
+      if (newArr.length > 0) {
+        done.value = newArr.at(-1).type === 'release';
+        getFeatureSummary(dashboardId.value);
+        getPackageListComparationSummary(dashboardId.value);
+      }
     })
     .catch(() => {
+      list.value = [];
       tableLoading.value = false;
     });
 }
@@ -487,7 +489,7 @@ function haveDone() {
         list.value = newArr;
         currentId.value = res.data.current_milestone_id;
         done.value = true;
-        window.$message.error('已正式发布');
+        window.$message.success('已正式发布');
       } else {
         window.$message.error('发布失败');
       }
@@ -548,20 +550,23 @@ function handleValidateButtonClick(e) {
     }
   });
 }
-function handleRollback() {
+function handleRollback(recovery=false) {
   milestoneRollback(dashboardId.value)
     .then(() => {
       getDefaultCheckNode(ProductId.value);
-      window.$message?.success('当前进展已回退至上一轮迭代');
+      if (recovery) {
+        window.$message?.success('当前进展已回退最后一轮迭代');
+        done.value = false;
+      } else {
+        window.$message?.success('当前进展已回退至上一轮迭代');
+      }
     })
     .catch(() => {
       window.$message?.error('回退失败');
     });
 }
 function haveRecovery() {
-  handleRollback().then(() => {
-    done.value = false;
-  });
+  handleRollback(true);
 }
 function handlePackageCardClick() {
   showPackage.value = true;
@@ -998,7 +1003,6 @@ export {
   haveDone,
   haveRecovery,
   getDefaultCheckNode,
-  releaseClick,
   handlePackageCardClick,
   handleRollback
 };

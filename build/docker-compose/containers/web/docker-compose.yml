@@ -56,14 +56,13 @@ services:
         volumes:
             - /var/log/radiaTest-server/server:/opt/radiaTest/radiaTest-server/log/server
             - /var/log/radiaTest-server/gunicorn:/opt/radiaTest/radiaTest-server/log/gunicorn
-            - /var/log/radiaTest-server/read_git_repo:/opt/radiaTest/radiaTest-server/log/read_git_repo
-            - /var/log/radiaTest-server/lifecycle_monitor:/opt/radiaTest/radiaTest-server/log/lifecycle_monitor
-            - /var/log/radiaTest-server/load_scripts:/opt/radiaTest/radiaTest-server/log/load_scripts
-            - /var/log/radiaTest-server/resolve_case:/opt/radiaTest/radiaTest-server/log/resolve_case
-            - /var/log/radiaTest-server/resolve_set:/opt/radiaTest/radiaTest-server/log/resolve_set
-            - /var/log/radiaTest-server/update_case:/opt/radiaTest/radiaTest-server/log/update_case
-            - /var/log/radiaTest-server/update_suite:/opt/radiaTest/radiaTest-server/log/update_suite
-            - /var/log/radiaTest-server/update_tasks:/opt/radiaTest/radiaTest-server/log/update_tasks
+            - /var/log/radiaTest-server/openqa_reader:/opt/radiaTest/radiaTest-server/log/openqa_reader
+            - /var/log/radiaTest-server/periodic_worker:/opt/radiaTest/radiaTest-server/log/periodic_worker
+            - /var/log/radiaTest-server/scripts_loader:/opt/radiaTest/radiaTest-server/log/scripts_loader
+            - /var/log/radiaTest-server/root_resolver:/opt/radiaTest/radiaTest-server/log/root_resolver
+            - /var/log/radiaTest-server/database_updator:/opt/radiaTest/radiaTest-server/log/suitecase_updator
+            - /var/log/radiaTest-server/issuerate_updator:/opt/radiaTest/radiaTest-server/log/issuerate_updator
+            - /var/log/radiaTest-server/casefile_resolver:/opt/radiaTest/radiaTest-server/log/casefile_resolver
             - /var/log/radiaTest-server/celerybeat:/opt/radiaTest/radiaTest-server/log/celerybeat
             - /etc/radiaTest:/etc/radiaTest
             - /var/lib/radiaTest/migrations:/opt/radiaTest/radiaTest-server/migrations

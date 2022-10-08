@@ -575,7 +575,7 @@ class PackageListHandler:
         except FileNotFoundError as e:
             raise ValueError(
                 f"resolve packages of {_filename} failed, " \
-                f"please check whether it exists in {self.pkgs_repo_url}"
+                f"please refetch data manually or check whether it exists in {self.pkgs_repo_url}"
             ) from e
 
     def compare(self, packages):

@@ -12,7 +12,7 @@
           style="cursor: pointer"
         >
           <n-progress
-            :color="dailyBuildCompletion === 100 ? '#18A058' : '#C20000'"
+            :color="renderColor(dailyBuildPassed)"
             type="dashboard"
             gap-position="bottom"
             :percentage="dailyBuildCompletion"
@@ -46,7 +46,7 @@
           style="cursor: pointer"
         >
           <n-progress
-            :color="atProgress === 100 ? '#18A058' : '#C20000'"
+            :color="renderColor(atPassed)"
             type="dashboard"
             gap-position="bottom"
             :percentage="atProgress"
@@ -63,7 +63,7 @@
           style="cursor: pointer"
         >
           <n-progress
-            :color="weeklybuildHealthColor()"
+            :color="renderColor(weeklybuildPassed)"
             type="dashboard"
             gap-position="bottom"
             :percentage="weeklybuildHealth"
@@ -87,7 +87,6 @@
   </div>
 </template>
 <script>
-import {ref, onMounted} from 'vue';
 import atOverview from './atOverview';
 import dailyBuild from './dailyBuild';
 import weeklybuildHealth from './weeklybuildHealth';
@@ -110,6 +109,10 @@ export default {
     onMounted(() => {
       modules.getStatistic(props.qualityBoardId);
       modules.handleClick('weeklybuild-health');
+    });
+
+    onUnmounted(() => {
+      modules.cleanQualityProtectData();
     });
 
     return {
