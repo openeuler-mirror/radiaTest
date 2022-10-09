@@ -8,7 +8,9 @@ function getRequest(url, data) {
         resolve(res);
       })
       .catch((err) => {
-        window.$notification?.error({ content: err.data.error_msg || unkonwnErrorMsg });
+        window.$notification?.error({ 
+          content: err.data.error_msg || unkonwnErrorMsg 
+        });
         reject(err);
       });
   });
