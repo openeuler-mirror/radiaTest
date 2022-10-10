@@ -1,5 +1,6 @@
 from copy import deepcopy
 from datetime import datetime
+import pytz
 
 from flask import current_app
 from celery import chord
@@ -14,7 +15,7 @@ class RunJob(TaskAuthHandler):
     def __init__(self, body, promise, user, logger) -> None:
         self._body = body
         self.promise = promise
-        self.app_context= current_app.app_context()
+        self.app_context = current_app.app_context()
 
         super().__init__(user, logger)
 
@@ -41,7 +42,7 @@ class RunJob(TaskAuthHandler):
     def _create_job(self, multiple: bool, is_suite_job: bool):
         if self._body.get("id"):
             del self._body["id"]
-        
+
         self._body.update({
             "multiple": multiple,
             "is_suite_job": is_suite_job,
@@ -61,14 +62,14 @@ class RunJob(TaskAuthHandler):
 
         self._body.update(job)
         self._body.pop("milestone")
-    
+
     def _update_job(self, **kwargs):
         self.next_period()
         self._body.update({
             "running_time": self.running_time,
             **kwargs,
         })
-        
+
         update_body = deepcopy(self._body)
         update_body.pop("id")
         if isinstance(update_body.get("master"), list):
@@ -130,11 +131,11 @@ class RunSuite(RunJob):
 
             suites_cases = [
                 (
-                    suite.get("name"), 
+                    suite.get("name"),
                     case.get("name")
                 ) for case in cases
             ]
-            
+
             _task = run_case.delay(
                 self.user,
                 self._body,
@@ -143,14 +144,14 @@ class RunSuite(RunJob):
                 self.pmachine_pool,
             )
 
-            self._update_job(tid = _task.task_id)
-        
+            self._update_job(tid=_task.task_id)
+
         except RuntimeError as e:
             self.logger.error(str(e))
             self._update_job(
                 result="fail",
                 remark=str(e),
-                end_time=datetime.now(),
+                end_time=datetime.now(tz=pytz.timezone('Asia/Shanghai')),
                 status="BLOCK",
             )
 
@@ -158,7 +159,7 @@ class RunSuite(RunJob):
 class RunTemplate(RunJob):
     def __init__(self, body, promise, user, logger) -> None:
         super().__init__(body, promise, user, logger)
-        
+
         self._template = query_request(
             "/api/v1/template/{}".format(
                 self._body.get("template_id")
@@ -175,7 +176,7 @@ class RunTemplate(RunJob):
             )
 
         _git_repo = self._template.get("git_repo")
-        
+
         self._body.update({
             "milestone_id": self._template.get("milestone_id"),
             "git_repo_id": _git_repo.get("id") if _git_repo else None,
@@ -183,62 +184,6 @@ class RunTemplate(RunJob):
             "success_cases": 0,
             "fail_cases": 0,
         })
-
-    def _sort(self):
-        cases = self._template.get("cases")
-
-        if not cases:
-            raise RuntimeError(
-                "template {} has no relative cases.".format(
-                    self._template.get("name")
-                )
-            )
-
-        machine_type = set()
-        machine_num = set()
-        add_network = set()
-        add_disk = set()
-        for case in cases:
-            machine_type.add(case.get("machine_type"))
-            machine_num.add(case.get("machine_num"))
-            add_network.add(case.get("add_network_interface"))
-            add_disk.add(case.get("add_disk"))
-
-        classify_cases = []
-        for m_type in machine_type:
-            for machine in machine_num:
-                for network in add_network:
-                    for disk in add_disk:
-                        cs = {}
-                        cl = []
-                        for case in cases:
-                            if (
-                                case["machine_num"] == machine
-                                and case["add_network_interface"] == network
-                                and case["add_disk"] == disk
-                            ):
-                                cl.append([case["suite"], case["name"]])
-
-                        if cl:
-                            cs["type"] = m_type
-                            cs["machine"] = machine
-                            cs["network"] = network
-                            cs["disk"] = disk
-                            cs["suites_cases"] = cl
-                            classify_cases.append(cs)
-
-        return classify_cases
-
-    def _callback_task_job_init(self):
-        return update_request(
-            "/api/v1/task/milestones/{}".format(
-                self._body.get("taskmilestone_id")
-            ),
-            {
-                "job_id": self._body.get("id"),
-            },
-            self.user.get("auth")
-        )
 
     def run(self):
         self._create_job(multiple=True, is_suite_job=False)
@@ -294,6 +239,62 @@ class RunTemplate(RunJob):
             self._update_job(
                 result="fail",
                 remark=str(e),
-                end_time=datetime.now(),
+                end_time=datetime.now(tz=pytz.timezone('Asia/Shanghai')),
                 status="BLOCK",
             )
+
+    def _callback_task_job_init(self):
+        return update_request(
+            "/api/v1/task/milestones/{}".format(
+                self._body.get("taskmilestone_id")
+            ),
+            {
+                "job_id": self._body.get("id"),
+            },
+            self.user.get("auth")
+        )
+
+    def _sort(self):
+        cases = self._template.get("cases")
+
+        if not cases:
+            raise RuntimeError(
+                "template {} has no relative cases.".format(
+                    self._template.get("name")
+                )
+            )
+
+        machine_type = set()
+        machine_num = set()
+        add_network = set()
+        add_disk = set()
+        for case in cases:
+            machine_type.add(case.get("machine_type"))
+            machine_num.add(case.get("machine_num"))
+            add_network.add(case.get("add_network_interface"))
+            add_disk.add(case.get("add_disk"))
+
+        classify_cases = []
+        for m_type in machine_type:
+            for machine in machine_num:
+                for network in add_network:
+                    for disk in add_disk:
+                        cs = {}
+                        cl = []
+                        for case in cases:
+                            if (
+                                    case["machine_num"] == machine
+                                    and case["add_network_interface"] == network
+                                    and case["add_disk"] == disk
+                            ):
+                                cl.append([case["suite"], case["name"]])
+
+                        if cl:
+                            cs["type"] = m_type
+                            cs["machine"] = machine
+                            cs["network"] = network
+                            cs["disk"] = disk
+                            cs["suites_cases"] = cl
+                            classify_cases.append(cs)
+
+        return classify_cases

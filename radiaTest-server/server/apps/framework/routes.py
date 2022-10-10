@@ -55,15 +55,14 @@ class FrameworkEvent(Resource):
             filter_params.append(
                 Framework.adaptive == query.adaptive
             )
-        
+
         frameworks = Framework.query.filter(*filter_params).all()
         if not frameworks:
             return jsonify(error_code=RET.OK, error_msg="OK", data=[])
 
-
         return jsonify(
-            error_code=RET.OK, 
-            error_msg="OK", 
+            error_code=RET.OK,
+            error_msg="OK",
             data=[
                 _framework.to_json() for _framework in frameworks
             ]
@@ -76,8 +75,9 @@ class FrameworkItemEvent(Resource):
     @validate()
     @casbin_enforcer.enforcer
     def delete(self, framework_id):
-        return ResourceManager("framework").del_cascade_single(framework_id, GitRepo, [GitRepo.framework_id==framework_id], False)
-    
+        return ResourceManager("framework").del_cascade_single(framework_id, GitRepo,
+                                                               [GitRepo.framework_id == framework_id], False)
+
     @auth.login_required
     @response_collect
     @validate()
@@ -101,7 +101,7 @@ class FrameworkItemEvent(Resource):
                 error_code=RET.NO_DATA_ERR,
                 error_msg="the framework does not exist"
             )
-        
+
         return jsonify(
             error_code=RET.OK,
             error_msg="OK",
@@ -137,16 +137,14 @@ class GitRepoEvent(Resource):
             filter_params.append(
                 GitRepo.framework_id == query.framework_id
             )
-        
-        
+
         git_repos = GitRepo.query.filter(*filter_params).all()
         if not git_repos:
             return jsonify(error_code=RET.OK, error_msg="OK", data=[])
 
-
         return jsonify(
-            error_code=RET.OK, 
-            error_msg="OK", 
+            error_code=RET.OK,
+            error_msg="OK",
             data=[
                 _git_repo.to_json() for _git_repo in git_repos
             ]
@@ -159,8 +157,9 @@ class GitRepoItemEvent(Resource):
     @validate()
     @casbin_enforcer.enforcer
     def delete(self, git_repo_id):
-        return ResourceManager("git_repo").del_cascade_single(git_repo_id, Template, [Template.git_repo_id==git_repo_id], False)
-    
+        return ResourceManager("git_repo").del_cascade_single(git_repo_id, Template,
+                                                              [Template.git_repo_id == git_repo_id], False)
+
     @auth.login_required
     @response_collect
     @validate()
@@ -183,7 +182,7 @@ class GitRepoItemEvent(Resource):
                 error_code=RET.NO_DATA_ERR,
                 error_msg="the git repo does not exist"
             )
-        
+
         return jsonify(
             error_code=RET.OK,
             error_msg="OK",

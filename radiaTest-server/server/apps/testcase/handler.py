@@ -3,6 +3,7 @@ import json
 import shutil
 import datetime
 import uuid
+import pytz
 
 from flask import jsonify, g, current_app, request
 from sqlalchemy import func
@@ -12,9 +13,7 @@ from server.utils.redis_util import RedisKey
 from server.utils.response_util import RET
 from server.utils.db import Edit, Insert, Delete, collect_sql_error
 from server.utils.page_util import PageUtil
-from server.utils.permission_utils import GetAllByPermission
 from server.model.testcase import CaseNode, Suite, Case, Commit, CaseDetailHistory, CommitComment
-from server.model.qualityboard import Checklist
 from server.model.framework import GitRepo
 from server.model.task import Task, TaskMilestone, TaskManualCase
 from server.model.celerytask import CeleryTask
@@ -210,7 +209,7 @@ class CaseNodeHandler:
             task_milestone = TaskMilestone.query.filter(
                 TaskMilestone.task_id == task.id,
                 TaskMilestone.cases.contains(case)
-                ).first()
+            ).first()
             if case.usabled:
                 case_result = task_milestone.job_result
                 if task_milestone.job_result == 'block':
@@ -239,7 +238,7 @@ class CaseNodeHandler:
             if key == 'title':
                 filter_params.append(CaseNode.title.like(f'%{value}%'))
             if key == 'group_id':
-                filter_params.append(CaseNode.group_id==value)
+                filter_params.append(CaseNode.group_id == value)
 
         case_nodes = CaseNode.query.filter(*filter_params).all()
         return_data = [case_node.to_json() for case_node in case_nodes]
@@ -264,7 +263,7 @@ class CaseNodeHandler:
             Task.case_node_id == root_case_node.id,
             Task.accomplish_time.is_(None),
             Task.is_delete.is_(False)
-            ).first()
+        ).first()
         if task:
             return jsonify(
                 error_code=RET.DATA_EXIST_ERR,
@@ -414,6 +413,7 @@ class CaseNodeHandler:
             else:
                 res_ids.append(case_node.case_id)
                 res_items.append(Case.query.get(case_node.case_id))
+
         if _case_node:
             get_children(_case_node)
         return res_ids, res_items
@@ -544,7 +544,6 @@ class CaseHandler:
             org_id=redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id'),
         )
 
-
         _result = CaseNodeHandler.create(_case_node_body)
         _result = _result.get_json()
         _case_node = CaseNode.query.filter_by(id=_result["data"]).first()
@@ -563,8 +562,8 @@ class CaseHandler:
             cur = cur.parent[0]
 
         insert_data = _body
-        insert_data['title'] = 'review new testcase '+ _body.get("name")
-        insert_data['description'] = 'review new testcase '+ _body.get("name")
+        insert_data['title'] = 'review new testcase ' + _body.get("name")
+        insert_data['description'] = 'review new testcase ' + _body.get("name")
         insert_data['version'] = str(uuid.uuid4()).replace('-', '')
         insert_data['case_description'] = _body.get("description")
         insert_data['case_detail_id'] = _id
@@ -592,10 +591,10 @@ class TemplateCasesHandler:
         _gitrepo = GitRepo.query.filter(*_filter).first()
         if not _gitrepo:
             raise RuntimeError("gitrepo does not exist/ has no right")
-        cases = Case.query.join(Suite).filter(
+        suites = Suite.query.join(Case).filter(
             Suite.git_repo_id == git_repo_id
         ).all()
-        data = [case.to_json() for case in cases]
+        data = [suite.relate_case_to_json() for suite in suites]
         return jsonify(
             error_code=RET.OK,
             error_msg="OK",
@@ -677,7 +676,7 @@ class HandlerCaseReview(object):
 
         if body.status == 'accepted':
             commit.reviewer_id = g.gitee_id
-            commit.review_time = datetime.datetime.now()
+            commit.review_time = datetime.datetime.now(tz=pytz.timezone('Asia/Shanghai'))
             commits = Commit.query.filter_by(case_detail_id=commit.case_detail_id, status='open').all()
             HandlerCaseReview.send_massage(commit, commits)
             for _commit in commits:
@@ -713,7 +712,7 @@ class HandlerCaseReview(object):
             case.add_update()
         if body.status == 'rejected':
             commit.reviewer_id = g.gitee_id
-            commit.review_time = datetime.datetime.now()
+            commit.review_time = datetime.datetime.now(tz=pytz.timezone('Asia/Shanghai'))
             if commit.case_mod_type == "add":
                 _case_node = CaseNode.query.filter_by(case_id=commit.case_detail_id).first()
                 db.session.delete(_case_node)
@@ -901,7 +900,7 @@ class HandlerCommitComment(object):
     def get_comment_ids(comment_id, id_set):
         children_comments = CommitComment.query.filter_by(
             parent_id=comment_id).order_by(
-                CommitComment.create_time).all()
+            CommitComment.create_time).all()
         for child in children_comments:
             if child.id not in id_set:
                 id_set.add(child.id)
@@ -924,7 +923,7 @@ class HandlerCommitComment(object):
     @staticmethod
     @collect_sql_error
     def get_pending_status(query: PageBaseSchema):
-        org_id=redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')
+        org_id = redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')
         filter_chain = Commit.query.filter_by(
             status='pending',
             creator_id=g.gitee_id,
@@ -946,6 +945,24 @@ class ResourceItemHandler:
         self.org_id = org_id
         self.group_id = group_id
 
+    @staticmethod
+    def analyze(data):
+        steps = {}
+        for (key, value) in data:
+            step = {key: value}
+            steps.update(step)
+        return steps
+
+    @staticmethod
+    def create_date_range(days: int):
+        now = datetime.datetime.now(tz=pytz.timezone('Asia/Shanghai'))
+        today = datetime.datetime(now.year, now.month, now.day, 0, 0, 0)
+        date_range = {}
+        for i in range(days, -1, -1):
+            day_start = today - datetime.timedelta(days=i)
+            date_range.update({day_start.strftime("%Y-%m-%d"): 0})
+        return date_range
+
     def get_table_filter(self, table):
         if self._type == 'group':
             table_filter = [
@@ -960,17 +977,10 @@ class ResourceItemHandler:
             ]
         return table_filter
 
-    def analyze(self, data):
-        steps = {}
-        for (key, value) in data:
-            step = {key: value}
-            steps.update(step)
-        return steps
-
     def get_case(self):
         all_filter = self.get_table_filter(Case)
         auto_filter = all_filter.copy()
-        auto_filter.append(Case.automatic == True)
+        auto_filter.append(Case.automatic is True)
         all_count = Case.query.filter(*all_filter).count()
         auto_count = Case.query.filter(*auto_filter).count()
         auto_ratio = '0%' if all_count == 0 else str(int(float(auto_count) / all_count) * 100) + '%'
@@ -986,14 +996,14 @@ class ResourceItemHandler:
             Case.org_id == self.org_id,
             Case.group_id == Group.id
         ]
-        type_distribute = db.session.query(Case.test_type, func.count(Case.id).label('count'))\
+        type_distribute = db.session.query(Case.test_type, func.count(Case.id).label('count')) \
             .filter(*type_filter).group_by(Case.test_type).all()
-        group_distribute = db.session.query(Group.name, func.count(Case.id).label('count')).\
+        group_distribute = db.session.query(Group.name, func.count(Case.id).label('count')). \
             filter(*group_filter).group_by(Group.name).all()
         return self.analyze(type_distribute), self.analyze(group_distribute)
 
     def get_commit(self):
-        now = datetime.datetime.now()
+        now = datetime.datetime.now(tz=pytz.timezone('Asia/Shanghai'))
         today = datetime.datetime(now.year, now.month, now.day, 0, 0, 0)
         this_week_start = today - datetime.timedelta(days=now.weekday())
         this_week_end = today + datetime.timedelta(days=7 - now.weekday())
@@ -1023,15 +1033,6 @@ class ResourceItemHandler:
         new_distribute = self.analyze(distribute)
         date_range.update(new_distribute)
         return week_count, month_count, date_range
-
-    def create_date_range(self, days: int):
-        now = datetime.datetime.now()
-        today = datetime.datetime(now.year, now.month, now.day, 0, 0, 0)
-        date_range = {}
-        for i in range(days, -1, -1):
-            day_start = today - datetime.timedelta(days=i)
-            date_range.update({day_start.strftime("%Y-%m-%d"): 0})
-        return date_range
 
     def get_commit_attribute(self):
         _filter = [

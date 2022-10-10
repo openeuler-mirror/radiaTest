@@ -1,14 +1,20 @@
-import re
 from typing import Optional
 
-from pydantic import BaseModel, constr, validator
+from typing import List
+from pydantic import BaseModel, validator
 from pydantic.class_validators import root_validator
 from typing_extensions import Literal
-from typing import List
 
 from server.model.testcase import Suite, Case
-from server.schema.base import PermissionBase, UpdateBaseModel, PageBaseSchema
-from server.schema import MachineType, PermissionType, TestType, TestLevel, CaseNodeType
+from server.schema.base import UpdateBaseModel, PageBaseSchema
+from server.schema import MachineType, PermissionType, CaseNodeType
+
+
+class PermissionBaseSchema(BaseModel):
+    creator_id: int
+    permission_type: PermissionType
+    group_id: Optional[int] = None
+    org_id: int
 
 
 class CaseNodeBodySchema(BaseModel):
@@ -153,14 +159,14 @@ class CaseUpdate(CaseBase, UpdateBaseModel):
     automatic: Optional[bool]
 
 
-class CaseBaseSchemaWithSuiteId(SuiteBase):
+class CaseBaseSchemaWithSuiteId(SuiteBase, PermissionBaseSchema):
     suite_id: int
     automatic: bool
     usabled: Optional[bool] = False
     code: Optional[str]
 
 
-class CaseUpdateSchemaWithSuiteId(UpdateBaseModel):
+class CaseUpdateSchemaWithSuiteId(SuiteBase, UpdateBaseModel, PermissionBaseSchema):
     name: Optional[str]
     suite_id: Optional[int]
     automatic: Optional[bool]

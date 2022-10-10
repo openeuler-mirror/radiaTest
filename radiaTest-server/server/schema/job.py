@@ -41,7 +41,7 @@ class RunJobBase(PermissionBase):
 
     @validator("machine_policy")
     def validate_policy(cls, v, values):
-        if v == "auto" and (values["pmachine_list"] or values["vmachine_list"]):
+        if v == "auto" and (len(values["pmachine_list"]) != 0 or len(values["vmachine_list"]) != 0):
             raise RuntimeError(
                 "should not select any machine with auto machine policy"
             )

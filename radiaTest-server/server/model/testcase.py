@@ -8,7 +8,6 @@ from server.model.framework import Framework
 from server.model.group import Group
 from server.model.organization import Organization
 
-
 case_node_family = db.Table(
     'case_node_family',
     db.Column('parent_id', db.Integer, db.ForeignKey(
@@ -133,6 +132,16 @@ class Suite(PermissionBaseModel, BaseModel, db.Model):
             "org_id": self.org_id,
         }
 
+    def relate_case_to_json(self):
+        cases = list()
+        if self.case:
+            cases = [case_obj.relate_suite_to_json() for case_obj in self.case]
+        return {
+            "suite_id": self.id,
+            "suite_name": self.name,
+            "case": cases
+        }
+
 
 class Case(BaseModel, PermissionBaseModel, db.Model):
     __tablename__ = "case"
@@ -203,6 +212,12 @@ class Case(BaseModel, PermissionBaseModel, db.Model):
             "code": self.code,
             "create_time": self.create_time.strftime("%Y-%m-%d %H:%M:%S"),
             "update_time": self.update_time.strftime("%Y-%m-%d %H:%M:%S"),
+        }
+
+    def relate_suite_to_json(self):
+        return {
+            "case_id": self.id,
+            "case_name": self.name
         }
 
 
