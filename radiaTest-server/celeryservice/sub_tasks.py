@@ -28,33 +28,16 @@ logger = get_task_logger('manage')
 
 
 @celery.task
-@collect_sql_error
 def update_case(case_data):
     same_case = Case.query.filter_by(name=case_data.get("name")).first()
-    _repo = GitRepo.query.filter_by(id=case_data.get("git_repo_id")).first()
     if not same_case:
         logger.info("create {}".format(case_data["name"]))
         _data = CaseBaseSchemaWithSuiteId(**case_data).__dict__
-        _data.update({
-            "permission_type": "group",
-            "group_id": _repo.group_id,
-            "org_id": _repo.org_id,
-            "description": "",
-            "preset": "",
-            "steps": "",
-            "expection": "",
-            "remark": "",
-        })
         _ = Insert(Case, _data).insert_id(Case, "/case")
     else:
         logger.info("update {}".format(case_data["name"]))
-        case_data.update({"id": same_case.id})
-        _data = CaseUpdateSchemaWithSuiteId(**case_data).__dict__
-        _data.update({
-            "permission_type": "group",
-            "group_id": _repo.group_id,
-            "org_id": _repo.org_id,
-        })
+        _data = CaseBaseSchemaWithSuiteId(**case_data).__dict__
+        _data.update({"id": same_case.id})
         _ = Edit(Case, _data).single(Case, "/case")
 
 
@@ -67,9 +50,10 @@ def update_suite(suite_data, cases_data):
     if not same_suite:
         _data = SuiteBase(**suite_data).__dict__
         _data.update({
-            "permission_type": "group",
+            "permission_type": _repo.permission_type,
             "group_id": _repo.group_id,
             "org_id": _repo.org_id,
+            "creator_id": _repo.creator_id
         })
         suite_id = Insert(
             Suite,
@@ -79,9 +63,10 @@ def update_suite(suite_data, cases_data):
         suite_data.update({"id": same_suite.id})
         _data = SuiteUpdate(**suite_data).__dict__
         _data.update({
-            "permission_type": "group",
+            "permission_type": _repo.permission_type,
             "group_id": _repo.group_id,
             "org_id": _repo.org_id,
+            "creator_id": _repo.creator_id
         })
         _ = Edit(Suite, _data).single(Suite, "/suite")
 
@@ -90,7 +75,11 @@ def update_suite(suite_data, cases_data):
     for case_data in cases_data:
         case_data.update({
             "suite_id": suite_id,
-            "git_repo_id": _repo.id
+            "git_repo_id": _repo.id,
+            "permission_type": _repo.permission_type,
+            "group_id": _repo.group_id,
+            "org_id": _repo.org_id,
+            "creator_id": _repo.creator_id
         })
         _ = update_case.delay(case_data)
 

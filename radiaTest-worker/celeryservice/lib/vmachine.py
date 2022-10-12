@@ -622,7 +622,7 @@ class InstallVmachine(VmachineBaseSchema):
             ),
             shlex.quote(self._body.get("name")),
             shlex.quote("vncport"),
-            shlex.quote(int(self._body.get("vnc_port")) + 5900)
+            int(self._body.get("vnc_port")) + celeryconfig.vnc_start_port
         )
         exitcode, output = getstatusoutput(cmd)
         if exitcode:
