@@ -38,7 +38,7 @@ from server.schema.qualityboard import (
     CheckItemSchema,
     QueryCheckItemSchema,
     QueryQualityResultSchema,
-    ChecklistBaseSchema,
+    DeselectChecklistSchema,
 )
 from server.apps.qualityboard.handlers import (
     ChecklistHandler,
@@ -78,12 +78,9 @@ class QualityBoardEvent(Resource):
             type="round",
             is_sync=True
         ).order_by(Milestone.start_time.asc()).first()
-        if not milestone:
-            return jsonify(
-                error_code=RET.NO_DATA_ERR,
-                error_msg="qualityboard cannot be created, because the iteration of the product does not exist."
-            )
-        iteration_version = str(milestone.id)
+        iteration_version = ""
+        if milestone:
+            iteration_version = str(milestone.id)
 
         qualityboard = QualityBoard(
             product_id=body.product_id, iteration_version=iteration_version)
@@ -222,6 +219,43 @@ class QualityBoardDeleteVersionEvent(Resource):
         return Edit(QualityBoard, _body).single()
 
 
+class DeselectChecklistItem(Resource):
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def put(self, checklist_id, body: DeselectChecklistSchema):
+        _cl = Checklist.query.filter_by(id=checklist_id).first()
+        if not _cl:
+            return jsonify(
+                error_code=RET.DB_DATA_ERR,
+                error_msg="Checklist {} doesn't exist".format(checklist_id)
+            )
+        idx = body.rounds.index("1")
+        if idx < len(_cl.rounds) - 1:
+            _cl.rounds = _cl.rounds[:idx] + "0" + _cl.rounds[idx + 1:]
+        elif idx == len(_cl.rounds) - 1:
+            rounds = _cl.rounds[:-1] + "0"
+            baseline = _cl.baseline
+            operation = _cl.operation
+            while rounds[-1] == "0" and len(rounds) > 1:
+                rounds = rounds[:-1]
+                baseline = ",".join(baseline.split(",")[:-1])
+                operation = ",".join(operation.split(",")[:-1])
+            _cl.rounds = rounds
+            _cl.baseline = baseline
+            _cl.operation = operation
+        else:
+            return jsonify(
+                error_code=RET.DB_DATA_ERR,
+                error_msg="rounds '{}' error".format( body.rounds)
+            )
+        _cl.add_update()
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK."
+        )
+
+
 class ChecklistItem(Resource):
     @auth.login_required()
     @response_collect
@@ -233,6 +267,12 @@ class ChecklistItem(Resource):
     @response_collect
     @validate()
     def put(self, checklist_id, body: UpdateChecklistSchema):
+        _cl = Checklist.query.filter_by(id=checklist_id).first()
+        if not _cl:
+            return jsonify(
+                error_code=RET.DB_DATA_ERR,
+                error_msg="Checklist {} doesn't exist".format(checklist_id)
+            )
         if body.checkitem_id:
             ci = CheckItem.query.filter_by(id=body.checkitem_id).first()
             if not ci:
@@ -246,10 +286,48 @@ class ChecklistItem(Resource):
                     error_code=RET.DB_DATA_ERR,
                     error_msg="Checklist {} has existed".format(ci.title)
                 )
+        idx = body.rounds.index("1")
+        if idx < len(_cl.rounds):
+            rounds = _cl.rounds[:idx] + "1" + _cl.rounds[idx + 1:]
+            baseline = _cl.baseline
+            operation = _cl.operation
+            
+            if body.baseline:
+                bls = _cl.baseline.split(",")
+                bls[idx] = body.baseline
+                baseline = ",".join(bls)
+            if body.operation:
+                ops = _cl.operation.split(",")
+                ops[idx] = body.operation
+                operation = ",".join(ops)
+        elif idx == len(_cl.rounds):
+            if body.baseline is None or body.operation is None:
+                return jsonify(
+                    error_code=RET.NO_DATA_ERR,
+                    error_msg="iteration must have baseline and operation"
+                )
+            rounds = _cl.rounds + "1"
+            baseline = _cl.baseline + "," + body.baseline
+            operation = _cl.operation + "," + body.operation
+        else:
+            if body.baseline is None or body.operation is None:
+                return jsonify(
+                    error_code=RET.NO_DATA_ERR,
+                    error_msg="iteration must have baseline and operation"
+                )
+            rounds = _cl.rounds.ljust(idx, "0") + "1"
+            baseline = _cl.baseline + "," * (idx + 1 - len(_cl.rounds)) + body.baseline
+            operation = _cl.operation + "," * (idx + 1 - len(_cl.rounds)) + body.operation
+        
         _body = {
             **body.__dict__,
             "id": checklist_id,
         }
+        _body.update({
+            "rounds": rounds,
+            "baseline": baseline,
+            "operation": operation
+        })
 
         return Edit(Checklist, _body).single(Checklist, "/checklist")
 
@@ -278,42 +356,27 @@ class ChecklistEvent(Resource):
                 error_msg="Checkitem {} does not exist".format(ci.id)
             )
 
-        _ps = Product.query.filter_by(name=body.product_name, is_forced_check=True).all()
-        if not _ps:
+        _p = Product.query.filter_by(id=body.product_id, is_forced_check=True).first()
+        if not _p:
             return jsonify(
                 error_code=RET.NO_DATA_ERR,
-                error_msg="product {} doesn't exist, or doesn't need to be checked".format(body.product_name)
+                error_msg="product {} doesn't exist, or doesn't need to be checked".format(body.product_id)
             )
-        _filter = []
-        for _p in _ps:
-            _filter.append(
-                Checklist.products.contains(_p)
-            )
+        
         _cl = Checklist.query.filter(
             Checklist.checkitem_id == body.checkitem_id,
-            or_(*_filter),
+            Checklist.product_id == _p.id,
         ).first()
         if _cl:
             return jsonify(
                 error_code=RET.DB_DATA_ERR,
-                error_msg="Checklist {} has existed".format(ci.title)
+                error_msg="Checklist {} for product {} has existed".format(ci.title, _p.id)
             )
         cl = Insert(Checklist, body.__dict__).insert_obj(Checklist, "/checklist")
-        for _p in _ps:
-            cl.products.append(_p)
-        cl.add_update()
         return jsonify(
             error_code=RET.OK,
             error_msg="OK."
         )
-
-
-class ChecklistSyncProduct(Resource):
-    @auth.login_required()
-    @response_collect
-    @validate()
-    def put(self, body: ChecklistBaseSchema):
-        return ChecklistHandler.checklist_sync_product_all(body.product_name)
 
 
 class ChecklistRoundsCountEvent(Resource):
@@ -321,14 +384,14 @@ class ChecklistRoundsCountEvent(Resource):
     @response_collect
     @validate()
     def get(self, query: QueryChecklistSchema):
-        _p = Product.query.filter_by(name=query.product_name).first()
+        _p = Product.query.filter_by(id=query.product_id).first()
         if not _p:
             return jsonify(
                 error_code=RET.NO_DATA_ERR,
-                error_msg="product {} not exist".format(query.product_name)
+                error_msg="product {} not exist".format(query.product_id)
             )
         count = db.session.query(func.max(func.length(Checklist.rounds))).filter(
-            Checklist.products.contains(_p)
+            Checklist.product_id == query.product_id
         ).scalar()
         return jsonify(
             error_code=RET.OK,
@@ -568,30 +631,39 @@ class QualityDefendEvent(Resource):
         scrapyspider_redis_client = redis.StrictRedis(
             connection_pool=scrapyspider_pool
             )
+        qrsh = QualityResultCompareHandler(product.id)
+        
 
         latest_dailybuild = DailyBuild.query.filter(
             DailyBuild.product_id == product.id
         ).order_by(
             DailyBuild.create_time.desc()
         ).first()
-        dailybuild_statistic = latest_dailybuild.to_json() if latest_dailybuild else None
+        dailybuild_statistic = dict()
+        if latest_dailybuild:
+            dailybuild_statistic.update(
+                {
+                    "completion": latest_dailybuild.completion,
+                    "passed": qrsh.compare_result_baseline("at_statistic", latest_dailybuild.completion)
+                }
+            )
 
         latest_weekly_health = WeeklyHealth.query.order_by(
             WeeklyHealth.end_time.desc()
         ).first()
 
-        _health_rate = None
+        weeklybuild_statistic = dict()
         if latest_weekly_health:
             _health_rate = latest_weekly_health.get_statistic(
                 scrapyspider_pool,
                 _arches
             ).get("health_rate")
-
-        weeklybuild_statistic = {
-            "health_rate": _health_rate,
-            # 临时返回值
-            "health_baseline": 100,
-        }
+            weeklybuild_statistic.update({
+                "health_rate": _health_rate,
+                "health_passed": qrsh.compare_result_baseline(
+                    "weeklybuild_statistic", _health_rate
+                ),
+            })
 
         openqa_url = current_app.config.get("OPENQA_URL")
 
@@ -601,37 +673,46 @@ class QualityDefendEvent(Resource):
             0,
             desc=True,
         )
-        if not _builds:
-            scrapyspider_pool.disconnect()
-            return jsonify(
-                error_code=RET.OK,
-                error_msg="OK",
-                data={"at_statistic": {}}
+        at_statistic = dict()
+
+        if _builds:
+            latest_build = _builds[0]
+            _tests_overview_url = scrapyspider_redis_client.get(
+                f"{product_name}_{latest_build}_tests_overview_url"
             )
 
-        latest_build = _builds[0]
-        _tests_overview_url = scrapyspider_redis_client.get(
-            f"{product_name}_{latest_build}_tests_overview_url"
-        )
-
-        # positively sync crawl latest data from openqa of latest build
-        exitcode, output = subprocess.getstatusoutput(
-            "pushd scrapyspider && scrapy crawl openqa_tests_overview_spider "
-            f"-a product_build={product_name}_{latest_build} "
-            f"-a openqa_url={openqa_url} "
-            f"-a tests_overview_url={add_escape(_tests_overview_url)}"
-        )
-        if exitcode != 0:
-            current_app.logger.error(
-                f"crawl latest tests overview data of {product_name}_{latest_build} fail. Because {output}"
+            # positively sync crawl latest data from openqa of latest build
+            exitcode, output = subprocess.getstatusoutput(
+                "pushd scrapyspider && scrapy crawl openqa_tests_overview_spider "
+                f"-a product_build={product_name}_{latest_build} "
+                f"-a openqa_url={openqa_url} "
+                f"-a tests_overview_url={add_escape(_tests_overview_url)}"
             )
+            if exitcode != 0:
+                current_app.logger.error(
+                    f"crawl latest tests overview data of {product_name}_{latest_build} fail. Because {output}"
+                )
 
-        at_statistic = OpenqaATStatistic(
-            arches=_arches,
-            product=product_name,
-            build=latest_build,
-            redis_client=scrapyspider_redis_client
-        ).group_overview
+            _at_statistic = OpenqaATStatistic(
+                arches=_arches,
+                product=product_name,
+                build=latest_build,
+                redis_client=scrapyspider_redis_client
+            ).group_overview
+            _total = _at_statistic.get("total")
+            _success = _at_statistic.get("success")
+            if int(_total) == 0:
+                at_rate = "100%"
+            else:
+                at_rate = int(_success) / int(_total)
+                at_rate = "%.f%%" % (at_rate * 100)
+            at_statistic.update(
+                {
+                    "total": _at_statistic.get("total"),
+                    "success": _at_statistic.get("success"),
+                    "passed": qrsh.compare_result_baseline("at_statistic", at_rate)
+                }
+            )
 
         scrapyspider_pool.disconnect()
 

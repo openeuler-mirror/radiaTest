@@ -51,21 +51,33 @@ class ChecklistHandler:
         return jsonify(
             error_code=RET.OK,
             error_msg="OK",
-            data=_checklist.to_json()
+            data=_checklist.to_json2()
         )
 
     @staticmethod
     @collect_sql_error
     def handler_get_checklist(query):
         _filter = []
-        if query.product_name:
-            _ps = Product.query.filter_by(name=query.product_name).all()
-            if _ps:
-                for _p in _ps:
-                    _filter.append(
-                        Checklist.products.contains(_p)
-                    )
+        if query.product_id:
+            _filter.append(Checklist.product_id == query.product_id)
         filter_chain = Checklist.query.filter(*_filter)
+        if not query.paged:
+            cls = filter_chain.all()
+            data = dict()
+            items = []
+            for _cl in cls:
+                items += _cl.to_json2()
+            data.update(
+                {
+                    "total": len(items),
+                    "items": items,
+                }
+            )
+            return jsonify(
+                error_code=RET.OK,
+                error_msg='OK',
+                data=data
+            )
         page_dict, e = PageUtil.get_page_dict(
             filter_chain, query.page_num, query.page_size, func=lambda x: x.to_json())
         if e:
@@ -79,98 +91,18 @@ class ChecklistHandler:
             data=page_dict
         )
 
-    @staticmethod
-    @collect_sql_error
-    def checklist_sync_product_all(product_name):
-        _ps = Product.query.filter_by(name=product_name, is_forced_check=True).all()
-        if _ps:
-            _filter = []
-            for _p in _ps:
-                _filter.append(
-                    Checklist.products.contains(_p)
-                )
-            cls = Checklist.query.filter(or_(*_filter)).all()
-            for cl in cls:
-                for _p in _ps:
-                    if cl.products.index(_p) < 0:
-                        cl.products.append(_p)
-                cl.add_update()
-            return jsonify(
-                error_code=RET.OK,
-                error_msg="OK."
-            )
-        else:
-            return jsonify(
-                error_code=RET.NO_DATA_ERR,
-                error_msg="product doesn't exist,or doesn't need to be checked."
-            )
-
-    @staticmethod
-    @collect_sql_error
-    def checklist_sync_product_single(checklist_id, product_id):
-        _cl = Checklist.query.filter_by(id=checklist_id).first()
-        if not _cl:
-            return jsonify(
-                error_code=RET.NO_DATA_ERR,
-                error_msg="Checklist  dodes not exist"
-            )
-        cp = _cl.products[0]
-        if product_id == 0:
-            ps = Product.query.filter_by(name=cp.name).all()
-            for _p in ps:
-                if _cl.products.index(_p) < 0:
-                    _cl.products.append(_p)
-                    _cl.add_update()
-        else:
-            p = Product.query.filter_by(id=product_id).first()
-            if not p:
-                return jsonify(
-                    error_code=RET.NO_DATA_ERR,
-                    error_msg="product dodes not exist"
-                )
-            if cp.name != p.name:
-                return jsonify(
-                    error_code=RET.NO_DATA_ERR,
-                    error_msg="checklist dodes not match product"
-                )
-            if _cl.products.index(p) >= 0:
-                return jsonify(
-                    error_code=RET.DATA_EXIST_ERR,
-                    error_msg="checklist has matched product"
-                )
-            _cl.products.append(p)
-            _cl.add_update()
-        return jsonify(
-            error_code=RET.OK,
-            error_msg="OK."
-        )
-
 
 class QualityResultCompareHandler:
     def __init__(self, product_id, milestone_id=None) -> None:
         self.product_id = product_id
         self.milestone_id = milestone_id
 
-    def compare_issue_rate(self, field: str, field_val=None):
-        if field_val is None:
-            if self.milestone_id:
-                isr = IssueSolvedRate.query.filter_by(
-                    milestone_id=self.milestone_id
-                ).first()
-            else:
-                isr = Product.query.filter_by(
-                    id=self.product_id
-                ).first()
-            if not isr:
-                return None
-            isr_json = isr.to_json()
-            field_val = isr_json.get(field)
+    def compare_result_baseline(self, field: str, field_val):
         baseline, operation = self.get_baseline(field)
-        if field_val is None or baseline is None:
+        if baseline is None:
             return None
-        if "rate" in field:
-            field_val = field_val.replace("%", "")
-            baseline = baseline.replace("%", "")
+        field_val = field_val.replace("%", "")
+        baseline = baseline.replace("%", "")
 
         lt =  lambda x, y: x < y
         gt =  lambda x, y: x > y
@@ -187,12 +119,33 @@ class QualityResultCompareHandler:
         ret = operation_dict.get(operation)(int(field_val), int(baseline))
         return ret
 
+    def compare_issue_rate(self, field: str, field_val=None):
+        if field_val is None:
+            if self.milestone_id:
+                isr = IssueSolvedRate.query.filter_by(
+                    milestone_id=self.milestone_id
+                ).first()
+            else:
+                isr = Product.query.filter_by(
+                    id=self.product_id
+                ).first()
+            if not isr:
+                return None
+            isr_json = isr.to_json()
+            field_val = isr_json.get(field)
+
+        if field_val is None:
+            return None
+        return self.compare_result_baseline(field, field_val)
+
     @collect_sql_error
     def get_baseline(self, field):
         baseline, operation = None, None
         p = Product.query.filter_by(id=self.product_id).first()
+        if not p:
+            return None, None
         cl = Checklist.query.join(CheckItem).filter(
-            Checklist.products.contains(p),
+            Checklist.product_id == self.product_id,
             CheckItem.field_name == field,
             Checklist.checkitem_id == CheckItem.id,
         ).first()
@@ -203,26 +156,17 @@ class QualityResultCompareHandler:
             m = Milestone.query.filter_by(id=self.milestone_id).first()
             if m.type == "round":
                 iter_num = int(m.name.split("-")[-1])
-                if len(cl.rounds) < iter_num:
-                    return None, None
-                r_flag = cl.rounds[iter_num - 1]
-                if r_flag == "1":
-                    return cl.baseline, cl.operation 
-                else:
-                    return None, None 
-        
-        if p.version_type == "LTS-SPx":
-            if cl.lts_spx:
-                baseline = cl.baseline
-                operation = cl.operation
-        elif p.version_type == "LTS":
-            if cl.lts:
-                baseline = cl.baseline
-                operation = cl.operation
-        else:
-            if cl.innovation:
-                baseline = cl.baseline
-                operation = cl.operation
+            elif m.type == "release":
+                iter_num = 0
+            else:
+                return None, None
+            if len(cl.rounds) < iter_num:
+                return None, None
+            r_flag = cl.rounds[iter_num]
+            if r_flag == "1":
+                return cl.baseline.split(",")[iter_num], cl.operation.split(",")[iter_num]
+            else:
+                return None, None 
         return baseline, operation
 
 

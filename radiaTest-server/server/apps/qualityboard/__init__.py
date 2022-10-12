@@ -9,10 +9,10 @@ from .routes import (
     QualityBoardDeleteVersionEvent,
     ATOverview,
     QualityDefendEvent,
+    DeselectChecklistItem,
     ChecklistEvent,
     ChecklistItem,
     ChecklistRoundsCountEvent,
-    ChecklistSyncProduct,
     DailyBuildOverview,
     DailyBuildDetail,
     WeeklybuildHealthOverview,
@@ -51,6 +51,10 @@ def init_api(api: Api):
         "/api/v1/checkitem",
     )
     api.add_resource(
+        DeselectChecklistItem,
+        "/api/v1/checklist/<int:checklist_id>/deselect",
+    )
+    api.add_resource(
         ChecklistItem,
         "/api/v1/checklist/<int:checklist_id>",
     )
@@ -61,10 +65,6 @@ def init_api(api: Api):
     api.add_resource(
         ChecklistRoundsCountEvent,
         "/api/v1/checklist/rounds-count",
-    )
-    api.add_resource(
-        ChecklistSyncProduct,
-        "/api/v1/checklist/sync/product",
     )
     api.add_resource(
         DailyBuildOverview,
