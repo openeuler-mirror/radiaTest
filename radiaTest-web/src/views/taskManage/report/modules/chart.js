@@ -178,7 +178,7 @@ function getData () {
 
 function getStatics() {
   getIssueType().then(res => {
-    issueTypeOpts.value = JSON.parse(res.data).data.map(item => ({ label: item.title, value: String(item.id) }));
+    issueTypeOpts.value = JSON.parse(res.data).map(item => ({ label: item.title, value: String(item.id) }));
     const defect = issueTypeOpts.value.find(item => item.label === '缺陷');
     if (defect) {
       stateType.value = defect.value;

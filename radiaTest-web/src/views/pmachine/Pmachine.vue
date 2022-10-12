@@ -229,13 +229,13 @@ export default defineComponent({
     const filterchange = (filterArray) => {
       tableRef.value.pagination.page = 1;
       pmachineFilter.filterValue.value = {
-        mac: '',
+        mac: null,
         frame: null,
         _state: null,
-        sshIp: '',
-        bmcIp: '',
-        description: '',
-        occupier: ''
+        sshIp: null,
+        bmcIp: null,
+        description: null,
+        occupier: null
       };
       filterArray.forEach((v) => {
         pmachineFilter.filterValue.value[v.path] = v.value;

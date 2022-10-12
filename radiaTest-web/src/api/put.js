@@ -64,6 +64,10 @@ export function updateCheckListItem(id, data) {
   return putRequest(`/v1/checklist/${id}`, data);
 }
 
+export function deselectCheckListItem(id, data) {
+  return putRequest(`/v1/checklist/${id}/deselect`, data);
+}
+
 export function updateCheckItem(id, data) {
   return putRequest(`/v1/checkitem/${id}`, data);
 }

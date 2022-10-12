@@ -104,11 +104,11 @@ export default defineComponent({
 
     const filterchange = (filterArray) => {
       filterValue.value = {
-        name: '',
-        machine_num: '',
+        name: null,
+        machine_num: null,
         machine_type: null,
-        remark: '',
-        owner: ''
+        remark: null,
+        owner: null
       };
       filterArray.forEach((v) => {
         filterValue.value[v.path] = v.value;

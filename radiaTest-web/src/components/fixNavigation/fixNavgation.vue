@@ -3,64 +3,67 @@
     <vue3-draggable-resizable
       :draggable="true"
       :resizable="false"
-      classNameDraggable="wrapbox"
-      v-model:h="dragboxHeight"
+      classNameDraggable="dragwrapbox"
+      :h="dragboxHeight"
+      :initW="60"
     >
-      <div ref="expandContainer" class="expandWrap">
+      <div>
+        <div ref="expandContainer" class="expandWrap">
+          <n-tooltip trigger="hover" placement="right">
+            <template #trigger>
+              <p class="fix-item expand" @click="handleExpand">
+                <n-icon size="40" color="#fff" :class="{ expandBack: expand }">
+                  <add />
+                </n-icon>
+              </p>
+            </template>
+            {{ expand ? '隐藏' : '更多' }}
+          </n-tooltip>
+          <n-tooltip trigger="hover" placement="right">
+            <template #trigger>
+              <p class="fix-item expandable disabled">
+                <n-icon size="40" color="#fff">
+                  <ArrowSwap20Filled />
+                </n-icon>
+              </p>
+            </template>
+            语言切换
+          </n-tooltip>
+          <n-tooltip trigger="hover" placement="right">
+            <template #trigger>
+              <p class="fix-item expandable disabled">
+                <n-icon size="40" color="#fff" v-if="lightTheme">
+                  <MoonSharp />
+                </n-icon>
+                <n-icon size="40" color="#fff" v-else>
+                  <Sunny />
+                </n-icon>
+              </p>
+            </template>
+            主题切换
+          </n-tooltip>
+        </div>
         <n-tooltip trigger="hover" placement="right">
           <template #trigger>
-            <p class="fix-item expand" @click="handleExpand">
-              <n-icon size="40" color="#fff" :class="{ expandBack: expand }">
-                <add />
-              </n-icon>
-            </p>
-          </template>
-          {{ expand ? '隐藏' : '更多' }}
-        </n-tooltip>
-        <n-tooltip trigger="hover" placement="right">
-          <template #trigger>
-            <p class="fix-item expandable disabled">
+            <p class="fix-item" @click="backToTop">
               <n-icon size="40" color="#fff">
-                <ArrowSwap20Filled />
+                <up-to-top />
               </n-icon>
             </p>
           </template>
-          语言切换
+          回到顶部
         </n-tooltip>
         <n-tooltip trigger="hover" placement="right">
           <template #trigger>
-            <p class="fix-item expandable disabled">
-              <n-icon size="40" color="#fff" v-if="lightTheme">
-                <MoonSharp />
-              </n-icon>
-              <n-icon size="40" color="#fff" v-else>
-                <Sunny />
+            <p class="fix-item" @click="backToBottom">
+              <n-icon size="40" color="#fff">
+                <down-to-bottom />
               </n-icon>
             </p>
           </template>
-          主题切换
+          回到底部
         </n-tooltip>
       </div>
-      <n-tooltip trigger="hover" placement="right">
-        <template #trigger>
-          <p class="fix-item" @click="backToTop">
-            <n-icon size="40" color="#fff">
-              <up-to-top />
-            </n-icon>
-          </p>
-        </template>
-        回到顶部
-      </n-tooltip>
-      <n-tooltip trigger="hover" placement="right">
-        <template #trigger>
-          <p class="fix-item" @click="backToBottom">
-            <n-icon size="40" color="#fff">
-              <down-to-bottom />
-            </n-icon>
-          </p>
-        </template>
-        回到底部
-      </n-tooltip>
     </vue3-draggable-resizable>
   </div>
 </template>
@@ -113,14 +116,22 @@ export default {
 <style lang="less" scoped>
 .fix-container {
   position: fixed;
-  right: 50px;
+  right: 60px;
   bottom: 350px;
-  width: 40px;
   z-index: 9999;
   cursor: move;
 
-  .wrapbox {
-    border-style: none !important;
+  :deep(.dragwrapbox) {
+    border-color: transparent;
+    border-style: dashed;
+    display: flex;
+    justify-content: center;
+    align-items: top;
+
+    &:hover {
+      border-color: #000;
+      border-style: dashed;
+    }
 
     .expandWrap {
       overflow: hidden;

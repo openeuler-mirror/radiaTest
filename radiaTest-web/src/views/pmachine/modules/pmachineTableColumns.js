@@ -7,7 +7,7 @@ import { renderTooltip } from '@/assets/render/tooltip';
 import PowerButton from '@/components/pmachineComponents/changeState/PowerButton';
 import ConnectButton from '@/components/pmachineComponents/changeState/ConnectButton';
 import InstallButton from '@/components/pmachineComponents/changeState/InstallButton';
-import ExpandedCard from '@/components/pmachineComponents/ExpandedCard';
+import ExpandedCardPmachine from '@/components/pmachineComponents/ExpandedCardPmachine.vue';
 import { formatTime } from '@/assets/utils/dateFormatUtils';
 import pmachineTable from './pmachineTable';
 import { modifyPmachineDelayTime } from '@/api/put';
@@ -126,7 +126,7 @@ const ColumnDescription = {
 const ColumnExpand = {
   type: 'expand',
   renderExpand: (rowData) =>
-    h(ExpandedCard, {
+    h(ExpandedCardPmachine, {
       data: rowData,
       IP: rowData.ip,
       machine_group_ip: rowData.machine_group.messenger_ip,

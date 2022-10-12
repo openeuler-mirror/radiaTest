@@ -1,15 +1,10 @@
 import { ref, watch } from 'vue';
 import axios from '@/axios';
-import {
-  getProductOpts,
-  getVersionOpts,
-  getMilestoneOpts,
-} from '@/assets/utils/getOpts.js';
+import { getProductOpts, getVersionOpts, getMilestoneOpts } from '@/assets/utils/getOpts.js';
 import { storage } from '@/assets/utils/storageUtils';
 import { currentOrg } from '@/components/header/profileMenu/modules/orgInfo';
 import { createRepoOptions } from '@/assets/utils/getOpts';
 import createAjax from '@/views/testCenter/template/modules/createAjax.js';
-import casesForm from '@/views/testCenter/template/modules/casesForm.js';
 import { getGroup } from '@/api/get';
 
 const formRef = ref(null);
@@ -23,6 +18,7 @@ const formValue = ref({
   description: undefined,
   git_repo: undefined,
   permission_type: undefined,
+  casesValue: undefined
 });
 
 const loading = ref(false);
@@ -34,19 +30,22 @@ const ownerOpts = ref([]);
 const productOpts = ref([]);
 const versionOpts = ref([]);
 const milestoneOpts = ref([]);
+const options = ref([]);
+const caseLoading = ref(false);
+
 const typeOpts = ref([
   {
     label: '个人模板',
-    value: 'personal',
+    value: 'personal'
   },
   {
     label: '团队模板',
-    value: 'team',
+    value: 'team'
   },
   {
     label: '组织模板',
-    value: 'orgnization',
-  },
+    value: 'orgnization'
+  }
 ]);
 
 const getTeamOptions = () => {
@@ -55,14 +54,12 @@ const getTeamOptions = () => {
       ownerOpts.value = res.data.items.map((item) => {
         return {
           label: item.name,
-          value: item.name,
+          value: item.name
         };
       });
     })
     .catch(() => {
-      window.$message?.error(
-        '无法获取所属团队信息，请检查网络或联系管理员处理'
-      );
+      window.$message?.error('无法获取所属团队信息，请检查网络或联系管理员处理');
     });
 };
 
@@ -90,40 +87,56 @@ const nameValidator = (rule, value) => {
   }
   loading.value = true;
 
-  return axios.validate(
-    '/v1/template',
-    { name: formValue.value.name },
-    loading,
-    warning
-  );
+  return axios.validate('/v1/template', { name: formValue.value.name }, loading, warning);
 };
 
 const rules = {
   name: {
     required: true,
     validator: nameValidator,
-    trigger: ['blur'],
+    trigger: ['blur']
   },
   formwork_type: {
     required: true,
     message: '模板类型不可为空',
-    trigger: ['blur'],
+    trigger: ['blur']
   },
   owner: {
     required: true,
     message: '权限归属/所有者 不可为空',
-    trigger: ['blur'],
+    trigger: ['blur']
   },
   milestone: {
     required: true,
     message: '请绑定里程碑',
-    trigger: ['blur'],
+    trigger: ['blur']
   },
   permission_type: {
     required: true,
     message: '请选择类型',
-    trigger: ['blur'],
+    trigger: ['blur']
   },
+  product: {
+    required: true,
+    message: '请选择产品',
+    trigger: ['blur']
+  },
+  version: {
+    required: true,
+    message: '请选择版本',
+    trigger: ['blur']
+  },
+  git_repo: {
+    required: true,
+    message: '请选择代码仓',
+    trigger: ['blur']
+  },
+  casesValue: {
+    type: 'array',
+    required: true,
+    message: '请选择测试用例',
+    trigger: ['blur']
+  }
 };
 
 const validateFormData = (context) => {
@@ -147,6 +160,7 @@ const clean = () => {
     description: undefined,
     git_repo: undefined,
     permission_type: undefined,
+    casesValue: undefined
   };
 };
 const gitRepoOpts = ref();
@@ -155,7 +169,7 @@ const getProductOptions = async () => {
   gitRepoOpts.value = await createRepoOptions();
 };
 function changeRepo(value) {
-  createAjax.getData(casesForm.options, value);
+  createAjax.getData(options, value);
 }
 
 const activeProductWatcher = () => {
@@ -177,6 +191,8 @@ const activeVersionWatcher = () => {
 };
 
 export default {
+  caseLoading,
+  options,
   productOpts,
   gitRepoOpts,
   versionOpts,
@@ -192,5 +208,5 @@ export default {
   getProductOptions,
   changeRepo,
   activeProductWatcher,
-  activeVersionWatcher,
+  activeVersionWatcher
 };

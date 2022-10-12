@@ -1,7 +1,7 @@
 import { h, ref } from 'vue';
 import { NTag, NIcon, NButton, NSpace, NTooltip, NGradientText } from 'naive-ui';
 
-import ExpandedCard from '@/components/vmachineComponents/ExpandedCard';
+import ExpandedCardVmachine from '@/components/vmachineComponents/ExpandedCardVmachine';
 
 import { deleteAjax } from '@/assets/CRUD/delete';
 import { deleteVm } from '@/api/delete';
@@ -32,7 +32,7 @@ const getColumnExpand = () => {
       } else if (!rowData.ip && (!rowData.vnc_token || rowData.vnc_port === null)) {
         return h('div', null, '缺乏IP以及VNC相关参数，该虚拟机暂不可用');
       }
-      return h(ExpandedCard, {
+      return h(ExpandedCardVmachine, {
         data: rowData,
       });
     },

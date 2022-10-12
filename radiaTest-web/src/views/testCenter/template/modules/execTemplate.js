@@ -2,13 +2,13 @@ import { ref } from 'vue';
 // import axios from '@/axios';
 // import { NSelect } from 'naive-ui';
 import { implementTemplate } from '@/api/post';
-import { getTemplateInfo, getPm, getVm,getMachineGroup } from '@/api/get';
+import { getTemplateInfo, getPm, getVm, getMachineGroup } from '@/api/get';
 import { unkonwnErrorMsg } from '@/assets/utils/description';
 
 const machineGroups = ref([]);
-function getMachineGroupOptions(){
-  getMachineGroup().then(res=>{
-    machineGroups.value = res.data.map(item=>({label:item.name,value:String(item.id)}));
+function getMachineGroupOptions() {
+  getMachineGroup().then((res) => {
+    machineGroups.value = res.data.map((item) => ({ label: item.name, value: String(item.id) }));
   });
 }
 const execModalRef = ref();
@@ -16,9 +16,10 @@ const defaultProp = {
   select_mode: 'auto',
   strict_mode: false,
   vmachine_list: [],
-  pmachine_list: [],
+  pmachine_list: []
 };
-const formValue = ref({ ...defaultProp,machine_group_id:undefined });
+const formValue = ref({ ...defaultProp, machine_group_id: undefined });
+
 const postExecData = () => {
   if (formValue.value.strict_mode) {
     if (
@@ -29,6 +30,7 @@ const postExecData = () => {
       return;
     }
   }
+
   implementTemplate({
     template_id: formValue.value.id,
     template_name: formValue.value.name,
@@ -37,7 +39,12 @@ const postExecData = () => {
     vmachine_list: formValue.value.vmachine_list,
     machine_policy: formValue.value.select_mode,
     strict_mode: formValue.value.strict_mode,
-    machine_group_id:formValue.value.machine_group_id
+    machine_group_id: formValue.value.machine_group_id,
+    creator_id: formValue.value.git_repo.creator_id,
+    org_id: formValue.value.git_repo.org_id,
+    taskmilestone_id: formValue.value.milestone_id,
+    permission_type: formValue.value.git_repo.permission_type,
+    group_id: formValue.value.git_repo.group_id
   })
     .then((res) => {
       if (res.error_code === '2000') {
@@ -61,6 +68,7 @@ const postExecData = () => {
       formValue.value.frame = null;
     });
 };
+
 const pmOpt = ref();
 const vmOpt = ref();
 
@@ -79,20 +87,14 @@ const checkedVm = ref([]);
 const checkedPm = ref([]);
 function selectmachine(type, value) {
   if (type === 'pm') {
-    if (
-      formValue.value.strict_mode &&
-      formValue.value.pm_req_num < value.length
-    ) {
+    if (formValue.value.strict_mode && formValue.value.pm_req_num < value.length) {
       window.$message?.error('严格模式下,需要选择相应数量的机器');
       return;
     }
     checkedPm.value = value;
     formValue.value.pmachine_list = value;
   } else {
-    if (
-      formValue.value.strict_mode &&
-      formValue.value.vm_req_num < value.length
-    ) {
+    if (formValue.value.strict_mode && formValue.value.vm_req_num < value.length) {
       window.$message?.error('严格模式下,需要选择相应数量的机器');
       return;
     }
@@ -102,11 +104,11 @@ function selectmachine(type, value) {
 }
 async function changeFrame() {
   try {
-    if(formValue.value.frame && formValue.value.machine_group_id){
+    if (formValue.value.frame && formValue.value.machine_group_id) {
       const data = await getPm({
         frame: formValue.value.frame,
         machine_purpose: 'run_job',
-        machine_group_id:formValue.value.machine_group_id
+        machine_group_id: formValue.value.machine_group_id
       });
       pmOpt.value = data.data;
       checkedVm.value = [];
@@ -116,24 +118,19 @@ async function changeFrame() {
       const vmdata = await getVm({
         frame: formValue.value.frame,
         machine_purpose: 'run_job',
-        machine_group_id:formValue.value.machine_group_id
+        machine_group_id: formValue.value.machine_group_id
       });
       vmOpt.value = vmdata.data;
     }
   } catch (error) {
-    window.$message?.error(
-      error.data?.error_msg || error.message || unkonwnErrorMsg
-    );
+    window.$message?.error(error.data?.error_msg || error.message || unkonwnErrorMsg);
   }
 }
 function renderText(type, values) {
   const result = [];
   if (values.length) {
     values.forEach((item) => {
-      const element =
-        type === 'vm'
-          ? vmOpt.value.find((i) => i.id === item)
-          : pmOpt.value.find((i) => i.id === item);
+      const element = type === 'vm' ? vmOpt.value.find((i) => i.id === item) : pmOpt.value.find((i) => i.id === item);
       result.push(element?.ip);
     });
     return result.join(',');
@@ -141,15 +138,15 @@ function renderText(type, values) {
   return '';
 }
 const rules = {
-  machine_group_id:{
-    required:true,
-    message:'请选择机器组',
-    trigger:['blur']
+  machine_group_id: {
+    required: true,
+    message: '请选择机器组',
+    trigger: ['blur']
   },
-  frame:{
-    required:true,
-    message:'请选择架构',
-    trigger:['blur']
+  frame: {
+    required: true,
+    message: '请选择架构',
+    trigger: ['blur']
   }
 };
 
