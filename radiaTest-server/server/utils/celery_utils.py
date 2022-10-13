@@ -100,7 +100,12 @@ def make_celery(app_name):
                 'queue': 'queue_update_compare_result',
                 'routing_key': 'compare_result',
                 'delivery_mode': 1,
-            }
+            },
+            'celeryservice.tasks.async_send_vmachine_release_message': {
+                'queue': 'queue_send_vmachine_release_message',
+                'routing_key': 'send_vmachine_release_message',
+                'delivery_mode': 1,
+            },
         }
     )
 

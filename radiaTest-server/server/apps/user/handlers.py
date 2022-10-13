@@ -1,5 +1,4 @@
 import json
-import calendar
 from datetime import datetime, timedelta
 import pytz
 from flask import current_app, request, Response, redirect, g, jsonify
@@ -11,9 +10,8 @@ from server.utils.gitee_util import GiteeApi
 from server.utils.auth_util import generate_token
 from server.utils.redis_util import RedisKey
 from server.utils.db import collect_sql_error, Insert
-from server.utils.cla_util import Cla, ClaShowAdminSchema, ClaShowUserSchema
+from server.utils.cla_util import Cla, ClaShowAdminSchema
 from server.utils.read_from_yaml import get_default_suffix
-from server.utils.page_util import PageUtil
 from server.model.user import User
 from server.model.message import Message
 from server.model.task import Task
@@ -26,7 +24,7 @@ from server.model.testcase import Commit
 from server.model.permission import Role, ReUserRole
 from server.schema.group import ReUserGroupSchema, GroupInfoSchema
 from server.schema.organization import OrgUserInfoSchema, ReUserOrgSchema
-from server.schema.user import UserBaseSchema, UserInfoSchema, UserTaskSchema, UserMachineSchema, UserCaseCommitSchema
+from server.schema.user import UserInfoSchema, UserTaskSchema, UserMachineSchema, UserCaseCommitSchema
 from server.schema.task import TaskInfoSchema
 from server.schema.vmachine import VmachineBriefSchema
 from server.schema.pmachine import PmachineBriefSchema
@@ -488,8 +486,8 @@ def handler_add_group(group_id, body):
         re.user_add_group_flag = True
         re.role_type = GroupRole.user.value
         info = info.format('已加入')
-        message = Message.create_instance(dict(info=info), g.gitee_id, msg.from_id)
-        message1 = Message.create_instance(dict(info=info), g.gitee_id, g.gitee_id)
+        message = Message.create_instance(dict(info=info), g.gitee_id, msg.from_id, msg.org_id)
+        message1 = Message.create_instance(dict(info=info), g.gitee_id, g.gitee_id, msg.org_id)
 
         # 绑定用户和用户组基础角色关系
         group_suffix = get_default_suffix('group')
@@ -503,8 +501,8 @@ def handler_add_group(group_id, body):
     else:
         re.is_delete = True
         info = info.format('拒绝加入')
-        message = Message.create_instance(dict(info=info), g.gitee_id, msg.from_id)
-        message1 = Message.create_instance(dict(info=info), g.gitee_id, g.gitee_id)
+        message = Message.create_instance(dict(info=info), g.gitee_id, msg.from_id, msg.org_id)
+        message1 = Message.create_instance(dict(info=info), g.gitee_id, g.gitee_id, msg.org_id)
     msg.is_delete = True
     re.add_update()
     message.add_update()

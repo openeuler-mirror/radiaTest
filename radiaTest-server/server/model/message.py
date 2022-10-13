@@ -26,6 +26,7 @@ class Message(db.Model, BaseModel):
     is_delete = db.Column(db.Boolean(), default=False, nullable=False)
     has_read = db.Column(db.Boolean(), default=False, nullable=False)
     type = db.Column(db.Integer(), nullable=False, default=MsgType.text.value)
+    org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
 
     def to_dict(self):
         return {
@@ -37,6 +38,7 @@ class Message(db.Model, BaseModel):
             "is_delete": self.is_delete,
             "has_read": self.has_read,
             "type": self.type,
+            "org_id": self.org_id,
             "create_time": self.create_time.strftime("%Y-%m-%d %H:%M:%S"),
             "update_time": self.update_time.strftime("%Y-%m-%d %H:%M:%S"),
         }
@@ -66,8 +68,9 @@ class Message(db.Model, BaseModel):
             {
                 "num": Message.query.filter(
                     Message.to_id == self.to_id,
-                    Message.is_delete == False,
-                    Message.has_read == False).count()
+                    Message.is_delete.is_(False),
+                    Message.has_read.is_(False),
+                    Message.org_id == self.org_id).count()
             },
             namespace='/message',
             room=str(self.to_id)
@@ -85,11 +88,12 @@ class Message(db.Model, BaseModel):
         )
 
     @staticmethod
-    def create_instance(data, from_id, to_id, level=MsgLevel.user.value, msg_type=MsgType.text.value):
+    def create_instance(data, from_id, to_id, org_id, level=MsgLevel.user.value, msg_type=MsgType.text.value):
         new_recode = Message()
         new_recode.data = json.dumps(data)
         new_recode.from_id = from_id
         new_recode.to_id = to_id
         new_recode.level = level
         new_recode.type = msg_type
+        new_recode.org_id = org_id
         return new_recode

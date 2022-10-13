@@ -22,11 +22,13 @@ def after_connect(token):
         
     # 若检验出user_id，将此客户端添加到user_id的room中
     if flag is True and gitee_id is not None:
+        org_id = redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')
         join_room(str(gitee_id))
         msg_count = Message.query.filter(
             Message.to_id == g.gitee_id,
-            Message.is_delete == False,
-            Message.has_read == False
+            Message.is_delete.is_(False),
+            Message.has_read.is_(False),
+            Message.org_id == org_id
         ).count()
         emit(
             "count",

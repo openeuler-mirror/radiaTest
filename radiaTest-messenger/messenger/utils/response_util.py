@@ -29,14 +29,13 @@ class RET(object):
     WRONG_REPO_URL = "60002"
     RUNTIME_ERROR = "60009"
     BASH_ERROR = "70000"
-    MAIL_ERROR = "80000"
 
 
 def runtime_error_collect(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         try:
-            resp= func(*args, **kwargs)   
+            resp = func(*args, **kwargs)
             return resp
         except RuntimeError as e:
             return jsonify(

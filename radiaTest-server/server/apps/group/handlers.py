@@ -131,20 +131,23 @@ def handler_delete_group(group_id):
                 error_msg='resources are related to current group, please delete these resources and retry!'
             )
         res = ReUserGroup.query.filter_by(is_delete=False, group_id=group_id).all()
+        org_id = redis_client.hget(RedisKey.user(g.gitee_id), "current_org_id")
+        org_name = redis_client.hget(RedisKey.user(g.gitee_id), "current_org_name")
         for item in res:
             Insert(
                 Message,
                 {
                     "data": json.dumps(
                         {
-                            "info": f'<b>{redis_client.hget(RedisKey.user(g.gitee_id), "current_org_name")}'
+                            "info": f'<b>{org_name}'
                                     f'</b>组织下的<b>{re.group.name}</b>用户组已解散'
                         }
                     ),
                     "level": MsgLevel.group.value,
                     "from_id": group_id,
                     "to_id": item.user.gitee_id,
-                    "type": MsgType.text.value
+                    "type": MsgType.text.value,
+                    "org_id": org_id
                 }
             ).insert_id()
         Group.query.filter_by(is_delete=False, id=group_id).update({'is_delete': True}, synchronize_session=False)
@@ -157,6 +160,8 @@ def handler_delete_group(group_id):
                                        ReUserGroup.role_type.in_([GroupRole.create_user.value, GroupRole.admin.value]),
                                        ReUserGroup.user_gitee_id != g.gitee_id).all()
         re.is_delete = True
+        org_id = redis_client.hget(RedisKey.user(g.gitee_id), "current_org_id")
+        org_name = redis_client.hget(RedisKey.user(g.gitee_id), "current_org_name")
         for item in res:
             Insert(
                 Message,
@@ -164,14 +169,15 @@ def handler_delete_group(group_id):
                     "data": json.dumps(
                         {
                             "info": f'<b>{re.user.gitee_name}</b>退出'
-                                    f'<b>{redis_client.hget(RedisKey.user(g.gitee_id), "current_org_name")}'
+                                    f'<b>{org_name}'
                                     f'</b>组织下的<b>{re.group.name}</b>用户组'
                         }
                     ),
                     "level": MsgLevel.group.value,
                     "from_id": g.gitee_id,
                     "to_id": item.user.gitee_id,
-                    "type": MsgType.text.value
+                    "type": MsgType.text.value,
+                    "org_id": org_id
                 }
             ).insert_id()
         re.add_update()
@@ -270,6 +276,8 @@ def handler_add_user(group_id, body):
     has_gitee_ids = [item.user.gitee_id for item in relations]
     # 创建新纪录但是不要添加到数据库
     add_list = list()
+    org_id = redis_client.hget(RedisKey.user(g.gitee_id), "current_org_id")
+    org_name = redis_client.hget(RedisKey.user(g.gitee_id), "current_org_name")
     for gitee_id in body.gitee_ids:
         if gitee_id in has_gitee_ids:
             continue
@@ -278,7 +286,7 @@ def handler_add_user(group_id, body):
             role_type=0,
             user_gitee_id=int(gitee_id),
             group_id=int(group_id),
-            org_id=redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')
+            org_id=org_id
         ))
         Insert(
             Message,
@@ -287,14 +295,15 @@ def handler_add_user(group_id, body):
                     {
                         "group_id": group_id,
                         "info": f'<b>{re.user.gitee_name}</b>邀请您加入'
-                                f'<b>{redis_client.hget(RedisKey.user(g.gitee_id), "current_org_name")}</b>组织下的'
+                                f'<b>{org_name}</b>组织下的'
                                 f'<b>{re.group.name}</b>用户组。'
                     }
                 ),
                 "level": MsgLevel.user.value,
                 "from_id": re.user.gitee_id,
                 "to_id": gitee_id,
-                "type": MsgType.script.value
+                "type": MsgType.script.value,
+                "org_id": org_id
             }
         ).insert_id()
     db.session.execute(ReUserGroup.__table__.insert(), add_list)
@@ -323,6 +332,8 @@ def handler_update_user(group_id, body):
         update_params = dict()
         if body.is_delete:
             res = ReUserGroup.query.filter(*filter_params).all()
+            org_name = redis_client.hget(RedisKey.user(g.gitee_id), "current_org_name")
+            org_id = redis_client.hget(RedisKey.user(g.gitee_id), "current_org_id")
             for item in res:
                 user_id = item.user_gitee_id
                 _filter = [ReUserRole.user_id == user_id,
@@ -331,20 +342,22 @@ def handler_update_user(group_id, body):
                 re_list = ReUserRole.query.join(Role).filter(*_filter).all()
                 for _re in re_list:
                     Delete(ReUserRole, {"id": _re.id}).single()
+
                 Insert(
                     Message,
                     {
                         "data": json.dumps(
                             {
                                 'info': f'<b>{re.user.gitee_name}</b>将您请出'
-                                        f'<b>{redis_client.hget(RedisKey.user(g.gitee_id), "current_org_name")}</b>组织下的'
+                                        f'<b>{org_name}</b>组织下的'
                                         f'<b>{re.group.name}</b>用户组！'
                             }
                         ),
                         "level": MsgLevel.user.value,
                         "from_id": g.gitee_id,
                         "to_id": item.user_gitee_id,
-                        "type": MsgType.text.value
+                        "type": MsgType.text.value,
+                        "org_id": org_id
                     }
                 ).insert_id()
                 item.delete()

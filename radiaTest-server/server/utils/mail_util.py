@@ -9,7 +9,7 @@
 ####################################
 # @Author  : 凹凸曼打小怪兽
 # @email   : 15710801006@163.com
-# @Date    : 2022/09/05
+# @Date    : 2022/10/12
 # @License : Mulan PSL v2
 #####################################
 
@@ -19,34 +19,25 @@ from email.mime.text import MIMEText
 from email.header import Header
 from flask import current_app, jsonify
 
-from messenger.utils.response_util import RET
+from server.utils.response_util import RET
 
 
 class Mail:
-    def __init__(
-            self,
-            pmachine_ip,
-            from_addr=None,
-            to_addr=None,
-            text="from radiaTest email"
-    ):
-        self._smtp_server = current_app.config.get("SMTP_SERVER")
-        self._smtp_port = current_app.config.get("SMTP_PORT")
+    def __init__(self, smtp_server=None, smtp_port=None, from_addr=None, password=None):
+        self._smtp_server = smtp_server if smtp_server else current_app.config.get("SMTP_SERVER")
+        self._smtp_port = smtp_port if smtp_port else current_app.config.get("SMTP_PORT")
         self._from_addr = from_addr if from_addr else current_app.config.get("FROM_ADDR")
-        self._to_addr = to_addr if to_addr else current_app.config.get("TO_ADDR")
-        self._password = current_app.config.get("SMTP_PASSWD")
-        self._pmachine_ip = pmachine_ip
-        self._text = text
+        self._password = password if password else current_app.config.get("SMTP_PASSWD")
+        self._smtpobj = self._connect_smtp()
 
-    def send_text_mail(self):
-        _msg = MIMEText(self._text, "plain", "utf-8")
+    def send_text_mail(self, to_addr, subject=None, text=None):
+        _msg = MIMEText(text, "plain", "utf-8")
         _msg["From"] = Header("【radiaTest平台】")
-        _msg["To"] = Header("radiaTest管理员")
-        _subject = "【radiaTest平台】{}-密码变更通知".format(self._pmachine_ip)
+        _msg["To"] = Header("{}".format(to_addr))
+        _subject = "{}".format(subject)
         _msg["Subject"] = Header(_subject, "utf-8")
-        smtpobj = self._connect_smtp()
         try:
-            smtpobj.sendmail(self._from_addr, self._to_addr, _msg.as_string())
+            self._smtpobj.sendmail(self._from_addr, to_addr, _msg.as_string())
             return jsonify(
                 error_code=RET.OK,
                 error_msg="send mail success"
@@ -57,14 +48,21 @@ class Mail:
                 error_code=RET.MAIL_ERROR,
                 error_msg="fail to send mail"
             )
-        finally:
-            smtpobj.close()
+
+    def quit(self):
+        self._smtpobj.quit()
+
+    def close(self):
+        self._smtpobj.close()
 
     def _connect_smtp(self):
-        smtpobj = smtplib.SMTP()
         try:
-            smtpobj.connect(self._smtp_server, self._smtp_port)
+            smtpobj = smtplib.SMTP(self._smtp_server, self._smtp_port)
+            smtpobj.starttls()
             smtpobj.login(self._from_addr, self._password)
+            return smtpobj
         except ConnectionError as e:
             current_app.logger.error(e)
-        return smtpobj
+            return None
+
+

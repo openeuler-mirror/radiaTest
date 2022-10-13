@@ -41,6 +41,7 @@ from celeryservice.lib.monitor import LifecycleMonitor
 from celeryservice.lib.issuerate import UpdateIssueRate, UpdateIssueTypeState
 from celeryservice.lib.testcase import TestcaseHandler
 from celeryservice.lib.dailybuild import DailyBuildHandler
+from celeryservice.lib.message import VmachineReleaseNotice
 
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -82,6 +83,11 @@ def setup_periodic_tasks(sender, **kwargs):
     )
     sender.add_periodic_task(
         crontab(minute="*/60"), async_read_openqa_homepage.s(), name="read_openqa"
+    )
+    sender.add_periodic_task(
+        crontab(minute="*/50"),
+        async_send_vmachine_release_message.s(),
+        name="send_vmachine_release_message",
     )
 
 
@@ -310,3 +316,8 @@ def resolve_pkglist_after_resolve_rc_name(repo_url, product, _round: int = None)
                             f"resolving_{product}-round-{_round}_pkglist"
                         )
                         break
+
+
+@celery.task
+def async_send_vmachine_release_message():
+    VmachineReleaseNotice(logger).main()

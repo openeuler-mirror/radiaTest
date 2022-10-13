@@ -166,7 +166,12 @@ task_queues = (
         "queue_update_compare_result",
         exchange=Exchange("compare_result", type="direct"),
         routing_key="compare_result",
-    )
+    ),
+    Queue(
+        "queue_send_vmachine_release_message",
+        exchange=Exchange("server_exchange", type="direct"),
+        routing_key="send_vmachine_release_message",
+    ),
 )
 
 task_default_exchange_type = "direct"
@@ -175,3 +180,9 @@ task_default_exchange_type = "direct"
 # you need to change the corresponding build and deployment files)
 cacert_path = loads_config_ini("server", "CA_CERT")
 openqa_url = loads_config_ini("at", "OPENQA_URL")
+
+# mail server info(make sure net is reachable)
+smtp_server = loads_config_ini("mail", "SMTP_SERVER")
+smtp_port = loads_config_ini("mail", "SMTP_PORT")
+from_addr = loads_config_ini("mail", "FROM_ADDR")
+smtp_passwd = loads_config_ini("mail", "SMTP_PASSWD")
