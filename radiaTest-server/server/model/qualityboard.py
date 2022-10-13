@@ -8,14 +8,6 @@ from server.model.milestone import IssueSolvedRate, Milestone
 from server.utils.at_utils import OpenqaATStatistic
 
 
-
-checklist_product = db.Table(
-    'checklist_product',
-    db.Column('checklist_id', db.Integer, db.ForeignKey('checklist.id')),
-    db.Column('product_id', db.Integer, db.ForeignKey('product.id'))
-)
-
-
 class QualityBoard(BaseModel, db.Model):
     __tablename__ = "qualityboard"
 
@@ -65,14 +57,11 @@ class QualityBoard(BaseModel, db.Model):
 class Checklist(db.Model, BaseModel):
     __tablename__ = "checklist"
     id = db.Column(db.Integer(), primary_key=True, autoincrement=True)
-    baseline = db.Column(db.String(50))
+    baseline = db.Column(db.String(255))
     rounds = db.Column(db.String(128))
-    lts = db.Column(db.Boolean(), default=False)
-    lts_spx = db.Column(db.Boolean(), default=False)
-    innovation = db.Column(db.Boolean(), default=False)
-    operation = db.Column(db.Enum("<", ">", "=", "<=", ">="))
-    checkitem_id = db.Column(db.Integer(), db.ForeignKey("checkitem.id")) 
-    products = db.relationship("Product", secondary=checklist_product, backref="checklist")
+    operation = db.Column(db.String(255))
+    checkitem_id = db.Column(db.Integer(), db.ForeignKey("checkitem.id"))
+    product_id = db.Column(db.Integer(), db.ForeignKey("product.id"))
 
     def to_json(self):
         ci = CheckItem.query.filter_by(id=self.checkitem_id).first()
@@ -81,14 +70,87 @@ class Checklist(db.Model, BaseModel):
             'check_item': ci.title if ci else None,
             'baseline': self.baseline,
             'rounds': self.rounds,
-            'lts': self.lts,
-            'lts_spx': self.lts_spx,
-            'innovation': self.innovation,
             "operation": self.operation,
             "checkitem_id": self.checkitem_id,
+            "product_id": self.product_id,
             'create_time': self.create_time.strftime("%Y-%m-%d %H:%M:%S"),
             'update_time': self.update_time.strftime("%Y-%m-%d %H:%M:%S")
         }
+
+    def to_json2(self):
+        ci = CheckItem.query.filter_by(id=self.checkitem_id).first()
+        checkitem_name = ci.title if ci else None
+        data = []
+        if self.rounds.count("1") == 0:
+            item = {
+                'id': self.id,
+                'check_item': checkitem_name,
+                'baseline': self.baseline.split(",")[0],
+                'rounds': self.rounds,
+                "operation": self.operation.split(",")[0],
+                "checkitem_id": self.checkitem_id,
+                "product_id": self.product_id,
+            }
+            data.append(item)
+            return data
+        idx = 0
+        r_len = len(self.rounds)
+        if r_len == 1:
+            item = {
+                'id': self.id,
+                'check_item': checkitem_name,
+                'baseline': self.baseline,
+                'rounds': self.rounds,
+                "operation": self.operation,
+                "checkitem_id": self.checkitem_id,
+                "product_id": self.product_id,
+            }
+            data.append(item)
+            return data
+        idx = 0
+        t_dict = dict()
+        baseline = self.baseline.split(",")
+        operation = self.operation.split(",")
+        for _r in self.rounds:
+            tstr = baseline[idx] + "," + operation[idx]
+            if tstr == ",":
+                idx += 1
+                continue
+            if _r == "0":
+                idx += 1
+                if not t_dict.get(tstr):
+                    t_dict.update({
+                        tstr: ""
+                    })
+                continue
+            if t_dict.get(tstr):
+                t_dict.update({
+                    tstr: t_dict.get(tstr) + "," + str(idx)
+                })
+            else:
+                t_dict.update({
+                    tstr: str(idx)
+                })
+            idx += 1
+        for k in t_dict.keys():
+            t_idxs = t_dict.get(k).split(",")
+            t_rounds = ["0"] * len(self.rounds)
+            for t_idx in t_idxs:
+                if t_idx == "":
+                    break
+                t_rounds[int(t_idx)] = "1"
+            
+            item = {
+                'id': self.id,
+                'check_item': checkitem_name,
+                'baseline': k.split(",")[0],
+                'rounds': "".join(t_rounds),
+                "operation": k.split(",")[1],
+                "checkitem_id": self.checkitem_id,
+                "product_id": self.product_id,
+            }
+            data.append(item)
+        return data
 
 
 class CheckItem(db.Model, BaseModel):
