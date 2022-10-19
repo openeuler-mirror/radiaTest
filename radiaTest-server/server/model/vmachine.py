@@ -29,7 +29,7 @@ class Vmachine(BaseModel, PermissionBaseModel, db.Model):
 
     product = db.Column(db.String(64), nullable=False)
     milestone = db.Column(db.String(64), nullable=False)
-
+    is_release_notification = db.Column(db.Boolean(), nullable=False, default=False)
     pmachine_id = db.Column(db.Integer(), db.ForeignKey("pmachine.id"))
 
     vnic = db.relationship(
@@ -44,12 +44,12 @@ class Vmachine(BaseModel, PermissionBaseModel, db.Model):
     creator_id = db.Column(db.Integer(), db.ForeignKey("user.gitee_id"))
     group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
     org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
-    
+
     def to_public_json(self):
         _machine_group = None
         if self.pmachine and self.pmachine.machine_group:
             _machine_group = self.pmachine.machine_group.to_json()
-        
+
         return {
             "id": self.id,
             "name": self.name,
@@ -77,7 +77,8 @@ class Vmachine(BaseModel, PermissionBaseModel, db.Model):
             "creator_id": self.creator_id,
             "permission_type": self.permission_type,
             "group_id": self.group_id,
-            "org_id": self.org_id
+            "org_id": self.org_id,
+            "is_release_notification": self.is_release_notification
         }
 
     def to_ssh_json(self):

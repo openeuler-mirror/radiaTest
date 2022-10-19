@@ -1,10 +1,8 @@
-from copy import deepcopy
 import json
 import secrets
 import string
 from flask import current_app, jsonify
 from subprocess import getstatusoutput
-from messenger.utils.response_util import RET
 from messenger.utils.shell import ShellCmdApi
 from messenger.utils.bash import (
     pxe_boot,
@@ -17,7 +15,6 @@ from messenger.utils.pxe import PxeInstall, CheckInstall
 from messenger.utils.response_util import RET
 from messenger.utils.requests_util import update_request
 from messenger.utils.pssh import ConnectionApi
-from messenger.utils.mail_util import Mail
 
 
 class AutoInstall:
@@ -151,18 +148,6 @@ class PmachineSshPassword:
                 error_code=RET.VERIFY_ERR,
                 error_msg="Failed to connect to physical machine.",
             )
-        mail_resp = Mail(
-            self._body.get("ip"),
-            text="{} new password:{}".format(
-                self._body.get("ip"),
-                new_password)
-        ).send_text_mail()
-        mail_resp = json.loads(mail_resp.data.decode('UTF-8'))
-        if mail_resp.get("error_code") != RET.OK:
-            return jsonify(
-                error_code=RET.MAIL_ERROR,
-                error_msg=mail_resp.get("error_msg")
-            )
         exitcode, output = ShellCmdApi(
             pmachine_reset_password(
                 self._body.get("user"),
@@ -176,13 +161,23 @@ class PmachineSshPassword:
                 error_msg="bash execute error:{}".format(output)
             )
 
-        return update_request(
+        _resp = update_request(
             "/api/v1/pmachine/{}".format(self._body.get("id")),
             {
                 "password": new_password
             },
             self._body.get("auth")
         )
+        if _resp.get("error_code") != RET.OK:
+            return jsonify(
+                error_code=_resp.get("error_code"),
+                error_msg=_resp.get("error_msg")
+            )
+        else:
+            return jsonify(
+                error_code=RET.OK,
+                error_msg="{}:{}".format(self._body.get("ip"), new_password)
+            )
 
 
 class PmachineBmcPassword:

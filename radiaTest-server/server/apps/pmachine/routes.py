@@ -17,7 +17,7 @@ from server.utils.db import Edit, Insert, collect_sql_error, Delete
 from server.utils.auth_util import auth
 from server.utils.response_util import response_collect, RET
 from server.utils.resource_utils import ResourceManager
-from server.utils.permission_utils import GetAllByPermission
+from server.utils.mail_util import Mail
 from server.schema.pmachine import (
     MachineGroupCreateSchema,
     MachineGroupQuerySchema,
@@ -351,6 +351,14 @@ class PmachineReleaseEvent(Resource):
                 return jsonify(
                     error_code=RET.BAD_REQ_ERR,
                     error_msg="Modify ssh password error, can't released."
+                )
+            else:
+                pmachine_passwd = _resp.get("error_msg").split(":")
+                mail = Mail()
+                mail.send_text_mail(
+                    current_app.config.get("ADMIN_MAIL_ADDR"),
+                    subject="【radiaTest平台】{}-密码变更通知".format(pmachine_passwd[0]),
+                    text="{} new password:{}".format(pmachine_passwd[0], pmachine_passwd[1])
                 )
 
         if pmachine.state == "occupied":

@@ -3,12 +3,13 @@ import json
 from flask import g, jsonify, request
 from flask_socketio import emit
 
-from server import db
+from server import db, redis_client
 from server.model.message import Message
 from server.schema.message import MessageModel
 from server.utils.response_util import RET
 from server.utils.page_util import PageUtil
 from server.utils.db import collect_sql_error
+from server.utils.redis_util import RedisKey
 
 
 @collect_sql_error
@@ -17,10 +18,12 @@ def handler_msg_list():
     has_read = int(request.args.get('has_read', 0))
     page_size = int(request.args.get('page_size', 10))
     page_num = int(request.args.get('page_num', 1))
+    org_id = redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')
 
     filter_params = [
         Message.to_id == g.gitee_id,
-        Message.is_delete == False
+        Message.is_delete.is_(False),
+        Message.org_id == org_id
     ]
     if has_read in [0, 1]:
         filter_params.append(Message.has_read == (True if has_read else False))
@@ -39,12 +42,15 @@ def handler_update_msg():
     is_delete = request.json.get('is_delete')
     has_read = request.json.get('has_read')
     has_all_read = request.json.get('has_all_read')
+    org_id = redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')
+
     if not msg_id_list and not has_all_read:
         return jsonify(errro_code=RET.PARMA_ERR, error_msg='msg_ids is not null')
     # 获取数据
     filter_params = [
         Message.to_id == g.gitee_id,
-        Message.is_delete == False,
+        Message.is_delete.is_(False),
+        Message.org_id == org_id
     ]
     if msg_id_list and not has_all_read:
         filter_params.append(Message.id.in_(msg_id_list))
@@ -58,8 +64,9 @@ def handler_update_msg():
     Message.query.filter(*filter_params).update(update_dict, synchronize_session=False)
     db.session.commit()
     msg_count = Message.query.filter(Message.to_id == g.gitee_id,
-                                     Message.is_delete == False,
-                                     Message.has_read == False).count()
+                                     Message.is_delete.is_(False),
+                                     Message.has_read.is_(False),
+                                     Message.org_id == org_id).count()
     emit(
         "count",
         {"num": msg_count},
@@ -75,12 +82,12 @@ def handler_msg_callback(body):
     if not msg:
         raise RuntimeError("the msg does not exist.")
     _data = json.loads(msg.data)
-    info=f'<b>您</b>请求{_data.get("_alias")}<b>{_data.get("_id")}</b>已经被{{}}</b>。'
+    info = f'<b>您</b>请求{_data.get("_alias")}<b>{_data.get("_id")}</b>已经被{{}}</b>。'
     if body.access:
         info = info.format('管理员处理')
     else:
         info = info.format('管理员拒绝')
-    message = Message.create_instance(dict(info=info), g.gitee_id, msg.from_id)
+    message = Message.create_instance(dict(info=info), g.gitee_id, msg.from_id, msg.org_id)
     msg.has_read = True
 
     msg.type = 0

@@ -15,23 +15,18 @@
 
 #####################################
 
-import os
 import json
 
 from flask import g, current_app, jsonify, request
-from flask_restful import original_flask_make_response as make_response
 from sqlalchemy import or_, and_
-from pydantic.error_wrappers import ValidationError
 
 from server import redis_client
 from server.model.pmachine import Pmachine, MachineGroup
 from server.model.group import Group, ReUserGroup
 from server.model.message import Message, MsgType, MsgLevel
-from server.schema.pmachine import MachineGroupCreateSchema
-from server.utils.response_util import RET, ssl_cert_verify_error_collect
+from server.utils.response_util import ssl_cert_verify_error_collect
 from server.utils.redis_util import RedisKey
-from server.utils.file_util import ImportFile
-from server.utils.db import Edit, Insert, collect_sql_error
+from server.utils.db import Insert, collect_sql_error
 from server.utils.requests_util import do_request
 from server.utils.response_util import RET
 from server.utils.page_util import PageUtil
@@ -211,8 +206,8 @@ class StateHandler:
         org_id = redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')
         filter_params = [
             Group.name == current_app.config.get("OE_QA_GROUP_NAME"),
-            Group.is_delete is False,
-            ReUserGroup.is_delete is False,
+            Group.is_delete.is_(False),
+            ReUserGroup.is_delete.is_(False),
             ReUserGroup.org_id == org_id,
             ReUserGroup.role_type == 1,
         ]
@@ -232,7 +227,8 @@ class StateHandler:
             level=MsgLevel.user.value,
             from_id=g.gitee_id,
             to_id=re.user.gitee_name,
-            type=MsgType.script.value
+            type=MsgType.script.value,
+            org_id=org_id
         )
 
         return Insert(Message, _message).single()

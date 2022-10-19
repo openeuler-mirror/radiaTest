@@ -20,14 +20,14 @@ import json
 from uuid import uuid1
 from flask import g, current_app, url_for, jsonify
 from typing import List
-from server.utils.response_util import RET, ssl_cert_verify_error_collect
+from server.utils.response_util import ssl_cert_verify_error_collect
 from server import redis_client, db
 from server.model.template import Template
 from server.model.task import Task, TaskStatus, TaskManualCase, TaskMilestone
 from server.model.testcase import Case
 from server.model.group import Group, ReUserGroup
 from server.model.user import User
-from server.model.message import Message, MsgType, MsgLevel
+from server.model.message import Message, MsgLevel
 from server.utils.db import Insert
 from server.utils.redis_util import RedisKey
 from server.utils.requests_util import do_request
@@ -187,9 +187,9 @@ class UpdateTaskStatusService(object):
                     milestone.add_update()
 
                 if (
-                    milestone.job_result in ["pending", "block"]
-                    and task.frame
-                    and not task.is_manage_task
+                        milestone.job_result in ["pending", "block"]
+                        and task.frame
+                        and not task.is_manage_task
                 ):
                     get_job_url = (
                         f'https://{current_app.config.get("SERVER_ADDR")}'
@@ -311,8 +311,8 @@ class AnalysisTaskInfo(object):
     def get_belong(self):
         task = self.task
         if (
-            (task.type in ["VERSION", "ORGANIZATION"] and task.executor_type == "GROUP")
-            or task.type == "GROUP"
+                (task.type in ["VERSION", "ORGANIZATION"] and task.executor_type == "GROUP")
+                or task.type == "GROUP"
         ) and task.group_id:
             group = Group.query.get(task.group_id)
             return GroupInfoSchema(**group.__dict__).dict() if group else {}
@@ -353,6 +353,7 @@ def send_message(task: Task, msg, from_id=1):
                 "from_id": from_id,
                 "to_id": item,
                 "level": MsgLevel.system.value,
+                "org_id": task.org_id
             },
         ).insert_id()
 

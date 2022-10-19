@@ -1,6 +1,5 @@
 import json, yaml, os
-from flask import g, jsonify, current_app
-from server.utils.response_util import RET
+from flask import g, current_app
 
 from server.model import (
     ReUserOrganization,
@@ -86,11 +85,11 @@ class MessageManager:
         if not re_role_user:
             raise RuntimeError("the user with this role does not exist.")
         MessageManager.send_scrpt_msg(
-            re_role_user.user_id, MsgLevel.user.value, _api, _instance.permission_type
+            re_role_user.user_id, MsgLevel.user.value, _api, _instance.permission_type, cur_org_id
         )
 
     @staticmethod
-    def send_scrpt_msg(to_user_id, msg_leve: MsgLevel, _api, permission_type):
+    def send_scrpt_msg(to_user_id, msg_leve: MsgLevel, _api, permission_type, org_id):
         from server import redis_client
         from server.utils.redis_util import RedisKey
 
@@ -110,6 +109,7 @@ class MessageManager:
             from_id=g.gitee_id,
             to_id=to_user_id,
             type=MsgType.script.value,
+            org_id=org_id
         )
 
         Insert(Message, _message).single()

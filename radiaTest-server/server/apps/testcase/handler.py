@@ -651,7 +651,8 @@ class HandlerCaseReview(object):
                     "level": MsgLevel.user.value,
                     "from_id": g.gitee_id,
                     "to_id": _commit.creator_id,
-                    "type": MsgType.text.value
+                    "type": MsgType.text.value,
+                    "org_id": _commit.org_id
                 }
             ).insert_id()
 
