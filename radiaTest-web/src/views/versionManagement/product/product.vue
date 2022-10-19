@@ -26,7 +26,13 @@
       <div style="display: flex; align-items: center">
         <filterButton :filterRule="filterRule" @filterchange="filterchange" style="display: flex; padding-right: 20px">
         </filterButton>
-        <n-select v-model:value="currentProduct" placeholder="请选择产品" style="width: 200px" :options="productList" />
+        <n-select
+          v-model:value="currentProduct"
+          placeholder="请选择产品"
+          style="width: 200px"
+          :options="productList"
+          clearable
+        />
         <n-button :disabled="!currentProduct" @click="clickCheckList" style="margin-right: 40px">
           <template #icon>
             <n-icon>
@@ -422,7 +428,7 @@
     <n-modal v-model:show="showCheckList">
       <n-card
         style="width: 1000px"
-        title="CheckList设置"
+        :title="checkListModalTitle"
         :bordered="false"
         size="huge"
         role="dialog"
@@ -430,11 +436,11 @@
         class="checkListWrap"
       >
         <div class="addBtn">
-          <n-button type="info" @click="addCheckItem"> 新增检查项 </n-button>
+          <n-button class="btn" type="info" @click="addCheckItem"> 新增检查项 </n-button>
+          <n-button class="btn" type="info" @click="addBaseline"> 变更基准值 </n-button>
         </div>
         <div>
           <n-data-table
-            remote
             :loading="checkListTableLoading"
             :columns="checkListTableColumns"
             :data="checkListTableData"
@@ -452,7 +458,7 @@
       placement="right"
       class="checkListDrawer"
     >
-      <n-drawer-content title="新增检查项">
+      <n-drawer-content :title="isAddBaseline ? '变更基准值' : '新增检查项'">
         <n-form
           :model="checkListDrawerModel"
           :rules="checkListDrawerRules"
@@ -462,18 +468,19 @@
           size="medium"
           :style="{}"
         >
-          <n-form-item label="产品名称" path="product_name">
+          <n-form-item label="产品名称" path="product_id">
             <n-select
-              v-model:value="checkListDrawerModel.product_name"
+              v-model:value="checkListDrawerModel.product_id"
               placeholder="请选择产品名称"
               :options="productList"
+              disabled
             />
           </n-form-item>
           <n-form-item label="检查项" path="checkitem_id">
             <n-select
               v-model:value="checkListDrawerModel.checkitem_id"
               placeholder="请选择检查项"
-              :options="checkItemList"
+              :options="isAddBaseline ? existedCheckItemList : checkItemList"
               filterable
             />
           </n-form-item>
@@ -491,9 +498,17 @@
               :options="operationOptions"
             />
           </n-form-item>
+          <n-form-item label="Rounds" path="rounds" v-if="isAddBaseline">
+            <n-select
+              v-model:value="checkListDrawerModel.rounds"
+              placeholder="请选择迭代版本"
+              :options="roundsOptions"
+            />
+          </n-form-item>
           <div class="buttonWrap">
             <n-button class="btn" type="error" ghost @click="cancelCheckListDrawer">取消</n-button>
-            <n-button class="btn" type="info" ghost @click="confirmCheckItem">新增</n-button>
+            <n-button v-show="!isAddBaseline" class="btn" type="info" ghost @click="confirmCheckItem">新增</n-button>
+            <n-button v-show="isAddBaseline" class="btn" type="info" ghost @click="confirmBaseline">新增</n-button>
           </div>
         </n-form>
       </n-drawer-content>
@@ -551,7 +566,7 @@ import FeatureTable from '@/components/productDrawer/FeatureTable.vue';
 import filterButton from '@/components/filter/filterButton.vue';
 import PackageTable from '@/components/productDrawer/PackageTable.vue';
 import RefreshButton from '@/components/CRUD/RefreshButton';
-import { getProductOpts, getCheckItemOpts } from '@/assets/utils/getOpts';
+import { getProductVersionOpts } from '@/assets/utils/getOpts';
 import echart from '@/components/echart/echart.vue';
 
 export default {
@@ -582,8 +597,7 @@ export default {
     onMounted(() => {
       modules.getTableData();
       modules.getDefaultList();
-      getProductOpts(modules.productList);
-      getCheckItemOpts(modules.checkItemList);
+      getProductVersionOpts(modules.productList);
       modules.setFeatureOption(additionFeatureOption, '新增特性', modules.additionFeatureSummary.value);
       modules.setFeatureOption(inheritFeatureOption, '继承特性', modules.inheritFeatureSummary.value);
     });
@@ -699,6 +713,10 @@ export default {
     display: flex;
     justify-content: right;
     margin-bottom: 15px;
+
+    .btn {
+      margin: 0 5px;
+    }
   }
 }
 

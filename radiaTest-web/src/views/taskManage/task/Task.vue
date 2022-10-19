@@ -1,19 +1,8 @@
 <template>
-  <n-spin
-    :show="showLoading"
-    stroke="rgba(0, 47, 167, 1)"
-  >
+  <n-spin :show="showLoading" stroke="rgba(0, 47, 167, 1)">
     <div class="task-body">
-      <n-drawer
-        v-model:show="showNewTaskDrawer"
-        :maskClosable="false"
-        width="324px"
-        placement="left"
-      >
-        <n-drawer-content
-          title="新建任务"
-          closable
-        >
+      <n-drawer v-model:show="showNewTaskDrawer" :maskClosable="false" width="324px" placement="left">
+        <n-drawer-content title="新建任务" closable>
           <n-form
             :model="model"
             :rules="rules"
@@ -23,31 +12,13 @@
             size="medium"
             :style="{}"
           >
-            <n-form-item
-              label="名称"
-              path="name"
-            >
-              <n-input
-                placeholder="请输入任务名称"
-                v-model:value="model.name"
-              />
+            <n-form-item label="名称" path="name">
+              <n-input placeholder="请输入任务名称" v-model:value="model.name" />
             </n-form-item>
-            <n-form-item
-              label="任务类型"
-              path="type"
-            >
-              <n-select
-                placeholder="请选择"
-                :options="taskTypes"
-                @update:value="taskTypeChange"
-                :value="model.type"
-              />
+            <n-form-item label="任务类型" path="type">
+              <n-select placeholder="请选择" :options="taskTypes" @update:value="taskTypeChange" :value="model.type" />
             </n-form-item>
-            <n-form-item
-              label="执行团队"
-              path="group"
-              v-if="model.type === 'GROUP'"
-            >
+            <n-form-item label="执行团队" path="group" v-if="model.type === 'GROUP'">
               <n-select
                 placeholder="请选择"
                 :options="groups"
@@ -57,11 +28,7 @@
                 :disabled="model.type == 'PERSON'"
               />
             </n-form-item>
-            <n-form-item
-              label="执行者"
-              path="orgTask"
-              v-if="model.type === 'ORGANIZATION'"
-            >
+            <n-form-item label="执行者" path="orgTask" v-if="model.type === 'ORGANIZATION'">
               <n-cascader
                 :value="model.orgTask"
                 placeholder="请选择"
@@ -77,11 +44,7 @@
             <n-form-item
               label="执行者"
               path="executor"
-              v-if="
-                model.type !== null &&
-                  (model.type === 'GROUP' || model.type === 'PERSON') &&
-                  model.group !== ''
-              "
+              v-if="model.type !== null && (model.type === 'GROUP' || model.type === 'PERSON') && model.group !== ''"
             >
               <n-select
                 placeholder="请选择"
@@ -91,77 +54,30 @@
                 v-model:value="model.executor"
               />
             </n-form-item>
-            <n-form-item
-              label="截止日期"
-              path="closingTime"
-            >
-              <n-date-picker
-                type="datetime"
-                v-model:value="model.closingTime"
-              />
+            <n-form-item label="截止日期" path="closingTime">
+              <n-date-picker type="datetime" v-model:value="model.closingTime" />
             </n-form-item>
-            <n-form-item
-              label="关键词"
-              path="keyword"
-            >
-              <n-input
-                placeholder="请输入关键词"
-                v-model:value="model.keyword"
-                type="textarea"
-              />
+            <n-form-item label="关键词" path="keyword">
+              <n-input placeholder="请输入关键词" v-model:value="model.keyword" type="textarea" />
             </n-form-item>
-            <n-form-item
-              label="摘要"
-              path="abstract"
-            >
-              <n-input
-                placeholder="请输入报告摘要"
-                v-model:value="model.abstract"
-                type="textarea"
-              />
+            <n-form-item label="摘要" path="abstract">
+              <n-input placeholder="请输入报告摘要" v-model:value="model.abstract" type="textarea" />
             </n-form-item>
-            <n-form-item
-              label="缩略语清单"
-              path="abbreviation"
-            >
-              <n-input
-                placeholder="请输入缩略语清单"
-                v-model:value="model.abbreviation"
-                type="textarea"
-              />
+            <n-form-item label="缩略语清单" path="abbreviation">
+              <n-input placeholder="请输入缩略语清单" v-model:value="model.abbreviation" type="textarea" />
             </n-form-item>
             <div class="createButtonBox">
-              <n-button
-                class="btn"
-                type="error"
-                ghost
-                @click="cancelCreateTask"
-              >取消</n-button>
-              <n-button
-                class="btn"
-                type="info"
-                ghost
-                @click="createTask"
-              >创建</n-button>
+              <n-button class="btn" type="error" ghost @click="cancelCreateTask">取消</n-button>
+              <n-button class="btn" type="info" ghost @click="createTask">创建</n-button>
             </div>
-            <div
-              class="createButtonBox"
-              style="margin-top: 20px"
-            >
-              <n-button
-                class="versionTask"
-                type="info"
-                ghost
-                @click="createVersionTask"
-              >创建版本任务</n-button>
+            <div class="createButtonBox" style="margin-top: 20px">
+              <n-button class="versionTask" type="info" ghost @click="createVersionTask">创建版本任务</n-button>
             </div>
           </n-form>
         </n-drawer-content>
       </n-drawer>
-      <div
-        v-if="kanban"
-      >
-        <n-scrollbar x-scrollable >
+      <div v-if="kanban">
+        <n-scrollbar x-scrollable>
           <div class="task-board">
             <draggable
               v-model="listData"
@@ -172,7 +88,8 @@
               :animation="200"
             >
               <template #item="{ element }">
-                <kanban-board ref="kanban"
+                <kanban-board
+                  ref="kanban"
                   @changeStatus="changeStatus($event, element)"
                   :taskData="element"
                   @showDetail="getDetail"
@@ -183,25 +100,15 @@
               </template>
             </draggable>
             <div class="create-stage">
-              <div
-                class="create-stage-title"
-                @click="createStatusLink"
-                v-show="showCreate"
-              >
+              <div class="create-stage-title" @click="createStatusLink" v-show="showCreate">
                 <a>
-                  <n-icon
-                    size="14"
-                    class="add"
-                  >
+                  <n-icon size="14" class="add">
                     <Add />
                   </n-icon>
                   <div>新建任务状态</div>
                 </a>
               </div>
-              <div
-                class="create-stage-body"
-                v-show="!showCreate"
-              >
+              <div class="create-stage-body" v-show="!showCreate">
                 <div>
                   <n-input
                     type="text"
@@ -212,16 +119,8 @@
                   />
                 </div>
                 <div class="submit-set">
-                  <n-button
-                    type="error"
-                    ghost
-                    @click="cancelCreate"
-                  >取消</n-button>
-                  <n-button
-                    type="info"
-                    ghost
-                    @click="createStatus(statusValue)"
-                  >保存</n-button>
+                  <n-button type="error" ghost @click="cancelCreate">取消</n-button>
+                  <n-button type="info" ghost @click="createStatus(statusValue)">保存</n-button>
                 </div>
               </div>
             </div>
@@ -238,72 +137,42 @@
         />
       </div>
       <div>
-        <n-modal
-          v-model:show="showModal"
-          class="modalBox"
-          @after-leave="leaveModal"
-        >
+        <n-modal v-model:show="showModal" class="modalBox" @after-leave="leaveModal">
           <n-card
             style="width: 1200px"
             title="任务详情"
             :bordered="false"
             size="huge"
             :segmented="{
-              content: 'hard',
+              content: 'hard'
             }"
           >
             <template #header-extra>
               <div class="headMenu">
                 <div title="返回">
-                  <n-icon
-                    size="24"
-                    class="menuItem"
-                    v-show="modalData.level > 1"
-                    @click="jumpBack(modalData)"
-                  >
+                  <n-icon size="24" class="menuItem" v-show="modalData.level > 1" @click="jumpBack(modalData)">
                     <KeyboardReturnOutlined />
                   </n-icon>
                 </div>
                 <div title="编辑">
-                  <n-icon
-                    size="24"
-                    class="menuItem"
-                    @click="editTaskDetail"
-                    v-show="showEditTaskDetailBtn"
-                  >
+                  <n-icon size="24" class="menuItem" @click="editTaskDetail" v-show="showEditTaskDetailBtn">
                     <Edit24Regular />
                   </n-icon>
                 </div>
                 <div title="退出编辑">
-                  <n-icon
-                    size="24"
-                    class="menuItem"
-                    @click="editTaskDetail"
-                    v-show="!showEditTaskDetailBtn"
-                  >
+                  <n-icon size="24" class="menuItem" @click="editTaskDetail" v-show="!showEditTaskDetailBtn">
                     <PlaylistAddCheckRound />
                   </n-icon>
                 </div>
                 <div title="菜单">
-                  <n-dropdown
-                    trigger="click"
-                    :options="menuOptions"
-                    size="large"
-                    @select="handleSelect"
-                  >
-                    <n-icon
-                      class="menuItem"
-                      size="24"
-                    >
+                  <n-dropdown trigger="click" :options="menuOptions" size="large" @select="handleSelect">
+                    <n-icon class="menuItem" size="24">
                       <Dots />
                     </n-icon>
                   </n-dropdown>
                 </div>
                 <div title="关闭">
-                  <a
-                    class="menuItem close"
-                    @click="closeModal"
-                  >
+                  <a class="menuItem close" @click="closeModal">
                     <n-icon size="24">
                       <CloseOutline />
                     </n-icon>
@@ -327,7 +196,7 @@
                         />
                         <div
                           class="title-text"
-                          :class="{'editable':editStatus}"
+                          :class="{ editable: editStatus }"
                           v-show="!showTaskTitleInput"
                           @click="showTitleInput"
                         >
@@ -338,15 +207,12 @@
                         <div class="field-list">
                           <div class="field">
                             <div class="field-left">
-                              <n-icon
-                                size="14"
-                                class="task-icon"
-                              >
+                              <n-icon size="14" class="task-icon">
                                 <CheckSquareOutlined />
                               </n-icon>
                               <span class="field-name">完成状态</span>
                             </div>
-                            <div class="field-right" :class="{'editable':editStatus}">
+                            <div class="field-right" :class="{ editable: editStatus }">
                               <n-popselect
                                 v-model:value="modalData.detail.status_id"
                                 @update:value="statusChange"
@@ -354,21 +220,13 @@
                                 trigger="click"
                                 :disabled="!editStatus"
                               >
-                                {{
-                                  statusArray.find(
-                                    (item) =>
-                                      item.value === modalData.detail.status_id
-                                  ).label
-                                }}
+                                {{ statusArray.find((item) => item.value === modalData.detail.status_id).label }}
                               </n-popselect>
                             </div>
                           </div>
                           <div class="field">
                             <div class="field-left">
-                              <n-icon
-                                size="14"
-                                class="task-icon"
-                              >
+                              <n-icon size="14" class="task-icon">
                                 <CheckSquareOutlined />
                               </n-icon>
                               <span class="field-name">任务类型</span>
@@ -386,125 +244,106 @@
                           </div>
                           <div class="field">
                             <div class="field-left">
-                              <n-icon
-                                size="14"
-                                class="task-icon"
-                              >
+                              <n-icon size="14" class="task-icon">
                                 <CheckSquareOutlined />
                               </n-icon>
                               <span class="field-name">创建人</span>
                             </div>
-                            <div
-                              class="field-right"
-                              style="cursor: default"
-                            >
-                              <span>{{
-                                modalData.detail.originator.gitee_name
-                              }}</span>
+                            <div class="field-right" style="cursor: default">
+                              <span
+                                ><userInfo :userInfo="modalData.detail.originator">
+                                  <template #username>
+                                    <span class="sub-content">{{ modalData.detail.originator?.gitee_name }}</span>
+                                  </template>
+                                </userInfo></span
+                              >
                             </div>
                           </div>
-                          <div
-                            class="field"
-                            v-if="modalData.detail.type !== 'PERSON'"
-                          >
+                          <div class="field" v-if="modalData.detail.type !== 'PERSON'">
                             <div class="field-left">
-                              <n-icon
-                                size="14"
-                                class="task-icon"
-                              >
+                              <n-icon size="14" class="task-icon">
                                 <CheckSquareOutlined />
                               </n-icon>
                               <span class="field-name">责任人</span>
                             </div>
-                            <div class="field-right" :class="{'editable':editStatus}">
+                            <div class="field-right" :class="{ editable: editStatus }">
                               <n-popover
                                 trigger="manual"
                                 placement="bottom"
                                 :show="showPopoverExecutor"
-                                @clickoutside="editStatus?showPopoverExecutor = false:''"
+                                @clickoutside="editStatus ? (showPopoverExecutor = false) : ''"
                                 :disabled="
                                   !editStatus ||
-                                    (modalData.detail.type === 'ORGANIZATION' &&
-                                      modalData.detail.executor_type ===
-                                        'GROUP')
+                                  (modalData.detail.type === 'ORGANIZATION' &&
+                                    modalData.detail.executor_type === 'GROUP')
                                 "
                               >
                                 <template #trigger>
-                                  <div @click="editStatus?showPopoverExecutor = true:''">
+                                  <div @click="editStatus ? (showPopoverExecutor = true) : ''">
                                     {{
-                                      modalData.detail.executor?
-                                        modalData.detail.executor_type === 'PERSON' ?
-                                          modalData.detail.type === 'GROUP'?
-                                            `${modalData.detail.executor_group?.name}/${modalData.detail.executor?.gitee_name}`
-                                            :modalData.detail.executor?.gitee_name
-                                          :`${modalData.detail.executor_group?.name}/${modalData.detail.executor?.gitee_name}`
+                                      modalData.detail.executor
+                                        ? modalData.detail.executor_type === 'PERSON'
+                                          ? modalData.detail.type === 'GROUP'
+                                            ? `${modalData.detail.executor_group?.name}/${modalData.detail.executor?.gitee_name}`
+                                            : modalData.detail.executor?.gitee_name
+                                          : `${modalData.detail.executor_group?.name}/${modalData.detail.executor?.gitee_name}`
                                         : '待认领'
                                     }}
                                   </div>
                                 </template>
                                 <taskMemberMenu
                                   :type="
-                                    modalData.detail.type === 'ORGANIZATION'||modalData.detail.type ==='VERSION'
+                                    modalData.detail.type === 'ORGANIZATION' || modalData.detail.type === 'VERSION'
                                       ? 'ALL'
                                       : 'PERSON'
                                   "
                                   :groupId="modalData.detail.group_id"
-                                  @getPerson="
-                                    getExecutors($event, modalData.detail.type)
-                                  "
+                                  @getPerson="getExecutors($event, modalData.detail.type)"
                                   :disabled="!editStatus"
-                                  :defaultValue="
-                                    modalData.detail.executor.gitee_name
-                                  "
+                                  :defaultValue="modalData.detail.executor.gitee_name"
                                 ></taskMemberMenu>
                               </n-popover>
                             </div>
                           </div>
-                          <div
-                            class="field"
-                            v-if="modalData.detail.type !== 'PERSON'"
-                          >
+                          <div class="field" v-if="modalData.detail.type !== 'PERSON'">
                             <div class="field-left">
-                              <n-icon
-                                size="14"
-                                class="task-icon"
-                              >
+                              <n-icon size="14" class="task-icon">
                                 <CheckSquareOutlined />
                               </n-icon>
                               <span class="field-name">协助人</span>
                             </div>
-                            <div class="field-right" :class="{'editable':editStatus}">
+                            <div class="field-right" :class="{ editable: editStatus }">
                               <n-popover
                                 trigger="manual"
                                 placement="bottom"
                                 :disabled="!editStatus"
                                 :show="showPopoverHelper"
-                                @clickoutside="editStatus?showPopoverHelper = false:''"
+                                @clickoutside="editStatus ? (showPopoverHelper = false) : ''"
                               >
                                 <template #trigger>
-                                  <div @click="editStatus?showPopoverHelper = true:''">
-                                    {{
-                                      Array.isArray(modalData.helper) &&
-                                      modalData.helper.length
-                                        ? modalData.helper
-                                            .map((item) =>
-                                              item.name
-                                                ? item.name
-                                                : item.gitee_name
-                                            )
-                                            .join(' , ')
-                                        : '无'
-                                    }}
+                                  <div @click="editStatus ? (showPopoverHelper = true) : ''">
+                                    <template v-if="Array.isArray(modalData.helper) && modalData.helper.length">
+                                      <span v-for="item in modalData.helper" :key="item.id">
+                                        <userInfo :userInfo="item">
+                                          <template #username>
+                                            <span class="sub-content">{{
+                                              item.name ? item.name : item.gitee_name
+                                            }}</span>
+                                          </template> </userInfo
+                                        >&nbsp;&nbsp;
+                                      </span>
+                                    </template>
+                                    <template v-else>
+                                      {{ '无' }}
+                                    </template>
                                   </div>
                                 </template>
                                 <taskMemberMenu
                                   @getPerson="getHelper"
                                   :multiple="true"
-                                  :originator="
-                                    modalData.detail.originator.gitee_id
-                                  "
+                                  :originator="modalData.detail.originator.gitee_id"
                                   :type="
-                                    modalData.detail.type === 'ORGANIZATION'||modalData.detail.type ==='VERSION'
+                                    modalData.detail.type === 'ORGANIZATION' || modalData.detail.type === 'VERSION'
                                       ? 'ALL'
                                       : 'PERSON'
                                   "
@@ -516,39 +355,30 @@
                           </div>
                           <div class="field">
                             <div class="field-left">
-                              <n-icon
-                                size="14"
-                                class="task-icon"
-                              >
+                              <n-icon size="14" class="task-icon">
                                 <CheckSquareOutlined />
                               </n-icon>
                               <span class="field-name">里程碑</span>
                             </div>
-                            <div class="field-right" :class="{'editable':editStatus}">
+                            <div class="field-right" :class="{ editable: editStatus }">
                               <n-popover
                                 trigger="manual"
                                 placement="bottom"
                                 :disabled="!editStatus"
                                 :show="showMilepost"
-                                @clickoutside="editStatus?showMilepost = false:''"
+                                @clickoutside="editStatus ? (showMilepost = false) : ''"
                               >
                                 <template #trigger>
-                                  <div @click="editStatus?showMilepost = true:''">
+                                  <div @click="editStatus ? (showMilepost = true) : ''">
                                     <p v-if="modalData.detail.type === 'VERSION'">
                                       {{
                                         modalData.detail.milestones
-                                          ? modalData.detail.milestones
-                                              .map((item) => item.name)
-                                              .join(',')
+                                          ? modalData.detail.milestones.map((item) => item.name).join(',')
                                           : '无'
                                       }}
                                     </p>
                                     <p v-else>
-                                      {{
-                                        modalData.detail.milestone
-                                          ? modalData.detail.milestone.name
-                                          : '无'
-                                      }}
+                                      {{ modalData.detail.milestone ? modalData.detail.milestone.name : '无' }}
                                     </p>
                                   </div>
                                 </template>
@@ -563,54 +393,31 @@
                           </div>
                           <div class="field">
                             <div class="field-left">
-                              <n-icon
-                                size="14"
-                                class="task-icon"
-                              >
+                              <n-icon size="14" class="task-icon">
                                 <CheckSquareOutlined />
                               </n-icon>
                               <span class="field-name">开始时间</span>
                             </div>
-                            <div
-                              class="field-right"
-                              style="cursor: default"
-                            >
-                              {{
-                                formatTime(
-                                  modalData.detail.start_time,
-                                  'yyyy-MM-dd hh:mm:ss'
-                                )
-                              }}
+                            <div class="field-right" style="cursor: default">
+                              {{ formatTime(modalData.detail.start_time, 'yyyy-MM-dd hh:mm:ss') }}
                             </div>
                           </div>
                           <div class="field">
                             <div class="field-left">
-                              <n-icon
-                                size="14"
-                                class="task-icon"
-                              >
+                              <n-icon size="14" class="task-icon">
                                 <CheckSquareOutlined />
                               </n-icon>
                               <span class="field-name">截止时间</span>
                             </div>
                             <div class="field-right">
                               <div
-                                v-show="!showClosingTime&&modalData.detail.deadline"
-                                :class="{'editable':editStatus}"
-                                @click="
-                                  editStatus
-                                    ? (showClosingTime = true)
-                                    : (showClosingTime = false)
-                                "
+                                v-show="!showClosingTime && modalData.detail.deadline"
+                                :class="{ editable: editStatus }"
+                                @click="editStatus ? (showClosingTime = true) : (showClosingTime = false)"
                               >
-                                {{
-                                  formatTime(
-                                    modalData.detail.deadline,
-                                    'yyyy-MM-dd hh:mm:ss'
-                                  )
-                                }}
+                                {{ formatTime(modalData.detail.deadline, 'yyyy-MM-dd hh:mm:ss') }}
                               </div>
-                              <div v-show="showClosingTime||!modalData.detail.deadline">
+                              <div v-show="showClosingTime || !modalData.detail.deadline">
                                 <n-date-picker
                                   type="datetime"
                                   clearable
@@ -631,64 +438,50 @@
                         <div class="field-list">
                           <div class="field">
                             <div class="field-left">
-                              <n-icon
-                                size="14"
-                                class="task-icon"
-                              >
+                              <n-icon size="14" class="task-icon">
                                 <CheckSquareOutlined />
                               </n-icon>
                               <span class="field-name">报告列表</span>
                             </div>
                           </div>
                           <div class="reportList">
-                            <div
-                              class="field-content"
-                              v-for="(v, i) in modalData.reportArray"
-                              :key="i"
-                            >
-                              <div
-                                class="task-name"
-                                @click="showReport(v)"
-                              >
+                            <div class="field-content" v-for="(v, i) in modalData.reportArray" :key="i">
+                              <div class="task-name" @click="showReport(v)">
                                 {{ v.title }}
                               </div>
                             </div>
                           </div>
                           <div class="field">
                             <div class="field-left">
-                              <n-icon
-                                size="14"
-                                class="task-icon"
-                              >
+                              <n-icon size="14" class="task-icon">
                                 <CheckSquareOutlined />
                               </n-icon>
                               <span class="field-name">执行机架构</span>
                             </div>
-                            <div class="field-right" :class="{'editable':editStatus}">
+                            <div class="field-right" :class="{ editable: editStatus }">
                               <n-popselect
                                 v-model:value="modalData.detail.frame"
                                 @update:value="frameChange"
                                 :options="frameArray"
                                 trigger="click"
-                                :disabled="!editStatus||modalData.detail.is_manage_task"
+                                :disabled="!editStatus || modalData.detail.is_manage_task"
                               >
-                                <span :style="{color:!editStatus||modalData.detail.is_manage_task?'grey':''}">
-                                  {{modalData.detail.frame||'请选择'}}
+                                <span :style="{ color: !editStatus || modalData.detail.is_manage_task ? 'grey' : '' }">
+                                  {{ modalData.detail.frame || '请选择' }}
                                 </span>
                               </n-popselect>
                             </div>
                           </div>
                           <div class="field">
                             <div class="field-left">
-                              <n-icon
-                                size="14"
-                                class="task-icon"
-                              >
+                              <n-icon size="14" class="task-icon">
                                 <CheckSquareOutlined />
                               </n-icon>
-                              <span class="field-name" title="当关联子任务均'已完成'时,是否此任务自动完成">自动关联完成</span>
+                              <span class="field-name" title="当关联子任务均'已完成'时,是否此任务自动完成"
+                                >自动关联完成</span
+                              >
                             </div>
-                            <div class="field-right" :class="{'editable':editStatus}">
+                            <div class="field-right" :class="{ editable: editStatus }">
                               <n-popselect
                                 v-model:value="modalData.detail.automatic_finish"
                                 @update:value="autocompleteChange"
@@ -696,23 +489,24 @@
                                 trigger="click"
                                 :disabled="!editStatus"
                               >
-                                {{ modalData.detail.automatic_finish?'是':'否' }}
+                                {{ modalData.detail.automatic_finish ? '是' : '否' }}
                               </n-popselect>
                             </div>
                           </div>
                           <div class="field">
                             <div class="field-left">
-                              <n-icon
-                                size="14"
-                                class="task-icon"
-                              >
+                              <n-icon size="14" class="task-icon">
                                 <CheckSquareOutlined />
                               </n-icon>
                               <span class="field-name">是否管理型任务</span>
                             </div>
-                            <div class="field-right" >
-                              <span v-show="!editStatus">{{modalData.detail.is_manage_task?'是':'否'}}</span>
-                              <n-checkbox v-show="editStatus" @update:checked="changeManage" :checked="modalData.detail.is_manage_task"></n-checkbox>
+                            <div class="field-right">
+                              <span v-show="!editStatus">{{ modalData.detail.is_manage_task ? '是' : '否' }}</span>
+                              <n-checkbox
+                                v-show="editStatus"
+                                @update:checked="changeManage"
+                                :checked="modalData.detail.is_manage_task"
+                              ></n-checkbox>
                             </div>
                           </div>
                         </div>
@@ -723,10 +517,7 @@
                 <div class="content-main">
                   <div class="field">
                     <div class="field-left">
-                      <n-icon
-                        size="14"
-                        class="task-icon"
-                      >
+                      <n-icon size="14" class="task-icon">
                         <CheckSquareOutlined />
                       </n-icon>
                       <span class="field-name">内容</span>
@@ -735,20 +526,16 @@
                       <n-input
                         v-model:value="modalData.detail.content"
                         type="textarea"
-                        style="min-width: 1000px;min-height:30px"
+                        style="min-width: 1000px; min-height: 30px"
                         ref="contentInputRef"
                         v-show="showContentInput"
                         @blur="showContent"
                         :autosize="{
                           minRows: 3,
-                          maxRows: 8,
+                          maxRows: 8
                         }"
                       />
-                      <div
-                        :class="{'editable':editStatus}"
-                        v-show="!showContentInput"
-                        @click="showContent"
-                      >
+                      <div :class="{ editable: editStatus }" v-show="!showContentInput" @click="showContent">
                         <n-scrollbar style="max-height: 250px">
                           {{ modalData.detail.content || '无' }}
                         </n-scrollbar>
@@ -763,106 +550,71 @@
                 title=""
                 :segmented="{
                   content: 'hard',
-                  footer: 'hard',
+                  footer: 'hard'
                 }"
                 style=""
               >
                 <template #header>
                   <div class="titleWrap">
-                    <span
-                      @click="toggleContent('comment')"
-                      :class="{ active: showFooterContent == 'comment' }"
-                    >评论</span>
-                    <span
-                      @click="toggleContent('task')"
-                      :class="{ active: showFooterContent == 'task' }"
-                    >关联任务</span>
+                    <span @click="toggleContent('comment')" :class="{ active: showFooterContent == 'comment' }"
+                      >评论</span
+                    >
+                    <span @click="toggleContent('task')" :class="{ active: showFooterContent == 'task' }"
+                      >关联任务</span
+                    >
                     <span
                       v-if="!modalData.detail.is_manage_task"
                       @click="toggleContent('case')"
                       :class="{ active: showFooterContent == 'case' }"
-                    >关联用例</span>
+                      >关联用例</span
+                    >
                   </div>
                 </template>
-                <div
-                  style="height:300px;"
-                  v-if="showFooterContent == 'comment'"
-                >
+                <div style="height: 300px" v-if="showFooterContent == 'comment'">
                   <n-scrollbar style="height: 100%">
-                    <div
-                      v-for="(v, i) in modalData.comments"
-                      :key="i"
-                    >
+                    <div v-for="(v, i) in modalData.comments" :key="i">
                       <div class="log-comment">
                         <div class="log-txt">
                           <div class="user">
-                            <span><img
-                                :src="v.avatar_url"
-                                class="avatar"
-                              /></span>
+                            <span><img :src="v.avatar_url" class="avatar" /></span>
                             <div class="name">{{ v.gitee_name }}</div>
                           </div>
-                          <span class="time">{{
-                            formatTime(v.create_time, 'yyyy-MM-dd hh:mm:ss')
-                          }}</span>
+                          <span class="time">{{ formatTime(v.create_time, 'yyyy-MM-dd hh:mm:ss') }}</span>
                         </div>
                         <div class="log-txt">
-                          <div
-                            class="m-t-xs"
-                            v-html="v.content"
-                          >
-                          </div>
+                          <div class="m-t-xs" v-html="v.content"></div>
                         </div>
                       </div>
                     </div>
                   </n-scrollbar>
                 </div>
-                <template
-                  #footer
-                  v-if="showFooterContent == 'comment'"
-                >
+                <template #footer v-if="showFooterContent == 'comment'">
                   <div class="footer">
                     <div>
-                      <editor
-                        v-model="commentInput"
-                        tag-name="div"
-                        :init="init"
-                      />
+                      <editor v-model="commentInput" tag-name="div" :init="init" />
                     </div>
                     <div class="commentBtn">
-                      <n-button
-                        class="btn"
-                        type="info"
-                        @click="commentFn(commentInput)"
-                      >评论</n-button>
+                      <n-button class="btn" type="info" @click="commentFn(commentInput)">评论</n-button>
                     </div>
                   </div>
                 </template>
-                <div
-                  v-if="showFooterContent == 'case'&&!modalData.detail.is_manage_task"
-                >
+                <div v-if="showFooterContent == 'case' && !modalData.detail.is_manage_task">
                   <div>
                     <div>
-                        <div
-                          class="associated-task"
-                          style="display: inline-block;"
-                          @click="clickAssociatedCases"
-                          v-show="editStatus"
-                        >
-                          <a>
-                            <n-icon
-                              size="16"
-                              class="add"
-                            >
-                              <Add />
-                            </n-icon>
-                            <span>关联用例</span>
-                          </a>
-                        </div>
                       <div
-                        class="associated-task-body"
-                        v-show="showAssociatedCases"
+                        class="associated-task"
+                        style="display: inline-block"
+                        @click="clickAssociatedCases"
+                        v-show="editStatus"
                       >
+                        <a>
+                          <n-icon size="16" class="add">
+                            <Add />
+                          </n-icon>
+                          <span>关联用例</span>
+                        </a>
+                      </div>
+                      <div class="associated-task-body" v-show="showAssociatedCases">
                         <n-select
                           class="select"
                           placeholder="请选择里程碑"
@@ -871,16 +623,8 @@
                           clearable
                         />
                         <div class="submit-set">
-                          <n-button
-                            type="error"
-                            ghost
-                            @click="showAssociatedCases = false"
-                          >取消</n-button>
-                          <n-button
-                            type="info"
-                            ghost
-                            @click="addCase(associatedMilestone)"
-                          >关联</n-button>
+                          <n-button type="error" ghost @click="showAssociatedCases = false">取消</n-button>
+                          <n-button type="info" ghost @click="addCase(associatedMilestone)">关联</n-button>
                         </div>
                       </div>
                     </div>
@@ -897,30 +641,22 @@
                     </div>
                   </div>
                 </div>
-                <div
-                  v-if="showFooterContent == 'task'"
-                >
+                <div v-if="showFooterContent == 'task'">
                   <div>
                     <div
                       class="associated-task"
-                      style="display: inline-block;"
+                      style="display: inline-block"
                       @click="associatedTask"
                       v-show="editStatus"
                     >
                       <a>
-                        <n-icon
-                          size="16"
-                          class="add"
-                        >
+                        <n-icon size="16" class="add">
                           <Add />
                         </n-icon>
                         <span>关联父任务</span>
                       </a>
                     </div>
-                    <div
-                      class="associated-task-body"
-                      v-show="!showAssociatedTask"
-                    >
+                    <div class="associated-task-body" v-show="!showAssociatedTask">
                       <n-select
                         class="select"
                         placeholder="请选择"
@@ -934,40 +670,26 @@
                         @search="handleSearchFatherTask"
                       />
                       <div class="submit-set">
-                        <n-button
-                          type="error"
-                          ghost
-                          @click="cancelAssociatedTask"
-                        >取消</n-button>
-                        <n-button
-                          type="info"
-                          ghost
-                          @click="associatedTaskBtn(associatedTaskValue)"
-                        >关联</n-button>
+                        <n-button type="error" ghost @click="cancelAssociatedTask">取消</n-button>
+                        <n-button type="info" ghost @click="associatedTaskBtn(associatedTaskValue)">关联</n-button>
                       </div>
                     </div>
                   </div>
                   <div>
                     <div
                       class="associated-task"
-                      style="display: inline-block;"
+                      style="display: inline-block"
                       @click="associatedChildTask"
                       v-show="editStatus"
                     >
                       <a>
-                        <n-icon
-                          size="16"
-                          class="add"
-                        >
+                        <n-icon size="16" class="add">
                           <Add />
                         </n-icon>
                         <span>关联子任务</span>
                       </a>
                     </div>
-                    <div
-                      class="associated-task-body"
-                      v-show="!showAssociatedChildTask"
-                    >
+                    <div class="associated-task-body" v-show="!showAssociatedChildTask">
                       <n-select
                         class="select"
                         placeholder="请选择"
@@ -981,27 +703,15 @@
                         @search="handleSearchChildTask"
                       />
                       <div class="submit-set">
-                        <n-button
-                          type="error"
-                          ghost
-                          @click="cancelAssociatedChildTask"
-                        >取消</n-button>
-                        <n-button
-                          type="info"
-                          ghost
-                          @click="
-                            associatedChildTaskBtn(associatedChildTaskValue)
-                          "
-                        >关联</n-button>
+                        <n-button type="error" ghost @click="cancelAssociatedChildTask">取消</n-button>
+                        <n-button type="info" ghost @click="associatedChildTaskBtn(associatedChildTaskValue)"
+                          >关联</n-button
+                        >
                       </div>
                     </div>
                   </div>
-                  <div style="margin-top:20px;">
-                    <n-data-table
-                      :columns="familyColumns"
-                      :data="modalData.relationTask"
-                      :row-props="familyRowProps"
-                    />
+                  <div style="margin-top: 20px">
+                    <n-data-table :columns="familyColumns" :data="modalData.relationTask" :row-props="familyRowProps" />
                   </div>
                 </div>
               </n-card>
@@ -1011,13 +721,8 @@
       </div>
       <div>
         <n-modal v-model:show="showCaseModal">
-          <n-card
-            style="width: 600px"
-            title="测试用例"
-            :bordered="false"
-            size="huge"
-          >
-            <div style="display:flex;margin-bottom:10px;align-items:center">
+          <n-card style="width: 600px" title="测试用例" :bordered="false" size="huge">
+            <div style="display: flex; margin-bottom: 10px; align-items: center">
               <span class="label">测试套:</span>
               <n-select
                 v-model:value="suiteId"
@@ -1029,15 +734,8 @@
                 @search="suiteHandleSearch"
               />
               <span class="label">用例名称:</span>
-              <n-input
-                placeholder="请输入要查询的用例名称"
-                v-model:value="caseStr"
-              />
-              <n-button
-                type="primary"
-                @click="queryCase"
-                style="margin-left:10px"
-              >
+              <n-input placeholder="请输入要查询的用例名称" v-model:value="caseStr" />
+              <n-button type="primary" @click="queryCase" style="margin-left: 10px">
                 <template #icon>
                   <n-icon>
                     <ios-search />
@@ -1058,101 +756,55 @@
               v-model:checked-row-keys="checkedRowKeys"
             />
             <div class="btnWrap">
-              <n-button
-                type="error"
-                ghost
-                class="btn"
-                @click="cancelCaseBtn"
-              >取消</n-button>
-              <n-button
-                type="info"
-                ghost
-                class="btn"
-                @click="addCaseBtn"
-              >确定</n-button>
+              <n-button type="error" ghost class="btn" @click="cancelCaseBtn">取消</n-button>
+              <n-button type="info" ghost class="btn" @click="addCaseBtn">确定</n-button>
             </div>
           </n-card>
         </n-modal>
       </div>
       <div>
         <n-modal v-model:show="distributeCaseModal">
-          <n-card
-            style="width: 600px"
-            title="分配测试用例"
-            :bordered="false"
-            size="huge"
-          >
-            <div
-             style="display:flex;"
-            >
+          <n-card style="width: 600px" title="分配测试用例" :bordered="false" size="huge">
+            <div style="display: flex">
               <n-select
                 placeholder="请选择子任务"
-                style="width:70%"
+                style="width: 70%"
                 v-model:value="distributeCaseTaskValue"
                 :options="distributeCaseOption"
               />
-              <div style="width:30%;display:flex;justify-content:space-evenly;">
-                <n-button
-                  type="error"
-                  ghost
-                  @click="cancelDistributeCase"
-                >取消</n-button>
-                <n-button
-                  type="info"
-                  ghost
-                  @click="
-                    distributeCaseBtn(distributeCaseTaskValue)
-                  "
-                >分配</n-button>
+              <div style="width: 30%; display: flex; justify-content: space-evenly">
+                <n-button type="error" ghost @click="cancelDistributeCase">取消</n-button>
+                <n-button type="info" ghost @click="distributeCaseBtn(distributeCaseTaskValue)">分配</n-button>
               </div>
             </div>
           </n-card>
         </n-modal>
         <n-modal v-model:show="distributeTaskModal">
-          <n-card
-            style="width: 600px"
-            title="分配任务"
-            :bordered="false"
-            size="huge"
-          >
+          <n-card style="width: 600px" title="分配任务" :bordered="false" size="huge">
             <template #header-extra>
               <div>
-                <n-switch
-                  v-model:value="distributeAllCases"
-                >
+                <n-switch v-model:value="distributeAllCases">
                   <template #checked>全用例分配</template>
                   <template #unchecked>仅分配未完成</template>
                 </n-switch>
               </div>
             </template>
-            <div
-             style="display:flex;"
-            >
+            <div style="display: flex">
               <n-select
                 placeholder="请选择模板"
-                style="width:35%"
+                style="width: 35%"
                 v-model:value="distributeTaskValue"
                 :options="distributeTaskOption"
               />
               <n-select
                 placeholder="请选择里程碑"
-                style="width:35%;margin-left:10px;"
+                style="width: 35%; margin-left: 10px"
                 v-model:value="distributeTaskMilestoneValue"
                 :options="distributeTaskMilestoneOption"
               />
-              <div style="width:30%;display:flex;justify-content:space-evenly;">
-                <n-button
-                  type="error"
-                  ghost
-                  @click="cancelDistributeTask"
-                >取消</n-button>
-                <n-button
-                  type="info"
-                  ghost
-                  @click="
-                    distributeTaskBtn(distributeTaskValue)
-                  "
-                >分配</n-button>
+              <div style="width: 30%; display: flex; justify-content: space-evenly">
+                <n-button type="error" ghost @click="cancelDistributeTask">取消</n-button>
+                <n-button type="info" ghost @click="distributeTaskBtn(distributeTaskValue)">分配</n-button>
               </div>
             </div>
           </n-card>
@@ -1160,12 +812,7 @@
       </div>
       <div>
         <n-modal v-model:show="showVersionTaskModal">
-          <n-card
-            style="width: 600px"
-            title="创建版本任务"
-            :bordered="false"
-            size="huge"
-          >
+          <n-card style="width: 600px" title="创建版本任务" :bordered="false" size="huge">
             <n-form
               :model="modelVersion"
               :rules="rulesVersion"
@@ -1175,19 +822,10 @@
               size="medium"
               :style="{}"
             >
-              <n-form-item
-                label="名称"
-                path="name"
-              >
-                <n-input
-                  placeholder="请输入任务名称"
-                  v-model:value="modelVersion.name"
-                />
+              <n-form-item label="名称" path="name">
+                <n-input placeholder="请输入任务名称" v-model:value="modelVersion.name" />
               </n-form-item>
-              <n-form-item
-                label="执行者"
-                path="orgTask"
-              >
+              <n-form-item label="执行者" path="orgTask">
                 <n-cascader
                   :value="modelVersion.orgTask"
                   placeholder="请选择"
@@ -1200,59 +838,21 @@
                   :on-load="handleLoad"
                 />
               </n-form-item>
-              <n-form-item
-                label="截止日期"
-                path="closingTime"
-              >
-                <n-date-picker
-                  type="datetime"
-                  style="width:100%"
-                  v-model:value="modelVersion.closingTime"
-                />
+              <n-form-item label="截止日期" path="closingTime">
+                <n-date-picker type="datetime" style="width: 100%" v-model:value="modelVersion.closingTime" />
               </n-form-item>
-              <n-form-item
-                label="关键词"
-                path="keyword"
-              >
-                <n-input
-                  placeholder="请输入关键词"
-                  v-model:value="modelVersion.keyword"
-                  type="textarea"
-                />
+              <n-form-item label="关键词" path="keyword">
+                <n-input placeholder="请输入关键词" v-model:value="modelVersion.keyword" type="textarea" />
               </n-form-item>
-              <n-form-item
-                label="摘要"
-                path="abstract"
-              >
-                <n-input
-                  placeholder="请输入报告摘要"
-                  v-model:value="modelVersion.abstract"
-                  type="textarea"
-                />
+              <n-form-item label="摘要" path="abstract">
+                <n-input placeholder="请输入报告摘要" v-model:value="modelVersion.abstract" type="textarea" />
               </n-form-item>
-              <n-form-item
-                label="缩略语清单"
-                path="abbreviation"
-              >
-                <n-input
-                  placeholder="请输入缩略语清单"
-                  v-model:value="modelVersion.abbreviation"
-                  type="textarea"
-                />
+              <n-form-item label="缩略语清单" path="abbreviation">
+                <n-input placeholder="请输入缩略语清单" v-model:value="modelVersion.abbreviation" type="textarea" />
               </n-form-item>
               <div class="createButtonBox">
-                <n-button
-                  class="btn"
-                  type="error"
-                  ghost
-                  @click="cancelCreateVersionTask"
-                >取消</n-button>
-                <n-button
-                  class="btn"
-                  type="info"
-                  ghost
-                  @click="createVersionTaskBtn"
-                >创建</n-button>
+                <n-button class="btn" type="error" ghost @click="cancelCreateVersionTask">取消</n-button>
+                <n-button class="btn" type="info" ghost @click="createVersionTaskBtn">创建</n-button>
               </div>
             </n-form>
           </n-card>
@@ -1271,10 +871,7 @@
           <template #header>
             <h3>{{ md.name }}</h3>
           </template>
-          <div
-            class="previewContent"
-            :style="{ height: previewHeight - 100 + 'px' }"
-          >
+          <div class="previewContent" :style="{ height: previewHeight - 100 + 'px' }">
             <v-md-editor
               v-model="md.content"
               :left-toolbar="tools"
@@ -1297,10 +894,7 @@ import draggable from 'vuedraggable';
 import { Add, CloseOutline } from '@vicons/ionicons5';
 import { CheckSquareOutlined } from '@vicons/antd';
 import { Dots } from '@vicons/tabler';
-import {
-  KeyboardReturnOutlined,
-  PlaylistAddCheckRound
-} from '@vicons/material';
+import { KeyboardReturnOutlined, PlaylistAddCheckRound } from '@vicons/material';
 import { Edit24Regular } from '@vicons/fluent';
 import taskMemberMenu from '@/components/tm/taskMemberMenu.vue';
 import Milepost from '@/components/tm/Milepost.vue';
@@ -1322,9 +916,9 @@ export default defineComponent({
     IosSearch,
     Edit24Regular,
     PlaylistAddCheckRound,
-    editor: Editor,
+    editor: Editor
   },
-  setup () {
+  setup() {
     const { proxy } = getCurrentInstance();
     let listDataTemp;
     modules.initData();
@@ -1341,18 +935,18 @@ export default defineComponent({
           return item.id === temp.status_id;
         });
       } else {
-        modules.listData.value = listDataTemp
-          ? listDataTemp
-          : modules.listData.value;
+        modules.listData.value = listDataTemp ? listDataTemp : modules.listData.value;
       }
       if (temp.participant_id?.length) {
         temp.participant_id = temp.participant_id.join(',');
       }
-      if (temp.milestone_id?.length) { temp.milestone_id = temp.milestone_id.join(','); }
+      if (temp.milestone_id?.length) {
+        temp.milestone_id = temp.milestone_id.join(',');
+      }
       const allRequest = modules.listData.value.map((item) => {
         return proxy.$axios.get('/v1/tasks', {
           ...temp,
-          status_id: item.id,
+          status_id: item.id
         });
       });
       Promise.allSettled(allRequest)
@@ -1371,20 +965,20 @@ export default defineComponent({
         });
     });
     return {
-      ...modules,
+      ...modules
     };
-  },
+  }
 });
 </script>
 
 <style lang="less" scoped>
 @font-face {
-  font-family: "iconfont"; /* Project id  */
-  src: url("iconfont.ttf?t=1637235844418") format("truetype");
+  font-family: 'iconfont'; /* Project id  */
+  src: url('iconfont.ttf?t=1637235844418') format('truetype');
 }
 
 .iconfont {
-  font-family: "iconfont" !important;
+  font-family: 'iconfont' !important;
   font-size: 20px !important;
   font-style: normal;
   -webkit-font-smoothing: antialiased;
@@ -1392,7 +986,7 @@ export default defineComponent({
 }
 
 .icon-download:before {
-  content: "\e74d";
+  content: '\e74d';
 }
 .label {
   margin: 0 5px;
@@ -1665,26 +1259,26 @@ export default defineComponent({
   }
 
   .caseWrap {
-      border: 1px solid #e5e5e5;
-      border-radius: 4px;
-      margin-top: 10px;
+    border: 1px solid #e5e5e5;
+    border-radius: 4px;
+    margin-top: 10px;
 
-      .coll {
-        padding: 0 16px;
-        width: auto;
-      }
-      .header {
-        padding-left: 16px;
-        height: 40px;
-        line-height: 40px;
-        color: #8c8c8c;
-      }
-
-      li {
-        display: flex;
-        margin-left: 25px;
-      }
+    .coll {
+      padding: 0 16px;
+      width: auto;
     }
+    .header {
+      padding-left: 16px;
+      height: 40px;
+      line-height: 40px;
+      color: #8c8c8c;
+    }
+
+    li {
+      display: flex;
+      margin-left: 25px;
+    }
+  }
 
   .footer {
     .commentBtn {
@@ -1776,7 +1370,7 @@ export default defineComponent({
   z-index: 19891014;
 }
 
-.editable{
+.editable {
   color: #1890ff;
 }
 </style>

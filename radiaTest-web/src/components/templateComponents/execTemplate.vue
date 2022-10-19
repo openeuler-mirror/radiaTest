@@ -1,14 +1,7 @@
 <template>
   <div class="form-box-container">
     <div style="flex: 3">
-      <n-form
-        inline
-        :label-width="80"
-        :model="formValue"
-        :rules="rules"
-        size="medium"
-        ref="formRef"
-      >
+      <n-form inline :label-width="80" :model="formValue" :rules="rules" size="medium" ref="formRef">
         <n-grid :cols="24">
           <n-form-item-gi :span="23" label="架构" path="frame">
             <n-select
@@ -19,12 +12,12 @@
               :options="[
                 {
                   label: 'aarch64',
-                  value: 'aarch64',
+                  value: 'aarch64'
                 },
                 {
                   label: 'x86_64',
-                  value: 'x86_64',
-                },
+                  value: 'x86_64'
+                }
               ]"
             />
           </n-form-item-gi>
@@ -33,22 +26,19 @@
               :options="[
                 {
                   label: '全自动选取',
-                  value: 'auto',
+                  value: 'auto'
                 },
                 {
                   label: '人工干预',
-                  value: 'manual',
-                },
+                  value: 'manual'
+                }
               ]"
               v-model:value="formValue.select_mode"
               placeholder="机器调度策略"
             />
           </n-form-item-gi>
           <n-form-item-gi :span="5" label="是否严格模式" path="strict_mode">
-            <n-switch
-              v-model:value="formValue.strict_mode"
-              :disabled="formValue.select_mode === 'auto'"
-            >
+            <n-switch v-model:value="formValue.strict_mode" :disabled="formValue.select_mode === 'auto'">
               <template #checked> 是 </template>
               <template #unchecked> 否 </template>
             </n-switch>
@@ -61,10 +51,7 @@
               placeholder="请选择"
             />
           </n-form-item-gi>
-          <n-gi
-            :span="24"
-            v-if="formValue.pm_req_num && formValue.select_mode === 'manual'"
-          >
+          <n-gi :span="24" v-if="formValue.pm_req_num && formValue.select_mode === 'manual'">
             <n-divider> 物理机选取 </n-divider>
           </n-gi>
           <n-form-item-gi
@@ -94,10 +81,7 @@
             />
             {{ formValue.pmachine_list.length }}/{{ formValue.pm_req_num }}
           </n-form-item-gi>
-          <n-gi
-            :span="24"
-            v-if="formValue.vm_req_num && formValue.select_mode === 'manual'"
-          >
+          <n-gi :span="24" v-if="formValue.vm_req_num && formValue.select_mode === 'manual'">
             <n-divider> 虚拟机选取 </n-divider>
           </n-gi>
           <n-form-item-gi
@@ -152,23 +136,24 @@
         <div class="list-label">里程碑:</div>
         <div class="list-value">{{ formValue?.milestone }}</div>
       </div>
-      <expandedCard :data="formValue?.cases?.map((item) => ({ name: item }))" />
+      <ExpandedCardTemplate :data="formValue?.cases?.map((item) => ({ name: item.name }))" />
     </div>
   </div>
 </template>
 <script>
-import * as execTemplate  from '@/views/testCenter/template/modules/execTemplate';
-import expandedCard from '@/components/templateComponents/ExpandedCard.vue';
+import * as execTemplate from '@/views/testCenter/template/modules/execTemplate';
+import ExpandedCardTemplate from '@/components/templateComponents/ExpandedCardTemplate.vue';
 import selectMachine from '@/components/machine/selectMachine.vue';
 export default {
   props: {
-    name: String,
+    name: String
   },
   components: {
-    expandedCard,
+    ExpandedCardTemplate,
     selectMachine
   },
   setup() {
+    
     return {
       tagOptions: {
         personal: '个人'

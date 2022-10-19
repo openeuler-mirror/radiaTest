@@ -1,6 +1,6 @@
 import { h } from 'vue';
 import { NButton, NSpace } from 'naive-ui';
-import ExpandedCard from '@/components/templateComponents/ExpandedCard';
+import ExpandedCardTemplate from '@/components/templateComponents/ExpandedCardTemplate.vue';
 
 import { deleteAjax } from '@/assets/CRUD/delete';
 import { handleExecClick } from './execTemplate';
@@ -9,7 +9,7 @@ import textDialog from '@/assets/utils/dialog';
 const ColumnExpand = {
   type: 'expand',
   renderExpand: (rowData) =>
-    h(ExpandedCard, {
+    h(ExpandedCardTemplate, {
       data: rowData.cases.map((item) => {
         return {
           name: item.name,

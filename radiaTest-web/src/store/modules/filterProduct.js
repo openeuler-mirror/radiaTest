@@ -1,12 +1,12 @@
 //版本筛选store缓存
 
 const state = {
-  name: '',
-  version: '',
-  description: '',
-  start_time: '',
-  end_time: '',
-  publish_time: '',
+  name: null,
+  version: null,
+  description: null,
+  start_time: null,
+  end_time: null,
+  publish_time: null
 };
 const mutations = {
   setName: (newState, name) => {
@@ -26,7 +26,7 @@ const mutations = {
   },
   setPublishTime: (newState, publishTime) => {
     newState.publish_time = publishTime;
-  } 
+  }
 };
 const actions = {};
 

@@ -1,5 +1,6 @@
 import axios from '@/axios';
 import { unkonwnErrorMsg } from '@/assets/utils/description';
+
 function postRequest(url, data) {
   return new Promise((resolve, reject) => {
     axios
@@ -63,9 +64,6 @@ export function setPackageListComparationDetail(qualityboardId, milestonePreId, 
 }
 
 export function addCheckListItem(data) {
-  if (data.checkitem_id) {
-    data.checkitem_id = Number(data.checkitem_id);
-  }
   return postRequest('/v1/checklist', data);
 }
 

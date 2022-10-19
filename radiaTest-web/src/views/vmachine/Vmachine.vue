@@ -147,11 +147,11 @@ export default defineComponent({
     const filterchange = (filterArray) => {
       tableRef.value.pagination.page = 1;
       vmachineFilter.filterValue.value = {
-        name: '',
+        name: null,
         frame: null,
-        ip: '',
-        host_ip: '',
-        description: ''
+        ip: null,
+        host_ip: null,
+        description: null
       };
       filterArray.forEach((v) => {
         vmachineFilter.filterValue.value[v.path] = v.value;

@@ -35,22 +35,22 @@ const filterRule = ref([
 ]);
 
 const storeObj = ref({
-  name: '',
-  version: '',
-  description: '',
-  start_time: '',
-  end_time: '',
-  publish_time: ''
+  name: null,
+  version: null,
+  description: null,
+  start_time: null,
+  end_time: null,
+  publish_time: null
 });
 
 const filterchange = (filterArray) => {
   storeObj.value = {
-    name: '',
-    version: '',
-    description: '',
-    start_time: '',
-    end_time: '',
-    publish_time: ''
+    name: null,
+    version: null,
+    description: null,
+    start_time: null,
+    end_time: null,
+    publish_time: null
   };
   filterArray.forEach((v) => {
     storeObj.value[v.path] = v.value;

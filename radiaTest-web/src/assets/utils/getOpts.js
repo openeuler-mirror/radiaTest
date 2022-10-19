@@ -30,6 +30,7 @@ export async function createVmOptions(filter) {
     value: String(item.id)
   }));
 }
+
 const getProductOpts = (productOpts, loading) => {
   loading ? (loading.value = true) : 0;
   productOpts.value = [];
@@ -55,24 +56,47 @@ const getProductOpts = (productOpts, loading) => {
     });
 };
 
-const getCheckItemOpts = (checkItemOpts, loading) => {
+const getProductVersionOpts = (productOpts, loading) => {
   loading ? (loading.value = true) : 0;
-  checkItemOpts.value = [];
+  productOpts.value = [];
   axios
-    .get('/v1/checkitem', { page_num: 1, page_size: 999999 })
+    .get('/v1/product')
     .then((res) => {
       loading ? (loading.value = false) : 0;
-      checkItemOpts.value = res.data.items.map((item) => {
+      productOpts.value = res.data.map((item) => {
         return {
-          label: item.title,
+          label: `${item.name} ${item.version}`,
           value: item.id.toString()
         };
       });
     })
     .catch(() => {
       loading ? (loading.value = false) : 0;
-      window.$message?.error('无法连接服务器，获取检查项选项失败');
+      window.$message?.error('无法连接服务器，获取产品选项失败');
     });
+};
+
+const getCheckItemOpts = (checkItemOpts, loading) => {
+  return new Promise((resolve) => {
+    loading ? (loading.value = true) : 0;
+    checkItemOpts.value = [];
+    axios
+      .get('/v1/checkitem', { page_num: 1, page_size: 999999 })
+      .then((res) => {
+        loading ? (loading.value = false) : 0;
+        checkItemOpts.value = res.data.items.map((item) => {
+          return {
+            label: item.title,
+            value: item.id
+          };
+        });
+        resolve();
+      })
+      .catch(() => {
+        loading ? (loading.value = false) : 0;
+        window.$message?.error('无法连接服务器，获取检查项选项失败');
+      });
+  });
 };
 
 const getVersionOpts = (versionOpts, productName, loading) => {
@@ -144,4 +168,4 @@ const getFrameOpts = (frameOpts, milestoneId, filetype, loading) => {
     });
 };
 
-export { getProductOpts, getVersionOpts, getMilestoneOpts, getFrameOpts, getCheckItemOpts };
+export { getProductOpts, getProductVersionOpts, getVersionOpts, getMilestoneOpts, getFrameOpts, getCheckItemOpts };

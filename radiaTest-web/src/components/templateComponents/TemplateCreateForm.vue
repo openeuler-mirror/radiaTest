@@ -5,7 +5,7 @@
     size="huge"
     :bordered="false"
     :segmented="{
-      content: 'hard',
+      content: 'hard'
     }"
     header-style="
             font-size: 20px; 
@@ -17,27 +17,11 @@
         "
   >
     <div>
-      <n-form
-        inline
-        :label-width="80"
-        :model="formValue"
-        :rules="rules"
-        size="medium"
-        ref="formRef"
-      >
+      <n-form inline :label-width="80" :model="formValue" :rules="rules" size="medium" ref="formRef">
         <n-grid :cols="24" :x-gap="36">
           <n-form-item-gi :span="10" label="模板名" path="name">
-            <n-input
-              v-model:value="formValue.name"
-              style="width: 90%"
-              placeholder="模版名称不可与已有模板重复"
-            />
-            <n-icon
-              size="20"
-              color="rgba(23, 168, 88,1)"
-              class="loading"
-              v-show="loading"
-            >
+            <n-input v-model:value="formValue.name" style="width: 90%" placeholder="模版名称不可与已有模板重复" />
+            <n-icon size="20" color="rgba(23, 168, 88,1)" class="loading" v-show="loading">
               <loading />
             </n-icon>
             <n-icon size="25" color="rgba(255,195,0,1)" v-show="warning">
@@ -55,21 +39,11 @@
             />
           </n-form-item-gi>
           <n-form-item-gi :span="6" label="产品" path="product">
-            <n-select
-              :options="productOpts"
-              v-model:value="formValue.product"
-              placeholder="选择产品"
-              filterable
-            />
+            <n-select :options="productOpts" v-model:value="formValue.product" placeholder="选择产品" filterable />
           </n-form-item-gi>
           <n-gi :span="8">
             <n-form-item label="版本" path="version">
-              <n-select
-                :options="versionOpts"
-                v-model:value="formValue.version"
-                placeholder="选择版本"
-                filterable
-              />
+              <n-select :options="versionOpts" v-model:value="formValue.version" placeholder="选择版本" filterable />
             </n-form-item>
           </n-gi>
           <n-form-item-gi :span="16" label="里程碑" path="milestone">
@@ -92,60 +66,40 @@
           <n-form-item-gi :span="16" label="模板描述" path="description">
             <n-input v-model:value="formValue.description" />
           </n-form-item-gi>
+          <n-form-item-gi :span="24" label="绑定测试用例" path="casesValue">
+            <n-tree-select
+              multiple
+              filterable
+              cascade
+              checkable
+              clearable
+              check-strategy="child"
+              :options="options"
+              v-model:value="formValue.casesValue"
+            />
+          </n-form-item-gi>
         </n-grid>
       </n-form>
     </div>
-  </n-card>
-  <n-card
-    id="suitesCard"
-    :title="createTitle('绑定测试用例')"
-    size="huge"
-    :bordered="false"
-    :segmented="{
-      content: 'hard',
-    }"
-    header-style="
-            font-size: 20px; 
-            height: 40px;
-            padding-top: 10px;
-            padding-bottom: 10px; 
-            font-family: 'v-sans'; 
-            background-color: rgba(250,250,252,1);
-        "
-  >
-    <n-tree-select
-      multiple
-      filterable
-      cascade
-      checkable
-      clearable
-      check-strategy="child"
-      :options="options"
-      v-model:value="casesValue"
-    />
   </n-card>
 </template>
 
 <script>
 import { onMounted, onUnmounted, defineComponent } from 'vue';
-
 import { Loading3QuartersOutlined as Loading } from '@vicons/antd';
 import { Warning } from '@vicons/ionicons5';
-
 import { createTitle } from '@/assets/utils/createTitle';
 import createForm from '@/views/testCenter/template/modules/createForm.js';
-import casesForm from '@/views/testCenter/template/modules/casesForm.js';
 import createAjax from '@/views/testCenter/template/modules/createAjax.js';
 import extendForm from '@/views/versionManagement/product/modules/createForm.js';
 
 export default defineComponent({
   components: {
     Loading,
-    Warning,
+    Warning
   },
   setup(props, context) {
     onMounted(() => {
-      // createAjax.getData(casesForm.options, casesForm.loading);
       createForm.getProductOptions();
     });
 
@@ -154,23 +108,25 @@ export default defineComponent({
 
     onUnmounted(() => {
       createForm.clean();
-      casesForm.clean();
     });
 
     return {
-      typeOptions: extendForm.typeOptions,
+      typeOptions: ref([
+        { label: '组织', value: 'org', isLeaf: true },
+        { label: '团队', value: 'group', isLeaf: false },
+        { label: '个人', value: 'person', isLeaf: true }
+      ]),
       handleLoad: extendForm.handleLoad,
       createTitle,
       ...createAjax,
       ...createForm,
-      ...casesForm,
       handlePropsButtonClick: () => createForm.validateFormData(context),
       post: () => {
-        createAjax.postForm(createForm.formValue, casesForm.casesValue);
+        createAjax.postForm(createForm.formValue);
         context.emit('close');
-      },
+      }
     };
-  },
+  }
 });
 </script>
 

@@ -12,7 +12,7 @@ import {
   getCheckListTableDataAxios
 } from '@/api/get';
 import { createProductMessage, addCheckListItem } from '@/api/post';
-import { milestoneNext, milestoneRollback, updateCheckListItem } from '@/api/put';
+import { milestoneNext, milestoneRollback, updateCheckListItem, deselectCheckListItem } from '@/api/put';
 import { deleteCheckListItem } from '@/api/delete';
 import {
   detail,
@@ -25,6 +25,7 @@ import {
 import _ from 'lodash';
 import textDialog from '@/assets/utils/dialog';
 import { CheckmarkCircle, CloseCircleOutline } from '@vicons/ionicons5';
+import { getCheckItemOpts } from '@/assets/utils/getOpts';
 
 const ProductId = ref(null);
 const done = ref(false);
@@ -98,6 +99,7 @@ const model = ref({
 const productList = ref([]); // 产品列表
 const currentProduct = ref(''); // 当前产品
 const checkItemList = ref([]); // 检查项列表
+const existedCheckItemList = ref([]); // 新增基准值表单检查项列表
 
 function getDefaultList() {
   testList.value = testProgressList.value[testProgressList.value.length - 1];
@@ -584,7 +586,7 @@ const checkListTablePagination = ref({
 
 const checkListTableData = ref([]);
 
-const rounds = ref({}); // checkList表格Rounds数
+const rounds = ref(1); // checkList表格Rounds数
 const checkListTableColumns = ref([]);
 
 const deleteCheckItem = (row) => {
@@ -610,45 +612,53 @@ const checkListTableColumnsDefault = [
     align: 'center'
   },
   {
-    key: 'lts',
-    title: 'LTS',
+    key: 'released',
+    title: 'released',
     align: 'center',
     render: (row) => {
       return h(NCheckbox, {
         focusable: false,
-        checked: row.lts ? true : false,
+        checked: Number(row.rounds[0]) ? true : false,
         'on-update:checked': (checked) => {
-          updateCheckListTable(row, { lts: checked });
+          let tempArr = row.rounds.split('');
+          checked ? (tempArr[0] = 1) : (tempArr[0] = 0);
+          row.rounds = tempArr.join('');
+          if (checked) {
+            updateCheckListTable(row, {
+              baseline: row.baseline,
+              operation: row.operation,
+              rounds: '1'
+            });
+          } else {
+            deselectCheckListItem(row.id, { rounds: '1' });
+          }
         }
       });
     }
   },
   {
-    key: 'lts_spx',
-    title: 'LTS_SPx',
+    key: 'addCol',
     align: 'center',
-    render: (row) => {
-      return h(NCheckbox, {
-        focusable: false,
-        checked: row.lts_spx ? true : false,
-        'on-update:checked': (checked) => {
-          updateCheckListTable(row, { lts_spx: checked });
+    title() {
+      return h(
+        NButton,
+        {
+          title: '新增产品Rounds',
+          bordered: false,
+          'on-click': () => {
+            let keyName = `R${rounds.value}`;
+            addRounds(rounds.value, keyName);
+            rounds.value = rounds.value + 1;
+          }
+        },
+        {
+          default: () => {
+            return h(NIcon, {
+              component: AddAlt
+            });
+          }
         }
-      });
-    }
-  },
-  {
-    key: 'innovation',
-    title: '创新',
-    align: 'center',
-    render: (row) => {
-      return h(NCheckbox, {
-        focusable: false,
-        checked: row.innovation ? true : false,
-        'on-update:checked': (checked) => {
-          updateCheckListTable(row, { innovation: checked });
-        }
-      });
+      );
     }
   },
   {
@@ -676,39 +686,16 @@ const checkListTableColumnsDefault = [
         ]
       );
     }
-  },
-  {
-    key: 'addCol',
-    align: 'center',
-    title() {
-      return h(
-        NButton,
-        {
-          title: '新增产品Rounds',
-          bordered: false,
-          'on-click': () => {
-            let keyName = `R${rounds.value + 1}`;
-            addRounds(rounds.value, keyName);
-            rounds.value = rounds.value + 1;
-          }
-        },
-        {
-          default: () => {
-            return h(NIcon, {
-              component: AddAlt
-            });
-          }
-        }
-      );
-    }
   }
 ];
 
 const showCheckListDrawer = ref(false);
 const checkListDrawerFormRef = ref(null);
+const isAddBaseline = ref(false);
+const roundsOptions = ref([]);
 
 const checkListDrawerModel = ref({
-  product_name: null,
+  product_id: null,
   checkitem_id: null,
   baseline: null,
   operation: null
@@ -717,6 +704,7 @@ const checkListDrawerModel = ref({
 const checkListDrawerRules = ref({
   checkitem_id: {
     required: true,
+    type: 'number',
     message: '检查项必填',
     trigger: ['blur', 'input']
   },
@@ -728,6 +716,11 @@ const checkListDrawerRules = ref({
   operation: {
     required: true,
     message: '请选择运算符',
+    trigger: ['blur', 'change']
+  },
+  rounds: {
+    required: true,
+    message: '请选择迭代版本',
     trigger: ['blur', 'change']
   }
 });
@@ -757,69 +750,97 @@ const operationOptions = ref([
 
 const onlyAllowNumber = (value) => !value || /^-?\d*\.?\d{0,2}%?$/.test(value);
 
-const getCheckListTableData = (currentPage, pageSize, productName) => {
+const getCheckListTableData = (currentPage, pageSize, productId) => {
   checkListTableLoading.value = true;
-  getCheckListTableDataAxios({ page_num: currentPage, page_size: pageSize, product_name: productName }).then((res) => {
-    checkListTableLoading.value = false;
-    checkListTableData.value = [];
-    res.data.items?.forEach((item) => {
-      checkListTableData.value.push({
-        id: item.id,
-        check_item: item.check_item,
-        baseline: item.baseline,
-        operation: item.operation,
-        lts: item.lts,
-        lts_spx: item.lts_spx,
-        innovation: item.innovation,
-        rounds: item.rounds
+  getCheckListTableDataAxios({ page_num: currentPage, page_size: pageSize, product_id: productId, paged: false }).then(
+    (res) => {
+      checkListTableLoading.value = false;
+      checkListTableData.value = [];
+      existedCheckItemList.value = [];
+      res.data.items?.forEach((item) => {
+        checkListTableData.value.push({
+          id: item.id,
+          check_item: item.check_item,
+          baseline: item.baseline,
+          operation: item.operation,
+          released: item.released,
+          rounds: item.rounds
+        });
+
+        let isExisted = false;
+        existedCheckItemList.value.forEach((item2) => {
+          if (item.check_item === item2.label) {
+            isExisted = true;
+          }
+        });
+        if (!isExisted) {
+          existedCheckItemList.value.push({ label: item.check_item, value: item.id });
+        }
       });
-    });
-    checkListTablePagination.value.page = currentPage;
-    checkListTablePagination.value.pageSize = pageSize;
-    checkListTablePagination.value.pageCount = res.data.pages;
-  });
+      checkListTablePagination.value.page = currentPage;
+      checkListTablePagination.value.pageSize = pageSize;
+      checkListTablePagination.value.pageCount = res.data.pages;
+    }
+  );
 };
 
 // 更新checkList表格检查项状态
 const updateCheckListTable = (row, data) => {
-  let [key] = Object.keys(data);
-  if (data.rounds) {
-    data.rounds = data.rounds.replace(/(0+)\b/gi, '');
-  }
   updateCheckListItem(row.id, data).then(() => {
-    row[key] = data[key];
+    getCheckListTableData(
+      checkListTablePagination.value.page,
+      checkListTablePagination.value.pageSize,
+      currentProduct.value
+    );
   });
 };
 
 const checkListTablePageChange = (page) => {
-  getCheckListTableData(page, checkListTablePagination.value.pageSize, currentProduct.value);
+  checkListTablePagination.value.page = page;
 };
 
 const checkListTablePageSizeChange = (pageSize) => {
-  getCheckListTableData(1, pageSize, currentProduct.value);
+  checkListTablePagination.value.page = 1;
+  checkListTablePagination.value.pageSize = pageSize;
 };
+
+const checkListModalTitle = ref('');
 
 // 点击质量checklist按钮
 const clickCheckList = async () => {
+  productList.value.forEach((item) => {
+    if (item.value === currentProduct.value) {
+      checkListModalTitle.value = `${item.label} checkList信息`;
+    }
+  });
   showCheckList.value = true;
   checkListTableColumns.value = _.cloneDeep(checkListTableColumnsDefault);
-  rounds.value = (await getCheckListTableRounds({ product_name: currentProduct.value })).count;
-  for (let i = 0; i < rounds.value; i++) {
-    let keyName = `R${i + 1}`;
+  rounds.value = (await getCheckListTableRounds({ product_id: currentProduct.value })).count || 1;
+  for (let i = 1; i <= rounds.value - 1; i++) {
+    let keyName = `R${i}`;
     addRounds(i, keyName);
   }
   await getCheckListTableData(1, checkListTablePagination.value.pageSize, currentProduct.value);
 };
 
+const createRoundNumber = (num) => {
+  let tempArr = [];
+  for (let i = 0; i <= num; i++) {
+    tempArr[i] = 0;
+  }
+  tempArr[num] = 1;
+  return tempArr.join('');
+};
+
 // 添加checklist表格rounds列
 const addRounds = (index, keyName) => {
-  checkListTableColumns.value.splice(index + 6, 0, {
+  checkListTableColumns.value.splice(index + 3, 0, {
     key: keyName,
     title: keyName,
     align: 'center',
     render: (row) => {
       if (row.rounds.length < rounds.value) {
-        row.rounds = `${row.rounds}0`;
+        row.rounds = row.rounds.padEnd(rounds.value, '0');
       }
       return h(NCheckbox, {
         focusable: false,
@@ -828,7 +849,15 @@ const addRounds = (index, keyName) => {
           let tempArr = row.rounds.split('');
           checked ? (tempArr[index] = 1) : (tempArr[index] = 0);
           row.rounds = tempArr.join('');
-          updateCheckListTable(row, { rounds: row.rounds });
+          if (checked) {
+            updateCheckListTable(row, {
+              rounds: createRoundNumber(index),
+              baseline: row.baseline,
+              operation: row.operation
+            });
+          } else {
+            deselectCheckListItem(row.id, { rounds: createRoundNumber(index) });
+          }
         }
       });
     }
@@ -837,12 +866,7 @@ const addRounds = (index, keyName) => {
 
 const cancelCheckListDrawer = () => {
   showCheckListDrawer.value = false;
-  checkListDrawerModel.value = {
-    product_name: null,
-    checkitem_id: null,
-    baseline: null,
-    operation: null
-  };
+  checkListDrawerModel.value = {};
 };
 
 // 确认新增检查项
@@ -859,10 +883,49 @@ const confirmCheckItem = () => {
   });
 };
 
+// 确认新增基准值
+const confirmBaseline = () => {
+  checkListDrawerFormRef.value?.validate((error) => {
+    if (error) {
+      window.$message?.error('请填写相关信息');
+    } else {
+      updateCheckListItem(checkListDrawerModel.value.checkitem_id, {
+        baseline: checkListDrawerModel.value.baseline,
+        operation: checkListDrawerModel.value.operation,
+        rounds: checkListDrawerModel.value.rounds
+      }).then(() => {
+        getCheckListTableData(1, checkListTablePagination.value.pageSize, currentProduct.value);
+        cancelCheckListDrawer();
+      });
+    }
+  });
+};
+
+const createRoundsOptions = (num) => {
+  let tempArr = [{ label: 'released', value: '1' }];
+  for (let i = 1; i < num; i++) {
+    tempArr.push({
+      label: `R${i}`,
+      value: createRoundNumber(i)
+    });
+  }
+  return tempArr;
+};
+
 // 点击新增检查项按钮
 const addCheckItem = () => {
+  getCheckItemOpts(checkItemList);
   showCheckListDrawer.value = true;
-  checkListDrawerModel.value.product_name = currentProduct.value;
+  isAddBaseline.value = false;
+  checkListDrawerModel.value.product_id = currentProduct.value;
+};
+
+// 点击新增基准值按钮
+const addBaseline = async () => {
+  isAddBaseline.value = true;
+  roundsOptions.value = createRoundsOptions(rounds.value);
+  checkListDrawerModel.value.product_id = currentProduct.value;
+  showCheckListDrawer.value = true;
 };
 
 const showChecklistBoard = ref(false);
@@ -931,6 +994,12 @@ const checklistBoardTablePageSizeChange = (pageSize) => {
 };
 
 export {
+  checkListModalTitle,
+  roundsOptions,
+  existedCheckItemList,
+  confirmBaseline,
+  isAddBaseline,
+  addBaseline,
   checklistBoardTablePageSizeChange,
   checklistBoardTablePageChange,
   checklistBoardTablePagination,

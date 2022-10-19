@@ -7,6 +7,7 @@ import { Circle, CircleCheck, CircleMinus, CircleX } from '@vicons/tabler';
 import axios from '@/axios';
 import { formatTime } from '@/assets/utils/dateFormatUtils.js';
 import { getCaseCommit } from '@/api/get';
+import userInfo from '@/components/user/userInfo.vue';
 
 const vmachineClick = (router) => {
   router.push('/home/resource-pool/vmachine');
@@ -22,7 +23,7 @@ const layout = ref([
   { x: 0, y: 0, w: 8, h: 10, i: 'personal' },
   { x: 8, y: 0, w: 4, h: 48, minH: 15, i: 'machine' },
   { x: 0, y: 7, w: 4, h: 38, minH: 15, i: 'tasks' },
-  { x: 4, y: 7, w: 4, h: 38, minH: 15, i: 'cases' },
+  { x: 4, y: 7, w: 4, h: 38, minH: 15, i: 'cases' }
 ]);
 
 const personalDataOverview = ref({
@@ -31,14 +32,14 @@ const personalDataOverview = ref({
   monthTasksCount: 0,
   todayCasesCount: 0,
   weekCasesCount: 0,
-  monthCasesCount: 0,
+  monthCasesCount: 0
 });
 
 // 任务卡片分页
 const tasksPagination = ref({
   page: 1,
   pageCount: 1, //总页数
-  pageSize: 10,
+  pageSize: 10
 });
 
 let taskType = 'not_accomplish';
@@ -81,16 +82,16 @@ const myTasksCol = ref([
         NIcon,
         { size: 20, color },
         {
-          default: () => h(icon, { style: 'vertical-aligh:middle' }),
+          default: () => h(icon, { style: 'vertical-aligh:middle' })
         }
       );
-    },
+    }
   },
   {
     title: '任务名称',
     key: 'taskName',
     align: 'left',
-    ellipsis: true,
+    ellipsis: true
   },
   {
     title: '任务类型',
@@ -118,21 +119,21 @@ const myTasksCol = ref([
       }
 
       return type;
-    },
+    }
   },
   {
     title: '里程碑',
     key: 'milestone',
     width: '100px',
     align: 'center',
-    ellipsis: true,
+    ellipsis: true
   },
   {
     title: '截止时间',
     key: 'endTime',
     align: 'center',
-    ellipsis: true,
-  },
+    ellipsis: true
+  }
 ]);
 
 const myTasksData = ref([]);
@@ -146,7 +147,7 @@ function getTaskData() {
       task_type: taskType,
       task_title: taskTitle,
       page_num: tasksPagination.value.page,
-      page_size: tasksPagination.value.pageSize,
+      page_size: tasksPagination.value.pageSize
     })
     .then((res) => {
       tasksloading.value = false;
@@ -157,7 +158,7 @@ function getTaskData() {
         monthTasksCount: res.data.month_tasks_count,
         todayCasesCount: 0,
         weekCasesCount: 0,
-        monthCasesCount: 0,
+        monthCasesCount: 0
       };
       if (res.data.items) {
         res.data.items.forEach((v, i) => {
@@ -175,7 +176,7 @@ function getTaskData() {
             taskType: v.type,
             milestone,
             endTime: formatTime(v.deadline, 'yyyy-MM-dd hh:mm:ss'),
-            status: v.status_id,
+            status: v.status_id
           });
         });
       }
@@ -227,7 +228,7 @@ function myTasksRowProps(rowData) {
       initDataKanban(() => {
         getDetail(rowData);
       });
-    },
+    }
   };
 }
 
@@ -265,23 +266,28 @@ const myCasesCol = ref([
   {
     title: '评审标题',
     key: 'title',
-    align: 'center',
+    align: 'center'
   },
   {
     title: '评审人',
     key: 'reviewer_name',
     align: 'center',
+    render: (row) => {
+      return h(userInfo, {
+        userInfo: row.reviewer
+      });
+    }
   },
   {
     title: '描述',
     key: 'description',
-    align: 'center',
-  },
+    align: 'center'
+  }
 ]);
 const myCasePagination = ref({
   page: 1,
   pageCount: 1, //总页数
-  pageSize: 10,
+  pageSize: 10
 });
 
 const myCasesData = ref([]);
@@ -297,7 +303,7 @@ function getMachineData() {
       machine_type: machineType,
       machine_name: machineName,
       page_num: 1,
-      page_size: 999999999,
+      page_size: 999999999
     })
     .then((res) => {
       if (res.data.items) {
@@ -308,7 +314,7 @@ function getMachineData() {
             ip: v.ip,
             bmc_ip: v.bmc_ip,
             milestone: v.milestone,
-            description: v.description,
+            description: v.description
           });
         });
       }
@@ -369,26 +375,26 @@ const myMachineColVirtual = ref([
         NIcon,
         { size: 20, color },
         {
-          default: () => h(icon, { style: 'vertical-aligh:middle' }),
+          default: () => h(icon, { style: 'vertical-aligh:middle' })
         }
       );
-    },
+    }
   },
   {
     title: 'IP',
     key: 'ip',
-    align: 'center',
+    align: 'center'
   },
   {
     title: '里程碑',
     key: 'milestone',
-    align: 'center',
+    align: 'center'
   },
   {
     title: '描述',
     key: 'description',
-    align: 'center',
-  },
+    align: 'center'
+  }
 ]);
 
 const myMachineColPhysics = ref([
@@ -418,26 +424,26 @@ const myMachineColPhysics = ref([
         NIcon,
         { size: 20, color },
         {
-          default: () => h(icon, { style: 'vertical-aligh:middle' }),
+          default: () => h(icon, { style: 'vertical-aligh:middle' })
         }
       );
-    },
+    }
   },
   {
     title: 'IP',
     key: 'ip',
-    align: 'center',
+    align: 'center'
   },
   {
     title: 'BMC IP',
     key: 'bmc_ip',
-    align: 'center',
+    align: 'center'
   },
   {
     title: '描述',
     key: 'description',
-    align: 'center',
-  },
+    align: 'center'
+  }
 ]);
 
 const machineRefresh = ref(null); // 我的机器刷新DOM
@@ -453,7 +459,7 @@ function getMyCase(status = 'open') {
   getCaseCommit({
     page_num: myCasePagination.value.page,
     page_size: myCasePagination.value.pageSize,
-    status,
+    status
   })
     .then((res) => {
       caseLoading.value = false;
@@ -560,5 +566,5 @@ export {
   caseLoading,
   getMyCase,
   caseActive,
-  caseWorkbenchClick,
+  caseWorkbenchClick
 };
