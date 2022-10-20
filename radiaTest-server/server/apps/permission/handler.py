@@ -14,6 +14,7 @@ from server.utils.response_util import RET, ssl_cert_verify_error_collect
 from server.utils.db import Insert, Delete, collect_sql_error
 from server.utils.read_from_yaml import get_default_suffix
 from server.utils.redis_util import RedisKey
+from server.utils.permission_utils import GetAllByPermission
 
 
 class RoleHandler:
@@ -64,7 +65,8 @@ class RoleHandler:
             filter_params = [
                 or_(
                     and_(
-                        ReUserOrganization.organization_id == redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id'),
+                        ReUserOrganization.organization_id == redis_client.hget(RedisKey.user(g.gitee_id),
+                                                                                'current_org_id'),
                         Role.type == 'org',
                     ),
                     and_(
@@ -89,7 +91,7 @@ class RoleHandler:
         ).outerjoin(
             ReUserGroup, Role.group_id == ReUserGroup.group_id
         ).filter(*filter_params).all()
-        
+
         return_data = [role.to_json() for role in roles]
 
         return jsonify(error_code=RET.OK, error_msg="OK", data=return_data)
@@ -221,7 +223,7 @@ class ScopeHandler:
         return_data = [scope.to_json() for scope in scopes]
 
         return jsonify(error_code=RET.OK, error_msg="OK", data=return_data)
-    
+
     @staticmethod
     def get_scopes_by_role(role_id, query):
         _re_scope_roles = ReScopeRole.query.filter_by(role_id=role_id).all()
@@ -236,12 +238,12 @@ class ScopeHandler:
             _filter_params.append(Scope.act == query.act)
         if query.eft:
             _filter_params.append(Scope.eft == query.eft)
-        
+
         scopes = Scope.query.filter(*_filter_params).order_by(
-            Scope.create_time.desc(), 
+            Scope.create_time.desc(),
             Scope.id.asc()
         ).all()
-        
+
         return jsonify(
             error_code=RET.OK,
             error_msg="OK",
@@ -275,7 +277,7 @@ class ScopeHandler:
                 error_code=RET.NO_DATA_ERR,
                 error_msg=f"the {_type} does not exist"
             )
-        
+
         with open('server/config/role_init.yaml', 'r', encoding='utf-8') as f:
             _role_infos = yaml.safe_load(f.read())
         _role_name = _role_infos.get(_type).get("administrator")
@@ -361,8 +363,8 @@ class RoleLimitedHandler:
 
         _role = Role.query.filter_by(id=role_id).first()
         if _role and _role.type == _type and (
-            (_type == 'group' and _role.group_id == group_id) or (
-            _type == 'org' and _role.org_id == org_id) or _type == 'public' or _type == 'person'):
+                (_type == 'group' and _role.group_id == group_id) or (
+                _type == 'org' and _role.org_id == org_id) or _type == 'public' or _type == 'person'):
             self.role_id = _role.id
 
 
@@ -479,47 +481,47 @@ class AccessableMachinesHandler:
         namespace, machine_pool = None, []
 
         user = User.query.filter_by(gitee_id=g.gitee_id).first()
-
         if query.machine_type == "physical":
+            pmachine_filter = GetAllByPermission(Pmachine).get_filter()
             namespace = "pmachine"
             if query.machine_purpose != "create_vmachine":
-                machine_pool = Pmachine.query.filter(
-                    Pmachine.machine_group_id == query.machine_group_id,
-                    Pmachine.frame == query.frame,
-                    Pmachine.state == "occupied",
-                    Pmachine.locked == False,
-                    Pmachine.status == "on",
-                    or_(
-                        Pmachine.description == current_app.config.get(
-                            "CI_PURPOSE"
-                        ),
-                        and_(
-                            Pmachine.occupier == user.gitee_name,
-                            Pmachine.description != current_app.config.get(
-                                "CI_HOST"
-                            )
-                        )
-                    ),
-                ).all()
+                filter_params = [Pmachine.machine_group_id == query.machine_group_id,
+                                 Pmachine.frame == query.frame,
+                                 Pmachine.state == "occupied",
+                                 Pmachine.locked.is_(False),
+                                 Pmachine.status == "on",
+                                 or_(
+                                     Pmachine.description == current_app.config.get(
+                                         "CI_PURPOSE"
+                                     ),
+                                     and_(
+                                         Pmachine.occupier == user.gitee_name,
+                                         Pmachine.description != current_app.config.get(
+                                             "CI_HOST"
+                                         )
+                                     )
+                                 )]
+                pmachine_filter.extend(filter_params)
+                machine_pool = Pmachine.query.filter(*pmachine_filter).all()
             else:
-                machine_pool = Pmachine.query.filter(
-                    Pmachine.machine_group_id == query.machine_group_id,
-                    Pmachine.frame == query.frame,
-                    Pmachine.state == "occupied",
-                    Pmachine.locked == False,
-                    Pmachine.status == "on",
-                    Pmachine.description == current_app.config.get(
-                        "CI_HOST"
-                    ),
-                ).all()
-
+                filter_params = [Pmachine.machine_group_id == query.machine_group_id,
+                                 Pmachine.frame == query.frame,
+                                 Pmachine.state == "occupied",
+                                 Pmachine.locked.is_(False),
+                                 Pmachine.status == "on",
+                                 Pmachine.description == current_app.config.get(
+                                     "CI_HOST"
+                                 )]
+                pmachine_filter.extend(filter_params)
+                machine_pool = Pmachine.query.filter(*pmachine_filter).all()
         elif query.machine_type == "kvm":
+            vmachine_filter = GetAllByPermission(Vmachine).get_filter()
             namespace = "vmachine"
-            machine_pool = Vmachine.query.join(Pmachine).filter(
-                Pmachine.machine_group_id == query.machine_group_id,
-                Vmachine.frame == query.frame,
-                Vmachine.status == "running",
-            ).all()
+            filter_params = [Pmachine.machine_group_id == query.machine_group_id,
+                             Vmachine.frame == query.frame,
+                             Vmachine.status == "running"]
+            vmachine_filter.extend(filter_params)
+            machine_pool = Vmachine.query.join(Pmachine).filter(*vmachine_filter).all()
 
         if not namespace:
             return jsonify(

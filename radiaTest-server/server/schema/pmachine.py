@@ -12,9 +12,9 @@ from sqlalchemy import and_, or_
 import sqlalchemy
 from server.schema.base import PageBaseSchema
 from server.schema import (
-    Frame, 
-    PmachineState, 
-    Power, 
+    Frame,
+    PmachineState,
+    Power,
     MachineGroupNetworkType
 )
 from server.utils.db import Precise
@@ -56,7 +56,7 @@ class MachineGroupCreateSchema(PermissionBase):
 
         # check ips format valid
         if not ip_type(values.get("ip")) or not ip_type(values.get("messenger_ip")) \
-            or not ip_type(values.get("websockify_ip")):
+                or not ip_type(values.get("websockify_ip")):
             raise ValueError("ip format error in publicnet ip/messenger ip/websockify ip")
 
         return values
@@ -122,7 +122,7 @@ class HeartbeatUpdateSchema(BaseModel):
     def heartbeat_validation(cls, values):
         if not ip_type(values.get("messenger_ip")):
             raise ValueError("the IP is in wrong format")
-        
+
         current_datetime = datetime.now(pytz.timezone('Asia/Shanghai'))
 
         if values.get("messenger_alive"):
@@ -131,7 +131,7 @@ class HeartbeatUpdateSchema(BaseModel):
             values["pxe_last_heartbeat"] = current_datetime
         if values.get("dhcp_alive"):
             values["dhcp_last_heartbeat"] = current_datetime
-        
+
         return values
 
 
@@ -178,7 +178,6 @@ class PmachineBaseSchema(BaseModel):
             raise ValueError("this bmc_ip of machine group format error")
         return v
 
-
     @validator("machine_group_id")
     def check_machine_group_id(cls, v):
         mg = MachineGroup.query.filter_by(id=v).first()
@@ -205,7 +204,7 @@ class PmachineBaseSchema(BaseModel):
                     values.get("user"),
                     values.get("port"),
                     values.get("password"),
-                )):
+            )):
                 raise ValueError(
                     "As a CI host, ip、user、port、password must be provided."
                 )
@@ -230,16 +229,19 @@ class PmachineUpdateSchema(PmachineBaseSchema):
 
 class PmachineDelaySchema(BaseModel):
     end_time: Optional[datetime]
- 
+
     @validator("end_time")
     def check_end_time(cls, v):
-        if not v or v < (datetime.now(pytz.timezone('Asia/Shanghai'))):
+        if not v or v.replace(tzinfo=pytz.timezone('Asia/Shanghai')).__lt__(
+                datetime.now(pytz.timezone('Asia/Shanghai'))):
             raise ValueError(
                 "Empty time and Past time is invalid."
             )
-        if v > (datetime.now(pytz.timezone('Asia/Shanghai'))
-                + timedelta(days=current_app.config.get("MAX_OCUPY_TIME"))
-            ):
+        if v.replace(tzinfo=pytz.timezone('Asia/Shanghai')).__gt__(
+                datetime.now(pytz.timezone('Asia/Shanghai'))
+                + timedelta(
+                    days=current_app.config.get("MAX_OCUPY_TIME"))
+        ):
             raise ValueError(
                 "The max occupation duration is %s days."
                 % current_app.config.get("MAX_OCUPY_TIME")
@@ -247,13 +249,12 @@ class PmachineDelaySchema(BaseModel):
         return v
 
 
-class PmachineOccupySchema(PmachineDelaySchema):
+class PmachineOccupySchema(BaseModel):
     description: str
     occupier: str
     listen: Optional[int]
     start_time: Optional[datetime]
-    end_time: Optional[datetime]
-
+    end_time: Optional[str]
 
     @root_validator
     def check_values(cls, values):
@@ -263,16 +264,31 @@ class PmachineOccupySchema(PmachineDelaySchema):
             current_app.config.get("CI_PURPOSE"),
             current_app.config.get("CI_HOST"),
         ]:
-            if values["description"] == current_app.config.get("CI_HOST")\
-             and not values["listen"]:
+            if values["description"] == current_app.config.get("CI_HOST") \
+                    and not values["listen"]:
                 raise ValueError(
                     "As a CI host, listen must be provided."
                 )
             values["end_time"] = None
         else:
-            values["end_time"] = (datetime.now(pytz.timezone('Asia/Shanghai'))
+            max_endtime = (
+                    datetime.now(pytz.timezone('Asia/Shanghai'))
                     + timedelta(days=current_app.config.get("MAX_OCUPY_TIME"))
+            )
+            if not values["end_time"] or datetime.strptime(values["end_time"], "%Y-%m-%d %H:%M:%S"). \
+                    replace(tzinfo=pytz.timezone('Asia/Shanghai')). \
+                    __lt__(datetime.now(pytz.timezone('Asia/Shanghai'))):
+                raise ValueError(
+                    "Empty time and Past time is invalid."
                 )
+            elif datetime.strptime(values["end_time"], "%Y-%m-%d %H:%M:%S"). \
+                    replace(tzinfo=pytz.timezone('Asia/Shanghai')).__gt__(max_endtime):
+                raise ValueError(
+                    "The max occupation duration is %s days."
+                    % current_app.config.get("MAX_OCUPY_TIME")
+                )
+            else:
+                pass
         return values
 
 
@@ -300,7 +316,7 @@ class PmachineBriefSchema(BaseModel):
     description: str
     status: str
     bmc_ip: str
-    
+
     @validator("ip")
     def check_ip_format(cls, v):
         if not ip_type(v):

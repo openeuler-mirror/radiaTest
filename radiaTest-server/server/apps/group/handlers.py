@@ -32,6 +32,7 @@ from server.model.administrator import Admin
 from server.model.message import Message, MsgType, MsgLevel
 from server.model.organization import Organization
 from server.model.permission import ReUserRole, Role
+from server.model.user import User
 from server.schema.group import ReUserGroupSchema, GroupInfoSchema, QueryGroupUserSchema
 
 
@@ -69,7 +70,7 @@ def handler_add_group():
     }
     scope_data_allow, scope_data_deny = get_api("group", "group.yaml", "group", group_id)
     PermissionManager().generate(
-        scope_datas_allow=scope_data_allow, 
+        scope_datas_allow=scope_data_allow,
         scope_datas_deny=scope_data_deny,
         _data=_data
     )
@@ -77,13 +78,13 @@ def handler_add_group():
     for role in role_list:
         scope_data_allow, scope_data_deny = get_api("permission", "role.yaml", "role", role.id)
         PermissionManager().generate(
-            scope_datas_allow=scope_data_allow, 
+            scope_datas_allow=scope_data_allow,
             scope_datas_deny=scope_data_deny,
             _data=_data
         )
 
     return jsonify(
-        error_code=RET.OK, 
+        error_code=RET.OK,
         error_msg="OK",
         data={"id": group_id}
     )
@@ -246,7 +247,7 @@ def handler_group_user_page(group_id, query: QueryGroupUserSchema):
             ReUserGroup.user_gitee_id.notin_(query.except_list)
         )
 
-    query_filter = ReUserGroup.query.filter(*filter_params)\
+    query_filter = ReUserGroup.query.filter(*filter_params) \
         .order_by(ReUserGroup.create_time.desc(), ReUserGroup.id.asc())
 
     # 获取用户组下的所有用户
@@ -369,3 +370,77 @@ def handler_update_user(group_id, body):
     else:
         return jsonify(error_code=RET.VERIFY_ERR, error_msg="user has not right")
     return jsonify(error_code=RET.OK, error_msg="OK")
+
+
+@collect_sql_error
+def handler_apply_join_group(group_id):
+    group = Group.query.filter_by(id=group_id, is_delete=False).first()
+    if not group:
+        return jsonify(error_code=RET.NO_DATA_ERR, error_msg="user group not find")
+    re_exists = ReUserGroup.query.filter_by(user_gitee_id=g.gitee_id, group_id=group_id).first()
+    if re_exists and re_exists.role_type == 0:
+        return jsonify(error_code=RET.DATA_EXIST_ERR, error_msg="你已申请加入组，请勿重复申请")
+
+    re_info = ReUserGroup.query.filter(ReUserGroup.is_delete.is_(False), ReUserGroup.group_id == group_id,
+                                       ReUserGroup.role_type.in_([1, 2])).all()
+    org_name = redis_client.hget(RedisKey.user(g.gitee_id), "current_org_name")
+    user_info = User.query.filter_by(gitee_id=g.gitee_id).first()
+    for item in re_info:
+        Insert(
+            Message,
+            {
+                "data": json.dumps(
+                    {
+                        "callback_url": '/api/v1/msg/addgroup/callback',
+                        "group_id": group_id,
+                        "group_name": group.name,
+                        "info": f'<b>{user_info.gitee_name}</b>申请加入'
+                                f'<b>{org_name}</b>组织下的'
+                                f'<b>{group.name}</b>用户组。'
+                    }
+                ),
+                "level": MsgLevel.user.value,
+                "from_id": g.gitee_id,
+                "to_id": item.user_gitee_id,
+                "type": MsgType.script.value,
+                "org_id": group.org_id
+            }
+        ).insert_id()
+    add_list = list()
+
+    add_list.append(dict(
+        is_delete=False,
+        user_add_group_flag=False,
+        role_type=0,
+        user_gitee_id=int(g.gitee_id),
+        group_id=int(group_id),
+        org_id=group.org_id
+    ))
+    if re_exists and re_exists.is_delete:
+        add_list[0].update({
+            "id": re_exists.id
+        })
+        db.session.execute(ReUserGroup.__table__.update(), add_list)
+        db.session.commit()
+    else:
+        db.session.execute(ReUserGroup.__table__.insert(), add_list)
+        db.session.commit()
+
+    Insert(
+        Message,
+        {
+            "data": json.dumps(
+                {
+                    'info': f'您申请加入'
+                            f'<b>{org_name}</b>组织下的'
+                            f'<b>{group.name}</b>用户组请求已发送，请求通过后将通知您'
+                }
+            ),
+            "level": MsgLevel.system.value,
+            "from_id": 1,
+            "to_id": g.gitee_id,
+            "type": MsgType.text.value,
+            "org_id": group.org_id
+        }
+    ).insert_id()
+    return jsonify(error_code=RET.OK, error_msg="申请已发送")

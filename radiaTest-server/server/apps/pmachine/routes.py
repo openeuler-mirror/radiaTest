@@ -3,8 +3,9 @@
 # @Date:   2022-04-12 14:05:57
 import json
 import datetime
+import pytz
 
-from flask import request, jsonify, current_app, Response, g
+from flask import jsonify, current_app, g
 from flask_restful import Resource
 import sqlalchemy
 from flask_pydantic import validate
@@ -288,9 +289,15 @@ class PmachineOccupyEvent(Resource):
             Insert(ReScopeRole, scope_ssh_role_data).single()
 
         _body = body.__dict__
+        end_time = _body.get("end_time")
+        if end_time:
+            _body.update({
+                "end_time": datetime.datetime.strptime(end_time, "%Y-%m-%d %H:%M:%S").
+                    replace(tzinfo=pytz.timezone('Asia/Shanghai'))
+            })
         _body.update({
             "id": pmachine_id,
-            "state": "occupied",
+            "state": "occupied"
         })
 
         return Edit(Pmachine, _body).single(Pmachine, "/pmachine")

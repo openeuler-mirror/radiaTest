@@ -1,13 +1,21 @@
-from flask_socketio import join_room, leave_room, rooms
+from flask import g
+from flask_socketio import join_room, leave_room, rooms, emit
 from flask_restful import Resource
 from flask_pydantic import validate
 
-from server import socketio
-from server.utils.auth_util import auth
-from server.utils.response_util import response_collect
-from .handlers import *
+from server import socketio, redis_client
+from server.model.message import Message
 from server.schema.message import MessageCallBack
-from server.utils.auth_util import verify_token
+from server.utils.auth_util import auth, verify_token
+from server.utils.response_util import response_collect
+from server.apps.message.handlers import (
+    handler_msg_list,
+    handler_update_msg,
+    handler_msg_callback,
+    handler_addgroup_msg_callback,
+    handler_group_page
+)
+from server.utils.redis_util import RedisKey
 
 
 @socketio.on('after connect', namespace="/message")
@@ -19,7 +27,7 @@ def after_connect(token):
     _verify_result = verify_token(token)
     if isinstance(_verify_result, tuple):
         flag, gitee_id = _verify_result
-        
+
     # 若检验出user_id，将此客户端添加到user_id的room中
     if flag is True and gitee_id is not None:
         org_id = redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')
@@ -69,3 +77,22 @@ class MsgCallBack(Resource):
     @validate()
     def put(self, body: MessageCallBack):
         return handler_msg_callback(body)
+
+
+class AddGroupMsgCallBack(Resource):
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def put(self, body: MessageCallBack):
+        return handler_addgroup_msg_callback(body)
+
+
+class MsgGetGroup(Resource):
+    @auth.login_required()
+    @response_collect
+    def get(self):
+        """
+        消息中心获取当前用户所属的用户组
+        :return:
+        """
+        return handler_group_page()

@@ -18,10 +18,20 @@
 from server import casbin_enforcer
 from flask_restful import Resource
 from flask_pydantic import validate
+
+from server.apps.group.handlers import (
+    handler_add_group,
+    handler_update_group,
+    handler_delete_group,
+    handler_group_page,
+    handler_group_user_page,
+    handler_add_user,
+    handler_update_user,
+    handler_apply_join_group
+)
+from server.schema.group import AddGroupUserSchema, UpdateGroupUserSchema, QueryGroupUserSchema
 from server.utils.auth_util import auth
 from server.utils.response_util import response_collect
-from .handlers import *
-from server.schema.group import AddGroupUserSchema, UpdateGroupUserSchema, QueryGroupUserSchema
 
 
 class Group(Resource):
@@ -65,14 +75,6 @@ class Group(Resource):
         return handler_group_page()
 
 
-# class OrgGroups(Resource):
-#     @auth.login_required()
-#     @response_collect
-#     @validate()
-#     def get(self, org_id, query: GroupsQuerySchema):
-#         return handler_get_groups(org_id, query)
-
-
 class User(Resource):
     @auth.login_required()
     @response_collect
@@ -111,3 +113,16 @@ class User(Resource):
         :return:
         """
         return handler_update_user(group_id, body)
+
+
+class UserApplyGroup(Resource):
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def post(self, group_id):
+        """
+        申请加入用户组
+        :param group_id: 用户组ID
+        :return:
+        """
+        return handler_apply_join_group(group_id)
