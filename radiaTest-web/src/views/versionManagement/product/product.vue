@@ -122,28 +122,20 @@
                 @click="cardClick"
                 :style="{
                   backgroundColor:
-                    issuesResolvedPassed !== null
-                      ? issuesResolvedPassed
-                        ? '#D5E8D4'
-                        : 'white'
-                      : 'white',
+                    issuesResolvedPassed !== null ? (issuesResolvedPassed ? '#D5E8D4' : 'white') : 'white',
                   border:
                     issuesResolvedPassed !== null
                       ? issuesResolvedPassed
                         ? '1px solid #A2C790'
                         : '1px solid #B95854'
-                      : '1px solid #ddddd',
+                      : '1px solid #ddddd'
                 }"
               >
                 <n-progress
                   class="topProgress"
                   type="circle"
                   :status="
-                    currentResolvedPassed !== true 
-                      ? currentResolvedPassed === false
-                        ? 'error'
-                        : 'default' 
-                      : 'success'
+                    currentResolvedPassed !== true ? (currentResolvedPassed === false ? 'error' : 'default') : 'success'
                   "
                   :stroke-width="9"
                   :percentage="currentResolvedRate"
@@ -159,7 +151,7 @@
                     <CancelRound color="#D03050" v-else />
                   </n-icon>
                   <span>
-                    {{ issuesResolvedPassed !== null ? issuesResolvedPassed ? '已达标' : '未达标' : 'unknown' }}
+                    {{ issuesResolvedPassed !== null ? (issuesResolvedPassed ? '已达标' : '未达标') : 'unknown' }}
                   </span>
                 </div>
                 <div style="position: absolute; left: 61%; top: 16%; text-align: center">
@@ -172,9 +164,7 @@
                     <div style="display: flex; flex-direction: column">
                       <p style="font-size: 14px; margin: 0">遗留问题数</p>
                     </div>
-                    <p 
-                      :style="{fontSize: '30px'}"
-                    >
+                    <p :style="{ fontSize: '30px' }">
                       {{ leftIssuesCnt ? leftIssuesCnt : '0' }}
                     </p>
                   </div>
@@ -196,10 +186,10 @@
                   style="position: absolute; width: 78%; top: 80%; left: 11%"
                   type="line"
                   :status="
-                    seriousMainResolvedPassed !== true 
+                    seriousMainResolvedPassed !== true
                       ? seriousMainResolvedPassed === false
                         ? 'error'
-                        : 'default' 
+                        : 'default'
                       : 'success'
                   "
                   :indicator-placement="'inside'"
@@ -213,10 +203,10 @@
                   <template #trigger>
                     <n-progress
                       :status="
-                        seriousResolvedPassed !== true 
+                        seriousResolvedPassed !== true
                           ? seriousResolvedPassed === false
                             ? 'error'
-                            : 'default' 
+                            : 'default'
                           : 'success'
                       "
                       style="position: absolute; width: 78%; top: 86%; left: 11%"
@@ -230,11 +220,7 @@
                   <template #trigger>
                     <n-progress
                       :status="
-                        mainResolvedPassed !== true 
-                          ? mainResolvedPassed === false
-                            ? 'error'
-                            : 'default' 
-                          : 'success'
+                        mainResolvedPassed !== true ? (mainResolvedPassed === false ? 'error' : 'default') : 'success'
                       "
                       style="position: absolute; width: 78%; top: 91%; left: 11%"
                       type="line"
@@ -513,36 +499,28 @@
         </n-form>
       </n-drawer-content>
     </n-drawer>
-    <n-modal v-model:show="showModal">
+    <n-modal v-model:show="showEditProductVersionModal" class="editProductVersionWrap">
       <n-card style="width: 600px" title="编辑产品信息" :bordered="false" size="huge" role="dialog" aria-modal="true">
-        <n-form ref="formRef" :model="model">
+        <n-form ref="productVersionFormRef" :model="productVersionModel">
           <n-form-item path="name" label="产品">
-            <n-input v-model:value="model.name" @keydown.enter.prevent />
+            <n-input v-model:value="productVersionModel.name" @keydown.enter.prevent />
           </n-form-item>
           <n-form-item path="version" label="版本">
-            <n-input v-model:value="model.version" @keydown.enter.prevent />
+            <n-input v-model:value="productVersionModel.version" @keydown.enter.prevent />
+          </n-form-item>
+          <n-form-item path="description" label="描述">
+            <n-input v-model:value="productVersionModel.description" @keydown.enter.prevent />
           </n-form-item>
           <n-form-item path="start_time" label="开始时间">
-            <n-input v-model:value="model.start_time" @keydown.enter.prevent />
+            <n-date-picker v-model:value="productVersionModel.start_time" type="date" />
           </n-form-item>
           <n-form-item path="end_time" label="结束时间">
-            <n-input v-model:value="model.end_time" @keydown.enter.prevent />
+            <n-date-picker v-model:value="productVersionModel.end_time" type="date" />
           </n-form-item>
-          <n-form-item path="public_time" label="发布时间">
-            <n-input v-model:value="model.public_time" @keydown.enter.prevent />
-          </n-form-item>
-          <n-form-item path="bequeath" label="遗留解决">
-            <n-input v-model:value="model.bequeath" @keydown.enter.prevent />
-          </n-form-item>
-          <n-row :gutter="[0, 24]">
-            <n-col :span="24">
-              <div style="display: flex; justify-content: flex-end">
-                <n-button :disabled="model.age === null" round type="primary" @click="handleValidateButtonClick">
-                  确定
-                </n-button>
-              </div>
-            </n-col>
-          </n-row>
+          <div class="buttonWrap">
+            <n-button class="btn" type="error" ghost @click="cancelEditProductVersionModal">取消</n-button>
+            <n-button class="btn" type="info" ghost @click="confirmEditProductVersionModal">确定</n-button>
+          </div>
         </n-form>
       </n-card>
     </n-modal>
@@ -616,7 +594,9 @@ export default {
       modules.setFeatureOption(additionFeatureOption, '新增特性', modules.additionFeatureSummary.value);
       modules.setFeatureOption(inheritFeatureOption, '继承特性', modules.inheritFeatureSummary.value);
     });
-    onUnmounted(() => { modules.cleanPackageListData(); });
+    onUnmounted(() => {
+      modules.cleanPackageListData();
+    });
     return {
       createFormRef: ref(),
       createModalRef: ref(),
@@ -673,7 +653,7 @@ export default {
 
     .topProgress {
       position: absolute;
-      width: 190px; 
+      width: 190px;
       left: 15%;
       top: 15%;
     }
@@ -725,6 +705,17 @@ export default {
     display: flex;
     justify-content: space-evenly;
     .btn {
+      width: 100px;
+    }
+  }
+}
+
+.editProductVersionWrap {
+  .buttonWrap {
+    display: flex;
+    justify-content: center;
+    .btn {
+      margin: 0 10px;
       width: 100px;
     }
   }

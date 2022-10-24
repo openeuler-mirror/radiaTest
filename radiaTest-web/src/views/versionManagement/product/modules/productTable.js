@@ -12,8 +12,14 @@ import {
   getCheckListTableDataAxios
 } from '@/api/get';
 import { createProductMessage, addCheckListItem } from '@/api/post';
-import { milestoneNext, milestoneRollback, updateCheckListItem, deselectCheckListItem } from '@/api/put';
-import { deleteCheckListItem } from '@/api/delete';
+import {
+  milestoneNext,
+  milestoneRollback,
+  updateCheckListItem,
+  deselectCheckListItem,
+  updateProductVersion
+} from '@/api/put';
+import { deleteCheckListItem, deleteProductVersion } from '@/api/delete';
 import {
   detail,
   drawerShow,
@@ -26,6 +32,7 @@ import _ from 'lodash';
 import textDialog from '@/assets/utils/dialog';
 import { CheckmarkCircle, CloseCircleOutline } from '@vicons/ionicons5';
 import { getCheckItemOpts } from '@/assets/utils/getOpts';
+import { formatTime } from '@/assets/utils/dateFormatUtils.js';
 
 const ProductId = ref(null);
 const done = ref(false);
@@ -51,19 +58,13 @@ const previousLeftResolvedRate = ref(null);
 const previousLeftResolvedPassed = ref(null);
 const issuesResolvedPassed = ref(null);
 watch(
-  [
-    currentResolvedPassed, 
-    seriousMainResolvedPassed, 
-    seriousResolvedPassed, 
-    mainResolvedPassed, 
-    leftIssuesPassed
-  ],
+  [currentResolvedPassed, seriousMainResolvedPassed, seriousResolvedPassed, mainResolvedPassed, leftIssuesPassed],
   () => {
     let passedList = [
-      currentResolvedPassed.value, 
-      seriousMainResolvedPassed.value, 
-      seriousResolvedPassed.value, 
-      mainResolvedPassed.value, 
+      currentResolvedPassed.value,
+      seriousMainResolvedPassed.value,
+      seriousResolvedPassed.value,
+      mainResolvedPassed.value,
       leftIssuesPassed.value
     ];
     if (passedList.filter((item) => item === false).length > 0) {
@@ -82,20 +83,8 @@ const list = ref([]);
 const currentId = ref('');
 const preId = ref('');
 const tableLoading = ref(false);
-const showModal = ref(false);
 const showCheckList = ref(false);
-const formRef = ref(null);
 const message = useMessage();
-const model = ref({
-  name: null,
-  version: null,
-  start_time: null,
-  end_time: null,
-  publish_time: null,
-  previous_left_resolved_rate: null,
-  serious_main_resolved_rate: null,
-  current_resolved_rate: null
-});
 const productList = ref([]); // 产品列表
 const currentProduct = ref(''); // 当前产品
 const checkItemList = ref([]); // 检查项列表
@@ -184,6 +173,60 @@ function handleClick(id) {
   getTestList(id);
   getPackageListComparationSummary(dashboardId.value);
 }
+
+const showEditProductVersionModal = ref(false);
+const productVersionFormRef = ref(null);
+const productVersionModel = ref({
+  name: null,
+  version: null,
+  description: null,
+  start_time: null,
+  end_time: null
+});
+const editProductId = ref(null);
+
+function editRow(row) {
+  editProductId.value = row.id;
+  showEditProductVersionModal.value = true;
+}
+
+const cancelEditProductVersionModal = () => {
+  showEditProductVersionModal.value = false;
+  productVersionModel.value = {
+    name: null,
+    version: null,
+    description: null,
+    start_time: null,
+    end_time: null
+  };
+};
+
+function confirmEditProductVersionModal(e) {
+  e.preventDefault();
+  productVersionFormRef.value?.validate((errors) => {
+    if (!errors) {
+      let obj = { ...productVersionModel.value };
+      obj.start_time = obj.start_time ? formatTime(obj.start_time, 'yyyy-MM-dd hh:mm:ss') : null;
+      obj.end_time = obj.end_time ? formatTime(obj.end_time, 'yyyy-MM-dd hh:mm:ss') : null;
+
+      updateProductVersion(editProductId.value, obj).then(() => {
+        cancelEditProductVersionModal();
+        getTableData();
+      });
+    }
+  });
+}
+
+function deleteRow(row) {
+  textDialog('warning', '警告', '确认删除产品版本？', () => {
+    deleteProductVersion(row.id).then(() => {
+      getTableData();
+    });
+  });
+}
+
+function reportRow() {}
+
 function renderBtn(text, action, row, type = 'text') {
   return h(
     NButton,
@@ -197,11 +240,7 @@ function renderBtn(text, action, row, type = 'text') {
     text
   );
 }
-function editRow() {
-  showModal.value = true;
-}
-function reportRow() {}
-function deleteRow() {}
+
 const columns = [
   {
     key: 'name',
@@ -539,20 +578,8 @@ function stepAdd() {
       });
   }
 }
-function handleValidateButtonClick(e) {
-  e.preventDefault();
-  formRef.value?.validate((errors) => {
-    if (!errors) {
-      window.$message.success('修改信息成功');
-      setTimeout(() => {
-        showModal.value = false;
-      }, 200);
-    } else {
-      window.$message.success('修改信息失败');
-    }
-  });
-}
-function handleRollback(recovery=false) {
+
+function handleRollback(recovery = false) {
   milestoneRollback(dashboardId.value)
     .then(() => {
       getDefaultCheckNode(ProductId.value);
@@ -1035,13 +1062,13 @@ export {
   currentId,
   preId,
   dashboardId,
-  formRef,
+  productVersionFormRef,
   message,
-  model,
+  productVersionModel,
   tableData,
   columns,
   tableLoading,
-  showModal,
+  showEditProductVersionModal,
   showCheckList,
   seriousMainResolvedCnt,
   seriousMainAllCnt,
@@ -1065,7 +1092,7 @@ export {
   getTestList,
   handleClick,
   getDefaultList,
-  handleValidateButtonClick,
+  confirmEditProductVersionModal,
   rowProps,
   getTableData,
   getProductData,
@@ -1073,5 +1100,6 @@ export {
   haveRecovery,
   getDefaultCheckNode,
   handlePackageCardClick,
-  handleRollback
+  handleRollback,
+  cancelEditProductVersionModal
 };

@@ -11,6 +11,7 @@ declare module '@vue/runtime-core' {
     AnalysisTimeline: typeof import('./src/components/jobComponents/logsDrawerComponents/AnalysisTimeline.vue')['default']
     AtOverview: typeof import('./src/components/productDrawer/atOverview.vue')['default']
     AutoSteps: typeof import('./src/components/autoSteps/autoSteps.vue')['default']
+    AvatarGroup: typeof import('./src/components/personalCenter/avatarGroup.vue')['default']
     BatchButton: typeof import('./src/components/CRUD/BatchButton.vue')['default']
     Blank: typeof import('./src/components/public/Blank.vue')['default']
     Breadcrumb: typeof import('./src/components/breadcrumb/breadcrumb.vue')['default']

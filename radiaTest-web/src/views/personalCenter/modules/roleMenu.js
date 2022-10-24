@@ -41,9 +41,8 @@ const adminMenu = [
   },
   {
     label: '安全设置',
-    key: 'setting',
+    key: 'securitySetting',
     icon: renderIcon(LockClosedOutline),
-    disabled: true
   }
 ];
 const userMenu = [
@@ -67,12 +66,6 @@ const userMenu = [
     key: 'authorityManagement',
     icon: renderIcon(ManageAccountsOutlined)
   },
-  {
-    label: '安全设置',
-    key: 'setting',
-    icon: renderIcon(LockClosedOutline),
-    disabled: true
-  }
 ];
 function initRoleOptions(roleType) {
   if (roleType === 1) {
