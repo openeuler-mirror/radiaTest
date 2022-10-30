@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 import pytz
 from flask import current_app, request, Response, redirect, g, jsonify
 from sqlalchemy import or_, and_, extract
+import sqlalchemy
 
 from server import redis_client
 from server.utils.response_util import RET
@@ -12,6 +13,7 @@ from server.utils.redis_util import RedisKey
 from server.utils.db import collect_sql_error, Insert
 from server.utils.cla_util import Cla, ClaShowAdminSchema
 from server.utils.read_from_yaml import get_default_suffix
+from server.utils.page_util import PageUtil
 from server.model.user import User
 from server.model.message import Message
 from server.model.task import Task
@@ -383,7 +385,7 @@ def handler_user_info(gitee_id):
     user = User.query.filter_by(gitee_id=gitee_id).first()
     if not user:
         return jsonify(error_code=RET.NO_DATA_ERR, error_msg=f"user is no find")
-    user_dict = user.to_dict()
+    user_dict = user.to_json()
 
     # 用户组信息
     group_list = []
@@ -790,3 +792,39 @@ def handler_get_user_case_commit(query: UserCaseCommitSchema):
     page_dict["week_case_count"] = week_count
     page_dict["month_case_count"] = month_count
     return jsonify(error_code=RET.OK, error_msg="OK", data=page_dict)
+
+
+def handler_get_user_asset_rank(query):
+    ranked_user = User.query.join(
+        ReUserOrganization
+    ).filter(
+        ReUserOrganization.rank != sqlalchemy.null(),
+        ReUserOrganization.is_delete == False,
+        ReUserOrganization.organization_id == redis_client.hget(
+            RedisKey.user(g.gitee_id), 
+            "current_org_id"
+        )
+    ).order_by(
+        ReUserOrganization.rank.asc(), 
+        User.create_time.asc()
+    )
+
+    def page_func(item):
+        user_dict = item.to_summary()
+        return user_dict
+    
+    page_dict, e = PageUtil.get_page_dict(
+        ranked_user, query.page_num, query.page_size, func=page_func
+    )
+    if e:
+        return jsonify(
+            error_code=RET.SERVER_ERR, 
+            error_msg=f'get user rank page error {e}'
+        )
+    return jsonify(
+        error_code=RET.OK, 
+        error_msg="OK", 
+        data=page_dict
+    )
+
+    

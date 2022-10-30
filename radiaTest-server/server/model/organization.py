@@ -1,7 +1,8 @@
+from enum import Enum
+
+from server import db
 from server.model import BaseModel, PermissionBaseModel
 from server.model.permission import Role, ReUserRole
-from server import db
-from enum import Enum
 
 
 class OrganizationRole(Enum):
@@ -34,6 +35,8 @@ class Organization(db.Model, PermissionBaseModel, BaseModel):
 
     roles = db.relationship("Role", cascade="all, delete", backref="organization")
 
+    re_org_publisher = db.relationship("RequirementPublisher", backref="org")
+
     def add_update(self, table=None, namespace=None, broadcast=False):
         from sqlalchemy.exc import IntegrityError
         from flask import current_app
@@ -54,8 +57,16 @@ class Organization(db.Model, PermissionBaseModel, BaseModel):
             "create_time": self.create_time.strftime("%Y-%m-%d %H:%M:%S"),
             "update_time": self.update_time.strftime("%Y-%m-%d %H:%M:%S"),
         })
+        _dict.pop('_sa_instance_state')
 
         return _dict
+
+    def to_summary(self):
+        return {
+            "name": self.name,
+            "description": self.description,
+            "avatar_url": self.avatar_url,
+        }
 
     @staticmethod
     def create(model):
@@ -83,12 +94,13 @@ class Organization(db.Model, PermissionBaseModel, BaseModel):
 
 class ReUserOrganization(db.Model, BaseModel):
     __tablename__ = "re_user_organization"
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    id = db.Column(db.Integer(), primary_key=True, autoincrement=True)
     is_delete = db.Column(db.Boolean, default=False, nullable=False)
     # 0 普通用户
-    role_type = db.Column(db.Integer, default=0, nullable=False)
+    role_type = db.Column(db.Integer(), default=0, nullable=False)
     cla_info = db.Column(db.String(1024), nullable=True)
     default = db.Column(db.Boolean, default=False, nullable=False)
+    rank = db.Column(db.Integer())
 
     user_gitee_id = db.Column(db.Integer, db.ForeignKey('user.gitee_id'))
     organization_id = db.Column(db.Integer, db.ForeignKey('organization.id'))

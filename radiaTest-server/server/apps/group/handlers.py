@@ -17,7 +17,8 @@
 
 import json
 
-from flask import request, g, current_app, jsonify
+from flask import request, g, jsonify
+import sqlalchemy
 
 from server import redis_client, db
 from server.utils.response_util import RET
@@ -444,3 +445,31 @@ def handler_apply_join_group(group_id):
         }
     ).insert_id()
     return jsonify(error_code=RET.OK, error_msg="申请已发送")
+
+
+def handler_get_group_asset_rank(query):
+    ranked_group = Group.query.filter(
+        Group.rank != sqlalchemy.null(),
+        Group.is_delete == False,
+        Group.org_id == int(redis_client.hget(RedisKey.user(g.gitee_id), "current_org_id"))
+    ).order_by(
+        Group.rank.asc(),
+        Group.create_time.asc(),
+    )
+    
+    def page_func(item):
+        group_dict = item.to_summary()
+        return group_dict
+    
+    page_dict, e = PageUtil.get_page_dict(
+            ranked_group, 
+            query.page_num,
+            query.page_size, 
+            func=page_func
+        )
+    if e:
+        return jsonify(
+            error_code=RET.SERVER_ERR, 
+            error_msg=f'get group rank page error: {e}'
+        )
+    return jsonify(error_code=RET.OK, error_msg="OK", data=page_dict)
