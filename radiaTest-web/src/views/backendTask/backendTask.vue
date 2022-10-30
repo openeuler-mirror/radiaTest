@@ -33,12 +33,10 @@ export default {
   setup() {
     const socketObj = new Socket(`${config.websocketProtocol}://${config.serverPath}/celerytask`);
     onMounted(() => {
-      console.log('mounted');
       modules.getTask();
       modules.connectSocket(socketObj);
     });
     onUnmounted(() => {
-      console.log('unmounted');
       modules.disconnectSocket(socketObj);
     });
     return {

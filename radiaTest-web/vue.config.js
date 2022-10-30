@@ -46,7 +46,12 @@ module.exports = {
         target: 'http://0.0.0.0:21500/',
         changeOrigin: true,
         secure: false
-      }
+      },
+      '/socket.io': {
+        target: 'http://0.0.0.0:21500/',
+        changeOrigin: true,
+        ws: true,
+      },
     }
   }
 };

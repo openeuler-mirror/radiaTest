@@ -123,6 +123,7 @@ declare module '@vue/runtime-core' {
     Timeline: typeof import('./src/components/timeline/timeline.vue')['default']
     TimelineItem: typeof import('./src/components/timeline/timelineItem.vue')['default']
     Tree: typeof import('./src/components/tree/tree.vue')['default']
+    UserAvatarGroup: typeof import('./src/components/avatarGroup/UserAvatarGroup.vue')['default']
     UserInfo: typeof import('./src/components/user/userInfo.vue')['default']
     VcpusForm: typeof import('./src/components/vmachineComponents/expandedContent/editForms/VcpusForm.vue')['default']
     VHtml: typeof import('./src/components/common/vHtml.vue')['default']

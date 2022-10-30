@@ -194,6 +194,7 @@ export default {
 
 <style scoped lang="less">
 .container {
+  padding: 20px;
   display: flex;
   flex-direction: column;
 

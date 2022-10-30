@@ -13,7 +13,7 @@
         <ul class="member-list">
           <li class="select-option-group">
             <div class="option-group-label">
-              {{ type === 'PERSON' ? '人员' : '团队' }}
+              {{ renderLabel(type) }}
             </div>
             <ul v-if="!multiple">
               <li
@@ -86,6 +86,14 @@ export default {
     };
   },
   methods: {
+    renderLabel(_type) {
+      if (_type === 'PERSON' || _type === 'ORGANIZATION') {
+        return '人员';
+      } else if (_type === 'GROUP') {
+        return '团队';
+      }
+      return '人员/团队';
+    },
     getGroupUser() {
       return new Promise((resolve, reject) => {
         const id = this.groupId;
@@ -188,6 +196,8 @@ export default {
         await this.getGroupUser();
       } else if (this.type === 'GROUP') {
         await this.getOrgGroup();
+      } else if (this.type === 'ORGANIZATION') {
+        await this.getOrgUser();
       } else if (this.type === 'ALL') {
         await this.getOrgUser();
         await this.getOrgGroup();
