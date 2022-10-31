@@ -3,23 +3,23 @@ import { reactive, ref } from 'vue';
 import { changeLoadingStatus } from '@/assets/utils/loading';
 import axios from '@/axios';
 import request from 'axios';
-import { readNewsList, getReadNews } from './readNews';
+import { getReadNews } from './readNews';
 import { storage } from '@/assets/utils/storageUtils';
 
 const unreadPageInfo = reactive({
   page: 1,
   pageCount: 1,
   pageSize: 7,
-  total: 0,
+  total: 0
 });
 const unreadNewsList = ref([]);
-function getUnreadNews () {
+function getUnreadNews() {
   changeLoadingStatus(true);
   axios
     .get('/v1/msg', {
       has_read: 0,
       page_num: unreadPageInfo.page,
-      page_size: unreadPageInfo.pageSize,
+      page_size: unreadPageInfo.pageSize
     })
     .then((res) => {
       unreadNewsList.value = res.data.items ? res.data.items : [];
@@ -32,11 +32,11 @@ function getUnreadNews () {
       changeLoadingStatus(false);
     });
 }
-function unreadPageChange (index) {
-  unreadPageInfo.page = index;
+function unreadPageChange(page) {
+  unreadPageInfo.page = page;
   getUnreadNews();
 }
-function readAll () {
+function readAll() {
   changeLoadingStatus(true);
   axios
     .put('/v1/msg/batch', { has_read: true, has_all_read: true })
@@ -50,12 +50,12 @@ function readAll () {
       changeLoadingStatus(false);
     });
 }
-function read (index) {
+function read(index) {
   changeLoadingStatus(true);
   axios
     .put('/v1/msg/batch', {
       msg_ids: [unreadNewsList.value[index].id],
-      has_read: true,
+      has_read: true
     })
     .then(() => {
       getUnreadNews();
@@ -67,21 +67,16 @@ function read (index) {
       changeLoadingStatus(false);
     });
 }
-function handleMsg (index, type, action) {
+
+function handleMsg(item, action) {
   changeLoadingStatus(true);
+  let callbackUrl = item.data.callback_url ? item.data.callback_url.slice(4) : `/v1/users/groups/${item.data.group_id}`;
+
   axios
-    .put(
-      `/v1/users/groups/${type
-        ? readNewsList.value[index].data.group_id
-        : unreadNewsList.value[index].data.group_id
-      }`,
-      {
-        msg_id: type
-          ? readNewsList.value[index].id
-          : unreadNewsList.value[index].id,
-        access: action,
-      }
-    )
+    .put(callbackUrl, {
+      msg_id: item.id,
+      access: action
+    })
     .then(() => {
       getUnreadNews();
       getReadNews();
@@ -92,31 +87,32 @@ function handleMsg (index, type, action) {
       changeLoadingStatus(false);
     });
 }
-function accept (index, type) {
-  const item = type ? readNewsList.value[index] : unreadNewsList.value[index];
+function accept(item) {
   if (item.data.group_id) {
-    handleMsg(index, type, true);
+    handleMsg(item, true);
   } else {
     changeLoadingStatus(true);
     request({
       url: item.data.script,
       method: item.data.method,
       headers: {
-        Authorization: `JWT ${storage.getValue('token')}`,
+        Authorization: `JWT ${storage.getValue('token')}`
       },
-      data: item.data.body,
+      data: item.data.body
     })
       .then((res) => {
         if (res.data.error_code !== '2000') {
           return Promise.reject(res);
         }
-        axios.put('/v1/msg/callback', {
-          msg_id: item.id,
-          access: true
-        }).then(() => {
-          getUnreadNews();
-          getReadNews();
-        });
+        axios
+          .put('/v1/msg/callback', {
+            msg_id: item.id,
+            access: true
+          })
+          .then(() => {
+            getUnreadNews();
+            getReadNews();
+          });
         changeLoadingStatus(false);
         return Promise.resolve();
       })
@@ -126,28 +122,20 @@ function accept (index, type) {
       });
   }
 }
-function refuse (index, type) {
-  const item = type ? readNewsList.value[index] : unreadNewsList.value[index];
+function refuse(item) {
   if (item.data.group_id) {
-    handleMsg(index, type, false);
+    handleMsg(item, false);
   } else {
-    axios.put('/v1/msg/callback', {
-      msg_id: item.id,
-      access: false
-    }).then(() => {
-      getUnreadNews();
-      getReadNews();
-    });
+    axios
+      .put('/v1/msg/callback', {
+        msg_id: item.id,
+        access: false
+      })
+      .then(() => {
+        getUnreadNews();
+        getReadNews();
+      });
   }
 }
 
-export {
-  unreadPageInfo,
-  unreadNewsList,
-  getUnreadNews,
-  unreadPageChange,
-  read,
-  refuse,
-  accept,
-  readAll,
-};
+export { unreadPageInfo, unreadNewsList, getUnreadNews, unreadPageChange, read, refuse, accept, readAll };

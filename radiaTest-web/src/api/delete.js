@@ -47,3 +47,7 @@ export function deleteCheckItem(id) {
 export function deleteMilestoneAjax(id) {
   return deleteRequest(`/v2/milestone/${id}`);
 }
+
+export function deleteProductVersion(productId) {
+  return deleteRequest(`/v1/product/${productId}`);
+}

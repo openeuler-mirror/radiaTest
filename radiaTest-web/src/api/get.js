@@ -69,6 +69,9 @@ export function loginByCode(data) {
 export function getGroup(data) {
   return getRequest('/v1/groups', data);
 }
+export function getMsgGroup(data) {
+  return getRequest('/v1/msg/group', data);
+}
 export function getCaseReview(data) {
   return getRequest('/v1/case/commit/query', data);
 }

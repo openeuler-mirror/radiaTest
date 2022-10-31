@@ -23,30 +23,30 @@ const enterpriseJoinUrl = ref();
 const orgListLoading = ref(false);
 const loginForm = reactive({
   userName: '',
-  passWord: '',
+  passWord: ''
 });
 const rules = {
   userName: {
     required: true,
     trigger: ['blur', 'input'],
-    message: '请输入用户名',
+    message: '请输入用户名'
   },
   passWord: {
     required: true,
     trigger: ['blur', 'input'],
-    message: '请输入密码',
-  },
+    message: '请输入密码'
+  }
 };
 
 const loginFormRef = ref();
-function handleLoginByForm () {
+function handleLoginByForm() {
   loginFormRef.value.validate((error) => {
     if (!error) {
       changeLoadingStatus(true);
       axios
         .post('/v1/admin/login', {
           account: loginForm.userName,
-          password: loginForm.passWord,
+          password: loginForm.passWord
         })
         .then((res) => {
           changeLoadingStatus(false);
@@ -54,6 +54,7 @@ function handleLoginByForm () {
             storage.setValue('token', res.data.token);
             storage.setValue('refresh_token', res.data.refresh_token);
             storage.setValue('role', 1);
+            storage.setValue('account', res.data.account);
             router.push({ name: 'orgManagement' });
           }
         })
@@ -67,14 +68,14 @@ function handleLoginByForm () {
   });
 }
 
-function requireEnterprise (orgid) {
-  const activeOrg = orgOpts.value.find(item => item.value === orgid);
+function requireEnterprise(orgid) {
+  const activeOrg = orgOpts.value.find((item) => item.value === orgid);
   if (activeOrg) {
     return activeOrg.enterprise;
   }
   return false;
 }
-function hanleLogin () {
+function hanleLogin() {
   changeLoadingStatus(true);
   storage.setValue('loginOrgId', Number(loginOrg.value));
   storage.setValue('hasEnterprise', requireEnterprise(loginOrg.value));
@@ -97,20 +98,20 @@ function hanleLogin () {
 }
 
 const registerShow = ref(false);
-function gotoHome () {
+function gotoHome() {
   orgListLoading.value = true;
   getAllOrg().then((res) => {
     orgOpts.value = res.data.map((item) => ({
       label: item.org_name,
       value: String(item.org_id),
-      ...item,
+      ...item
     }));
     orgListLoading.value = false;
   });
   if (urlArgs().code) {
     loginByCode({
       code: urlArgs().code,
-      org_id: storage.getValue('loginOrgId'),
+      org_id: storage.getValue('loginOrgId')
     }).then((res) => {
       storage.setValue('token', getCookieValByKey('token'));
       storage.setValue('refresh_token', getCookieValByKey('refresh_token'));
@@ -124,12 +125,9 @@ function gotoHome () {
       storage.setValue('token', getCookieValByKey('token'));
       storage.setValue('refresh_token', getCookieValByKey('refresh_token'));
       storage.setValue('gitee_id', getCookieValByKey('gitee_id'));
-      router.push({ name: 'home' })
-        .then(
-          () => {
-            addRoom(storage.getValue('token'));
-          }
-        );
+      router.push({ name: 'home' }).then(() => {
+        addRoom(storage.getValue('token'));
+      });
     }, 1000);
   } else if (urlArgs().isSuccess === 'False') {
     loginInfo.org = urlArgs().org_id;
@@ -138,7 +136,7 @@ function gotoHome () {
     getClaOrg();
   }
 }
-function renderLabel (option) {
+function renderLabel(option) {
   return h(
     'div',
     {
@@ -146,8 +144,8 @@ function renderLabel (option) {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        width: '100%',
-      },
+        width: '100%'
+      }
     },
     [
       h(NAvatar, {
@@ -157,11 +155,11 @@ function renderLabel (option) {
         style: 'margin-right:10px',
         fallbackSrc: createAvatar(option.label.slice(0, 1))
       }),
-      option.label,
+      option.label
     ]
   );
 }
-function selectOrg (value) {
+function selectOrg(value) {
   const org = orgOpts.value.find((item) => item.value === value);
   hasCLA.value = org.cla;
   hasEnterprise.value = org.enterprise;
@@ -201,5 +199,5 @@ export {
   renderLabel,
   selectOrg,
   handleClaSignClick,
-  handleEnterpriseJoinClick,
+  handleEnterpriseJoinClick
 };
