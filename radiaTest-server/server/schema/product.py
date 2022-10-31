@@ -1,13 +1,12 @@
 from typing import Optional, Literal
-
 from pydantic import BaseModel, constr, root_validator
 
 from server.model import Product
 from server.utils.db import Precise
-from server.schema.base import UpdateBaseModel, PermissionBase
+from server.schema.base import PermissionBase, TimeBaseSchema
 
 
-class ProductBase(PermissionBase):
+class ProductBase(PermissionBase, TimeBaseSchema):
     name: constr(max_length=32)
     version: constr(max_length=32)
     description: Optional[constr(max_length=255)]
@@ -24,19 +23,10 @@ class ProductBase(PermissionBase):
         return values
 
 
-class ProductUpdate(UpdateBaseModel):
+class ProductUpdate(TimeBaseSchema):
     name: Optional[constr(max_length=32)]
     version: Optional[constr(max_length=32)]
     description: Optional[constr(max_length=255)]
-
-    @root_validator
-    def check_duplicate(cls, values):
-        product = Precise(
-            Product, {"name": values.get("name"), "version": values.get("version")}
-        ).first()
-        if product and product.id != values.get("id"):
-            raise ValueError("The version of product has existed.")
-        return values
 
 
 class ProductQueryBase(BaseModel):

@@ -23,7 +23,7 @@ class MilestoneBaseSchema(BaseModel):
 
 
 class MilestoneQuerySchema(MilestoneBaseSchema, PageBaseSchema):
-    is_sync: Optional[bool]
+    round_id: Optional[int]
     page_num: int = 1
     page_size: int = 10
     create_time_order: Optional[SortOrder] = None

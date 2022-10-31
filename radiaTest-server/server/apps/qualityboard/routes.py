@@ -1,33 +1,41 @@
 import subprocess
-
+from datetime import datetime
 import redis
-from flask import jsonify, current_app
+from flask import jsonify, current_app, g
 from flask_restful import Resource
 from flask_pydantic import validate
 from sqlalchemy import func, or_
+import pytz
 
-from server import db
+from server import db, redis_client
 from server.utils.auth_util import auth
 from server.utils.response_util import response_collect, RET
 from server.model import Milestone, Product, Organization
-from server.model.milestone import MilestoneGroup, IssueSolvedRate
+from server.model.milestone import IssueSolvedRate
 from server.model.qualityboard import (
     QualityBoard, 
     Checklist, 
     DailyBuild,
-    RpmCompare, 
+    RpmCompare,
+    SameRpmCompare, 
     QualityBoard,
     Checklist,
     DailyBuild,
     WeeklyHealth,
     FeatureList,
     CheckItem,
+    Round,
+    RoundGroup,
 )
 from server.utils.db import Delete, Edit, Select, Insert, collect_sql_error
 from server.schema.base import PageBaseSchema
 from server.schema.qualityboard import (
     FeatureListQuerySchema,
+    PackageCompareSchema,
     PackageCompareQuerySchema,
+    RoundIssueRateSchema,
+    RoundToMilestone,
+    SamePackageCompareQuerySchema,
     PackageListQuerySchema,
     QualityBoardSchema,
     QualityBoardUpdateSchema,
@@ -39,20 +47,23 @@ from server.schema.qualityboard import (
     QueryCheckItemSchema,
     QueryQualityResultSchema,
     DeselectChecklistSchema,
+    QueryRound,
 )
 from server.apps.qualityboard.handlers import (
     ChecklistHandler,
     PackageListHandler,
+    RoundHandler,
     feature_list_handlers,
     CheckItemHandler,
     QualityResultCompareHandler,
+    RoundHandler,
 )
 from server.utils.shell import add_escape
 from server.utils.at_utils import OpenqaATStatistic
 from server.utils.page_util import PageUtil
 from server.utils.rpm_util import RpmNameLoader
 from celeryservice.tasks import resolve_pkglist_after_resolve_rc_name
-from celeryservice.sub_tasks import update_compare_result
+from celeryservice.sub_tasks import update_compare_result, update_samerpm_compare_result
 
 
 class QualityBoardEvent(Resource):
@@ -73,28 +84,56 @@ class QualityBoardEvent(Resource):
                 error_code=RET.NO_DATA_ERR,
                 error_msg="product {} not exist".format(body.product_id)
             )
-        milestone = Milestone.query.filter_by(
-            product_id=body.product_id,
-            type="round",
-            is_sync=True
-        ).order_by(Milestone.start_time.asc()).first()
+        milestone = Milestone.query.filter(
+            Milestone.product_id == body.product_id,
+            Milestone.type == "round",
+            Milestone.is_sync.is_(True),
+            Milestone.name.like(f'%round-1%')
+        ).first()
         iteration_version = ""
         if milestone:
-            iteration_version = str(milestone.id)
+            round_id = RoundHandler.add_round(body.product_id, milestone.id)
+            iteration_version = str(round_id)
 
         qualityboard = QualityBoard(
             product_id=body.product_id, iteration_version=iteration_version)
         qualityboard.add_update()
 
         # 若为组织/社区里程碑，按组织配置的repo启动爬取正式发布版本的软件包清单
-        org_id = milestone.org_id
+        org_id = _p.org_id
         org = Organization.query.filter_by(id=org_id).first()
-        if org:  
-            _pkgs_repo_url = current_app.config.get(f"{org.name.upper()}_PACKAGELIST_REPO_URL")
-            resolve_pkglist_after_resolve_rc_name.delay(
-                repo_url=_pkgs_repo_url,
-                product=f"{_p.name}-{_p.version}",
-            )
+        if org:
+            if not milestone:
+                _pkgs_repo_url = current_app.config.get(f"{org.name.upper()}_OFFICIAL_REPO_URL")
+                _round = None
+            else:
+                _pkgs_repo_url = current_app.config.get(f"{org.name.upper()}_DAILYBUILD_REPO_URL")
+                _round = len(qualityboard.iteration_version.split('->'))
+            
+            for arch in ["x86_64", "aarch64", "all"]:
+                for sub_path in ["everything", "EPOL/main"]:
+                    _filename = f"{_p.name}-{_p.version}-round-{_round}-{sub_path.split('/')[0]}-{arch}"
+                    if _round is None:
+                        _filename = f"{_p.name}-{_p.version}-{sub_path.split('/')[0]}-{self.arch}"
+                    if not redis_client.hgetall(f"resolving_{_filename}_pkglist"):
+                        redis_client.hset(
+                            f"resolving_{_filename}_pkglist", "gitee_id", g.gitee_id
+                        )
+                        redis_client.hset(
+                            f"resolving_{_filename}_pkglist", 
+                            "resolve_time", 
+                            datetime.now(
+                                tz=pytz.timezone('Asia/Shanghai')
+                            ).strftime("%Y-%m-%d %H:%M:%S")
+                        )
+                        redis_client.expire(f"resolving_{_filename}_pkglist", 1800)
+                        resolve_pkglist_after_resolve_rc_name.delay(
+                            repo_url=_pkgs_repo_url,
+                            repo_path=sub_path,
+                            arch=arch,
+                            product=f"{_p.name}-{_p.version}",
+                            _round=_round
+                        )
 
         return jsonify(
             error_code=RET.OK,
@@ -125,7 +164,9 @@ class QualityBoardItemEvent(Resource):
                 error_code=RET.NO_DATA_ERR,
                 error_msg="qualityboard {} not exitst".format(qualityboard_id)
             )
+        current_round_id = qualityboard.iteration_version.split("->")[-1]
         milestone = None
+        iteration_version = ""
         if body.released:
             milestone = Milestone.query.filter_by(
                 product_id=qualityboard.product_id,
@@ -142,30 +183,31 @@ class QualityBoardItemEvent(Resource):
                     error_code=RET.NO_DATA_ERR,
                     error_msg="the product cannot be released because the itration has not ended."
                 )
+            qualityboard.released = body.released
         else:
-            milestones = Milestone.query.filter_by(
-                product_id=qualityboard.product_id,
-                type="round",
-                is_sync=True
-            ).order_by(Milestone.start_time.asc()).all()
+            if current_round_id == "":
+                round_num = 1
+            else:
+                _round = Round.query.filter_by(id=current_round_id).first()
+                round_num = _round.round_num + 1
+            milestone = Milestone.query.filter(
+                Milestone.product_id == qualityboard.product_id,
+                Milestone.type == "round",
+                Milestone.is_sync.is_(True),
+                Milestone.name.like(f'%round-{round_num}%')
+            ).first()
 
-            for _m in milestones:
-                if str(_m.id) in qualityboard.iteration_version:
-                    continue
-                else:
-                    milestone = _m
-                    break
             if not milestone:
                 return jsonify(
                     error_code=RET.NO_DATA_ERR,
                     error_msg="there is no milestone for next itration."
                 )
-        iteration_version = ""
+        round_id = RoundHandler.add_round(qualityboard.product_id, milestone.id)
         if qualityboard.iteration_version == "":
-            iteration_version = str(milestone.id)
+            iteration_version = str(round_id)
         else:
             iteration_version = qualityboard.iteration_version + \
-                "->" + str(milestone.id)
+                "->" + str(round_id)
 
         qualityboard.iteration_version = iteration_version
         qualityboard.add_update()
@@ -174,15 +216,38 @@ class QualityBoardItemEvent(Resource):
         org_id = milestone.org_id
         org = Organization.query.filter_by(id=org_id).first()
         if org:  
+
             if milestone.type == "release":
                 _pkgs_repo_url = current_app.config.get(f"{org.name.upper()}_OFFICIAL_REPO_URL")
+                _round = None
             else:
                 _pkgs_repo_url = current_app.config.get(f"{org.name.upper()}_DAILYBUILD_REPO_URL")
-            resolve_pkglist_after_resolve_rc_name.delay(
-                repo_url=_pkgs_repo_url,
-                product=f"{milestone.product.name}-{milestone.product.version}",
-                _round=len(qualityboard.iteration_version.split('->')),
-            )
+                _round = len(qualityboard.iteration_version.split('->'))
+            _product = milestone.product.name + "-" + milestone.product.version
+            for arch in ["x86_64", "aarch64", "all"]:
+                for sub_path in ["everything", "EPOL/main"]:
+                    _filename = f"{_product}-round-{_round}-{sub_path.split('/')[0]}-{arch}"
+                    if _round is None:
+                        _filename = f"{_product}-{sub_path.split('/')[0]}-{self.arch}"
+                    if not redis_client.hgetall(f"resolving_{_filename}_pkglist"):
+                        redis_client.hset(
+                            f"resolving_{_filename}_pkglist", "gitee_id", g.gitee_id
+                        )
+                        redis_client.hset(
+                            f"resolving_{_filename}_pkglist", 
+                            "resolve_time", 
+                            datetime.now(
+                                tz=pytz.timezone('Asia/Shanghai')
+                            ).strftime("%Y-%m-%d %H:%M:%S")
+                        )
+                        redis_client.expire(f"resolving_{_filename}_pkglist", 1800)
+                        resolve_pkglist_after_resolve_rc_name.delay(
+                            repo_url=_pkgs_repo_url,
+                            repo_path=sub_path,
+                            arch=arch,
+                            product=f"{milestone.product.name}-{milestone.product.version}",
+                            _round=_round,
+                        )
 
         return jsonify(
             error_code=RET.OK,
@@ -634,7 +699,7 @@ class QualityDefendEvent(Resource):
         scrapyspider_redis_client = redis.StrictRedis(
             connection_pool=scrapyspider_pool
             )
-        qrsh = QualityResultCompareHandler(product.id)
+        qrsh = QualityResultCompareHandler("product", product.id)
         
 
         latest_dailybuild = DailyBuild.query.filter(
@@ -875,7 +940,10 @@ class FeatureListEvent(Resource):
             org = Organization.query.filter_by(id=org_id).first()
             feature_list_handler = feature_list_handlers.get(org.name)
             if not feature_list_handler:
-                feature_list_handler = feature_list_handlers.get("default")
+                return jsonify(
+                    error_code=RET.NO_DATA_ERR,
+                    error_msg=f"feature adapter for {org.name} does not exist.please contact the administrator in time."
+                )
 
             handler = feature_list_handler(FeatureList, qualityboard_id)
             if query.new:
@@ -926,7 +994,10 @@ class FeatureListSummary(Resource):
             org = Organization.query.filter_by(id=org_id).first()
             feature_list_handler = feature_list_handlers.get(org.name)
             if not feature_list_handler:
-                feature_list_handler = feature_list_handlers.get("default")
+                return jsonify(
+                    error_code=RET.NO_DATA_ERR,
+                    error_msg=f"feature adapter for {org.name} does not exist.please contact the administrator in time."
+                )
 
             handler = feature_list_handler(FeatureList, qualityboard_id)
             addition_feature_summary = handler.statistic(_is_new=True)
@@ -946,11 +1017,12 @@ class PackageListEvent(Resource):
     @auth.login_required
     @response_collect
     @validate()
-    def get(self, qualityboard_id, milestone_id, query: PackageListQuerySchema):
+    def get(self, qualityboard_id, round_id, query: PackageListQuerySchema):
         try:
             handler = PackageListHandler(
-                qualityboard_id,
-                milestone_id,
+                round_id,
+                query.repo_path,
+                query.arch,
                 query.refresh
             )
         except RuntimeError as e:
@@ -968,11 +1040,12 @@ class PackageListEvent(Resource):
         pkgs_dict = RpmNameLoader.rpmlist2rpmdict(_pkgs)
 
         if query.summary:
+            _round = Round.query.filter_by(id=round_id).first()
             return jsonify(
                 error_code=RET.OK,
                 error_msg="OK",
                 data={
-                    "name": handler.milestone.name,
+                    "name": _round.name,
                     "size": len(pkgs_dict)
                 },
             )
@@ -984,20 +1057,134 @@ class PackageListEvent(Resource):
         )
 
 
+class SamePackageListCompareEvent(Resource):
+    @auth.login_required
+    @response_collect
+    @validate()
+    def post(self, qualityboard_id, round_id, body: PackageCompareSchema):
+        try:
+            comparer = PackageListHandler(
+                round_id,
+                body.repo_path,
+                "aarch64",
+                False
+            )
+            comparee = PackageListHandler(
+                round_id,
+                body.repo_path,
+                "x86_64",
+                False
+            )
+        except RuntimeError as e:
+            return jsonify(
+                error_code=RET.RUNTIME_ERROR,
+                error_msg=str(e),
+            )
+        except ValueError as e:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg=str(e),
+            )
+
+        compare_results = comparer.compare2(comparee.packages)
+        update_samerpm_compare_result.delay(round_id, compare_results, body.repo_path)
+
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK"
+        )
+
+    @auth.login_required
+    @response_collect
+    @validate()
+    def get(self, qualityboard_id, round_id, query: SamePackageCompareQuerySchema):
+        _lack_num = db.session.query(
+            func.count(SameRpmCompare.id)
+        ).filter(
+            SameRpmCompare.round_id == round_id,
+            SameRpmCompare.compare_result == "LACK",
+            SameRpmCompare.repo_path == query.repo_path
+        ).scalar()
+        _different_num = db.session.query(
+            func.count(SameRpmCompare.id)
+        ).filter(
+            SameRpmCompare.round_id == round_id,
+            SameRpmCompare.compare_result == "DIFFERENT",
+            SameRpmCompare.repo_path == query.repo_path
+        ).scalar()
+
+        if query.summary:
+            return jsonify(
+                error_code=RET.OK,
+                error_msg="OK",
+                data={
+                    "lack_pkgs_num": _lack_num,
+                    "different_pkgs_num": _different_num, 
+                }
+            )
+
+        filter_params = [
+            SameRpmCompare.round_id == round_id,
+            SameRpmCompare.repo_path == query.repo_path
+        ]
+
+        if query.search:
+            filter_params.append(
+                or_(
+                    SameRpmCompare.rpm_x86.like(f"%{query.search}%"),
+                    SameRpmCompare.rpm_arm.like(f"%{query.search}%")
+                )
+            )
+        if query.compare_result_list:
+            status_filter_params = []
+            for result in query.compare_result_list:
+                status_filter_params.append(
+                    SameRpmCompare.compare_result == result
+                )
+            filter_params.append(or_(*status_filter_params))
+        
+        _order = None
+        if query.desc:
+            _order = [SameRpmCompare.rpm_x86.desc(), SameRpmCompare.rpm_arm.desc()]
+        else:
+            _order = [SameRpmCompare.rpm_x86.asc(), SameRpmCompare.rpm_arm.asc()]
+        
+        query_filter = SameRpmCompare.query.filter(*filter_params).order_by(*_order)
+
+        def page_func(item):
+            rpm_compare_dict = item.to_json()
+            return rpm_compare_dict
+
+        page_dict, e = PageUtil.get_page_dict(
+            query_filter, query.page_num, query.page_size, func=page_func
+        )
+        if e:
+            return jsonify(
+                error_code=RET.SERVER_ERR, error_msg=f"get comparation page error {e}"
+            )
+        return jsonify(error_code=RET.OK, error_msg="OK", data={
+            "lack_pkgs_num": _lack_num,
+            "different_pkgs_num": _different_num, 
+            **page_dict
+        })
+
+
 class PackageListCompareEvent(Resource):
     @auth.login_required
     @response_collect
     @validate()
-    def post(self, qualityboard_id, comparee_milestone_id, comparer_milestone_id):
+    def post(self, qualityboard_id, comparee_round_id, comparer_round_id, body: PackageCompareSchema):
         try:
             comparer = PackageListHandler(
-                qualityboard_id,
-                comparer_milestone_id,
+                comparer_round_id,
+                body.repo_path,
+                "all",
                 False
             )
             comparee = PackageListHandler(
-                qualityboard_id,
-                comparee_milestone_id,
+                comparee_round_id,
+                body.repo_path,
+                "all",
                 False
             )
         except RuntimeError as e:
@@ -1013,24 +1200,23 @@ class PackageListCompareEvent(Resource):
 
         compare_results = comparer.compare(comparee.packages)
         
-        milestone_group = MilestoneGroup.query.filter_by(
-            milestone_1_id=comparee_milestone_id,
-            milestone_2_id=comparer_milestone_id,
+        round_group = RoundGroup.query.filter_by(
+            round_1_id=comparee_round_id,
+            round_2_id=comparer_round_id,
         ).first()
-        milestone_group_id = None
-        if not milestone_group:
-            milestone_group_id = Insert(
-                MilestoneGroup,
+        round_group_id = None
+        if not round_group:
+            round_group_id = Insert(
+                RoundGroup,
                 {
-                    "milestone_1_id": comparee_milestone_id,
-                    "milestone_2_id": comparer_milestone_id
+                    "round_1_id": comparee_round_id,
+                    "round_2_id": comparer_round_id
                 }
             ).insert_id()
         else:
-            milestone_group_id = milestone_group.id
+            round_group_id = round_group.id
 
-        for result in compare_results:
-            update_compare_result.delay(milestone_group_id, result)
+        update_compare_result.delay(round_group_id, compare_results, body.repo_path)
 
         return jsonify(
             error_code=RET.OK,
@@ -1040,31 +1226,33 @@ class PackageListCompareEvent(Resource):
     @auth.login_required
     @response_collect
     @validate()
-    def get(self, qualityboard_id, comparer_milestone_id, comparee_milestone_id, query: PackageCompareQuerySchema):
-        milestone_group = MilestoneGroup.query.filter_by(
-            milestone_1_id=comparee_milestone_id,
-            milestone_2_id=comparer_milestone_id,
+    def get(self, qualityboard_id, comparer_round_id, comparee_round_id, query: PackageCompareQuerySchema):
+        round_group = RoundGroup.query.filter_by(
+            round_1_id=comparee_round_id,
+            round_2_id=comparer_round_id,
         ).first()
-        if not milestone_group:
+        if not round_group:
             return jsonify(
                 error_code=RET.NO_DATA_ERR,
-                error_msg="no comparation record for milestone {} and milestone {}".format(
-                    comparee_milestone_id,
-                    comparer_milestone_id
+                error_msg="no comparation record for round {} and round {}".format(
+                    comparee_round_id,
+                    comparer_round_id
                 )
             )
         
         _add_num = db.session.query(
             func.count(RpmCompare.id)
         ).filter(
-            RpmCompare.milestone_group_id == milestone_group.id,
-            RpmCompare.compare_result == "ADD"
+            RpmCompare.round_group_id == round_group.id,
+            RpmCompare.compare_result == "ADD",
+            RpmCompare.repo_path == query.repo_path
         ).scalar()
         _del_num = db.session.query(
             func.count(RpmCompare.id)
         ).filter(
-            RpmCompare.milestone_group_id == milestone_group.id,
-            RpmCompare.compare_result == "DEL"
+            RpmCompare.round_group_id == round_group.id,
+            RpmCompare.compare_result == "DEL",
+            RpmCompare.repo_path == query.repo_path
         ).scalar()
 
         if query.summary:
@@ -1078,7 +1266,8 @@ class PackageListCompareEvent(Resource):
             )
 
         filter_params = [
-            RpmCompare.milestone_group_id == milestone_group.id
+            RpmCompare.round_group_id == round_group.id,
+            RpmCompare.repo_path == query.repo_path
         ]
 
         if query.arches:
@@ -1135,7 +1324,7 @@ class QualityResultCompare(Resource):
     @validate()
     def get(self, query: QueryQualityResultSchema):
         if query.type == "issue":
-            qrsh = QualityResultCompareHandler(query.product_id, query.milestone_id)
+            qrsh = QualityResultCompareHandler(query.obj_type, query.obj_id)
             ret = qrsh.compare_issue_rate(query.field)
         else:
             #预留接口
@@ -1221,3 +1410,30 @@ class QualityResult(Resource):
             error_msg="OK",
             data = data
         )
+
+
+class RoundEvent(Resource):
+    @auth.login_required
+    @validate()
+    def get(self, query: QueryRound):
+        return Select(Round, query.__dict__).precise()
+
+
+class RoundItemEvent(Resource):
+    @auth.login_required
+    @validate()
+    def put(self, round_id, body: RoundToMilestone):
+        return RoundHandler.bind_round_milestone(round_id, body.milestone_id, body.isbind)
+
+
+class RoundIssueRateEvent(Resource):
+    @auth.login_required
+    @validate()
+    def put(self, round_id, body: RoundIssueRateSchema):
+        return RoundHandler.update_round_issue_rate_by_field(round_id, body.field)
+    
+    @auth.login_required
+    @validate()
+    def get(self, round_id):
+        return RoundHandler.get_rate_by_round(round_id)
+

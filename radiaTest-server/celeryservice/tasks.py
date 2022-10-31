@@ -270,33 +270,40 @@ def resolve_dailybuild_detail(self, dailybuild_id, dailybuild_detail, weekly_hea
 
 
 @celery.task
-def resolve_openeuler_pkglist(repo_url, product, build, lock_key):
+def resolve_openeuler_pkglist(repo_url, product, build, repo_path, arch):
     exitcode, output = subprocess.getstatusoutput(
         "pushd scrapyspider && scrapy crawl openeuler_pkgs_list_spider "\
             f"-a openeuler_repo_url={repo_url} "\
             f"-a product={product} "\
-            f"-a build={build}"
+            f"-a build={build} "\
+            f"-a repo_path={repo_path} "\
+            f"-a arch={arch}"
     )
     if exitcode != 0:
         logger.error(f"crawl openeuler's packages list of build {build} of {product} fail. Because {output}")
         return
     
     logger.info(f"crawl openeuler's packages list of build {build} of {product} succeed")
+    lock_key = f"resolving_{product}-{repo_path}-{arch}_pkglist"
+    if product != build:
+        _round = build.replace("rc", "").split("_")[0]
+        lock_key = f"resolving_{product}-round-{_round}-{repo_path}-{arch}_pkglist"
     redis_client.delete(lock_key)
     logger.info(f"the lock of crawling has been removed")
 
 
 @celery.task
-def resolve_pkglist_after_resolve_rc_name(repo_url, product, _round: int = None):
+def resolve_pkglist_after_resolve_rc_name(repo_url, repo_path, arch, product, _round: int = None):
     if not repo_url or not product:
         raise ValueError("neither param repo_url nor param product could be None.")
 
     if _round is None:
         resolve_openeuler_pkglist.delay(
-            f"{repo_url}/{product}",
+            f"{repo_url}/{product}/{repo_path}",
             product,
             product,
-            f"resolving_{product}_pkglist"
+            repo_path,
+            arch,
         )
     else:
         resp = requests.get(f"{repo_url}/{product}/")
@@ -310,10 +317,11 @@ def resolve_pkglist_after_resolve_rc_name(repo_url, product, _round: int = None)
                     rc_name = rc_elem.text
                     if isinstance(rc_name, str) and rc_name.startswith(f"rc{_round}"):
                         resolve_openeuler_pkglist.delay(
-                            f"{repo_url}/{product}/{rc_name.rstrip('/')}",
+                            f"{repo_url}/{product}/{rc_name.rstrip('/')}/{repo_path}",
                             product,
                             rc_name.rstrip('/'),
-                            f"resolving_{product}-round-{_round}_pkglist"
+                            repo_path,
+                            arch,
                         )
                         break
 

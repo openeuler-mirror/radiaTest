@@ -2,7 +2,7 @@ import json
 import re
 from typing import List, Optional, Literal
 
-from pydantic import BaseModel, HttpUrl, validator, root_validator
+from pydantic import BaseModel, HttpUrl, validator, root_validator, constr
 
 from server.schema import Operation, SortOrder
 
@@ -87,15 +87,20 @@ class AddChecklistSchema(BaseModel):
                 if '%' in bl:
                     _baseline = float(bl.strip('%')) / 100.0
                     if not 0 <= _baseline <= 1:
-                        raise ValueError("ratio baseline must be around 0-100%")
+                        raise ValueError(
+                            "ratio baseline must be around 0-100%"
+                        )
                 else:
                     try:
                         _ = int(baseline)
                     except ValueError as e:
-                        raise ValueError("baseline must be a ratio or a number") from e
+                        raise ValueError(
+                            "baseline must be a ratio or a number") from e
             for op in _ops:
                 if op not in set(["<", ">", "=", "<=", ">="]):
-                    raise ValueError("operation must be in ['<', '>', '=', '<=', '>=']")
+                    raise ValueError(
+                        "operation must be in ['<', '>', '=', '<=', '>=']"
+                    )
         return values
 
 
@@ -119,12 +124,12 @@ class ATOverviewSchema(PageBaseSchema):
 
 
 class CheckItemSchema(BaseModel):
-    field_name : str
+    field_name: str
     title: str
 
 
 class QueryCheckItemSchema(PageBaseSchema):
-    field_name : Optional[str]
+    field_name: Optional[str]
     title: Optional[str]
 
 
@@ -145,33 +150,57 @@ class FeatureListQuerySchema(BaseModel):
 class PackageListQuerySchema(BaseModel):
     summary: bool = False
     refresh: bool = False
+    repo_path: Literal["everything", "EPOL"]
+    arch: Literal["x86_64", "aarch64", "all"]
 
 
-class PackageCompareQuerySchema(PageBaseSchema):
+class PackageCompareSchema(BaseModel):
+    repo_path: Literal["everything", "EPOL"]
+
+
+class SamePackageCompareQuerySchema(PageBaseSchema):
     summary: bool = False
     search: Optional[str]
-    arches: Optional[str]
     compare_result_list: Optional[str]
     desc: bool = False
-
-    @validator("arches")
-    def validate_arches(cls, v):
-        if isinstance(v, str):
-            return json.loads(v)
-        
-        raise ValueError("the format of arches is not valid")
+    repo_path: Literal["everything", "EPOL"]
 
     @validator("compare_result_list")
     def validate_status(cls, v):
         if isinstance(v, str):
             return json.loads(v)
-        
+
         raise ValueError("the format of compare status list is not valid")
+
+
+class PackageCompareQuerySchema(SamePackageCompareQuerySchema):
+    arches: Optional[str]
+
+    @validator("arches")
+    def validate_arches(cls, v):
+        if isinstance(v, str):
+            return json.loads(v)
+
+        raise ValueError("the format of arches is not valid")
 
 
 class QueryQualityResultSchema(BaseModel):
     type: Literal["issue", "AT"]
-    product_id: int
-    milestone_id: Optional[int]
+    obj_type: Literal["product", "round", "milestone"]
+    obj_id: int
     field: Literal["serious_resolved_rate", "main_resolved_rate",
                    "serious_main_resolved_rate", "current_resolved_rate", "left_issues_cnt"]
+
+
+class QueryRound(BaseModel):
+    product_id: int
+
+
+class RoundIssueRateSchema(BaseModel):
+    field: Literal["serious_resolved_rate", "main_resolved_rate",
+                   "serious_main_resolved_rate", "current_resolved_rate", "left_issues_cnt"]
+
+
+class RoundToMilestone(BaseModel):
+    milestone_id: str
+    isbind: bool

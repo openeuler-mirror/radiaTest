@@ -104,6 +104,10 @@ def make_celery(app_name):
             'celeryservice.tasks.async_send_vmachine_release_message': {
                 'queue': 'queue_send_vmachine_release_message',
                 'routing_key': 'send_vmachine_release_message',
+            },
+            'celeryservice.sub_tasks.update_samerpm_compare_result': {
+                'queue': 'queue_update_samerpm_compare_result',
+                'routing_key': 'samerpm_compare_result',
                 'delivery_mode': 1,
             },
         }

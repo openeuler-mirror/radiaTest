@@ -8,6 +8,7 @@ from server import db
 from server.model.milestone import Milestone, IssueSolvedRate
 from server.model.organization import Organization
 from server.model.product import Product
+from server.model.qualityboard import Round
 from server.apps.milestone.handler import IssueStatisticsHandlerV8, IssueOpenApiHandlerV8
 from celeryservice.lib import TaskHandlerBase
 
@@ -184,7 +185,7 @@ class UpdateIssueRateData:
             field_val = resolved_rate
         passed = None
         if field_val is not None:
-            qrsh = QualityResultCompareHandler(self.products.get("product_id"))
+            qrsh = QualityResultCompareHandler("product", self.products.get("product_id"))
             passed = qrsh.compare_issue_rate(field, field_val)
 
         _issuerate_dict = self.param.get(field).get("p_fields")
@@ -226,7 +227,7 @@ class UpdateIssueRateData:
             gitee_milestone_id=gitee_milestone_id).first()
         passed = None
         if field_val is not None:
-            qrsh = QualityResultCompareHandler(self.products.get("product_id"), _m.id)
+            qrsh = QualityResultCompareHandler("milestone", _m.id)
             passed = qrsh.compare_issue_rate(field, field_val)
         issue_resolved_rate_dict = dict()
         
@@ -256,14 +257,69 @@ class UpdateIssueRateData:
             Edit(IssueSolvedRate, issue_resolved_rate_dict).single(
                 IssueSolvedRate, "/issue_solved_rate")
 
+    def update_round_issue_resolved_rate(self, round_id, field: str):
+        from server.apps.qualityboard.handlers import QualityResultCompareHandler
+        param1 = self.param.get(field).get("all")
+        if not param1:
+            return
+        milestones = Milestone.query.filter_by(round_id=round_id, is_sync=True).all()
+        if not milestones:
+            return
+        milestone_ids = ""
+        for m in milestones:
+            milestone_ids += f"{m.gitee_milestone_id},"
+        milestone_ids = milestone_ids[:-1]
+            
+        param1.update({"milestone_id": milestone_ids})
+        param2 = self.param.get(field).get("part")
+        if param2:
+            param2.update({"milestone_id": milestone_ids})
+        resolved_cnt, all_cnt, resolved_rate = self.issue_v8.get_issue_cnt_rate(
+            param1, param2
+        )
+        if all_cnt is None:
+            return
+        if resolved_cnt is None and param2 is not None:
+            return
+        field_val = all_cnt
+        if "rate" in field:
+            field_val = resolved_rate
+
+        passed = None
+        if field_val is not None:
+            qrsh = QualityResultCompareHandler("round", round_id)
+            passed = qrsh.compare_issue_rate(field, field_val)
+        issue_resolved_rate_dict = dict()
+        _issuerate_dict = self.param.get(field).get("m_fields")
+        for k in _issuerate_dict.keys():
+            if "resolved_rate" in k:
+                issue_resolved_rate_dict.update({k: resolved_rate})
+            if "resolved_cnt" in k:
+                issue_resolved_rate_dict.update({k: resolved_cnt})
+            if "all_cnt" in k:
+                issue_resolved_rate_dict.update({k: all_cnt})
+            if "issues_cnt" in k:
+                issue_resolved_rate_dict.update({k: all_cnt})
+            if "passed" in k:
+                issue_resolved_rate_dict.update({k: passed})
+
+        issue_rate = IssueSolvedRate.query.filter_by(
+            round_id=round_id, type="round").first()
+        if issue_rate:
+            issue_resolved_rate_dict.update({"id": issue_rate.id})
+            Edit(IssueSolvedRate, issue_resolved_rate_dict).single(
+                IssueSolvedRate, "/issue_solved_rate")
+
 
 @celery.task
-def update_field_issue_rate(obj_type: str, gitee_id, products: dict, field: str, gitee_milestone_id=None):
+def update_field_issue_rate(obj_type: str, gitee_id, products: dict, field: str, obj_id=None):
     _uird = UpdateIssueRateData(gitee_id, products)
     if obj_type == "product":
         _uird.update_product_issue_resolved_rate(field)
+    elif obj_type == "round":
+        _uird.update_round_issue_resolved_rate(obj_id, field)
     elif obj_type == "milestone":
-        _uird.update_milestone_issue_resolved_rate(gitee_milestone_id, field)
+        _uird.update_milestone_issue_resolved_rate(obj_id, field)
 
 
 class UpdateIssueRate(TaskHandlerBase):
@@ -277,6 +333,19 @@ class UpdateIssueRate(TaskHandlerBase):
                 gitee_id,
                 products,
                 _f
+            )
+
+    @staticmethod
+    def update_round_issue_resolved_rate(gitee_id, products: dict, round_id):
+        fields = ["serious_resolved_rate", "main_resolved_rate", "serious_main_resolved_rate",
+                  "current_resolved_rate", "left_issues_cnt", "invalid_issues_cnt"]
+        for _f in fields:
+            update_field_issue_rate.delay(
+                "round",
+                gitee_id,
+                products,
+                _f,
+                round_id,
             )
 
     @staticmethod
@@ -306,6 +375,25 @@ class UpdateIssueRate(TaskHandlerBase):
                 UpdateIssueRate.update_product_issue_resolved_rate(
                     gitee_id=gitee_id, products=products
                 )
+                
+                rounds = Round.query.filter_by(
+                    product_id=_p.id
+                ).all()
+                for _r in rounds:
+                    issue_rate = IssueSolvedRate.query.filter_by(
+                        round_id=_r.id, type="round"
+                    ).first()
+                    if not issue_rate:
+                        Insert(
+                            IssueSolvedRate,
+                            {
+                                "round_id": _r.id,
+                                "type": "round",
+                            }
+                        ).single()
+                    UpdateIssueRate.update_round_issue_resolved_rate(
+                        gitee_id=gitee_id, products=products, round_id=_r.id
+                    )
 
                 milestones = Milestone.query.filter_by(
                     is_sync=True, product_id=_p.id
@@ -319,7 +407,8 @@ class UpdateIssueRate(TaskHandlerBase):
                             IssueSolvedRate,
                             {
                                 "milestone_id": _m.id,
-                                "gitee_milestone_id": _m.gitee_milestone_id
+                                "gitee_milestone_id": _m.gitee_milestone_id,
+                                "type": "milestone",
                             }
                         ).single(IssueSolvedRate, "/issue_solved_rate")
                     UpdateIssueRate.update_milestone_issue_resolved_rate(

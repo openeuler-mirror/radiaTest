@@ -172,6 +172,11 @@ task_queues = (
         exchange=Exchange("server_exchange", type="direct"),
         routing_key="send_vmachine_release_message",
     ),
+    Queue(
+        "queue_update_samerpm_compare_result",
+        exchange=Exchange("server_exchange", type="direct"),
+        routing_key="samerpm_compare_result",
+    )
 )
 
 task_default_exchange_type = "direct"
