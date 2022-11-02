@@ -5,7 +5,10 @@ from flask_socketio import emit
 
 from server import db, redis_client
 from server.model.message import Message
+from server.model.group import ReUserGroup, Group
+from server.model.user import User
 from server.schema.message import MessageModel
+from server.schema.group import ReUserGroupSchema, GroupInfoSchema
 from server.utils.response_util import RET
 from server.utils.page_util import PageUtil
 from server.utils.db import collect_sql_error
@@ -94,3 +97,104 @@ def handler_msg_callback(body):
     message.add_update()
     msg.add_update()
     return jsonify(error_code=RET.OK, error_msg="OK")
+
+
+@collect_sql_error
+def handler_addgroup_msg_callback(body):
+    org_name = redis_client.hget(RedisKey.user(g.gitee_id), "current_org_name")
+    msg = Message.query.filter_by(id=body.msg_id, is_delete=False, has_read=False).first()
+    if not msg:
+        raise RuntimeError("the msg does not exist.")
+    _data = json.loads(msg.data)
+    info = f'您请求加入<b>{org_name}</b>组织下的<b>{_data.get("group_name")}</b>组已经被<b>{{}}</b>。'
+    re = ReUserGroup.query.filter_by(
+        user_gitee_id=msg.from_id,
+        group_id=_data.get("group_id"),
+        org_id=msg.org_id,
+        is_delete=False
+    ).first()
+    msg.has_read = True
+    msg.type = 0
+    msg.add_update()
+    group = Group.query.filter_by(id=_data.get("group_id"), is_delete=False).first()
+    if not group:
+        re.delete()
+        return jsonify(error_code=RET.OK, error_msg="群组已被解散")
+    if not re:
+        return jsonify(error_code=RET.OK, error_msg="申请已被其他管理员拒绝")
+    if re.role_type != 0:
+        return jsonify(error_code=RET.OK, error_msg="申请已被其他管理员处理")
+    else:
+        if body.access:
+            info = info.format('管理员处理')
+            re.role_type = 3
+            re.user_add_group_flag = 1
+            re.add_update()
+        else:
+            info = info.format('管理员拒绝')
+            re.delete()
+    message = Message.create_instance(dict(info=info), g.gitee_id, msg.from_id, msg.org_id)
+    message.add_update()
+
+    return jsonify(error_code=RET.OK, error_msg="OK")
+
+
+@collect_sql_error
+def handler_group_page():
+    # 从数据库中获取当前用户所有的用户组
+    page_num = int(request.args.get('page_num', 1))
+    page_size = int(request.args.get('page_size', 10))
+    name = request.args.get('name')
+    filter_group = [
+        Group.is_delete.is_(False),
+        Group.org_id == redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')
+    ]
+    filter_re_user_group = [
+        ReUserGroup.user_gitee_id == g.gitee_id,
+        ReUserGroup.is_delete.is_(False),
+        ReUserGroup.org_id == redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')
+    ]
+    if name:
+        filter_group.append(Group.name.like(f"%{name}%"))
+
+    re_user_group_sub = ReUserGroup.query.filter(*filter_re_user_group).subquery()
+
+    query_filter = db.session.query(Group, re_user_group_sub).join(
+        re_user_group_sub, Group.id == re_user_group_sub.c.group_id, isouter=True). \
+        filter(*filter_group). \
+        order_by(
+        re_user_group_sub.c.create_time.desc(),
+        re_user_group_sub.c.id.asc()
+    )
+
+    def page_func(item):
+        re_dict = dict()
+        re_dict.update({
+            "re_user_group_id": item.id,
+            "user_add_group_flag": item.user_add_group_flag,
+            "re_user_group_is_delete": item.is_delete,
+            "re_user_group_role_type": item.role_type,
+            "re_user_group_create_time": item.create_time
+        })
+        group_dict = GroupInfoSchema(**item[0].to_dict()).dict()
+        filter_re_user_group = [
+            ReUserGroup.is_delete.is_(False),
+            ReUserGroup.org_id == redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id'),
+            ReUserGroup.role_type.in_([1, 2]),
+            ReUserGroup.group_id == group_dict.get("id"),
+            ReUserGroup.user_add_group_flag.is_(True)
+        ]
+        group_admin_sub = ReUserGroup.query.filter(*filter_re_user_group).subquery()
+        query_res = User.query.join(group_admin_sub, User.gitee_id == group_admin_sub.c.user_gitee_id).all()
+        admin_awatar = list()
+        for res in query_res:
+            admin_awatar.append(dict(gitee_name=res.gitee_name, avatar_url=res.avatar_url))
+        group_dict.update({
+            "admin_awatar": admin_awatar
+        })
+        return {**re_dict, **group_dict}
+
+    page_dict, e = PageUtil.get_page_dict(query_filter, page_num, page_size, func=page_func)
+    if e:
+        return jsonify(error_code=RET.SERVER_ERR, error_msg=f'get group page error {e}')
+    return jsonify(error_code=RET.OK, error_msg="OK", data=page_dict)

@@ -15,14 +15,22 @@
 
 #####################################
 
+from flask import request
 from flask_restful import Resource
 from flask_pydantic import validate
 from server import casbin_enforcer
-from server.schema.administrator import LoginSchema, RegisterSchema
-from server.schema.organization import AddSchema, UpdateSchema
+from server.schema.administrator import LoginSchema, RegisterSchema, ChangePasswdSchema
+from server.schema.organization import AddSchema
 from server.utils.auth_util import auth
 from server.utils.response_util import response_collect
-from .handlers import *
+from server.apps.administrator.handlers import (
+    handler_login,
+    handler_register,
+    handler_read_org_list,
+    handler_save_org,
+    handler_update_org,
+    handler_change_passwd
+)
 
 
 class Login(Resource):
@@ -64,3 +72,11 @@ class OrgItem(Resource):
     @casbin_enforcer.enforcer
     def put(self, org_id):
         return handler_update_org(org_id)
+
+
+class ChangePasswd(Resource):
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def put(self, body: ChangePasswdSchema):
+        return handler_change_passwd(body)

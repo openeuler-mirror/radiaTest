@@ -66,7 +66,9 @@ def handler_login(body):
     redis_client.hmset(RedisKey.user(user_dict.get('gitee_id')), user_dict)
     token = generate_token(user_dict.get('gitee_id'), admin.account)
     return_dict = {
-        'token': token
+        'token': token,
+        'admin': 1,
+        'account': admin.account
     }
     return jsonify(
         error_code=RET.OK,
@@ -245,3 +247,25 @@ def delete_role(_type, org=None, group=None):
         for _re in _srs:
             Delete(ReScopeRole, {"id": _re.id}).single()
     sort_list[0].delete()
+
+
+@collect_sql_error
+def handler_change_passwd(body):
+    admin = Admin.query.filter_by(account=body.account).first()
+    if not admin:
+        return jsonify(
+            error_code=RET.NO_DATA_ERR,
+            error_msg='admin no find'
+        )
+
+    if not admin.check_password_hash(body.old_password):
+        return jsonify(
+            error_code=RET.VERIFY_ERR,
+            error_msg='old password error'
+        )
+    admin.password = body.new_password
+    admin.add_update(Admin, '/admin')
+    return jsonify(
+        error_code=RET.OK,
+        error_msg="new password update success"
+    )
