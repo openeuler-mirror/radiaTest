@@ -1,13 +1,13 @@
 import re
 import json
 import shlex
-from subprocess import getoutput, getstatusoutput
+from subprocess import getstatusoutput
 import requests
 import time
 
 from celeryservice import celeryconfig
 from celeryservice.lib import TaskHandlerBase, AuthTaskHandler
-from worker.utils.bash import rm_disk_image
+from worker.utils.bash import rm_vmachine_relate_file
 
 
 class IllegalMonitor(TaskHandlerBase):
@@ -64,6 +64,14 @@ class IllegalMonitor(TaskHandlerBase):
                             )
                         )
 
+                    rm_vmachine_relate_file(
+                        "{}.qcow2".format(shlex.quote(domain)),
+                        celeryconfig.storage_pool,
+                    )
+                    self.logger.info(
+                        f"the qcow2 of the illegal vmachine {domain} has been deleted."
+                    )
+
                     exitcode, output = getstatusoutput(
                         "sudo virsh undefine --nvram --remove-all-storage {}".format(
                             shlex.quote(domain),
@@ -76,15 +84,15 @@ class IllegalMonitor(TaskHandlerBase):
                             )
                         )
                     self.logger.info(
-                        f"the illegal vmachine {domain} has been deleted."
+                        f"the domain of illegal vmachine {domain} has been deleted."
+                    )
+                    rm_vmachine_relate_file(
+                        "{}.log".format(shlex.quote(domain)),
+                        celeryconfig.log_home,
                     )
 
-                    rm_disk_image(
-                        shlex.quote(domain),
-                        celeryconfig.storage_pool,
-                    )
                     self.logger.info(
-                        f"the qcow2 of the illegal vmachine {domain} has been deleted."
+                        f"the log of the illegal vmachine {domain} has been deleted."
                     )
             except RuntimeError as e:
                 self.logger.warn(str(e))

@@ -24,9 +24,6 @@ def setup_periodic_tasks(sender, **kwargs):
         name="illegal_monitor"
     )
 
-
-@celery.on_after_configure.connect
-def setup_periodic_tasks(sender, **kwargs):
     sender.add_periodic_task(
         40000.0,
         async_vmachines_status_monitor.s(),

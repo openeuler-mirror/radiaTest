@@ -149,10 +149,10 @@ class LogResolverAdapter:
         if self._conn:
             _path = current_app.config.get(
                 "WORKER_DOWNLOAD_PATH"
-            ).replace("/$", "")
+            )
         else:
             _path = current_app.config.get(
                 "SERVER_FRAMEWORK_PATH"
-            ).replace("/$", "")
+            )
 
-        return _path + '/' + self._framework.get("name") + '/' + self._framework.get("logs_path").replace("/$", "")
+        return os.path.join(_path, self._framework.get("name"), self._framework.get("logs_path"))

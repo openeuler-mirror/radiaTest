@@ -94,6 +94,6 @@ class RunTemplateBase(RunJobBase):
 
 class RunSuiteBase(RunJobBase):
     git_repo_id: int
-    name: constr(max_length=64)
+    name: constr(max_length=512)
     suite_id: int
     milestone_id: int
