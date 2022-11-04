@@ -179,7 +179,7 @@
             round
             :disabled="!loginOrg"
             style="margin-top: 10px"
-            @click="hanleLogin"
+            @click="hanleLogin(loginOrg)"
           >
             <span class="iconfont icon-gitee2"></span>
             <span style="margin-left: 10px">码云鉴权登录</span>
@@ -354,6 +354,7 @@ import { CheckmarkCircle, CheckmarkCircleOutline } from '@vicons/ionicons5';
 import { useMessage } from 'naive-ui';
 import { User, Lock } from '@vicons/fa';
 import carousel from '@/components/carousel/carousel.vue';
+import { storage } from '@/assets/utils/storageUtils';
 export default {
   components: {
     User,
@@ -374,7 +375,12 @@ export default {
   setup() {
     const message = useMessage();
     window.$message = message;
-    modules.gotoHome();
+    const thirdParty = storage.getValue('thirdParty');
+    if(thirdParty && thirdParty === '1') {
+      modules.handleIsSuccess();
+    } else {
+      modules.gotoHome();
+    }
     modules.isIframe();
     const windowHeight = window.innerHeight;
     const windowWidth = window.innerWidth;

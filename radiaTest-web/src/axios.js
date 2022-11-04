@@ -2,7 +2,7 @@ import axios from 'axios';
 // import router from './router/index';
 import { storage } from './assets/utils/storageUtils';
 import router from './router';
-
+import { hanleLogin } from '@/views/login/modules/login';
 //url接口头定义
 const server = axios.create({
   baseURL: '/api',
@@ -82,12 +82,20 @@ server.interceptors.response.use(
     return Promise.reject(response);
   },
   (error) => {
+    const thirdParty = storage.getValue('thirdParty');
     if (error.response?.status === 401) {
       window.$message?.destroyAll();
       window.$message?.error('请重新登陆');
-      router.push({
-        name: 'login',
-      });
+      if(thirdParty && thirdParty === '1') {
+        router.push({
+          name: 'home',
+        });
+        hanleLogin(storage.getValue('loginOrgId'));
+      } else {
+        router.push({
+          name: 'login',
+        });
+      }
       error.response.data = {
         error_msg: '登陆失效',
       };
