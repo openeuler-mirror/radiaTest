@@ -30,6 +30,7 @@ import rulesManagement from '@/views/personalCenter/authorityManagement/rulesMan
 import rolesManagement from '@/views/personalCenter/authorityManagement/rolesManagement/rolesManagement.vue';
 import usersManagement from '@/views/personalCenter/usersManagement/usersManagement.vue';
 import configManagement from '@/views/personalCenter/configManagement.vue';
+import securitySetting from '@/views/personalCenter/securitySetting.vue';
 import caseReview from '@/views/caseManage/caseReview/caseReview.vue';
 import caseReviewDetail from '@/views/caseManage/caseReviewDetail/caseReviewDetail.vue';
 import resourcePool from '@/views/resourcePool/resourcePool.vue';
@@ -298,6 +299,14 @@ const router = createRouter({
           name: 'configManagement',
           meta: {
             title: '配置管理'
+          }
+        },
+        {
+          path: 'security-setting/',
+          component: securitySetting,
+          name: 'securitySetting',
+          meta: {
+            title: '安全设置'
           }
         },
         {

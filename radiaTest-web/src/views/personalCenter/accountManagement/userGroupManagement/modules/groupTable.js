@@ -1,24 +1,19 @@
 import { h, ref, reactive } from 'vue';
-import {
-  NAvatar,
-  NButton,
-  NDivider,
-  NForm,
-  NInput,
-  NFormItem,
-  NSpace,
-} from 'naive-ui';
+import { NAvatar, NButton, NDivider, NForm, NInput, NFormItem, NSpace } from 'naive-ui';
 
 import { formatTime } from '@/assets/utils/dateFormatUtils.js';
 import axios from '@/axios';
 import { changeLoadingStatus } from '@/assets/utils/loading';
 import { editGroupUsers } from './groupDrawer';
-import { getGroup } from '@/api/get';
+import { getMsgGroup } from '@/api/get';
+import { applyUserGroup } from '@/api/post';
+import AvatarGroup from '@/components/personalCenter/avatarGroup.vue';
+import textDialog from '@/assets/utils/dialog';
 
 //table base info
 const state = reactive({
   editGroupData: {},
-  dataList: [],
+  dataList: []
 });
 const pagination = reactive({
   page: 1,
@@ -32,32 +27,28 @@ const pagination = reactive({
 //get table data
 function getDataList(name) {
   changeLoadingStatus(true);
-  getGroup({
+  getMsgGroup({
     page_num: pagination.page,
     page_size: pagination.pageSize,
-    name,
+    name
   })
     .then((res) => {
       changeLoadingStatus(false);
       state.dataList = [];
-      if (
-        res?.data?.items &&
-        Array.isArray(res.data.items) &&
-        res.data.items.length
-      ) {
+      if (res?.data?.items && Array.isArray(res.data.items) && res.data.items.length) {
         res.data.items.forEach((item) => {
           state.dataList.push({
             groupName: item.name,
             describe: item.description,
-            rule:
-              item.re_user_group_role_type === 1 ||
-              item.re_user_group_role_type === 2,
-            createTime: item.re_user_group_create_time,
+            rule: item.re_user_group_role_type === 1 || item.re_user_group_role_type === 2,
+            createTime: item.create_time,
             show: false,
             id: item.id,
             avatar_url: item.avatar_url,
             re_user_group_id: item.re_user_group_id,
             re_user_group_role_type: item.re_user_group_role_type,
+            admin_awatar: item.admin_awatar,
+            user_add_group_flag: item.user_add_group_flag
           });
         });
         pagination.pageCount = res.data.pages;
@@ -88,7 +79,7 @@ function groupRowProps(row, rowIndex) {
     style: 'cursor: pointer;',
     onClick: () => {
       editGroupUsers(rowIndex);
-    },
+    }
   };
 }
 
@@ -98,8 +89,8 @@ const editGroupRules = reactive({
   groupName: {
     trigger: ['blur', 'input'],
     required: true,
-    message: '组织名不能为空',
-  },
+    message: '组织名不能为空'
+  }
 });
 const activeIndex = ref(0);
 function editAction(d) {
@@ -116,7 +107,7 @@ function editAction(d) {
             axios
               .put(`/v1/groups/${state.editGroupData.id}`, {
                 name: state.editGroupData.groupName,
-                description: state.editGroupData.describe,
+                description: state.editGroupData.describe
               })
               .then((res) => {
                 if (res?.error_code === '2000') {
@@ -136,7 +127,7 @@ function editAction(d) {
             window.$message && window.$message.error('填写信息有误！');
           }
         });
-      },
+      }
     },
     ['确定']
   );
@@ -146,11 +137,11 @@ function editAction(d) {
       type: 'error',
       onClick: () => d.destroy(),
       ghost: true,
-      size: 'large',
+      size: 'large'
     },
     ['取消']
   );
-  return h( NSpace, { style: 'width:100%' }, [ cancelBtn, confirmBtn ] );
+  return h(NSpace, { style: 'width:100%' }, [cancelBtn, confirmBtn]);
 }
 function editContent() {
   const form = h('div', null, [
@@ -162,7 +153,7 @@ function editContent() {
         model: state.editGroupData,
         labelPlacement: 'left',
         labelAlign: 'left',
-        labelWidth: 100,
+        labelWidth: 100
       },
       [
         h(NFormItem, { label: '用户组名称', path: 'groupName' }, [
@@ -170,32 +161,23 @@ function editContent() {
             value: state.editGroupData.groupName,
             onUpdateValue: (value) => {
               state.editGroupData.groupName = value;
-            },
-          }),
+            }
+          })
         ]),
-        h( NFormItem, { label: '创建时间' },
-          [
-            h('span', null, [
-              formatTime(
-                new Date(state.editGroupData.createTime),
-                'yyyy-MM-dd hh:mm:ss'
-              ),
-            ]),
-          ]
-        ),
-        h( NFormItem, {label: '描述'},
-          [
-            h(NInput, {
-              type: 'textarea',
-              value: state.editGroupData.describe,
-              onUpdateValue: (value) => {
-                state.editGroupData.describe = value;
-              },
-            }),
-          ]
-        ),
+        h(NFormItem, { label: '创建时间' }, [
+          h('span', null, [formatTime(new Date(state.editGroupData.createTime), 'yyyy-MM-dd hh:mm:ss')])
+        ]),
+        h(NFormItem, { label: '描述' }, [
+          h(NInput, {
+            type: 'textarea',
+            value: state.editGroupData.describe,
+            onUpdateValue: (value) => {
+              state.editGroupData.describe = value;
+            }
+          })
+        ])
       ]
-    ),
+    )
   ]);
   return form;
 }
@@ -207,7 +189,7 @@ function handleEdit(rowIndex) {
     content: () => editContent(),
     action: () => {
       return editAction(d);
-    },
+    }
   });
 }
 function handleExit(rowIndex) {
@@ -224,17 +206,15 @@ function handleExit(rowIndex) {
           ghost: true,
           onClick: () => {
             changeLoadingStatus(true);
-            axios
-              .delete(`/v1/groups/${state.dataList[rowIndex].id}`)
-              .then((res) => {
-                changeLoadingStatus(false);
-                if (res.error_code === '2000') {
-                  window.$message?.success('已成功退出该用户组');
-                }
-                getDataList();
-              });
+            axios.delete(`/v1/groups/${state.dataList[rowIndex].id}`).then((res) => {
+              changeLoadingStatus(false);
+              if (res.error_code === '2000') {
+                window.$message?.success('已成功退出该用户组');
+              }
+              getDataList();
+            });
             d.destroy();
-          },
+          }
         },
         ['确定']
       );
@@ -246,20 +226,26 @@ function handleExit(rowIndex) {
           size: 'large',
           onClick: () => {
             d.destroy();
-          },
+          }
         },
         ['取消']
       );
       return h(
         NSpace,
         {
-          style: 'width:100%',
+          style: 'width:100%'
         },
         [cancelBtn, confirmBtn]
       );
-    },
+    }
   });
 }
+
+const handleApply = (row) => {
+  textDialog('warning', '确认', '是否申请加入当前用户组', () => {
+    applyUserGroup(row.id);
+  });
+};
 
 //table columns
 const columns = [
@@ -271,29 +257,43 @@ const columns = [
       return h(NAvatar, {
         size: 'small',
         src: row.avatar_url,
-        style: { background: 'rgba(0,0,0,0)' },
+        style: { background: 'rgba(0,0,0,0)' }
       });
-    },
+    }
   },
   {
     title: '用户组名称',
     key: 'groupName',
+    align: 'center'
+  },
+  {
+    title: '管理员',
+    key: 'admin_awatar',
     align: 'center',
+    render(row) {
+      let options = row.admin_awatar.map((item) => {
+        return { name: item.gitee_name, src: item.avatar_url };
+      });
+
+      return h(AvatarGroup, {
+        options,
+        size: 40,
+        max: 3
+      });
+    }
   },
   {
     title: '描述',
     key: 'describe',
-    align: 'center',
+    align: 'center'
   },
   {
     title: '创建时间',
     key: 'createTime',
     align: 'center',
     render(row) {
-      return h('span', null, [
-        formatTime(new Date(row.createTime), 'yyyy-MM-dd hh:mm:ss'),
-      ]);
-    },
+      return h('span', null, [formatTime(new Date(row.createTime), 'yyyy-MM-dd hh:mm:ss')]);
+    }
   },
   {
     title: '操作',
@@ -312,7 +312,7 @@ const columns = [
               event.stopPropagation();
               handleEdit(rowIndex);
             }
-          },
+          }
         },
         ['编辑']
       );
@@ -325,19 +325,35 @@ const columns = [
           onClick: (event) => {
             event.stopPropagation();
             handleExit(rowIndex);
-          },
+          }
         },
         [row.re_user_group_role_type === 1 ? '解散' : '退出']
       );
-      return [
-        edit,
-        h(NDivider, {
-          vertical: true,
-        }),
-        exit,
-      ];
-    },
-  },
+      const apply = h(
+        NButton,
+        {
+          tag: 'span',
+          text: true,
+          type: 'primary',
+          onClick: (event) => {
+            event.stopPropagation();
+            handleApply(row, rowIndex);
+          }
+        },
+        ['申请']
+      );
+      if (row.user_add_group_flag) {
+        return [
+          edit,
+          h(NDivider, {
+            vertical: true
+          }),
+          exit
+        ];
+      }
+      return apply;
+    }
+  }
 ];
 
 export {
@@ -350,5 +366,5 @@ export {
   getDataList,
   turnPages,
   turnPageSize,
-  groupRowProps,
+  groupRowProps
 };

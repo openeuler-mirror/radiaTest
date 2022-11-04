@@ -39,6 +39,7 @@ class GroupInfoSchema(BaseModel):
     description: Optional[str]
     avatar_url: Optional[str]
     is_delete: Optional[bool]
+    create_time: Optional[str]
 
 
 class AddGroupUserSchema(BaseModel):

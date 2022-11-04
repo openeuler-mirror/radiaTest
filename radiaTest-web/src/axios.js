@@ -8,8 +8,8 @@ const server = axios.create({
   baseURL: '/api',
   withCredentials: true,
   headers: {
-    'Content-Type': 'application/json;charset=UTF-8',
-  },
+    'Content-Type': 'application/json;charset=UTF-8'
+  }
 });
 // axios.defaults.baseURL = '/api';
 
@@ -43,7 +43,7 @@ server.interceptors.request.use(
       keys = Object.keys(config.data || {});
     }
     for (const key of keys) {
-      if (getValueByKey(config.data, key) === undefined) {
+      if (getValueByKey(config.data, key) === undefined || getValueByKey(config.data, key) === null) {
         if (config.data?.delete) {
           config.data?.delete(key);
         } else {
@@ -70,13 +70,8 @@ server.interceptors.request.use(
 //回应拦截器
 server.interceptors.response.use(
   (response) => {
-    if (
-      response.data.error_code === 200 ||
-      response.data.error_code === '2000' ||
-      !response.data.error_code
-    ) {
-      response.headers.authorization &&
-        storage.setValue('token', response.headers.authorization);
+    if (response.data.error_code === 200 || response.data.error_code === '2000' || !response.data.error_code) {
+      response.headers.authorization && storage.setValue('token', response.headers.authorization);
       return Promise.resolve(response);
     }
     return Promise.reject(response);
@@ -97,20 +92,20 @@ server.interceptors.response.use(
         });
       }
       error.response.data = {
-        error_msg: '登陆失效',
+        error_msg: '登陆失效'
       };
     } else if (error.response?.status === 500) {
       window.$message?.destroyAll();
       error.response.data = {
-        error_msg: '服务端错误',
+        error_msg: '服务端错误'
       };
     } else if (error.response?.status === 400) {
       const msg = error.response.data.validation_error.body_params
         ? error.response.data.validation_error.body_params[0].msg
         : error.response.data.validation_error.query_params[0]?.msg;
-      
+
       error.response.data = {
-        error_msg: msg,
+        error_msg: msg
       };
     }
     return Promise.reject(error.response || error);
@@ -124,7 +119,7 @@ export default {
       server({
         method: 'post',
         url,
-        data,
+        data
       })
         .then((res) => {
           resolve(res.data);
@@ -140,7 +135,7 @@ export default {
       server({
         method: 'get',
         url,
-        params: data,
+        params: data
       })
         .then((res) => {
           resolve(res.data);
@@ -156,7 +151,7 @@ export default {
       server({
         method: 'put',
         url,
-        data,
+        data
       })
         .then((res) => {
           resolve(res.data);
@@ -172,7 +167,7 @@ export default {
       server({
         method: 'delete',
         url,
-        data,
+        data
       })
         .then((res) => {
           resolve(res.data);
@@ -188,7 +183,7 @@ export default {
       server({
         method: 'get',
         url,
-        params: data,
+        params: data
       })
         .then((res) => {
           loading.value = false;
@@ -211,5 +206,5 @@ export default {
           reject(Error('验证失败，请检查网络连接'));
         });
     });
-  },
+  }
 };

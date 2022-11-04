@@ -9,7 +9,7 @@ function postRequest(url, data) {
         resolve(res);
       })
       .catch((err) => {
-        if (data.webMessage !== 'manual') {
+        if (data?.webMessage !== 'manual') {
           window.$notification?.error({ content: err.data.error_msg || unkonwnErrorMsg });
         }
         reject(err);
@@ -69,4 +69,8 @@ export function addCheckListItem(data) {
 
 export function addCheckItem(data) {
   return postRequest('/v1/checkitem', data);
+}
+
+export function applyUserGroup(id) {
+  return postRequest(`/v1/groups/${id}/apply`);
 }

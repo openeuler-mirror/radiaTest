@@ -79,3 +79,11 @@ export function updateSyncMilestone(id, data) {
 export function updateMilestoneState(id, data) {
   return putRequest(`/v2/milestone/${id}/state`, data);
 }
+
+export function changeAdminPassword(data) {
+  return putRequest('/v1/admin/changepasswd', data);
+}
+
+export function updateProductVersion(productId, data) {
+  return putRequest(`/v1/product/${productId}`, data);
+}
