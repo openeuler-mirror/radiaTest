@@ -1,7 +1,6 @@
+import os
 from shlex import quote
 from subprocess import getoutput, getstatusoutput
-
-# from flask import current_app
 
 
 def install_base(body, storage_pool):
@@ -55,11 +54,10 @@ def get_network_source():
     return "virsh net-list | sed '1,2d;/^$/d' | awk '{print $1}' | shuf -n 1"
 
 
-def rm_disk_image(name, storage_pool):
+def rm_vmachine_relate_file(name, path):
     return getoutput(
-        "rm -rf {}/{}.qcow2".format(
-            quote(storage_pool),
-            quote(name),
+        "rm -rf {}".format(
+            os.path.join(quote(path), quote(name))
         )
     )
 
@@ -75,6 +73,7 @@ def domain_state(name):
         )
         + " '{print $NF}' | sed 's/^ *//;s/ *$//' "
     )
+
 
 def undefine_domain(name):
     return getstatusoutput(

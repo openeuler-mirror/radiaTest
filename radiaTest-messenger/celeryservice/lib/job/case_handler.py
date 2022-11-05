@@ -1,3 +1,4 @@
+import os
 from copy import deepcopy
 import json
 import datetime
@@ -487,11 +488,12 @@ class RunCaseHandler(TaskAuthHandler):
                             "job_id": self._body.get("id"),
                             "case_id": testcase.get("id"),
                             "master": self._body.get("master"),
-                            "log_url": "{}/{}/{}/{}/".format(
+                            "log_url": os.path.join(
                                 current_app.config.get("REPO_URL"),
                                 self._name,
                                 testsuite.get("name"),
                                 testcase.get("name"),
+                                ""
                             ),
                             "running_time": _running_time,
                         },

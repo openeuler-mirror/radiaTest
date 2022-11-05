@@ -94,6 +94,7 @@ task_queues = (
 
 # worker相关配置 
 storage_pool = loads_config_ini("worker", "STORAGE_POOL")
+log_home = loads_config_ini("worker", "LOG_HOME")
 network_interface_source = loads_config_ini(
     "worker",
     "NETWORK_INTERFACE_SOURCE"
