@@ -16,4 +16,4 @@
 FROM radia-test/gunicorn
 LABEL maintainer="ethanzhang55@outlook.com"
 
-CMD celery -A manage.my_celery worker --loglevel=info --hostname=celery_issuerate_updator --queues=queue_update_field_issue_rate -O fair
+CMD celery -A manage.my_celery worker --loglevel=info --hostname=celery_issuerate_updator@%h --queues=queue_update_field_issue_rate -O fair
