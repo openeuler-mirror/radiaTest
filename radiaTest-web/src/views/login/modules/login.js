@@ -75,17 +75,24 @@ function requireEnterprise(orgid) {
   }
   return false;
 }
-function hanleLogin() {
+function hanleLogin (orgId) {
   changeLoadingStatus(true);
-  storage.setValue('loginOrgId', Number(loginOrg.value));
-  storage.setValue('hasEnterprise', requireEnterprise(loginOrg.value));
+  storage.setValue('loginOrgId', Number(orgId));
+  storage.setValue('hasEnterprise', requireEnterprise(orgId));
+  const thirdParty = storage.getValue('thirdParty');
   axios
-    .get('/v1/gitee/oauth/login', { org_id: Number(loginOrg.value) })
+    .get('/v1/gitee/oauth/login', { org_id: Number(orgId) })
     .then((res) => {
       if (res?.data) {
         const giteeUrl = res.data;
         changeLoadingStatus(false);
-        window.location = giteeUrl;
+        if(thirdParty && thirdParty === '1') {
+          window.parent.postMessage({
+            giteeUrl
+          },'*');
+        } else {
+          window.location = giteeUrl;
+        }
       } else {
         changeLoadingStatus(false);
         throw new Error(res.error_msg);
@@ -98,7 +105,25 @@ function hanleLogin() {
 }
 
 const registerShow = ref(false);
-function gotoHome() {
+function handleIsSuccess() {
+  if (urlArgs().isSuccess === 'True') {
+    setTimeout(() => {
+      registerShow.value = false;
+      storage.setValue('token', getCookieValByKey('token'));
+      storage.setValue('refresh_token', getCookieValByKey('refresh_token'));
+      storage.setValue('gitee_id', getCookieValByKey('gitee_id'));
+      router.push({ name: 'home' }).then(() => {
+        addRoom(storage.getValue('token'));
+      });
+    }, 1000);
+  } else if (urlArgs().isSuccess === 'False') {
+    loginInfo.org = urlArgs().org_id;
+    registerShow.value = true;
+    requireCLA.value = urlArgs().require_cla === 'True';
+    getClaOrg();
+  }
+}
+function gotoHome () {
   orgListLoading.value = true;
   getAllOrg().then((res) => {
     orgOpts.value = res.data.map((item) => ({
@@ -119,22 +144,7 @@ function gotoHome() {
       window.location = res.data;
     });
   }
-  if (urlArgs().isSuccess === 'True') {
-    setTimeout(() => {
-      registerShow.value = false;
-      storage.setValue('token', getCookieValByKey('token'));
-      storage.setValue('refresh_token', getCookieValByKey('refresh_token'));
-      storage.setValue('gitee_id', getCookieValByKey('gitee_id'));
-      router.push({ name: 'home' }).then(() => {
-        addRoom(storage.getValue('token'));
-      });
-    }, 1000);
-  } else if (urlArgs().isSuccess === 'False') {
-    loginInfo.org = urlArgs().org_id;
-    registerShow.value = true;
-    requireCLA.value = urlArgs().require_cla === 'True';
-    getClaOrg();
-  }
+  handleIsSuccess();
 }
 function renderLabel(option) {
   return h(
@@ -194,6 +204,7 @@ export {
   handleLoginByForm,
   hanleLogin,
   gotoHome,
+  handleIsSuccess,
   loginOrg,
   orgOpts,
   renderLabel,

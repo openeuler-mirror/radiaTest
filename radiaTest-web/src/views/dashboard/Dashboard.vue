@@ -432,6 +432,7 @@ export default defineComponent({
     },
   },
   setup() {
+    modules.thirdPartLogin();
     modules.initData();
     return {
       ...modules,
