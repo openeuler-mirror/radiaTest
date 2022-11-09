@@ -9,7 +9,9 @@ import {
   getProductMessage,
   getMilestoneRate,
   getCheckListTableRounds,
-  getCheckListTableDataAxios
+  getCheckListTableDataAxios,
+  getMilestones,
+  getRoundIssueRate
 } from '@/api/get';
 import { createProductMessage, addCheckListItem } from '@/api/post';
 import {
@@ -132,46 +134,52 @@ function dynamicAnimateCss(elementsClass, animationCssClass) {
   });
 }
 
-function handleClick(id) {
-  if (id > currentId.value) {
+const currentRound = ref({});
+const setResolvedData = (rateData) => {
+  for (let i in rateData) {
+    if (rateData[i] === null) {
+      rateData[i] = 0;
+    }
+    if (rateData[i] !== 0 && i.includes('_rate')) {
+      rateData[i] = rateData[i].toString().substring(0, rateData[i].length - 1);
+    }
+  }
+  seriousResolvedRate.value = rateData.serious_resolved_rate;
+  seriousResolvedPassed.value = rateData.serious_resolved_passed;
+  mainResolvedRate.value = rateData.main_resolved_rate;
+  mainResolvedPassed.value = rateData.main_resolved_passed;
+  seriousMainAllCnt.value = rateData.serious_main_all_cnt;
+  seriousMainResolvedCnt.value = rateData.serious_main_resolved_cnt;
+  seriousMainResolvedRate.value = rateData.serious_main_resolved_rate;
+  seriousMainResolvedPassed.value = rateData.serious_main_resolved_passed;
+  currentResolvedCnt.value = rateData.current_resolved_cnt;
+  currentAllCnt.value = rateData.current_all_cnt;
+  currentResolvedRate.value = rateData.current_resolved_rate;
+  currentResolvedPassed.value = rateData.current_resolved_passed;
+  leftIssuesCnt.value = rateData.left_issues_cnt;
+  leftIssuesPassed.value = rateData.left_issues_passed;
+  previousLeftResolvedRate.value = rateData.previous_left_resolved_rate;
+  previousLeftResolvedPassed.value = rateData.previous_left_resolved_passed;
+};
+
+// 点击每个Round
+function handleClick(item) {
+  currentRound.value = item;
+  if (item.id > currentId.value) {
     dynamicAnimateCss('inout-animated', 'animate__fadeInRight');
   } else {
     dynamicAnimateCss('inout-animated', 'animate__fadeInLeft');
   }
-  currentId.value = id;
-  getMilestoneRate(id)
+  currentId.value = item.id;
+  getRoundRelateMilestones(item.id);
+  getRoundIssueRate(item.id)
     .then((res) => {
       const rateData = res.data;
-      for (let i in rateData) {
-        if (rateData[i] === null) {
-          rateData[i] = 0;
-        }
-        if (rateData[i] !== 0 && i.includes('_rate')) {
-          rateData[i] = rateData[i].toString().substring(0, rateData[i].length - 1);
-        }
-      }
-      seriousResolvedRate.value = rateData.serious_resolved_rate;
-      seriousResolvedPassed.value = rateData.serious_resolved_passed;
-      mainResolvedRate.value = rateData.main_resolved_rate;
-      mainResolvedPassed.value = rateData.main_resolved_passed;
-      seriousMainAllCnt.value = rateData.serious_main_all_cnt;
-      seriousMainResolvedCnt.value = rateData.serious_main_resolved_cnt;
-      seriousMainResolvedRate.value = rateData.serious_main_resolved_rate;
-      seriousMainResolvedPassed.value = rateData.serious_main_resolved_passed;
-
-      currentResolvedCnt.value = rateData.current_resolved_cnt;
-      currentAllCnt.value = rateData.current_all_cnt;
-      currentResolvedRate.value = rateData.current_resolved_rate;
-      currentResolvedPassed.value = rateData.current_resolved_passed;
-
-      leftIssuesCnt.value = rateData.left_issues_cnt;
-      leftIssuesPassed.value = rateData.left_issues_passed;
-      previousLeftResolvedRate.value = rateData.previous_left_resolved_rate;
-      previousLeftResolvedPassed.value = rateData.previous_left_resolved_passed;
+      setResolvedData(rateData);
     })
     .catch(() => {});
-  getTestList(id);
-  getPackageListComparationSummary(dashboardId.value);
+  getTestList(item.id);
+  getPackageCardData(packageTabValueFirst.value);
 }
 
 const showEditProductVersionModal = ref(false);
@@ -454,57 +462,50 @@ const columns = [
     }
   }
 ];
+
+const hasQualityboard = ref(false);
+
+// 获取qualityboard数据
 function getDefaultCheckNode(id) {
   getProductMessage(id)
     .then((res) => {
       dashboardId.value = res.data[0].id;
-      const rateData = res.data[0].current_milestone_issue_solved_rate;
-      for (let i in rateData) {
-        if (rateData[i] === null) {
-          rateData[i] = 0;
+      hasQualityboard.value = true;
+      const rateData = res.data[0].current_round_issue_solved_rate;
+      setResolvedData(rateData);
+      currentId.value = res.data[0].current_round_id;
+      const newArr = Object.keys(res.data[0].rounds).map((item) => {
+        if (item === currentId.value) {
+          currentRound.value = res.data[0].rounds[item];
         }
-        if (rateData[i] !== 0 && i.includes('_rate')) {
-          rateData[i] = rateData[i].toString().substring(0, rateData[i].length - 1);
-        }
-      }
-      seriousResolvedRate.value = rateData.serious_resolved_rate;
-      seriousResolvedPassed.value = rateData.serious_resolved_passed;
-      mainResolvedRate.value = rateData.main_resolved_rate;
-      mainResolvedPassed.value = rateData.main_resolved_passed;
-      seriousMainAllCnt.value = rateData.serious_main_all_cnt;
-      seriousMainResolvedCnt.value = rateData.serious_main_resolved_cnt;
-      seriousMainResolvedRate.value = rateData.serious_main_resolved_rate;
-      seriousMainResolvedPassed.value = rateData.serious_main_resolved_passed;
-
-      currentResolvedCnt.value = rateData.current_resolved_cnt;
-      currentAllCnt.value = rateData.current_all_cnt;
-      currentResolvedRate.value = rateData.current_resolved_rate;
-      currentResolvedPassed.value = rateData.current_resolved_passed;
-
-      leftIssuesCnt.value = rateData.left_issues_cnt;
-      leftIssuesPassed.value = rateData.left_issues_passed;
-      previousLeftResolvedRate.value = rateData.previous_left_resolved_rate;
-      previousLeftResolvedPassed.value = rateData.previous_left_resolved_passed;
-
-      currentId.value = res.data[0].current_milestone_id;
-      const newArr = Object.keys(res.data[0].milestones).map((item) => ({
-        key: item,
-        text: res.data[0].milestones[item].name,
-        type: res.data[0].milestones[item].type
-      }));
+        return {
+          id: item,
+          name: res.data[0].rounds[item].name,
+          type: res.data[0].rounds[item].type,
+          product_id: res.data[0].rounds[item].product_id
+        };
+      });
       list.value = newArr;
       tableLoading.value = false;
       if (newArr.length > 0) {
         done.value = newArr.at(-1).type === 'release';
         getFeatureSummary(dashboardId.value);
-        getPackageListComparationSummary(dashboardId.value);
+        getPackageListComparationSummary(dashboardId.value, {
+          refresh: false,
+          repoPath: packageTabValueSecond.value,
+          arch: 'all'
+        });
+        getRoundRelateMilestones(currentRound.value.id);
       }
     })
     .catch(() => {
+      hasQualityboard.value = false;
       list.value = [];
       tableLoading.value = false;
     });
 }
+
+// 点击某产品版本
 function rowProps(row) {
   return {
     style: 'cursor:pointer',
@@ -512,23 +513,27 @@ function rowProps(row) {
       detail.value = row;
       drawerShow.value = true;
       list.value = [];
+      hasQualityboard.value = false;
       ProductId.value = row.id;
       getDefaultCheckNode(ProductId.value);
     }
   };
 }
 
+// 发布
 function haveDone() {
   tableLoading.value = true;
   milestoneNext(dashboardId.value, { released: true })
     .then((res) => {
       if (res.error_code === '2000') {
-        const newArr = Object.keys(res.data.milestones).map((item) => ({
-          key: item,
-          text: res.data.milestones[item].name
+        const newArr = Object.keys(res.data.rounds).map((item) => ({
+          id: item,
+          name: res.data.rounds[item].name,
+          type: res.data.rounds[item].type,
+          product_id: res.data.rounds[item].product_id
         }));
         list.value = newArr;
-        currentId.value = res.data.current_milestone_id;
+        currentId.value = res.data.current_round_id;
         done.value = true;
         window.$message.success('已正式发布');
       } else {
@@ -544,15 +549,16 @@ function haveDone() {
     });
 }
 
+// 点击转测图标
 function stepAdd() {
-  if (list.value.length === 0) {
+  if (hasQualityboard.value === false) {
     createProductMessage(ProductId.value)
       .then(() => {
-        window.$message?.info('第一轮迭代已转测');
+        window.$message?.info('已创建qualityboard');
         getDefaultCheckNode(ProductId.value);
       })
       .catch(() => {
-        window.$message?.info('第一轮迭代转测失败');
+        window.$message?.info('创建qualityboard失败');
       })
       .finally(() => {
         tableLoading.value = false;
@@ -562,15 +568,17 @@ function stepAdd() {
     milestoneNext(dashboardId.value, { released: false })
       .then((res) => {
         if (res.error_code === '2000') {
-          const newArr = Object.keys(res.data.milestones).map((item) => ({
-            key: item,
-            text: res.data.milestones[item].name
+          const newArr = Object.keys(res.data.rounds).map((item) => ({
+            id: item,
+            name: res.data.rounds[item].name,
+            type: res.data.rounds[item].type,
+            product_id: res.data.rounds[item].product_id
           }));
           list.value = newArr;
-          currentId.value = res.data.current_milestone_id;
-          window.$message.success('下一轮迭代已转测');
+          currentId.value = res.data.current_round_id;
+          window.$message.success('迭代已转测');
         } else {
-          window.$message.error('下一轮迭代转测失败');
+          window.$message.error('迭代转测失败');
         }
       })
       .finally(() => {
@@ -579,6 +587,7 @@ function stepAdd() {
   }
 }
 
+// 回退
 function handleRollback(recovery = false) {
   milestoneRollback(dashboardId.value)
     .then(() => {
@@ -594,12 +603,72 @@ function handleRollback(recovery = false) {
       window.$message?.error('回退失败');
     });
 }
+
+// 回退至最后一轮迭代
 function haveRecovery() {
   handleRollback(true);
 }
+
+const resolvedMilestone = ref({});
+const resolvedMilestoneOptions = ref([]);
+
+const getRoundRelateMilestones = (roundId) => {
+  resolvedMilestoneOptions.value = [
+    { label: currentRound.value.name, value: { name: '当前迭代', id: currentRound.value.id } }
+  ];
+  getMilestones({ round_id: roundId, paged: false }).then((res) => {
+    res.data.items.forEach((item) => {
+      resolvedMilestoneOptions.value.push({
+        label: item.name,
+        value: { name: item.name, id: item.id }
+      });
+    });
+  });
+};
+
+const selectResolvedMilestone = (value) => {
+  if (value.name === '当前迭代') {
+    getRoundIssueRate(value.id).then((res) => {
+      setResolvedData(res.data);
+    });
+  } else {
+    getMilestoneRate(value.id).then((res) => {
+      setResolvedData(res.data);
+    });
+  }
+};
+
+const packageTabValueFirst = ref('softwarescope');
+const packageTabValueSecond = ref('everything');
+
+// 点击软件包变更卡片
 function handlePackageCardClick() {
   showPackage.value = true;
+  packageTabValueFirst.value = 'softwarescope';
+  packageTabValueSecond.value = 'everything';
 }
+
+const getPackageCardData = (type) => {
+  if (type === 'softwarescope') {
+    getPackageListComparationSummary(dashboardId.value, {
+      refresh: false,
+      repoPath: packageTabValueSecond.value,
+      arch: 'all'
+    });
+  }
+};
+
+// 切换软件包变更tab第一层
+const changePackageTabFirst = (value) => {
+  packageTabValueFirst.value = value;
+  getPackageCardData(packageTabValueFirst.value);
+};
+
+// 切换软件包变更tab第二层
+const changePackageTabSecond = (value) => {
+  packageTabValueSecond.value = value;
+  getPackageCardData(packageTabValueFirst.value);
+};
 
 const searchInfo = ref('');
 const checkListTableLoading = ref(false);
@@ -1007,6 +1076,7 @@ const checklistBoardTableColumns = ref([
   }
 ]);
 
+// 点击round的checklist图标
 const handleChecklistBoard = () => {
   showChecklistBoard.value = true;
 };
@@ -1020,7 +1090,29 @@ const checklistBoardTablePageSizeChange = (pageSize) => {
   checklistBoardTablePagination.value.pageSize = pageSize;
 };
 
+const showRoundMilestoneBoard = ref(false);
+const handleMilestone = () => {
+  showRoundMilestoneBoard.value = true;
+};
+
+const updateRoundMilestoneBoard = (value) => {
+  if (!value) {
+    getRoundRelateMilestones(currentRound.value.id);
+  }
+};
+
 export {
+  packageTabValueFirst,
+  packageTabValueSecond,
+  changePackageTabFirst,
+  changePackageTabSecond,
+  selectResolvedMilestone,
+  updateRoundMilestoneBoard,
+  resolvedMilestone,
+  resolvedMilestoneOptions,
+  currentRound,
+  handleMilestone,
+  showRoundMilestoneBoard,
   checkListModalTitle,
   roundsOptions,
   existedCheckItemList,
@@ -1101,5 +1193,6 @@ export {
   getDefaultCheckNode,
   handlePackageCardClick,
   handleRollback,
-  cancelEditProductVersionModal
+  cancelEditProductVersionModal,
+  hasQualityboard
 };

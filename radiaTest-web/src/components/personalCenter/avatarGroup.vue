@@ -17,9 +17,7 @@
 </template>
 
 <script setup>
-import { defineProps } from 'vue';
-
-const props = defineProps(['options,size,max']);
+const props = defineProps(['options', 'size', 'max']);
 
 const createDropdownOptions = (options) =>
   options.map((option) => ({

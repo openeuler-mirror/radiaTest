@@ -8,8 +8,8 @@ function getRequest(url, data) {
         resolve(res);
       })
       .catch((err) => {
-        window.$notification?.error({ 
-          content: err.data.error_msg || unkonwnErrorMsg 
+        window.$notification?.error({
+          content: err.data.error_msg || unkonwnErrorMsg
         });
         reject(err);
       });
@@ -207,13 +207,13 @@ export function getFeatureList(id, params) {
   return getRequest(`/v1/qualityboard/${id}/feature-list`, params);
 }
 
-export function getPackageListComparationSummary(qualityboardId, milestoneId, params) {
-  return getRequestWithoutCatch(`/v1/qualityboard/${qualityboardId}/milestone/${milestoneId}/pkg-list`, params);
+export function getPackageListComparationSummaryAxios(qualityboardId, roundId, params) {
+  return getRequestWithoutCatch(`/v1/qualityboard/${qualityboardId}/round/${roundId}/pkg-list`, params);
 }
 
-export function getPackageListComparationDetail(qualityboardId, milestonePreId, milestoneCurId, params) {
+export function getPackageListComparationDetail(qualityboardId, roundPreId, roundCurId, params) {
   return getRequestWithoutCatch(
-    `/v1/qualityboard/${qualityboardId}/milestone/${milestonePreId}/with/${milestoneCurId}/pkg-compare`,
+    `/v1/qualityboard/${qualityboardId}/round/${roundPreId}/with/${roundCurId}/pkg-compare`,
     params
   );
 }
@@ -268,4 +268,16 @@ export function getAttachmentList(id, params) {
 
 export function getRequireAttributors(id, params) {
   return getRequest(`/v1/requirement/${id}/attributor`, params);
+}
+
+export function getMilestones(data) {
+  return getRequest('/v2/milestone', data);
+}
+
+export function getRoundIssueRate(roundId) {
+  return getRequest(`/v1/round/${roundId}/issue-rate`);
+}
+
+export function getHomonymousIsomerismPkgcompare(qualityboardId, roundId, params) {
+  return getRequestWithoutCatch(`/v1/qualityboard/${qualityboardId}/round/${roundId}/pkg-compare`, params);
 }
