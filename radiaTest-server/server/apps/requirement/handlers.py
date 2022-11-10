@@ -807,6 +807,10 @@ class RequirementPackageHandler:
         if self.requirement.publisher[0].type == "person":
             raise RuntimeError("the publisher type should not be person")
 
+    def _handle_person_acceptor(self):
+        if self.requirement.acceptor[0].type == "person":
+            raise RuntimeError("the acceptor type should not be person")
+
     def _get_user(self, user_id):
         user = User.query.filter_by(gitee_id=user_id).first()
         if not user:
@@ -869,7 +873,7 @@ class RequirementPackageHandler:
     
     def create_relative_task(self, body: dict):
         self._handle_wrong_status(REQ_STATUS.ACCEPTED)
-        self._handle_person_publisher()
+        self._handle_person_acceptor()
 
         if self.package.task_id:
             return jsonify(
