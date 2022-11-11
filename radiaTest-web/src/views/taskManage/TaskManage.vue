@@ -1,39 +1,53 @@
 <template>
   <n-card
-    title="任务管理"
     size="huge"
     :segmented="{
       content: 'hard'
     }"
     header-style="
-            font-size: 30px;
-            height: 80px;
-            font-family: 'v-sans';
-            padding-top: 40px;
-            background-color: rgb(242,242,242);
-        "
-    style="height: 100%"
+      font-size: 30px;
+      height: 80px;
+      font-family: 'v-sans';
+      padding-top: 40px;
+      background-color: rgb(242,242,242);
+    "
+    content-style="
+      padding: 0;
+    "
   >
     <template #header>
-      <n-grid :cols="3">
-        <n-gi class="nav-header">任务管理</n-gi>
-        <n-gi class="nav-body">
+      <div class="nav-header">
+        <div class="nav-body">
           <ul class="nav-wrapper">
             <li v-for="(item, index) in menu" :key="index" @click="menuClick(item, index)">
-              <a :class="{ active: menuSelect == index }">{{ item.text }}</a>
+              <a :class="{ active: menuSelect === index }">{{ item.text }}</a>
             </li>
           </ul>
-        </n-gi>
-        <n-gi class="nav-footer">
+        </div>
+        <div class="nav-footer">
           <div v-show="isTask" class="footer-wrapper">
-            <a class="footer-item" v-show="kanban" @click="toggleView">
+            <a class="footer-item" v-show="kanban&&isTask&&!backable" @click="toggleView">
               <n-icon size="16"> <LayoutKanban /> </n-icon>表格视图
             </a>
-            <a class="footer-item" v-show="!kanban" @click="toggleView">
+            <a class="footer-item" v-show="!kanban&&isTask&&!backable" @click="toggleView">
               <n-icon size="16"> <Table /> </n-icon>看板视图
             </a>
-            <filterButton class="footer-item" :filterRule="filterRule" @filterchange="filterchange"></filterButton>
-            <a class="footer-item" @click="showRecycleBin">
+            <a class="footer-item" v-show="isTask&&backable" @click="menuClick({name: 'task'}, 0)">
+              <n-icon size="16"> <Table /> </n-icon>返回看板
+            </a>
+            <a class="footer-item" v-show="isTask&&!backable" @click="menuClick({name: 'distribution'}, 0)">
+              <n-icon size="16"> <TextAlignDistributed20Filled /> </n-icon>分配模板管理
+            </a>
+            <a class="footer-item" v-show="isTask&&!backable" @click="menuClick({name: 'report'}, 0)">
+              <n-icon size="16"> <BarChart /> </n-icon>可视化
+            </a>
+            <filterButton 
+              v-show="isTask&&!backable" 
+              class="footer-item" 
+              :filterRule="filterRule" 
+              @filterchange="filterchange"
+            ></filterButton>
+            <a class="footer-item" v-show="isTask&&!backable" @click="showRecycleBin">
               <n-icon size="16"> <Delete48Regular /> </n-icon>回收站
             </a>
             <a class="footer-item">
@@ -64,8 +78,8 @@
               </n-popover>
             </a>
           </div>
-        </n-gi>
-      </n-grid>
+        </div>
+      </div>
     </template>
     <template #default>
       <div class="recycleWrap">
@@ -104,9 +118,9 @@
 </template>
 
 <script>
-import { defineComponent, onMounted, watch } from 'vue';
 import { LayoutKanban, Table } from '@vicons/tabler';
-import { QuestionCircle20Regular, Delete48Regular } from '@vicons/fluent';
+import { BarChart } from '@vicons/ionicons5';
+import { QuestionCircle20Regular, Delete48Regular, TextAlignDistributed20Filled } from '@vicons/fluent';
 import { modules } from './modules/index';
 import { useRoute } from 'vue-router';
 import config from '@/assets/config/settings';
@@ -118,46 +132,26 @@ export default defineComponent({
     Table,
     QuestionCircle20Regular,
     Delete48Regular,
-    filterButton
+    filterButton,
+    TextAlignDistributed20Filled,
+    BarChart,
   },
   setup() {
     const route = useRoute();
     watch(
       () => route.path,
-      () => {
-        if (route.path === '/home/tm/task') {
-          modules.menuSelect.value = 0;
-          modules.isTask.value = true;
-        } else if (route.path === '/home/tm/report') {
-          modules.menuSelect.value = 1;
-          modules.isTask.value = false;
-        } else if (route.path === '/home/tm/distribution') {
-          modules.menuSelect.value = 2;
-          modules.isTask.value = false;
-        }
-      }
+      modules.watchRoute,
     );
     onMounted(() => {
+      modules.watchRoute();
       modules.initCondition();
     });
 
     return {
       config,
-      ...modules
+      ...modules,
     };
   },
-  beforeRouteEnter(to) {
-    if (to.path === '/home/tm/task') {
-      modules.menuSelect.value = 0;
-      modules.isTask.value = true;
-    } else if (to.path === '/home/tm/report') {
-      modules.menuSelect.value = 1;
-      modules.isTask.value = false;
-    } else if (to.path === '/home/tm/distribution') {
-      modules.menuSelect.value = 2;
-      modules.isTask.value = false;
-    }
-  }
 });
 </script>
 
@@ -165,6 +159,7 @@ export default defineComponent({
 .nav-header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
 }
 
 .nav-body {

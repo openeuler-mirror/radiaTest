@@ -515,13 +515,6 @@ function debounce(func, delay) {
 // 滚轮下滚
 const handleWheelDown = debounce(initData, 1000);
 
-// 滚轮上滚
-const handleWheelUp = (e) => {
-  if (e.deltaY < 0 && workbench.value.scrollTop === 0) {
-    showWorkbench.value = false;
-  }
-};
-
 export {
   tasksloading,
   handleTasksPageChange,
@@ -537,7 +530,6 @@ export {
   layout,
   personalDataOverview,
   handleWheelDown,
-  handleWheelUp,
   personalRefresh,
   personalRefreshClick,
   machineRefresh,

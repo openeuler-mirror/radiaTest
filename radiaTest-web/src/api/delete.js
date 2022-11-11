@@ -51,3 +51,11 @@ export function deleteMilestoneAjax(id) {
 export function deleteProductVersion(productId) {
   return deleteRequest(`/v1/product/${productId}`);
 }
+
+export function deleteRequireAttachment(id, data) {
+  return deleteRequest(`/v1/requirement/${id}/attachment`, data);
+}
+
+export function deleteRequireProgress(requireId, progressId) {
+  return deleteRequest(`/v1/requirement/${requireId}/progress/${progressId}`);
+}

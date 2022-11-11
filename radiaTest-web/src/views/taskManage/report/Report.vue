@@ -223,6 +223,7 @@ export default {
   height: 100%;
   display: flex;
   flex-direction: column;
+  padding: 20px;
 }
 .container .title .screen-list {
   margin: 10px 0;

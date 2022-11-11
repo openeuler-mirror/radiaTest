@@ -1,7 +1,6 @@
 <template>
   <n-card
     :bordered="false"
-    title="测试中心"
     size="huge"
     content-style="padding:5px 50px"
     :segmented="{
@@ -16,23 +15,12 @@
             background-color: rgb(242,242,242);
         "
   >
-    <template #header>
-      <n-grid :cols="3">
-        <n-gi class="nav-header">测试中心</n-gi>
-        <n-gi class="nav-body">
-          <ul class="nav-wrapper">
-            <li
-              v-for="(item, index) in menu"
-              :key="index"
-              @click="menuClick(item, index)"
-            >
-              <a :class="{ active: isTabActive(item.name) }">{{ item.text }}</a>
-            </li>
-          </ul>
-        </n-gi>
-      </n-grid>
-    </template>
     <template #default>
+      <n-tabs type="card" size="large" tab-style="width: 200px">
+        <n-tab name="automatic">自动化测试</n-tab>
+        <n-tab name="manual" :disabled="true">手工测试</n-tab>
+        <n-tab name="gui" :disabled="true">GUI测试</n-tab>
+      </n-tabs>
       <router-view></router-view>
     </template>
     <template #action>

@@ -130,6 +130,9 @@ export function getMilestoneTask(milestoneId, data) {
 export function getMilestone(productId, data) {
   return getRequest(`/v1/milestone/preciseget?product_id=${productId}`, data);
 }
+export function getAllMilestone(data) {
+  return getRequest('v2/milestone', data);
+}
 export function getProductMessage(productId, data) {
   return getRequest(`/v1/qualityboard?product_id=${productId}`, data);
 }
@@ -225,4 +228,44 @@ export function getCheckListTableDataAxios(data) {
 
 export function getMilestonesByName(data) {
   return getRequest('/v2/gitee-milestone', data);
+}
+
+export function getUserAssetRank(params) {
+  return getRequest('/v1/user/rank', params);
+}
+
+export function getGroupAssetRank(params) {
+  return getRequest('/v1/group/rank', params);
+}
+
+export function getUserInfo(userId, params) {
+  return getRequest(`/v1/users/${userId}`, params);
+}
+
+export function getRequireList(params) {
+  return getRequest('/v1/requirement', params);
+}
+
+export function getRequireItem(id, params) {
+  return getRequest(`/v1/requirement/${id}`, params);
+}
+
+export function getRequireProgress(id, params) {
+  return getRequest(`/v1/requirement/${id}/progress`, params);
+}
+
+export function getRequirePackage(id, params) {
+  return getRequest(`/v1/requirement/${id}/package`, params);
+}
+
+export function downloadAttachment(id, params) {
+  return getRequest(`/v1/requirement/${id}/attachment/download`, params);
+}
+
+export function getAttachmentList(id, params) {
+  return getRequest(`/v1/requirement/${id}/attachment`, params);
+}
+
+export function getRequireAttributors(id, params) {
+  return getRequest(`/v1/requirement/${id}/attributor`, params);
 }

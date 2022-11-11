@@ -41,7 +41,10 @@ export default {
     timestamp: String,
     process: String,
     content: String,
-    tag: String,
+    tag: {
+      type: String,
+      default: '',
+    },
     tagType:String,
     nodeHeght:String,
     nodeWidth:String
