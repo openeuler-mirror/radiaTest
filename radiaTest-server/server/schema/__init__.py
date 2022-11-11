@@ -2,7 +2,7 @@ from typing_extensions import Literal
 
 
 #操作符
-Operation = Literal["<", ">", "=", "<=", ">="]
+Operator = Literal["<", ">", "=", "<=", ">="]
 
 # 排序
 SortOrder = Literal["ascend", "descend"]
@@ -102,3 +102,13 @@ ActionType = Literal["post", "get", "delete", "put"]
 ## 效果类型
 EffectType = Literal["allow", "deny"]
 
+
+# 需求附件类型
+AttachmentType = Literal["statement", "progress", "validation"]
+
+# 需求发布/接受类型
+RequirementAcceptType = Literal["person", "group"]
+RequirementPublishType = Literal["person", "group", "organization"]
+
+# 日志类型
+LoggingType = Literal["info", "warning", "success", "error"]

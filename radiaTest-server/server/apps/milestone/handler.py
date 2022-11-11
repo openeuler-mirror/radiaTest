@@ -523,9 +523,10 @@ class IssueStatisticsHandlerV8:
                 error_msg="this organization has no right",
             )
         issue_types = redis_client.hget(
-            RedisKey.issue_types(org.enterprise_id), "data")
-        issue_types = issue_types[1:-
-                                  1].replace("\'", "\"").replace("}, {", "}#{").split("#")
+            RedisKey.issue_types(org.enterprise_id), 
+            "data"
+        )
+        issue_types = issue_types[1:-1].replace("\'", "\"").replace("}, {", "}#{").split("#")
         _data = list()
         for _type in issue_types:
             _data.append(json.loads(_type))

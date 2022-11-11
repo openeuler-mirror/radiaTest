@@ -8,7 +8,7 @@ from .routes import Group
 from .routes import UserTask
 from .routes import UserMachine
 from .routes import UserCaseCommit
-# from .routes import Token
+from .routes import UserAssetRank
 
 
 def init_api(api: Api):
@@ -22,4 +22,4 @@ def init_api(api: Api):
     api.add_resource(UserTask, '/api/v1/user/task/info', endpoint='user_task')
     api.add_resource(UserMachine, '/api/v1/user/machine/info', endpoint='user_machine')
     api.add_resource(UserCaseCommit, '/api/v1/user/case/commit', endpoint='user_case_commit')
-    # api.add_resource(Token, '/api/v1/auth/token', endpoint='token')
+    api.add_resource(UserAssetRank, '/api/v1/user/rank')

@@ -27,11 +27,18 @@ from server.apps.group.handlers import (
     handler_group_user_page,
     handler_add_user,
     handler_update_user,
-    handler_apply_join_group
+    handler_apply_join_group,
+    handler_get_group_asset_rank
 )
 from server.schema.group import AddGroupUserSchema, UpdateGroupUserSchema, QueryGroupUserSchema
 from server.utils.auth_util import auth
 from server.utils.response_util import response_collect
+from server.schema.base import PageBaseSchema
+from server.schema.group import (
+    AddGroupUserSchema, 
+    UpdateGroupUserSchema, 
+    QueryGroupUserSchema,
+)
 
 
 class Group(Resource):
@@ -126,3 +133,11 @@ class UserApplyGroup(Resource):
         :return:
         """
         return handler_apply_join_group(group_id)
+
+
+class GroupAssetRank(Resource):
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def get(self, query: PageBaseSchema):
+        return handler_get_group_asset_rank(query)
