@@ -4,7 +4,7 @@ from typing import List, Optional, Literal
 
 from pydantic import BaseModel, HttpUrl, validator, root_validator
 
-from server.schema import Operation, SortOrder
+from server.schema import Operator, SortOrder
 
 
 from server.schema.base import PageBaseSchema
@@ -102,7 +102,7 @@ class AddChecklistSchema(BaseModel):
 class UpdateChecklistSchema(CheckRound, CheckBaseline):
     checkitem_id: int = None
     released: bool = None
-    operation: Optional[Operation] = None
+    operation: Optional[Operator] = None
 
 
 class DeselectChecklistSchema(CheckRound):
