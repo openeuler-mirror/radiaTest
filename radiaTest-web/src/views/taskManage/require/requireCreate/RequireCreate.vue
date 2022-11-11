@@ -125,7 +125,6 @@
 </template>
 
 <script setup>
-import { defineExpose, defineEmits } from 'vue'; 
 import { useMessage } from 'naive-ui';
 import { getGroup, getAllMilestone } from '@/api/get';
 import { orgPublishRequire, publishRequire } from '@/api/post';

@@ -252,7 +252,6 @@
 </template>
 
 <script setup>
-import { defineProps } from 'vue';
 import { NTooltip, NAvatar, NIcon, NButton, useMessage } from 'naive-ui';
 import { CheckCircle, Edit } from '@vicons/fa';
 import { Delete24Regular as Delete } from '@vicons/fluent';

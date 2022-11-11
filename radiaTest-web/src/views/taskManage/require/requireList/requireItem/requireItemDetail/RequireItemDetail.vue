@@ -27,7 +27,6 @@
 </template>
 
 <script setup>
-import { defineProps, defineEmits } from 'vue';
 import DetailContent from './detailContent/DetailContent';
 import RequireProgress from './requireProgress/RequireProgress';
 import ValidateProgress from './validateProgress/ValidateProgress';

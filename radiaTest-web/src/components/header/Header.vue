@@ -1,8 +1,8 @@
 <template>
   <div class="wrapBox">
     <n-space align="center" class="logo">
-      <div class="title" @click="router.push('/home')">
-        <img src="/rediation.svg" style="height:50px" />
+      <div class="title" @click="clickLogo">
+        <img src="/rediation.svg" style="height: 50px" />
         <span id="radiaTest">
           <n-gradient-text type="primary">radiaTest</n-gradient-text>
         </span>
@@ -12,12 +12,7 @@
       <header-menu v-if="showMenu" />
     </div>
     <div class="menu">
-      <n-button
-        style="top: 20%; height: 50%"
-        @click="handleMenuClick"
-        @blur="handleMenuBlur"
-        v-if="showMenu"
-      >
+      <n-button style="top: 20%; height: 50%" @click="handleMenuClick" @blur="handleMenuBlur" v-if="showMenu">
         <n-icon size="35">
           <menu-sharp />
         </n-icon>
@@ -31,18 +26,17 @@
 
 <script>
 import { defineComponent, inject } from 'vue';
-
 import ProfileMenu from './profileMenu/ProfileMenu.vue';
 import { useRouter } from 'vue-router';
 import { MenuSharp } from '@vicons/ionicons5';
-
 import HeaderMenu from './Menu.vue';
+import { showWorkbench } from '@/views/dashboard/modules/dashboard.js';
 
 export default defineComponent({
   components: {
     HeaderMenu,
     ProfileMenu,
-    MenuSharp,
+    MenuSharp
   },
   setup(props, context) {
     const router = useRouter();
@@ -57,19 +51,23 @@ export default defineComponent({
       handleMenuBlur() {
         context.emit('menuBlur');
       },
+      clickLogo() {
+        showWorkbench.value = false;
+        router.push('/home');
+      }
     };
-  },
+  }
 });
 </script>
 
-<style scoped lang='less'>
-.wrapBox{
-  display:flex;
-  justify-content:space-between;
+<style scoped lang="less">
+.wrapBox {
+  display: flex;
+  justify-content: space-between;
   align-items: center;
   width: 100%;
 
-  .logo{
+  .logo {
     margin-left: 30px;
   }
 }
@@ -103,7 +101,7 @@ export default defineComponent({
   display: none;
 }
 
-.myProfile{
+.myProfile {
   min-width: 375px;
 }
 </style>

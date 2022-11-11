@@ -76,7 +76,6 @@
 </template>
 
 <script setup>
-import { defineProps } from 'vue';
 import { NIcon } from 'naive-ui';
 import { CheckCircle } from '@vicons/fa';
 import { IosLock, IosUnlock } from '@vicons/ionicons4';

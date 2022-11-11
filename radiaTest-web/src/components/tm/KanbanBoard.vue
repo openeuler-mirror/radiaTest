@@ -245,7 +245,7 @@ export default {
 .board {
   position: relative;
   // height: 100%;
-  height: 890px;
+  height: 680px;
   width: 295px;
   display: flex;
   flex-direction: column;
