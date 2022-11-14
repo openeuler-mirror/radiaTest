@@ -53,7 +53,11 @@ def verify_token(token):
             data = redis_client.hgetall(RedisKey.token(token))
             redis_client.delete(RedisKey.token(data.get('gitee_id')))
             redis_client.expire(RedisKey.token(token), 30)
-            new_token = generate_token(data.get('gitee_id'), data.get('gitee_login'))
+            new_token = generate_token(
+                data.get('gitee_id'), 
+                data.get('gitee_login'),
+                int(current_app.config.get("TOKEN_EXPIRES_TIME"))
+            )
             token = new_token
         else:
             return False
