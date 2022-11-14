@@ -157,7 +157,10 @@ def handler_login_callback(query):
             current_app.config.get("GITEE_OAUTH_REDIRECT_URI"),
             org.oauth_client_secret
         )
+        current_app.logger.info(f"oauth_flag===={oauth_flag}")
+        current_app.logger.info(gitee_token)
 
+        
     if not oauth_flag:
         return jsonify(
             error_code=RET.OTHER_REQ_ERR,
@@ -165,7 +168,7 @@ def handler_login_callback(query):
         )
 
     result = handler_login(gitee_token, org.id)
-
+    current_app.logger.info(f"result===={result}")
     if not isinstance(result, tuple) or not isinstance(result[0], bool):
         return result
     if result[0]:
