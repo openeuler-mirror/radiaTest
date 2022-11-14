@@ -120,8 +120,6 @@ def handler_gitee_callback():
     resp = send_majun(code)
     _resp = json.loads(resp.response[0])
     current_app.logger.info(_resp)
-    if _resp.get("error_code") != RET.OK:
-        return _resp
     
     return redirect(
         '{}?code={}'.format(
