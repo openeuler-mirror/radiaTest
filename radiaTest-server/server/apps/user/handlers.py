@@ -840,7 +840,7 @@ def handler_get_user_asset_rank(query):
         ReUserOrganization
     ).filter(
         ReUserOrganization.rank != sqlalchemy.null(),
-        ReUserOrganization.is_delete is False,
+        ReUserOrganization.is_delete == False,
         ReUserOrganization.organization_id == redis_client.hget(
             RedisKey.user(g.gitee_id), 
             "current_org_id"
