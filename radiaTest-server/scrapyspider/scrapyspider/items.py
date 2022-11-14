@@ -53,3 +53,5 @@ class OpeneulerPkgsListItem(scrapy.Item):
     rpm_file_name = scrapy.Field()
     build = scrapy.Field()
     product = scrapy.Field()
+    repo_path = scrapy.Field()
+    arch = scrapy.Field()

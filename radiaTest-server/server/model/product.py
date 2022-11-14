@@ -1,4 +1,3 @@
-from platform import release
 from sqlalchemy.dialects.mysql import TINYTEXT
 
 from server import db
@@ -16,6 +15,8 @@ class Product(BaseModel, PermissionBaseModel, db.Model):
         db.Enum("LTS", "LTS-SPx", "INNOVATION"),
         nullable=False
     )
+    start_time = db.Column(db.DateTime(), nullable=True)
+    end_time = db.Column(db.DateTime(), nullable=True)
     is_released = db.Column(db.Boolean(), nullable=False, default=False)
     released_time = db.Column(db.DateTime(), nullable=True)
     is_forced_check = db.Column(db.Boolean(), nullable=False, default=True)
@@ -45,6 +46,9 @@ class Product(BaseModel, PermissionBaseModel, db.Model):
     dailybuilds = db.relationship(
         "DailyBuild", backref="product", cascade="all, delete, delete-orphan"
     )
+    round = db.relationship(
+        "Round", backref="product", cascade="all, delete, delete-orphan"
+    )
 
     creator_id = db.Column(db.Integer(), db.ForeignKey("user.gitee_id"))
     group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
@@ -57,7 +61,9 @@ class Product(BaseModel, PermissionBaseModel, db.Model):
             "version": self.version,
             "description": self.description,
             "is_released": self.is_released,
-            "released_time": self.released_time,
+            "start_time": self.convert_time_format(self.start_time),
+            "end_time": self.convert_time_format(self.end_time),
+            "released_time": self.convert_time_format(self.released_time),
             "version_type": self.version_type,
             "is_forced_check": self.is_forced_check,
             "serious_main_resolved_cnt": self.serious_main_resolved_cnt,
