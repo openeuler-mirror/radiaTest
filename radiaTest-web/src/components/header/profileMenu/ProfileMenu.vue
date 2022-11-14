@@ -1,7 +1,7 @@
 <template>
   <n-grid :cols="16">
     <n-gi :span="2"> </n-gi>
-    <n-gi :span="7" style="display: flex; align-items: center">
+    <n-gi :span="7" v-if="!thirdParty" style="display: flex; align-items: center">
       <n-gradient-text type="primary">{{ currentOrg }}</n-gradient-text>
       <n-divider vertical />
       <n-gradient-text type="info">{{ accountName }}</n-gradient-text>

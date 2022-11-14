@@ -2,7 +2,6 @@ import axios from 'axios';
 // import router from './router/index';
 import { storage } from './assets/utils/storageUtils';
 import router from './router';
-import { hanleLogin } from '@/views/login/modules/login';
 //url接口头定义
 const server = axios.create({
   baseURL: '/api',
@@ -85,7 +84,6 @@ server.interceptors.response.use(
         router.push({
           name: 'home',
         });
-        hanleLogin(storage.getValue('loginOrgId'));
       } else {
         router.push({
           name: 'login',
