@@ -80,6 +80,34 @@ def handler_gitee_login(query):
         )
 
 
+def send_majun(code):
+    _resp = dict()
+    
+    majun_api = current_app.config.get("MAJUN_API")
+    access_token = current_app.config.get("ACESS_TOKEN")
+
+    _r = do_request(
+        method="get",
+        url="https://{}code/?code={}".format(
+            majun_api,
+            code,
+        ),
+        headers={
+            "content-type": "application/json;charset=utf-8",
+            "authorization": request.headers.get("authorization"),
+            "access_token": access_token,
+        },
+        obj=_resp,
+        verify=True,
+    )
+    if _r != 0:
+        return jsonify(
+            error_code=RET.RUNTIME_ERROR,
+            error_msg="could not reach majun system."
+        )
+    return jsonify(_resp)
+
+
 def handler_gitee_callback():
     # 校验参数
     code = request.args.get('code')
@@ -89,6 +117,12 @@ def handler_gitee_callback():
             error_msg="user code should not be null"
         )
 
+    resp = send_majun(code)
+    _resp = json.loads(resp.response[0])
+    current_app.logger.info(_resp)
+    if _resp.get("error_code") != RET.OK:
+        return _resp
+    
     return redirect(
         '{}?code={}'.format(
             current_app.config["GITEE_OAUTH_HOME_URL"],
@@ -205,7 +239,11 @@ def handler_login(gitee_token, org_id):
             gitee_token.get("refresh_token")
         )
         # 生成token值
-        token = generate_token(user.gitee_id, user.gitee_login)
+        token = generate_token(
+            user.gitee_id, 
+            user.gitee_login,
+            int(current_app.config.get("TOKEN_EXPIRES_TIME"))
+        )
 
         if org_id is not None and isinstance(org_id, int):
             re = ReUserOrganization.query.filter_by(
@@ -332,7 +370,11 @@ def handler_register(gitee_id, body):
     )
 
     # 生成token值
-    token = generate_token(user.gitee_id, user.gitee_login)
+    token = generate_token(
+        user.gitee_id, 
+        user.gitee_login,
+        int(current_app.config.get("TOKEN_EXPIRES_TIME"))
+    )
     return_data = {
         'token': token,
     }
@@ -799,7 +841,7 @@ def handler_get_user_asset_rank(query):
         ReUserOrganization
     ).filter(
         ReUserOrganization.rank != sqlalchemy.null(),
-        ReUserOrganization.is_delete == False,
+        ReUserOrganization.is_delete is False,
         ReUserOrganization.organization_id == redis_client.hget(
             RedisKey.user(g.gitee_id), 
             "current_org_id"
