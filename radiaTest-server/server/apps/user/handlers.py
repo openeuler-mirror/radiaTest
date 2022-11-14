@@ -31,6 +31,7 @@ from server.schema.task import TaskInfoSchema
 from server.schema.vmachine import VmachineBriefSchema
 from server.schema.pmachine import PmachineBriefSchema
 from server.utils.page_util import PageUtil
+from server.utils.requests_util import do_request
 
 
 def handler_gitee_login(query):
