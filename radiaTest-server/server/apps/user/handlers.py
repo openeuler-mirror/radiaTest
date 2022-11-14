@@ -85,7 +85,7 @@ def send_majun(code):
     _resp = dict()
     
     majun_api = current_app.config.get("MAJUN_API")
-    access_token = current_app.config.get("ACESS_TOKEN")
+    access_token = current_app.config.get("ACCESS_TOKEN")
     current_app.logger.info(majun_api)
     current_app.logger.info(access_token)
     _r = do_request(
