@@ -315,7 +315,7 @@ class AnalysisTaskInfo(object):
                 or task.type == "GROUP"
         ) and task.group_id:
             group = Group.query.get(task.group_id)
-            return GroupInfoSchema(**group.__dict__).dict() if group else {}
+            return GroupInfoSchema(**group.to_dict()).dict() if group else {}
         else:
             return self.get_executor()
 
