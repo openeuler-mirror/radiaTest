@@ -298,7 +298,7 @@
                                       : 'PERSON'
                                   "
                                   :groupId="modalData.detail.group_id"
-                                  @getPerson="getExecutors($event, modalData.detail.type)"
+                                  @getPerson="getExecutors"
                                   :disabled="!editStatus"
                                   :defaultValue="modalData.detail.executor.gitee_name"
                                 ></taskMemberMenu>
@@ -578,7 +578,7 @@
                     >
                   </div>
                 </template>
-                <div style="height: 300px" v-if="showFooterContent == 'comment'">
+                <div style="height: 300px" v-if="showFooterContent == 'comment'" class="log-wrap">
                   <n-scrollbar style="height: 100%">
                     <div v-for="(v, i) in modalData.comments" :key="i">
                       <div class="log-comment">

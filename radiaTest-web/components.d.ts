@@ -95,6 +95,7 @@ declare module '@vue/runtime-core' {
     ResourceCharts: typeof import('./src/components/pmachineComponents/expandedContent/ResourceCharts.vue')['default']
     RoleForm: typeof import('./src/components/form/roleForm.vue')['default']
     RotateIcon: typeof import('./src/components/public/RotateIcon.vue')['default']
+    RoundRelateMilestones: typeof import('./src/components/productComponents/RoundRelateMilestones.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     RpmCheck: typeof import('./src/components/productDrawer/rpmCheck.vue')['default']

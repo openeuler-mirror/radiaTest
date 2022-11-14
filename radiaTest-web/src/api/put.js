@@ -115,3 +115,7 @@ export function rejectRequire(requireId, data) {
 export function validateRequire(requireId, data) {
   return putRequest(`/v1/requirement/${requireId}/validate`, data);
 }
+
+export function roundRelateMilestonesAxios(roundId, data) {
+  return putRequest(`/v1/round/${roundId}/bind-milestone`, data);
+}
