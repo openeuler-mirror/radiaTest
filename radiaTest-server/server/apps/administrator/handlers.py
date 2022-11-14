@@ -15,7 +15,7 @@
 
 #####################################
 
-from flask import request, g, jsonify
+from flask import request, g, jsonify, current_app
 from server import redis_client
 from server.utils.response_util import RET
 from server.utils.redis_util import RedisKey
