@@ -86,7 +86,8 @@ def send_majun(code):
     
     majun_api = current_app.config.get("MAJUN_API")
     access_token = current_app.config.get("ACESS_TOKEN")
-
+    current_app.logger.info(majun_api)
+    current_app.logger.info(access_token)
     _r = do_request(
         method="get",
         url="https://{}code/?code={}".format(
@@ -101,6 +102,8 @@ def send_majun(code):
         obj=_resp,
         verify=True,
     )
+    current_app.logger.info(_r)
+    current_app.logger.info(_resp)
     if _r != 0:
         return jsonify(
             error_code=RET.RUNTIME_ERROR,
@@ -117,7 +120,7 @@ def handler_gitee_callback():
             error_code=RET.PARMA_ERR,
             error_msg="user code should not be null"
         )
-
+    current_app.logger.info(code)
     resp = send_majun(code)
     _resp = json.loads(resp.response[0])
     current_app.logger.info(_resp)
