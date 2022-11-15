@@ -21,7 +21,7 @@ from server.utils.db import Insert, Edit, collect_sql_error
 from server.model.testcase import Suite, Case
 from server.model.framework import GitRepo
 from server.schema.testcase import SuiteBase, SuiteUpdate, CaseUpdateSchemaWithSuiteId, CaseBaseSchemaWithSuiteId
-from server.model.qualityboard import RpmCompare, SameRpmCompare
+from server.model.qualityboard import SameRpmCompare# , RpmCompare
 
 
 logger = get_task_logger('manage')
@@ -86,6 +86,8 @@ def update_suite(suite_data, cases_data):
 
 @celery.task
 def update_compare_result(round_group_id: int, results, repo_path):
+    pass
+    '''
     for result in results:
         if not round_group_id:
             raise ValueError("lack of param round_group_id")
@@ -115,6 +117,7 @@ def update_compare_result(round_group_id: int, results, repo_path):
                     "compare_result": result.get("compare_result"),
                 }
             ).single()
+    '''
 
 @celery.task
 def update_samerpm_compare_result(round_id: int, results, repo_path):
