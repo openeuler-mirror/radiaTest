@@ -83,5 +83,3 @@ class Product(BaseModel, PermissionBaseModel, db.Model):
             "group_id": self.group_id,
             "org_id": self.org_id
         }
-
-
