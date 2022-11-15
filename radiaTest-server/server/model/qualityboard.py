@@ -301,7 +301,7 @@ class FeatureList(db.Model, BaseModel):
             "is_new": self.is_new,
         }
 
-'''
+
 class RpmCompare(db.Model, BaseModel):
     __tablename__ = "rpm_compare"
 
@@ -325,7 +325,6 @@ class RpmCompare(db.Model, BaseModel):
             "repo_path": self.repo_path,
             "arch": self.arch,
         }
-'''
 
 
 class SameRpmCompare(db.Model, BaseModel):
