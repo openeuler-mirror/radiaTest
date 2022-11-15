@@ -123,6 +123,17 @@ function renderIcon(row, target) {
 
 const columns = createDefaultColumns(renderIcon);
 
+function renderPublisherType (_type) {
+  if (_type === 'person') {
+    return '个人';
+  } else if (_type === 'group') {
+    return '团队';
+  } else if (_type === 'organization') {
+    return '组织';
+  }
+  return '未知类型';
+}
+
 const list = ref([
   {
     title: '基础信息',
@@ -131,6 +142,7 @@ const list = ref([
       { 
         cols: [
           { label: '简介', value: props.requireItem.remark },
+          { label: '预计工作量', value: `${props.requireItem.payload}人月` }
           { label: '项目周期', value: `${props.requireItem.period}天` }
         ] 
       },
@@ -141,19 +153,16 @@ const list = ref([
             value: props.requireItem.publisher.name 
               ? props.requireItem.publisher.name 
               : props.requireItem.publisher.gitee_name
-          }, 
+          },
+          { label: '需求类型', value: renderPublisherType(props.requireItem.publisher.type) }
           { label: '发布时间', value: props.requireItem.create_time }
         ] 
       },
       { 
         cols: [
+          { label: '影响力奖励', value: props.requireItem.total_reward }, 
           { label: '影响力门槛', value: props.requireItem.influence_require }, 
           { label: '信誉分门槛', value: props.requireItem.behavior_require }
-        ] 
-      },
-      { 
-        cols: [
-          { label: '影响力奖励', value: props.requireItem.total_reward }, 
         ] 
       },
     ],
