@@ -16,7 +16,7 @@ from server.model.qualityboard import (
     QualityBoard, 
     Checklist, 
     DailyBuild,
-    #RpmCompare,
+    RpmCompare,
     SameRpmCompare, 
     QualityBoard,
     Checklist,
@@ -1174,7 +1174,6 @@ class PackageListCompareEvent(Resource):
     @response_collect
     @validate()
     def post(self, qualityboard_id, comparee_round_id, comparer_round_id, body: PackageCompareSchema):
-        '''
         try:
             comparer = PackageListHandler(
                 comparer_round_id,
@@ -1218,7 +1217,6 @@ class PackageListCompareEvent(Resource):
             round_group_id = round_group.id
 
         update_compare_result.delay(round_group_id, compare_results, body.repo_path)
-        '''
         return jsonify(
             error_code=RET.OK,
             error_msg="OK"
@@ -1229,7 +1227,6 @@ class PackageListCompareEvent(Resource):
     @response_collect
     @validate()
     def get(self, qualityboard_id, comparer_round_id, comparee_round_id, query: PackageCompareQuerySchema):
-        '''
         round_group = RoundGroup.query.filter_by(
             round_1_id=comparee_round_id,
             round_2_id=comparer_round_id,
@@ -1319,11 +1316,6 @@ class PackageListCompareEvent(Resource):
             "del_pkgs_num": _del_num, 
             **page_dict
         })
-        '''
-        return jsonify(
-            error_code=RET.OK,
-            error_msg="OK",
-        )
 
 
 class QualityResultCompare(Resource):
