@@ -48,7 +48,7 @@
           :min="0"
         >
           <template #suffix>
-            人天
+            人月
           </template>
         </n-input-number>
       </n-form-item-gi>
