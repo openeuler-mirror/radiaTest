@@ -44,6 +44,7 @@ class Milestone(BaseModel, PermissionBaseModel, db.Model):
     org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
 
     def to_json(self):
+        from server.model.qualityboard import Round
         tags = []
         for mirroring in self.imirroring:
             if mirroring.frame == "x86_64":
@@ -60,6 +61,11 @@ class Milestone(BaseModel, PermissionBaseModel, db.Model):
                 tags.append("x86_64-repo")
             if rep.frame == "aarch64":
                 tags.append("aarch64-repo")
+        round_info = dict()
+        if self.round_id is not None:
+            _round = Round.query.filter_by(id=self.round_id).first()
+            if _round:
+                round_info = _round.to_json()
 
         return {
             "id": self.id,
@@ -71,6 +77,7 @@ class Milestone(BaseModel, PermissionBaseModel, db.Model):
             "product_name": self.product.name,
             "product_version": self.product.version,
             "round_id": self.round_id,
+            "round_info": round_info,
             "tags": tags,
             "task_num": len(self.tasks),
             "state": self.state,

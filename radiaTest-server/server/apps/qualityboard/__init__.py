@@ -3,6 +3,7 @@ from flask_restful import Api
 from .routes import (
     FeatureListSummary,
     PackageListCompareEvent,
+    RoundIssueEvent,
     SamePackageListCompareEvent,
     PackageListEvent,
     QualityBoardEvent,
@@ -125,4 +126,8 @@ def init_api(api: Api):
     api.add_resource(
         RoundIssueRateEvent,
         "/api/v1/round/<int:round_id>/issue-rate"
+    )
+    api.add_resource(
+        RoundIssueEvent,
+        "/api/v1/round/<int:round_id>/issues"
     )
