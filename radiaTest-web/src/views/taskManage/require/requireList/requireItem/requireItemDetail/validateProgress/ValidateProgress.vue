@@ -94,7 +94,6 @@
 </template>
 
 <script setup>
-import { defineProps } from 'vue';
 import { NAvatar, NTooltip, NButton, NIcon, useMessage } from 'naive-ui';
 import { CheckCircle } from '@vicons/fa';
 import { IosLock, IosUnlock } from '@vicons/ionicons4';

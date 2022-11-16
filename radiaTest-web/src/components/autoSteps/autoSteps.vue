@@ -112,98 +112,93 @@
     </div>
   </div>
 </template>
-<script>
-import { toRefs, computed } from 'vue';
+
+<script setup>
 import { Play16Filled, ArrowRight20Regular, DeleteArrowBack16Filled } from '@vicons/fluent';
 import { ConnectTarget, Milestone } from '@vicons/carbon';
 import { FileDoneOutlined } from '@vicons/antd';
 import { ChecklistFilled } from '@vicons/material';
-import { modules } from './modules';
-export default {
-  props: {
-    list: Array,
-    doneTip: {
-      type: String,
-      default: '点击后结束迭代测试'
-    },
-    done: {
-      type: Boolean,
-      default: false
-    },
-    currentId: {
-      type: String,
-      default: ''
-    },
-    hasQualityboard: {
-      type: Boolean,
-      default: false
-    }
+
+const props = defineProps({
+  list: Array,
+  done: {
+    type: Boolean,
+    default: false
   },
-  components: {
-    ArrowRight20Regular,
-    DeleteArrowBack16Filled,
-    FileDoneOutlined,
-    ConnectTarget,
-    Play16Filled,
-    ChecklistFilled,
-    Milestone
+  currentId: {
+    type: String,
+    default: ''
   },
-  setup(props) {
-    const { list, hasQualityboard } = toRefs(props);
-    const addTip = computed(() => {
-      if (!hasQualityboard.value) {
-        return '创建qualityboard';
-      } else if (list.value.length !== 0) {
-        return '开启下一轮迭代测试';
-      }
-      return '开启第一轮迭代测试';
-    });
-    return {
-      addTip,
-      ...modules
-    };
-  },
-  data() {
-    return {
-      hover: false,
-      ratioHover: null
-    };
-  },
-  methods: {
-    addStep() {
-      this.$emit('add');
-    },
-    doneEvent() {
-      if (!this.done) {
-        this.$emit('haveDone');
-      } else {
-        this.$emit('haveRecovery');
-      }
-    },
-    changeHover(show) {
-      this.$nextTick(() => {
-        this.hover = show;
-      });
-    },
-    handleClick(item) {
-      this.$emit('stepClick', item);
-    },
-    handleRollbackStepClick() {
-      this.$emit('rollback');
-    },
-    handleTipShow(key) {
-      if (key === this.currentId || this.ratioHover === key) {
-        return true;
-      }
-      return false;
-    },
-    handleChecklistBoard() {
-      this.$emit('handleChecklistBoard');
-    },
-    handleMilestone() {
-      this.$emit('handleMilestone');
-    }
+  hasQualityboard: {
+    type: Boolean,
+    default: false
   }
+});
+
+const { list, done, currentId, hasQualityboard } = toRefs(props);
+
+const emit = defineEmits([
+  'add',
+  'stepClick',
+  'rollback',
+  'haveDone',
+  'haveRecovery',
+  'handleChecklistBoard',
+  'handleMilestone'
+]);
+
+const addTip = computed(() => {
+  if (!hasQualityboard.value) {
+    return '创建qualityboard';
+  } else if (list.value.length !== 0) {
+    return '开启下一轮迭代测试';
+  }
+  return '开启第一轮迭代测试';
+});
+
+const addStep = () => {
+  emit('add');
+};
+
+const doneEvent = () => {
+  if (!done.value) {
+    emit('haveDone');
+  } else {
+    emit('haveRecovery');
+  }
+};
+
+const hover = ref(false);
+
+const changeHover = (show) => {
+  nextTick(() => {
+    hover.value = show;
+  });
+};
+
+const handleClick = (item) => {
+  emit('stepClick', item);
+};
+
+const handleRollbackStepClick = () => {
+  emit('rollback');
+};
+
+const ratioHover = ref(null);
+
+const handleTipShow = (key) => {
+  if (key === currentId.value || ratioHover.value === key) {
+    return true;
+  }
+  return false;
+};
+
+const handleChecklistBoard = () => {
+  emit('handleChecklistBoard');
+};
+
+const handleMilestone = () => {
+  emit('handleMilestone');
 };
 </script>
 <style lang="less" scoped>

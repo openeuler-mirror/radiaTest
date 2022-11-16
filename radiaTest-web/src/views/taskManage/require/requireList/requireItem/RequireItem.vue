@@ -223,7 +223,6 @@
 </template>
 
 <script setup>
-import { defineProps, defineEmits } from 'vue';
 import { useMessage } from 'naive-ui';
 import { storage } from '@/assets/utils/storageUtils';
 import { Radio, Archive, Close } from '@vicons/ionicons5';
