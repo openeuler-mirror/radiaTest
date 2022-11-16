@@ -373,6 +373,7 @@ class Round(BaseModel, db.Model):
         return {
             "id": self.id,
             "name": self.name,
+            "round_num": self.round_num,
             "type": self.type,
             "default_milestone_id": self.default_milestone_id,
             "product_id": self.product_id

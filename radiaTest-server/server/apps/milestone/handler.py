@@ -108,6 +108,8 @@ class MilestoneHandler:
             filter_params.append(Milestone.is_sync == query.is_sync)
         if query.round_id:
             filter_params.append(Milestone.round_id == query.round_id)
+        if query.product_id:
+            filter_params.append(Milestone.product_id == query.product_id)
 
         query_filter = Milestone.query.filter(*filter_params).order_by(
             Milestone.product_id, Milestone.name, Milestone.create_time

@@ -33,6 +33,7 @@ from server.schema.qualityboard import (
     FeatureListQuerySchema,
     PackageCompareSchema,
     PackageCompareQuerySchema,
+    RoundIssueQueryV8,
     RoundIssueRateSchema,
     RoundToMilestone,
     SamePackageCompareQuerySchema,
@@ -58,6 +59,7 @@ from server.apps.qualityboard.handlers import (
     QualityResultCompareHandler,
     RoundHandler,
 )
+from server.apps.milestone.handler import IssueOpenApiHandlerV8
 from server.utils.shell import add_escape
 from server.utils.at_utils import OpenqaATStatistic
 from server.utils.page_util import PageUtil
@@ -1437,3 +1439,26 @@ class RoundIssueRateEvent(Resource):
     def get(self, round_id):
         return RoundHandler.get_rate_by_round(round_id)
 
+
+class RoundIssueEvent(Resource):
+    @auth.login_required
+    @validate()
+    def get(self, round_id, query: RoundIssueQueryV8):
+        milestones = Milestone.query.filter_by(round_id=round_id, is_sync=True).all()
+        if not milestones:
+            return jsonify(
+                error_code=RET.OK,
+                error_msg="OK",
+                data={}
+            )
+        m_ids = ""
+        for milestone in milestones:
+            m_ids += str(milestone.gitee_milestone_id) + ","
+        m_ids = m_ids[:-1]
+        _body = query.__dict__
+        _body.update(
+            {
+                "milestone_id": m_ids,
+            }
+        )
+        return IssueOpenApiHandlerV8().get_all(_body)

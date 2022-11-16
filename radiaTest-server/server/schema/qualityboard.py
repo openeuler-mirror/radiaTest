@@ -4,7 +4,7 @@ from typing import List, Optional, Literal
 
 from pydantic import BaseModel, HttpUrl, validator, root_validator, constr
 
-from server.schema import Operator, SortOrder
+from server.schema import Operator, SortOrder, MilestoneState
 
 
 from server.schema.base import PageBaseSchema
@@ -204,3 +204,22 @@ class RoundIssueRateSchema(BaseModel):
 class RoundToMilestone(BaseModel):
     milestone_id: str
     isbind: bool
+
+
+class RoundIssueQueryV8(BaseModel):
+    state: Optional[MilestoneState]
+    only_related_me: Optional[str]
+    assignee_id: Optional[str]
+    author_id: Optional[str]
+    collaborator_ids: Optional[str]
+    created_at: Optional[str]
+    finished_at: Optional[str]
+    plan_started_at: Optional[str]
+    deadline: Optional[str]
+    filter_child: Optional[str]
+    issue_type_id: int
+    priority: Optional[str]
+    sort: Optional[str]
+    direction: Optional[str]
+    page: int = 1
+    per_page: int = 10
