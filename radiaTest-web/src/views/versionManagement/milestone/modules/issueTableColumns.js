@@ -122,7 +122,7 @@ const columns = [
     className: 'cols issueTitle',
   },
   {
-    title: '',
+    title: '优先级',
     key: 'priority',
     render: (row) => {
       if (row.priority === 1) {
@@ -170,11 +170,6 @@ const columns = [
         '严重'
       );
     },
-  },
-  {
-    title: '类型',
-    key: 'issue_type',
-    className: 'cols',
   },
   {
     title: '责任人',

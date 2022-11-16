@@ -171,13 +171,12 @@ function handleClick(item) {
     dynamicAnimateCss('inout-animated', 'animate__fadeInLeft');
   }
   currentId.value = item.id;
+  resolvedMilestone.value = { name: '当前迭代', id: item.id };
   getRoundRelateMilestones(item.id);
-  getRoundIssueRate(item.id)
-    .then((res) => {
-      const rateData = res.data;
-      setResolvedData(rateData);
-    })
-    .catch(() => {});
+  getRoundIssueRate(item.id).then((res) => {
+    const rateData = res.data;
+    setResolvedData(rateData);
+  });
   getTestList(item.id);
   getPackageCardData(packageTabValueFirst.value);
 }
@@ -485,6 +484,7 @@ function getDefaultCheckNode(id) {
           product_id: res.data[0].rounds[item].product_id
         };
       });
+      resolvedMilestone.value = { name: '当前迭代', id: currentRound.value.id };
       list.value = newArr;
       tableLoading.value = false;
       if (newArr.length > 0) {
@@ -611,11 +611,12 @@ function haveRecovery() {
 
 const resolvedMilestone = ref({});
 const resolvedMilestoneOptions = ref([]);
+const MilestoneIssuesCardType = computed(() => {
+  return resolvedMilestone.value.name === '当前迭代' ? 'round' : 'milestone';
+});
 
 const getRoundRelateMilestones = (roundId) => {
-  resolvedMilestoneOptions.value = [
-    { label: currentRound.value.name, value: { name: '当前迭代', id: currentRound.value.id } }
-  ];
+  resolvedMilestoneOptions.value = [{ label: '当前迭代', value: { name: '当前迭代', id: currentRound.value.id } }];
   getMilestones({ round_id: roundId, paged: false }).then((res) => {
     res.data.items.forEach((item) => {
       resolvedMilestoneOptions.value.push({
@@ -1098,10 +1099,16 @@ const handleMilestone = () => {
 const updateRoundMilestoneBoard = (value) => {
   if (!value) {
     getRoundRelateMilestones(currentRound.value.id);
+    resolvedMilestone.value = { name: '当前迭代', id: currentRound.value.id };
+    getRoundIssueRate(currentRound.value.id).then((res) => {
+      const rateData = res.data;
+      setResolvedData(rateData);
+    });
   }
 };
 
 export {
+  MilestoneIssuesCardType,
   packageTabValueFirst,
   packageTabValueSecond,
   changePackageTabFirst,
