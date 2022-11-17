@@ -34,6 +34,18 @@ const options = [
   },
 ];
 
+const iframeOptions = [
+  {
+    label: '用户中心',
+    key: 'accountInfo',
+    icon () {
+      return h(NIcon, null, {
+        default: () => h(HomeOutlined)
+      });
+    },
+  }
+];
+
 const orgRule = {
   trigger: ['blur', 'change'],
   validator () {
@@ -83,6 +95,7 @@ function handleSelect (key) {
 
 export {
   options,
+  iframeOptions,
   orgRule,
   showOrgModal,
   switchOrg,

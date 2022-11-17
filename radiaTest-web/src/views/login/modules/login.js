@@ -79,14 +79,14 @@ function hanleLogin (orgId) {
   changeLoadingStatus(true);
   storage.setValue('loginOrgId', Number(orgId));
   storage.setValue('hasEnterprise', requireEnterprise(orgId));
-  const thirdParty = storage.getValue('thirdParty');
+  const isIframe = storage.getValue('isIframe');
   axios
     .get('/v1/gitee/oauth/login', { org_id: Number(orgId) })
     .then((res) => {
       if (res?.data) {
         const giteeUrl = res.data;
         changeLoadingStatus(false);
-        if(thirdParty && thirdParty === '1') {
+        if(isIframe && isIframe === '1') {
           window.parent.postMessage({
             giteeUrl
           },'*');
@@ -109,8 +109,8 @@ function handleIsSuccess() {
   if (urlArgs().isSuccess === 'True') {
     setTimeout(() => {
       registerShow.value = false;
-      const thirdParty = storage.getValue('thirdParty');
-      if(!thirdParty || thirdParty !== '1') {
+      const isIframe = storage.getValue('isIframe');
+      if(!isIframe || isIframe !== '1') {
         storage.setValue('token', getCookieValByKey('token'));
         storage.setValue('refresh_token', getCookieValByKey('refresh_token'));
         storage.setValue('gitee_id', getCookieValByKey('gitee_id'));

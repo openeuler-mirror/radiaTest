@@ -76,11 +76,11 @@ server.interceptors.response.use(
     return Promise.reject(response);
   },
   (error) => {
-    const thirdParty = storage.getValue('thirdParty');
+    const isIframe = storage.getValue('isIframe');
     if (error.response?.status === 401) {
       window.$message?.destroyAll();
       window.$message?.error('请重新登陆');
-      if(thirdParty && thirdParty === '1') {
+      if(isIframe && isIframe === '1') {
         router.push({
           name: 'home',
         });

@@ -1,7 +1,8 @@
 <template>
   <n-grid :cols="16">
     <n-gi :span="2"> </n-gi>
-    <n-gi :span="7" v-if="!thirdParty" style="display: flex; align-items: center">
+    <n-gi :span="7" v-if="isIframe && isIframe==='1'"></n-gi>
+    <n-gi :span="7" v-else style="display: flex; align-items: center">
       <n-gradient-text type="primary">{{ currentOrg }}</n-gradient-text>
       <n-divider vertical />
       <n-gradient-text type="info">{{ accountName }}</n-gradient-text>
@@ -20,7 +21,7 @@
       <n-dropdown
         trigger="hover"
         @select="handleSelect"
-        :options="options"
+        :options="isIframe && isIframe==='1' ? iframeOptions : options"
         size="huge"
         :show-arrow="true"
         placement="bottom-end"
@@ -42,6 +43,7 @@ import { defineComponent, getCurrentInstance, inject, watch } from 'vue';
 import { BellOutlined } from '@vicons/antd';
 import { modules } from './modules/index.js';
 import { createAvatar } from '@/assets/utils/createImg';
+import { storage } from '@/assets/utils/storageUtils';
 export default defineComponent({
   components: {
     BellOutlined
@@ -50,7 +52,7 @@ export default defineComponent({
     const { proxy } = getCurrentInstance();
     modules.getOrg();
     const msgCount = inject('msgCount');
-
+    const isIframe = storage.getValue('isIframe');
     watch(msgCount, () => {
       document.dispatchEvent(new CustomEvent('reloadNews'));
       proxy.$axios.get('/v1/msg', { has_read: 0, page_num: 1, page_size: 10 }).then(res => {
@@ -65,6 +67,7 @@ export default defineComponent({
 
     return {
       msgCount,
+      isIframe,
       createAvatar,
       ...modules,
     };
