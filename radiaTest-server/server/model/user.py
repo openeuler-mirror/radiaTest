@@ -28,6 +28,16 @@ class User(db.Model, BaseModel):
     re_user_requirement_publisher = db.relationship("RequirementPublisher", backref="user")
     re_user_requirement_acceptor = db.relationship("RequirementAcceptor", backref="user")
 
+    def _get_basic_info(self):
+        return {
+            "gitee_id": self.gitee_id,
+            "gitee_login": self.gitee_login,
+            "gitee_name": self.gitee_name,
+            "phone": self.phone,
+            "avatar_url": self.avatar_url,
+            "cla_email": self.cla_email
+        }
+
     def _get_roles(self):
         roles = []
         for re in self.re_user_role:
@@ -52,7 +62,7 @@ class User(db.Model, BaseModel):
             ReUserOrganization.is_delete == False,
             ReUserOrganization.organization_id == int(
                 redis_client.hget(
-                    RedisKey.user(g.gitee_id), 
+                    RedisKey.user(g.gitee_id),
                     "current_org_id"
                 )
             ),
@@ -64,8 +74,8 @@ class User(db.Model, BaseModel):
         ).filter(
             ReUserOrganization.is_delete == False,
             ReUserOrganization.organization_id == int(
-                redis_client.hget(RedisKey.user(g.gitee_id), 
-                "current_org_id")
+                redis_client.hget(RedisKey.user(g.gitee_id),
+                                  "current_org_id")
             ),
         ).update(
             {
@@ -74,32 +84,28 @@ class User(db.Model, BaseModel):
                 ]).filter(
                     ranked_users.c.gitee_id == ReUserOrganization.user_gitee_id
                 ).scalar_subquery()
-            }, 
+            },
             synchronize_session=False
         )
-        
+
         return super().add_update(table, namespace, broadcast)
 
     @property
     def rank(self):
         _rank = None
-        if self.re_user_organization:
+        org_id = redis_client.hget(RedisKey.user(g.gitee_id), "current_org_id")
+        if self.re_user_organization and org_id is not None:
             _re = ReUserOrganization.query.filter_by(
                 user_gitee_id=self.gitee_id,
                 is_delete=False,
-                organization_id=int(redis_client.hget(RedisKey.user(g.gitee_id), "current_org_id"))
+                organization_id=int(org_id)
             ).first()
             _rank = _re.rank
         return _rank
 
     def to_summary(self):
         return {
-            "gitee_id": self.gitee_id,
-            "gitee_login": self.gitee_login,
-            "gitee_name": self.gitee_name,
-            "phone": self.phone,
-            "avatar_url": self.avatar_url,
-            "cla_email": self.cla_email,
+            **self._get_basic_info(),
             "influence": self.influence,
             "behavior": self.behavior,
             "like": self.like,
@@ -108,23 +114,13 @@ class User(db.Model, BaseModel):
 
     def to_dict(self):
         return {
-            "gitee_id": self.gitee_id,
-            "gitee_login": self.gitee_login,
-            "gitee_name": self.gitee_name,
-            "phone": self.phone,
-            "avatar_url": self.avatar_url,
-            "cla_email": self.cla_email,
+            **self._get_basic_info(),
             "roles": self._get_roles()
         }
 
     def to_json(self):
         return {
-            "gitee_id": self.gitee_id,
-            "gitee_login": self.gitee_login,
-            "gitee_name": self.gitee_name,
-            "phone": self.phone,
-            "avatar_url": self.avatar_url,
-            "cla_email": self.cla_email,
+            **self._get_basic_info(),
             "roles": self._get_roles(),
             "role": self._get_public_role(),
             "influence": self.influence,
@@ -132,7 +128,6 @@ class User(db.Model, BaseModel):
             "like": self.like,
             "rank": self.rank,
         }
-
 
     @staticmethod
     def synchronize_gitee_info(gitee_user, user=None):
