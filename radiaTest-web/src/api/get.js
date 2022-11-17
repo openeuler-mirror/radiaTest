@@ -57,6 +57,9 @@ export function getTemplateInfo(id, data) {
 export function getIssue(data) {
   return getRequest('/v2/milestone/issues', data);
 }
+export function getRoundIssue(roundId, data) {
+  return getRequest(`/v1/round/${roundId}/issues`, data);
+}
 export function getIssueType(data) {
   return getRequest('/v2/milestone/issue_types', data);
 }

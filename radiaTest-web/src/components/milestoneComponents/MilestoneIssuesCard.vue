@@ -30,28 +30,16 @@
       @update:page-size="changePageSize"
     />
   </n-card>
-  <n-drawer
-    v-model:show="active"
-    :width="800"
-    placement="right"
-    :trap-focus="false"
-  >
+  <n-drawer v-model:show="active" :width="800" placement="right" :trap-focus="false">
     <n-drawer-content :title="details?.title">
       <div class="drawer-header">
-        <p
-          class="item status"
-          :style="{ backgroundColor: details?.issue_state?.color }"
-        >
+        <p class="item status" :style="{ backgroundColor: details?.issue_state?.color }">
           <IssueState
             :size="issueStateDict[details?.issue_state?.title]?.size || 24"
             color="#fff"
             :tip="details?.issue_state?.title"
           >
-            <n-icon
-              :component="
-                issueStateDict[details?.issue_state?.title]?.icon || SyncCircle
-              "
-            />
+            <n-icon :component="issueStateDict[details?.issue_state?.title]?.icon || SyncCircle" />
           </IssueState>
           <span>{{ details?.issue_state?.title }}</span>
         </p>
@@ -59,7 +47,7 @@
           <n-tag
             :color="{
               color: 'rgba(245,246,248,1)',
-              textColor: 'rgba(150,161,175,1)',
+              textColor: 'rgba(150,161,175,1)'
             }"
             :bordered="false"
           >
@@ -71,7 +59,7 @@
             v-if="details?.priority === 1"
             :color="{
               textColor: 'rgba(72,168,68,1)',
-              borderColor: 'rgba(72,168,68,1)',
+              borderColor: 'rgba(72,168,68,1)'
             }"
           >
             可选
@@ -80,7 +68,7 @@
             v-else-if="details?.priority === 2"
             :color="{
               textColor: 'rgba(0,138,255,1)',
-              borderColor: 'rgba(0,138,255,1)',
+              borderColor: 'rgba(0,138,255,1)'
             }"
           >
             次要
@@ -89,7 +77,7 @@
             v-else-if="details?.priority === 3"
             :color="{
               textColor: 'rgba(255,143,0,1)',
-              borderColor: 'rgba(255,143,0,1)',
+              borderColor: 'rgba(255,143,0,1)'
             }"
           >
             主要
@@ -98,7 +86,7 @@
             v-else
             :color="{
               textColor: 'rgba(239,0,22,1)',
-              borderColor: 'rgba(239,0,22,1)',
+              borderColor: 'rgba(239,0,22,1)'
             }"
           >
             严重
@@ -110,9 +98,7 @@
           </n-icon>
           <userInfo :userInfo="details?.creatorInfo || {}"> </userInfo>
         </span>
-        <span class="item">
-          创建于 {{ formatTime(details?.created_at, 'yyyy-MM-dd hh:mm:ss') }}
-        </span>
+        <span class="item"> 创建于 {{ formatTime(details?.created_at, 'yyyy-MM-dd hh:mm:ss') }} </span>
       </div>
       <div class="content" v-html="details?.description_html"></div>
       <template #footer>
@@ -129,142 +115,135 @@
   </n-drawer>
 </template>
 
-<script>
-import { ref, defineComponent } from 'vue';
-import issuesColumns, { issueStateDict } from '@/views/versionManagement/milestone/modules/issueTableColumns.js';
-import {
-  SyncCircle,
-  ArrowForwardOutline
-} from '@vicons/ionicons5';
-// import milestoneIssuesAjax from '@/views/versionManagement/milestone/modules/milestoneIssuesAjax.js';
-import { getIssueType, getIssue, getIssueDetails } from '@/api/get';
-import IssueState from '@/components/public/IssueState.vue';
+<script setup>
+import { SyncCircle, ArrowForwardOutline } from '@vicons/ionicons5';
 import { User } from '@vicons/tabler';
+import issuesColumns, { issueStateDict } from '@/views/versionManagement/milestone/modules/issueTableColumns.js';
+import IssueState from '@/components/public/IssueState.vue';
 import userInfo from '@/components/user/userInfo.vue';
 import { formatTime } from '@/assets/utils/dateFormatUtils';
+import { getIssueType, getIssue, getRoundIssue, getIssueDetails } from '@/api/get';
+import _ from 'lodash';
 
-export default defineComponent({
-  components: {
-    IssueState,
-    User,
-    ArrowForwardOutline,
-    userInfo
-  },
-  props: {
-    milestoneId: Number,
-  },
-  mounted() {
-    this.getIssueStateType();
-  },
-  methods: {
-    openIssuePage() {
-      window.open(this.details.issue_url);
-    },
-    searchIssue() {
-      this.changePage(this.pagination.page);
-    },
-    changeState(state) {
-      this.stateType = state;
-      this.getData();
-    },
-    changePage(page) {
-      this.pagination.page = page;
-      this.getData();
-    },
-    changePageSize(pageSize) {
-      this.pagination.page = 1;
-      this.pagination.pageSize = pageSize;
-      this.getData();
-    },
-    getData() {
-      this.loading = true;
-      getIssue({
-        page: this.pagination.page,
-        per_page: this.pagination.pageSize,
-        milestone_id: this.milestoneId,
-        issue_type_id: this.stateType
-      })
-        .then((res) => {
-          const resData = JSON.parse(res.data);
-          this.rawData = resData.data;
-          this.total = resData.total_count;
-          this.pagination.pageCount = Math.ceil(Number(this.total) / this.pagination.pageSize) || 1;
-        })
-        .finally(() => {
-          this.loading = false;
+const props = defineProps({
+  milestoneId: Number,
+  cardType: String
+});
+const { milestoneId, cardType } = toRefs(props);
+const details = ref({});
+const rawData = ref([]);
+const stateType = ref(null);
+const issueTypeOpts = ref([]);
+const loading = ref(false);
+const columns = ref([]);
+const total = ref(0);
+const active = ref(false);
+const pagination = ref({
+  pageSize: 10,
+  page: 1,
+  pageCount: 1,
+  showSizePicker: true,
+  pageSizes: [5, 10, 20, 50]
+});
+
+const getData = () => {
+  loading.value = true;
+  if (cardType.value === 'round') {
+    getRoundIssue(milestoneId.value, {
+      page: pagination.value.page,
+      per_page: pagination.value.pageSize,
+      issue_type_id: stateType.value
+    })
+      .then((res) => {
+        const resData = JSON.parse(res.data);
+        resData.data.forEach((item) => {
+          item.milestoneTitle = item.milestone?.title || '无';
         });
-    },
-    getIssueStateType() {
-      getIssueType().then(res => {
-        this.issueTypeOpts = res.data.map(item => ({ label: item.title, value: String(item.id) }));
-        const defect = this.issueTypeOpts.find(item => item.label === '缺陷');
-        if (defect) {
-          this.stateType = defect.value;
-          this.getData();
-        } else {
-          window.$message?.info('当前组织企业仓的任务类型不存在"缺陷",请手动选择要查询的任务类型');
-        }
+        rawData.value = resData.data;
+        total.value = resData.total_count;
+        pagination.value.pageCount = Math.ceil(Number(total.value) / pagination.value.pageSize) || 1;
+      })
+      .finally(() => {
+        loading.value = false;
       });
+  } else {
+    getIssue({
+      page: pagination.value.page,
+      per_page: pagination.value.pageSize,
+      milestone_id: milestoneId.value,
+      issue_type_id: stateType.value
+    })
+      .then((res) => {
+        const resData = JSON.parse(res.data);
+        rawData.value = resData.data;
+        total.value = resData.total_count;
+        pagination.value.pageCount = Math.ceil(Number(total.value) / pagination.value.pageSize) || 1;
+      })
+      .finally(() => {
+        loading.value = false;
+      });
+  }
+};
+const changeState = (state) => {
+  stateType.value = state;
+  getData();
+};
+const changePage = (page) => {
+  pagination.value.page = page;
+  getData();
+};
+const changePageSize = (pageSize) => {
+  pagination.value.page = 1;
+  pagination.value.pageSize = pageSize;
+  getData();
+};
+const openIssuePage = () => {
+  window.open(details.value.issue_url);
+};
+const getIssueStateType = () => {
+  getIssueType().then((res) => {
+    issueTypeOpts.value = res.data.map((item) => ({ label: item.title, value: String(item.id) }));
+    const defect = issueTypeOpts.value.find((item) => item.label === '缺陷');
+    if (defect) {
+      stateType.value = defect.value;
+      getData();
+    } else {
+      window.$message?.info('当前组织企业仓的任务类型不存在"缺陷",请手动选择要查询的任务类型');
+    }
+  });
+};
+const rowProps = (row) => {
+  return {
+    style: {
+      cursor: 'pointer'
     },
-    rowProps(row) {
-      return {
-        style: {
-          cursor: 'pointer',
-        },
-        onClick: () => {
-          this.active = true;
-          getIssueDetails(row.id).then(res => {
-            this.details = JSON.parse(res.data);
-            this.details.creatorInfo = {
-              avatar_url: JSON.parse(res.data).author?.avatar_url,
-              gitee_name: JSON.parse(res.data).author?.username,
-              phone: JSON.parse(res.data).author?.phone,
-              cla_email: JSON.parse(res.data).author?.email
-            };
-            console.log(this.details);
-          });
-        },
-      };
-    },
-  },
-  data() {
-    return {
-      details: {}
-    };
-  },
-  setup() {
-    const rawData = ref([]);
-    const issueTypeOpts = ref([]);
-    const loading = ref(false);
-    const columns = issuesColumns;
-    const total = ref(0);
-    const title = ref(null);
-    const assignee = ref(null);
-    const active = ref(false);
-    const pagination = ref({
-      pageSize: 10,
-      page: 1,
-      pageCount: 1,
-      showSizePicker: true,
-      pageSizes: [5, 10, 20, 50]
-    });
+    onClick: () => {
+      active.value = true;
+      getIssueDetails(row.id).then((res) => {
+        details.value = JSON.parse(res.data);
+        details.value.creatorInfo = {
+          avatar_url: JSON.parse(res.data).author?.avatar_url,
+          gitee_name: JSON.parse(res.data).author?.username,
+          phone: JSON.parse(res.data).author?.phone,
+          cla_email: JSON.parse(res.data).author?.email
+        };
+      });
+    }
+  };
+};
 
-    return {
-      SyncCircle,
-      issueStateDict,
-      active,
-      formatTime,
-      stateType: ref(null),
-      rawData,
-      loading,
-      columns,
-      issueTypeOpts,
-      pagination,
-      total,
-      title,
-      assignee,
-    };
-  },
+onMounted(() => {
+  if (cardType.value === 'round') {
+    columns.value = _.cloneDeep(issuesColumns);
+    columns.value.splice(2, 0, {
+      title: '里程碑',
+      key: 'milestoneTitle',
+      className: 'cols'
+    });
+  } else {
+    columns.value = issuesColumns;
+  }
+  getIssueStateType();
 });
 </script>
 

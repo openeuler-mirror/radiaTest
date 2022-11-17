@@ -429,7 +429,7 @@
             width="95%"
           >
             <n-drawer-content closable>
-              <MilestoneIssuesCard :milestone-id="currentId" />
+              <MilestoneIssuesCard :milestone-id="resolvedMilestone.id" :cardType="MilestoneIssuesCardType"/>
             </n-drawer-content>
           </n-drawer>
         </div>
@@ -533,7 +533,7 @@
           <div class="buttonWrap">
             <n-button class="btn" type="error" ghost @click="cancelCheckListDrawer">取消</n-button>
             <n-button v-show="!isAddBaseline" class="btn" type="info" ghost @click="confirmCheckItem">新增</n-button>
-            <n-button v-show="isAddBaseline" class="btn" type="info" ghost @click="confirmBaseline">新增</n-button>
+            <n-button v-show="isAddBaseline" class="btn" type="info" ghost @click="confirmBaseline">确定</n-button>
           </div>
         </n-form>
       </n-drawer-content>
