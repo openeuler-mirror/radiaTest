@@ -680,7 +680,7 @@ class HandlerTask(object):
             group = Group.query.filter_by(is_delete=False, id=task.group_id).first()
 
         return_data["executor_group"] = (
-            GroupInfoSchema(**group.__dict__).dict() if group else None
+            GroupInfoSchema(**group.to_dict()).dict() if group else None
         )
         return_data["tags"] = [
             TagInfoSchema(**item.__dict__).dict() for item in task.tags
@@ -795,7 +795,7 @@ class HandlerTaskParticipant(object):
                 ).first()
                 if not group:
                     continue
-                participant = GroupInfoSchema(**group.__dict__).dict()
+                participant = GroupInfoSchema(**group.to_dict()).dict()
             else:
                 participant = UserBaseSchema(
                     **User.query.get(item.participant_id).__dict__
