@@ -109,9 +109,12 @@ function handleIsSuccess() {
   if (urlArgs().isSuccess === 'True') {
     setTimeout(() => {
       registerShow.value = false;
-      storage.setValue('token', getCookieValByKey('token'));
-      storage.setValue('refresh_token', getCookieValByKey('refresh_token'));
-      storage.setValue('gitee_id', getCookieValByKey('gitee_id'));
+      const thirdParty = storage.getValue('thirdParty');
+      if(!thirdParty || thirdParty !== '1') {
+        storage.setValue('token', getCookieValByKey('token'));
+        storage.setValue('refresh_token', getCookieValByKey('refresh_token'));
+        storage.setValue('gitee_id', getCookieValByKey('gitee_id'));
+      }
       router.push({ name: 'home' }).then(() => {
         addRoom(storage.getValue('token'));
       });
