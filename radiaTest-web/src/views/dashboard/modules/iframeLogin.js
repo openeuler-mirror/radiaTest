@@ -3,8 +3,8 @@ import { urlArgs } from '@/assets/utils/urlUtils';
 import { storage } from '@/assets/utils/storageUtils';
 import { initData } from './dashboard';
 
-function getThirdPartMessage(val) {
-  const params = val.data;
+function getIframeMessage(val) {
+  const params = val ? val.data : {};
   console.log('接收传到的值：', params);
   if(params.orgId) {
     hanleLogin(params.orgId);
@@ -16,15 +16,16 @@ function getThirdPartMessage(val) {
   }
 }
 
-function thirdPartLogin() {
-  const { thirdParty, orgId } = urlArgs();
-  if(thirdParty && thirdParty === '1') {
-    storage.setValue('thirdParty', thirdParty);
+function iframeLogin() {
+  const { isIframe, orgId } = urlArgs();
+  if(isIframe && isIframe === '1') {
+    storage.setValue('isIframe', isIframe);
+    window.hideLogout = true;
     if(orgId) {
       hanleLogin(orgId);
     }
     window.addEventListener('message', e => {
-      getThirdPartMessage(e);
+      getIframeMessage(e);
     });
   } else {
     initData();
@@ -32,6 +33,6 @@ function thirdPartLogin() {
 }
 
 export {
-  thirdPartLogin,
-  getThirdPartMessage
+  iframeLogin,
+  getIframeMessage
 };

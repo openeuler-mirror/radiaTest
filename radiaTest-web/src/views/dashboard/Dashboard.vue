@@ -65,7 +65,7 @@ export default defineComponent({
     },
   },
   setup() {
-    modules.thirdPartLogin();
+    modules.iframeLogin();
     return {
       ...modules,
       handleGuideClick() {
@@ -76,7 +76,7 @@ export default defineComponent({
     };
   },
   beforeUnmount () {
-    window.removeEventListener('message', modules.getThirdPartMessage(), false);
+    window.removeEventListener('message', modules.getIframeMessage(), false);
   },
 });
 </script>

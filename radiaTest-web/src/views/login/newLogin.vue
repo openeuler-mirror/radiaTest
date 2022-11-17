@@ -375,8 +375,8 @@ export default {
   setup() {
     const message = useMessage();
     window.$message = message;
-    const thirdParty = storage.getValue('thirdParty');
-    if(thirdParty && thirdParty === '1') {
+    const isIframe = storage.getValue('isIframe');
+    if(isIframe && isIframe === '1') {
       modules.handleIsSuccess();
     } else {
       modules.gotoHome();
