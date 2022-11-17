@@ -176,7 +176,8 @@ class PmachineSshPassword:
         else:
             return jsonify(
                 error_code=RET.OK,
-                error_msg="{}:{}".format(self._body.get("ip"), new_password)
+                error_msg="pmachine {} change password to {} success".format(self._body.get("ip"), new_password),
+                data=[self._body.get("ip"), new_password]
             )
 
 
