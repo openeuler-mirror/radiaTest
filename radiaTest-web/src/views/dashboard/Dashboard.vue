@@ -66,7 +66,6 @@ export default defineComponent({
   },
   setup() {
     modules.thirdPartLogin();
-    modules.initData();
     return {
       ...modules,
       handleGuideClick() {
@@ -75,6 +74,9 @@ export default defineComponent({
         );
       }
     };
+  },
+  beforeUnmount () {
+    window.removeEventListener('message', modules.getThirdPartMessage(), false);
   },
 });
 </script>
