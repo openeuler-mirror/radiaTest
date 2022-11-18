@@ -159,7 +159,7 @@ class QualityResultCompareHandler:
             if not m:
                 return None, None
             if m.type == "round":
-                iter_num = int(m.name.split("-")[-1])
+                iter_num = m.round.round_num
             elif m.type == "release":
                 iter_num = 0
             else:
