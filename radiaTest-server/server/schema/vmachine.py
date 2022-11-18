@@ -150,7 +150,7 @@ class VmachineItemUpdateSchema(BaseModel):
     threads: Optional[conint(ge=1, le=Config.VM_MAX_THREAD)]
 
 
-class VmachineDataUpdateSchema(BaseModel):
+class VmachineDataUpdateSchema(VmachineItemUpdateSchema):
     name: Optional[str]
     frame: Optional[Frame]
     mac: Optional[str]
