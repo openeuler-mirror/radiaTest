@@ -79,12 +79,14 @@ class OperateVmachine(VmachineBaseSchema):
             )
 
         if self._body.get("sockets") or self._body.get("cores") or self._body.get("threads"):
+            vcpus = self._body.get("sockets") * self._body.get("cores") * self._body.get("threads")
             exitcode, output = getstatusoutput(
-                "virt-xml {} --edit --vcpus sockets={},cores={},threads={}".format(
+                "virt-xml {} --edit --vcpus {},sockets={},cores={},threads={}".format(
                     shlex.quote(self._body.get("name")),
-                    shlex.quote(str(self._body.get("sockets"))),
-                    shlex.quote(str(self._body.get("cores"))),
-                    shlex.quote(str(self._body.get("threads"))),
+                    vcpus,
+                    self._body.get("sockets"),
+                    self._body.get("cores"),
+                    self._body.get("threads"),
                 )
             )
 

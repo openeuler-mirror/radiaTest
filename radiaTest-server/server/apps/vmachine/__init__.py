@@ -36,7 +36,7 @@ from .routes import (
     VmachineSshEvent,
     VmachineBatchEvent,
     VmachineStatusEvent,
-    VmachineCallBackEvent
+    VmachineCallBackEvent,
 )
 
 
