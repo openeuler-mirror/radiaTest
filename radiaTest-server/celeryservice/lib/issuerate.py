@@ -396,7 +396,9 @@ class UpdateIssueRate(TaskHandlerBase):
                     )
 
                 milestones = Milestone.query.filter_by(
-                    is_sync=True, product_id=_p.id
+                    Milestone.is_sync.is_(True),
+                    Milestone.product_id == _p.id,
+                    Milestone.round_id != sqlalchemy.null()
                 ).all()
                 for _m in milestones:
                     issue_rate = IssueSolvedRate.query.filter_by(
