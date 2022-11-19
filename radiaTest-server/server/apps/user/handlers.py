@@ -606,7 +606,11 @@ def handler_get_user_task(query: UserTaskSchema):
 
     # 本月任务总数
     this_month_start = datetime(now.year, now.month, 1)
-    next_month_start = datetime(now.year, now.month + 1, 1)
+    if now.month < 12:
+        next_month_start = datetime(now.year, now.month + 1, 1)
+    else:
+        next_month_start = datetime(now.year+1, 1, 1)
+    
     month_filter_params = [Task.create_time >= this_month_start,
                            Task.create_time < next_month_start]
     month_filter_params.extend(basic_filter_params)
@@ -758,7 +762,11 @@ def handler_get_user_case_commit(query: UserCaseCommitSchema):
 
     # 本月贡献
     this_month_start = datetime(now.year, now.month, 1)
-    next_month_start = datetime(now.year, now.month + 1, 1)
+    if now.month < 12:
+        next_month_start = datetime(now.year, now.month + 1, 1)
+    else:
+        next_month_start = datetime(now.year+1, 1, 1)
+
     month_filter_params = [Commit.create_time >= this_month_start,
                            Commit.create_time < next_month_start]
     month_filter_params.extend(basic_filter_params)
@@ -807,7 +815,11 @@ def handler_get_user_case_commit(query: UserCaseCommitSchema):
 
     # 本月贡献
     this_month_start = datetime(now.year, now.month, 1)
-    next_month_start = datetime(now.year, now.month + 1, 1)
+    if now.month < 12:
+        next_month_start = datetime(now.year, now.month + 1, 1)
+    else:
+        next_month_start = datetime(now.year+1, 1, 1)
+    
     month_filter_params = [Commit.create_time >= this_month_start,
                            Commit.create_time < next_month_start]
     month_filter_params.extend(basic_filter_params)
