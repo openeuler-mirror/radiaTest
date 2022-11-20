@@ -86,9 +86,17 @@ class QueryTaskSchema(PageBaseSchema):
     deadline: str = None
     start_time: str = None
     is_delete: bool = False
+    milestone_id: str = None
 
     @validator('participant_id')
     def validate_participant_id(cls, v):
+        if v:
+            return [int(item) for item in v.split(',')]
+        else:
+            return None
+
+    @validator('milestone_id')
+    def validate_milestone_id(cls, v):
         if v:
             return [int(item) for item in v.split(',')]
         else:
