@@ -395,7 +395,7 @@ class UpdateIssueRate(TaskHandlerBase):
                         gitee_id=gitee_id, products=products, round_id=_r.id
                     )
 
-                milestones = Milestone.query.filter_by(
+                milestones = Milestone.query.filter(
                     Milestone.is_sync.is_(True),
                     Milestone.product_id == _p.id,
                     Milestone.round_id != sqlalchemy.null()

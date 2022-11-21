@@ -52,12 +52,26 @@ class Organization(db.Model, PermissionBaseModel, BaseModel):
             return True
 
     def to_dict(self):
-        _dict = self.__dict__
-        _dict.update({
+        _dict = {
+            "id": self.id,
+            "name": self.name,
+            "description": self.description,
+            "avatar_url": self.avatar_url,
+            "is_delete": self.is_delete,
+            "enterprise_id": self.enterprise_id,
+            "enterprise_join_url": self.enterprise_join_url,
+            "oauth_client_id": self.oauth_client_id,
+            "oauth_scope": self.oauth_scope,
+            "oauth_client_secret": self.oauth_client_secret,
+            "cla_verify_url": self.cla_verify_url,
+            "cla_verify_params": self.cla_verify_params,
+            "cla_verify_body": self.cla_verify_body,
+            "cla_sign_url": self.cla_sign_url,
+            "cla_request_type": self.cla_request_type,
+            "cla_pass_flag": self.cla_pass_flag,
             "create_time": self.create_time.strftime("%Y-%m-%d %H:%M:%S"),
             "update_time": self.update_time.strftime("%Y-%m-%d %H:%M:%S"),
-        })
-        _dict.pop('_sa_instance_state')
+        }
 
         return _dict
 
