@@ -9,7 +9,8 @@
       @submit="submitCreateCase"
     >
       <template #form>
-        <n-tabs 
+        <n-tabs
+          animated 
           type="line" 
           size="large" 
           :tab-padding="20"  

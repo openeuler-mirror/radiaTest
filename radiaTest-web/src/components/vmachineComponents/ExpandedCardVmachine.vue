@@ -1,7 +1,7 @@
 <template>
   <n-card hoverable>
     <n-space vertical>
-      <n-tabs type="line">
+      <n-tabs animated type="line">
         <n-tab-pane name="configs" tab="概览" v-if="data.ip">
           <n-grid x-gap="24" y-gap="48">
             <n-gi :span="24"></n-gi>

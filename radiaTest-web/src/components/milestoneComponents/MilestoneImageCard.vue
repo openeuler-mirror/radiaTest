@@ -1,7 +1,7 @@
 <template>
   <n-card class="mirror-card" :style="{ width: width }" hoverable>
     <n-space vertical>
-      <n-tabs type="line" justify-content="space-evenly">
+      <n-tabs animated type="line" justify-content="space-evenly">
         <n-tab-pane name="iso" tab="ISO文件">
           <n-grid :cols="24" y-gap="12">
             <n-gi :span="24"></n-gi>

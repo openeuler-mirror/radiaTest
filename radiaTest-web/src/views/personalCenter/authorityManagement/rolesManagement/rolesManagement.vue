@@ -63,7 +63,7 @@
       :showConfirm="false"
     >
       <template #form>
-        <n-tabs v-model:value="tabValue" type="line" @update:value="getRelationRules">
+        <n-tabs animated v-model:value="tabValue" type="line" @update:value="getRelationRules">
           <n-tab-pane v-if="isPermitted" name="permitted" tab="授权权限域"></n-tab-pane>
           <n-tab-pane name="public" tab="公共权限域"></n-tab-pane>
         </n-tabs>

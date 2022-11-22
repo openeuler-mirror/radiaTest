@@ -12,7 +12,7 @@
         <Close />
       </n-icon>
     </template>
-    <n-tabs>
+    <n-tabs animated>
       <n-tab-pane tab="需求详情" name="description">
         <detail-content :require-item="props.item"/>
       </n-tab-pane>

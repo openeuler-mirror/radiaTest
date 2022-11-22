@@ -45,7 +45,7 @@
             padding: '0'
           }"
         >
-          <n-tabs type="line" justify-content="space-evenly">
+          <n-tabs animated type="line" justify-content="space-evenly">
             <n-tab name="person" @click="() => { rankType = 'person' }">个人</n-tab>
             <n-tab name="group" @click="() => { rankType = 'group' }">团队</n-tab>
           </n-tabs>

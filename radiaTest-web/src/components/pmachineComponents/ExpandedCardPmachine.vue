@@ -2,6 +2,7 @@
   <n-card hoverable>
     <n-space vertical>
       <n-tabs
+        animated
         type="line"
         justify-content="space-evenly"
         @update:value="switchTab"

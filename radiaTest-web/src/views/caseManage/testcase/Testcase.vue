@@ -24,7 +24,7 @@
             @submit="createFormRef.post()"
           >
             <template #form>
-              <n-tabs type="line" size="large" :tab-padding="20" @update:value="(value) => createFormRef.changeTabs(value)">
+              <n-tabs animated type="line" size="large" :tab-padding="20" @update:value="(value) => createFormRef.changeTabs(value)">
                 <n-tab-pane tab="基本信息" name="basic">
                   <div></div>
                 </n-tab-pane>

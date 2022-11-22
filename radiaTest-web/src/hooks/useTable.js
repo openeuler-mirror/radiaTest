@@ -9,9 +9,14 @@ export const useTable = (url, params, tableData, pagination, loading, once) => {
       tableData.value = res.data?.items;
     });
   };
+  let stop = () => {};
   if (once) {
     getTableData();
   } else {
-    watchEffect(getTableData);
+    stop = watchEffect(getTableData);
   }
+
+  onUnmounted(() => {
+    stop();
+  });
 };

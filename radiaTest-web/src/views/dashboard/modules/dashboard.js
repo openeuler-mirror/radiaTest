@@ -140,7 +140,6 @@ const myTasksData = ref([]);
 const tasksloading = ref(false);
 
 function getTaskData() {
-  myTasksData.value = [];
   tasksloading.value = true;
   axios
     .get('/v1/user/task/info', {
@@ -150,6 +149,7 @@ function getTaskData() {
       page_size: tasksPagination.value.pageSize
     })
     .then((res) => {
+      myTasksData.value = [];
       tasksloading.value = false;
       tasksPagination.value.pageCount = res.data.pages;
       personalDataOverview.value = {
@@ -297,7 +297,6 @@ const machineActive = ref('0'); // 我的机器活动tab
 const myMachineData = ref([]);
 
 function getMachineData() {
-  myMachineData.value = [];
   axios
     .get('/v1/user/machine/info', {
       machine_type: machineType,
@@ -306,6 +305,7 @@ function getMachineData() {
       page_size: 999999999
     })
     .then((res) => {
+      myMachineData.value = [];
       if (res.data.items) {
         res.data.items.forEach((v, i) => {
           myMachineData.value.push({
