@@ -125,7 +125,7 @@ def handler_org_group_page(org_id, query: PageBaseSchema):
     query_filter = ReUserGroup.query.filter_by(is_delete=False, org_id=org_id).order_by(ReUserGroup.create_time)
 
     def page_func(item):
-        return GroupInfoSchema(**item.group.__dict__).dict()
+        return GroupInfoSchema(**item.group.to_dict()).dict()
 
     # 返回结果
     page_dict, e = PageUtil.get_page_dict(query_filter, query.page_num, query.page_size, func=page_func, is_set=True)

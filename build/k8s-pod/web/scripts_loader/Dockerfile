@@ -16,4 +16,4 @@
 FROM radia-test/gunicorn
 LABEL maintainer="ethanzhang55@outlook.com"
 
-CMD celery -A manage.my_celery worker --loglevel=info --hostname=celery_worker_scripts_loader --queues=queue_load_scripts -O fair
+CMD celery -A manage.my_celery worker --loglevel=info --hostname=celery_worker_scripts_loader@%h --queues=queue_load_scripts -O fair

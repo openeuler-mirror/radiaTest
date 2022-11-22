@@ -127,7 +127,7 @@
           </div>
         </n-scrollbar>
       </div>
-      <div v-else>
+      <div v-else style="padding: 20px">
         <n-data-table
           :columns="columns"
           children-key="tasks"
@@ -298,7 +298,7 @@
                                       : 'PERSON'
                                   "
                                   :groupId="modalData.detail.group_id"
-                                  @getPerson="getExecutors($event, modalData.detail.type)"
+                                  @getPerson="getExecutors"
                                   :disabled="!editStatus"
                                   :defaultValue="modalData.detail.executor.gitee_name"
                                 ></taskMemberMenu>
@@ -378,7 +378,15 @@
                                       }}
                                     </p>
                                     <p v-else>
-                                      {{ modalData.detail.milestone ? modalData.detail.milestone.name : '无' }}
+                                      {{
+                                        modalData.detail.milestones
+                                          ? modalData.detail.milestones
+                                              .map((item) => item.name)
+                                              .join(',')
+                                          : modalData.detail.milestone
+                                            ? modalData.detail.milestone
+                                            : '无'
+                                      }}
                                     </p>
                                   </div>
                                 </template>
@@ -386,7 +394,7 @@
                                   @getMilepost="getMilepost"
                                   @getMileposts="getMileposts"
                                   :defaultValue="modalData.detail.milestones || 0"
-                                  :multiple="modalData.detail.type === 'VERSION'"
+                                  :multiple="modalData.detail.type === 'VERSION' || modalData.detail.milestones"
                                 ></Milepost>
                               </n-popover>
                             </div>
@@ -570,7 +578,7 @@
                     >
                   </div>
                 </template>
-                <div style="height: 300px" v-if="showFooterContent == 'comment'">
+                <div style="height: 300px" v-if="showFooterContent == 'comment'" class="log-wrap">
                   <n-scrollbar style="height: 100%">
                     <div v-for="(v, i) in modalData.comments" :key="i">
                       <div class="log-comment">
@@ -1007,7 +1015,7 @@ export default defineComponent({
   height: 100%;
   .task-board {
     position: relative;
-    padding: 0 10px 10px 10px;
+    padding: 20px;
     height: 100%;
     max-height: 900px;
     display: flex;

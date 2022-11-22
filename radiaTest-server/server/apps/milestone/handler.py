@@ -106,6 +106,10 @@ class MilestoneHandler:
             filter_params.append(Milestone.state == query.state)
         if query.is_sync:
             filter_params.append(Milestone.is_sync == query.is_sync)
+        if query.round_id:
+            filter_params.append(Milestone.round_id == query.round_id)
+        if query.product_id:
+            filter_params.append(Milestone.product_id == query.product_id)
 
         query_filter = Milestone.query.filter(*filter_params).order_by(
             Milestone.product_id, Milestone.name, Milestone.create_time
@@ -523,9 +527,10 @@ class IssueStatisticsHandlerV8:
                 error_msg="this organization has no right",
             )
         issue_types = redis_client.hget(
-            RedisKey.issue_types(org.enterprise_id), "data")
-        issue_types = issue_types[1:-
-                                  1].replace("\'", "\"").replace("}, {", "}#{").split("#")
+            RedisKey.issue_types(org.enterprise_id), 
+            "data"
+        )
+        issue_types = issue_types[1:-1].replace("\'", "\"").replace("}, {", "}#{").split("#")
         _data = list()
         for _type in issue_types:
             _data.append(json.loads(_type))

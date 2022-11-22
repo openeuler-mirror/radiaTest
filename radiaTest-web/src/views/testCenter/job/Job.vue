@@ -1,5 +1,5 @@
 <template>
-  <div style="display: flex">
+  <div style="display: flex; padding-top: 20px;">
     <div style="width: 100%">
       <jobs-card type="execute" id="execute" ref="executeRef" />
       <jobs-card type="wait" id="wait" ref="waitRef" />

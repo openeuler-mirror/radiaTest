@@ -11,6 +11,7 @@ from server.schema.product import ProductBase, ProductIssueRateFieldSchema, Prod
 from server.utils.permission_utils import GetAllByPermission
 from server.utils.resource_utils import ResourceManager
 from server import casbin_enforcer
+from server.utils.response_util import RET
 
 
 class ProductEventItem(Resource):
@@ -18,7 +19,9 @@ class ProductEventItem(Resource):
     @validate()
     @casbin_enforcer.enforcer
     def delete(self, product_id):
-        return ResourceManager("product").del_cascade_single(product_id, Milestone, [Milestone.product_id == product_id], False)
+        return ResourceManager("product").del_cascade_single(
+            product_id, Milestone, [Milestone.product_id == product_id], False
+        )
 
     @auth.login_required
     @validate()
@@ -30,6 +33,27 @@ class ProductEventItem(Resource):
     @validate()
     @casbin_enforcer.enforcer
     def put(self, product_id, body: ProductUpdate):
+        product = Product.query.filter_by(id=product_id).first()
+        if not product:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="product does not exist.",
+            )
+        name = product.name
+        version = product.version
+        if body.name:
+            name = body.name
+        if body.version:
+            version = body.version
+
+        product = Product.query.filter_by(
+            name=name, version=version
+        ).first()
+        if product and product.id != product_id:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="The version of product has existed.",
+            )
         _data = body.__dict__
         _data["id"] = product_id
         return Edit(Product, _data).single(Product, '/product')
@@ -44,7 +68,9 @@ class ProductEvent(Resource):
     @auth.login_required
     def get(self):
         body = request.args.to_dict()
-        return GetAllByPermission(Product).fuzz(body, [Product.name.asc(), Product.create_time.asc()])
+        return GetAllByPermission(Product).fuzz(
+            body, [Product.name.asc(), Product.create_time.asc()]
+        )
 
 
 class PreciseProductEvent(Resource):
@@ -65,7 +91,7 @@ class UpdateProductIssueRateByField(Resource):
     def put(self, product_id, body: ProductIssueRateFieldSchema):
         from celeryservice.lib.issuerate import update_field_issue_rate
         from server.apps.milestone.handler import IssueStatisticsHandlerV8
-        from server.utils.response_util import RET
+        
         product = Product.query.filter_by(id=product_id).first()
         if not product:
             return jsonify(

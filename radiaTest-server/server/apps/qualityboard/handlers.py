@@ -26,11 +26,11 @@ import pytz
 
 from server import db, redis_client
 from sqlalchemy import and_
-from server.model.qualityboard import Checklist, QualityBoard, CheckItem
+from server.model.qualityboard import Checklist, QualityBoard, CheckItem, Round
 from server.model.milestone import IssueSolvedRate, Milestone
 from server.model.organization import Organization
 from server.model.product import Product
-from server.utils.db import Edit, collect_sql_error, Insert
+from server.utils.db import Edit, Select, collect_sql_error, Insert
 from server.utils.response_util import RET
 from server.utils.page_util import PageUtil
 from server.utils.md_util import MdUtil
@@ -93,15 +93,15 @@ class ChecklistHandler:
 
 
 class QualityResultCompareHandler:
-    def __init__(self, product_id, milestone_id=None) -> None:
-        self.product_id = product_id
-        self.milestone_id = milestone_id
+    def __init__(self, obj_type, obj_id) -> None:
+        self.obj_type = obj_type
+        self.obj_id = obj_id
 
     def compare_result_baseline(self, field: str, field_val):
         baseline, operation = self.get_baseline(field)
         if baseline is None:
             return None
-        field_val = field_val.replace("%", "")
+        field_val = str(field_val).replace("%", "")
         baseline = baseline.replace("%", "")
 
         lt =  lambda x, y: x < y
@@ -121,13 +121,17 @@ class QualityResultCompareHandler:
 
     def compare_issue_rate(self, field: str, field_val=None):
         if field_val is None:
-            if self.milestone_id:
-                isr = IssueSolvedRate.query.filter_by(
-                    milestone_id=self.milestone_id
-                ).first()
-            else:
+            if self.obj_type == "product":
                 isr = Product.query.filter_by(
-                    id=self.product_id
+                    id=self.obj_id
+                ).first()
+            elif self.obj_type == "milestone":
+                isr = IssueSolvedRate.query.filter_by(
+                    milestone_id=self.obj_id, type="milestone"
+                ).first()
+            elif self.obj_type == "round":
+                isr = IssueSolvedRate.query.filter_by(
+                    round_id=self.obj_id, type="round"
                 ).first()
             if not isr:
                 return None
@@ -140,34 +144,45 @@ class QualityResultCompareHandler:
 
     @collect_sql_error
     def get_baseline(self, field):
-        baseline, operation = None, None
-        p = Product.query.filter_by(id=self.product_id).first()
-        if not p:
+        p = None
+        if self.obj_type == "product": 
+            p = Product.query.filter_by(id=self.obj_id).first()
+            iter_num = 0
+        elif self.obj_type == "round":
+            _round = Round.query.filter_by(id=self.obj_id).first()
+            if not _round:
+                return None, None
+            iter_num = int(_round.round_num)
+            p = _round.product
+        elif self.obj_type == "milestone":
+            m = Milestone.query.filter_by(id=self.obj_id).first()
+            if not m:
+                return None, None
+            if m.type == "round":
+                iter_num = m.round.round_num
+            elif m.type == "release":
+                iter_num = 0
+            else:
+                return None, None
+            p = m.product
+
+        if p is None:
             return None, None
         cl = Checklist.query.join(CheckItem).filter(
-            Checklist.product_id == self.product_id,
+            Checklist.product_id == p.id,
             CheckItem.field_name == field,
             Checklist.checkitem_id == CheckItem.id,
         ).first()
         if not cl:
             return None, None
 
-        if self.milestone_id:
-            m = Milestone.query.filter_by(id=self.milestone_id).first()
-            if m.type == "round":
-                iter_num = int(m.name.split("-")[-1])
-            elif m.type == "release":
-                iter_num = 0
-            else:
-                return None, None
-            if len(cl.rounds) < iter_num:
-                return None, None
-            r_flag = cl.rounds[iter_num]
-            if r_flag == "1":
-                return cl.baseline.split(",")[iter_num], cl.operation.split(",")[iter_num]
-            else:
-                return None, None 
-        return baseline, operation
+        if len(cl.rounds) == 0 or len(cl.rounds) <= iter_num:
+            return None, None
+        r_flag = cl.rounds[iter_num]
+        if r_flag == "1":
+            return cl.baseline.split(",")[iter_num], cl.operation.split(",")[iter_num]
+        else:
+            return None, None 
 
 
 class CheckItemHandler:
@@ -443,29 +458,27 @@ feature_list_handlers = {
 
 
 class PackageListHandler:
-    def __init__(self, qualityboard_id, milestone_id, refresh : bool = False) -> None:
+    def __init__(self, round_id, repo_path, arch, refresh : bool = False) -> None:
         self.refresh = refresh
+        self.repo_path = repo_path
+        self.arch = arch
 
-        self.qualityboard = QualityBoard.query.filter_by(id=qualityboard_id).first()
-        if not self.qualityboard:
-            raise ValueError(f"qualityboard {qualityboard_id} does not exist")
+        self._round = Round.query.filter_by(id=round_id).first()
+        if not self._round:
+            raise ValueError(f"round {round_id} does not exist")
 
-        self.milestone = Milestone.query.filter_by(id=milestone_id).first()
-        if not self.milestone:
-            raise ValueError(f"milestone {milestone_id} does not exist")
-
-        org_id = self.milestone.org_id
+        org_id = self._round.product.org_id
         org = Organization.query.filter_by(id=org_id).first()
         if not org:
             raise ValueError(f"this api only serves for milestones of organizations")
         
-        if self.milestone.type == "round":
+        if self._round.type == "round":
             self.pkgs_repo_url = current_app.config.get(f"{org.name.upper()}_DAILYBUILD_REPO_URL")
             if not self.pkgs_repo_url:
                 raise ValueError(
                     f"lack of definition of {org.name.upper()}_DAILYBUILD_REPO_URL, please check the settings"
                 )
-        elif self.milestone.type == "release":
+        elif self._round.type == "release":
             self.pkgs_repo_url = current_app.config.get(f"{org.name.upper()}_OFFICIAL_REPO_URL")
             if not self.pkgs_repo_url:
                 raise ValueError(
@@ -476,12 +489,12 @@ class PackageListHandler:
 
     def get_packages(self):
         _path = current_app.config.get("PRODUCT_PKGLIST_PATH")
-        _product_version = f"{self.milestone.product.name}-{self.milestone.product.version}"
-        _filename = _product_version
+        _product_version = f"{self._round.product.name}-{self._round.product.version}"
+        _filename = f"{_product_version}-{self.repo_path}-{self.arch}"
         _round = None
-        if self.milestone.type == "round":
-            _round = self.qualityboard.iteration_version.split("->").index(str(self.milestone.id)) + 1
-            _filename = f"{_product_version}-round-{_round}"
+        if self._round.type == "round":
+            _round = self._round.round_num
+            _filename = f"{_product_version}-round-{_round}-{self.repo_path}-{self.arch}"
 
         if self.refresh and not redis_client.hgetall(f"resolving_{_filename}_pkglist"):
             redis_client.hset(
@@ -495,19 +508,23 @@ class PackageListHandler:
                 ).strftime("%Y-%m-%d %H:%M:%S")
             )
             redis_client.expire(f"resolving_{_filename}_pkglist", 1800)
-            
+            sub_path = self.repo_path
+            if sub_path == "EPOL":
+                sub_path = "EPOL/main"
             resolve_pkglist_after_resolve_rc_name.delay(
                 repo_url=self.pkgs_repo_url,
+                repo_path=sub_path,
+                arch=self.arch,
                 product=_product_version,
                 _round=_round,
             )
             raise RuntimeError(
-                f"the packages of {self.milestone.name} " \
+                f"the packages of {self._round.name} " \
                 f"start resolving, please wait for several minutes"
             )
         elif self.refresh:
             raise RuntimeError(
-                f"LOCKED: the packages of {self.milestone.name} " \
+                f"LOCKED: the packages of {self._round.name} " \
                 f"has been in resolving process, " \
                 "please wait in patient or try again after a half hour"
             )
@@ -533,3 +550,129 @@ class PackageListHandler:
             rpm_name_dict_comparee,
             rpm_name_dict_comparer,
         )
+
+    def compare2(self, packages):
+        if not self.packages or not packages:
+            return None
+        
+        rpm_name_dict_comparer = RpmNameLoader.rpmlist2rpmdict_by_name(self.packages)
+        rpm_name_dict_comparee = RpmNameLoader.rpmlist2rpmdict_by_name(packages)
+
+        return RpmNameComparator.compare_rpm_dict2(
+            rpm_name_dict_comparee,
+            rpm_name_dict_comparer,
+        )
+
+
+class RoundHandler:
+    @staticmethod
+    def add_round(product_id, milestone_id):
+        p = Product.query.filter_by(id=product_id).first()
+        m = Milestone.query.filter_by(id=milestone_id).first()
+        if not p or not m:
+            raise RuntimeError(
+                "product or milestone does not exist."
+            )
+        round_num = m.name.split("-")[-1]
+        round_name = f"{p.name}-{p.version}-round-{round_num}"
+        round_type = "round"
+        if m.type == "release":
+            round_num = "100"
+            round_type = "release"
+            round_name = f"{p.name}-{p.version}-release"
+        r = Round.query.filter_by(name=round_name).first()
+        if not r:
+            data = {
+                "name": round_name,
+                "round_num": round_num,
+                "type": round_type,
+                "default_milestone_id": milestone_id,
+                "product_id": product_id
+            }
+            r = Insert(Round, data).insert_obj()
+        m = Milestone.query.filter_by(id=milestone_id).first()
+        m.round_id = r.id
+        m.add_update()
+        return r.id
+
+    @staticmethod
+    def bind_round_milestone(round_id, milestone_ids, isbind):
+        _round = Round.query.filter_by(id=round_id).first()
+        if not _round:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="round or milstone does not exist",
+            )
+        
+        for m_id in milestone_ids.split(","):
+            m = Milestone.query.filter_by(id=m_id).first()
+            if not m:
+                return jsonify(
+                    error_code=RET.NO_DATA_ERR,
+                    error_msg=f"milstone {m_id} does not exist",
+                )
+            r = Round.query.filter_by(default_milestone_id=m.id).first()
+            if r:
+                return jsonify(
+                    error_code=RET.NO_DATA_ERR,
+                    error_msg=f"milstone {m.name} can only bind to round {r.name}",
+                )
+            if isbind:
+                m.round_id = round_id
+            else:
+                m.round_id = None
+            m.add_update()
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK.",
+        )
+
+    @staticmethod
+    def get_rate_by_round(round_id):
+        _round = Round.query.filter_by(id=round_id).first()
+        if not _round:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="round does not exist",
+            )
+        isr = IssueSolvedRate.query.filter_by(
+            round_id=round_id, type="round").first()
+        data = dict()
+        if isr:
+            data = isr.to_json()
+        return jsonify(error_code=RET.OK, error_msg="OK", data=data)
+
+    @staticmethod
+    def get_rounds(product_id):
+        return Select(Round, {"product_id":product_id}).precise()
+
+    @staticmethod
+    def update_round_issue_rate_by_field(round_id, field):
+        from celeryservice.lib.issuerate import update_field_issue_rate
+        _round = Round.query.filter_by(
+            id=round_id).first()
+        if not _round:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="round does not exist",
+            )
+        issue_rate = IssueSolvedRate.query.filter_by(
+            round_id=round_id, type="round").first()
+        if not issue_rate:
+            Insert(
+                IssueSolvedRate,
+                {"round_id": round_id, "type": "round"}
+            ).single()
+
+        update_field_issue_rate.delay(
+            "round",
+            g.gitee_id,
+            {"org_id": _round.product.org_id, "product_id": _round.product_id},
+            field,
+            round_id
+        )
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+        )
+

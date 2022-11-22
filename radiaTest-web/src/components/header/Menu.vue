@@ -3,12 +3,9 @@
     id="home"
     :has-arrow="false"
     @click="handleHomeClick"
-    url="/home/dashboard"
+    url="/home/workflow"
   >
-    <template #text> <n-text>主页</n-text></template>
-  </my-tab>
-  <my-tab url="/home/version-management" :has-arrow="false" @click="handlePvmClick">
-    <template #text> <n-text>版本管理</n-text> </template>
+    <template #text> <n-text>工作台</n-text></template>
   </my-tab>
   <my-tab
     :has-arrow="false"
@@ -17,8 +14,8 @@
   >
     <template #text> <n-text>资源池</n-text> </template>
   </my-tab>
-  <my-tab url="/home/testing" :has-arrow="false" @click="handleTestClick">
-    <template #text> <n-text>测试中心</n-text> </template>
+  <my-tab url="/home/version-management" :has-arrow="false" @click="handlePvmClick">
+    <template #text> <n-text>版本管理</n-text> </template>
   </my-tab>
   <my-tab
     id="testcase"
@@ -27,9 +24,6 @@
     @click="handleTcmClick"
   >
     <template #text> <n-text>用例管理</n-text> </template>
-  </my-tab>
-  <my-tab :has-arrow="false" url="/home/tm" @click="handleTaskClick">
-    <template #text> <n-text>任务管理</n-text> </template>
   </my-tab>
 </template>
 

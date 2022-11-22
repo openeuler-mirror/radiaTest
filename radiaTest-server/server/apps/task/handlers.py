@@ -680,20 +680,22 @@ class HandlerTask(object):
             group = Group.query.filter_by(is_delete=False, id=task.group_id).first()
 
         return_data["executor_group"] = (
-            GroupInfoSchema(**group.__dict__).dict() if group else None
+            GroupInfoSchema(**group.to_dict()).dict() if group else None
         )
         return_data["tags"] = [
             TagInfoSchema(**item.__dict__).dict() for item in task.tags
         ]
-        if task.type != "VERSION" and task.milestones:
-            milestone = None
-            if task.milestones:
-                milestone = Milestone.query.get(task.milestones[0].milestone_id)
-            return_data["milestone"] = milestone.to_json()
-        elif task.type == "VERSION" and task.milestones:
+
+        if task.milestones:
             milestones = [item.milestone_id for item in task.milestones]
             milestones = Milestone.query.filter(Milestone.id.in_(milestones)).all()
             return_data["milestones"] = [item.to_json() for item in milestones]
+            if task.type != "VERSION":
+                milestone = None
+                if task.milestones:
+                    milestone = Milestone.query.get(task.milestones[0].milestone_id)
+                return_data["milestone"] = milestone.to_json()
+        
         return jsonify(error_code=RET.OK, error_msg="OK", data=return_data)
 
     @staticmethod
@@ -793,7 +795,7 @@ class HandlerTaskParticipant(object):
                 ).first()
                 if not group:
                     continue
-                participant = GroupInfoSchema(**group.__dict__).dict()
+                participant = GroupInfoSchema(**group.to_dict()).dict()
             else:
                 participant = UserBaseSchema(
                     **User.query.get(item.participant_id).__dict__

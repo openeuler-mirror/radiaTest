@@ -3,13 +3,13 @@ import router from '@/router/index';
 import axios from '@/axios';
 import { formatTime } from '@/assets/utils/dateFormatUtils.js';
 import { storage } from '@/assets/utils/storageUtils';
-import { ref, toRef, h } from 'vue';
 import { NButton } from 'naive-ui';
 import { editTask } from '../task/modules/taskDetail.js';
 import { getGroup } from '@/api/get';
 
 const menuSelect = ref(null); // 当前页面索引值
-const isTask = ref(true); // 是否是任务页面
+const isTask = ref(true); // 是否是任务看板页面
+const backable = ref(false); // 是否可以返回任务看板
 const kanban = toRef(store.state.taskManage, 'kanban'); // 看板视图、表格视图切换
 const originators = ref([]); // 创建者
 const executors = ref([]); // 执行者
@@ -183,19 +183,29 @@ const recycleBinTaskColumns = [
 const menu = ref([
   {
     id: 0,
-    text: '任务',
-    name: 'task'
+    text: '个人概览',
+    name: 'dashboard',
   },
   {
     id: 1,
-    text: '可视化',
-    name: 'report'
+    text: '需求中心',
+    name: 'require'
   },
   {
     id: 2,
-    text: '分配模板',
-    name: 'distribution'
-  }
+    text: '任务看板',
+    name: 'task'
+  },
+  {
+    id: 3,
+    text: '测试设计',
+    name: 'design'
+  },
+  {
+    id: 4,
+    text: '测试执行',
+    name: 'testing'
+  },
 ]);
 
 //获取里程碑列表
@@ -262,8 +272,9 @@ function initCondition() {
 // 页面切换
 function menuClick(item, index) {
   menuSelect.value = index;
-  router.push(`/home/tm/${item.name}`);
-  item.name === 'task' ? (isTask.value = true) : (isTask.value = false);
+  router.push(`/home/workflow/${item.name}`);
+  index === 2 ? isTask.value = true : isTask.value = false;
+  item.name === 'task' ? backable.value = false : backable.value = true;
 }
 
 // 视图切换
@@ -376,11 +387,41 @@ function filterchange(filterArray) {
   );
 }
 
+const watchRoute = () => {
+  if (router.currentRoute.value.path === '/home/workflow/dashboard') {
+    menuSelect.value = 0;
+    isTask.value = false;
+    backable.value = false;
+  } else if (router.currentRoute.value.path === '/home/workflow/require') {
+    menuSelect.value = 1;
+    isTask.value = false;
+    backable.value = false;
+  } else if (router.currentRoute.value.path === '/home/workflow/task') {
+    menuSelect.value = 2;
+    isTask.value = true;
+    backable.value = false;
+  } else if (router.currentRoute.value.path.startsWith('/home/workflow/testing')) {
+    menuSelect.value = 4;
+    isTask.value = false;
+    backable.value = false;
+  } else if (router.currentRoute.value.path === '/home/workflow/report') {
+    menuSelect.value = 2;
+    isTask.value = true;
+    backable.value = true;
+  } else if (router.currentRoute.value.path === '/home/workflow/distribution') {
+    menuSelect.value = 2;
+    isTask.value = true;
+    backable.value = true;
+  }
+};
+
 export {
+  watchRoute,
   filterchange,
   menuSelect,
   isTask,
   kanban,
+  backable,
   originators,
   executors,
   participants,

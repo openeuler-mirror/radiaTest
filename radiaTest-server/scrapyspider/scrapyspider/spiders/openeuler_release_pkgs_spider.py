@@ -28,9 +28,14 @@ class OpeneulerPkgsListSpider(Spider):
     
     def start_requests(self):
         urls = [
-            f"{self.openeuler_repo_url}/everything/aarch64/Packages/",
-            f"{self.openeuler_repo_url}/everything/x86_64/Packages/",
+            f"{self.openeuler_repo_url}/{self.arch}/Packages/"
         ]
+        if self.arch == "all":
+            urls = [
+                f"{self.openeuler_repo_url}/aarch64/Packages/",
+                f"{self.openeuler_repo_url}/x86_64/Packages/"
+            ]
+            
         for url in urls:
             yield Request(url=url, callback=self.parse)
 
@@ -45,4 +50,6 @@ class OpeneulerPkgsListSpider(Spider):
                 item["rpm_file_name"] = package
                 item["build"] = self.build
                 item["product"] = self.product
+                item["repo_path"] = self.repo_path.split("/")[0]
+                item["arch"] = self.arch
                 yield item

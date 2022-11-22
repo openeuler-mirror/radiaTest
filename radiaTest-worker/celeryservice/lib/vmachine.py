@@ -26,7 +26,6 @@ from celeryservice.lib import AuthTaskHandler
 from worker.utils.bash import (
     get_network_source,
     install_base,
-    rm_disk_image,
     domain_cli,
     undefine_domain,
 )
@@ -221,10 +220,6 @@ class InstallVmachine(VmachineBaseSchema):
             self.update_vmachine(self._body)
 
         except (RuntimeError, TypeError, KeyError, AttributeError):
-            rm_disk_image(
-                self._body.get("name"),
-                celeryconfig.storage_pool,
-            )
             self.update_task_status(self._body)
 
             exitcode, output = getstatusoutput(
@@ -422,10 +417,6 @@ class InstallVmachine(VmachineBaseSchema):
             )
         except (RuntimeError, TypeError, KeyError, AttributeError):
             self.logger.info(self._body)
-            rm_disk_image(
-                self._body.get("name"),
-                celeryconfig.storage_pool,
-            )
 
             self.update_task_status(self._body)
 
@@ -565,10 +556,6 @@ class InstallVmachine(VmachineBaseSchema):
 
         except (RuntimeError, TypeError, KeyError, AttributeError):
             self.logger.info(self._body)
-            rm_disk_image(
-                self._body.get("name"),
-                celeryconfig.storage_pool,
-            )
             self.update_task_status(self._body)
 
             exitcode, output = getstatusoutput(

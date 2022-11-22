@@ -9,8 +9,10 @@ import Job from '@/views/testCenter/job/Job';
 import Testcase from '@/views/caseManage/testcase/Testcase';
 import Blank from '@/components/public/Blank';
 import Report from '@/views/taskManage/report/Report.vue';
-import TaskManage from '@/views/taskManage/TaskManage';
 import Task from '@/views/taskManage/task/Task';
+import Require from '@/views/taskManage/require/Require.vue';
+import PersonalBoard from '@/views/taskManage/personalBoard/PersonalBoard';
+import strategyCenter from '@/views/strategyCenter/strategyCenter';
 import Distribution from '@/views/taskManage/distribution/Distribution.vue';
 import newLogin from '@/views/login/newLogin.vue';
 import PersonalCenter from '@/views/personalCenter/PersonalCenter.vue';
@@ -53,7 +55,7 @@ const router = createRouter({
     },
     {
       path: '/home/',
-      redirect: '/home/dashboard',
+      redirect: '/home/workflow',
       component: Home,
       name: 'home',
       meta: {
@@ -61,11 +63,70 @@ const router = createRouter({
       },
       children: [
         {
-          path: 'dashboard/',
+          path: 'workflow/',
           component: Dashboard,
+          redirect: '/home/workflow/dashboard',
           meta: {
             title: 'raidaTest测试平台'
-          }
+          },
+          children: [
+            {
+              path: 'dashboard/',
+              component: PersonalBoard,
+              name: 'dashboard',
+            },
+            {
+              path: 'task/',
+              component: Task,
+              name: 'task',
+            },
+            {
+              path: 'require/',
+              component: Require,
+              name: 'require'
+            },
+            {
+              path: 'report/',
+              component: Report,
+              name: 'report'
+            },
+            {
+              path: 'distribution/',
+              component: Distribution,
+              name: 'distribution'
+            },
+            {
+              path: 'distribution/',
+              component: Distribution,
+              name: 'distribution'
+            },
+            {
+              path: 'design/',
+              component: strategyCenter,
+              name: 'design',
+            },
+            {
+              path: 'testing/',
+              redirect: '/home/workflow/testing/jobs',
+              component: TestCenterManagement,
+              children: [
+                {
+                  path: 'jobs/',
+                  component: Job,
+                  meta: {
+                    title: '测试看板'
+                  }
+                },
+                {
+                  path: 'template/',
+                  component: Template,
+                  meta: {
+                    title: '模板仓库'
+                  }
+                }
+              ]
+            },
+          ]
         },
         {
           path: 'version-management/',
@@ -125,27 +186,6 @@ const router = createRouter({
               component: Vmachine,
               meta: {
                 title: '虚拟机资源池'
-              }
-            }
-          ]
-        },
-        {
-          path: 'testing/',
-          redirect: '/home/testing/jobs',
-          component: TestCenterManagement,
-          children: [
-            {
-              path: 'jobs/',
-              component: Job,
-              meta: {
-                title: '测试看板'
-              }
-            },
-            {
-              path: 'template/',
-              component: Template,
-              meta: {
-                title: '模板仓库'
               }
             }
           ]
@@ -227,25 +267,6 @@ const router = createRouter({
             }
           ]
         },
-        {
-          path: 'tm/',
-          redirect: '/home/tm/task',
-          component: TaskManage,
-          children: [
-            {
-              path: 'task/',
-              component: Task
-            },
-            {
-              path: 'report/',
-              component: Report
-            },
-            {
-              path: 'distribution/',
-              component: Distribution
-            }
-          ]
-        }
       ]
     },
     {

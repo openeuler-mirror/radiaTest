@@ -32,9 +32,9 @@ import pytz
 import redis
 
 from scrapyspider.items import (
-    OpeneulerPkgsListItem, 
-    OpenqaHomeItem, 
-    OpenqaGroupOverviewItem, 
+    OpeneulerPkgsListItem,
+    OpenqaHomeItem,
+    OpenqaGroupOverviewItem,
     OpenqaTestsOverviewItem
 )
 
@@ -45,6 +45,14 @@ class ScrapyspiderPipeline:
 
 
 class FilePipeline:
+    def __init__(self) -> None:
+        self.product = None
+        self.build = None
+        self.repo_path = None
+        self.arch = None
+        self.pkglist_storage_path = None
+        self.timestamp = None
+
     def open_spider(self, spider):
         server_config_ini = Path(spider.settings.get("SERVER_INI_PATH"))
         cfg = configparser.ConfigParser()
@@ -54,15 +62,19 @@ class FilePipeline:
         if not os.path.isdir(self.pkglist_storage_path):
             os.mkdir(self.pkglist_storage_path)
 
-        self.timestamp = datetime.now(tz=pytz.timezone('Asia/Shanghai')).strftime('%Y%m%d%H%M%S')
+        self.timestamp = datetime.now(tz=pytz.timezone(
+            'Asia/Shanghai')).strftime('%Y%m%d%H%M%S')
 
     def process_item(self, item, spider):
         if isinstance(item, OpeneulerPkgsListItem):
             self.product = item["product"]
             self.build = item["build"]
+            self.repo_path = item["repo_path"]
+            self.arch = item["arch"]
 
             exitcode, output = subprocess.getstatusoutput(
-                f"echo {item['rpm_file_name']} >> {self.pkglist_storage_path}/{self.build}-{self.timestamp}.pkgs"
+                f"echo {item['rpm_file_name']} >> {self.pkglist_storage_path}/"\
+                    f"{self.build}-{self.repo_path}-{self.arch}-{self.timestamp}.pkgs"
             )
             if exitcode != 0:
                 raise RuntimeError(output)
@@ -73,22 +85,37 @@ class FilePipeline:
         pattern = r'^rc([1-9])_+'
         result = re.match(pattern, self.build)
         if result:
-            if os.path.isfile(f"{self.pkglist_storage_path}/{self.product}-round-{result.group(1)}.pkgs"):
-                os.remove(f"{self.pkglist_storage_path}/{self.product}-round-{result.group(1)}.pkgs")
+            if os.path.isfile(f"{self.pkglist_storage_path}/{self.product}"\
+                f"-round-{result.group(1)}-{self.repo_path}-{self.arch}.pkgs"):
+                os.remove(
+                    f"{self.pkglist_storage_path}/{self.product}-"\
+                        f"round-{result.group(1)}-{self.repo_path}-{self.arch}.pkgs"
+                )
             os.rename(
-                f"{self.pkglist_storage_path}/{self.build}-{self.timestamp}.pkgs",
-                f"{self.pkglist_storage_path}/{self.product}-round-{result.group(1)}.pkgs"
+                f"{self.pkglist_storage_path}/{self.build}-"\
+                    f"{self.repo_path}-{self.arch}-{self.timestamp}.pkgs",
+                f"{self.pkglist_storage_path}/{self.product}-"\
+                    f"round-{result.group(1)}-{self.repo_path}-{self.arch}.pkgs"
             )
         else:
-            if os.path.isfile(f"{self.pkglist_storage_path}/{self.product}.pkgs"):
-                os.remove(f"{self.pkglist_storage_path}/{self.product}.pkgs")
+            if os.path.isfile(f"{self.pkglist_storage_path}/"\
+                f"{self.product}-{self.repo_path}-{self.arch}.pkgs"):
+                os.remove(
+                    f"{self.pkglist_storage_path}/{self.product}"\
+                        f"-{self.repo_path}-{self.arch}.pkgs"
+                )
             os.rename(
-                f"{self.pkglist_storage_path}/{self.build}-{self.timestamp}.pkgs",
-                f"{self.pkglist_storage_path}/{self.product}.pkgs"
+                f"{self.pkglist_storage_path}/{self.build}-"\
+                    f"{self.repo_path}-{self.arch}-{self.timestamp}.pkgs",
+                f"{self.pkglist_storage_path}/{self.product}-"\
+                    f"{self.repo_path}-{self.arch}.pkgs"
             )
 
 
 class RedisPipeline:
+    def __init__(self) -> None:
+        self.db_conn = None
+
     def open_spider(self, spider):
         server_config_ini = Path(spider.settings.get("SERVER_INI_PATH"))
         cfg = configparser.ConfigParser()
@@ -102,20 +129,24 @@ class RedisPipeline:
             db_index = cfg.get("redis", "REDIS_DB")
         db_psd = cfg.get("redis", "REDIS_SECRET")
 
-        self.db_conn = redis.StrictRedis(host=host, port=port, db=db_index, password=db_psd)
+        self.db_conn = redis.StrictRedis(
+            host=host, port=port, db=db_index, password=db_psd
+        )
 
     def process_item(self, item, spider):
         if isinstance(item, OpenqaHomeItem):
             self.db_conn.set(
                 "{}_group_overview_url".format(
                     item["product_name"]
-                ), 
+                ),
                 item["group_overview_url"]
             )
             return item
-        
+
         elif isinstance(item, OpenqaGroupOverviewItem):
-            _build_time_array = time.strptime(item["build_time"], "%Y-%m-%dT%H:%M:%SZ")
+            _build_time_array = time.strptime(
+                item["build_time"], "%Y-%m-%dT%H:%M:%SZ"
+            )
             _build_time_stamp = int(time.mktime(_build_time_array))
 
             self.db_conn.zadd(
@@ -132,23 +163,46 @@ class RedisPipeline:
                 ),
                 item["build_tests_url"]
             )
-        
+
         elif isinstance(item, OpenqaTestsOverviewItem):
             _key = "{}_{}".format(
                 item["product_build"],
                 item["test"],
             )
 
-            self.db_conn.hset(_key, "aarch64_res_status", item["aarch64_res_status"])
+            self.db_conn.hset(
+                _key,
+                "aarch64_res_status",
+                item["aarch64_res_status"]
+            )
             self.db_conn.hset(_key, "aarch64_res_log", item["aarch64_res_log"])
-            self.db_conn.hset(_key, "aarch64_failedmodule_name", item["aarch64_failedmodule_name"])
-            self.db_conn.hset(_key, "aarch64_failedmodule_log", item["aarch64_failedmodule_log"])
+            self.db_conn.hset(
+                _key,
+                "aarch64_failedmodule_name",
+                item["aarch64_failedmodule_name"]
+            )
+            self.db_conn.hset(
+                _key,
+                "aarch64_failedmodule_log",
+                item["aarch64_failedmodule_log"]
+            )
 
-            self.db_conn.hset(_key, "x86_64_res_status", item["x86_64_res_status"])
+            self.db_conn.hset(
+                _key,
+                "x86_64_res_status",
+                item["x86_64_res_status"]
+            )
             self.db_conn.hset(_key, "x86_64_res_log", item["x86_64_res_log"])
-            self.db_conn.hset(_key, "x86_64_failedmodule_name", item["x86_64_failedmodule_name"])
-            self.db_conn.hset(_key, "x86_64_failedmodule_log", item["x86_64_failedmodule_log"])
-            
+            self.db_conn.hset(
+                _key,
+                "x86_64_failedmodule_name",
+                item["x86_64_failedmodule_name"]
+            )
+            self.db_conn.hset(
+                _key,
+                "x86_64_failedmodule_log",
+                item["x86_64_failedmodule_log"]
+            )
 
     def close_spider(self, spider):
         self.db_conn.connection_pool.disconnect()

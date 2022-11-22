@@ -1,7 +1,11 @@
+from flask import g
+from sqlalchemy import func, select
+
 from server.model.base import BaseModel
 from server.model.permission import Role
 from server import db, redis_client
 from server.utils.redis_util import RedisKey
+from server.model.organization import ReUserOrganization
 
 
 class User(db.Model, BaseModel):
@@ -13,9 +17,26 @@ class User(db.Model, BaseModel):
     avatar_url = db.Column(db.String(512), nullable=True, default=None)
     cla_email = db.Column(db.String(128), nullable=True, default=None)
 
+    like = db.Column(db.Integer(), nullable=False, default=0)
+    influence = db.Column(db.Integer(), nullable=False, default=0)
+    behavior = db.Column(db.Float(), nullable=False, default=100.0)
+
     re_user_role = db.relationship("ReUserRole", backref="user")
     re_user_group = db.relationship("ReUserGroup", backref="user")
     re_user_organization = db.relationship("ReUserOrganization", backref="user")
+    re_validator_requirement_package = db.relationship("RequirementPackage", backref="validator")
+    re_user_requirement_publisher = db.relationship("RequirementPublisher", backref="user")
+    re_user_requirement_acceptor = db.relationship("RequirementAcceptor", backref="user")
+
+    def _get_basic_info(self):
+        return {
+            "gitee_id": self.gitee_id,
+            "gitee_login": self.gitee_login,
+            "gitee_name": self.gitee_name,
+            "phone": self.phone,
+            "avatar_url": self.avatar_url,
+            "cla_email": self.cla_email
+        }
 
     def _get_roles(self):
         roles = []
@@ -30,29 +51,83 @@ class User(db.Model, BaseModel):
         _role = Role.query.join(ReUserRole).filter(*_filter).first()
         return _role.to_json() if _role else None
 
+    def add_update_influence(self, table=None, namespace=None, broadcast=False):
+        ranked_users = select([
+            User.gitee_id,
+            func.rank().over(
+                order_by=User.influence.desc(),
+                partition_by=ReUserOrganization.organization_id,
+            ).label('rank')
+        ]).filter(
+            ReUserOrganization.is_delete == False,
+            ReUserOrganization.organization_id == int(
+                redis_client.hget(
+                    RedisKey.user(g.gitee_id),
+                    "current_org_id"
+                )
+            ),
+            User.gitee_id == ReUserOrganization.user_gitee_id,
+        )
+
+        db.session.query(
+            ReUserOrganization
+        ).filter(
+            ReUserOrganization.is_delete == False,
+            ReUserOrganization.organization_id == int(
+                redis_client.hget(RedisKey.user(g.gitee_id),
+                                  "current_org_id")
+            ),
+        ).update(
+            {
+                "rank": select([
+                    ranked_users.c.rank
+                ]).filter(
+                    ranked_users.c.gitee_id == ReUserOrganization.user_gitee_id
+                ).scalar_subquery()
+            },
+            synchronize_session=False
+        )
+
+        return super().add_update(table, namespace, broadcast)
+
+    @property
+    def rank(self):
+        _rank = None
+        org_id = redis_client.hget(RedisKey.user(g.gitee_id), "current_org_id")
+        if self.re_user_organization and org_id is not None:
+            _re = ReUserOrganization.query.filter_by(
+                user_gitee_id=self.gitee_id,
+                is_delete=False,
+                organization_id=int(org_id)
+            ).first()
+            _rank = _re.rank
+        return _rank
+
+    def to_summary(self):
+        return {
+            **self._get_basic_info(),
+            "influence": self.influence,
+            "behavior": self.behavior,
+            "like": self.like,
+            "rank": self.rank,
+        }
+
     def to_dict(self):
         return {
-            "gitee_id": self.gitee_id,
-            "gitee_login": self.gitee_login,
-            "gitee_name": self.gitee_name,
-            "phone": self.phone,
-            "avatar_url": self.avatar_url,
-            "cla_email": self.cla_email,
+            **self._get_basic_info(),
             "roles": self._get_roles()
         }
 
     def to_json(self):
         return {
-            "gitee_id": self.gitee_id,
-            "gitee_login": self.gitee_login,
-            "gitee_name": self.gitee_name,
-            "phone": self.phone,
-            "avatar_url": self.avatar_url,
-            "cla_email": self.cla_email,
+            **self._get_basic_info(),
             "roles": self._get_roles(),
-            "role": self._get_public_role()
+            "role": self._get_public_role(),
+            "influence": self.influence,
+            "behavior": self.behavior,
+            "like": self.like,
+            "rank": self.rank,
         }
-
 
     @staticmethod
     def synchronize_gitee_info(gitee_user, user=None):

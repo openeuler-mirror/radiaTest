@@ -6,7 +6,7 @@ export const useTable = (url, params, tableData, pagination, loading, once) => {
     axios.get(url, params).then((res) => {
       loading.value = false;
       pagination.value.pageCount = res.data.pages;
-      tableData.value = res.data.items;
+      tableData.value = res.data?.items;
     });
   };
   if (once) {

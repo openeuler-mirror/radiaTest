@@ -1,5 +1,8 @@
 import axios from '@/axios';
+import { lyla } from 'lyla';
 import { unkonwnErrorMsg } from '@/assets/utils/description';
+import config from '@/assets/config/settings';
+import { storage } from '@/assets/utils/storageUtils';
 
 function postRequest(url, data) {
   return new Promise((resolve, reject) => {
@@ -57,10 +60,8 @@ export function setOrgUserRole(id, data) {
 export function setGroupRepo(data) {
   return postRequest('/v1/git-repo', data);
 }
-export function setPackageListComparationDetail(qualityboardId, milestonePreId, milestoneCurId) {
-  return postRequest(
-    `/v1/qualityboard/${qualityboardId}/milestone/${milestonePreId}/with/${milestoneCurId}/pkg-compare`
-  );
+export function setPackageListComparationDetail(qualityboardId, roundPreId, roundCurId, params) {
+  return postRequest(`/v1/qualityboard/${qualityboardId}/round/${roundPreId}/with/${roundCurId}/pkg-compare`, params);
 }
 
 export function addCheckListItem(data) {
@@ -73,4 +74,45 @@ export function addCheckItem(data) {
 
 export function applyUserGroup(id) {
   return postRequest(`/v1/groups/${id}/apply`);
+}
+
+export function orgPublishRequire(orgId, data) {
+  return postRequest(`/v1/requirement/org/${orgId}`, data);
+}
+
+export function publishRequire(data) {
+  return postRequest('/v1/requirement', data);
+}
+
+export function addAttachment(id, formData, onProgress) {
+  return lyla.post(`https://${config.serverPath}/api/v1/requirement/${id}/attachment`, {
+    withCredentials: true,
+    headers: {
+      Authorization: `JWT ${storage.getValue('token')}`
+    },
+    body: formData,
+    onUploadProgress: ({ percent }) => {
+      onProgress({ percent: Math.ceil(percent) });
+    }
+  });
+}
+
+export function addRequireProgress(id, data) {
+  return postRequest(`/v1/requirement/${id}/progress`, data);
+}
+
+export function validateRequirePackage(requireId, packageId, data) {
+  return postRequest(`/v1/requirement/${requireId}/package/${packageId}/validate`, data);
+}
+
+export function addRequirePackageTask(requireId, packageId, data) {
+  return postRequest(`/v1/requirement/${requireId}/package/${packageId}/task`, data);
+}
+
+export function divideRequireRewards(requireId, data) {
+  return postRequest(`/v1/requirement/${requireId}/reward`, data);
+}
+
+export function setHomonymousIsomerismPkgcompare(qualityboardId, roundId, params) {
+  return postRequest(`/v1/qualityboard/${qualityboardId}/round/${roundId}/pkg-compare`, params);
 }

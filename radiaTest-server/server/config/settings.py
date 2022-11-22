@@ -142,6 +142,9 @@ class Config(object):
     # 默认虚拟机容量(单位:G)
     VM_DEFAULT_CAPACITY = 50
 
+    # 需求涉及软件包的任务目标
+    REQUIREMENT_PACKAGE_TARGETS = ["测试设计", "用例开发", "已执行", "问题分析"]
+
 
 class TestingConfig(Config):
     TESTING = True

@@ -1,9 +1,9 @@
-import { h,ref,watch,nextTick } from 'vue';
-import { 
-  getFeatureCompletionRates, 
-  getFeatureList as getFeatureData, 
-  getPackageListComparationSummary as getPackageData,
-  getPackageListComparationDetail as getPackageChangeSummary,
+import { h, ref, watch, nextTick } from 'vue';
+import {
+  getFeatureCompletionRates,
+  getFeatureList as getFeatureData,
+  getPackageListComparationSummaryAxios,
+  getPackageListComparationDetail as getPackageChangeSummary
 } from '@/api/get';
 import { NButton, NTag, NSpace } from 'naive-ui';
 import { list, currentId, preId } from './productTable';
@@ -14,9 +14,9 @@ const active = ref(false);
 const requestCard = ref(null);
 const cardDescription = ref({
   title: null,
-  progress: null,
+  progress: null
 });
-function cardClick () {
+function cardClick() {
   active.value = true;
 }
 const activeTab = ref('testProgress');
@@ -37,15 +37,21 @@ const packageChangeSummary = ref({
   delPackagesNum: 0
 });
 
-function getPackageListComparationSummary(qualityboardId, _refresh = false) {
-  const idList = list.value.map(item => item.key);
+// 获取软件包变更数据
+function getPackageListComparationSummary(qualityboardId, params) {
+  const idList = list.value.map((item) => item.id);
   const currentIndex = idList.indexOf(currentId.value);
-  if ( currentIndex === 0) {
+  if (currentIndex === 0) {
     // 暂时设为round1，未来设置为前正式发布版本的release里程碑
     preId.value = currentId.value;
-    getPackageData(qualityboardId, currentId.value, { summary: true, refresh: _refresh })
+    getPackageListComparationSummaryAxios(qualityboardId, currentId.value, {
+      summary: true,
+      refresh: params.refresh,
+      repo_path: params.repoPath,
+      arch: params.arch
+    })
       .then((res) => {
-        if (!_refresh) {
+        if (!params.refresh) {
           newPackage.value.size = res.data.size;
           newPackage.value.name = res.data.name;
           oldPackage.value.size = res.data.size;
@@ -65,9 +71,14 @@ function getPackageListComparationSummary(qualityboardId, _refresh = false) {
       });
   } else {
     preId.value = idList[currentIndex - 1];
-    getPackageData(qualityboardId, preId.value, { summary: true, refresh: _refresh })
+    getPackageListComparationSummaryAxios(qualityboardId, preId.value, {
+      summary: true,
+      refresh: params.refresh,
+      repo_path: params.repoPath,
+      arch: params.arch
+    })
       .then((res) => {
-        if (!_refresh) {
+        if (!params.refresh) {
           oldPackage.value.size = res.data.size;
           oldPackage.value.name = res.data.name;
         } else {
@@ -79,9 +90,14 @@ function getPackageListComparationSummary(qualityboardId, _refresh = false) {
         oldPackage.value.size = '?';
         oldPackage.value.name = null;
       });
-    getPackageData(qualityboardId, currentId.value, { summary: true, refresh: _refresh })
+    getPackageListComparationSummaryAxios(qualityboardId, currentId.value, {
+      summary: true,
+      refresh: params.refresh,
+      repo_path: params.repoPath,
+      arch: params.arch
+    })
       .then((res) => {
-        if (!_refresh) {
+        if (!params.refresh) {
           newPackage.value.size = res.data.size;
           newPackage.value.name = res.data.name;
         } else {
@@ -93,7 +109,7 @@ function getPackageListComparationSummary(qualityboardId, _refresh = false) {
         newPackage.value.size = '?';
         newPackage.value.name = null;
       });
-    getPackageChangeSummary(qualityboardId, preId.value, currentId.value, { summary: true })
+    getPackageChangeSummary(qualityboardId, preId.value, currentId.value, { summary: true, repo_path: params.repoPath })
       .then((res) => {
         packageChangeSummary.value.addPackagesNum = res.data.add_pkgs_num;
         packageChangeSummary.value.delPackagesNum = res.data.del_pkgs_num;
@@ -136,26 +152,28 @@ const featureListColumns = [
   {
     key: 'feature',
     title: '特性',
-    className: 'feature-name',
+    className: 'feature-name'
   },
   {
     key: 'sig',
     title: '归属SIG',
     className: 'feature-sig',
     render: (row) => {
-      return row.sig?.map((item) => h(
-        NButton, 
-        {
-          type: 'info',
-          text: true,
-          style: {
-            padding: '5px',
-            display: 'block',
+      return row.sig?.map((item) =>
+        h(
+          NButton,
+          {
+            type: 'info',
+            text: true,
+            style: {
+              padding: '5px',
+              display: 'block'
+            },
+            onClick: () => {}
           },
-          onClick: () => {}
-        }, 
-        item
-      ));
+          item
+        )
+      );
     }
   },
   {
@@ -163,25 +181,27 @@ const featureListColumns = [
     title: '责任人',
     className: 'feature-owner',
     render: (row) => {
-      return row.owner?.map((item) => h(
-        NButton, 
-        {
-          type: 'info',
-          text: true,
-          style: {
-            padding: '5px',
-            display: 'block',
+      return row.owner?.map((item) =>
+        h(
+          NButton,
+          {
+            type: 'info',
+            text: true,
+            style: {
+              padding: '5px',
+              display: 'block'
+            },
+            onClick: () => {}
           },
-          onClick: () => {}
-        }, 
-        item
-      ));
+          item
+        )
+      );
     }
   },
   {
     key: 'release-to',
     title: '发布方式',
-    className: 'feature-release-to',
+    className: 'feature-release-to'
   },
   {
     key: 'pkgs',
@@ -198,7 +218,7 @@ const featureListColumns = [
   {
     key: 'status',
     title: '特性状态',
-    className: 'feature-task-status',
+    className: 'feature-task-status'
   }
 ];
 
@@ -219,15 +239,16 @@ function getFeatureList(qualityboardId, _type) {
     .then((res) => {
       featureListData.value = res.data;
     })
-    .finally(() => { featureLoading.value = false; });
-} 
+    .finally(() => {
+      featureLoading.value = false;
+    });
+}
 
 function getFeatureSummary(qualityboardId) {
-  getFeatureCompletionRates(qualityboardId)
-    .then((res) => {
-      additionFeatureSummary.value = res.data.addition_feature_summary;
-      inheritFeatureSummary.value = res.data.inherit_feature_summary;
-    });
+  getFeatureCompletionRates(qualityboardId).then((res) => {
+    additionFeatureSummary.value = res.data.addition_feature_summary;
+    inheritFeatureSummary.value = res.data.inherit_feature_summary;
+  });
 }
 
 function cleanFeatureListData() {
@@ -276,5 +297,5 @@ export {
   featureListData,
   featureLoading,
   getPackageListComparationSummary,
-  packageChangeSummary,
+  packageChangeSummary
 };

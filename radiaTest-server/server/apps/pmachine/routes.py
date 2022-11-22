@@ -360,14 +360,21 @@ class PmachineReleaseEvent(Resource):
                     error_msg="Modify ssh password error, can't released."
                 )
             else:
-                pmachine_passwd = _resp.get("error_msg").split(":")
-                mail = Mail()
-                mail.send_text_mail(
-                    current_app.config.get("ADMIN_MAIL_ADDR"),
-                    subject="【radiaTest平台】{}-密码变更通知".format(pmachine_passwd[0]),
-                    text="{} new password:{}".format(pmachine_passwd[0], pmachine_passwd[1])
-                )
-
+                messenger_res = _resp.get("error_msg")
+                current_app.logger.info("messenger response info:{}".format(messenger_res))
+                pmachine_passwd = _resp.get("data")
+                if isinstance(pmachine_passwd, list):
+                    mail = Mail()
+                    mail.send_text_mail(
+                        current_app.config.get("ADMIN_MAIL_ADDR"),
+                        subject="【radiaTest平台】{}-密码变更通知".format(pmachine_passwd[0]),
+                        text="{} new password:{}".format(pmachine_passwd[0], pmachine_passwd[1])
+                    )
+                else:
+                    return jsonify(
+                        error_code=RET.BAD_REQ_ERR,
+                        error_msg="messenger response is not correct"
+                    )
         if pmachine.state == "occupied":
             _body = {
                 "description": sqlalchemy.null(),

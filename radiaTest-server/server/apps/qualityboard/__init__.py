@@ -3,6 +3,8 @@ from flask_restful import Api
 from .routes import (
     FeatureListSummary,
     PackageListCompareEvent,
+    RoundIssueEvent,
+    SamePackageListCompareEvent,
     PackageListEvent,
     QualityBoardEvent,
     QualityBoardItemEvent,
@@ -22,6 +24,9 @@ from .routes import (
     CheckItemSingleEvent,
     QualityResultCompare,
     QualityResult,
+    RoundEvent,
+    RoundIssueRateEvent,
+    RoundItemEvent,
 )
 
 
@@ -92,11 +97,15 @@ def init_api(api: Api):
     )
     api.add_resource(
         PackageListEvent,
-        "/api/v1/qualityboard/<int:qualityboard_id>/milestone/<int:milestone_id>/pkg-list",
+        "/api/v1/qualityboard/<int:qualityboard_id>/round/<int:round_id>/pkg-list",
     )
     api.add_resource(
         PackageListCompareEvent,
-        "/api/v1/qualityboard/<int:qualityboard_id>/milestone/<int:comparee_milestone_id>/with/<int:comparer_milestone_id>/pkg-compare"
+        "/api/v1/qualityboard/<int:qualityboard_id>/round/<int:comparee_round_id>/with/<int:comparer_round_id>/pkg-compare"
+    )
+    api.add_resource(
+        SamePackageListCompareEvent,
+        "/api/v1/qualityboard/<int:qualityboard_id>/round/<int:round_id>/pkg-compare"
     )
     api.add_resource(
         QualityResultCompare,
@@ -105,4 +114,20 @@ def init_api(api: Api):
     api.add_resource(
         QualityResult,
         "/api/v1/quality-result/<int:milestone_id>"
+    )
+    api.add_resource(
+        RoundEvent,
+        "/api/v1/round"
+    )
+    api.add_resource(
+        RoundItemEvent,
+        "/api/v1/round/<int:round_id>/bind-milestone"
+    )
+    api.add_resource(
+        RoundIssueRateEvent,
+        "/api/v1/round/<int:round_id>/issue-rate"
+    )
+    api.add_resource(
+        RoundIssueEvent,
+        "/api/v1/round/<int:round_id>/issues"
     )

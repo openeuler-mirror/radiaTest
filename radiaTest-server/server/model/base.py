@@ -11,13 +11,11 @@ class BaseModel(object):
         db.DateTime(), default=datetime.datetime.now, onupdate=datetime.datetime.now
     )
 
-    def _emit(self, table, namespace, broadcast):
-        if table and namespace:
-            socketio.emit(
-                "update",
-                namespace=namespace,
-                broadcast=broadcast,
-            )
+    def convert_time_format(self, t):
+        if isinstance(t, datetime.date):
+            return t.strftime("%Y-%m-%d")
+        else:
+            return t
 
     def add_update(self, table=None, namespace=None, broadcast=False):
         db.session.add(self)
@@ -51,6 +49,14 @@ class BaseModel(object):
 
         return record
 
+    def _emit(self, table, namespace, broadcast):
+        if table and namespace:
+            socketio.emit(
+                "update",
+                namespace=namespace,
+                broadcast=broadcast,
+            )
+
 
 class PermissionBaseModel(object):
     permission_type = db.Column(
@@ -58,7 +64,7 @@ class PermissionBaseModel(object):
             "person",  # 个人
             "group",  # 团队
             "org",   # 组织
-            "public" #公共
+            "public" # 公共
         ),
         default="person"
     )

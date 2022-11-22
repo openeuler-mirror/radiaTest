@@ -96,6 +96,7 @@ export default defineComponent({
   setup(props, context) {
     onMounted(() => {
       getProductOpts(createForm.productOpts);
+      createForm.milestoneNameActive.value = true;
     });
 
     onUnmounted(() => {

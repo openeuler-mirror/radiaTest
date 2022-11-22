@@ -22,35 +22,45 @@ class QualityBoard(BaseModel, db.Model):
         'FeatureList', backref="qualityboard", cascade="all, delete"
     )
 
-    def get_current_version(self):
-        vers = None
-        if len(self.iteration_version) > 0:
-            vers = self.iteration_version.split("->")[-1]
-        return vers
-
-    def get_milestones(self):
+    def get_round_milestones(self):
         milestones = dict()
         if len(self.iteration_version) > 0:
-            mids = self.iteration_version.split("->")
-            for _id in mids:
-                milestone = Milestone.query.filter_by(id=_id).first()
-                milestones.update({_id: milestone.to_json()})
+            round_id = self.iteration_version.split("->")[-1]
+            _milestones = Milestone.query.filter_by(round_id=round_id).all()
+            for _m in _milestones:
+                milestones.update({str(_m.id): _m.to_json()})
         return milestones
 
+    def get_current_round(self):
+        _round = None
+        if len(self.iteration_version) > 0:
+            _round = self.iteration_version.split("->")[-1]
+        return _round
+
+    def get_rounds(self):
+        rounds = dict()
+        if len(self.iteration_version) > 0:
+            rids = self.iteration_version.split("->")
+            for _id in rids:
+                _round = Round.query.filter_by(id=_id).first()
+                rounds.update({_id: _round.to_json()})
+        return rounds
+
     def to_json(self):
-        current_milestone_id = self.get_current_version()
+        current_round_id = self.get_current_round()
         _isr = IssueSolvedRate.query.filter_by(
-            milestone_id=current_milestone_id
+            round_id=current_round_id, type="round"
         ).first()
 
         return {
             "id": self.id,
             "product_id": self.product_id,
             "iteration_version": self.iteration_version,
-            "milestones": self.get_milestones(),
+            "rounds": self.get_rounds(),
             "released": self.released,
-            "current_milestone_id": current_milestone_id,
-            "current_milestone_issue_solved_rate": _isr.to_json() if _isr else {},
+            "current_round_id": current_round_id,
+            "milestones": self.get_round_milestones(),
+            "current_round_issue_solved_rate": _isr.to_json() if _isr else {},
         }
 
 
@@ -296,13 +306,14 @@ class RpmCompare(db.Model, BaseModel):
     __tablename__ = "rpm_compare"
 
     id = db.Column(db.Integer(), primary_key=True, autoincrement=True)
+    repo_path = db.Column(db.String(50), nullable=False)
     arch = db.Column(db.String(50), nullable=False)
     rpm_comparee = db.Column(db.String(128))
     rpm_comparer = db.Column(db.String(128))
     compare_result = db.Column(db.String(50))
 
-    milestone_group_id = db.Column(
-        db.Integer(), db.ForeignKey('milestone_group.id', ondelete="CASCADE"), nullable=False
+    round_group_id = db.Column(
+        db.Integer(), db.ForeignKey('round_group.id', ondelete="CASCADE"), nullable=False
     )
 
     def to_json(self):
@@ -311,4 +322,71 @@ class RpmCompare(db.Model, BaseModel):
             "rpm_comparee": self.rpm_comparee,
             "rpm_comparer": self.rpm_comparer,
             "compare_result": self.compare_result,
+            "repo_path": self.repo_path,
+            "arch": self.arch,
         }
+
+
+class SameRpmCompare(db.Model, BaseModel):
+    __tablename__ = "same_rpm_compare"
+
+    id = db.Column(db.Integer(), primary_key=True, autoincrement=True)
+    repo_path = db.Column(db.String(50), nullable=False)
+    rpm_name = db.Column(db.String(50), nullable=False)
+    rpm_x86 = db.Column(db.String(128))
+    rpm_arm = db.Column(db.String(128))
+    compare_result = db.Column(db.String(50))
+
+    round_id = db.Column(
+        db.Integer(), db.ForeignKey('round.id', ondelete="CASCADE"), nullable=False
+    )
+
+    def to_json(self):
+        return {
+            "id": self.id,
+            "repo_path": self.repo_path,
+            "rpm_name": self.rpm_name,
+            "rpm_x86": self.rpm_x86,
+            "rpm_arm": self.rpm_arm,
+            "compare_result": self.compare_result,
+            "round_id": self.round_id,
+        }
+
+
+class Round(BaseModel, db.Model):
+    __tablename__ = "round"
+
+    id = db.Column(db.Integer(), primary_key=True)
+    name = db.Column(db.String(32), nullable=False)
+    round_num = db.Column(db.Integer(), nullable=False)
+    type = db.Column(db.String(32), nullable=False)
+    default_milestone_id = db.Column(
+        db.Integer(), nullable=False,
+    )
+    product_id = db.Column(
+        db.Integer(), db.ForeignKey("product.id"),
+    )
+    milestone = db.relationship('Milestone', backref='round')
+    issuesolvedrate = db.relationship('IssueSolvedRate', backref='round')
+
+    def to_json(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "round_num": self.round_num,
+            "type": self.type,
+            "default_milestone_id": self.default_milestone_id,
+            "product_id": self.product_id
+        }
+
+
+class RoundGroup(db.Model, BaseModel):
+    __tablename__ = "round_group"
+
+    id = db.Column(db.Integer(), primary_key=True, autoincrement=True)
+    round_1_id = db.Column(
+        db.Integer(), db.ForeignKey('round.id', ondelete="CASCADE"), primary_key=True
+    )
+    round_2_id = db.Column(
+        db.Integer(), db.ForeignKey('round.id', ondelete="CASCADE"), primary_key=True
+    )

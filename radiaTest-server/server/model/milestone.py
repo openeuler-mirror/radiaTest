@@ -5,18 +5,6 @@ from server import db
 from server.model import BaseModel, PermissionBaseModel
 
 
-class MilestoneGroup(db.Model, BaseModel):
-    __tablename__ = "milestone_group"
-
-    id = db.Column(db.Integer(), primary_key=True, autoincrement=True)
-    milestone_1_id = db.Column(
-        db.Integer(), db.ForeignKey('milestone.id', ondelete="CASCADE"), primary_key=True
-    )
-    milestone_2_id = db.Column(
-        db.Integer(), db.ForeignKey('milestone.id', ondelete="CASCADE"), primary_key=True
-    )
-
-
 class Milestone(BaseModel, PermissionBaseModel, db.Model):
     __tablename__ = "milestone"
 
@@ -31,6 +19,7 @@ class Milestone(BaseModel, PermissionBaseModel, db.Model):
     gitee_milestone_id = db.Column(db.Integer(), nullable=True)
 
     product_id = db.Column(db.Integer(), db.ForeignKey("product.id"))
+    round_id = db.Column(db.Integer(), db.ForeignKey("round.id"), nullable=True)
 
     imirroring = db.relationship(
         "IMirroring", backref="milestone", cascade="all, delete, delete-orphan"
@@ -54,13 +43,8 @@ class Milestone(BaseModel, PermissionBaseModel, db.Model):
     group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
     org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
 
-    def convert_time_format(self, t):
-        if isinstance(t, datetime.date):
-            return t.strftime("%Y-%m-%d")
-        else:
-            return t
-
     def to_json(self):
+        from server.model.qualityboard import Round
         tags = []
         for mirroring in self.imirroring:
             if mirroring.frame == "x86_64":
@@ -77,6 +61,11 @@ class Milestone(BaseModel, PermissionBaseModel, db.Model):
                 tags.append("x86_64-repo")
             if rep.frame == "aarch64":
                 tags.append("aarch64-repo")
+        round_info = dict()
+        if self.round_id is not None:
+            _round = Round.query.filter_by(id=self.round_id).first()
+            if _round:
+                round_info = _round.to_json()
 
         return {
             "id": self.id,
@@ -87,6 +76,8 @@ class Milestone(BaseModel, PermissionBaseModel, db.Model):
             "end_time": self.convert_time_format(self.end_time),
             "product_name": self.product.name,
             "product_version": self.product.version,
+            "round_id": self.round_id,
+            "round_info": round_info,
             "tags": tags,
             "task_num": len(self.tasks),
             "state": self.state,
@@ -102,6 +93,7 @@ class IssueSolvedRate(BaseModel, db.Model):
     __tablename__ = "issue_solved_rate"
 
     id = db.Column(db.Integer(), primary_key=True)
+    type = db.Column(db.Enum("milestone", "round"))
     serious_resolved_rate = db.Column(db.String(6), nullable=True)
     serious_resolved_passed = db.Column(db.Boolean(), nullable=True)
     main_resolved_rate = db.Column(db.String(6), nullable=True)
@@ -120,14 +112,18 @@ class IssueSolvedRate(BaseModel, db.Model):
     invalid_issues_cnt = db.Column(db.Integer(), nullable=False, default=0)
     invalid_issues_passed = db.Column(db.Boolean(), nullable=True)
     previous_left_resolved_rate = db.Column(db.String(6), nullable=True)
-    gitee_milestone_id = db.Column(db.Integer(), nullable=False)
+    gitee_milestone_id = db.Column(db.Integer())
     milestone_id = db.Column(
-        db.Integer(), db.ForeignKey("milestone.id"), nullable=False
+        db.Integer(), db.ForeignKey("milestone.id")
+    )
+    round_id = db.Column(
+        db.Integer(), db.ForeignKey("round.id")
     )
 
     def to_json(self):
         return {
             "id": self.id,
+            "type": self.type,
             "serious_resolved_rate": self.serious_resolved_rate,
             "serious_resolved_passed": self.serious_resolved_passed,
             "main_resolved_rate": self.main_resolved_rate,
@@ -146,5 +142,6 @@ class IssueSolvedRate(BaseModel, db.Model):
             "invalid_issues_passed": self.invalid_issues_passed,
             "previous_left_resolved_rate": self.previous_left_resolved_rate,
             "milestone_id": self.milestone_id,
-            "gitee_milestone_id": self.gitee_milestone_id
+            "gitee_milestone_id": self.gitee_milestone_id,
+            "round_id": self.round_id
         }

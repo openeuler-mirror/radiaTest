@@ -58,6 +58,8 @@ class ImportFile:
         self.valid_types = [".+"]
         self.filename=filename
         self.filetype=filetype
+        if not filename and not filetype:
+            self.filename, self.filetype = self._validate_filetype()
 
     def _validate_filetype(self):
         pattern = r'^([^\.].*?)\.({})$'.format('|'.join(self.valid_types))

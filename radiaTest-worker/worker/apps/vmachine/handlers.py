@@ -1,5 +1,4 @@
 import os
-import time
 import shlex
 import tempfile
 from subprocess import getoutput, getstatusoutput
@@ -9,17 +8,8 @@ from flask import current_app, jsonify
 from worker.apps.vmachine.bash import (
     get_bridge_source,
     get_network_source,
-    install_base,
 )
-
-
-def rm_disk_image(name):
-    return getoutput(
-        "rm -rf {}/{}.qcow2".format(
-            shlex.quote(current_app.config.get("STORAGE_POOL")),
-            shlex.quote(name),
-        )
-    )
+from worker.utils.bash import rm_vmachine_relate_file
 
 
 def domain_cli(act, name):
@@ -47,9 +37,9 @@ def attach_device(name, xml):
     )
     if os.path.exists(tmpfile):
         os.remove(tmpfile)
-    
+
     return jsonify({"error_code": exitcode, "error_msg": output})
-    
+
 
 def undefine_domain(name):
     return getstatusoutput(
@@ -62,197 +52,43 @@ class VmachineBaseSchema:
         self._body = body
 
 
-class InstallVmachine(VmachineBaseSchema):
-    def kickstart(self):
-        source = getoutput(get_network_source())
-        if not source:
-            return jsonify(
-                {
-                    "error_code": 1,
-                    "error_msg": "The host is not configured with a network mode virtual bridge.",
-                }
-            )
-
-        exitcode, output = getstatusoutput(
-            "qemu-img create -f qcow2 {}/{}.qcow2 {}G".format(
-                shlex.quote(current_app.config.get("STORAGE_POOL").replace("/$", "")),
-                shlex.quote(self._body.get("name")),
-                shlex.quote(str(self._body.get("capacity"))),
-            )
-        )
-        if exitcode:
-            return jsonify({"error_code": exitcode, "status": output})
-
-        cmd = " {} --network network={} --location {} --extra-args ks={}".format(
-            install_base(self._body),
-            source,
-            shlex.quote(self._body.get("location")),
-            shlex.quote(self._body.get("ks")),
-        )
-        exitcode, output = getstatusoutput(cmd)
-
-        if exitcode:
-            return jsonify({"error_code": exitcode, "status": output})
-
-        for _ in range(900):
-            exitcode = getstatusoutput(
-                "export LANG=en_US.utf-8 ; test \"$(eval echo $(virsh list --all | grep '{}' | awk -F '{} *' ".format(
-                shlex.quote(self._body.get("name")), shlex.quote(self._body.get("name"))
-                )
-                + "'{print $NF}'))\" == 'shut off'"
-                )[0]
-            if exitcode == 0:
-                exitcode, output = getstatusoutput(
-                    "virsh start {}".format(shlex.quote(self._body.get("name")))
-                )
-                break
-            time.sleep(1)
-
-        exitcode, output = getstatusoutput(
-            "export LANG=en_US.utf-8 ; eval echo $(virsh list --all | grep '{}' ".format(
-                shlex.quote(self._body.get("name"))
-            )
-            + " | awk -F '  ' '{print $NF}')"
-        )
-
-        self._body.update(
-            {
-                "mac": getoutput(
-                    "virsh dumpxml %s "
-                    "| grep -Pzo  \"<interface type='bridge'>[\s\S] *<mac address.*\" "
-                    "|grep -Pzo '<mac address.*' "
-                    "| awk -F\\' '{print $2}' "
-                    "| head -1"
-                    % self._body.get("name")
-                ).strip(),
-                "status": output,
-                "vnc_port": domain_cli("vncdisplay", self._body.get("name"))[1]
-                .strip("\n")
-                .split(":")[-1],
-            }
-        )
-        return jsonify(self._body)
-
-    def cd_rom(self):
-        exitcode, output = getstatusoutput(
-            "qemu-img create -f qcow2 {}/{}.qcow2 {}G".format(
-                shlex.quote(current_app.config.get("STORAGE_POOL").replace("/$", "")),
-                shlex.quote(self._body.get("name")),
-                shlex.quote(str(self._body.get("capacity"))),
-            )
-        )
-        if exitcode:
-            return jsonify({"error_code": exitcode, "status": output})
-
-        exitcode, output = getstatusoutput(
-            "{} --cdrom {} --noreboot".format(install_base(self._body), self._body.get("url"))
-        )
-        if exitcode:
-            rm_disk_image(self._body.get("name"))
-            return jsonify({"error_code": 31000, "error_msg": output})
-        
-        self._body.update(
-            {
-                "mac": getoutput(
-                    "virsh dumpxml %s "
-                    "| grep -Pzo  \"<interface type='bridge'>[\s\S] *<mac address.*\" "
-                    "|grep -Pzo '<mac address.*' "
-                    "| awk -F\\' '{print $2}' "
-                    "| head -1"
-                    % self._body.get("name")
-                ).strip(),
-                "status": "running",
-                "vnc_port": domain_cli("vncdisplay", self._body.get("name"))[1]
-                .strip("\n")
-                .split(":")[-1],
-            }
-        )
-
-        return jsonify(self._body)
-
-    def _import(self):
-        self._body.update(
-            {"source": current_app.config.get("NETWORK_INTERFACE_SOURCE")}
-        )
-
-        exitcode, output = getstatusoutput(
-            "sudo wget -nv -c {} -O {}/{}.qcow2 2>&1".format(
-                shlex.quote(self._body.get("url")),
-                shlex.quote(current_app.config.get("STORAGE_POOL")),
-                shlex.quote(self._body.get("name")),
-            )
-        )
-        if exitcode:
-            current_app.logger.error(output)
-            rm_disk_image(self._body.get("name"))
-            return jsonify({"error_code": exitcode, "error_msg": output})
-
-        exitcode, output = getstatusoutput(
-            "{} --import --noreboot".format(install_base(self._body))
-        )
-        if exitcode:
-            rm_disk_image(self._body.get("name"))
-            return jsonify({"error_code": 31000, "error_msg": output})
-
-        exitcode, output = domain_cli("start", self._body.get("name"))
-        if exitcode:
-            exitcode, result = undefine_domain(self._body.get("name"))
-            if not exitcode:
-                return jsonify(
-                    {"error_code": 31002, "error_msg": output + " & " + result}
-                )
-            return jsonify({"error_code": 31001, "error_msg": output})
-
-        self._body.update(
-            {
-                "mac": getoutput(
-                    "virsh dumpxml %s "
-                    "| grep -Pzo  \"<interface type='bridge'>[\s\S] *<mac address.*\" "
-                    "|grep -Pzo '<mac address.*' "
-                    "| awk -F\\' '{print $2}' "
-                    "| head -1"
-                    % self._body.get("name")
-                ).strip(),
-                "status": "running",
-                "vnc_port": domain_cli("vncdisplay", self._body.get("name"))[1]
-                .strip("\n")
-                .split(":")[-1],
-            }
-        )
-
-        return jsonify(self._body)
-
-
 class OperateVmachine(VmachineBaseSchema):
     def delete(self):
         names = self._body.get("name")
         if isinstance(names, list):
             for name in names:
                 domain_cli("destroy", name)
+                rm_vmachine_relate_file('{}.qcow2'.format(name), current_app.config.get("STORAGE_POOL"))
                 exitcode, output = undefine_domain(name)
+                rm_vmachine_relate_file('{}.log'.format(name), current_app.config.get("LOG_HOME"))
         else:
             domain_cli("destroy", names)
+            rm_vmachine_relate_file('{}.qcow2'.format(names), current_app.config.get("STORAGE_POOL"))
             exitcode, output = undefine_domain(names)
+            rm_vmachine_relate_file('{}.log'.format(names), current_app.config.get("LOG_HOME"))
         return jsonify({"error_code": exitcode, "error_msg": output})
 
-    def edit(self): 
+    def edit(self):
         if self._body.get("memory"):
             exitcode, output = getstatusoutput(
                 "virt-xml {} --edit --memory {},maxmemory={}".format(
                     shlex.quote(self._body.get("name")),
                     shlex.quote(str(self._body.get("memory"))),
                     shlex.quote(str(self._body.get("memory"))),
-            ))
-
+                )
+            )
 
         if self._body.get("sockets") or self._body.get("cores") or self._body.get("threads"):
+            vcpus = self._body.get("sockets") * self._body.get("cores") * self._body.get("threads")
             exitcode, output = getstatusoutput(
-                    "virt-xml {} --edit --vcpus sockets={},cores={},threads={}".format(
-                        shlex.quote(self._body.get("name")),
-                        shlex.quote(str(self._body.get("sockets"))),
-                        shlex.quote(str(self._body.get("cores"))),
-                        shlex.quote(str(self._body.get("threads"))),
-            ))
+                "virt-xml {} --edit --vcpus {},sockets={},cores={},threads={}".format(
+                    shlex.quote(self._body.get("name")),
+                    vcpus,
+                    self._body.get("sockets"),
+                    self._body.get("cores"),
+                    self._body.get("threads"),
+                )
+            )
 
         return jsonify({"error_code": exitcode, "error_msg": output})
 
@@ -362,7 +198,7 @@ class OperateVdisk(VmachineBaseSchema):
         exitcode, output = getstatusoutput(cmd)
 
         current_app.logger.info(output)
-        
+
         if exitcode:
             return jsonify({"error_code": exitcode, "error_msg": output})
 

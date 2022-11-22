@@ -1,7 +1,8 @@
+from enum import Enum
+
+from server import db
 from server.model import BaseModel, PermissionBaseModel
 from server.model.permission import Role, ReUserRole
-from server import db
-from enum import Enum
 
 
 class OrganizationRole(Enum):
@@ -34,6 +35,8 @@ class Organization(db.Model, PermissionBaseModel, BaseModel):
 
     roles = db.relationship("Role", cascade="all, delete", backref="organization")
 
+    re_org_publisher = db.relationship("RequirementPublisher", backref="org")
+
     def add_update(self, table=None, namespace=None, broadcast=False):
         from sqlalchemy.exc import IntegrityError
         from flask import current_app
@@ -49,13 +52,35 @@ class Organization(db.Model, PermissionBaseModel, BaseModel):
             return True
 
     def to_dict(self):
-        _dict = self.__dict__
-        _dict.update({
+        _dict = {
+            "id": self.id,
+            "name": self.name,
+            "description": self.description,
+            "avatar_url": self.avatar_url,
+            "is_delete": self.is_delete,
+            "enterprise_id": self.enterprise_id,
+            "enterprise_join_url": self.enterprise_join_url,
+            "oauth_client_id": self.oauth_client_id,
+            "oauth_scope": self.oauth_scope,
+            "oauth_client_secret": self.oauth_client_secret,
+            "cla_verify_url": self.cla_verify_url,
+            "cla_verify_params": self.cla_verify_params,
+            "cla_verify_body": self.cla_verify_body,
+            "cla_sign_url": self.cla_sign_url,
+            "cla_request_type": self.cla_request_type,
+            "cla_pass_flag": self.cla_pass_flag,
             "create_time": self.create_time.strftime("%Y-%m-%d %H:%M:%S"),
             "update_time": self.update_time.strftime("%Y-%m-%d %H:%M:%S"),
-        })
+        }
 
         return _dict
+
+    def to_summary(self):
+        return {
+            "name": self.name,
+            "description": self.description,
+            "avatar_url": self.avatar_url,
+        }
 
     @staticmethod
     def create(model):
@@ -83,12 +108,13 @@ class Organization(db.Model, PermissionBaseModel, BaseModel):
 
 class ReUserOrganization(db.Model, BaseModel):
     __tablename__ = "re_user_organization"
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    id = db.Column(db.Integer(), primary_key=True, autoincrement=True)
     is_delete = db.Column(db.Boolean, default=False, nullable=False)
     # 0 普通用户
-    role_type = db.Column(db.Integer, default=0, nullable=False)
+    role_type = db.Column(db.Integer(), default=0, nullable=False)
     cla_info = db.Column(db.String(1024), nullable=True)
     default = db.Column(db.Boolean, default=False, nullable=False)
+    rank = db.Column(db.Integer())
 
     user_gitee_id = db.Column(db.Integer, db.ForeignKey('user.gitee_id'))
     organization_id = db.Column(db.Integer, db.ForeignKey('organization.id'))

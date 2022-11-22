@@ -21,7 +21,7 @@ from server.utils.db import Insert, Edit, collect_sql_error
 from server.model.testcase import Suite, Case
 from server.model.framework import GitRepo
 from server.schema.testcase import SuiteBase, SuiteUpdate, CaseUpdateSchemaWithSuiteId, CaseBaseSchemaWithSuiteId
-from server.model.qualityboard import RpmCompare
+from server.model.qualityboard import SameRpmCompare, RpmCompare
 
 
 logger = get_task_logger('manage')
@@ -85,31 +85,63 @@ def update_suite(suite_data, cases_data):
 
 
 @celery.task
-def update_compare_result(milestone_group_id: int, result: dict):
-    if not milestone_group_id:
-        raise ValueError("lack of param milestone_group_id")
+def update_compare_result(round_group_id: int, results, repo_path):
+    for result in results:
+        if not round_group_id:
+            raise ValueError("lack of param round_group_id")
 
-    rpm_compare = RpmCompare.query.filter_by(
-        rpm_comparee=result.get("rpm_list_1"),
-        rpm_comparer=result.get("rpm_list_2"),
-        milestone_group_id=milestone_group_id
-    ).first()
-    if not rpm_compare:
-        _ = Insert(
-            RpmCompare, 
-            {
-                "arch": result.get("arch"),
-                "rpm_comparee": result.get("rpm_list_1"),
-                "rpm_comparer": result.get("rpm_list_2"),
-                "compare_result": result.get("compare_result"),
-                "milestone_group_id": milestone_group_id,
-            }
-        ).single()
-    else:
-        _ = Edit(
-            RpmCompare,
-            {   
-                "id": rpm_compare.id,
-                "compare_result": result.get("compare_result"),
-            }
-        ).single()
+        rpm_compare = RpmCompare.query.filter_by(
+            rpm_comparee=result.get("rpm_list_1"),
+            rpm_comparer=result.get("rpm_list_2"),
+            round_group_id=round_group_id
+        ).first()
+        if not rpm_compare:
+            _ = Insert(
+                RpmCompare, 
+                {
+                    "repo_path": repo_path,
+                    "arch": result.get("arch"),
+                    "rpm_comparee": result.get("rpm_list_1"),
+                    "rpm_comparer": result.get("rpm_list_2"),
+                    "compare_result": result.get("compare_result"),
+                    "round_group_id": round_group_id,
+                }
+            ).single()
+        else:
+            _ = Edit(
+                RpmCompare,
+                {   
+                    "id": rpm_compare.id,
+                    "compare_result": result.get("compare_result"),
+                }
+            ).single()
+
+
+@celery.task
+def update_samerpm_compare_result(round_id: int, results, repo_path):
+    for result in results:
+        rpm_compare = SameRpmCompare.query.filter_by(
+            rpm_x86=result.get("rpm_x86"),
+            rpm_arm=result.get("rpm_arm"),
+            round_id=round_id
+        ).first()
+        if not rpm_compare:
+            _ = Insert(
+                SameRpmCompare, 
+                {
+                    "repo_path": repo_path,
+                    "rpm_name": result.get("rpm_name"),
+                    "rpm_x86": result.get("rpm_x86"),
+                    "rpm_arm": result.get("rpm_arm"),
+                    "compare_result": result.get("compare_result"),
+                    "round_id": round_id,
+                }
+            ).single()
+        else:
+            _ = Edit(
+                SameRpmCompare,
+                {   
+                    "id": rpm_compare.id,
+                    "compare_result": result.get("compare_result"),
+                }
+            ).single()

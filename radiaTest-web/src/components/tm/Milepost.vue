@@ -69,7 +69,7 @@
         type="info"
         @click="selectMileposts"
         class="btn"
-      >确 定</n-button>
+      >确定</n-button>
     </div>
   </div>
 </template>

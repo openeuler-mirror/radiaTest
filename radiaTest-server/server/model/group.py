@@ -1,7 +1,11 @@
+from enum import Enum
+
+from sqlalchemy import func
+from sqlalchemy.orm import aliased
+
 from server.model import BaseModel, PermissionBaseModel
 from server.model.permission import Role, ReUserRole
 from server import db
-from enum import Enum
 
 
 class GroupRole(Enum):
@@ -21,11 +25,19 @@ class Group(db.Model, PermissionBaseModel, BaseModel):
     creator_id = db.Column(db.Integer(), db.ForeignKey("user.gitee_id"))
     org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
 
+    influence = db.Column(db.Integer(), nullable=False, default=0)
+    behavior = db.Column(db.Float(), nullable=False, default=100.0)
+
+    rank = db.Column(db.Integer())
+
     re_user_group = db.relationship("ReUserGroup", cascade="all, delete", backref="group")
 
     case_nodes = db.relationship("CaseNode", cascade="all, delete", backref="group")
 
     roles = db.relationship("Role", cascade="all, delete", backref="group")
+
+    re_group_requirment_publisher = db.relationship("RequirementPublisher", backref="group")
+    re_group_requirment_acceptor = db.relationship("RequirementAcceptor", backref="group")
 
     def add_update(self, table=None, namespace=None, broadcast=False):
         from sqlalchemy.exc import IntegrityError
@@ -41,6 +53,31 @@ class Group(db.Model, PermissionBaseModel, BaseModel):
             super().add_update(table, namespace, broadcast)
             return True
 
+    def add_update_influence(self, table=None, namespace=None, broadcast=False):
+        groups = aliased(Group)
+        sub_query = db.session.query(
+            func.count(groups.id)
+        ).filter(
+            groups.is_delete == False,
+            groups.org_id == int(self.org_id),
+            Group.is_delete == False,
+            Group.org_id == int(self.org_id),
+            groups.influence > Group.influence,
+        ).as_scalar()
+        db.session.query(Group).update({"rank": sub_query + 1}, synchronize_session=False)
+        return super().add_update(table, namespace, broadcast)
+
+    def to_summary(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'description': self.description,
+            'avatar_url': self.avatar_url,
+            'influence': self.influence,
+            'behavior': self.behavior,
+            'rank': self.rank,
+        }
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -48,6 +85,8 @@ class Group(db.Model, PermissionBaseModel, BaseModel):
             'description': self.description,
             'avatar_url': self.avatar_url,
             'is_delete': self.is_delete,
+            'influence': self.influence,
+            'behavior': self.behavior,
             'create_time': self.create_time.strftime("%Y-%m-%d %H:%M:%S"),
             'update_time': self.update_time.strftime("%Y-%m-%d %H:%M:%S")
         }

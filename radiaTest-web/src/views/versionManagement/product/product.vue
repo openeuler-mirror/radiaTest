@@ -47,6 +47,7 @@
     <div>
       <n-data-table :loading="tableLoading" :columns="columns" :data="tableData" :row-props="rowProps" />
     </div>
+    <!-- 产品版本抽屉 -->
     <n-drawer v-model:show="drawerShow" style="width: 60%">
       <n-drawer-content id="drawer-target">
         <template #header>
@@ -74,7 +75,7 @@
         <div class="drawer-content">
           <n-grid x-gap="12" :cols="3">
             <n-gi
-              :span="5"
+              :span="3"
               style="display: flex; margin-top: 15px; cursor: pointer; align-items: center"
               @click="cardClick"
             >
@@ -109,13 +110,16 @@
                 @haveRecovery="haveRecovery"
                 @add="stepAdd"
                 @handleChecklistBoard="handleChecklistBoard"
+                @handleMilestone="handleMilestone"
                 :done="done"
                 :list="list"
                 :currentId="currentId"
+                :hasQualityboard="hasQualityboard"
               />
             </n-gi>
           </n-grid>
           <n-grid x-gap="12" :cols="2" v-if="list.length">
+            <!-- 问题解决统计 -->
             <n-gi :span="1" v-if="!showPackage && !showList">
               <div
                 class="card inout-animated"
@@ -131,6 +135,16 @@
                       : '1px solid #ddddd'
                 }"
               >
+                <div class="topselect">
+                  <n-popselect
+                    v-model:value="resolvedMilestone"
+                    :options="resolvedMilestoneOptions"
+                    trigger="click"
+                    @update:value="selectResolvedMilestone"
+                  >
+                    <n-button text @click.stop>{{ resolvedMilestone.name || '当前迭代' }}</n-button>
+                  </n-popselect>
+                </div>
                 <n-progress
                   class="topProgress"
                   type="circle"
@@ -232,6 +246,7 @@
               </div>
             </n-gi>
             <n-gi :span="showList || showPackage ? 2 : 1" ref="requestCard">
+              <!-- 特性 -->
               <div
                 class="transitionBox"
                 v-if="!showPackage"
@@ -273,6 +288,7 @@
                   </n-card>
                 </div>
               </div>
+              <!-- 软件包 -->
               <n-card
                 class="cardbox inout-animated"
                 v-if="!showList"
@@ -288,7 +304,16 @@
                   </n-icon>
                 </template>
                 <template #header-extra v-else>
-                  <refresh-button :size="24" @refresh="getPackageListComparationSummary(dashboardId, true)">
+                  <refresh-button
+                    :size="24"
+                    @refresh="
+                      getPackageListComparationSummary(dashboardId, {
+                        refresh: true,
+                        repoPath: 'everything',
+                        arch: 'all'
+                      })
+                    "
+                  >
                     获取最新软件包变更数据
                   </refresh-button>
                 </template>
@@ -325,7 +350,15 @@
                     </div>
                   </div>
                   <div v-if="showPackage">
-                    <div class="packageCard">
+                    <n-tabs type="line" @update:value="changePackageTabFirst">
+                      <n-tab name="softwarescope"> 软件范围 </n-tab>
+                      <n-tab name="homonymousIsomerism"> 同名异构 </n-tab>
+                    </n-tabs>
+                    <n-tabs type="line" @update:value="changePackageTabSecond">
+                      <n-tab name="everything"> everything </n-tab>
+                      <n-tab name="EPOL"> EPOL </n-tab>
+                    </n-tabs>
+                    <div class="packageCard" v-show="packageTabValueFirst !== 'homonymousIsomerism'">
                       <div class="package-left">
                         <n-h3>
                           {{ oldPackage.size }}
@@ -352,8 +385,10 @@
                     </div>
                     <package-table
                       :qualityboard-id="dashboardId"
-                      :milestone-pre-id="preId"
-                      :milestone-cur-id="currentId"
+                      :round-pre-id="preId"
+                      :round-cur-id="currentId"
+                      :packageTabValueFirst="packageTabValueFirst"
+                      :packageTabValueSecond="packageTabValueSecond"
                     />
                   </div>
                 </div>
@@ -384,6 +419,7 @@
             description="未通过质量checklist，无法开启第一轮迭代测试"
             v-else
           />
+          <!-- issue 弹窗 -->
           <n-drawer
             v-model:show="active"
             placement="right"
@@ -393,7 +429,7 @@
             width="95%"
           >
             <n-drawer-content closable>
-              <MilestoneIssuesCard :milestone-id="currentId" />
+              <MilestoneIssuesCard :milestone-id="resolvedMilestone.id" :cardType="MilestoneIssuesCardType"/>
             </n-drawer-content>
           </n-drawer>
         </div>
@@ -408,6 +444,9 @@
               @update:page-size="checklistBoardTablePageSizeChange"
             />
           </n-card>
+        </n-modal>
+        <n-modal v-model:show="showRoundMilestoneBoard" @update:show="updateRoundMilestoneBoard">
+          <RoundRelateMilestones :ProductId="ProductId" :currentRound="currentRound"></RoundRelateMilestones>
         </n-modal>
       </n-drawer-content>
     </n-drawer>
@@ -494,7 +533,7 @@
           <div class="buttonWrap">
             <n-button class="btn" type="error" ghost @click="cancelCheckListDrawer">取消</n-button>
             <n-button v-show="!isAddBaseline" class="btn" type="info" ghost @click="confirmCheckItem">新增</n-button>
-            <n-button v-show="isAddBaseline" class="btn" type="info" ghost @click="confirmBaseline">新增</n-button>
+            <n-button v-show="isAddBaseline" class="btn" type="info" ghost @click="confirmBaseline">确定</n-button>
           </div>
         </n-form>
       </n-drawer-content>
@@ -645,6 +684,12 @@ export default {
     box-shadow: 0 2px 8px 0 rgb(2 24 42 / 10%);
     height: 450px;
     align-items: center;
+
+    .topselect {
+      position: absolute;
+      top: 25px;
+      left: 10px;
+    }
 
     .featureProgress {
       height: 220px;

@@ -53,6 +53,10 @@ class UserMachineSchema(BaseModel):
 class UserInfoSchema(UserBaseSchema):
     orgs: Optional[list]
     groups: Optional[list]
+    rank: Optional[int]
+    influence: Optional[int]
+    like: Optional[int]
+    behavior: Optional[float]
 
 
 class JoinGroupSchema(BaseModel):

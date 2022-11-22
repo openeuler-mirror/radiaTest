@@ -27,6 +27,8 @@ class RpmCompareStatus(Enum):
     REL_DOWN = 4 # name version same, release downgrade
     ADD = 5 # rpm packages has been added
     DEL = 6 # rpm packages has been removed
+    LACK = 7 # lack of rpm packages
+    DIFFERENT = 8 # name, version, release, one or more of them are diffrent
     ERROR = 200 # unexpected compare
 
 class RpmName():
@@ -147,6 +149,26 @@ class RpmNameLoader():
         return rpm_name_dict
 
     @staticmethod
+    def rpmlist2rpmdict_by_name(rpmlist):
+        """parse list of string <rpm name> to dict { str: [Rpname] }
+
+        Args:
+            rpmlist : list of rpmname [<rpm name 1>, <rpm name 2>, ...]
+        
+        return:
+            dict : { <rpm name 1>: [ RpmName1, RpmName2], ...}
+        """
+        rpm_name_dict = {}
+        for rpm_name in rpmlist:
+            tmp_rpm_info = RpmName(rpm_file_name=rpm_name)
+            if tmp_rpm_info.is_parsed:
+                _rpm_name = f"{tmp_rpm_info.name}"
+                if _rpm_name not in rpm_name_dict:
+                    rpm_name_dict[_rpm_name] = []
+                rpm_name_dict.get(_rpm_name).append(tmp_rpm_info)
+        return rpm_name_dict
+
+    @staticmethod
     def get_parsed_rpmlist(rpmlist):
         return [RpmName(rpm_file_name=_r).to_dict() for _r in rpmlist]
 
@@ -203,6 +225,30 @@ class RpmNameComparator():
             raise ValueError("params value invalid, because one of rpm_info must a RpmName instance at least")
 
     @staticmethod
+    def compare_rpm_name_cls2(rpm_info_1, rpm_info_2, get_dist=False):
+        """compare the rpm info from rpm file name(static method)
+
+        Args:
+            rpm_info_1 (RpmName): rpm name info from class RpmName
+            rpm_info_2 (RpmName): rpm name info from class RpmName
+            get_dist (bool, optional): either to . Defaults to False.
+        """
+        if isinstance(rpm_info_1, RpmName) and isinstance(rpm_info_2, RpmName):
+            if not (rpm_info_1.is_parsed or rpm_info_2.is_parsed):
+                current_app.logger.error("unsuported rpm name format")
+                return RpmCompareStatus.ERROR
+            if rpm_info_1.version != rpm_info_2.version or rpm_info_1.release != rpm_info_2.release:
+                return RpmCompareStatus.DIFFERENT
+            else:
+                return RpmCompareStatus.SAME
+        elif isinstance(rpm_info_1, RpmName):
+            return RpmCompareStatus.LACK
+        elif isinstance(rpm_info_2, RpmName):
+            return RpmCompareStatus.LACK
+        else:
+            raise ValueError("params value invalid, because one of rpm_info must a RpmName instance at least")
+
+    @staticmethod
     def compare_version(ver1, ver2):
         """compare the rpm info from rpm file name(static method)
 
@@ -233,6 +279,21 @@ class RpmNameComparator():
                 "arch": rpm_1.arch if rpm_1 else rpm_2.arch,
                 "rpm_list_1": rpm_1.file_name if rpm_1 else '',
                 "rpm_list_2": rpm_2.file_name if rpm_2 else '',
+                "compare_result": tmp_result.name
+            })
+        return compare_result_list
+
+    @staticmethod
+    def compare_rpm_dict2(rpmdict1, rpmdict2):
+        compare_result_list = []
+        for rpm_name in set(list(rpmdict1.keys()) + list(rpmdict2.keys())):
+            rpm_1 = rpmdict1.get(rpm_name)[0] if isinstance(rpmdict1.get(rpm_name), list) else None
+            rpm_2 = rpmdict2.get(rpm_name)[0] if isinstance(rpmdict2.get(rpm_name), list) else None
+            tmp_result = RpmNameComparator.compare_rpm_name_cls2(rpm_1, rpm_2)
+            compare_result_list.append({
+                "rpm_name": rpm_name,
+                "rpm_x86": rpm_1.file_name if rpm_1 else '',
+                "rpm_arm": rpm_2.file_name if rpm_2 else '',
                 "compare_result": tmp_result.name
             })
         return compare_result_list

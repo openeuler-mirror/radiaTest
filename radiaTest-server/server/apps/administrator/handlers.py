@@ -15,7 +15,7 @@
 
 #####################################
 
-from flask import request, g, jsonify
+from flask import request, g, jsonify, current_app
 from server import redis_client
 from server.utils.response_util import RET
 from server.utils.redis_util import RedisKey
@@ -64,7 +64,11 @@ def handler_login(body):
         'gitee_login': admin.account
     }
     redis_client.hmset(RedisKey.user(user_dict.get('gitee_id')), user_dict)
-    token = generate_token(user_dict.get('gitee_id'), admin.account)
+    token = generate_token(
+        user_dict.get('gitee_id'),
+        admin.account,
+        int(current_app.config.get("TOKEN_EXPIRES_TIME"))
+    )
     return_dict = {
         'token': token,
         'admin': 1,
@@ -100,7 +104,11 @@ def handler_register(body):
         'gitee_login': admin.account
     }
     redis_client.hmset(RedisKey.user(user_dict.get('gitee_id')), user_dict)
-    token = generate_token(user_dict.get('gitee_id'), admin.account)
+    token = generate_token(
+        user_dict.get('gitee_id'), 
+        admin.account,
+        int(current_app.config.get("TOKEN_EXPIRES_TIME"))
+    )
     return_dict = {
         'token': token,
     }

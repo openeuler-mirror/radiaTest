@@ -87,3 +87,35 @@ export function changeAdminPassword(data) {
 export function updateProductVersion(productId, data) {
   return putRequest(`/v1/product/${productId}`, data);
 }
+
+export function updateRequireProgress(requireId, progressId, data) {
+  return putRequest(`/v1/requirement/${requireId}/progress/${progressId}`, data);
+}
+
+export function updateRequirePackageValidator(requireId, packageId, userId) {
+  return putRequest(`/v1/requirement/${requireId}/package/${packageId}/set-validator/${userId}`);
+}
+
+export function updateLockRequireAttachment(requireId, data) {
+  return putRequest(`/v1/requirement/${requireId}/attachment/lock`, data);
+}
+
+export function personAcceptRequire(requireId, data) {
+  return putRequest(`/v1/requirement/${requireId}/accept`, data);
+}
+
+export function groupAcceptRequire(requireId, groupId, data) {
+  return putRequest(`/v1/requirement/${requireId}/group/${groupId}/accept`, data);
+}
+
+export function rejectRequire(requireId, data) {
+  return putRequest(`/v1/requirement/${requireId}/reject`, data);
+}
+
+export function validateRequire(requireId, data) {
+  return putRequest(`/v1/requirement/${requireId}/validate`, data);
+}
+
+export function roundRelateMilestonesAxios(roundId, data) {
+  return putRequest(`/v1/round/${roundId}/bind-milestone`, data);
+}

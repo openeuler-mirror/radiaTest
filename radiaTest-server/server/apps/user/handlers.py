@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 import pytz
 from flask import current_app, request, Response, redirect, g, jsonify
 from sqlalchemy import or_, and_, extract
+import sqlalchemy
 
 from server import redis_client
 from server.utils.response_util import RET
@@ -12,6 +13,7 @@ from server.utils.redis_util import RedisKey
 from server.utils.db import collect_sql_error, Insert
 from server.utils.cla_util import Cla, ClaShowAdminSchema
 from server.utils.read_from_yaml import get_default_suffix
+from server.utils.page_util import PageUtil
 from server.model.user import User
 from server.model.message import Message
 from server.model.task import Task
@@ -29,6 +31,7 @@ from server.schema.task import TaskInfoSchema
 from server.schema.vmachine import VmachineBriefSchema
 from server.schema.pmachine import PmachineBriefSchema
 from server.utils.page_util import PageUtil
+from server.utils.requests_util import do_request
 
 
 def handler_gitee_login(query):
@@ -78,6 +81,33 @@ def handler_gitee_login(query):
         )
 
 
+def send_majun(code):
+    _resp = dict()
+    
+    majun_api = current_app.config.get("MAJUN_API")
+    access_token = current_app.config.get("ACCESS_TOKEN")
+    _r = do_request(
+        method="get",
+        url="https://{}?code={}".format(
+            majun_api,
+            code,
+        ),
+        headers={
+            "content-type": "application/json;charset=utf-8",
+            "authorization": request.headers.get("authorization"),
+            "access_token": access_token,
+        },
+        obj=_resp,
+        verify=True,
+    )
+    if _r != 0:
+        return jsonify(
+            error_code=RET.RUNTIME_ERROR,
+            error_msg="could not reach majun system."
+        )
+    return jsonify(_resp)
+
+
 def handler_gitee_callback():
     # 校验参数
     code = request.args.get('code')
@@ -86,7 +116,10 @@ def handler_gitee_callback():
             error_code=RET.PARMA_ERR,
             error_msg="user code should not be null"
         )
-
+    resp = send_majun(code)
+    _resp = json.loads(resp.response[0])
+    current_app.logger.info(_resp)
+    
     return redirect(
         '{}?code={}'.format(
             current_app.config["GITEE_OAUTH_HOME_URL"],
@@ -119,7 +152,7 @@ def handler_login_callback(query):
             current_app.config.get("GITEE_OAUTH_REDIRECT_URI"),
             org.oauth_client_secret
         )
-
+        
     if not oauth_flag:
         return jsonify(
             error_code=RET.OTHER_REQ_ERR,
@@ -127,7 +160,6 @@ def handler_login_callback(query):
         )
 
     result = handler_login(gitee_token, org.id)
-
     if not isinstance(result, tuple) or not isinstance(result[0], bool):
         return result
     if result[0]:
@@ -203,7 +235,11 @@ def handler_login(gitee_token, org_id):
             gitee_token.get("refresh_token")
         )
         # 生成token值
-        token = generate_token(user.gitee_id, user.gitee_login)
+        token = generate_token(
+            user.gitee_id, 
+            user.gitee_login,
+            int(current_app.config.get("TOKEN_EXPIRES_TIME"))
+        )
 
         if org_id is not None and isinstance(org_id, int):
             re = ReUserOrganization.query.filter_by(
@@ -330,7 +366,11 @@ def handler_register(gitee_id, body):
     )
 
     # 生成token值
-    token = generate_token(user.gitee_id, user.gitee_login)
+    token = generate_token(
+        user.gitee_id, 
+        user.gitee_login,
+        int(current_app.config.get("TOKEN_EXPIRES_TIME"))
+    )
     return_data = {
         'token': token,
     }
@@ -383,7 +423,7 @@ def handler_user_info(gitee_id):
     user = User.query.filter_by(gitee_id=gitee_id).first()
     if not user:
         return jsonify(error_code=RET.NO_DATA_ERR, error_msg=f"user is no find")
-    user_dict = user.to_dict()
+    user_dict = user.to_json()
 
     # 用户组信息
     group_list = []
@@ -790,3 +830,39 @@ def handler_get_user_case_commit(query: UserCaseCommitSchema):
     page_dict["week_case_count"] = week_count
     page_dict["month_case_count"] = month_count
     return jsonify(error_code=RET.OK, error_msg="OK", data=page_dict)
+
+
+def handler_get_user_asset_rank(query):
+    ranked_user = User.query.join(
+        ReUserOrganization
+    ).filter(
+        ReUserOrganization.rank != sqlalchemy.null(),
+        ReUserOrganization.is_delete == False,
+        ReUserOrganization.organization_id == redis_client.hget(
+            RedisKey.user(g.gitee_id), 
+            "current_org_id"
+        )
+    ).order_by(
+        ReUserOrganization.rank.asc(), 
+        User.create_time.asc()
+    )
+
+    def page_func(item):
+        user_dict = item.to_summary()
+        return user_dict
+    
+    page_dict, e = PageUtil.get_page_dict(
+        ranked_user, query.page_num, query.page_size, func=page_func
+    )
+    if e:
+        return jsonify(
+            error_code=RET.SERVER_ERR, 
+            error_msg=f'get user rank page error {e}'
+        )
+    return jsonify(
+        error_code=RET.OK, 
+        error_msg="OK", 
+        data=page_dict
+    )
+
+    

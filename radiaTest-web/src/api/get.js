@@ -8,8 +8,8 @@ function getRequest(url, data) {
         resolve(res);
       })
       .catch((err) => {
-        window.$notification?.error({ 
-          content: err.data.error_msg || unkonwnErrorMsg 
+        window.$notification?.error({
+          content: err.data.error_msg || unkonwnErrorMsg
         });
         reject(err);
       });
@@ -56,6 +56,9 @@ export function getTemplateInfo(id, data) {
 }
 export function getIssue(data) {
   return getRequest('/v2/milestone/issues', data);
+}
+export function getRoundIssue(roundId, data) {
+  return getRequest(`/v1/round/${roundId}/issues`, data);
 }
 export function getIssueType(data) {
   return getRequest('/v2/milestone/issue_types', data);
@@ -129,6 +132,9 @@ export function getMilestoneTask(milestoneId, data) {
 }
 export function getMilestone(productId, data) {
   return getRequest(`/v1/milestone/preciseget?product_id=${productId}`, data);
+}
+export function getAllMilestone(data) {
+  return getRequest('v2/milestone', data);
 }
 export function getProductMessage(productId, data) {
   return getRequest(`/v1/qualityboard?product_id=${productId}`, data);
@@ -204,13 +210,13 @@ export function getFeatureList(id, params) {
   return getRequest(`/v1/qualityboard/${id}/feature-list`, params);
 }
 
-export function getPackageListComparationSummary(qualityboardId, milestoneId, params) {
-  return getRequestWithoutCatch(`/v1/qualityboard/${qualityboardId}/milestone/${milestoneId}/pkg-list`, params);
+export function getPackageListComparationSummaryAxios(qualityboardId, roundId, params) {
+  return getRequestWithoutCatch(`/v1/qualityboard/${qualityboardId}/round/${roundId}/pkg-list`, params);
 }
 
-export function getPackageListComparationDetail(qualityboardId, milestonePreId, milestoneCurId, params) {
+export function getPackageListComparationDetail(qualityboardId, roundPreId, roundCurId, params) {
   return getRequestWithoutCatch(
-    `/v1/qualityboard/${qualityboardId}/milestone/${milestonePreId}/with/${milestoneCurId}/pkg-compare`,
+    `/v1/qualityboard/${qualityboardId}/round/${roundPreId}/with/${roundCurId}/pkg-compare`,
     params
   );
 }
@@ -225,6 +231,58 @@ export function getCheckListTableDataAxios(data) {
 
 export function getMilestonesByName(data) {
   return getRequest('/v2/gitee-milestone', data);
+}
+
+export function getUserAssetRank(params) {
+  return getRequest('/v1/user/rank', params);
+}
+
+export function getGroupAssetRank(params) {
+  return getRequest('/v1/group/rank', params);
+}
+
+export function getUserInfo(userId, params) {
+  return getRequest(`/v1/users/${userId}`, params);
+}
+
+export function getRequireList(params) {
+  return getRequest('/v1/requirement', params);
+}
+
+export function getRequireItem(id, params) {
+  return getRequest(`/v1/requirement/${id}`, params);
+}
+
+export function getRequireProgress(id, params) {
+  return getRequest(`/v1/requirement/${id}/progress`, params);
+}
+
+export function getRequirePackage(id, params) {
+  return getRequest(`/v1/requirement/${id}/package`, params);
+}
+
+export function downloadAttachment(id, params) {
+  return getRequest(`/v1/requirement/${id}/attachment/download`, params);
+}
+
+export function getAttachmentList(id, params) {
+  return getRequest(`/v1/requirement/${id}/attachment`, params);
+}
+
+export function getRequireAttributors(id, params) {
+  return getRequest(`/v1/requirement/${id}/attributor`, params);
+}
+
+export function getMilestones(data) {
+  return getRequest('/v2/milestone', data);
+}
+
+export function getRoundIssueRate(roundId) {
+  return getRequest(`/v1/round/${roundId}/issue-rate`);
+}
+
+export function getHomonymousIsomerismPkgcompare(qualityboardId, roundId, params) {
+  return getRequestWithoutCatch(`/v1/qualityboard/${qualityboardId}/round/${roundId}/pkg-compare`, params);
 }
 
 export function examplesNodes(id, data) {

@@ -167,9 +167,12 @@ class Task(db.Model, PermissionBaseModel, BaseModel):
                                lazy='dynamic')
     report = db.relationship("TaskReportContent", backref="task", uselist=False)
 
-    milestones = db.relationship('TaskMilestone', backref='task')  # 关联的测试用例
+    milestones = db.relationship('TaskMilestone', backref='task')  # 关联的里程碑
 
     feature = db.relationship('FeatureList', backref='task') # 关联的特性
+
+    requirement = db.relationship('Requirement', backref='task') # 关联的需求
+    requirement_package = db.relationship('RequirementPackage', backref='task') # 关联的子需求
 
     def compare_type(self, child_type):
         if child_type == "PERSON":
@@ -218,18 +221,6 @@ class TaskTag(BaseModel, db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(32), nullable=False, unique=True)
     color = db.Column(db.Integer, nullable=False)
-
-
-# class TaskReportModel(Base, db.Model):
-#     __tablename__ = "task_report_model"
-#     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-#     title = db.Column(db.String(50), nullable=False)
-#     # title_en = db.Column(db.String(50), nullable=False)
-#     remark = db.Column(db.String(200), nullable=True)
-#     order = db.Column(db.Integer, nullable=False)
-#     is_version_task = db.Column(db.Boolean, default=False)
-#     default = db.Column(db.Text, nullable=True)
-#     contents = db.relationship('TaskReportContent', backref='report_model')
 
 
 class TaskReportContent(BaseModel, db.Model):

@@ -61,6 +61,12 @@ class TimeBaseSchema(BaseModel):
             raise ValueError(
                 "the format of start_time/end_time is not valid, the valid type is: %Y-%m-%d %H:%M:%S"
             )
+
+        if values.get("start_time") and values.get("end_time"):
+            start_time = values.get("start_time").strftime("%Y-%m-%d")
+            end_time = values.get("end_time").strftime("%Y-%m-%d")
+            if start_time >= end_time:
+                raise ValueError("end_time is earlier than start_time.")
         
         return values
 
