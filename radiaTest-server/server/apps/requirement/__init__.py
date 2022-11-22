@@ -45,10 +45,10 @@ def init_api(api: Api):
     api.add_resource(RequirementItemPackagesEvent, "/api/v1/requirement/<int:requirement_id>/package")
     api.add_resource(
         RequirementPackageItemValidateEvent, 
-        "/api/v1/requirement/<int:requirement_id>/package/<package_id>/validate",
-        "/api/v1/requirement/<int:requirement_id>/package/<package_id>/set-validator/<int:user_id>"
+        "/api/v1/requirement/<int:requirement_id>/package/<int:package_id>/validate",
+        "/api/v1/requirement/<int:requirement_id>/package/<int:package_id>/set-validator/<int:user_id>"
     )
     api.add_resource(
         RequirementPackageItemTaskEvent,
-        "/api/v1/requirement/<int:requirement_id>/package/<package_id>/task"
+        "/api/v1/requirement/<int:requirement_id>/package/<int:package_id>/task"
     )
