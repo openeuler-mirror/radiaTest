@@ -34,7 +34,7 @@ function formatObject(data) {
 }
 
 function initData() {
-  getTermNode(router.currentRoute.value.query.id).then(res => {
+  getTermNode(window.atob(router.currentRoute.value.query.id)).then(res => {
     const { data } = res;
     itemsCount.value = data.all_count;
     commitMonthCount.value = data.month_count;

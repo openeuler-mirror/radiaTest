@@ -27,6 +27,10 @@ import taskDetails from '@/views/caseManage/folderView/taskDetails/taskDetails.v
 import frameWork from '@/views/caseManage/frameWork/frameWork.vue';
 import orgNode from '@/views/caseManage/folderView/orgNodes/orgNodes.vue';
 import termNode from '@/views/caseManage/folderView/termNodes/termNodes.vue';
+import examplesNode from '@/views/caseManage/folderView/examplesNodes/examplesNodes.vue';
+import testStrategyNode from '@/views/caseManage/folderView/testStrategyNodes/testStrategyNodes.vue';
+import testSuiteNode from '@/views/caseManage/folderView/testSuiteNodes/testSuiteNodes.vue';
+import testCaseNode from '@/views/caseManage/folderView/testCaseNodes/testCaseNodes.vue';
 import testsuite from '@/views/caseManage/testsuite/testsuite.vue';
 import rulesManagement from '@/views/personalCenter/authorityManagement/rulesManagement/rulesManagement.vue';
 import rolesManagement from '@/views/personalCenter/authorityManagement/rolesManagement/rolesManagement.vue';
@@ -225,15 +229,35 @@ const router = createRouter({
                   name: 'taskDetails'
                 },
                 {
-                  path: 'org-node',
+                  path: 'org-node/:taskid/',
                   component: orgNode,
                   name: 'orgNode'
                 },
                 {
-                  path: 'term-node',
+                  path: 'term-node/:taskid/',
                   component: termNode,
                   name: 'termNode'
-                }
+                },
+                {
+                  path: 'examples-node/:taskid/',
+                  component: examplesNode,
+                  name: 'examplesNode',
+                },
+                {
+                  path: 'testStrategy-node/:taskid/',
+                  component: testStrategyNode,
+                  name: 'testStrategyNode',
+                },
+                {
+                  path: 'testSuite-node/:taskid/',
+                  component: testSuiteNode,
+                  name: 'testSuiteNode',
+                },
+                {
+                  path: 'testCase-node/:taskid/',
+                  component: testCaseNode,
+                  name: 'testCaseNode',
+                },
               ]
             },
             {

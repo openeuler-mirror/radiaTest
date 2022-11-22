@@ -808,17 +808,15 @@ function menuClick({ key, options }) {
     });
   } else if (itemkey === 'org') {
     router.push({
-      name: 'orgNode',
-      query: {
-        id,
-      },
+      path: `/home/tcm/folderview/org-node/${window.btoa(id)}`,
+    });
+  } else if (itemkey === 'directory') {
+    router.push({
+      path: `/home/tcm/folderview/examples-node/${window.btoa(id)}`,
     });
   } else if (itemkey === 'users') {
     router.push({
-      name: 'termNode',
-      query: {
-        id,
-      },
+      path: `/home/tcm/folderview/term-node/${window.btoa(id)}`,
     });
   } else {
     router.push({

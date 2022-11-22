@@ -284,3 +284,7 @@ export function getRoundIssueRate(roundId) {
 export function getHomonymousIsomerismPkgcompare(qualityboardId, roundId, params) {
   return getRequestWithoutCatch(`/v1/qualityboard/${qualityboardId}/round/${roundId}/pkg-compare`, params);
 }
+
+export function examplesNodes(id, data) {
+  return getRequest(`/v1/org/${id}/resource`, data);
+}
