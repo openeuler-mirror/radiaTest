@@ -226,3 +226,7 @@ export function getCheckListTableDataAxios(data) {
 export function getMilestonesByName(data) {
   return getRequest('/v2/gitee-milestone', data);
 }
+
+export function examplesNodes(id, data) {
+  return getRequest(`/v1/org/${id}/resource`, data);
+}

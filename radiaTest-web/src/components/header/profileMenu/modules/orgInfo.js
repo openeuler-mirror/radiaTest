@@ -31,6 +31,4 @@ function getOrg() {
   });
 }
 
-const thirdParty = storage.getValue('thirdParty');
-
-export { avatarUrl, currentOrg, activeOrg, accountName, orgOptions, getOrg, thirdParty };
+export { avatarUrl, currentOrg, activeOrg, accountName, orgOptions, getOrg };
