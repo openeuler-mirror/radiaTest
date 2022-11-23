@@ -7,9 +7,9 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 ####################################
-# @Author  : 
-# @email   : 
-# @Date    : 
+# @Author  :
+# @email   :
+# @Date    :
 # @License : Mulan PSL v2
 
 
@@ -17,11 +17,15 @@
 
 from flask_restful import Api
 
-from .routes import UpdateTaskEvent
-from .routes import LoginOrgList
-from .routes import VmachineExist
-from .routes import CaCert
-from .routes import DailyBuildEvent
+from .routes import (
+    UpdateTaskEvent,
+    LoginOrgList,
+    VmachineExist,
+    CaCert,
+    DailyBuildEvent,
+    RpmCheckEvent,
+)
+
 
 def init_api(api: Api):
     api.add_resource(UpdateTaskEvent, "/api/v1/openeuler/task/update")
@@ -29,3 +33,4 @@ def init_api(api: Api):
     api.add_resource(VmachineExist, "/api/v1/vmachine/check-exist")
     api.add_resource(CaCert, "/api/v1/ca-cert")
     api.add_resource(DailyBuildEvent, "/api/v1/dailybuild")
+    api.add_resource(RpmCheckEvent, "/api/v1/rpmcheck")

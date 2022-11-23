@@ -42,6 +42,7 @@ from celeryservice.lib.issuerate import UpdateIssueRate, UpdateIssueTypeState
 from celeryservice.lib.testcase import TestcaseHandler
 from celeryservice.lib.dailybuild import DailyBuildHandler
 from celeryservice.lib.message import VmachineReleaseNotice
+from celeryservice.lib.rpmcheck import RpmCheckHandler
 
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -266,6 +267,14 @@ def resolve_dailybuild_detail(self, dailybuild_id, dailybuild_detail, weekly_hea
         dailybuild_id,
         dailybuild_detail,
         weekly_health_id,
+    )
+
+
+@celery.task(bind=True)
+def resolve_rpmcheck_detail(self, rpm_check_id, rpm_check_detail):
+    RpmCheckHandler(logger, self).resolve_detail(
+        rpm_check_id,
+        rpm_check_detail,
     )
 
 

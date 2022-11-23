@@ -39,11 +39,11 @@ from server.model.mirroring import Repo
 from server.model.vmachine import Vmachine
 from server.model.organization import Organization
 from server.model.product import Product
-from server.model.qualityboard import DailyBuild, WeeklyHealth
+from server.model.qualityboard import DailyBuild, WeeklyHealth, RpmCheck, RpmCheckDetail
 from server.utils.db import Insert, Edit
 from server.utils.response_util import RET
 from server.utils.file_util import ImportFile
-from celeryservice.tasks import resolve_dailybuild_detail
+from celeryservice.tasks import resolve_dailybuild_detail, resolve_rpmcheck_detail
 from .handler import UpdateRepo, UpdateTaskHandler, UpdateTaskForm
 
 
@@ -321,6 +321,53 @@ class DailyBuildEvent(Resource):
             weekly_health_id = _weekly_health_id
         )
 
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+        )
+
+
+class RpmCheckEvent(Resource):
+    def post(self):
+        _product = request.form.get("product")
+        _build = request.form.get("build")
+        _file = request.files.get("file")
+        if not _product or len(_product.split("-")) != 2 or not _build or not _file:
+            return jsonify(
+                error_code=RET.PARMA_ERR,
+                error_msg="params invalid"
+            )
+        
+        _name, _version = _product.split("-")
+        product = Product.query.filter_by(name=_name, version=_version).first()
+        if not product:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="this build record belongs to a product not enrolled yet"
+            )
+
+        _detail = yaml.safe_load(_file)
+        if  not isinstance(_detail, list):
+            return jsonify(
+                error_code=RET.PARMA_ERR,
+                error_msg="the file with rpmcheck detail is not in valid format"
+            )
+
+        _id = None
+        _rpm_check = RpmCheck.query.filter_by(product_id=product.id, name=f"{_product}-{_build}").first()
+        if _rpm_check:
+            _id = _rpm_check.id
+        else:
+            _id = Insert(
+                RpmCheck, 
+                {
+                    "name": f"{_product}-{_build}",
+                    "build_time": _build,
+                    "product_id": product.id,
+                }
+            ).insert_id(RpmCheck, "/rpm_check")
+        
+        resolve_rpmcheck_detail.delay(_id, _detail)
         return jsonify(
             error_code=RET.OK,
             error_msg="OK",

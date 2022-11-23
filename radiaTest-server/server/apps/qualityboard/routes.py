@@ -26,6 +26,8 @@ from server.model.qualityboard import (
     CheckItem,
     Round,
     RoundGroup,
+    RpmCheck,
+    RpmCheckDetail,
 )
 from server.utils.db import Delete, Edit, Select, Insert, collect_sql_error
 from server.schema.base import PageBaseSchema
@@ -845,6 +847,65 @@ class DailyBuildDetail(Resource):
                 "detail": dailybuild.detail,
             }
         )
+
+
+class RpmCheckOverview(Resource):
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def get(self, qualityboard_id, query: PageBaseSchema):
+        qualityboard = QualityBoard.query.filter_by(id=qualityboard_id).first()
+        if not qualityboard:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="qualityboard {} not exitst".format(qualityboard_id)
+            )
+        query_filter = RpmCheck.query.filter(
+            RpmCheck.product_id == qualityboard.product.id
+        ).order_by(
+            RpmCheck.create_time.desc()
+        )
+
+        def page_func(item):
+            qualityboard_dict = item.to_json()
+            return qualityboard_dict
+
+        page_dict, e = PageUtil.get_page_dict(
+            query_filter, query.page_num, query.page_size, func=page_func
+        )
+        if e:
+            return jsonify(error_code=RET.SERVER_ERR, error_msg=f'get rpmcheck page error {e}')
+        return jsonify(error_code=RET.OK, error_msg="OK", data=page_dict)
+
+
+class RpmCheckDetailEvent(Resource):
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def get(self, rpm_check_id, query: PageBaseSchema):
+        _rpmcheck = RpmCheck.query.filter_by(id=rpm_check_id).first()
+        if not _rpmcheck:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="rpmcheck {} not exist".format(rpm_check_id)
+            )
+
+        query_filter = RpmCheckDetail.query.filter(
+            RpmCheckDetail.rpm_check_id == _rpmcheck.id
+        ).order_by(
+            RpmCheckDetail.package.desc()
+        )
+
+        def page_func(item):
+            qualityboard_dict = item.to_json()
+            return qualityboard_dict
+
+        page_dict, e = PageUtil.get_page_dict(
+            query_filter, query.page_num, query.page_size, func=page_func
+        )
+        if e:
+            return jsonify(error_code=RET.SERVER_ERR, error_msg=f'get rpmcheck detail page error {e}')
+        return jsonify(error_code=RET.OK, error_msg="OK", data=page_dict)
 
 
 class WeeklybuildHealthOverview(Resource):

@@ -86,6 +86,11 @@ def make_celery(app_name):
                 'routing_key': 'set',
                 'delivery_mode': 1,
             },
+            'celeryservice.tasks.resolve_rpmcheck_detail': {
+                'queue': 'queue_resolve_rpmcheck_detail',
+                'routing_key': 'rpmcheck',
+                'delivery_mode': 1,
+            },
             'celeryservice.tasks.resolve_openeuler_pkglist': {
                 'queue': 'queue_resolve_openeuler_pkglist',
                 'routing_key': 'pkglist',

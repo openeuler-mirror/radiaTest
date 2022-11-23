@@ -27,6 +27,8 @@ from .routes import (
     RoundEvent,
     RoundIssueRateEvent,
     RoundItemEvent,
+    RpmCheckOverview,
+    RpmCheckDetailEvent,
 )
 
 
@@ -78,6 +80,14 @@ def init_api(api: Api):
     api.add_resource(
         DailyBuildDetail,
         "/api/v1/dailybuild/<int:dailybuild_id>",
+    )
+    api.add_resource(
+        RpmCheckOverview,
+        "/api/v1/qualityboard/<int:qualityboard_id>/rpmcheck",
+    )
+    api.add_resource(
+        RpmCheckDetailEvent,
+        "/api/v1/rpmcheck/<int:rpm_check_id>",
     )
     api.add_resource(
         WeeklybuildHealthOverview,
