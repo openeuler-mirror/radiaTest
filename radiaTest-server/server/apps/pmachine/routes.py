@@ -385,6 +385,12 @@ class PmachineReleaseEvent(Resource):
                 "listen": sqlalchemy.null(),
             }
 
+        _body.update({"id": pmachine_id})
+        resp = Edit(Pmachine, _body).single(Pmachine, "/pmachine")
+        _resp = json.loads(resp.response[0])
+        if _resp.get("error_code") != RET.OK:
+            return _resp 
+
         # 删除权利
         if g.gitee_id != pmachine.creator_id:
             role = Role.query.filter_by(type='person', name=g.gitee_id).first()
@@ -507,10 +513,10 @@ class PmachineReleaseEvent(Resource):
                 Delete(ReScopeRole, {"id": upd.id}).single()
             for ssh in _ssh:
                 Delete(ReScopeRole, {"id": ssh.id}).single()
+        
+        return jsonify(error_code=RET.OK, error_msg="OK")
 
-        _body.update({"id": pmachine_id})
-        return Edit(Pmachine, _body).single(Pmachine, "/pmachine")
-
+        
 
 class PmachineEvent(Resource):
     @auth.login_required
