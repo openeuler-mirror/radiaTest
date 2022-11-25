@@ -302,9 +302,21 @@ class DeselectChecklistItem(Resource):
                 error_code=RET.DB_DATA_ERR,
                 error_msg="Checklist {} doesn't exist".format(checklist_id)
             )
+        if body.rounds == "1" and _cl.rounds == "1":
+            _cl.delete()
+            return jsonify(
+                error_code=RET.OK,
+                error_msg="OK."
+            )
         idx = body.rounds.index("1")
         if idx < len(_cl.rounds) - 1:
             _cl.rounds = _cl.rounds[:idx] + "0" + _cl.rounds[idx + 1:]
+            bls = _cl.baseline.split(",")
+            bls[idx] = ""
+            _cl.baseline = ",".join(bls)
+            ops = _cl.operation.split(",")
+            ops[idx] = ""
+            _cl.operation = ",".join(ops)
         elif idx == len(_cl.rounds) - 1:
             rounds = _cl.rounds[:-1] + "0"
             baseline = _cl.baseline
@@ -313,6 +325,12 @@ class DeselectChecklistItem(Resource):
                 rounds = rounds[:-1]
                 baseline = ",".join(baseline.split(",")[:-1])
                 operation = ",".join(operation.split(",")[:-1])
+            if rounds == "0":
+                _cl.delete()
+                return jsonify(
+                    error_code=RET.OK,
+                    error_msg="OK."
+                )
             _cl.rounds = rounds
             _cl.baseline = baseline
             _cl.operation = operation
@@ -358,6 +376,48 @@ class ChecklistItem(Resource):
                     error_code=RET.DB_DATA_ERR,
                     error_msg="Checklist {} has existed".format(ci.title)
                 )
+        if body.rounds.count("1") > 1:
+            _rounds = body.rounds
+            r_len = len(_rounds)
+            bls = _cl.baseline.split(",")
+            bls_len = len(bls)
+            ops = _cl.operation.split(",")
+            rs = []
+            if r_len <= bls_len:
+                for i in range(r_len):
+                    if _rounds[i] == "1":
+                        bls[i] = body.baseline
+                        ops[i] = body.operation
+                        rs += ["1"]
+                    else:
+                        rs += _cl.rounds[i]
+                _cl.rounds = "".join(rs) + _cl.rounds[r_len:]
+            else:
+                for i in range(bls_len):
+                    if _rounds[i] == "1":
+                        bls[i] = body.baseline
+                        ops[i] = body.operation
+                        rs += ["1"]
+                    else:
+                        rs += _cl.rounds[i]
+                for i in range(bls_len, r_len):
+                    if _rounds[i] == "1":
+                        bls += [body.baseline]
+                        ops += [body.operation]
+                        rs += ["1"]
+                    else:
+                        bls += [""]
+                        ops += [""]
+                        rs += ["0"]
+                _cl.rounds = "".join(rs)
+            _cl.baseline = ",".join(bls)
+            _cl.operation = ",".join(ops)
+            _cl.add_update()
+
+            return jsonify(
+                error_code=RET.OK,
+                error_msg="OK."
+            )
         idx = body.rounds.index("1")
         if idx < len(_cl.rounds):
             rounds = _cl.rounds[:idx] + "1" + _cl.rounds[idx + 1:]
