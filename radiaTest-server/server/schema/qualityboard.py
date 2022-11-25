@@ -104,10 +104,21 @@ class AddChecklistSchema(BaseModel):
         return values
 
 
-class UpdateChecklistSchema(CheckRound, CheckBaseline):
+class UpdateChecklistSchema(CheckBaseline):
     checkitem_id: int = None
     released: bool = None
     operation: Optional[Operator] = None
+    rounds: str
+
+    @validator("rounds")
+    def check_rounds(cls, rounds):
+        if rounds:
+            pattern = re.compile(r"[0,1]*")
+            if not pattern.findall(rounds):
+                raise ValueError(
+                    "rounds can only contain 1 and 0."
+                )
+        return rounds
 
 
 class DeselectChecklistSchema(CheckRound):
