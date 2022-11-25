@@ -390,3 +390,60 @@ class RoundGroup(db.Model, BaseModel):
     round_2_id = db.Column(
         db.Integer(), db.ForeignKey('round.id', ondelete="CASCADE"), primary_key=True
     )
+
+
+class RpmCheck(db.Model, BaseModel):
+    __tablename__ = "rpm_check"
+
+    id = db.Column(db.Integer(), primary_key=True, autoincrement=True)
+    name = db.Column(db.String(50), nullable=False)
+    build_time = db.Column(db.DateTime(), nullable=False)
+    all_cnt = db.Column(db.Integer())
+    success_cnt = db.Column(db.Integer())
+    success_rate = db.Column(db.String(6))
+    failed_cnt = db.Column(db.Integer())
+    failed_rate = db.Column(db.String(6))
+    broken_cnt = db.Column(db.Integer())
+    broken_rate = db.Column(db.String(6))
+    unresolvable_cnt = db.Column(db.Integer())
+    unresolvable_rate = db.Column(db.String(6))
+    product_id = db.Column(db.Integer(), db.ForeignKey("product.id"))
+
+    def to_json(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "build_time": self.convert_time_format(self.build_time),
+            "all_cnt": self.all_cnt,
+            "success_cnt": self.success_cnt,
+            "success_rate": self.success_rate,
+            "failed_cnt": self.failed_cnt,
+            "failed_rate": self.failed_rate,
+            "broken_cnt": self.broken_cnt,
+            "broken_rate": self.broken_rate,
+            "unresolvable_cnt": self.unresolvable_cnt,
+            "unresolvable_rate": self.unresolvable_rate,
+            "product_id": self.product_id,
+        }
+
+
+class RpmCheckDetail(db.Model, BaseModel):
+    __tablename__ = "rpm_check_detail"
+
+    id = db.Column(db.Integer(), primary_key=True, autoincrement=True)
+    package = db.Column(db.String(50), nullable=False)
+    status = db.Column(db.Enum("success", "failed", "broken", "unresolvable"), nullable=False)
+    arch = db.Column(db.Enum("x86_64", "aarch64", "noarch"), nullable=False)
+    failed_type = db.Column(db.String(20), nullable=False)
+    failed_detail = db.Column(db.String(100), nullable=False)
+    rpm_check_id = db.Column(db.Integer(), db.ForeignKey("rpm_check.id"))
+
+    def to_json(self):
+        return {
+            "id": self.id,
+            "package": self.package,
+            "status": self.status,
+            "arch": self.arch,
+            "failed_type": self.failed_type,
+            "failed_detail": self.failed_detail,
+        }

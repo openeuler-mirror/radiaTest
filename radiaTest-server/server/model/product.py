@@ -46,6 +46,9 @@ class Product(BaseModel, PermissionBaseModel, db.Model):
     dailybuilds = db.relationship(
         "DailyBuild", backref="product", cascade="all, delete, delete-orphan"
     )
+    rpmchecks = db.relationship(
+        "RpmCheck", backref="product", cascade="all, delete, delete-orphan"
+    )
     round = db.relationship(
         "Round", backref="product", cascade="all, delete, delete-orphan"
     )

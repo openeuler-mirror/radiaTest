@@ -153,6 +153,11 @@ task_queues = (
         routing_key="dailybuild",
     ),
     Queue(
+        "queue_resolve_rpmcheck_detail",
+        exchange=Exchange("server_exchange", type="direct"),
+        routing_key="rpmcheck",
+    ),
+    Queue(
         "queue_resolve_pkglist_after_resolve_rc_name",
         exchange=Exchange("server_exchange", type="direct"),
         routing_key="rc_name",
