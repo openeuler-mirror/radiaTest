@@ -13,6 +13,7 @@
 # @License : Mulan PSL v2
 #####################################
 
+import io
 from flask import current_app
 
 import markdown
@@ -50,6 +51,30 @@ class MdUtil:
         html_etree = etree.HTML(html_content, parser=etree.HTMLParser(encoding="utf-8"))
         table_list = html_etree.xpath("//table")
         return table_list
+
+    @staticmethod
+    def md2html(md_content, file_path):
+        """convert md text to html file
+
+        Args:
+            md_content (str): content of markdown file
+            file_path (str): html file path
+
+        """
+        try :
+            html_content = markdown.markdown(md_content, output_format="html", extensions=MdUtil.DEFAULT_MD_EXT)
+        except UnicodeDecodeError as ude:
+            current_app.logger.error(f"unsupported unicode in markdown file :{str(ude)}")
+            html_content = ""
+        except ValueError as ve:
+            current_app.logger.error(f"unsupported grammar in markdown file :{str(ve)}")
+            html_content = ""
+        
+        if not html_content:
+            return
+        fhtml = io.open(file_path, "w", encoding="utf-8")
+        fhtml.write(html_content)
+        fhtml.close()
 
     @staticmethod
     def get_md_tables2list(md_content, resolver):

@@ -37,6 +37,9 @@ class Milestone(BaseModel, PermissionBaseModel, db.Model):
     issue_solved_rate = db.relationship(
         "IssueSolvedRate", backref="milestone", cascade="all, delete, delete-orphan"
     )
+    test_report = db.relationship(
+        "TestReport", backref="milestone", cascade="all, delete, delete-orphan"
+    )
 
     jobs = db.relationship('Job', backref='milestone')
     creator_id = db.Column(db.Integer(), db.ForeignKey("user.gitee_id"))
@@ -144,4 +147,24 @@ class IssueSolvedRate(BaseModel, db.Model):
             "milestone_id": self.milestone_id,
             "gitee_milestone_id": self.gitee_milestone_id,
             "round_id": self.round_id
+        }
+
+
+class TestReport(BaseModel, db.Model):
+    __tablename__ = "test_report"
+
+    id = db.Column(db.Integer(), primary_key=True)
+    md_file = db.Column(db.String(255))
+    html_file = db.Column(db.String(255))
+    milestone_id = db.Column(
+        db.Integer(), db.ForeignKey("milestone.id")
+    )
+
+    def to_json(self):
+        return {
+            "id": self.id,
+            "md_file": self.md_file,
+            "html_file": self.html_file,
+            "milestone_id": self.milestone_id,
+            "milestone_name": self.milestone.name,
         }

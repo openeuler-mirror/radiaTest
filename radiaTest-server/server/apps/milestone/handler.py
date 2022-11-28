@@ -2,6 +2,8 @@ import abc
 from datetime import datetime
 import json
 import os
+import io
+import pytz
 
 from flask.globals import current_app
 import requests
@@ -13,7 +15,8 @@ from server.utils.db import collect_sql_error, Insert, Edit, Delete
 from server.utils.page_util import PageUtil
 from server.utils.response_util import RET
 from server.model.organization import Organization
-from server.model.milestone import Milestone, IssueSolvedRate
+from server.model.milestone import Milestone, IssueSolvedRate, TestReport
+from server.model.mirroring import Repo
 from server.model.template import Template
 from server.model.product import Product
 from server.model.task import TaskMilestone
@@ -21,6 +24,7 @@ from server.schema.milestone import GiteeMilestoneBase, GiteeMilestoneEdit, Mile
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from server.utils.permission_utils import PermissionManager, GetAllByPermission
 from server.utils.resource_utils import ResourceManager
+from server.utils.md_util import MdUtil
 
 
 class CreateMilestone:
@@ -452,7 +456,7 @@ class IssueOpenApiHandlerV8(BaseOpenApiHandler):
         return self.query(url=_url)
 
 
-class IssueStatisticsHandlerV8:
+class IssueBaseHandlerV8:
     def __init__(self, gitee_id=None, org_id=None) -> None:
         self.issv8 = IssueOpenApiHandlerV8(gitee_id=gitee_id)
         if org_id is None:
@@ -464,12 +468,285 @@ class IssueStatisticsHandlerV8:
         self.issue_types = self.issue_types[1:-1].replace(
             "\'", "\"").replace("}, {", "}#{").split("#")
 
-        self.bug_issue_type_id = self.get_bug_issue_type_id("缺陷")
-
         self.issue_states = redis_client.hget(
             RedisKey.issue_states(org.enterprise_id), "data")
         self.issue_states = self.issue_states[1:-1].replace(
             "\'", "\"").replace("}, {", "}#{").split("#")
+
+    def get_bug_issue_type_id(self, title):
+        type_id = None
+        for _type in self.issue_types:
+            _type = json.loads(_type)
+            if _type.get("title") == title:
+                type_id = _type.get("id")
+                break
+        return type_id
+
+    def get_state_ids(self, solved_state):
+        state_ids = ""
+        for _stat in solved_state:
+            for _type in self.issue_states:
+                _type = json.loads(_type)
+                if _type.get("title") == _stat:
+                    state_ids = state_ids + str(_type.get("id")) + ","
+                    break
+        if len(state_ids) > 0:
+            state_ids = state_ids[:-1]
+        return state_ids
+
+    def get_state_ids_inversion(self, inversion_solved_state: set):
+        state_ids = ""
+        for _type in self.issue_states:
+            _type = json.loads(_type)
+            if _type.get("title") not in inversion_solved_state:
+                state_ids = state_ids + str(_type.get("id")) + ","
+        if len(state_ids) > 0:
+            state_ids = state_ids[:-1]
+        return state_ids
+
+    @staticmethod
+    def calculate_rate(solved_cnt, all_cnt):
+        solved_rate = None
+        if int(all_cnt) != 0:
+            solved_rate = int(solved_cnt) / int(all_cnt)
+        if solved_rate is not None:
+            solved_rate = "%.f%%" % (solved_rate * 100)
+        return solved_rate
+
+    def get_issue_cnt_rate(self, param1, param2):
+        solved_cnt, all_cnt, solved_rate = None, None, None
+        all_cnt = self.get_issues_cnt(param1)
+        if all_cnt is not None and int(all_cnt) == 0 and param2 is not None:
+            return 0, 0, "100%"
+        solved_cnt = self.get_issues_cnt(param2)
+
+        if solved_cnt is not None and all_cnt is not None and int(all_cnt) != 0:
+            solved_rate = int(solved_cnt) / int(all_cnt)
+        if solved_rate is not None:
+            solved_rate = "%.f%%" % (solved_rate * 100)
+        return solved_cnt, all_cnt, solved_rate
+
+    def get_issues_cnt(self, param):
+        cnt = None
+        if not param:
+            return cnt
+        resp = self.issv8.get_all(param)
+        resp = resp.get_json()
+        if resp.get("error_code") == RET.OK:
+            cnt = json.loads(resp.get("data")).get("total_count")
+            return int(cnt)
+        return cnt
+
+
+class IssueHandlerV8(IssueBaseHandlerV8):
+    def __init__(self, gitee_id=None, org_id=None) -> None:
+        super().__init__(gitee_id, org_id)
+        self.bug_issue_type_id = self.get_bug_issue_type_id("缺陷")
+
+    def get_issues(self, gitee_milestone_id, state_ids, uri):
+        param = {
+            "milestone_id": gitee_milestone_id,
+            "issue_state_ids": state_ids,
+            "issue_type_id": self.bug_issue_type_id,
+        }
+        resp = self.issv8.get_all(param)
+        resp = resp.get_json()
+        _data = None
+        if resp.get("error_code") == RET.OK:
+            data = json.loads(resp.get("data")).get("data")
+            serious_data, main_data, minor_data, not_main_data, no_assign_data = [], [], [], [], []
+            for d in data:
+                priority = int(d.get("priority"))
+                tmp_issue = {
+                    "id": d.get("id"),
+                    "ident": d.get("ident"),
+                    "title": d.get("title"),
+                    "url": f"{uri}/{d.get('ident')}?from=project-issue",
+                    "priority": d.get("priority_human"),
+                    "state": d.get("issue_state").get("title")
+                }
+                if priority == 4:
+                    serious_data.append(tmp_issue)
+                elif priority == 3:
+                    main_data.append(tmp_issue)
+                elif priority == 2:
+                    minor_data.append(tmp_issue)
+                elif priority == 1:
+                    not_main_data.append(tmp_issue)
+                else:
+                    no_assign_data.append(tmp_issue)
+            issue_data = serious_data + main_data + \
+                minor_data + not_main_data + no_assign_data
+            issue_data_cnt = len(issue_data)
+            _data = {
+                "serious_issue_rate": IssueHandlerV8.calculate_rate(len(serious_data), issue_data_cnt),
+                "serious_issue_cnt": len(serious_data),
+                "serious_issue": serious_data,
+                "main_issue_rate": self.calculate_rate(len(main_data), issue_data_cnt),
+                "main_issue_cnt": len(main_data),
+                "main_issue": main_data,
+                "minor_issue_rate": self.calculate_rate(len(minor_data), issue_data_cnt),
+                "minor_issue_cnt": len(minor_data),
+                "minor_issue": minor_data,
+                "not_main_issue_rate": self.calculate_rate(len(not_main_data), issue_data_cnt),
+                "not_main_issue_cnt": len(not_main_data),
+                "not_main_issue": not_main_data,
+                "no_assign_issue_rate": self.calculate_rate(len(no_assign_data), issue_data_cnt),
+                "no_assign_issue_cnt": len(no_assign_data),
+                "no_assign_issue": no_assign_data,
+                "issue_data": issue_data,
+                "issue_data_cnt": issue_data_cnt,
+            }
+        return _data
+
+    def generate_update_test_report(self, milestone_id, uri):
+        milestone = Milestone.query.filter_by(id=milestone_id).first()
+        state_ids = self.get_state_ids_inversion(
+            set(["已完成", "已验收", "已取消", "已拒绝", "已修复"])
+        )
+        data = self.get_issues(milestone.gitee_milestone_id, state_ids, uri)
+        if data is None:
+            return jsonify(
+                error_code=RET.BAD_REQ_ERR,
+                error_msg="fail to get data through gitee openAPI",
+            )
+
+        state_ids = self.get_state_ids_inversion(
+            set(["已取消", "已拒绝"])
+        )
+        param = {
+            "milestone_id": milestone.gitee_milestone_id,
+            "issue_state_ids": state_ids,
+            "issue_type_id": self.bug_issue_type_id,
+        }
+        all_issue_cnt = self.get_issues_cnt(param)
+        if all_issue_cnt is None:
+            return jsonify(
+                error_code=RET.BAD_REQ_ERR,
+                error_msg="fail to get data through gitee openAPI",
+            )
+        state_ids = self.get_state_ids(
+            set(["已验收"])
+        )
+        param = {
+            "milestone_id": milestone.gitee_milestone_id,
+            "issue_state_ids": state_ids,
+            "issue_type_id": self.bug_issue_type_id,
+        }
+        accepted_issue_cnt = self.get_issues_cnt(param)
+        if accepted_issue_cnt is None:
+            return jsonify(
+                error_code=RET.BAD_REQ_ERR,
+                error_msg="fail to get data through gitee openAPI",
+            )
+
+        issue_info = ""
+        issue_info2 = ""
+        for d in data.get("issue_data"):
+            issue_info += "|{}|{}|{}||{}|".format(
+                d.get('ident'),
+                d.get('title'),
+                d.get('priority'),
+                d.get('state')
+            ) + "\n"
+            issue_info2 += "|[{}]({})|{}|{}||{}|".format(
+                d.get('ident'),
+                d.get('url'),
+                d.get('title'),
+                d.get('priority'),
+                d.get('state')
+            ) + "\n"
+        issue_info = issue_info[:-1]
+        issue_info2 = issue_info2[:-1]
+
+        issue_rate_info = "|数目|{}|{}|{}|{}|{}|{}|".format(
+                data.get('issue_data_cnt'),
+                data.get('serious_issue_cnt'),
+                data.get('main_issue_cnt'),
+                data.get('minor_issue_cnt'),
+                data.get('not_main_issue_cnt'),
+                data.get('no_assign_issue_cnt') 
+            ) + "\n"
+        issue_rate_info += "|百分比||{}|{}|{}|{}|{}|".format(
+                data.get('serious_issue_rate'),
+                data.get('main_issue_rate'),
+                data.get('minor_issue_rate'),
+                data.get('not_main_issue_rate'),
+                data.get('no_assign_issue_rate')
+            )
+        repo_info = ""
+        repo_info_tmp = ""
+        repo = Repo.query.filter_by(milestone_id=milestone_id).first()
+        if repo:
+            repo_info = repo.content
+            for rp in repo_info.split("\n"):
+                if "baseurl" in rp:
+                    repo_info_tmp += rp.split("/")[4] + ":" + "/".join(
+                        rp.split("=")[1].split("/")[:-2]) + "\n"
+        product_info = f"|{milestone.name}|{milestone.start_time}|{milestone.end_time}|"
+
+        all_testcase_cnt = 0
+        failed_testcase_cnt = 0
+        succeed_testcase_cnt = 0
+        test_result = f"|{milestone.name}|{all_testcase_cnt}|\
+            {succeed_testcase_cnt}/{failed_testcase_cnt}|{all_issue_cnt}|"
+        accepted_result = "{}版本，共计执行 {} 个测试用例，<br>1）发现{}个问题，\
+            <br>2）发现{}个问题，且已经验收通过。<br>".format(
+                milestone.name,
+                all_testcase_cnt,
+                all_issue_cnt,
+                accepted_issue_cnt
+            )
+
+        timestamp = datetime.now(tz=pytz.timezone(
+            'Asia/Shanghai')).strftime('%Y%m%d%H%M%S')
+        tmp_filename = "server/static/test_report_template.md"
+        md_filename = f"{current_app.config.get('TEST_REPORT_PATH')}/test_report_{timestamp}.md"
+        html_filename = f"{current_app.config.get('TEST_REPORT_PATH')}/test_report_{timestamp}.html"
+        fmd = io.open(md_filename, "w", encoding="utf-8")
+        lines = io.open(tmp_filename, "r", encoding="utf-8").readlines()
+        for line in lines:
+            fmd.write(
+                line.replace("<product_name>", milestone.name)
+                .replace("<product_info>", product_info)
+                .replace("<accepted_result>", accepted_result)
+                .replace("<repo_info>", repo_info_tmp)
+                .replace("<issue_info>", issue_info)
+                .replace("<issue_rate>", issue_rate_info)
+                .replace("<issue_info2>", issue_info2)
+                .replace("<test_result>", test_result)
+            )
+        fmd.close()
+        md_text = open(md_filename, "r", encoding="utf-8").read()
+        MdUtil.md2html(md_text, html_filename)
+        _test_report = TestReport.query.filter_by(
+            milestone_id=milestone_id
+        ).first()
+        if _test_report:
+            _test_report.md_file = f"test_report_{timestamp}.md"
+            _test_report.html_file = f"test_report_{timestamp}.html"
+            _test_report.add_update()
+        else:
+            _test_report = Insert(
+                TestReport,
+                {
+                    "md_file": f"test_report_{timestamp}.md",
+                    "html_file": f"test_report_{timestamp}.html",
+                    "milestone_id": milestone_id,
+                }
+            ).insert_obj()
+
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+            data=_test_report.to_json()
+        )
+
+
+class IssueStatisticsHandlerV8(IssueBaseHandlerV8):
+    def __init__(self, gitee_id=None, org_id=None) -> None:
+        super().__init__(gitee_id, org_id)
+        self.bug_issue_type_id = self.get_bug_issue_type_id("缺陷")
 
         self.all_state_ids = self.get_state_ids_inversion(
             set(["已挂起", "已取消", "已拒绝"])
@@ -499,24 +776,6 @@ class IssueStatisticsHandlerV8:
         return gitee_id
 
     @staticmethod
-    def calculate_rate(solved_cnt, all_cnt):
-        solved_rate = None
-        if int(all_cnt) != 0:
-            solved_rate = int(solved_cnt) / int(all_cnt)
-        if solved_rate:
-            solved_rate = "%.f%%" % (solved_rate * 100)
-        return solved_rate
-
-    def get_bug_issue_type_id(self, title):
-        type_id = None
-        for _type in self.issue_types:
-            _type = json.loads(_type)
-            if _type.get("title") == title:
-                type_id = _type.get("id")
-                break
-        return type_id
-
-    @staticmethod
     def get_issue_type():
         org_id = redis_client.hget(RedisKey.user(g.gitee_id), "current_org_id")
         org = Organization.query.filter(
@@ -527,10 +786,11 @@ class IssueStatisticsHandlerV8:
                 error_msg="this organization has no right",
             )
         issue_types = redis_client.hget(
-            RedisKey.issue_types(org.enterprise_id), 
+            RedisKey.issue_types(org.enterprise_id),
             "data"
         )
-        issue_types = issue_types[1:-1].replace("\'", "\"").replace("}, {", "}#{").split("#")
+        issue_types = issue_types[1:-1].replace(
+            "\'", "\"").replace("}, {", "}#{").split("#")
         _data = list()
         for _type in issue_types:
             _data.append(json.loads(_type))
@@ -539,7 +799,7 @@ class IssueStatisticsHandlerV8:
             error_msg="OK",
             data=_data
         )
-    
+
     @staticmethod
     def get_issue_state():
         org_id = redis_client.hget(RedisKey.user(g.gitee_id), "current_org_id")
@@ -552,8 +812,8 @@ class IssueStatisticsHandlerV8:
             )
         issue_states = redis_client.hget(
             RedisKey.issue_states(org.enterprise_id), "data")
-        issue_states = issue_states[1:-
-                                  1].replace("\'", "\"").replace("}, {", "}#{").split("#")
+        issue_states = issue_states[1:-1].replace(
+            "\'", "\"").replace("}, {", "}#{").split("#")
         _data = list()
         for _state in issue_states:
             _data.append(json.loads(_state))
@@ -562,52 +822,6 @@ class IssueStatisticsHandlerV8:
             error_msg="OK",
             data=_data
         )
-
-    def get_state_ids(self, solved_state):
-        state_ids = ""
-        for _stat in solved_state:
-            for _type in self.issue_states:
-                _type = json.loads(_type)
-                if _type.get("title") == _stat:
-                    state_ids = state_ids + str(_type.get("id")) + ","
-                    break
-        if len(state_ids) > 0:
-            state_ids = state_ids[:-1]
-        return state_ids
-
-    def get_state_ids_inversion(self, inversion_solved_state: set):
-        state_ids = ""
-        for _type in self.issue_states:
-            _type = json.loads(_type)
-            if _type.get("title") not in inversion_solved_state:
-                state_ids = state_ids + str(_type.get("id")) + ","
-        if len(state_ids) > 0:
-            state_ids = state_ids[:-1]
-        return state_ids
-
-    def get_issue_cnt_rate(self, param1, param2):
-        solved_cnt, all_cnt, solved_rate = None, None, None
-        all_cnt = self.get_issues_cnt(param1)
-        if all_cnt is not None and int(all_cnt) == 0 and param2 is not None:
-            return 0, 0, "100%"
-        solved_cnt = self.get_issues_cnt(param2)
-
-        if solved_cnt is not None and all_cnt is not None and int(all_cnt) != 0:
-            solved_rate = int(solved_cnt) / int(all_cnt)
-        if solved_rate is not None:
-            solved_rate = "%.f%%" % (solved_rate * 100)
-        return solved_cnt, all_cnt, solved_rate
-
-    def get_issues_cnt(self, param):
-        cnt = None
-        if not param:
-            return cnt
-        resp = self.issv8.get_all(param)
-        resp = resp.get_json()
-        if resp.get("error_code") == RET.OK:
-            cnt = json.loads(resp.get("data")).get("total_count")
-            return int(cnt)
-        return cnt
 
     def get_milestone_issue_solved_rate(self, milestone):
         _, _, serious_resolved_rate = self.get_issue_cnt_rate(

@@ -3,7 +3,7 @@ from flask import request
 from flask_restful import Resource
 from flask_pydantic import validate
 
-from server.model import Product, Milestone
+from server.model import Product, Milestone, TestReport
 from server.utils.auth_util import auth
 from server.utils.db import Edit, Select
 
@@ -110,4 +110,29 @@ class UpdateProductIssueRateByField(Resource):
         return jsonify(
             error_code=RET.OK,
             error_msg="OK",
+        )
+
+
+class ProductTestReportEvent(Resource):
+    @auth.login_required()
+    def get(self, product_id):
+        _product = Product.query.filter_by(id=product_id).first()
+        if not _product:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="product doesn't exist.",
+            )
+
+        _test_reports = TestReport.query.join(Milestone).filter(
+            TestReport.milestone_id == Milestone.id,
+            Milestone.product_id == product_id
+        ).all()
+        data = []
+        if _test_reports:
+            data = [tr.to_json() for tr in _test_reports]
+
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+            data=data
         )
