@@ -224,7 +224,7 @@ function myTasksRowProps(rowData) {
   return {
     style: 'cursor: pointer;',
     onClick: () => {
-      myRouter.push('/home/tm/task');
+      myRouter.push('/home/workflow/task');
       initDataKanban(() => {
         getDetail(rowData);
       });

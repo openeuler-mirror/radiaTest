@@ -44,14 +44,8 @@ export default defineComponent({
       handlePvmClick() {
         router.push('/home/version-management');
       },
-      handleTestClick() {
-        router.push('/home/testing');
-      },
       handleTcmClick() {
         router.push('/home/tcm/folderview');
-      },
-      handleTaskClick() {
-        router.push('/home/tm/task');
       },
       handleHomeClick() {
         router.push('/home');
