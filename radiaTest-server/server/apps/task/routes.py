@@ -68,7 +68,7 @@ class Task(Resource):
 class TaskItem(Resource):
     @auth.login_required()
     @response_collect
-    @casbin_enforcer.enforcer
+    # @casbin_enforcer.enforcer
     def get(self, task_id: int):
         return HandlerTask.get(task_id)
 
@@ -89,7 +89,7 @@ class TaskItem(Resource):
 class ParticipantItem(Resource):
     @auth.login_required()
     @response_collect
-    @casbin_enforcer.enforcer
+    # @casbin_enforcer.enforcer
     def get(self, task_id):
         return HandlerTaskParticipant.get(task_id)
 
@@ -104,7 +104,7 @@ class ParticipantItem(Resource):
 class Participants(Resource):
     @auth.login_required()
     @response_collect
-    @casbin_enforcer.enforcer
+    # @casbin_enforcer.enforcer
     def get(self):
         return HandlerTaskParticipant.get(None, query_task=True)
 
@@ -121,7 +121,7 @@ class ExecutorItem(Resource):
 class Comment(Resource):
     @auth.login_required()
     @response_collect
-    @casbin_enforcer.enforcer
+    # @casbin_enforcer.enforcer
     def get(self, task_id):
         return HandlerTaskComment.get(task_id)
 
@@ -170,7 +170,7 @@ class FamilyItem(Resource):
     @auth.login_required()
     @response_collect
     @validate()
-    @casbin_enforcer.enforcer
+    # @casbin_enforcer.enforcer
     def get(self, task_id, query: QueryFamilySchema):
         return HandlerTaskFamily.get(task_id, query)
 
@@ -200,7 +200,7 @@ class Report(Resource):
     @auth.login_required()
     @response_collect
     @validate()
-    @casbin_enforcer.enforcer
+    # @casbin_enforcer.enforcer
     def get(self, task_id):
         return HandlerTaskReport.get(task_id)
 
@@ -216,7 +216,7 @@ class Cases(Resource):
     @auth.login_required()
     @response_collect
     @validate()
-    @casbin_enforcer.enforcer
+    # @casbin_enforcer.enforcer
     def get(self, task_id, query: QueryTaskCaseSchema):
         return HandlerTaskCase.get(task_id, query)
 
@@ -245,7 +245,7 @@ class Cases(Resource):
 class CasesResult(Resource):
     @auth.login_required()
     @response_collect
-    @casbin_enforcer.enforcer
+    # @casbin_enforcer.enforcer
     def get(self, task_id):
         return HandlerTaskCase.task_cases_result(task_id)
 
