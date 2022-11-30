@@ -160,6 +160,7 @@
           }"
         >
           <n-tabs
+            animated
             type="line"
             @update:value="changeView"
             v-model:value="activeTab"

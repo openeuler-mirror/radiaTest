@@ -1,5 +1,5 @@
 <template>
-  <n-tabs default-value="cla" size="large" justify-content="space-evenly">
+  <n-tabs animated default-value="cla" size="large" justify-content="space-evenly">
     <n-tab-pane name="cla" tab="CLA">
       <n-table :single-line="false">
         <tbody>

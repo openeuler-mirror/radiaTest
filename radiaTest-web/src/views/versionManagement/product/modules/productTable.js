@@ -21,7 +21,7 @@ import {
   deselectCheckListItem,
   updateProductVersion
 } from '@/api/put';
-import { deleteCheckListItem, deleteProductVersion } from '@/api/delete';
+import { deleteProductVersion } from '@/api/delete';
 import {
   detail,
   drawerShow,
@@ -616,8 +616,8 @@ const MilestoneIssuesCardType = computed(() => {
 });
 
 const getRoundRelateMilestones = (roundId) => {
-  resolvedMilestoneOptions.value = [{ label: '当前迭代', value: { name: '当前迭代', id: currentRound.value.id } }];
   getMilestones({ round_id: roundId, paged: false }).then((res) => {
+    resolvedMilestoneOptions.value = [{ label: '当前迭代', value: { name: '当前迭代', id: currentRound.value.id } }];
     res.data.items.forEach((item) => {
       resolvedMilestoneOptions.value.push({
         label: item.name,
@@ -686,12 +686,6 @@ const checkListTableData = ref([]);
 const rounds = ref(1); // checkList表格Rounds数
 const checkListTableColumns = ref([]);
 
-const deleteCheckItem = (row) => {
-  deleteCheckListItem(row.id).then(() => {
-    getCheckListTableData(1, checkListTablePagination.value.pageSize, currentProduct.value);
-  });
-};
-
 const checkListTableColumnsDefault = [
   {
     key: 'check_item',
@@ -700,7 +694,7 @@ const checkListTableColumnsDefault = [
   },
   {
     key: 'baseline',
-    title: '基准',
+    title: '基准值',
     align: 'center'
   },
   {
@@ -727,7 +721,7 @@ const checkListTableColumnsDefault = [
               rounds: '1'
             });
           } else {
-            deselectCheckListItem(row.id, { rounds: '1' });
+            deselectCheckListTable(row, { rounds: '1' });
           }
         }
       });
@@ -757,32 +751,6 @@ const checkListTableColumnsDefault = [
         }
       );
     }
-  },
-  {
-    title: '操作',
-    align: 'center',
-    render(row) {
-      return h(
-        NSpace,
-        {
-          style: 'justify-content: center'
-        },
-        [
-          h(
-            NButton,
-            {
-              text: true,
-              onClick: () => {
-                textDialog('warning', '警告', '确认删除检查项？', () => {
-                  deleteCheckItem(row);
-                });
-              }
-            },
-            '删除'
-          )
-        ]
-      );
-    }
   }
 ];
 
@@ -798,6 +766,11 @@ const checkListDrawerModel = ref({
   operation: null
 });
 
+const validateBaseline = (rule, value) => {
+  let reg = /^\d+(\.\d+)?%?$/;
+  return reg.test(value);
+};
+
 const checkListDrawerRules = ref({
   checkitem_id: {
     required: true,
@@ -805,11 +778,18 @@ const checkListDrawerRules = ref({
     message: '检查项必填',
     trigger: ['blur', 'input']
   },
-  baseline: {
-    required: true,
-    message: '基准数值必填',
-    trigger: ['blur', 'input']
-  },
+  baseline: [
+    {
+      required: true,
+      message: '基准值必填',
+      trigger: ['blur', 'input']
+    },
+    {
+      validator: validateBaseline,
+      message: '只能输入正的整数、小数或百分数',
+      trigger: ['blur', 'input']
+    }
+  ],
   operation: {
     required: true,
     message: '请选择运算符',
@@ -817,6 +797,7 @@ const checkListDrawerRules = ref({
   },
   rounds: {
     required: true,
+    type: 'array',
     message: '请选择迭代版本',
     trigger: ['blur', 'change']
   }
@@ -844,8 +825,6 @@ const operationOptions = ref([
     value: '<='
   }
 ]);
-
-const onlyAllowNumber = (value) => !value || /^-?\d*\.?\d{0,2}%?$/.test(value);
 
 const getCheckListTableData = (currentPage, pageSize, productId) => {
   checkListTableLoading.value = true;
@@ -881,9 +860,20 @@ const getCheckListTableData = (currentPage, pageSize, productId) => {
   );
 };
 
-// 更新checkList表格检查项状态
+// 勾选checkList表格检查项状态
 const updateCheckListTable = (row, data) => {
   updateCheckListItem(row.id, data).then(() => {
+    getCheckListTableData(
+      checkListTablePagination.value.page,
+      checkListTablePagination.value.pageSize,
+      currentProduct.value
+    );
+  });
+};
+
+// 取消checkList表格检查项状态
+const deselectCheckListTable = (row, data) => {
+  deselectCheckListItem(row.id, data).then(() => {
     getCheckListTableData(
       checkListTablePagination.value.page,
       checkListTablePagination.value.pageSize,
@@ -953,7 +943,7 @@ const addRounds = (index, keyName) => {
               operation: row.operation
             });
           } else {
-            deselectCheckListItem(row.id, { rounds: createRoundNumber(index) });
+            deselectCheckListTable(row, { rounds: createRoundNumber(index) });
           }
         }
       });
@@ -980,6 +970,20 @@ const confirmCheckItem = () => {
   });
 };
 
+const calcRounds = (arr) => {
+  let tempArr = [];
+  arr.forEach((item) => {
+    for (let i = 0; i < item.length; i++) {
+      if (item[i] === '1') {
+        tempArr[i] = 1;
+      } else if (tempArr[i] !== 1) {
+        tempArr[i] = 0;
+      }
+    }
+  });
+  return tempArr.join('');
+};
+
 // 确认新增基准值
 const confirmBaseline = () => {
   checkListDrawerFormRef.value?.validate((error) => {
@@ -989,9 +993,13 @@ const confirmBaseline = () => {
       updateCheckListItem(checkListDrawerModel.value.checkitem_id, {
         baseline: checkListDrawerModel.value.baseline,
         operation: checkListDrawerModel.value.operation,
-        rounds: checkListDrawerModel.value.rounds
+        rounds: calcRounds(checkListDrawerModel.value.rounds)
       }).then(() => {
-        getCheckListTableData(1, checkListTablePagination.value.pageSize, currentProduct.value);
+        getCheckListTableData(
+          checkListTablePagination.value.page,
+          checkListTablePagination.value.pageSize,
+          currentProduct.value
+        );
         cancelCheckListDrawer();
       });
     }
@@ -1137,7 +1145,6 @@ export {
   checkListTablePageChange,
   checkListTablePageSizeChange,
   checkListTablePagination,
-  onlyAllowNumber,
   checkListDrawerFormRef,
   cancelCheckListDrawer,
   confirmCheckItem,

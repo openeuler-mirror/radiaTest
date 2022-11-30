@@ -8,7 +8,7 @@
           margin: 10px 0;
         "
       >
-        <n-tabs type="line" @update:value="tabChange" :value="activeTab">
+        <n-tabs animated type="line" @update:value="tabChange" :value="activeTab">
           <n-tab name="details">详情</n-tab>
           <n-tab name="historicalExec">历史执行</n-tab>
           <n-tab name="auto" :disabled="!caseInfo.code">自动化脚本</n-tab>

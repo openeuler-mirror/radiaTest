@@ -7,9 +7,7 @@
             <AnnouncementOutlined />
           </n-icon>
         </template>
-        <div class="alert">
-          暂无系统公告...
-        </div>
+        <div class="alert">暂无系统公告...</div>
       </n-alert>
       <grid-layout
         v-model:layout="layout"
@@ -36,26 +34,15 @@
         >
           <div class="ge-dashboard-module" v-if="item.i === 'personal'">
             <div class="ge-dashboard-module-header">
-              <div
-                class="header-border"
-                style="border-color: rgb(79, 211, 223);"
-              ></div>
+              <div class="header-border" style="border-color: rgb(79, 211, 223)"></div>
               <div class="header-title d-flex flex-center flex-1 mr-2">
                 <n-icon size="24">
                   <DragIndicatorFilled />
                 </n-icon>
-                <h2 class="header flex-1">
-                  个人数据概览
-                </h2>
+                <h2 class="header flex-1">个人数据概览</h2>
               </div>
-              <div
-                class="header-actions flex-shrink-0 d-flex flex-center ml-auto"
-              >
-                <span
-                  class="action-item mr-2 refresh"
-                  title="刷新"
-                  ref="personalRefresh"
-                  @click="personalRefreshClick"
+              <div class="header-actions flex-shrink-0 d-flex flex-center ml-auto">
+                <span class="action-item mr-2 refresh" title="刷新" ref="personalRefresh" @click="personalRefreshClick"
                   ><n-icon size="24"> <Refresh /> </n-icon
                 ></span>
               </div>
@@ -105,67 +92,35 @@
           </div>
           <div class="ge-dashboard-module" v-if="item.i === 'machine'">
             <div class="ge-dashboard-module-header">
-              <div
-                class="header-border"
-                style="border-color: rgb(44, 126, 248);"
-              ></div>
+              <div class="header-border" style="border-color: rgb(44, 126, 248)"></div>
               <div class="header-title d-flex flex-center flex-1 mr-2">
                 <n-icon size="24">
                   <DragIndicatorFilled />
                 </n-icon>
-                <h2 class="header flex-1">
-                  我的机器
-                </h2>
+                <h2 class="header flex-1">我的机器</h2>
               </div>
-              <div
-                class="header-actions flex-shrink-0 d-flex flex-center ml-auto"
-              >
-                <span
-                  class="action-item mr-2 refresh"
-                  title="刷新"
-                  ref="machineRefresh"
-                  @click="machineRefreshClick"
+              <div class="header-actions flex-shrink-0 d-flex flex-center ml-auto">
+                <span class="action-item mr-2 refresh" title="刷新" ref="machineRefresh" @click="machineRefreshClick"
                   ><n-icon size="24"> <Refresh /> </n-icon
                 ></span>
               </div>
             </div>
             <div class="ge-dashboard-module-body">
               <div class="ge-dashboard-module-collection-view">
-                <div
-                  class="ge-dashboard-module-collection-view-header mb-3 "
-                >
+                <div class="ge-dashboard-module-collection-view-header mb-3">
                   <div class="ge-tabs" @click="machineWorkbenchClick">
-                    <a
-                      class="item"
-                      :class="{ active: machineActive === '0' }"
-                      data-index="0"
-                      >虚拟机</a
-                    >
-                    <a
-                      class="item"
-                      :class="{ active: machineActive === '1' }"
-                      data-index="1"
-                      >物理机</a
-                    >
+                    <a class="item" :class="{ active: machineActive === '0' }" data-index="0">虚拟机</a>
+                    <a class="item" :class="{ active: machineActive === '1' }" data-index="1">物理机</a>
                   </div>
                   <div class="searchWrap ml-auto">
                     <n-icon size="22" class="search" @click="machineSearch">
                       <Search />
                     </n-icon>
-                    <n-input
-                      type="text"
-                      placeholder="搜索..."
-                      class="input"
-                      v-model:value="machineSearchValue"
-                    />
+                    <n-input type="text" placeholder="搜索..." class="input" v-model:value="machineSearchValue" />
                   </div>
                 </div>
-                <div class="ge-dashboard-module-collection-view-content ">
-                  <div
-                    class="ge-table-wrap"
-                    v-show="machineActive === '0'"
-                    @wheel.stop
-                  >
+                <div class="ge-dashboard-module-collection-view-content">
+                  <div class="ge-table-wrap" v-show="machineActive === '0'" @wheel.stop>
                     <n-data-table
                       :columns="myMachineColVirtual"
                       :data="myMachineData"
@@ -174,11 +129,7 @@
                       :bottom-bordered="false"
                     />
                   </div>
-                  <div
-                    class="ge-table-wrap"
-                    v-show="machineActive === '1'"
-                    @wheel.stop
-                  >
+                  <div class="ge-table-wrap" v-show="machineActive === '1'" @wheel.stop>
                     <n-data-table
                       :columns="myMachineColPhysics"
                       :data="myMachineData"
@@ -193,80 +144,37 @@
           </div>
           <div class="ge-dashboard-module" v-if="item.i === 'tasks'">
             <div class="ge-dashboard-module-header">
-              <div
-                class="header-border"
-                style="border-color: rgb(95, 206, 96);"
-              ></div>
+              <div class="header-border" style="border-color: rgb(95, 206, 96)"></div>
               <div class="header-title d-flex flex-center flex-1 mr-2">
                 <n-icon size="24">
                   <DragIndicatorFilled />
                 </n-icon>
-                <h2 class="header flex-1">
-                  我的任务
-                </h2>
+                <h2 class="header flex-1">我的任务</h2>
               </div>
-              <div
-                class="header-actions flex-shrink-0 d-flex flex-center ml-auto"
-              >
-                <span
-                  class="action-item mr-2 refresh"
-                  title="刷新"
-                  ref="taskRefresh"
-                  @click="taskRefreshClick"
+              <div class="header-actions flex-shrink-0 d-flex flex-center ml-auto">
+                <span class="action-item mr-2 refresh" title="刷新" ref="taskRefresh" @click="taskRefreshClick"
                   ><n-icon size="24"> <Refresh /> </n-icon
                 ></span>
               </div>
             </div>
             <div class="ge-dashboard-module-body">
               <div class="ge-dashboard-module-collection-view">
-                <div
-                  class="ge-dashboard-module-collection-view-header mb-3 "
-                >
+                <div class="ge-dashboard-module-collection-view-header mb-3">
                   <div class="ge-tabs" @click="taskWorkbenchClick">
-                    <a
-                      class="item"
-                      :class="{ active: taskActive === '0' }"
-                      data-index="0"
-                      >未完成</a
-                    >
-                    <a
-                      class="item"
-                      :class="{ active: taskActive === '1' }"
-                      data-index="1"
-                      >今日</a
-                    >
-                    <a
-                      class="item"
-                      :class="{ active: taskActive === '2' }"
-                      data-index="2"
-                      >本周</a
-                    >
-                    <a
-                      class="item"
-                      :class="{ active: taskActive === '3' }"
-                      data-index="3"
-                      >已逾期</a
-                    >
-                    <a
-                      class="item"
-                      :class="{ active: taskActive === '4' }"
-                      data-index="4"
-                      >所有</a
-                    >
+                    <a class="item" :class="{ active: taskActive === '0' }" data-index="0">未完成</a>
+                    <a class="item" :class="{ active: taskActive === '1' }" data-index="1">今日</a>
+                    <a class="item" :class="{ active: taskActive === '2' }" data-index="2">本周</a>
+                    <a class="item" :class="{ active: taskActive === '3' }" data-index="3">已逾期</a>
+                    <a class="item" :class="{ active: taskActive === '4' }" data-index="4">所有</a>
                   </div>
                   <div class="searchWrap ml-auto">
                     <n-icon size="22" class="search" @click="taskSearch">
                       <Search />
                     </n-icon>
-                    <n-input
-                      type="text"
-                      placeholder="搜索..."
-                      class="input"
-                      v-model:value="taskSearchValue"
-                    />
+                    <n-input type="text" placeholder="搜索..." class="input" v-model:value="taskSearchValue" />
                   </div>
                 </div>
-                <div class="ge-dashboard-module-collection-view-content ">
+                <div class="ge-dashboard-module-collection-view-content">
                   <div class="ge-table-wrap" @wheel.stop>
                     <n-data-table
                       :columns="myTasksCol"
@@ -287,63 +195,30 @@
           </div>
           <div class="ge-dashboard-module" v-if="item.i === 'cases'">
             <div class="ge-dashboard-module-header">
-              <div
-                class="header-border"
-                style="border-color: rgb(207, 39, 223);"
-              ></div>
+              <div class="header-border" style="border-color: rgb(207, 39, 223)"></div>
               <div class="header-title d-flex flex-center flex-1 mr-2">
                 <n-icon size="24">
                   <DragIndicatorFilled />
                 </n-icon>
-                <h2 class="header flex-1">
-                  我的用例状态
-                </h2>
+                <h2 class="header flex-1">我的用例状态</h2>
               </div>
-              <div
-                class="header-actions flex-shrink-0 d-flex flex-center ml-auto"
-              >
-                <span
-                  class="action-item mr-2 refresh"
-                  title="刷新"
-                  ref="caseRefresh"
-                  @click="getMyCase"
+              <div class="header-actions flex-shrink-0 d-flex flex-center ml-auto">
+                <span class="action-item mr-2 refresh" title="刷新" ref="caseRefresh" @click="getMyCase"
                   ><n-icon size="24"> <Refresh /> </n-icon
                 ></span>
               </div>
             </div>
             <div class="ge-dashboard-module-body">
               <div class="ge-dashboard-module-collection-view">
-                <div
-                  class="ge-dashboard-module-collection-view-header mb-3 "
-                >
+                <div class="ge-dashboard-module-collection-view-header mb-3">
                   <div class="ge-tabs" @click="caseWorkbenchClick">
-                    <a
-                      class="item"
-                      :class="{ active: caseActive === '0' }"
-                      data-index="0"
-                      >开启的</a
-                    >
-                    <a
-                      class="item"
-                      :class="{ active: caseActive === '1' }"
-                      data-index="1"
-                      >已合并</a
-                    >
-                    <a
-                      class="item"
-                      :class="{ active: caseActive === '2' }"
-                      data-index="2"
-                      >已关闭</a
-                    >
-                    <a
-                      class="item"
-                      :class="{ active: caseActive === '3' }"
-                      data-index="3"
-                      >全部</a
-                    >
+                    <a class="item" :class="{ active: caseActive === '0' }" data-index="0">开启的</a>
+                    <a class="item" :class="{ active: caseActive === '1' }" data-index="1">已合并</a>
+                    <a class="item" :class="{ active: caseActive === '2' }" data-index="2">已关闭</a>
+                    <a class="item" :class="{ active: caseActive === '3' }" data-index="3">全部</a>
                   </div>
                 </div>
-                <div class="ge-dashboard-module-collection-view-content ">
+                <div class="ge-dashboard-module-collection-view-content">
                   <div class="ge-table-wrap" @wheel.stop>
                     <n-data-table
                       :columns="myCasesCol"
@@ -375,15 +250,15 @@ export default defineComponent({
     AnnouncementOutlined,
     DragIndicatorFilled,
     Refresh,
-    Search,
+    Search
   },
   methods: {},
   setup() {
     modules.initData();
     return {
-      ...modules,
+      ...modules
     };
-  },
+  }
 });
 </script>
 

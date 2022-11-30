@@ -115,7 +115,6 @@
       ],
       "no-redeclare": "error",
       "no-undef": "error",
-      "no-use-before-define": "error",
       "no-undef-init": "error",
       "no-unused-vars": "error",
       "no-multi-assign": "error",

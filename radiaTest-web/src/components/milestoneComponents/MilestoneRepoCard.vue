@@ -1,6 +1,6 @@
 <template>
   <n-card class="repo-card" :style="{ width: width }" hoverable>
-    <n-tabs v-model:value="tabValue" type="line" justify-content="space-evenly">
+    <n-tabs animated v-model:value="tabValue" type="line" justify-content="space-evenly">
       <n-tab-pane name="aarch64" tab="aarch64">
         <div v-if="!loading">
           <div v-if="repo['aarch64'] && repo['aarch64'].content">

@@ -64,6 +64,7 @@
         </span>
       </div>
       <n-tabs
+        animated
         default-value="signin"
         size="large"
         justify-content="space-around"

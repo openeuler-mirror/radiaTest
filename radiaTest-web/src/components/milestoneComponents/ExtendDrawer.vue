@@ -23,7 +23,7 @@
           </span>
         </p>
       </template>
-      <n-tabs type="segment">
+      <n-tabs animated type="segment">
         <n-tab-pane name="image" tab="镜像信息">
           <div
             v-show="rowData.type !== 'update'"

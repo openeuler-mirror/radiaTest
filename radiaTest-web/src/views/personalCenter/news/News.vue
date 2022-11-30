@@ -2,7 +2,7 @@
   <n-spin :show="showLoading" stroke="rgba(0, 47, 167, 1)">
     <div>
       <card-page title="消息中心">
-        <n-tabs type="line" size="large" default-value="unreadNews">
+        <n-tabs animated type="line" size="large" default-value="unreadNews">
           <n-tab-pane name="unreadNews">
             <template #tab>
               <n-badge :value="unreadPageInfo.total">

@@ -16,7 +16,7 @@
         "
   >
     <template #default>
-      <n-tabs type="card" size="large" tab-style="width: 200px">
+      <n-tabs animated type="card" size="large" tab-style="width: 200px">
         <n-tab name="automatic">自动化测试</n-tab>
         <n-tab name="manual" :disabled="true">手工测试</n-tab>
         <n-tab name="gui" :disabled="true">GUI测试</n-tab>

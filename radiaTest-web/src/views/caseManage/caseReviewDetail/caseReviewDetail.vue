@@ -40,7 +40,7 @@
             </n-space>
           </div>
         </div>
-        <n-tabs type="line">
+        <n-tabs animated type="line">
           <n-tab-pane name="comment" tab="评论">
             <comment @update="getComment" v-for="(item, index) in comments" :key="index" :comment="item" />
             <div id="comment">

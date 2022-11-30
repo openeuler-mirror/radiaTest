@@ -350,11 +350,11 @@
                     </div>
                   </div>
                   <div v-if="showPackage">
-                    <n-tabs type="line" @update:value="changePackageTabFirst">
+                    <n-tabs animated type="line" @update:value="changePackageTabFirst">
                       <n-tab name="softwarescope"> 软件范围 </n-tab>
                       <n-tab name="homonymousIsomerism"> 同名异构 </n-tab>
                     </n-tabs>
-                    <n-tabs type="line" @update:value="changePackageTabSecond">
+                    <n-tabs animated type="line" @update:value="changePackageTabSecond">
                       <n-tab name="everything"> everything </n-tab>
                       <n-tab name="EPOL"> EPOL </n-tab>
                     </n-tabs>
@@ -509,11 +509,10 @@
               filterable
             />
           </n-form-item>
-          <n-form-item label="基准数值" path="baseline">
+          <n-form-item label="基准值" path="baseline" first>
             <n-input
-              placeholder="请输入基准数值"
+              placeholder="请输入基准值"
               v-model:value="checkListDrawerModel.baseline"
-              :allow-input="onlyAllowNumber"
             />
           </n-form-item>
           <n-form-item label="运算符" path="operation">
@@ -525,6 +524,7 @@
           </n-form-item>
           <n-form-item label="Rounds" path="rounds" v-if="isAddBaseline">
             <n-select
+              multiple
               v-model:value="checkListDrawerModel.rounds"
               placeholder="请选择迭代版本"
               :options="roundsOptions"
