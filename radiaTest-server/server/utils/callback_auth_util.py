@@ -13,8 +13,8 @@
 # @License : Mulan PSL v2
 #####################################
 
-from flask import jsonify, request, g
 from functools import wraps
+from flask import jsonify, request, g, current_app
 
 from server import redis_client
 from server.utils.response_util import RET
@@ -27,6 +27,7 @@ def callback_auth(func):
             req_auth = request.headers.get("authorization")
             g.token = req_auth
             _body = request.get_json()
+            current_app.logger.info("call back vmachine info:{}".format(_body))
             vm_name = _body.pop("name")
             origin_auth = redis_client.get(vm_name)
             if origin_auth is None or origin_auth != req_auth:
@@ -35,6 +36,7 @@ def callback_auth(func):
             resp = func(*args, **kwargs)
             return resp
         except RuntimeError as e:
+            current_app.logger.error("call back vmachine error message:{}".format(e))
             return jsonify(
                 error_code=RET.UNAUTHORIZE_ERR,
                 error_msg=str(e)
