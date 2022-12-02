@@ -1,5 +1,5 @@
 <template>
-  <n-spin :show="showLoading" stroke="rgba(0, 47, 167, 1)">
+  <n-spin :show="showLoading" stroke="rgba(0, 47, 167, 1)" :style="{ height: '100%' }">
     <div class="task-body">
       <n-drawer v-model:show="showNewTaskDrawer" :maskClosable="false" width="324px" placement="left">
         <n-drawer-content title="新建任务" closable>
@@ -76,13 +76,13 @@
           </n-form>
         </n-drawer-content>
       </n-drawer>
-      <div v-if="kanban">
-        <n-scrollbar x-scrollable>
+      <div v-if="kanban" style="height: 100%">
+        <n-scrollbar x-scrollable style="height: 100%">
           <div class="task-board">
             <draggable
               v-model="listData"
               item-key="statusItem"
-              style="display: flex"
+              :style="{ display: 'flex', height: '100%' }"
               @change="dragChange"
               :move="moveList"
               :animation="200"
@@ -380,12 +380,10 @@
                                     <p v-else>
                                       {{
                                         modalData.detail.milestones
-                                          ? modalData.detail.milestones
-                                              .map((item) => item.name)
-                                              .join(',')
+                                          ? modalData.detail.milestones.map((item) => item.name).join(',')
                                           : modalData.detail.milestone
-                                            ? modalData.detail.milestone
-                                            : '无'
+                                          ? modalData.detail.milestone
+                                          : '无'
                                       }}
                                     </p>
                                   </div>
@@ -985,6 +983,13 @@ export default defineComponent({
   src: url('iconfont.ttf?t=1637235844418') format('truetype');
 }
 
+:deep(.n-spin-content) {
+  height: 100%;
+}
+
+:deep(.n-scrollbar-content) {
+  height: 100%;
+}
 .iconfont {
   font-family: 'iconfont' !important;
   font-size: 20px !important;
@@ -1373,9 +1378,6 @@ export default defineComponent({
 }
 .previewContent {
   overflow-y: auto;
-}
-.tox-tinymce-aux {
-  z-index: 19891014;
 }
 
 .editable {

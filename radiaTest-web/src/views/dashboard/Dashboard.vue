@@ -1,27 +1,14 @@
 <template>
   <div class="home">
-    <transition name="mode-fade" mode="out-in">
-      <div
-        class="home-container"
-        style="height: 100%"
-        v-if="!showWorkbench"
-        @wheel="handleWheelDown"
-      >
+    <transition name="mode-fade" mode="out-in" style="height: 100%">
+      <div class="home-container" style="height: 100%" v-if="!showWorkbench" @wheel="handleWheelDown">
         <div class="homeContent">
           <div style="margin-top: -30px">
             <div class="title">radiaTest</div>
             <div class="subtitle">版本级一站式测试平台</div>
             <n-space class="quickSpace">
-              <home-button class="quickButton" @click="handleWorkbenchClick">
-                工作台
-              </home-button>
-              <home-button
-                class="quickButton"
-                @click="handleGuideClick"
-                invert-color
-              >
-                使用指南
-              </home-button>
+              <home-button class="quickButton" @click="handleWorkbenchClick"> 工作台 </home-button>
+              <home-button class="quickButton" @click="handleGuideClick" invert-color> 使用指南 </home-button>
               <div class="gitee" @click="handleGiteeClick">
                 <n-icon size="70" style="top: 3px">
                   <svg
@@ -57,12 +44,12 @@ import modules from './index';
 export default defineComponent({
   components: {
     HomeButton,
-    taskManage,
+    taskManage
   },
   methods: {
     handleWorkbenchClick() {
       this.showWorkbench = true;
-    },
+    }
   },
   setup() {
     modules.iframeLogin();
@@ -75,9 +62,9 @@ export default defineComponent({
       }
     };
   },
-  beforeUnmount () {
+  beforeUnmount() {
     window.removeEventListener('message', modules.getIframeMessage(), false);
-  },
+  }
 });
 </script>
 

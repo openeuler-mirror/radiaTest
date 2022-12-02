@@ -59,11 +59,12 @@ const frameArray = ref();
 const init = {
   language_url: require('@/assets/tinymce/zh_CN.js'), // 中文语言包路径
   language: 'zh_CN',
-  skin_url: require('tinymce/skins/ui/oxide/skin.css'), // 编辑器皮肤样式
+  skin_url: '/tinymce/skins/ui/oxide', // 编辑器皮肤样式
+  content_css: '/tinymce/skins/content/default/content.min.css',
   menubar: false, // 隐藏菜单栏
   height: 200,
   width: '100%',
-  toolbar_mode: 'scrolling ', // 工具栏模式
+  toolbar_mode: 'scrolling', // 工具栏模式
   plugins: 'image imagetools nonbreaking',
   toolbar:
     'undo redo fontsizeselect fontselect|underline forecolor backcolor bold italic strikethrough image subscript superscript removeformat|',

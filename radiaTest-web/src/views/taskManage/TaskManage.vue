@@ -26,28 +26,28 @@
         </div>
         <div class="nav-footer">
           <div v-show="isTask" class="footer-wrapper">
-            <a class="footer-item" v-show="kanban&&isTask&&!backable" @click="toggleView">
+            <a class="footer-item" v-show="kanban && isTask && !backable" @click="toggleView">
               <n-icon size="16"> <LayoutKanban /> </n-icon>表格视图
             </a>
-            <a class="footer-item" v-show="!kanban&&isTask&&!backable" @click="toggleView">
+            <a class="footer-item" v-show="!kanban && isTask && !backable" @click="toggleView">
               <n-icon size="16"> <Table /> </n-icon>看板视图
             </a>
-            <a class="footer-item" v-show="isTask&&backable" @click="menuClick({name: 'task'}, 0)">
+            <a class="footer-item" v-show="isTask && backable" @click="menuClick({ name: 'task' }, 0)">
               <n-icon size="16"> <Table /> </n-icon>返回看板
             </a>
-            <a class="footer-item" v-show="isTask&&!backable" @click="menuClick({name: 'distribution'}, 0)">
+            <a class="footer-item" v-show="isTask && !backable" @click="menuClick({ name: 'distribution' }, 0)">
               <n-icon size="16"> <TextAlignDistributed20Filled /> </n-icon>分配模板管理
             </a>
-            <a class="footer-item" v-show="isTask&&!backable" @click="menuClick({name: 'report'}, 0)">
+            <a class="footer-item" v-show="isTask && !backable" @click="menuClick({ name: 'report' }, 0)">
               <n-icon size="16"> <BarChart /> </n-icon>可视化
             </a>
-            <filterButton 
-              v-show="isTask&&!backable" 
-              class="footer-item" 
-              :filterRule="filterRule" 
+            <filterButton
+              v-show="isTask && !backable"
+              class="footer-item"
+              :filterRule="filterRule"
               @filterchange="filterchange"
             ></filterButton>
-            <a class="footer-item" v-show="isTask&&!backable" @click="showRecycleBin">
+            <a class="footer-item" v-show="isTask && !backable" @click="showRecycleBin">
               <n-icon size="16"> <Delete48Regular /> </n-icon>回收站
             </a>
             <a class="footer-item">
@@ -103,14 +103,7 @@
     </template>
     <template #action>
       <n-divider />
-      <div
-        style="
-          text-align: center;
-          color: grey;
-          padding-top: 15px;
-          padding-bottom: 0;
-        "
-      >
+      <div style="text-align: center; color: grey; padding-top: 15px; padding-bottom: 0">
         {{ `${config.name} ${config.version}·${config.license}` }}
       </div>
     </template>
@@ -134,14 +127,11 @@ export default defineComponent({
     Delete48Regular,
     filterButton,
     TextAlignDistributed20Filled,
-    BarChart,
+    BarChart
   },
   setup() {
     const route = useRoute();
-    watch(
-      () => route.path,
-      modules.watchRoute,
-    );
+    watch(() => route.path, modules.watchRoute);
     onMounted(() => {
       modules.watchRoute();
       modules.initCondition();
@@ -149,9 +139,9 @@ export default defineComponent({
 
     return {
       config,
-      ...modules,
+      ...modules
     };
-  },
+  }
 });
 </script>
 

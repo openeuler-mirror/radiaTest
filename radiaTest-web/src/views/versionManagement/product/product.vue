@@ -41,7 +41,7 @@
           </template>
           质量CheckList
         </n-button>
-        <refresh-button @refresh="getProduct()"> 刷新产品版本列表 </refresh-button>
+        <refresh-button @refresh="refreshTableData"> 刷新产品版本列表 </refresh-button>
       </div>
     </div>
     <div>
@@ -429,7 +429,7 @@
             width="95%"
           >
             <n-drawer-content closable>
-              <MilestoneIssuesCard :milestone-id="resolvedMilestone.id" :cardType="MilestoneIssuesCardType"/>
+              <MilestoneIssuesCard :milestone-id="resolvedMilestone.id" :cardType="MilestoneIssuesCardType" />
             </n-drawer-content>
           </n-drawer>
         </div>
@@ -510,10 +510,7 @@
             />
           </n-form-item>
           <n-form-item label="基准值" path="baseline" first>
-            <n-input
-              placeholder="请输入基准值"
-              v-model:value="checkListDrawerModel.baseline"
-            />
+            <n-input placeholder="请输入基准值" v-model:value="checkListDrawerModel.baseline" />
           </n-form-item>
           <n-form-item label="运算符" path="operation">
             <n-select
@@ -611,6 +608,14 @@ export default {
     const store = useStore();
     const additionFeatureOption = reactive(JSON.parse(JSON.stringify(modules.featureOption)));
     const inheritFeatureOption = reactive(JSON.parse(JSON.stringify(modules.featureOption)));
+    const refreshTableData = () => {
+      store.commit('filterProduct/setName', null);
+      store.commit('filterProduct/setVersion', null);
+      store.commit('filterProduct/setDescription', null);
+      store.commit('filterProduct/setStartTime', null);
+      store.commit('filterProduct/setEndTime', null);
+      store.commit('filterProduct/setPublishTime', null);
+    };
     onMounted(() => {
       modules.getTableData();
       modules.getDefaultList();
@@ -643,7 +648,8 @@ export default {
       Search,
       ...modules,
       inheritFeatureOption,
-      additionFeatureOption
+      additionFeatureOption,
+      refreshTableData
     };
   }
 };
