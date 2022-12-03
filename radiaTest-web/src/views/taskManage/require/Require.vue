@@ -227,7 +227,6 @@ function handleFallbackSrc(item) {
 
 onMounted(() => {
   getRank(getUserAssetRank);
-  // 后续改为查询特定排名的接口
   getUserInfo(storage.getValue('gitee_id'))
     .then((res) => {
       accountName.value = res.data.gitee_name;

@@ -295,27 +295,32 @@ def resolve_openeuler_pkglist(repo_url, product, build, repo_path, arch):
     logger.info(f"crawl openeuler's packages list of build {build} of {product} succeed")
     lock_key = f"resolving_{product}-{repo_path}-{arch}_pkglist"
     if product != build:
-        _round = build.replace("rc", "").split("_")[0]
-        lock_key = f"resolving_{product}-round-{_round}-{repo_path.split('/')[0]}-{arch}_pkglist"
+        lock_key = f"resolving_{product}-{build}-{repo_path}-{arch}_pkglist"
     redis_client.delete(lock_key)
     logger.info(f"the lock of crawling has been removed")
 
 
 @celery.task
-def resolve_pkglist_after_resolve_rc_name(repo_url, repo_path, arch, product, _round: int = None):
-    if not repo_url or not product:
+def resolve_pkglist_after_resolve_rc_name(repo_url, repo_path, arch, product: dict):
+    if not repo_url or not isinstance(product, dict):
         raise ValueError("neither param repo_url nor param product could be None.")
 
-    if _round is None:
+    if not product.get("round"):
+        _product_name = product.get("name")
         resolve_openeuler_pkglist.delay(
-            f"{repo_url}/{product}/{repo_path}",
-            product,
-            product,
+            f"{repo_url}/{_product_name}/{repo_path}",
+            _product_name,
+            _product_name,
             repo_path,
             arch,
         )
     else:
-        resp = requests.get(f"{repo_url}/{product}/")
+        _product_dirname = product.get("dirname")
+        _product_build = product.get("buildname")
+        _product_round = product.get("round")
+        _rc_name_pattern = _product_build if _product_build else f"rc{_product_round}"
+
+        resp = requests.get(f"{repo_url}/{_product_dirname}/")
         root_etree = etree.HTML(resp.text, parser=etree.HTMLParser(encoding="utf-8"))
         trs_etree = root_etree.xpath("//table[@id='list']/tbody/tr")
         for tr_etree in trs_etree:
@@ -324,15 +329,16 @@ def resolve_pkglist_after_resolve_rc_name(repo_url, repo_path, arch, product, _r
                 rc_elem = tr_etree.xpath("./td[@class='link']/a")[0]
                 if rc_elem is not None:
                     rc_name = rc_elem.text
-                    if isinstance(rc_name, str) and rc_name.startswith(f"rc{_round}"):
-                        resolve_openeuler_pkglist.delay(
-                            f"{repo_url}/{product}/{rc_name.rstrip('/')}/{repo_path}",
-                            product,
-                            rc_name.rstrip('/'),
-                            repo_path,
-                            arch,
-                        )
-                        break
+                    if isinstance(rc_name, str):
+                        if _product_round and rc_name.startswith(_rc_name_pattern):
+                            resolve_openeuler_pkglist.delay(
+                                f"{repo_url}/{product}/{rc_name.rstrip('/')}/{repo_path}",
+                                product,
+                                rc_name.rstrip('/'),
+                                repo_path,
+                                arch,
+                            )
+                            break
 
 
 @celery.task

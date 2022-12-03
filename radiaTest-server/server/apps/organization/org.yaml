@@ -16,3 +16,6 @@
 - alias: scope-组织角色解绑
   uri: /api/v1/scope-role/org/{org_id}
   act: delete
+- alias: 以组织名义发布需求
+  uri: /api/v1/requirement/org/{org_id}
+  act: post

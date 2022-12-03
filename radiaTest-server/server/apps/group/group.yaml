@@ -22,3 +22,6 @@
 - alias: scope-团队角色解绑
   uri: /api/v1/scope-role/group/{group_id}
   act: delete
+- alias: 以团队名义接受需求
+  uri: /api/v1/requirement/{requirement_id}/group/{group_id}/accept
+  act: put

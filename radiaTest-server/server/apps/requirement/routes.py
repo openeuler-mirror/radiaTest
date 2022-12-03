@@ -59,7 +59,6 @@ class RequirementItemEvent(Resource):
     
     @auth.login_required()
     @response_collect
-    @casbin_enforcer.enforcer
     def delete(self, requirement_id):
         try:
             return RequirementItemHandler(requirement_id).delete()

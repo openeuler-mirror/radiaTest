@@ -217,6 +217,11 @@ class RoundToMilestone(BaseModel):
     isbind: bool
 
 
+class RoundUpdateSchema(BaseModel):
+    built_by_ebs: bool = False
+    buildname: Optional[str]
+
+
 class RoundIssueQueryV8(BaseModel):
     state: Optional[MilestoneState]
     only_related_me: Optional[str]

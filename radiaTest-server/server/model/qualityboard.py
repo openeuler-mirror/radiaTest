@@ -363,6 +363,9 @@ class Round(BaseModel, db.Model):
     default_milestone_id = db.Column(
         db.Integer(), nullable=False,
     )
+    built_by_ebs = db.Column(db.Boolean(), nullable=False, default=False)
+    buildname = db.Column(db.String(128))
+
     product_id = db.Column(
         db.Integer(), db.ForeignKey("product.id"),
     )
@@ -376,7 +379,9 @@ class Round(BaseModel, db.Model):
             "round_num": self.round_num,
             "type": self.type,
             "default_milestone_id": self.default_milestone_id,
-            "product_id": self.product_id
+            "product_id": self.product_id,
+            "built_by_ebs": self.built_by_ebs,
+            "buildname": self.buildname,
         }
 
 

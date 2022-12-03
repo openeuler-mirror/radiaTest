@@ -38,6 +38,7 @@ from server.schema.qualityboard import (
     RoundIssueQueryV8,
     RoundIssueRateSchema,
     RoundToMilestone,
+    RoundUpdateSchema,
     SamePackageCompareQuerySchema,
     PackageListQuerySchema,
     QualityBoardSchema,
@@ -102,42 +103,6 @@ class QualityBoardEvent(Resource):
         qualityboard = QualityBoard(
             product_id=body.product_id, iteration_version=iteration_version)
         qualityboard.add_update()
-
-        # 若为组织/社区里程碑，按组织配置的repo启动爬取正式发布版本的软件包清单
-        org_id = _p.org_id
-        org = Organization.query.filter_by(id=org_id).first()
-        if org:
-            if not milestone:
-                _pkgs_repo_url = current_app.config.get(f"{org.name.upper()}_OFFICIAL_REPO_URL")
-                _round = None
-            else:
-                _pkgs_repo_url = current_app.config.get(f"{org.name.upper()}_DAILYBUILD_REPO_URL")
-                _round = len(qualityboard.iteration_version.split('->'))
-            
-            for arch in ["x86_64", "aarch64", "all"]:
-                for sub_path in ["everything", "EPOL/main"]:
-                    _filename = f"{_p.name}-{_p.version}-round-{_round}-{sub_path.split('/')[0]}-{arch}"
-                    if _round is None:
-                        _filename = f"{_p.name}-{_p.version}-{sub_path.split('/')[0]}-{self.arch}"
-                    if not redis_client.hgetall(f"resolving_{_filename}_pkglist"):
-                        redis_client.hset(
-                            f"resolving_{_filename}_pkglist", "gitee_id", g.gitee_id
-                        )
-                        redis_client.hset(
-                            f"resolving_{_filename}_pkglist", 
-                            "resolve_time", 
-                            datetime.now(
-                                tz=pytz.timezone('Asia/Shanghai')
-                            ).strftime("%Y-%m-%d %H:%M:%S")
-                        )
-                        redis_client.expire(f"resolving_{_filename}_pkglist", 1800)
-                        resolve_pkglist_after_resolve_rc_name.delay(
-                            repo_url=_pkgs_repo_url,
-                            repo_path=sub_path,
-                            arch=arch,
-                            product=f"{_p.name}-{_p.version}",
-                            _round=_round
-                        )
 
         return jsonify(
             error_code=RET.OK,
@@ -215,43 +180,6 @@ class QualityBoardItemEvent(Resource):
 
         qualityboard.iteration_version = iteration_version
         qualityboard.add_update()
-
-        # 若为组织/社区里程碑，按组织配置的repo启动爬取迭代版本的软件包清单
-        org_id = milestone.org_id
-        org = Organization.query.filter_by(id=org_id).first()
-        if org:  
-
-            if milestone.type == "release":
-                _pkgs_repo_url = current_app.config.get(f"{org.name.upper()}_OFFICIAL_REPO_URL")
-                _round = None
-            else:
-                _pkgs_repo_url = current_app.config.get(f"{org.name.upper()}_DAILYBUILD_REPO_URL")
-                _round = len(qualityboard.iteration_version.split('->'))
-            _product = milestone.product.name + "-" + milestone.product.version
-            for arch in ["x86_64", "aarch64", "all"]:
-                for sub_path in ["everything", "EPOL/main"]:
-                    _filename = f"{_product}-round-{_round}-{sub_path.split('/')[0]}-{arch}"
-                    if _round is None:
-                        _filename = f"{_product}-{sub_path.split('/')[0]}-{self.arch}"
-                    if not redis_client.hgetall(f"resolving_{_filename}_pkglist"):
-                        redis_client.hset(
-                            f"resolving_{_filename}_pkglist", "gitee_id", g.gitee_id
-                        )
-                        redis_client.hset(
-                            f"resolving_{_filename}_pkglist", 
-                            "resolve_time", 
-                            datetime.now(
-                                tz=pytz.timezone('Asia/Shanghai')
-                            ).strftime("%Y-%m-%d %H:%M:%S")
-                        )
-                        redis_client.expire(f"resolving_{_filename}_pkglist", 1800)
-                        resolve_pkglist_after_resolve_rc_name.delay(
-                            repo_url=_pkgs_repo_url,
-                            repo_path=sub_path,
-                            arch=arch,
-                            product=f"{milestone.product.name}-{milestone.product.version}",
-                            _round=_round,
-                        )
 
         return jsonify(
             error_code=RET.OK,
@@ -1595,6 +1523,24 @@ class RoundEvent(Resource):
 
 
 class RoundItemEvent(Resource):
+    @auth.login_required
+    @validate()
+    def put(self, round_id, body: RoundUpdateSchema):
+        round = Round.query.filter_by(id=round_id).first()
+        if not round:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="the round does not exist"
+            )
+        
+        _edit_body = {
+            "id": round_id,
+            **body.__dict__
+        }
+        return Edit(Round, _edit_body).single()
+
+
+class RoundMilestoneEvent(Resource):
     @auth.login_required
     @validate()
     def put(self, round_id, body: RoundToMilestone):

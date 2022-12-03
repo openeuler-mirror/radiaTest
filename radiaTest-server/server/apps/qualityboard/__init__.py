@@ -4,6 +4,7 @@ from .routes import (
     FeatureListSummary,
     PackageListCompareEvent,
     RoundIssueEvent,
+    RoundMilestoneEvent,
     SamePackageListCompareEvent,
     PackageListEvent,
     QualityBoardEvent,
@@ -131,6 +132,10 @@ def init_api(api: Api):
     )
     api.add_resource(
         RoundItemEvent,
+        "/api/v1/round/<int:round_id>"
+    )
+    api.add_resource(
+        RoundMilestoneEvent,
         "/api/v1/round/<int:round_id>/bind-milestone"
     )
     api.add_resource(

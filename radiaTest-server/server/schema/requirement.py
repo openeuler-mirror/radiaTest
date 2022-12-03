@@ -33,6 +33,12 @@ class RequirmentCreateSchema(BaseModel):
     packages: List[dict] = []
     milestones: List[int] = []
 
+    @validator("behavior_require")
+    def validate_behavior_range(cls, v):
+        if v < 0 or v > 100:
+            raise ValueError("behavior should be in range 0 to 100")
+        return v
+
     @root_validator
     def validate_positive(cls, values):
         value_list = [
