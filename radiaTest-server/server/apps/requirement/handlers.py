@@ -23,7 +23,7 @@ from server.model.requirement import (
 from server.utils.page_util import PageUtil
 from server.utils.response_util import RET
 from server.utils.file_util import ImportFile
-from server.utils.db import Insert, collect_sql_error
+from server.utils.db import Insert, Delete, collect_sql_error
 from server.utils.redis_util import RedisKey
 
 
@@ -373,7 +373,12 @@ class RequirementItemHandler:
     def delete(self):
         self._handle_accepted('deleted')
         self._handle_not_publisher('delete')
-        self.requirement.delete(Requirement, '/requirement')
+        
+        Delete(
+            Requirement, 
+            {"id": self.requirement.id}
+        ).single(Requirement, "/requirement")
+
         return jsonify(
             error_code=RET.OK,
             error_msg="OK"

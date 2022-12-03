@@ -511,12 +511,21 @@ class PackageListHandler:
             sub_path = self.repo_path
             if sub_path == "EPOL":
                 sub_path = "EPOL/main"
+            _dirname = _product_version
+            if self._round.built_by_ebs is True:
+                _dirname = f"EBS-{_product_version}"
+            _buildname = self._round.buildname
+
             resolve_pkglist_after_resolve_rc_name.delay(
                 repo_url=self.pkgs_repo_url,
                 repo_path=sub_path,
                 arch=self.arch,
-                product=_product_version,
-                _round=_round,
+                product={
+                    "name": _product_version,
+                    "dirname": _dirname,
+                    "buildname": _buildname,
+                    "round": _round,
+                },
             )
             raise RuntimeError(
                 f"the packages of {self._round.name} " \

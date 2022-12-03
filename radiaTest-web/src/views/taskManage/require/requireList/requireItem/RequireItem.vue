@@ -48,6 +48,22 @@
         trigger="hover"
         v-if="
           props.item.status === 'idle' 
+          && props.item.publisher.gitee_id.toString() === storage.getValue('gitee_id')
+        " 
+      >
+        <template #trigger>
+          <div class="reject button" @click="handleDeleteRequire">
+            <n-icon :size="24" color="red">
+              <DeleteFilled />
+            </n-icon>
+          </div>
+        </template>
+        删除需求
+      </n-tooltip>
+      <n-tooltip 
+        trigger="hover"
+        v-if="
+          props.item.status === 'idle' 
           && props.item.publisher.gitee_id.toString() !== storage.getValue('gitee_id')
         " 
       >
@@ -116,6 +132,19 @@
       :item="props.item"
       @close="() => { showDetailModal = false; }"
     />
+  </n-modal>
+  <n-modal v-model:show="showDeleteModal">
+    <n-dialog
+      type="warning"
+      title="删除需求"
+      negative-text="取消"
+      positive-text="确认"
+      @positive-click="deleteSubmitCallback"
+      @negative-click="deleteCancelCallback"
+      @close="rejectDeleteCallback"
+    >
+      <p class="dialog-content">{{ `是否确认删除&lt;${props.item.title}&gt;?` }}</p>
+    </n-dialog>
   </n-modal>
   <n-modal v-model:show="showAcceptModal">
     <n-dialog
@@ -225,10 +254,12 @@
 <script setup>
 import { useMessage } from 'naive-ui';
 import { storage } from '@/assets/utils/storageUtils';
+import { DeleteFilled } from '@vicons/material';
 import { Radio, Archive, Close } from '@vicons/ionicons5';
 import { MdMore, MdCheckmarkCircle } from '@vicons/ionicons4';
 import RequireItemDetail from './requireItemDetail/RequireItemDetail';
 import { getGroup, getRequireAttributors } from '@/api/get';
+import { deleteRequire } from '@/api/delete';
 import { 
   personAcceptRequire, 
   groupAcceptRequire, 
@@ -289,6 +320,7 @@ function handleAcceptorUpdate(value, option) {
 const requireAttributors = ref([]);
 
 const showDetailModal = ref(false);
+const showDeleteModal = ref(false);
 const showAcceptModal = ref(false);
 const showRejectModal = ref(false);
 const showValidateModal = ref(false);
@@ -335,6 +367,22 @@ function acceptCancelCallback() {
     acceptor_group_id: null,
     acceptor_group_name: null,
   };
+}
+
+function handleDeleteRequire() {
+  showDeleteModal.value = true;
+}
+function deleteCancelCallback() {
+  showDeleteModal.value = false;
+}
+function deleteSubmitCallback() {
+  deleteRequire(props.item.id)
+    .then(() => {
+      message.success('删除成功');
+    })
+    .finally(() => {
+      showDeleteModal.value = false;
+    });
 }
 
 function handleRejectRequire() {

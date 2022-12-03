@@ -84,6 +84,7 @@
           style="width: 100%;"
           v-model:value="formValue.behavior_require"
           :min="0"
+          :max="100"
         />
       </n-form-item-gi>
       <n-form-item-gi :span="24" label="涉及软件包" path="packages">

@@ -59,3 +59,7 @@ export function deleteRequireAttachment(id, data) {
 export function deleteRequireProgress(requireId, progressId) {
   return deleteRequest(`/v1/requirement/${requireId}/progress/${progressId}`);
 }
+
+export function deleteRequire(requireId) {
+  return deleteRequest(`/v1/requirement/${requireId}`);
+}
