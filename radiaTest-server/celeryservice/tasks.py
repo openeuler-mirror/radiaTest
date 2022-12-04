@@ -332,7 +332,7 @@ def resolve_pkglist_after_resolve_rc_name(repo_url, repo_path, arch, product: di
                     if isinstance(rc_name, str):
                         if _product_round and rc_name.startswith(_rc_name_pattern):
                             resolve_openeuler_pkglist.delay(
-                                f"{repo_url}/{_product_name}/{rc_name.rstrip('/')}/{repo_path}",
+                                f"{repo_url}/{_product_dirname}/{rc_name.rstrip('/')}/{repo_path}",
                                 _product_name,
                                 rc_name.rstrip('/'),
                                 repo_path,
