@@ -161,8 +161,8 @@ class FeatureListQuerySchema(BaseModel):
 class PackageListQuerySchema(BaseModel):
     summary: bool = False
     refresh: bool = False
-    repo_path: Literal["everything", "EPOL"]
-    arch: Literal["x86_64", "aarch64", "all"]
+    repo_path: Optional[Literal["everything", "EPOL"]]
+    arch: Optional[Literal["x86_64", "aarch64", "all"]]
 
 
 class PackageCompareSchema(BaseModel):
