@@ -279,14 +279,15 @@ def resolve_rpmcheck_detail(self, rpm_check_id, rpm_check_detail):
 
 
 @celery.task
-def resolve_openeuler_pkglist(repo_url, product, build, repo_path, arch):
+def resolve_openeuler_pkglist(repo_url, product, build, repo_path, arch, round):
     exitcode, output = subprocess.getstatusoutput(
         "pushd scrapyspider && scrapy crawl openeuler_pkgs_list_spider "\
             f"-a openeuler_repo_url={repo_url} "\
             f"-a product={product} "\
             f"-a build={build} "\
             f"-a repo_path={repo_path} "\
-            f"-a arch={arch}"
+            f"-a arch={arch}" \
+            f"-a round={round}"
     )
     if exitcode != 0:
         logger.error(f"crawl openeuler's packages list of build {build} of {product} fail. Because {output}")
@@ -337,6 +338,7 @@ def resolve_pkglist_after_resolve_rc_name(repo_url, repo_path, arch, product: di
                                 rc_name.rstrip('/'),
                                 repo_path,
                                 arch,
+                                _product_round
                             )
                             break
 

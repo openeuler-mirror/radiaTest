@@ -55,3 +55,4 @@ class OpeneulerPkgsListItem(scrapy.Item):
     product = scrapy.Field()
     repo_path = scrapy.Field()
     arch = scrapy.Field()
+    round = scrapy.Field()
