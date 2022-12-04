@@ -286,7 +286,7 @@ def resolve_openeuler_pkglist(repo_url, product, build, repo_path, arch, round):
             f"-a product={product} "\
             f"-a build={build} "\
             f"-a repo_path={repo_path} "\
-            f"-a arch={arch}"\
+            f"-a arch={arch} "\
             f"-a round={round}"
     )
     if exitcode != 0:
