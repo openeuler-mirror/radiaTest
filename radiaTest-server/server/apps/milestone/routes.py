@@ -1,11 +1,11 @@
 import json
-from flask import request, jsonify
+from flask import request, jsonify, render_template, make_response, current_app
 from flask_restful import Resource
 from flask_pydantic import validate
 
 from server.utils.auth_util import auth
 from server.utils.response_util import response_collect, RET
-from server.model.milestone import Milestone, IssueSolvedRate
+from server.model.milestone import Milestone, IssueSolvedRate, TestReport
 from server.utils.db import Edit, Select
 from server.schema.milestone import (
     GiteeIssueQueryV8,
@@ -18,6 +18,8 @@ from server.schema.milestone import (
     SyncMilestoneSchema,
     MilestoneStateEventSchema,
     IssueRateFieldSchema,
+    GenerateTestReport,
+    QueryTestReportFile,
 )
 from .handler import (
     IssueStatisticsHandlerV8,
@@ -27,6 +29,7 @@ from .handler import (
     MilestoneHandler,
     CreateMilestone,
     DeleteMilestone,
+    IssueHandlerV8,
 )
 from server.utils.permission_utils import GetAllByPermission
 from server import casbin_enforcer
@@ -125,6 +128,59 @@ class GiteeIssuesV2(Resource):
             }
         )
         return IssueOpenApiHandlerV8().get_all(_body)
+
+
+class GenerateTestReportEvent(Resource):
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def get(self, milestone_id, query: GenerateTestReport):
+        milestone = Milestone.query.filter_by(id=milestone_id).first()
+        if not milestone:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="milestone {} not exist".format(milestone_id),
+            )
+        return IssueHandlerV8().generate_update_test_report(milestone_id, query.uri)
+
+
+class TestReportFileEvent(Resource):
+    @validate()
+    def get(self, milestone_id, query: QueryTestReportFile):
+        _test_report = TestReport.query.filter_by(milestone_id=milestone_id).first()
+        if not _test_report:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="no test report.",
+            )
+
+        tmp_folder = current_app.template_folder
+        current_app.template_folder = current_app.config.get("TEST_REPORT_PATH")
+        if query.file_type == "md":
+            resp =  make_response(render_template(_test_report.md_file))
+        else:
+            resp = make_response(render_template(_test_report.html_file))
+        current_app.template_folder = tmp_folder
+        return resp
+
+
+class TestReportEvent(Resource):
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def get(self, milestone_id):
+        _test_report = TestReport.query.filter_by(milestone_id=milestone_id).first()
+        if not _test_report:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="no test report.",
+            )
+
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+            data=_test_report.to_json()
+        )
 
 
 class GiteeIssuesItemV2(Resource):

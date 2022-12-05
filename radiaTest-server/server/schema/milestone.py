@@ -215,6 +215,14 @@ class GiteeIssueQueryV8(BaseModel):
     per_page: int = 10
 
 
+class GenerateTestReport(BaseModel):
+    uri: str
+
+
+class QueryTestReportFile(BaseModel):
+    file_type: Literal["md", "html"]
+
+
 class GiteeIssueQueryV5(BaseModel):
     state: Optional[MilestoneState]
     sort: Optional[str]

@@ -1,6 +1,6 @@
 from server.model.base import BaseModel, PermissionBaseModel
 from server.model.product import Product
-from server.model.milestone import Milestone
+from server.model.milestone import Milestone, TestReport
 from server.model.mirroring import IMirroring, QMirroring, Repo
 from server.model.pmachine import Pmachine, MachineGroup
 from server.model.vmachine import Vmachine, Vdisk, Vnic
