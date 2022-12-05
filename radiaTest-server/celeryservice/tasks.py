@@ -305,8 +305,8 @@ def resolve_pkglist_after_resolve_rc_name(repo_url, repo_path, arch, product: di
     if not repo_url or not isinstance(product, dict):
         raise ValueError("neither param repo_url nor param product could be None.")
 
+    _product_name = product.get("name")
     if not product.get("round"):
-        _product_name = product.get("name")
         resolve_openeuler_pkglist.delay(
             f"{repo_url}/{_product_name}/{repo_path}",
             _product_name,
@@ -332,8 +332,8 @@ def resolve_pkglist_after_resolve_rc_name(repo_url, repo_path, arch, product: di
                     if isinstance(rc_name, str):
                         if _product_round and rc_name.startswith(_rc_name_pattern):
                             resolve_openeuler_pkglist.delay(
-                                f"{repo_url}/{product}/{rc_name.rstrip('/')}/{repo_path}",
-                                product,
+                                f"{repo_url}/{_product_name}/{rc_name.rstrip('/')}/{repo_path}",
+                                _product_name,
                                 rc_name.rstrip('/'),
                                 repo_path,
                                 arch,
