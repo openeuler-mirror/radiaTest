@@ -96,11 +96,6 @@ const router = createRouter({
               name: 'distribution'
             },
             {
-              path: 'distribution/',
-              component: Distribution,
-              name: 'distribution'
-            },
-            {
               path: 'design/',
               component: strategyCenter,
               name: 'design',

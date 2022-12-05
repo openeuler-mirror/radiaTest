@@ -23,19 +23,6 @@
       </n-tabs>
       <router-view></router-view>
     </template>
-    <template #action>
-      <n-divider />
-      <div
-        style="
-          text-align: center;
-          color: grey;
-          padding-top: 15px;
-          padding-bottom: 0;
-        "
-      >
-        {{ settings.name }} {{ settings.version }} · {{ settings.license }}
-      </div>
-    </template>
   </n-card>
 </template>
 

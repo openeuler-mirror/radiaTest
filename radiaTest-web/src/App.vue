@@ -16,11 +16,7 @@
                 <component :is="Component" />
               </transition>
               <fix-navigation v-show="notLoginPage" />
-              <collapse-n-drawer
-                placement="right"
-                contentWidth="1200px"
-                v-if="showTaskPage"
-              >
+              <collapse-n-drawer placement="right" contentWidth="1200px" v-if="showTaskPage">
                 <template #content>
                   <backend-task />
                 </template>
@@ -57,10 +53,10 @@ const themeOverrides = {
     primaryColor: 'rgba(0, 47, 167, 1)',
     primaryColorHover: '#3F65ABFF',
     primaryColorPressed: 'rgba(0, 47, 167, 1)',
-    primaryColorSuppl: 'rgba(0, 47, 167, 1)',
+    primaryColorSuppl: 'rgba(0, 47, 167, 1)'
   },
-  Card:{
-    actionColor:'rgb(242,242,242)'
+  Card: {
+    actionColor: 'rgb(242,242,242)'
   },
   DataTable: {
     thColor: 'rgb(242,242,242)'
@@ -70,7 +66,9 @@ const themeOverrides = {
 export default {
   name: 'App',
   components: {
-    fixNavigation, collapseNDrawer, backendTask
+    fixNavigation,
+    collapseNDrawer,
+    backendTask
   },
   computed: {
     notLoginPage() {
@@ -96,9 +94,9 @@ export default {
       window.$notification.info({
         content: '通知',
         meta: () => {
-          return h(vHtml, {domString: msg.content});
+          return h(vHtml, { domString: msg.content });
         },
-        duration: 10000,
+        duration: 10000
       });
     });
 
@@ -110,22 +108,19 @@ export default {
       themeOverrides,
       theme,
       routerClass,
-      hljs,
+      hljs
     };
   },
   mounted() {
     window.addEventListener('beforeunload', () => {
       if (this.$route.name === 'taskDetails') {
-        sessionStorage.setItem('refresh', 1); 
-      } 
+        sessionStorage.setItem('refresh', 1);
+      }
     });
     window.addEventListener('load', () => {
       if (this.$route.name !== 'login' && this.$route.path) {
         if (this.$newsSocket.isConnect()) {
-          this.$newsSocket.emit(
-            'after connect', 
-            this.$storage.getValue('token'),
-          );
+          this.$newsSocket.emit('after connect', this.$storage.getValue('token'));
         }
       }
     });
@@ -142,8 +137,8 @@ export default {
         this.transitionName = '';
         this.routerClass = '';
       }
-    },
-  },
+    }
+  }
 };
 </script>
 
@@ -266,5 +261,9 @@ body {
 
 .router {
   transition: all 0.75s ease;
+}
+
+.tox-tinymce-aux {
+  z-index: 9999 !important;
 }
 </style>

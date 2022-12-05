@@ -244,8 +244,7 @@ export default {
 <style lang="less" scoped>
 .board {
   position: relative;
-  // height: 100%;
-  height: 680px;
+  height: 100%;
   width: 295px;
   display: flex;
   flex-direction: column;
