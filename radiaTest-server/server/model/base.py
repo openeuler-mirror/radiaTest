@@ -31,12 +31,12 @@ class BaseModel(object):
         db.session.add(self)
         db.session.flush()
         record_id = None
-        if hasattr(self, "id"):
+        if hasattr(self, "id"):  # id写死在代码里, 实际上有可能叫uid或uuid.
             record_id = self.id
         db.session.commit()
 
         self._emit(table, namespace, broadcast)
-        
+
         return record_id
 
     def add_flush_commit(self, table=None, namespace=None, broadcast=False):
@@ -63,8 +63,8 @@ class PermissionBaseModel(object):
         db.Enum(
             "person",  # 个人
             "group",  # 团队
-            "org",   # 组织
-            "public" # 公共
+            "org",  # 组织
+            "public"  # 公共
         ),
         default="person"
     )
@@ -133,11 +133,12 @@ class CasbinRoleModel(BaseModel):
                 role_name,
                 self.organization.id,
             )
-    
+
     def _get_dom(self, uri: str):
         """get domain of resource uri"""
         _result = re.match(CasbinRoleModel.dom_pattern, uri)
         if not _result:
             return None
-        
+
         return _result.group(1)
+        
