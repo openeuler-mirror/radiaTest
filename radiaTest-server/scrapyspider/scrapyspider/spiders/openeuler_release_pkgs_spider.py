@@ -52,4 +52,5 @@ class OpeneulerPkgsListSpider(Spider):
                 item["product"] = self.product
                 item["repo_path"] = self.repo_path.split("/")[0]
                 item["arch"] = self.arch
+                item["round"] = self.round
                 yield item

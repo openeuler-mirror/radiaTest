@@ -50,6 +50,7 @@ class FilePipeline:
         self.build = None
         self.repo_path = None
         self.arch = None
+        self.round = None
         self.pkglist_storage_path = None
         self.timestamp = None
 
@@ -62,8 +63,9 @@ class FilePipeline:
         if not os.path.isdir(self.pkglist_storage_path):
             os.mkdir(self.pkglist_storage_path)
 
-        self.timestamp = datetime.now(tz=pytz.timezone(
-            'Asia/Shanghai')).strftime('%Y%m%d%H%M%S')
+        self.timestamp = datetime.now(
+            tz=pytz.timezone('Asia/Shanghai')
+        ).strftime('%Y%m%d%H%M%S')
 
     def process_item(self, item, spider):
         if isinstance(item, OpeneulerPkgsListItem):
@@ -71,6 +73,7 @@ class FilePipeline:
             self.build = item["build"]
             self.repo_path = item["repo_path"]
             self.arch = item["arch"]
+            self.round = item["round"]
 
             exitcode, output = subprocess.getstatusoutput(
                 f"echo {item['rpm_file_name']} >> {self.pkglist_storage_path}/"\
@@ -82,20 +85,19 @@ class FilePipeline:
     def close_spider(self, spider):
         if not self.product or not self.build:
             return
-        pattern = r'^rc([1-9])_+'
-        result = re.match(pattern, self.build)
-        if result:
+
+        if self.round:
             if os.path.isfile(f"{self.pkglist_storage_path}/{self.product}"\
-                f"-round-{result.group(1)}-{self.repo_path}-{self.arch}.pkgs"):
+                f"-round-{self.round}-{self.repo_path}-{self.arch}.pkgs"):
                 os.remove(
                     f"{self.pkglist_storage_path}/{self.product}-"\
-                        f"round-{result.group(1)}-{self.repo_path}-{self.arch}.pkgs"
+                        f"round-{self.round}-{self.repo_path}-{self.arch}.pkgs"
                 )
             os.rename(
                 f"{self.pkglist_storage_path}/{self.build}-"\
                     f"{self.repo_path}-{self.arch}-{self.timestamp}.pkgs",
                 f"{self.pkglist_storage_path}/{self.product}-"\
-                    f"round-{result.group(1)}-{self.repo_path}-{self.arch}.pkgs"
+                    f"round-{self.round}-{self.repo_path}-{self.arch}.pkgs"
             )
         else:
             if os.path.isfile(f"{self.pkglist_storage_path}/"\
