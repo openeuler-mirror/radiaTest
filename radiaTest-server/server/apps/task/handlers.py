@@ -290,6 +290,7 @@ class HandlerTask(object):
     @collect_sql_error
     def get_all(gitee_id, query):
         """获取任务列表"""
+        join_params = []
         filter_params = GetAllByPermission(Task).get_filter()
         for key, value in query.dict().items():
             if not value and key != "is_delete":
@@ -297,17 +298,20 @@ class HandlerTask(object):
             if key == "title":
                 filter_params.append(Task.title.like(f"%{value}%"))
             elif key == "participant_id":
+                join_params.append(TaskParticipant)
                 filter_params.append(TaskParticipant.participant_id.in_(value))
             elif key == "start_time":
                 filter_params.append(Task.start_time >= value)
             elif key == "deadline":
                 filter_params.append(Task.deadline <= value)
             elif key == "milestone_id":
-                filter_params.append(Task.milestones.any(Milestone.id.in_(value)))
+                join_params.append(TaskMilestone)
+                filter_params.append(TaskMilestone.milestone_id.in_(value))
             elif hasattr(Task, key):
                 filter_params.append(getattr(Task, key) == value)
-        if query.participant_id:
-            query_filter = Task.query.join(TaskParticipant).filter(*filter_params)
+
+        if join_params:
+            query_filter = Task.query.join(*join_params).filter(*filter_params)
         else:
             query_filter = Task.query.filter(*filter_params)
 
