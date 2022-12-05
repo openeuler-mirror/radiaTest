@@ -1,10 +1,6 @@
 import { h } from 'vue';
 import { NTag } from 'naive-ui';
-import {
-  SyncCircle,
-  CheckmarkCircle,
-  ArrowForwardCircle,
-} from '@vicons/ionicons5';
+import { SyncCircle, CheckmarkCircle, ArrowForwardCircle } from '@vicons/ionicons5';
 import { MdCloseCircleOutline } from '@vicons/ionicons4';
 import { IncompleteCircleRound, PauseCircleFilled } from '@vicons/material';
 import { any2standard, any2stamp } from '@/assets/utils/dateFormatUtils';
@@ -14,38 +10,38 @@ export const issueStateDict = {
   修复中: {
     color: 'rgba(74,144,226)',
     size: 24,
-    icon: IncompleteCircleRound,
+    icon: IncompleteCircleRound
   },
   待办的: {
     color: 'rgba(254,115,0)',
     size: 24,
-    icon: SyncCircle,
+    icon: SyncCircle
   },
   已验收: {
     color: 'green',
     size: 24,
-    icon: CheckmarkCircle,
+    icon: CheckmarkCircle
   },
   已完成: {
     color: 'rgb(140, 146, 164)',
     size: 24,
-    icon: CheckmarkCircle,
+    icon: CheckmarkCircle
   },
   已挂起: {
     color: 'rgb(100, 138, 141)',
     size: 24,
-    icon: PauseCircleFilled,
+    icon: PauseCircleFilled
   },
   已取消: {
     color: 'red',
     size: 24,
-    icon: MdCloseCircleOutline,
+    icon: MdCloseCircleOutline
   },
   已确认: {
     color: 'yellow',
     size: 24,
-    icon: ArrowForwardCircle,
-  },
+    icon: ArrowForwardCircle
+  }
 };
 
 const columns = [
@@ -59,11 +55,11 @@ const columns = [
         {
           color: row.issue_state.color,
           size: issueStateDict[row.issue_state.title]?.size || 24,
-          tip: row.issue_state.title,
+          tip: row.issue_state.title
         },
         h(issueStateDict[row.issue_state.title]?.icon || SyncCircle, null)
       );
-    },
+    }
     // filterOptions: [
     //   {
     //     label: '修复中',
@@ -100,7 +96,7 @@ const columns = [
   },
   {
     title: '编号',
-    key: 'id',
+    key: 'ident',
     className: 'cols issueNumber',
     render: (row) => {
       return h(
@@ -109,17 +105,17 @@ const columns = [
           bordered: false,
           color: {
             color: 'rgba(245,246,248,1)',
-            textColor: 'rgba(150,161,175,1)',
-          },
+            textColor: 'rgba(150,161,175,1)'
+          }
         },
-        `#${row.id}`
+        `#${row.ident}`
       );
-    },
+    }
   },
   {
     title: 'issue标题',
     key: 'title',
-    className: 'cols issueTitle',
+    className: 'cols issueTitle'
   },
   {
     title: '优先级',
@@ -131,8 +127,8 @@ const columns = [
           {
             color: {
               textColor: 'rgba(72,168,68,1)',
-              borderColor: 'rgba(72,168,68,1)',
-            },
+              borderColor: 'rgba(72,168,68,1)'
+            }
           },
           '可选'
         );
@@ -142,8 +138,8 @@ const columns = [
           {
             color: {
               textColor: 'rgba(0,138,255,1)',
-              borderColor: 'rgba(0,138,255,1)',
-            },
+              borderColor: 'rgba(0,138,255,1)'
+            }
           },
           '次要'
         );
@@ -153,23 +149,25 @@ const columns = [
           {
             color: {
               textColor: 'rgba(255,143,0,1)',
-              borderColor: 'rgba(255,143,0,1)',
-            },
+              borderColor: 'rgba(255,143,0,1)'
+            }
           },
           '主要'
         );
-      }
-      return h(
-        NTag,
-        {
-          color: {
-            textColor: 'rgba(239,0,22,1)',
-            borderColor: 'rgba(239,0,22,1)',
+      } else if (row.priority === 4) {
+        return h(
+          NTag,
+          {
+            color: {
+              textColor: 'rgba(239,0,22,1)',
+              borderColor: 'rgba(239,0,22,1)'
+            }
           },
-        },
-        '严重'
-      );
-    },
+          '严重'
+        );
+      }
+      return '';
+    }
   },
   {
     title: '责任人',
@@ -180,7 +178,7 @@ const columns = [
         return h('p', null, row.assignee.name);
       }
       return h('p', null, '无责任人');
-    },
+    }
   },
   {
     title: '创建时间',
@@ -192,8 +190,7 @@ const columns = [
       }
       return h('p', null, '');
     },
-    sorter: (row1, row2) =>
-      any2stamp(row1.created_at) - any2stamp(row2.created_at),
+    sorter: (row1, row2) => any2stamp(row1.created_at) - any2stamp(row2.created_at)
   },
   {
     title: '更新时间',
@@ -205,8 +202,7 @@ const columns = [
       }
       return h('p', null, '');
     },
-    sorter: (row1, row2) =>
-      any2stamp(row1.updated_at) - any2stamp(row2.updated_at),
-  },
+    sorter: (row1, row2) => any2stamp(row1.updated_at) - any2stamp(row2.updated_at)
+  }
 ];
 export default columns;
