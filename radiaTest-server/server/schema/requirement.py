@@ -73,11 +73,6 @@ class RequirmentCreateSchema(BaseModel):
         return values
 
 
-class RequirementPublishSchema(RequirmentCreateSchema):
-    publisher_type: RequirementPublishType
-    publisher_group_id: Optional[int]
-
-
 class AttachmentBaseSchema(BaseModel):
     type: AttachmentType
     

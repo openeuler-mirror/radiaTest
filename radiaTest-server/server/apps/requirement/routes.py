@@ -8,7 +8,6 @@ from server.utils.response_util import response_collect, RET
 from server.utils.auth_util import auth
 from server.schema.requirement import (
     PackageTaskCreateSchema,
-    RequirementPublishSchema, 
     AttachmentBaseSchema,
     ProgressFeedbackSchema,
     PackageCompletionSchema,
@@ -30,13 +29,30 @@ class RequirementOrgEvent(Resource):
         return RequirementHandler.free_publish(org_id, _body)
 
 
+class RequirementGroupEvent(Resource):
+    @auth.login_required()
+    @response_collect
+    @casbin_enforcer.enforcer
+    @validate()
+    def post(self, group_id, body: RequirmentCreateSchema):
+        _body = body.__dict__
+        return RequirementHandler.publish(
+            body=_body, 
+            publisher_type="group", 
+            publisher_group_id=group_id,
+        )
+
+
 class RequirementEvent(Resource):
     @auth.login_required()
     @response_collect
     @validate()
-    def post(self, body: RequirementPublishSchema):
+    def post(self, body: RequirmentCreateSchema):
         _body = body.__dict__
-        return RequirementHandler.publish(_body)
+        return RequirementHandler.publish(
+            body=_body,
+            publisher_type="person",
+        )
 
     @auth.login_required()
     @response_collect

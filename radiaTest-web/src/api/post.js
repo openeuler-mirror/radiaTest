@@ -80,6 +80,10 @@ export function orgPublishRequire(orgId, data) {
   return postRequest(`/v1/requirement/org/${orgId}`, data);
 }
 
+export function groupPublishRequire(groupId, data) {
+  return postRequest(`/v1/requirement/group/${groupId}`, data);
+}
+
 export function publishRequire(data) {
   return postRequest('/v1/requirement', data);
 }
