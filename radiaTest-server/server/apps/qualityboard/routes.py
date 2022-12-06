@@ -61,6 +61,7 @@ from server.apps.qualityboard.handlers import (
     CheckItemHandler,
     QualityResultCompareHandler,
     RoundHandler,
+    ChecklistResultHandler,
 )
 from server.apps.milestone.handler import IssueOpenApiHandlerV8
 from server.utils.shell import add_escape
@@ -543,6 +544,30 @@ class CheckItemSingleEvent(Resource):
                 error_msg="Deletion failed because this check item is used."
             )
         return Delete(CheckItem, {"id": checkitem_id}).single()
+
+
+class ChecklistResultEvent(Resource):
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def get(self, round_id):
+        _round = Round.query.filter_by(id=round_id).first()
+        if not _round:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="round {} does not exist".format(round_id)
+            )
+        data = []
+        issue_data = ChecklistResultHandler.get_issue_checklist_result(round_id)
+        data += issue_data
+
+        # add other checklist result to data
+
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK.",
+            data=data
+        )
 
 
 class ATOverview(Resource):

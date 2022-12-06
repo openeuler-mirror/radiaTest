@@ -168,6 +168,7 @@ class CheckItem(db.Model, BaseModel):
     id = db.Column(db.Integer(), primary_key=True, autoincrement=True)
     field_name = db.Column(db.String(50), nullable=False, unique=True)
     title = db.Column(db.String(50), nullable=False, unique=True)
+    type = db.Column(db.Enum("issue", "at", "dailybuild"))
     checklist = db.relationship(
         'Checklist', backref="checkitem"
     )
@@ -177,6 +178,7 @@ class CheckItem(db.Model, BaseModel):
             'id': self.id,
             'field_name': self.field_name,
             'title': self.title,
+            "type": self.type,
         }
 
 

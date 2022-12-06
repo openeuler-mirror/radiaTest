@@ -92,6 +92,44 @@ class ChecklistHandler:
         )
 
 
+class ChecklistResultHandler:
+    @staticmethod
+    def get_issue_checklist_result(round_id):
+        data = []
+        _round = Round.query.filter_by(id=round_id).first()
+        issue_rate_dict = dict()
+        issue_rate = IssueSolvedRate.query.filter_by(round_id=round_id, type="round").first()
+        if issue_rate:
+            issue_rate_dict = issue_rate.to_json()
+        else:
+            return data
+
+        round_num = int(_round.round_num)
+        if round_num == 100:
+            round_num = 0
+        
+        _cls = Checklist.query.join(CheckItem).filter(
+            Checklist.product_id == _round.product.id,
+            Checklist.checkitem_id == CheckItem.id,
+            CheckItem.type == "issue",
+        ).all()
+        
+        for _cl in _cls:
+            if _cl.rounds[round_num] == "1":
+                fns = _cl.checkitem.field_name.split("_")
+                passed = "_".join(fns[:-1] + ["passed"])
+                data.append(
+                    {
+                       "title": _cl.checkitem.title,
+                       "baseline": _cl.baseline.split(",")[round_num],
+                       "operation": _cl.operation.split(",")[round_num],
+                       "current_value": issue_rate_dict.get(_cl.checkitem.field_name),
+                       "compare_result": issue_rate_dict.get(passed),
+                    }
+                )
+        return data
+
+
 class QualityResultCompareHandler:
     def __init__(self, obj_type, obj_id) -> None:
         self.obj_type = obj_type
