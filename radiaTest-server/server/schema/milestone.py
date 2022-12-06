@@ -146,16 +146,16 @@ class MilestoneCreateSchema(MilestoneBaseSchema, PermissionBase):
 
         if not values.get("name"):
             milestone_type = values.get("type")
-            prefix = product.name + " " + product.version
+            prefix = product.name + "-" + product.version
             if milestone_type == "update":
                 values["name"] = (
                     prefix
-                    + " update_"
+                    + "-update_"
                     + datetime.now(tz=pytz.timezone("Asia/Shanghai")
                                    ).strftime("%Y%m%d")
                 )
             elif milestone_type == "round":
-                prefix = prefix + " round-"
+                prefix = prefix + "-round-"
                 _max_round = (
                     db.session.query(
                         func.max(func.cast(func.replace(Milestone.name, prefix, ""), db.Integer))
