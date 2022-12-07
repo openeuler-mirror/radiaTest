@@ -16,10 +16,12 @@ from .routes import RequirementItemAttributorEvent
 from .routes import RequirementItemPackagesEvent
 from .routes import RequirementPackageItemValidateEvent
 from .routes import RequirementPackageItemTaskEvent
+from .routes import RequirementGroupEvent
 
 
 def init_api(api: Api):
     api.add_resource(RequirementOrgEvent, "/api/v1/requirement/org/<int:org_id>")
+    api.add_resource(RequirementGroupEvent, "/api/v1/requirement/group/<int:group_id>")
     api.add_resource(RequirementEvent, "/api/v1/requirement")
     api.add_resource(RequirementItemEvent, "/api/v1/requirement/<int:requirement_id>")
     api.add_resource(

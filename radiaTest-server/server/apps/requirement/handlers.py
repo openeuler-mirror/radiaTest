@@ -23,7 +23,7 @@ from server.model.requirement import (
 from server.utils.page_util import PageUtil
 from server.utils.response_util import RET
 from server.utils.file_util import ImportFile
-from server.utils.db import Insert, Delete, collect_sql_error
+from server.utils.db import Insert, collect_sql_error
 from server.utils.redis_util import RedisKey
 
 
@@ -63,8 +63,8 @@ class RequirementCreator:
             _requirement.milestones.append(_milestone)
             _requirement.add_update(Requirement, "/requirement")
 
-    def create_packages(self, _requirement_id: int):
-        _validator_id = g.gitee_id if self.body.get("publisher_type") == "person" else sqlalchemy.null()
+    def create_packages(self, requirement_id: int, type_: str = None):
+        _validator_id = g.gitee_id if type_ == "person" else sqlalchemy.null()
 
         for _package in self._packages:
             _ = Insert(
@@ -72,7 +72,7 @@ class RequirementCreator:
                 {
                     "name": _package.get("name"),
                     "targets": ",".join(_package.get("targets")),
-                    "requirement_id": _requirement_id,
+                    "requirement_id": requirement_id,
                     "validator_id": _validator_id,
                 }
             ).insert_id()
@@ -168,7 +168,7 @@ class RequirementHandler:
         _ = Insert(RequirementPublisher, publisher_body).insert_id()
 
         creator.relate_milestones(_requirement_id)
-        creator.create_packages(_requirement_id)
+        creator.create_packages(requirement_id=_requirement_id)
 
         return jsonify(
             error_code=RET.OK,
@@ -177,26 +177,25 @@ class RequirementHandler:
     
     @staticmethod
     @collect_sql_error
-    def publish(body: dict):
-        _publisher_type = body.pop("publisher_type")
-        _publisher_group_id = body.pop("publisher_group_id")
-
+    def publish(body: dict, publisher_type: str = None, publisher_group_id: int = None):
         creator = RequirementCreator(body)
 
         _publisher = None
-        if _publisher_type == "group":
-            group = Group.query.filter_by(id=_publisher_group_id).first()
+        _publisher_table = None
+        if publisher_type == "group":
+            group = Group.query.filter_by(id=publisher_group_id).first()
             if not group:
                 return jsonify(
                     error_code=RET.NO_DATA_ERR,
-                    error_msg=f"the group publisher {_publisher_group_id} is not valid"
+                    error_msg=f"the group publisher {publisher_group_id} is not valid"
                 )
             _publisher = group
             _foreign_key = {
                 "user_id": g.gitee_id,
                 "group_id": group.id
             }
-        elif _publisher_type == "person":
+            _publisher_table = Group
+        elif publisher_type == "person":
             user = User.query.filter_by(gitee_id=g.gitee_id).first()
             if not user:
                 return jsonify(
@@ -205,6 +204,8 @@ class RequirementHandler:
                 )
             _publisher = user
             _foreign_key = {"user_id": user.gitee_id}
+            _publisher_table = User
+
         if not _publisher:
             return jsonify(
                 error_code=RET.NO_DATA_ERR,
@@ -220,17 +221,17 @@ class RequirementHandler:
         _requirement_id = creator.create_requirement()
 
         _publisher_body = {
-            "type": _publisher_type,
+            "type": publisher_type,
             "requirement_id": _requirement_id,   
         }
         _publisher_body.update(_foreign_key)
         _ = Insert(RequirementPublisher, _publisher_body).insert_id()
 
         creator.relate_milestones(_requirement_id)
-        creator.create_packages(_requirement_id)
+        creator.create_packages(requirement_id=_requirement_id, type_=publisher_type)
 
         _publisher.influence -= body.get("total_reward")
-        _publisher.add_update_influence(User, '/rank')
+        _publisher.add_update_influence(_publisher_table, '/rank')
 
         return jsonify(
             error_code=RET.OK,
@@ -374,10 +375,15 @@ class RequirementItemHandler:
         self._handle_accepted('deleted')
         self._handle_not_publisher('delete')
         
-        Delete(
-            Requirement, 
-            {"id": self.requirement.id}
-        ).single(Requirement, "/requirement")
+        _publisher = self.requirement.publisher[0]
+        if _publisher.type == "group":
+            _publisher.group.influence += self.requirement.total_reward
+            _publisher.group.add_update_influence(Group, "rank")
+        elif _publisher.type == "person":
+            _publisher.user.influence += self.requirement.total_reward
+            _publisher.user.add_update_influence(User, "rank")
+
+        self.requirement.delete(Requirement, "/requirement")
 
         return jsonify(
             error_code=RET.OK,
@@ -551,6 +557,7 @@ class RequirementItemHandler:
             )
 
         elif _type == "progress":
+            self._handle_not_accepted('edit progress')
             try:
                 _file.file_save(self.progress_attachment_path, timestamp=False)
             except RuntimeError as e:
@@ -570,6 +577,7 @@ class RequirementItemHandler:
             )
             
         else:
+            self._handle_not_accepted('edit validation')
             try:
                 _file.file_save(self.validation_attachment_path, timestamp=False)
             except RuntimeError as e:

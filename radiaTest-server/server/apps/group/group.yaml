@@ -25,3 +25,6 @@
 - alias: 以团队名义接受需求
   uri: /api/v1/requirement/{requirement_id}/group/{group_id}/accept
   act: put
+- alias: 以团队名义发布需求
+  uri: /api/v1/requirement/group/{group_id}
+  act: post

@@ -141,7 +141,7 @@
       positive-text="确认"
       @positive-click="deleteSubmitCallback"
       @negative-click="deleteCancelCallback"
-      @close="rejectDeleteCallback"
+      @close="deleteCancelCallback"
     >
       <p class="dialog-content">{{ `是否确认删除&lt;${props.item.title}&gt;?` }}</p>
     </n-dialog>
@@ -378,7 +378,7 @@ function deleteCancelCallback() {
 function deleteSubmitCallback() {
   deleteRequire(props.item.id)
     .then(() => {
-      message.success('删除成功');
+      message.success(`需求${props.item.title}已删除`);
     })
     .finally(() => {
       showDeleteModal.value = false;

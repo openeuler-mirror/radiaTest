@@ -128,7 +128,7 @@
 <script setup>
 import { useMessage } from 'naive-ui';
 import { getGroup, getAllMilestone } from '@/api/get';
-import { orgPublishRequire, publishRequire } from '@/api/post';
+import { orgPublishRequire, groupPublishRequire, publishRequire } from '@/api/post';
 import { storage } from '@/assets/utils/storageUtils';
 
 const emit = defineEmits(['valid']);
@@ -231,18 +231,20 @@ function handlePropsButtonClick() {
     } else if (formValue.value.publisher_type === 'organization') {
       const _form = JSON.parse(JSON.stringify(formValue.value));
       _form.publisher_group_id = null;
-
       orgPublishRequire(storage.getValue('orgId'), _form)
+        .then(() => {
+          message.success('需求已成功发布');
+          emit('valid');
+        });
+    } else if (formValue.value.publisher_type === 'group') {
+      const _form = JSON.parse(JSON.stringify(formValue.value));
+      groupPublishRequire(_form.publisher_group_id, _form)
         .then(() => {
           message.success('需求已成功发布');
           emit('valid');
         });
     } else {
       const _form = JSON.parse(JSON.stringify(formValue.value));
-      if (_form.publisher_type === 'person') {
-        _form.publisher_group_id = null;
-      }
-
       publishRequire(_form)
         .then(() => {
           message.success('需求已成功发布');
