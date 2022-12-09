@@ -496,8 +496,7 @@ feature_list_handlers = {
 
 
 class PackageListHandler:
-    def __init__(self, round_id, repo_path, arch, refresh : bool = False) -> None:
-        self.refresh = refresh
+    def __init__(self, round_id, repo_path, arch) -> None:
         self.repo_path = repo_path
         self.arch = arch
 
@@ -534,48 +533,6 @@ class PackageListHandler:
             _round = self._round.round_num
             _filename = f"{_product_version}-round-{_round}-{self.repo_path}-{self.arch}"
 
-        if self.refresh and not redis_client.hgetall(f"resolving_{_filename}_pkglist"):
-            redis_client.hset(
-                f"resolving_{_filename}_pkglist", "gitee_id", g.gitee_id
-            )
-            redis_client.hset(
-                f"resolving_{_filename}_pkglist", 
-                "resolve_time", 
-                datetime.now(
-                    tz=pytz.timezone('Asia/Shanghai')
-                ).strftime("%Y-%m-%d %H:%M:%S")
-            )
-            redis_client.expire(f"resolving_{_filename}_pkglist", 1800)
-            sub_path = self.repo_path
-            if sub_path == "EPOL":
-                sub_path = "EPOL/main"
-            _dirname = _product_version
-            if self._round.built_by_ebs is True:
-                _dirname = f"EBS-{_product_version}"
-            _buildname = self._round.buildname
-
-            resolve_pkglist_after_resolve_rc_name.delay(
-                repo_url=self.pkgs_repo_url,
-                repo_path=sub_path,
-                arch=self.arch,
-                product={
-                    "name": _product_version,
-                    "dirname": _dirname,
-                    "buildname": _buildname,
-                    "round": _round,
-                },
-            )
-            raise RuntimeError(
-                f"the packages of {self._round.name} " \
-                f"start resolving, please wait for several minutes"
-            )
-        elif self.refresh:
-            raise RuntimeError(
-                f"LOCKED: the packages of {self._round.name} " \
-                f"has been in resolving process, " \
-                "please wait in patient or try again after a half hour"
-            )
-
         try:
             return RpmNameLoader.load_rpmlist_from_file(
                 f"{_path}/{_filename}.pkgs",
@@ -585,6 +542,58 @@ class PackageListHandler:
                 f"resolve packages of {_filename} failed, " \
                 f"please refetch data manually or check whether it exists in {self.pkgs_repo_url}"
             ) from e
+
+    @staticmethod
+    def get_all_packages_file(round_id):
+        _round = Round.query.filter_by(id=round_id).first()
+        org = Organization.query.filter_by(id=_round.product.org_id).first()
+        _product = _round.product.name + "-" + _round.product.version
+        if _round.type == "release":
+            _pkgs_repo_url = current_app.config.get(f"{org.name.upper()}_OFFICIAL_REPO_URL")
+            _filename_p = _product
+            round_num = None
+        else:
+            _pkgs_repo_url = current_app.config.get(f"{org.name.upper()}_DAILYBUILD_REPO_URL")
+            _filename_p = f"{_product}-round-{_round.round_num}"
+            round_num = _round.round_num
+        _dirname = _product
+        _buildname = None
+        if _round.built_by_ebs is True:
+            _dirname = f"EBS-{_product}"
+            _buildname = _round.buildname
+        _keys = redis_client.keys(f"resolving_{_filename_p}*")
+        if len(_keys) > 0:
+            raise RuntimeError(
+                f"LOCKED: the packages of {_round.name} " \
+                f"has been in resolving process, " \
+                "please wait in patient or try again after a half hour"
+            )
+        for arch in ["x86_64", "aarch64", "all"]:
+            for sub_path in ["everything", "EPOL/main"]:
+                _filename = f"{_filename_p}-{sub_path.split('/')[0]}-{arch}"
+                if not redis_client.hgetall(f"resolving_{_filename}_pkglist"):
+                    redis_client.hset(
+                        f"resolving_{_filename}_pkglist", "gitee_id", g.gitee_id
+                    )
+                    redis_client.hset(
+                        f"resolving_{_filename}_pkglist", 
+                        "resolve_time", 
+                        datetime.now(
+                            tz=pytz.timezone('Asia/Shanghai')
+                        ).strftime("%Y-%m-%d %H:%M:%S")
+                    )
+                    redis_client.expire(f"resolving_{_filename}_pkglist", 1800)
+                    resolve_pkglist_after_resolve_rc_name.delay(
+                        repo_url=_pkgs_repo_url,
+                        repo_path=sub_path,
+                        arch=arch,
+                        product={
+                            "name": _product,
+                            "dirname": _dirname,
+                            "buildname": _buildname,
+                            "round": round_num,
+                        },
+                    )
 
     def compare(self, packages):
         if not self.packages or not packages:

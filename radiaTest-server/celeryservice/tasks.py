@@ -296,7 +296,7 @@ def resolve_openeuler_pkglist(repo_url, product, build, repo_path, arch, round):
     logger.info(f"crawl openeuler's packages list of build {build} of {product} succeed")
     lock_key = f"resolving_{product}-{repo_path}-{arch}_pkglist"
     if product != build:
-        lock_key = f"resolving_{product}-{build}-{repo_path}-{arch}_pkglist"
+        lock_key = f"resolving_{product}-round-{round}-{repo_path.split('/')[0]}-{arch}_pkglist"
     redis_client.delete(lock_key)
     logger.info(f"the lock of crawling has been removed")
 
