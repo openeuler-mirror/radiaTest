@@ -119,3 +119,19 @@ export function validateRequire(requireId, data) {
 export function roundRelateMilestonesAxios(roundId, data) {
   return putRequest(`/v1/round/${roundId}/bind-milestone`, data);
 }
+
+export function updateBaselineTemplate(id, data) {
+  return putRequest(`/v1/baseline-template/${id}`, data);
+}
+
+export function updateSuiteDocument(id, data) {
+  return putRequest(`/v1/suite-document/${id}`, data);
+}
+
+export function updateBaseNode(id, data) {
+  return putRequest(`/v1/base-node/${id}`, data);
+}
+
+export function updateCaseNodeParent(caseNodeId, nextParentId) {
+  return putRequest(`/v1/case-node/${caseNodeId}/move-to/${nextParentId}`);
+}

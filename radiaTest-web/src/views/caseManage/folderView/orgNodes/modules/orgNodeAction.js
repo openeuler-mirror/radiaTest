@@ -1,12 +1,23 @@
 import { ref } from 'vue';
 import { init } from 'echarts';
-import { automationRatePie, contributionRatioPie, commitCountsBar, commitCountsLine } from './echartsOptions';
+import { 
+  automationRatePie, 
+  commitCountsLine 
+} from '../../modules/echartsOptions';
 import { getOrgNode } from '@/api/get.js';
 import router from '@/router';
 
-const itemsCount = ref(0);
-const commitMonthCount = ref(0);
-const commitWeekCount = ref(0);
+const currentId = ref();
+const suitesCount = ref(0);
+const casesCount = ref(0);
+const commitsCount = ref(0);
+
+const commitSelectedTime = ref('week');
+const timeOptions = ref([
+  { label: '近一周', value: 'week' },
+  { label: '近半月', value: 'halfMonth' },
+  { label: '近一月', value: 'month' },
+]);
 
 function echartConfig(chartId, options) {
   let chart;
@@ -16,17 +27,11 @@ function echartConfig(chartId, options) {
 }
 
 const autoRatio = ref(0);
-const groupDistribute = ref([]);
-const typeDistribute = ref([]);
-const commitAttribute = ref([]);
 const distribute = ref([]);
 
 function initEcharts() {
-  echartConfig('automationRate-pie', automationRatePie([{label:'用例自动化率', value: autoRatio.value}],'用例自动化率'));
-  echartConfig('contributionRatio-pie', contributionRatioPie(groupDistribute.value,'用例贡献占比'));
-  echartConfig('distribution-pie', contributionRatioPie(typeDistribute.value,'用例分布'));
-  echartConfig('commitCounts-bar', commitCountsBar(commitAttribute.value,'用例commit合入'));
-  echartConfig('commitCounts-line', commitCountsLine(distribute.value,'用例commit合入'));
+  echartConfig('orgAutomationRate-pie', automationRatePie([{label:'用例自动化率', value: autoRatio.value}],'用例自动化率'));
+  echartConfig('orgCommitCounts-line', commitCountsLine(distribute.value, '用例commit合入'));
 }
 
 function formatObject(data, prop) {
@@ -43,23 +48,42 @@ function formatObject(data, prop) {
 }
 
 function initData() {
-  const id = window.atob(router.currentRoute.value.params.taskid);
-  getOrgNode(id).then(res => {
-    const { data } = res;
-    itemsCount.value = data.all_count;
-    commitMonthCount.value = data.month_count;
-    commitWeekCount.value = data.week_count;
-    autoRatio.value = parseInt(data.auto_ratio);
-    commitAttribute.value = formatObject(data.commit_attribute);
-    distribute.value = formatObject(data.distribute);
-    groupDistribute.value = formatObject(data.group_distribute, 'name');
-    typeDistribute.value = formatObject(data.type_distribute, 'name');
-    initEcharts();
-  });
+  currentId.value = window.atob(router.currentRoute.value.params.taskId);
+  getOrgNode(
+    currentId.value, 
+    { commit_type: commitSelectedTime.value }
+  )
+    .then(res => {
+      const { data } = res;
+      suitesCount.value = data.suite_count;
+      casesCount.value = data.case_count;
+      // commitsCount.value = data.commmit_count;
+      autoRatio.value = parseInt(data.auto_ratio);
+      distribute.value = formatObject(data.distribute);
+      initEcharts();
+    });
 }
+
+watch(commitSelectedTime, () => { initData(); });
+
+function dispatchRefreshEvent() {
+  window.dispatchEvent(
+    new CustomEvent('rootRefreshEvent', {
+      detail: {
+        type: 'org',
+        id: window.atob(router.currentRoute.value.params.taskId)
+      },
+    })
+  );
+}
+
 export {
-  itemsCount,
-  commitMonthCount,
-  commitWeekCount,
-  initData
+  suitesCount,
+  casesCount,
+  commitsCount,
+  initData,
+  dispatchRefreshEvent,
+  currentId,
+  commitSelectedTime,
+  timeOptions,
 };

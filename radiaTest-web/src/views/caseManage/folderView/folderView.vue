@@ -9,8 +9,8 @@
       @submit="submitCreateCase"
     >
       <template #form>
-        <n-tabs
-          animated 
+        <n-tabs 
+          animated
           type="line" 
           size="large" 
           :tab-padding="20"  
@@ -164,11 +164,13 @@ export default {
       document.body.clientHeight -
       document.getElementById('header').clientHeight -
       document.querySelector('.n-card-header').clientHeight -
-      document.querySelector('.n-card__action').clientHeight -
       10;
     this.$nextTick(() => {
       window.addEventListener('refreshEvent', ({ detail }) => {
         this.expandNode(detail.caseNodeId);
+      });
+      window.addEventListener('rootRefreshEvent', ({ detail }) => {
+        this.expandRoot(detail.type, detail.id);
       });
     });
   },
@@ -177,7 +179,7 @@ export default {
 
     modules.clearSelectKey();
     if (!modules.menuList.value) {
-      modules.getOrg();
+      modules.getRootNodes();
     }
     const contentHeight = ref(0);
     return {

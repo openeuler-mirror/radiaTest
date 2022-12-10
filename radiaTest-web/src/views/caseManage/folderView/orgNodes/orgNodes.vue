@@ -1,107 +1,65 @@
 <template>
   <div class="orgNodes-container">
-    <div class="partMain">
-      <div class="count">
-        <div class="txt">用例统计</div>
-        <div class="num">{{ itemsCount }}</div>
-      </div>
-      <div class="chart" id="automationRate-pie"></div>
-      <div class="chart" id="contributionRatio-pie"></div>
-      <div class="chart" id="distribution-pie"></div>
-    </div>
-    <div class="partMain">
-      <div class="count count1">
-        <div class="txt">月commit合入</div>
-        <div class="num">{{ commitMonthCount }}</div>
-      </div>
-      <div class="count count1">
-        <div class="txt">周commit合入</div>
-        <div class="num">{{ commitWeekCount }}</div>
-      </div>
-      <div class="chart_1" id="commitCounts-bar"></div>
-      <div class="chart_2">
-        <n-select v-model:value="commitSelectedTime" :options="timeOptions" />
-        <div id="commitCounts-line"></div>
+    <div class="leftPart">
+      <div class="part1">
+        <div class="count">
+          <div class="txt">测试套数量</div>
+          <div class="num">{{ suitesCount }}</div>
+        </div>
+        <div class="count">
+          <div class="txt">用例数量</div>
+          <div class="num">{{ casesCount }}</div>
+        </div>
+        <div class="chart" id="orgAutomationRate-pie"></div>
       </div>
     </div>
-    <div class="part">
-      <div class="top">
-        <div style="display:flex">
-          <div>测试项基线</div>
-          <div class="txts">
-            <n-icon size="16" color="#666666">
-              <Cubes />
-            </n-icon>
-            树状视图
-          </div>
-        </div> 
-        <n-button type="error">
-          清空
-        </n-button>
+    <div class="rightPart">
+      <div class="part1">
+        <div class="count count1">
+          <div class="txt">commit合入统计</div>
+          <div class="num">{{ commitsCount }}</div>
+        </div>
+        <div class="chart">
+          <n-select v-model:value="commitSelectedTime" :options="timeOptions" />
+          <div id="orgCommitCounts-line"></div>
+        </div>
       </div>
-      <div class="chart_3">
-        <vue-kityminder
-          style="height: 300px"
-          ref="kityminder"
-          theme="fresh-blue"
-          template="structure"
-          :value="val"
-          :toolbar-status="toolbar"
-        >
-        </vue-kityminder>
-      </div>
-    </div>
+    </div>  
+  </div>
+  <div class="bottomPart">
+    <n-tabs type="line" animated>
+      <n-tab-pane name="baseline template" tab="基线模板">
+        <baseline-template type="org" :node-id="currentId"/>
+      </n-tab-pane>
+      <n-tab-pane name="codehub" tab="自动化脚本代码仓">
+        <codehub type="org" />
+      </n-tab-pane>
+    </n-tabs>
   </div>
 </template>
 <script>
 import { modules } from './modules/index';
-import { ref, onMounted } from 'vue';
-import { Cubes } from '@vicons/fa';
+import baselineTemplate from '../components/baselineTemplate';
+import codehub from '../components/codehub';
 export default {
-  components: { Cubes },
+  components: { 
+    baselineTemplate, 
+    codehub 
+  },
   setup() {
     onMounted(() => {
       modules.initData();
+      nextTick(() => {
+        modules.initData();
+        setTimeout(() => {
+          if (Number(sessionStorage.getItem('refresh')) === 1) {
+            modules.dispatchRefreshEvent();
+            sessionStorage.setItem('refresh', 0);
+          }
+        }, 500);
+      });
     });
     return {
-      commitSelectedTime: ref('week'),
-      timeOptions: [
-        { label: '近一周', value: 'week' },
-        { label: '近半月', value: 'halfMonth' },
-        { label: '近一月', value: 'month' },
-      ],
-      val: {
-        data: {
-          id: 1,
-          text: 'test'
-        },
-        children: [
-          {
-            data: {
-              id: 2,
-              text: 'test1'
-            }
-          },
-          {
-            data: {
-              id: 3,
-              text: 'test2'
-            }
-          }
-        ]
-      },
-      toolbar: {
-        appendSiblingNode: true,
-        arrangeUp: false,
-        arrangeDown: false,
-        text: true,
-        template: false,
-        theme:false,
-        hand: false,
-        resetLayout: false,
-        zoomIn: false,
-        zoomOut:false
-      },
       ...modules
     };
   }
@@ -109,24 +67,54 @@ export default {
 </script>
 <style lang="less" scoped>
 .orgNodes-container{
-  .partMain{
-    height: 400px;
-    width: 100%;
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: nowrap;
+  .leftPart{
+    width:40%;
+    .part1{
+      .chart{
+        height: 100%;
+        width: 50%;
+      }
+      .count{
+        width: 25%;
+      }
+    }
+  }
+  .rightPart{
+    width:calc(60% - 20px);
+    .part1{
+      .chart{
+        height: 100%;
+        width: 70%;
+        .n-select{
+          float: right;
+          width: 20%;
+          z-index: 1;
+          margin-right: 20px;
+        }
+        #orgCommitCounts-line{
+          height: 100%;
+        }
+      }
+      .count{
+        width: 30%;
+      }
+    }
+  }
+  .part1{
+    height: 200px;
+    border:1px solid #eee;
+    padding-top: 20px;
+    padding-bottom: 20px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border:1px solid #eee;
     border-radius: 4px;
-    padding-top:20px;
-    padding-bottom:20px;
-    margin-bottom: 20px;
     .count{
-      width:18%;
       text-align: center;
       height: auto;
-      &.count1{
-        width: 10%;
-      }
       .txt{
         font-size: 14px;
         margin-bottom: 15px;
@@ -136,28 +124,13 @@ export default {
         font-size: 32px;
       }
     }
-    .chart{
-      height: 100%;
-      width: 23%;
-    }
-    .chart_1{
-      height: 100%;
-      width: 30%;
-    }
-    .chart_2{
-      height: 100%;
-      width: 50%;
-      .n-select{
-        float: right;
-        width: 20%;
-        z-index: 1;
-        margin-right: 20px;
-      }
-      #commitCounts-line{
-        height: 100%;
-      }
-    }
   }
+}
+.bottomPart{
+  padding:20px;
+  border:1px solid #eee;
+  border-radius: 4px;
+  margin-top:20px;
   .part{
     border:1px solid #eee;
     padding-bottom:20px;
@@ -194,28 +167,4 @@ export default {
     }
   }
 }
-
 </style>
-<style lang="less">
-.orgNodes-container{
-  .vue-kityminder{
-    .vue-kityminder-toolbar-left{
-      margin-top:20px;
-      margin-left:20px;
-      top:0 !important;
-      left:0 !important;
-      .vue-kityminder-btn{
-        padding:8px 12px;
-        font-size:14px;
-      }
-      .vue-kityminder-ml{
-        margin-left:8px;
-      }
-      .vue-kityminder-control{
-        padding: 8px;
-      }
-    }
-  }
-}
-</style>
-

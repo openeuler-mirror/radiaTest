@@ -28,19 +28,50 @@
 </template>
 <script>
 import { h, ref } from 'vue';
-import { NIcon, NTag } from 'naive-ui';
+import { NIcon, NTag, NTooltip } from 'naive-ui';
 import textDialog from '@/assets/utils/dialog';
 import { modifyCommitStatus } from '@/api/put';
+import { FileCodeRegular } from '@vicons/fa';
 
 function renderPrefix({ option }) {
-  const prefix = h(
-    NIcon,
-    { color: option.iconColor || '#0e7a0d' },
+  if (!option.info?.case_id) {
+    return h(
+      NIcon,
+      { color: option.iconColor || '#0e7a0d' },
+      {
+        default: () => h(option.icon),
+      }
+    );
+  } else if (!option.info?.case_automatic) {
+    return h(
+      NIcon,
+      { 
+        color: '#505050',
+      },
+      {
+        default: () => h(option.icon),
+      }
+    );
+  }
+  return h(
+    NTooltip,
     {
-      default: () => h(option.icon),
+      trigger: 'hover',
+      placement: 'left',
+    },
+    {
+      default: () => '已自动化',
+      trigger: () => h(
+        NIcon,
+        { 
+          color: option.iconColor || '#0e7a0d',
+        },
+        {
+          default: () => h(FileCodeRegular),
+        }
+      ),
     }
   );
-  return prefix;
 }
 export default {
   props: {
@@ -55,41 +86,52 @@ export default {
     renderLabel({ option }) {
       const status = {
         pending: 'default',
-        open: 'success',
-        accepted: 'info',
+        open: 'info',
+        accepted: 'success',
         rejected: 'error',
       };
       if (option.type === 'case' && option.info.case_status) {
         return h('div', null, [
-          h(
-            NTag,
-            {
-              round: true,
-              size: 'small',
-              type: status[option.info.case_status],
-              onClick: (e) => {
-                e.stopPropagation();
-                if (option.info.case_status === 'pending') {
-                  textDialog('warning', '提示', '是否提交评审', () => {
-                    modifyCommitStatus(option.info.commit_id, {
-                      status: 'open',
-                    }).then(()=>{
-                      option.info.case_status = 'open';
-                    });
-                  });
-                } else if (option.info.case_status === 'open') {
-                  this.$router.push({
-                    name: 'caseReviewDetail',
-                    params:{
-                      commitId: option.info.commit_id
-                    },
-                  });
-                }
-              },
-            },
-            String(option.info.case_status[0]).toUpperCase()
-          ),
           option.label,
+          h(
+            NTooltip,
+            {
+              trigger: 'hover',
+              placement: 'right',
+            },
+            {
+              default: () => option.info.case_status,
+              trigger: () => h(
+                NTag,
+                {
+                  class: 'commit-icon',
+                  round: true,
+                  size: 'small',
+                  type: status[option.info.case_status],
+                  onClick: (e) => {
+                    e.stopPropagation();
+                    if (option.info.case_status === 'pending') {
+                      textDialog('warning', '提示', '是否提交评审', () => {
+                        modifyCommitStatus(option.info.commit_id, {
+                          status: 'open',
+                        }).then(()=>{
+                          option.info.case_status = 'open';
+                        });
+                      });
+                    } else if (option.info.case_status === 'open') {
+                      this.$router.push({
+                        name: 'caseReviewDetail',
+                        params:{
+                          commitId: option.info.commit_id
+                        },
+                      });
+                    }
+                  },
+                },
+                String(option.info.case_status[0]).toUpperCase()
+              ),
+            }
+          )
         ]);
       }
       return option.label;
@@ -206,5 +248,13 @@ export default {
 <style>
 .n-tree .n-tree-node {
   word-break: break-all;
+}
+.commit-icon {
+  margin-left: 4px;
+  width: 23px;
+  justify-content: center;
+}
+.commit-icon:hover {
+  cursor: pointer;
 }
 </style>

@@ -55,7 +55,6 @@ function deleteRole (row) {
   }).then(() => getTableData());
 }
 function selectRole (row, item) {
-  console.log(item);
   setOrgUserRole(activeOrg.value.org_id, {
     user_id: row.gitee_id,
     role_id: Number(item.value),

@@ -120,3 +120,27 @@ export function divideRequireRewards(requireId, data) {
 export function setHomonymousIsomerismPkgcompare(qualityboardId, roundId, params) {
   return postRequest(`/v1/qualityboard/${qualityboardId}/round/${roundId}/pkg-compare`, params);
 }
+
+export function addBaselineTemplate(data) {
+  return postRequest('/v1/baseline-template', data);
+}
+
+export function addSuiteDocument(suiteId, data) {
+  return postRequest(`/v1/suite/${suiteId}/document`, data);
+}
+
+export function addBaseNode(baselineTemplateId, data) {
+  return postRequest(`/v1/baseline-template/${baselineTemplateId}/base-node`, data);
+}
+
+export function inheritBaselineTemplate(inheriterId, inheriteeId) {
+  return postRequest(`/v1/baseline-template/${inheriterId}/inherit/${inheriteeId}`);
+}
+
+export function addBaseline(data) {
+  return postRequest('/v1/baseline', data);
+}
+
+export function casenodeApplyTemplate(caseNodeId, baselineTemplateId) {
+  return postRequest(`/v1/case-node/${caseNodeId}/apply/baseline-template/${baselineTemplateId}`);
+}

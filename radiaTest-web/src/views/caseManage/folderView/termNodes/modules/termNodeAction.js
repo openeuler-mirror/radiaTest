@@ -1,12 +1,20 @@
 import { ref } from 'vue';
 import { init } from 'echarts';
-import { automationRatePie, commitCountsLine } from '../../orgNodes/modules/echartsOptions';
+import { automationRatePie, commitCountsLine } from '../../modules/echartsOptions';
 import { getTermNode } from '@/api/get.js';
 import router from '@/router';
-const itemsCount = ref(0);
-const commitMonthCount = ref(0);
-const commitWeekCount = ref(0);
+
+const suitesCount = ref(0);
+const casesCount = ref(0);
+const commitsCount = ref(0);
 const autoRatio = ref(0);
+
+const commitSelectedTime = ref('week');
+const timeOptions = ref([
+  { label: '近一周', value: 'week' },
+  { label: '近半月', value: 'halfMonth' },
+  { label: '近一月', value: 'month' },
+]);
 
 function echartConfig(chartId, options) {
   let chart;
@@ -34,19 +42,40 @@ function formatObject(data) {
 }
 
 function initData() {
-  getTermNode(window.atob(router.currentRoute.value.query.id)).then(res => {
-    const { data } = res;
-    itemsCount.value = data.all_count;
-    commitMonthCount.value = data.month_count;
-    commitWeekCount.value = data.week_count;
-    autoRatio.value = parseInt(data.auto_ratio);
-    distribute.value = formatObject(data.distribute);
-    initEcharts();
-  });
+  getTermNode(
+    window.atob(router.currentRoute.value.params.taskId),
+    { commit_type: commitSelectedTime.value }  
+  )
+    .then(res => {
+      const { data } = res;
+      suitesCount.value = data.suite_count;
+      casesCount.value = data.case_count;
+      commitsCount.value = data.commit_count;
+      autoRatio.value = parseInt(data.auto_ratio);
+      distribute.value = formatObject(data.distribute);
+      initEcharts();
+    });
 }
+
+watch(commitSelectedTime, () => { initData(); });
+
+function dispatchRefreshEvent() {
+  window.dispatchEvent(
+    new CustomEvent('rootRefreshEvent', {
+      detail: {
+        type: 'group',
+        id: window.atob(router.currentRoute.value.params.taskId)
+      },
+    })
+  );
+}
+
 export {
-  itemsCount,
-  commitMonthCount,
-  commitWeekCount,
-  initData
+  suitesCount,
+  casesCount,
+  commitsCount,
+  commitSelectedTime,
+  timeOptions,
+  initData,
+  dispatchRefreshEvent,
 };

@@ -23,14 +23,13 @@ import OrgManagement from '@/views/personalCenter/orgManagement/orgManagement.vu
 import authorityManagement from '@/views/personalCenter/authorityManagement/authorityManagement.vue';
 import CaseManagement from '@/views/caseManage/CaseManagement.vue';
 import folderView from '@/views/caseManage/folderView/folderView.vue';
-import taskDetails from '@/views/caseManage/folderView/taskDetails/taskDetails.vue';
+import testcaseNodes from '@/views/caseManage/folderView/testcaseNodes/testcaseNodes.vue';
 import frameWork from '@/views/caseManage/frameWork/frameWork.vue';
 import orgNode from '@/views/caseManage/folderView/orgNodes/orgNodes.vue';
 import termNode from '@/views/caseManage/folderView/termNodes/termNodes.vue';
-import examplesNode from '@/views/caseManage/folderView/examplesNodes/examplesNodes.vue';
-import testStrategyNode from '@/views/caseManage/folderView/testStrategyNodes/testStrategyNodes.vue';
-import testSuiteNode from '@/views/caseManage/folderView/testSuiteNodes/testSuiteNodes.vue';
-import testCaseNode from '@/views/caseManage/folderView/testCaseNodes/testCaseNodes.vue';
+import casesetNode from '@/views/caseManage/folderView/casesetNodes/casesetNodes.vue';
+import baselineNode from '@/views/caseManage/folderView/baselineNodes/baselineNodes.vue';
+import suiteNode from '@/views/caseManage/folderView/suiteNodes/suiteNodes.vue';
 import testsuite from '@/views/caseManage/testsuite/testsuite.vue';
 import rulesManagement from '@/views/personalCenter/authorityManagement/rulesManagement/rulesManagement.vue';
 import rolesManagement from '@/views/personalCenter/authorityManagement/rolesManagement/rolesManagement.vue';
@@ -219,39 +218,34 @@ const router = createRouter({
               name: 'folderview',
               children: [
                 {
-                  path: 'node-detail/:taskid/',
-                  component: taskDetails,
-                  name: 'taskDetails'
-                },
-                {
-                  path: 'org-node/:taskid/',
+                  path: 'org-node/:taskId/',
                   component: orgNode,
                   name: 'orgNode'
                 },
                 {
-                  path: 'term-node/:taskid/',
+                  path: 'term-node/:taskId/',
                   component: termNode,
                   name: 'termNode'
                 },
                 {
-                  path: 'examples-node/:taskid/',
-                  component: examplesNode,
-                  name: 'examplesNode',
+                  path: 'caseset-node/:taskId/',
+                  component: casesetNode,
+                  name: 'casesetNode',
                 },
                 {
-                  path: 'testStrategy-node/:taskid/',
-                  component: testStrategyNode,
-                  name: 'testStrategyNode',
+                  path: 'baseline-node/:taskId/',
+                  component: baselineNode,
+                  name: 'baselineNode',
                 },
                 {
-                  path: 'testSuite-node/:taskid/',
-                  component: testSuiteNode,
-                  name: 'testSuiteNode',
+                  path: 'suite-node/:taskId/:suiteId',
+                  component: suiteNode,
+                  name: 'suiteNode',
                 },
                 {
-                  path: 'testCase-node/:taskid/',
-                  component: testCaseNode,
-                  name: 'testCaseNode',
+                  path: 'testcase-node/:taskId/:caseId',
+                  component: testcaseNodes,
+                  name: 'testcaseNodes'
                 },
               ]
             },

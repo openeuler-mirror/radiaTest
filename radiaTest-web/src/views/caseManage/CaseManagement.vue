@@ -81,19 +81,6 @@
       </div>
       <router-view></router-view>
     </template>
-    <template #action>
-      <n-divider />
-      <div
-        style="
-          text-align: center;
-          color: grey;
-          padding-top: 15px;
-          padding-bottom: 0;
-        "
-      >
-        {{ settings.name }} {{ settings.version }} · {{ settings.license }}
-      </div>
-    </template>
   </n-card>
 </template>
 
@@ -101,7 +88,6 @@
 import { defineComponent } from 'vue';
 import { QuestionCircle20Regular, Delete48Regular, Folder20Regular, Table24Regular } from '@vicons/fluent';
 
-import settings from '@/assets/config/settings.js';
 import manage from './modules/management.js';
 import view from './modules/view.js';
 export default defineComponent({
@@ -119,7 +105,6 @@ export default defineComponent({
     return {
       ...view,
       ...manage,
-      settings,
     };
   },
 });

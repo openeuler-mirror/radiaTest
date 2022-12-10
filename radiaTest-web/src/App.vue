@@ -113,9 +113,9 @@ export default {
   },
   mounted() {
     window.addEventListener('beforeunload', () => {
-      if (this.$route.name === 'taskDetails') {
-        sessionStorage.setItem('refresh', 1);
-      }
+      if (this.$route.path.startsWith('/home/tcm/folderview')) {
+        sessionStorage.setItem('refresh', 1); 
+      } 
     });
     window.addEventListener('load', () => {
       if (this.$route.name !== 'login' && this.$route.path) {
