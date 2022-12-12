@@ -271,8 +271,10 @@ class RequirementItemHandler:
         )
 
         if not os.path.isdir(path):
-            os.makedirs(path)
-
+            try:
+                os.makedirs(path)
+            except FileExistsError:
+                pass
         return path
 
     def _handle_accepted(self, action):
