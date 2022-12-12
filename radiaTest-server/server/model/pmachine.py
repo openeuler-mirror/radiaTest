@@ -161,4 +161,3 @@ class Pmachine(ServiceModel, PermissionBaseModel, db.Model):
         }
         return return_dict
 
-    

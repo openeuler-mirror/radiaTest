@@ -1,3 +1,4 @@
+import os
 from typing import List, Optional
 from urllib import request, error
 
@@ -18,8 +19,8 @@ class OpenEulerUpdateTaskBase(BaseModel):
     @validator("base_update_url")
     def check_base_url(cls, v):
         try:
-            request.urlopen(v + 'aarch64/')
-            request.urlopen(v + 'x86_64/')
+            request.urlopen(os.path.join(v, 'aarch64/'))
+            request.urlopen(os.path.join(v, 'x86_64/'))
 
         except (error.HTTPError, error.URLError):
             raise ValueError("base_update_url:%s is not available." % v)
@@ -30,8 +31,8 @@ class OpenEulerUpdateTaskBase(BaseModel):
     def check_epol_url(cls, v):
         if v:
             try:
-                request.urlopen(v + 'aarch64/')
-                request.urlopen(v + 'x86_64/')
+                request.urlopen(os.path.join(v, 'aarch64/'))
+                request.urlopen(os.path.join(v, 'x86_64/'))
 
             except (error.HTTPError, error.URLError):
                 raise ValueError("epol_update_url:%s is not available." % v)

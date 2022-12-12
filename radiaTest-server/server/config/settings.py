@@ -145,6 +145,8 @@ class Config(object):
     # 需求涉及软件包的任务目标
     REQUIREMENT_PACKAGE_TARGETS = ["测试设计", "用例开发", "已执行", "问题分析"]
 
+    OPENQA_SERVER = "openQA-server"
+
 
 class TestingConfig(Config):
     TESTING = True

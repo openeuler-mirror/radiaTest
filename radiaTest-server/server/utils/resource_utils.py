@@ -9,23 +9,25 @@ from server.utils.table_adapter import TableAdapter
 
 
 class ResourceManager:
-    def __init__(self, table_name, api_ver=None) -> None:
+    def __init__(self, table_name, api_ver=None, creator_id=None, org_id=None) -> None:
         self._table = getattr(TableAdapter, table_name)
         self.table_name = table_name
         self.api_ver = "/api/v1"
         if api_ver:
             self.api_ver = "/api/" + api_ver
+        self.creator_id = creator_id
+        self.org_id = org_id
 
     def add_permission(self, file_name, body, item_id):
         cur_file_dir = os.path.abspath(__file__)
         cur_dir = cur_file_dir.replace(cur_file_dir.split(
             os.sep)[-1], "").replace("utils"+os.sep, "")
-        allow_list, deny_list = PermissionManager().get_api_list(
+        allow_list, deny_list = PermissionManager(self.creator_id, self.org_id).get_api_list(
             self.table_name,
             cur_dir + "apps" + os.sep + self.table_name + os.sep + file_name,
             item_id
         )
-        PermissionManager().generate(allow_list, deny_list, body)
+        PermissionManager(self.creator_id, self.org_id).generate(allow_list, deny_list, body)
 
     def add(self, file_name, body):
         try:

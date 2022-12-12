@@ -18,19 +18,20 @@
 import re
 import datetime
 
-from flask import current_app
+from flask import current_app, jsonify, request, g
 
 from server.model.product import Product
 from server.model.milestone import Milestone
-from server.model.testcase import Case, Suite, CaseNode
-from server.model.group import ReUserGroup, GroupRole
+from server.model.testcase import Suite, CaseNode
 from server.utils.db import Insert, Precise
 from server.utils.resource_utils import ResourceManager
+from server.utils.response_util import ssl_cert_verify_error_collect, RET
+from server.utils.requests_util import do_request
 
 
 class UpdateTaskForm:
     def __init__(self, body):
-        self._body = body.__dict__
+        self.body = body.__dict__
         self.product_id = None
         self.milestone_id = None
         self.title = None
@@ -40,25 +41,33 @@ class UpdateTaskForm:
 class UpdateTaskHandler:
     @staticmethod
     def get_product_id(form: UpdateTaskForm):
+        version = form.body.get("version")
         product_body = {
-            "name": form._body.get("product"),
-            "version": form._body.get("version")
+            "name": form.body.get("product"),
+            "version": version
         }
         _product = Precise(Product, product_body).first()
 
         if not _product:
+            if "LTS-SP" in version:
+                version_type = "LTS-SPx"
+            elif "LTS" in version:
+                version_type = "LTS"
+            else:
+                version_type = "INNOVATION"
             product_body.update(
                 {
                     "permission_type": "org",
-                    "org_id": form.group.org_id
+                    "org_id": form.group.org_id,
+                    "version_type": version_type
                 }
             )
             form.product_id = Insert(
                 Product,
                 product_body
             ).insert_id()
-            
-            ResourceManager("product").add_permission(
+
+            ResourceManager("product", creator_id=form.group.creator_id, org_id=form.group.org_id).add_permission(
                 "api_infos.yaml",
                 {
                     "creator_id": form.group.creator_id,
@@ -93,7 +102,7 @@ class UpdateTaskHandler:
                 Milestone,
                 body
             ).insert_id()
-            ResourceManager("milestone").add_permission(
+            ResourceManager("milestone", creator_id=form.group.creator_id, org_id=form.group.org_id).add_permission(
                 "api_infos.yaml",
                 {
                     "creator_id": form.group.creator_id,
@@ -120,7 +129,7 @@ class UpdateTaskHandler:
             CaseNode, root_case_node_body).first()
         if not root_case_node:
             root_case_node = Insert(CaseNode, root_case_node_body).insert_obj()
-        for suite in form._body.get("pkgs"):
+        for suite in form.body.get("pkgs"):
             _suite = Suite.query.filter_by(name=suite).first()
             if not _suite:
                 _suite = Insert(Suite, {"name": suite}).insert_obj()
@@ -151,8 +160,49 @@ class UpdateRepo:
         pattern = r'/(update.+?)/'
         result = re.findall(pattern, self._base_url)
         if self._base_url:
-            self.content += "[{}]\nname={}\nbaseurl={}$basearch/\nenabled=1\ngpgcheck=0\n\n".format(result[-1], result[-1], self._base_url)
-        
+            self.content += "[{}]\nname={}\nbaseurl={}$basearch/\nenabled=1\ngpgcheck=0\n\n".format(
+                result[-1],
+                result[-1],
+                self._base_url
+            )
+
         if self._epol_url:
             rs = result[-1].split("_")[-1]
-            self.content += "[EPOL-UPDATE-{}]\nname=EPOL-UPDATE-{}\nbaseurl={}$basearch/\nenabled=1\ngpgcheck=0\n\n".format(rs, rs, self._epol_url)
+            self.content += "[EPOL-UPDATE-{}]\nname=EPOL-UPDATE-{}\nbaseurl={}$basearch/\nenabled=1\ngpgcheck=0\n\n". \
+                format(rs, rs, self._epol_url)
+
+
+class AtMessenger:
+    def __init__(self, body):
+        self._body = body
+        self._body.update({
+            "user_id": int(g.gitee_id),
+        })
+
+    @ssl_cert_verify_error_collect
+    def send_request(self, machine_group, api):
+        _resp = dict()
+
+        _r = do_request(
+            method="post",
+            url="https://{}:{}{}".format(
+                machine_group.messenger_ip,
+                machine_group.messenger_listen,
+                api
+            ),
+            body=self._body,
+            headers={
+                "content-type": "application/json;charset=utf-8",
+                "authorization": request.headers.get("authorization")
+            },
+            obj=_resp,
+            verify=current_app.config.get("CA_CERT"),
+        )
+
+        if _r != 0:
+            return jsonify(
+                error_code=RET.RUNTIME_ERROR,
+                error_msg="could not reach messenger of this machine group"
+            )
+
+        return jsonify(_resp)
