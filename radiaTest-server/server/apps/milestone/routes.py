@@ -21,6 +21,8 @@ from server.schema.milestone import (
     GenerateTestReport,
     QueryTestReportFile,
 )
+from server.utils.permission_utils import GetAllByPermission
+from server import casbin_enforcer
 from .handler import (
     IssueStatisticsHandlerV8,
     MilestoneOpenApiHandler,
@@ -31,8 +33,29 @@ from .handler import (
     DeleteMilestone,
     IssueHandlerV8,
 )
-from server.utils.permission_utils import GetAllByPermission
-from server import casbin_enforcer
+
+
+
+class OrgMilestoneEventV1(Resource):
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def get(self, org_id, query: MilestoneQuerySchema):
+        filter_params = [
+            Milestone.org_id == org_id
+        ]
+        return MilestoneHandler.get_milestone(query, filter_params)
+
+
+class GroupMilestoneEventV1(Resource):
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def get(self, group_id, query: MilestoneQuerySchema):
+        filter_params = [
+            Milestone.group_id == group_id
+        ]
+        return MilestoneHandler.get_milestone(query, filter_params)
 
 
 class MilestoneEventV2(Resource):
@@ -42,11 +65,13 @@ class MilestoneEventV2(Resource):
     def post(self, body: MilestoneCreateSchema):
         return CreateMilestone.run(body.__dict__)
 
+
     @auth.login_required()
     @response_collect
     @validate()
     def get(self, query: MilestoneQuerySchema):
-        return MilestoneHandler.get_all(query)
+        filter_params = GetAllByPermission(Milestone).get_filter()
+        return MilestoneHandler.get_milestone(query, filter_params)
 
 
 class MilestoneItemEventV2(Resource):

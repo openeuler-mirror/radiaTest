@@ -84,6 +84,9 @@ CaseNodeType = Literal["directory", "suite", "case"]
 PermissionType = Literal["person", "group", "org", "public"]
 
 
+#提交类型
+CommitType = Literal['week', 'halfMonth', 'month']
+
 # 测试执行
 ## Job排序依据
 JobSortedBy = Literal["create_time", "end_time"]

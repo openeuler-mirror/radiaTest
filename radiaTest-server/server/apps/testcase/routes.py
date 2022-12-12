@@ -1,17 +1,38 @@
+# Copyright (c) [2022] Huawei Technologies Co.,Ltd.ALL rights reserved.
+# This program is licensed under Mulan PSL v2.
+# You can use it according to the terms and conditions of the Mulan PSL v2.
+# http://license.coscl.org.cn/MulanPSL2
+# THIS PROGRAM IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+# EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+# MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+# See the Mulan PSL v2 for more details.
+####################################
+# Author : MDS_ZHR
+# email : 331884949@qq.com
+# Date : 2022/12/13 14:00:00
+# License : Mulan PSL v2
+#####################################
+# 用例管理(Testcase)相关接口的route层
+
+import json
 from celeryservice.tasks import resolve_testcase_file
-from flask import request, g, jsonify
+from flask import request, g, jsonify, current_app, Response
 from flask_restful import Resource
 from flask_pydantic import validate
-
 from server import redis_client, casbin_enforcer
 from server.utils.redis_util import RedisKey
 from server.utils.auth_util import auth
 from server.utils.response_util import RET, response_collect
 from server.utils.permission_utils import GetAllByPermission
-from server.model.testcase import Suite, Case
-from server.utils.db import Edit, Delete, collect_sql_error
+from server.model.organization import Organization
+from server.model.group import Group
+from server.model.testcase import Suite, Case, CaseNode, SuiteDocument, Baseline
+from server.model.task import Task
+from server.model.milestone import Milestone
+from server.utils.db import Insert, Edit, Delete, collect_sql_error
 from server.schema.base import PageBaseSchema
 from server.schema.celerytask import CeleryTaskUserInfoSchema
+from server.schema.task import AddTaskSchema
 from server.schema.testcase import (
     CaseNodeBodySchema,
     CaseNodeQuerySchema,
@@ -20,6 +41,7 @@ from server.schema.testcase import (
     SuiteCreate,
     SuiteUpdate,
     CaseCreate,
+    CaseCreateBody,
     CaseNodeCommitCreate,
     CaseUpdate,
     AddCaseCommitSchema,
@@ -29,6 +51,17 @@ from server.schema.testcase import (
     UpdateCommitCommentSchema,
     CaseCommitBatch,
     QueryHistorySchema,
+    SuiteDocumentBodySchema,
+    SuiteDocumentQuerySchema,
+    SuiteDocumentUpdateSchema,
+    BaselineCreateSchema,
+    SuiteCreateBody,
+    SuiteCaseNodeUpdate,
+    DeleteSchema,
+    CaseCaseNodeUpdate,
+    CaseNodeRelateSchema,
+    ResourceQuerySchema,
+    CaseSetQuerySchema,
 )
 from server.apps.testcase.handler import (
     CaseImportHandler,
@@ -38,8 +71,11 @@ from server.apps.testcase.handler import (
     TemplateCasesHandler,
     HandlerCaseReview,
     HandlerCommitComment,
-    ResourceItemHandler
+    ResourceItemHandler,
+    SuiteDocumentHandler,
+    CaseSetHandler,
 )
+from server.utils.resource_utils import ResourceManager
 
 
 class CaseNodeEvent(Resource):
@@ -97,42 +133,12 @@ class CaseNodeImportEvent(Resource):
         return CaseNodeHandler.get_all_case(case_node_id)
 
 
-class SuiteItemEvent(Resource):
-    @auth.login_required
-    @response_collect
-    def get(self, suite_id):
-        suite = Suite.query.filter_by(id=suite_id).first()
-        if not suite:
-            return jsonify(
-                error_code=RET.NO_DATA_ERR,
-                error_msg="the suite does not exist"
-            )
-
-        return jsonify(
-            error_code=RET.OK,
-            error_msg="OK",
-            data=suite.to_json()
-        )
-
+class CaseNodeRelateItemEvent(Resource):
     @auth.login_required()
     @response_collect
     @validate()
-    def put(self, suite_id, body: SuiteUpdate):
-        suite = Suite.query.filter_by(id=suite_id).first()
-        if not suite:
-            return jsonify(
-                error_code=RET.NO_DATA_ERR,
-                error_msg="the suite does not exist"
-            )
-        _data = body.__dict__
-        _data.update({"id": suite_id})
-        return Edit(Suite, body.__dict__).single(Suite, "/suite")
-
-    @auth.login_required()
-    @response_collect
-    @validate()
-    def delete(self, suite_id):
-        return Delete(Suite, {"id": suite_id}).single(Suite, "/suite")
+    def post(self, case_node_id, body: CaseNodeRelateSchema):
+        return CaseNodeHandler.relate(case_node_id, body)
 
 
 class SuiteEvent(Resource):
@@ -140,7 +146,38 @@ class SuiteEvent(Resource):
     @response_collect
     @validate()
     def post(self, body: SuiteCreate):
-        return SuiteHandler.create(body)
+        return_data = dict()
+        suite_body = SuiteCreate(**body.__dict__).dict()
+        
+        suites = Suite.query.filter_by(name=suite_body["name"]).all()
+        if suites:
+            return jsonify(
+                error_code=RET.VERIFY_ERR,
+                error_msg="The name of suite {} is already exist".format(
+                    suite_body["name"]
+                ),
+            )
+
+        suite_body.update({"creator_id": g.gitee_id})
+        suite_body.update({
+            "org_id": redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')
+        })
+        _id = Insert(Suite, suite_body).insert_id(Suite, "/suite")
+        return_data["suite_id"] = _id
+
+        suite_body.update({"suite_id": _id})
+
+        _body = SuiteCreateBody(**suite_body)
+        _resp =  CaseNodeHandler.create(_body)
+        _resp = json.loads(_resp.data.decode('UTF-8'))
+        if _resp.get("error_code") != RET.OK:
+            return jsonify(
+                error_code=RET.BAD_REQ_ERR,
+                error_msg="Create case_node error."
+            )
+        return_data["case_node_id"] = _resp.get("data")
+        return jsonify(error_code=RET.OK, error_msg="OK", data=return_data)
+
 
     @auth.login_required()
     @response_collect
@@ -152,6 +189,95 @@ class SuiteEvent(Resource):
                 body[key] = value
 
         return GetAllByPermission(Suite).fuzz(body)
+
+
+class SuiteItemEvent(Resource):
+    @auth.login_required
+    @response_collect
+    def get(self, suite_id):
+        suite = Suite.query.filter_by(id=suite_id).first()
+        if not suite:
+            return jsonify(
+                error_code=RET.OK,
+                error_msg="The suite does not exist."
+            )
+
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+            data=suite.to_json()
+        )
+
+
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def put(self, suite_id, body: SuiteCaseNodeUpdate):
+        suite = Suite.query.filter_by(id=suite_id).first()
+        if not suite:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="the suite does not exist"
+            )
+
+        
+        if body.name and body.name != suite.name:
+            suites = Suite.query.filter_by(name=body.name).all()
+            if suites:
+                return jsonify(
+                    error_code=RET.VERIFY_ERR,
+                    error_msg="The name of suite {} is already exist".format(
+                        body.name
+                    ),
+                )
+
+        _data = body.__dict__
+        _data.update({"id": suite_id})
+        Edit(Suite, body.__dict__).single(Suite, "/suite")
+
+        if body.name and body.name != suite.name: 
+            case_nodes = CaseNode.query.filter(
+                    CaseNode.suite_id==suite_id,
+                    ).all()
+            if not case_nodes:
+                return jsonify(
+                    error_code=RET.NO_DATA_ERR,
+                    error_msg="the case_node does not exist"
+                )
+
+            return_resp = [CaseNodeHandler.update(
+                case_node.id, body
+            ) for case_node in case_nodes]
+            for resp in return_resp:
+                _resp = json.loads(resp.response[0])
+                if _resp.get("error_code") != RET.OK:
+                    return _resp
+        return jsonify(error_code=RET.OK, error_msg="OK")
+
+
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def delete(self, suite_id, body: DeleteSchema):
+        case_node = CaseNode.query.filter(
+            CaseNode.id == body.case_node_id,
+            ).first()
+        if not case_node:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="the case_node does not exist"
+            )
+        task = Task.query.filter(
+            Task.case_node_id == case_node.id,
+            Task.accomplish_time.is_(None),
+            Task.is_delete.is_(False),
+            ).first()
+        if task:
+            return jsonify(
+                error_code=RET.DATA_EXIST_ERR,
+                error_msg="task exists,not allowed to delete the suite"
+            )
+        return Delete(Suite, {"id": suite_id}).single(Suite, "/suite")
 
 
 class PreciseSuiteEvent(Resource):
@@ -193,7 +319,54 @@ class CaseEvent(Resource):
     @response_collect
     @validate()
     def post(self, body: CaseCreate):
-        return CaseHandler.create(body)
+        return_data = dict()
+        case_body = body.__dict__
+        _suite = Suite.query.filter_by(name=case_body.get("suite")).first()
+        if not _suite:
+            return jsonify(
+                error_code=RET.PARMA_ERR,
+                error_msg="The suite {} is not exist".format(
+                    case_body.get("suite")
+                )
+            )
+        case_body["suite_id"] = _suite.id
+        case_body.pop("suite")
+
+        case = Case.query.filter_by(name=case_body["name"]).first()
+        if case:
+            return jsonify(
+                error_code=RET.DATA_EXIST_ERR,
+                error_msg="The name of case {} is already exist".format(
+                    case_body["name"]
+                ),
+            )
+        case_body.update({"creator_id": g.gitee_id})
+        case_body.update({
+            "org_id": redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')
+        })
+
+        _id = Insert(Case, case_body).insert_id(Case, "/case")
+        return_data["case_id"] = _id
+
+        case_body.update({"case_id": _id})
+        case_node = CaseNode.query.filter_by(suite_id=_suite.id).first()
+        if not case_node:
+            return jsonify(
+                error_code=RET.VERIFY_ERR, 
+                error_msg="case-node is not exist.")
+        case_body.update({"parent_id": case_node.id})
+
+        body = CaseCreateBody(**case_body)
+        _resp =  CaseNodeHandler.create(body)
+        _resp = json.loads(_resp.data.decode('UTF-8'))
+        if _resp.get("error_code") != RET.OK:
+            return jsonify(
+                error_code=RET.BAD_REQ_ERR,
+                error_msg="Create case_node error."
+            )
+        return_data["case_node_id"] = _resp.get("data")
+        return jsonify(error_code=RET.OK, error_msg="OK", data=return_data)
+        
 
     @auth.login_required()
     @response_collect
@@ -206,11 +379,12 @@ class CaseEvent(Resource):
         return GetAllByPermission(Case).precise(body)
 
 
+
 class CaseItemEvent(Resource):
     @auth.login_required()
     @response_collect
     @validate()
-    def put(self, case_id, body: CaseUpdate):
+    def put(self, case_id, body: CaseCaseNodeUpdate):
         _body = body.__dict__
         _case = Case.query.filter_by(id=case_id).first()
         if not _case:
@@ -219,18 +393,70 @@ class CaseItemEvent(Resource):
                 error_msg="the case does not exist"
             )
 
+        if body.name and body.name != _case.name:
+            suites = Suite.query.filter_by(name=body.name).all()
+            if suites:
+                return jsonify(
+                    error_code=RET.VERIFY_ERR,
+                    error_msg="The name of case {} is already exist".format(
+                        body.name
+                    ),
+                )
+
         if _body["suite"]:
             _body["suite_id"] = Suite.query.filter_by(
                 name=_body.get("suite")).first().id
             _body.pop("suite")
 
-        return Edit(Case, _body).single(Case, "/case")
+        Edit(Case, _body).single(Case, "/case")
+        
+        if body.name and body.name != _case.name: 
+            case_nodes = CaseNode.query.filter(
+                    CaseNode.case_id==case_id,
+                    ).all()
+            if not case_nodes:
+                return jsonify(
+                    error_code=RET.NO_DATA_ERR,
+                    error_msg="the case_node does not exist"
+                )
+
+            return_resp = [CaseNodeHandler.update(
+                case_node.id, body
+            ) for case_node in case_nodes]
+            for resp in return_resp:
+                _resp = json.loads(resp.response[0])
+                if _resp.get("error_code") != RET.OK:
+                    return _resp
+        return jsonify(error_code=RET.OK, error_msg="OK")
+
 
     @auth.login_required()
     @response_collect
     @validate()
     def delete(self, case_id):
+        case_node = CaseNode.query.filter(
+            CaseNode.case_id == case_id,
+            CaseNode.type == "case",
+            ).first()
+        if not case_node:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="the case_node does not exist"
+            )
+        task = Task.query.filter(
+            Task.case_node_id == case_node.id,
+            Task.accomplish_time.is_(None),
+            Task.is_delete.is_(False),
+            ).first()
+        if task:
+            return jsonify(
+                error_code=RET.DATA_EXIST_ERR,
+                error_msg="task exists, not allowed to delete the case"
+            )
+
         return Delete(Case, {"id": case_id}).single(Case, "/case")
+
+
 
     @auth.login_required()
     @response_collect
@@ -241,10 +467,11 @@ class CaseItemEvent(Resource):
                 error_code=RET.OK,
                 error_msg="OK"
             )
+        data = case.to_json() 
         return jsonify(
             error_code=RET.OK,
             error_msg="OK",
-            data=case.to_json()
+            data=data
         )
 
 
@@ -268,10 +495,16 @@ class CaseImport(Resource):
     @response_collect
     def post(self):
         if not request.files.get("file"):
-            return jsonify(error_code=RET.PARMA_ERR, error_msg="The file being uploaded is not exist")
+            return jsonify(
+                error_code=RET.PARMA_ERR, 
+                error_msg="The file being uploaded is not exist"
+            )
 
         if not request.form.get("group_id"):
-            return jsonify(error_code=RET.PARMA_ERR, error_msg="The file should be binded to a group")
+            return jsonify(
+                error_code=RET.PARMA_ERR, 
+                error_msg="The file should be binded to a group"
+            )
 
         return CaseImportHandler.import_case(
             request.files.get("file"),
@@ -324,19 +557,19 @@ class CaseCommit(Resource):
     @auth.login_required()
     @response_collect
     @validate()
-    # @casbin_enforcer.enforcer
+    @casbin_enforcer.enforcer
     def put(self, commit_id, body: UpdateCaseCommitSchema):
         return HandlerCaseReview.update(commit_id, body)
 
     @auth.login_required()
     @response_collect
-    # @casbin_enforcer.enforcer
+    @casbin_enforcer.enforcer
     def get(self, commit_id):
         return HandlerCaseReview.handler_case_detail(commit_id)
 
     @auth.login_required()
     @response_collect
-    # @casbin_enforcer.enforcer
+    @casbin_enforcer.enforcer
     def delete(self, commit_id):
         return HandlerCaseReview.delete(commit_id)
 
@@ -366,7 +599,6 @@ class CaseCommitComment(Resource):
 
     @auth.login_required()
     @response_collect
-    # @casbin_enforcer.enforcer
     def get(self, commit_id):
         return HandlerCommitComment.get(commit_id)
 
@@ -424,19 +656,464 @@ class GroupNodeItem(Resource):
     @auth.login_required()
     @response_collect
     @validate()
-    def get(self, group_id):
-        return ResourceItemHandler(
-            _type='group',
-            group_id=group_id
-        ).run()
+    def get(self, group_id, query: ResourceQuerySchema):
+        try:
+            return ResourceItemHandler(
+                _type='group',
+                group_id=group_id,
+                commit_type=query.commit_type,
+            ).run()
+        except RuntimeError as e:
+            return jsonify(
+                error_code=RET.BAD_REQ_ERR,
+                error_msg=str(e)
+            )
 
 
 class OrgNodeItem(Resource):
     @auth.login_required()
     @response_collect
     @validate()
+    def get(self, org_id, query: ResourceQuerySchema):
+        try:
+            return ResourceItemHandler(
+                _type='org',
+                org_id=org_id,
+                commit_type=query.commit_type,
+            ).run()
+        except RuntimeError as e:
+            return jsonify(
+                error_code=RET.BAD_REQ_ERR,
+                error_msg=str(e)
+            )
+
+
+class SuiteDocumentEvent(Resource):
+    """
+        创建、查询基线模板节点(Document).
+        url="/api/v1/suite/<int:suite_id>/document"
+    """
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def post(self, suite_id, body: SuiteDocumentBodySchema):
+        """
+            在数据库中新增Document数据.
+            请求体:
+            {
+            "url": str,
+            "name": str,
+            }
+            返回体:
+            {
+                "data": {
+                    "id": int
+                },
+                "error_code": "2000",
+                "error_msg": "OK"
+            }
+        """
+        return SuiteDocumentHandler.post(suite_id, body)
+
+
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def get(self, suite_id):
+        """
+            在数据库中查询Document数据.
+            api:/api/v1/suite/<int:suite_id>/document
+            返回体:
+            {
+                "data": [
+                    {
+                        "case_node_id": int,
+                        "creator_id": int,
+                        "id": int,
+                        "name": str,
+                        "url": str
+                    }
+                ],
+                "error_code": "2000",
+                "error_msg": "OK!"
+            }
+        """        
+        suite = Suite.query.filter_by(id=suite_id).first()
+        if not suite:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="The suite is not exist"
+        )
+        return GetAllByPermission(SuiteDocument).precise({
+            "suite_id": suite_id
+        })
+
+
+class SuiteDocumentItemEvent(Resource):
+    """
+        查询指定测试套文档.
+        url="/api/v1/suite-document/<int:document_id>", 
+        methods=["GET"]
+    """
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def get(self, document_id):
+        """
+            查询指定测试套文档..
+            api:/api/v1/suite-document/<int:document_id>
+            返回体:
+            {
+                "data": [
+                    {
+                        "case_node_id": int,
+                        "creator_id": int,
+                        "id": int,
+                        "name": str,
+                        "url": str
+                    }
+                ],
+                "error_code": "2000",
+                "error_msg": "OK!"
+            }
+        """
+        return GetAllByPermission(SuiteDocument).precise({"id": document_id})
+
+
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def put(self, document_id, body: SuiteDocumentUpdateSchema):
+        """
+            修改指定测试套文档.
+            api:/api/v1/suite-document/<int:document_id>
+            返回体:
+            {
+                "error_code": "2000",
+                "error_msg": "Request processed successfully."
+            }
+        """
+        _body = body.__dict__
+        _body.update(
+            {
+                "id": document_id
+            }
+        )
+        return Edit(SuiteDocument, _body).single(
+            SuiteDocument, "/suite_document"
+        )
+
+
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def delete(self, document_id):
+        """
+            删除指定测试套文档.
+            api:/api/v1/suite-document/<int:document_id>
+            返回体:
+            {
+                "error_code": "2000",
+                "error_msg": "Request processed successfully."
+            }
+        """
+        document = SuiteDocument.query.filter_by(id=document_id).first()
+        if not document:
+            return jsonify(
+                error_code=RET.PARMA_ERR,
+                error_msg="The document {} is not exist".format(
+                    document_id
+                )
+            )
+        return ResourceManager("suite_document").del_single(document_id)
+
+
+class CaseNodeDocumentsItemEvent(Resource):
+    """
+        查询case-node下的测试套文档.
+        url="/api/v1/case-node/<int:case_node_id>/documents", 
+        methods=["GET"]
+    """
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def get(self, case_node_id):
+        """
+            查询case-node下的测试套文档.
+            api:/api/v1/case-node/<int:case_node_id>/documents
+            返回体:
+            {
+                "data": [
+                    {
+                        "case_node_id": int,
+                        "creator_id": int,
+                        "id": int,
+                        "name": str,
+                        "url": str
+                    }
+                ],
+                "error_code": "2000",
+                "error_msg": "OK!"
+            }
+        """
+        return GetAllByPermission(SuiteDocument).precise({
+            "case_node_id": case_node_id
+        })
+
+
+class CaseNodeMoveToEvent(Resource):
+    """
+        修改指定用例节点的父信息.
+        url="/api/v1/case-node/<int:from_id>/move-to/<int:to_id>", 
+        methods=["PUT"]
+    """
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def put(self, from_id, to_id):
+        """
+            在数据库中修改指定用例节点的父信息.
+            API:/api/v1/case-node/<int:from_id>/move-to/<int:to_id>
+            返回体:
+            {
+            "error_code": "2000",
+            "error_msg": "OK"
+            }
+        """       
+        from_casenode = CaseNode.query.filter_by(id=from_id).first()
+        if not from_casenode:
+            return jsonify(
+                error_code=RET.VERIFY_ERR,
+                error_msg="The casenode is not exist."
+            )
+        old_parent =  CaseNode.query.filter(
+            CaseNode.children.contains(from_casenode)
+        ).first()
+
+        to_casenode = CaseNode.query.filter_by(id=to_id).first()
+        if not to_casenode:
+            return jsonify(
+                error_code=RET.VERIFY_ERR,
+                error_msg="The casenode is not exist."
+            )
+        
+        if from_id == to_id:
+            return jsonify(error_code=RET.OK, error_msg="OK")
+        
+        if from_casenode.in_set==1 and from_casenode.type == "case":
+            return jsonify(
+                error_code=RET.VERIFY_ERR, 
+                error_msg="Only suite and directory could be moved."
+            )
+        
+        if to_casenode.type not in ["directory", "baseline"]:
+            return jsonify(
+                error_code=RET.VERIFY_ERR, 
+                error_msg="Only could moved to type of directory or baseline."
+            )
+        
+        from_casenode.parent.remove(old_parent)
+        from_casenode.parent.append(to_casenode)
+        from_casenode.add_update()
+
+        return jsonify(error_code=RET.OK, error_msg="OK")
+
+
+
+class CaseNodeGetRootEvent(Resource):
+    """
+        查询指定用例节点的根节点信息.
+        url="/api/v1/case-node/<int:case_node_id>/get-root", 
+        methods=["GET"]
+    """
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def get(self, case_node_id):
+        """
+            在数据库中查询指定用例节点的根节点信息.
+            API:/api/v1/case-node/<int:case_node_id>/get-root
+            返回体:
+            {
+            "baseline_id": int,
+            "case_id": int,
+            "group_id": int,
+            "id": int,
+            "in_set": bool,
+            "is_root": bol,
+            "org_id": int,
+            "suite_id": int,
+            "title": str,
+            "type": str
+            }
+        """   
+        casenode = CaseNode.query.filter_by(id=case_node_id).first()
+        if not casenode:
+            return jsonify(
+                error_code=RET.VERIFY_ERR,
+                error_msg="The casenode is not exist."
+            )
+        
+        root_case_node = CaseNodeHandler.get_root_case_node(case_node_id)
+
+        return jsonify(
+            error_code = RET.OK,
+            error_msg = "OK",
+            data = root_case_node.to_json()
+        )
+
+
+class CaseSetItemEvent(Resource):
+    """
+        查询baseline以及caseset的resource信息.
+        url="/api/v1/case-node/<int:case_node_id>/resource", 
+        methods=["GET"]
+    """
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def get(self, case_node_id, query: CaseSetQuerySchema):
+        """
+            在数据库中查询baseline或者caseset的resource信息.
+            API: /api/v1/case-node/<int:case_node_id>/resource?commit_type=week
+            返回体:
+            {
+            "auto_ratio": float,
+            "case_count": int,
+            "commit_attribute": {
+            },
+            "commit_count": int,
+            "distribute": {
+                "2022-12-07": int,
+                "2022-12-08": int,
+                "2022-12-09": int,
+                "2022-12-10": int,
+                "2022-12-11": int,
+                "2022-12-12": int,
+                "2022-12-13": int
+            },
+            "suite_count": int,
+            "type_distribute": [
+                {
+                "name": str,
+                "value": int
+                },
+                {
+                "name": str,
+                "value": int
+                }
+            ]
+            }
+        """
+        return_data = dict()
+        casenode = CaseNode.query.filter_by(id = case_node_id).first()
+        if not casenode:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="casenode is not exist."
+            )
+
+        if casenode.type=="baseline" and casenode.is_root==1:
+            # 获取基线baseline的details
+            return_data = CaseSetHandler.get_caseset_details(
+                casenode, "baseline", query)
+            if isinstance(return_data, Response):
+                return  return_data
+        elif casenode.type=="directory" and\
+                casenode.is_root==1 and \
+                casenode.title=="用例集":
+            # 获取用例集details
+            return_data = CaseSetHandler.get_caseset_details(
+                casenode, "directory", query)
+            if isinstance(return_data, Response):
+                return  return_data
+        else:
+            return jsonify(
+                error_code=RET.VERIFY_ERR,
+                error_msg="The type of casenode is invalid or casenode is not root node."
+            )
+        
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+            data=return_data
+        )
+
+
+class BaselineEvent(Resource):
+    """
+        创建、查询基线(BaseLine).
+        url="/api/v1/baseline", 
+        methods=["POST", "GET"]
+    """    
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def post(self, body: CaseNodeBodySchema):
+        """
+            在数据库中创建基线(BaseLine).
+            请求体:
+            {
+            "title": str,
+            "milestone_id": int,
+            "type": str,
+            "permission_type": str,
+            "group_id": int
+            }
+            返回体:
+            {
+            "data": {
+                "baseline_id": int,
+                "case_node_id": int
+            },
+            "error_code": "2000",
+            "error_msg": "OK"
+            }
+        """
+        return_data = dict()
+        milestone = Milestone.query.filter_by(id=body.milestone_id).first()
+        if not milestone:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="milestone is not exist."
+            )
+
+        baseline_body = BaselineCreateSchema(**body.__dict__).dict()
+        
+        baseline = Baseline.query.filter_by(name=baseline_body["name"]).all()
+        if baseline:
+            return jsonify(
+                error_code=RET.DATA_EXIST_ERR,
+                error_msg="The title of baseline {} is already exist".format(
+                    baseline_body["name"]
+                ),
+            )
+        baseline_body.update({"creator_id": g.gitee_id})
+        baseline_body.update({
+            "org_id": redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')
+        })
+        _id = Insert(Baseline, baseline_body).insert_id(Baseline, "/baseline")
+        return_data["baseline_id"] = _id
+
+        body.baseline_id = _id
+        _resp =  CaseNodeHandler.create(body)
+        _resp = json.loads(_resp.data.decode('UTF-8'))
+
+        if _resp.get("error_code") != RET.OK:
+            return _resp
+        return_data["case_node_id"] = _resp.get("data")
+        return jsonify(error_code=RET.OK, error_msg="OK", data=return_data)
+
+
+class OrgCasesetEvent(Resource):
+    @auth.login_required()
+    @response_collect
     def get(self, org_id):
-        return ResourceItemHandler(
-            _type='org',
-            org_id=org_id
-        ).run()
+        return CaseNodeHandler.get_caseset_children("org", Organization, org_id)
+
+
+class GroupCasesetEvent(Resource):
+    @auth.login_required()
+    @response_collect
+    def get(self, group_id):
+        return CaseNodeHandler.get_caseset_children("group", Group, group_id)
