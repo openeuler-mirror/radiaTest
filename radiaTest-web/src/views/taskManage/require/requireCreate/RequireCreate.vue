@@ -160,6 +160,36 @@ const rules = {
     required: true,
     message: '需求标题不可为空',
   },
+  remark: {
+    trigger: ['blur', 'change'],
+    required: true,
+    message: '需求简介不可为空',
+  },
+  description: {
+    trigger: ['blur', 'change'],
+    required: true,
+    message: '需求详情不可为空',
+  },
+  payload: {
+    trigger: ['blur', 'change'],
+    required: true,
+    message: '预估工作量不可为空',
+  },
+  period: {
+    trigger: ['blur', 'change'],
+    required: true,
+    message: '交付周期不可为空',
+  },
+  behavior_require: {
+    trigger: ['blur', 'change'],
+    required: true,
+    message: '信誉分门槛不可为空',
+  },
+  influence_require: {
+    trigger: ['blur', 'change'],
+    required: true,
+    message: '影响力门槛不可为空',
+  },
   milestones: {
     trigger: ['blur', 'change'],
     validator () {
