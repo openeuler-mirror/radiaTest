@@ -100,6 +100,7 @@ class QualityBoardEvent(Resource):
         if milestone:
             round_id = RoundHandler.add_round(body.product_id, milestone.id)
             iteration_version = str(round_id)
+            PackageListHandler.get_all_packages_file(round_id)
 
         qualityboard = QualityBoard(
             product_id=body.product_id, iteration_version=iteration_version)
@@ -181,6 +182,7 @@ class QualityBoardItemEvent(Resource):
 
         qualityboard.iteration_version = iteration_version
         qualityboard.add_update()
+        PackageListHandler.get_all_packages_file(round_id)
 
         return jsonify(
             error_code=RET.OK,
@@ -1100,64 +1102,32 @@ class PackageListEvent(Resource):
                 error_code=RET.NO_DATA_ERR,
                 error_msg="qualityboard doesn't exist.",
             )
-        _round = Round.query.filter_by(id=round_id, product_id=qualityboard.product_id).first()
-        if not _round:
-            return jsonify(
-                error_code=RET.NO_DATA_ERR,
-                error_msg="round doesn't exist.",
-            )
-        
         if query.refresh:
-            org_id = qualityboard.product.org_id
-            org = Organization.query.filter_by(id=org_id).first()
-            _product = _round.product.name + "-" + _round.product.version
-            _dirname = f"EBS-{_product}" if _round.built_by_ebs else _product
+            _round = Round.query.filter_by(id=round_id).first()
+            if not _round:
+                return jsonify(
+                    error_code=RET.NO_DATA_ERR,
+                    error_msg="round doesn't exist.",
+                )
+            try:
+                PackageListHandler.get_all_packages_file(round_id)
+            except RuntimeError as e:
+                return jsonify(
+                    error_code=RET.OK,
+                    error_msg=str(e),
+                )
 
-            if _round.type == "release":
-                _pkgs_repo_url = current_app.config.get(f"{org.name.upper()}_OFFICIAL_REPO_URL")
-                _filename_p = _product
-                round_num = None
-            else:
-                _pkgs_repo_url = current_app.config.get(f"{org.name.upper()}_DAILYBUILD_REPO_URL")
-                _filename_p = f"{_product}-round-{_round.round_num}"
-                round_num = _round.round_num
-            for arch in ["x86_64", "aarch64", "all"]:
-                for sub_path in ["everything", "EPOL/main"]:
-                    _filename = f"{_filename_p}-{sub_path.split('/')[0]}-{arch}"
-                    if not redis_client.hgetall(f"resolving_{_filename}_pkglist"):
-                        redis_client.hset(
-                            f"resolving_{_filename}_pkglist", "gitee_id", g.gitee_id
-                        )
-                        redis_client.hset(
-                            f"resolving_{_filename}_pkglist", 
-                            "resolve_time", 
-                            datetime.now(
-                                tz=pytz.timezone('Asia/Shanghai')
-                            ).strftime("%Y-%m-%d %H:%M:%S")
-                        )
-                        redis_client.expire(f"resolving_{_filename}_pkglist", 1800)
-                        resolve_pkglist_after_resolve_rc_name.delay(
-                            repo_url=_pkgs_repo_url,
-                            repo_path=sub_path,
-                            arch=arch,
-                            product={
-                                "name": _product,
-                                "dirname": _dirname,
-                                "buildname": _round.buildname,
-                                "round": round_num,
-                            },
-                        )
             return jsonify(
                 error_code=RET.OK,
                 error_msg=f"the packages of {_round.name} " \
-                    f"start resolving, please wait for several minutes",
+                f"start resolving, please wait for several minutes"
             )
+
         try:
             handler = PackageListHandler(
                 round_id,
                 query.repo_path,
-                query.arch,
-                query.refresh
+                query.arch
             )
         except RuntimeError as e:
             return jsonify(
@@ -1200,14 +1170,12 @@ class SamePackageListCompareEvent(Resource):
             comparer = PackageListHandler(
                 round_id,
                 body.repo_path,
-                "aarch64",
-                False
+                "aarch64"
             )
             comparee = PackageListHandler(
                 round_id,
                 body.repo_path,
-                "x86_64",
-                False
+                "x86_64"
             )
         except RuntimeError as e:
             return jsonify(
@@ -1312,14 +1280,12 @@ class PackageListCompareEvent(Resource):
             comparer = PackageListHandler(
                 comparer_round_id,
                 body.repo_path,
-                "all",
-                False
+                "all"
             )
             comparee = PackageListHandler(
                 comparee_round_id,
                 body.repo_path,
-                "all",
-                False
+                "all"
             )
         except RuntimeError as e:
             return jsonify(
