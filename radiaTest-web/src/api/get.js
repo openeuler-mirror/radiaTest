@@ -160,6 +160,9 @@ export function getAllRole(data) {
 export function getOrgUser(id, data) {
   return getRequest(`/v1/org/${id}/users`, data);
 }
+export function getOrgGroup(id, data) {
+  return getRequest(`/v1/org/${id}/groups`, data);
+}
 export function getProduct(data) {
   return getRequest('/v1/product', data);
 }
@@ -287,4 +290,56 @@ export function getHomonymousIsomerismPkgcompare(qualityboardId, roundId, params
 
 export function examplesNodes(id, data) {
   return getRequest(`/v1/org/${id}/resource`, data);
+}
+
+export function getCaseNodeResource(id, data) {
+  return getRequest(`/v1/case-node/${id}/resource`, data);
+}
+
+export function getBaselineTemplates(data) {
+  return getRequest('/v1/baseline-template', data);
+}
+
+export function getBaselineTemplateItem(id, data) {
+  return getRequest(`/v1/baseline-template/${id}`, data);
+}
+
+export function getScopedGitRepo(data) {
+  return getRequest('/v1/git-repo/scoped', data);
+}
+
+export function getFramework(data) {
+  return getRequest('/v1/framework', data);
+}
+
+export function getSuiteDocuments(suiteId, data) {
+  return getRequest(`/v1/suite/${suiteId}/document`, data);
+}
+
+export function getBaseNode(baseNodeId, data) {
+  return getRequest(`/v1/base-node/${baseNodeId}`, data);
+}
+
+export function getCaseSetNodes(_type, id, data) {
+  return getRequest(`/v1/${_type}/${id}/caseset`, data);
+}
+
+export function getCaseNode(caseNodeId, data) {
+  return getRequest(`/v1/case-node/${caseNodeId}`, data);
+}
+
+export function getGroupMilestone(groupId, data) {
+  return getRequest(`/v1/group/${groupId}/milestone`, data);
+}
+
+export function getOrgMilestone(orgId, data) {
+  return getRequest(`/v1/org/${orgId}/milestone`, data);
+}
+
+export function getCaseNodeRoot(caseNodeId, data) {
+  return getRequest(`/v1/case-node/${caseNodeId}/get-root`, data);
+}
+
+export function getSuiteItem(suiteId) {
+  return getRequest(`/v1/suite/${suiteId}`);
 }

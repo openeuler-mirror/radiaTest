@@ -5,7 +5,6 @@ import { initData } from './dashboard';
 
 function getIframeMessage(val) {
   const params = val ? val.data : {};
-  console.log('接收传到的值：', params);
   if(params.orgId) {
     hanleLogin(params.orgId);
   }

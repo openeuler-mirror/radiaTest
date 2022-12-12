@@ -186,7 +186,10 @@ const menu = ref([
 ]);
 
 const isTabActive = (name) => {
-  return router.currentRoute.value.name === name;
+  if (name !== 'folderview') {
+    return router.currentRoute.value.name === name;
+  }
+  return router.currentRoute.value.fullPath.startsWith('/home/tcm/folderview');
 };
 
 function showRecycleBin() {

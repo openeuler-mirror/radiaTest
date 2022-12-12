@@ -63,3 +63,19 @@ export function deleteRequireProgress(requireId, progressId) {
 export function deleteRequire(requireId) {
   return deleteRequest(`/v1/requirement/${requireId}`);
 }
+
+export function deleteBaselineTemplate(id) {
+  return deleteRequest(`/v1/baseline-template/${id}`);
+}
+
+export function deleteSuiteDocument(id) {
+  return deleteRequest(`/v1/suite-document/${id}`);
+}
+
+export function deleteBaseNode(baseNodeId) {
+  return deleteRequest(`/v1/base-node/${baseNodeId}`);
+}
+
+export function cleanBaselineTemplate(id) {
+  return deleteRequest(`/v1/baseline-template/${id}/clean`);
+}

@@ -293,7 +293,6 @@ function toggleComplete2($event) {
       if (v.id === 5) {
         tempData.value = v.tasks;
         let tempArr = [];
-        console.log(v.tasks);
         v.tasks.forEach((task) => {
           if (task?.executor?.gitee_id === giteeId) {
             tempArr.push(task);
