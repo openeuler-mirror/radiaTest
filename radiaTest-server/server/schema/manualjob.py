@@ -14,14 +14,6 @@ class ManualJobQuery(PageBaseSchema):
     status: int
 
 
-class ManualJobStatusModify(BaseModel):
-    status: int
-
-
-class ManualJobResultModify(BaseModel):
-    result: Optional[str]
-
-
 class ManualJobLogModify(BaseModel):
     step: int
     content: Optional[str]

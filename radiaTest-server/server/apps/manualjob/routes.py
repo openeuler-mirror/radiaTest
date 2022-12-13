@@ -21,8 +21,7 @@ from flask_restful import Resource
 from server import db
 from server.apps.manualjob.handler import (
     ManualJobHandler,
-    ManualJobStatusHandler,
-    ManualJobResultHandler,
+    ManualJobSubmitHandler,
     ManualJobLogHandler,
     ManualJobDeleteHandler,
     ManualJobLogQueryHandler)
@@ -31,8 +30,6 @@ from server.model.testcase import Case
 from server.schema.manualjob import (
     ManualJobCreate,
     ManualJobQuery,
-    ManualJobStatusModify,
-    ManualJobResultModify,
     ManualJobLogModify,
     ManualJobLogDelete
 )
@@ -100,8 +97,8 @@ class ManualJobEvent(Resource):
                             "id": int,
                             "name": str,
                             "case_id": int,
-                            "milestone_id": int,
-                            "executor_id": int,
+                            "milestone_name": str,
+                            "executor_name": str,
                             "create_time": datetime,
                             "update_time": datetime,
                             "current_step": int,
@@ -128,21 +125,19 @@ class ManualJobEvent(Resource):
         return ManualJobHandler.query(query)
 
 
-class ManualJobStatusEvent(Resource):
+class ManualJobSubmitEvent(Resource):
     """
-        修改指定id的手工测试任务(ManualJob)的状态
-        请求路径是/api/v1/manual-job/<int:manual_job_id>/status
+        提交完成执行指定id的手工测试任务(ManualJob)
+        url="/api/v1/manual-job/<int:manual_job_id>/submit", methods=["POST"]
     """
     @auth.login_required()
     @response_collect
     @validate()
-    def put(self, manual_job_id: int, body: ManualJobStatusModify):
+    def post(self, manual_job_id: int):
         """
-            更改指定id的手工测试任务(ManualJob)的状态, 如果更改状态为1(已结束), 则设置ManualJob的end_time字段为当前时间.
-            请求参数示例:
-            {
-                "status": 1
-            }
+            设置指定id的手工测试任务(ManualJob)的status字段为1(已结束), 设置end_time字段为当前时间.
+            如果该手工测试任务的每个步骤都有日志, 且日志的passed字段都是True, 则把此手工测试任务的result字段更改为1(与预期一致).
+            请求参数: 无
             返回体示例:
             {
                 "error_code": 2000,
@@ -156,38 +151,7 @@ class ManualJobStatusEvent(Resource):
                 error_msg=f"the manual_job with id {manual_job_id} does not exist"
             )
         else:
-            return ManualJobStatusHandler.update(manual_job, body)
-
-
-class ManualJobResultEvent(Resource):
-    """
-        修改指定id的手工测试任务(ManualJob)的结果
-        url="/api/v1/manual-job/<int:manual_job_id>/result", methods=["PUT"]
-    """
-    @auth.login_required()
-    @response_collect
-    @validate()
-    def put(self, manual_job_id: int, body: ManualJobResultModify):
-        """
-            修改指定id的手工测试任务(ManualJob)的结果.
-            请求体:
-            {
-                "result": str
-            }
-            返回体:
-            {
-                "error_code": 2000,
-                "error_msg": "Request processed successfully."
-            }
-        """
-        manual_job = _find_object_by_id(manual_job_id, ManualJob)
-        if manual_job is None:
-            return jsonify(
-                error_code=RET.NO_DATA_ERR,
-                error_msg=f"the manual_job with id {manual_job_id} does not exist"
-            )
-        else:
-            return ManualJobResultHandler.update(manual_job, body)
+            return ManualJobSubmitHandler.post(manual_job)
 
 
 class ManualJobLogEvent(Resource):
@@ -272,6 +236,7 @@ class ManualJobLogQueryEvent(Resource):
             返回体:
             {
                 "data": {
+                    "operation": str,
                     "content": html_str,
                     "passed": boolean
                 },
