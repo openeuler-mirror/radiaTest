@@ -1,5 +1,22 @@
+# Copyright (c) [2022] Huawei Technologies Co.,Ltd.ALL rights reserved.
+# This program is licensed under Mulan PSL v2.
+# You can use it according to the terms and conditions of the Mulan PSL v2.
+# http://license.coscl.org.cn/MulanPSL2
+# THIS PROGRAM IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+# EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+# MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+# See the Mulan PSL v2 for more details.
+####################################
+# Author : MDS_ZHR
+# email : 331884949@qq.com
+# Date : 2022/12/13 14:00:00
+# License : Mulan PSL v2
+#####################################
+# 用例管理(Testcase)的model
+
 from sqlalchemy.dialects.mysql import LONGTEXT
 from sqlalchemy.orm import backref
+from flask import g
 
 from server import db
 from server.model.base import BaseModel, PermissionBaseModel
@@ -7,6 +24,7 @@ from server.model.user import User
 from server.model.framework import Framework
 from server.model.group import Group
 from server.model.organization import Organization
+from server.model.baselinetemplate import BaselineTemplate
 
 case_node_family = db.Table(
     'case_node_family',
@@ -25,7 +43,6 @@ class CaseNode(BaseModel, PermissionBaseModel, db.Model):
     type = db.Column(db.String(64), nullable=False, default="directory")
     is_root = db.Column(db.Boolean(), default=True)
     in_set = db.Column(db.Boolean(), default=False)
-
     group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
 
     org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
@@ -34,7 +51,15 @@ class CaseNode(BaseModel, PermissionBaseModel, db.Model):
     suite_id = db.Column(db.Integer(), db.ForeignKey("suite.id"))
 
     case_id = db.Column(db.Integer(), db.ForeignKey("case.id"))
-    milestone = db.Column(db.Integer(), db.ForeignKey("milestone.id"))
+    baseline_id = db.Column(db.Integer(), db.ForeignKey("baseline.id"))
+
+    milestone_id = db.Column(db.Integer(), db.ForeignKey("milestone.id"))
+    base_nodes = db.relationship(
+        "BaseNode", backref="case_node", cascade="all, delete, delete-orphan"
+    )
+    mind_nodes = db.relationship(
+        "MindNode", backref="case_node", cascade="all, delete, delete-orphan"
+    )
     children = db.relationship(
         "CaseNode",
         secondary=case_node_family,
@@ -55,14 +80,24 @@ class CaseNode(BaseModel, PermissionBaseModel, db.Model):
             "org_id": self.org_id,
             "suite_id": self.suite_id,
             "case_id": self.case_id,
-            "is_root": self.is_root
+            "baseline_id": self.baseline_id,
+            "is_root": self.is_root,
         }
         if self.type == 'case' and self.case_id:
-            _commit = Commit.query.filter_by(case_detail_id=self.case_id) \
-                .order_by(Commit.create_time.desc(), Commit.id.asc()).first()
+            _commit = Commit.query.filter_by(
+                case_detail_id=self.case_id,
+                creator_id = g.gitee_id,
+                ).order_by(
+                    Commit.create_time.desc(), Commit.id.asc()
+            ).first()
             if _commit:
                 return_data['case_status'] = _commit.status
                 return_data['commit_id'] = _commit.id
+            
+            _case = Case.query.filter_by(id=self.case_id).first()
+            if _case:
+                return_data['case_automatic'] = _case.automatic
+
         return return_data
 
     def to_dict(self):
@@ -73,6 +108,32 @@ class CaseNode(BaseModel, PermissionBaseModel, db.Model):
         })
 
         return _dict
+
+
+class Baseline(PermissionBaseModel, BaseModel, db.Model):
+    __tablename__ = "baseline"
+
+    id = db.Column(db.Integer(), primary_key=True)
+    group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
+    org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
+    creator_id = db.Column(db.Integer(), db.ForeignKey("user.gitee_id"))
+
+    milestone_id = db.Column(db.Integer(), db.ForeignKey("milestone.id"))
+    suite_document = db.relationship(
+        "SuiteDocument", backref="baseline", cascade="all, delete, delete-orphan"
+    )
+    case_nodes = db.relationship(
+        "CaseNode", backref="baseline", cascade="all, delete, delete-orphan"
+    )
+
+    def to_json(self):
+        return_data = {
+            "id": self.id,
+            "group_id": self.group_id,
+            "org_id": self.org_id,
+            "milestone_id": self.milestone_id,
+        }
+        return return_data
 
 
 class Suite(PermissionBaseModel, BaseModel, db.Model):
@@ -101,6 +162,9 @@ class Suite(PermissionBaseModel, BaseModel, db.Model):
 
     case_nodes = db.relationship(
         "CaseNode", backref="suite", cascade="all, delete, delete-orphan"
+    )
+    suite_documents = db.relationship(
+        "SuiteDocument", backref="suite", cascade="all, delete, delete-orphan"
     )
 
     def to_json(self):
@@ -178,7 +242,7 @@ class Case(BaseModel, PermissionBaseModel, db.Model):
 
     tasks_manuals = db.relationship(
         'TaskManualCase', backref='case', cascade='all, delete')
-
+    
     def to_json(self):
         _git_repo = self.suite.git_repo
         git_repo_dict = dict()
@@ -349,4 +413,28 @@ class CommitComment(BaseModel, PermissionBaseModel, db.Model):
             'parent_id': self.parent_id,
             'reply': reply_dict,
             'commit_id': self.commit_id,
+        }
+
+
+class SuiteDocument(BaseModel, db.Model):
+    __tablename__ = "suite_document"
+    id = db.Column(db.Integer(), primary_key=True, autoincrement=True)
+    title = db.Column(db.String(50), nullable=False, unique=True)
+    url = db.Column(db.String(512), nullable=False, unique=True)
+    suite_id = db.Column(db.Integer(), db.ForeignKey("suite.id"))
+    creator_id = db.Column(db.Integer(), db.ForeignKey("user.gitee_id"))
+    group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
+    org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
+    baseline_id = db.Column(db.Integer(), db.ForeignKey("baseline.id"))
+    permission_type = db.Column(db.String(50), nullable=False)
+
+
+    def to_json(self):
+        return {
+            'id': self.id,
+            'title': self.title,
+            'url': self.url,
+            'suite_id': self.suite_id,
+            'creator_id': self.creator_id,
+            "permission_type": self.permission_type,
         }

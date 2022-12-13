@@ -22,7 +22,11 @@ from . import permission
 from . import celerytask
 from . import qualityboard
 from . import requirement
+<<<<<<< HEAD
 from . import manualjob
+=======
+from . import baseline_template
+>>>>>>> add70a2 (Add testcases for baseline, baseline_template and so on.)
 
 
 def init_api(app: Flask):
@@ -49,3 +53,4 @@ def init_api(app: Flask):
     qualityboard.init_api(api)
     requirement.init_api(api)
     manualjob.init_api(api)  # 手工测试任务(ManualJob)相关接口
+    baseline_template.init_api(api)

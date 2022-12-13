@@ -15,3 +15,4 @@ from server.model.group import Group, ReUserGroup
 from server.model.organization import Organization, ReUserOrganization
 from server.model.message import Message, MsgLevel, MsgType
 from server.model.manualjob import ManualJob, ManualJobStep
+from server.model.baselinetemplate import BaselineTemplate, BaseNode

@@ -1,0 +1,20 @@
+baseline_template:
+  - uri: /api/v1/baseline-template/{baseline_template_id}
+    act: get
+    alias: 查询baseline_template
+  - uri: /api/v1/baseline-template/{baseline_template_id}
+    act: delete
+    alias: 删除baseline_template
+  - uri: /api/v1/baseline-template/{baseline_template_id}
+    act: put
+    alias: 修改baseline_template
+  - uri: /api/v1/baseline-template/{baseline_template_id}/clean
+    act: delete
+    alias: 清空baseline_template
+base_node:
+  - uri: /api/v1/base-node/{base_node_id}
+    act: delete
+    alias: 删除BaseNode
+  - uri: /api/v1/base-node/{base_node_id}
+    act: put
+    alias: 修改BaseNode

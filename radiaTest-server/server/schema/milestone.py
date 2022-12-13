@@ -49,7 +49,7 @@ class MilestoneUpdateSchema(UpdateBaseModel, TimeBaseSchema):
         milestones = (
             Milestone.query.filter(
                 Milestone.product_id == cur_milestone.product_id,
-                Milestone.type == cur_milestone.type,
+                Milestone.permission_type == cur_milestone.permission_type,
                 Milestone.id != values.get("id"),
             )
             .all()
@@ -106,7 +106,7 @@ class MilestoneCreateSchema(MilestoneBaseSchema, PermissionBase):
             raise ValueError("end_time is earlier than start_time.")
         milestones = (
             Milestone.query.filter_by(
-                product_id=values.get("product_id"), type=values.get("type")
+                product_id=values.get("product_id"), permission_type=values.get("permission_type")
             )
             .all()
         )

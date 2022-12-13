@@ -99,8 +99,9 @@ class DeleteMilestone:
 class MilestoneHandler:
     @staticmethod
     @collect_sql_error
-    def get_all(query):
-        filter_params = GetAllByPermission(Milestone).get_filter()
+    def get_milestone(query, filter_params = None):
+        if not filter_params:
+            filter_params = list()
 
         if query.name:
             filter_params.append(Milestone.name.like(f"%{query.name}%"))
@@ -110,10 +111,6 @@ class MilestoneHandler:
             filter_params.append(Milestone.state == query.state)
         if query.is_sync:
             filter_params.append(Milestone.is_sync == query.is_sync)
-        if query.round_id:
-            filter_params.append(Milestone.round_id == query.round_id)
-        if query.product_id:
-            filter_params.append(Milestone.product_id == query.product_id)
 
         query_filter = Milestone.query.filter(*filter_params).order_by(
             Milestone.product_id, Milestone.name, Milestone.create_time
@@ -153,6 +150,7 @@ class MilestoneHandler:
             return jsonify(
                 error_code=RET.SERVER_ERR, error_msg=f"get milestone page error {e}"
             )
+
         return jsonify(error_code=RET.OK, error_msg="OK", data=page_dict)
 
 
