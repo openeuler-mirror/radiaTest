@@ -1,5 +1,6 @@
 from flask import Flask
 from flask_restful import Api
+
 from .user.routes import gitee
 from . import user
 from . import administrator
@@ -21,6 +22,7 @@ from . import permission
 from . import celerytask
 from . import qualityboard
 from . import requirement
+from . import manualjob
 
 
 def init_api(app: Flask):
@@ -46,3 +48,4 @@ def init_api(app: Flask):
     celerytask.init_api(api)
     qualityboard.init_api(api)
     requirement.init_api(api)
+    manualjob.init_api(api)  # 手工测试任务(ManualJob)相关接口
