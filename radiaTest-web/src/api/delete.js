@@ -79,3 +79,7 @@ export function deleteBaseNode(baseNodeId) {
 export function cleanBaselineTemplate(id) {
   return deleteRequest(`/v1/baseline-template/${id}/clean`);
 }
+
+export function deleteManualJob(id) {
+  return deleteRequest(`/v1/manual-job/${id}`);
+}

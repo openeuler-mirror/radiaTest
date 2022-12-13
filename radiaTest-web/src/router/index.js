@@ -3,9 +3,10 @@ import Home from '@/views/home/Home';
 import Dashboard from '@/views/dashboard/Dashboard';
 import Pmachine from '@/views/pmachine/Pmachine';
 import Vmachine from '@/views/vmachine/Vmachine';
-import Template from '@/views/testCenter/template/Template';
 import TestCenterManagement from '@/views/testCenter/TestCenterManagement.vue';
 import Job from '@/views/testCenter/job/Job';
+import Manual from '@/views/testCenter/Manual';
+import Gui from '@/views/testCenter/Gui';
 import Testcase from '@/views/caseManage/testcase/Testcase';
 import Blank from '@/components/public/Blank';
 import Report from '@/views/taskManage/report/Report.vue';
@@ -72,12 +73,12 @@ const router = createRouter({
             {
               path: 'dashboard/',
               component: PersonalBoard,
-              name: 'dashboard',
+              name: 'dashboard'
             },
             {
               path: 'task/',
               component: Task,
-              name: 'task',
+              name: 'task'
             },
             {
               path: 'require/',
@@ -97,29 +98,36 @@ const router = createRouter({
             {
               path: 'design/',
               component: strategyCenter,
-              name: 'design',
+              name: 'design'
             },
             {
               path: 'testing/',
-              redirect: '/home/workflow/testing/jobs',
+              redirect: '/home/workflow/testing/automatic',
               component: TestCenterManagement,
               children: [
                 {
-                  path: 'jobs/',
+                  path: 'automatic/',
                   component: Job,
                   meta: {
-                    title: '测试看板'
+                    title: '自动化测试'
                   }
                 },
                 {
-                  path: 'template/',
-                  component: Template,
+                  path: 'manual/',
+                  component: Manual,
                   meta: {
-                    title: '模板仓库'
+                    title: '手工测试'
+                  }
+                },
+                {
+                  path: 'gui/',
+                  component: Gui,
+                  meta: {
+                    title: 'GUI测试'
                   }
                 }
               ]
-            },
+            }
           ]
         },
         {
@@ -255,7 +263,7 @@ const router = createRouter({
               name: 'frameWork'
             }
           ]
-        },
+        }
       ]
     },
     {

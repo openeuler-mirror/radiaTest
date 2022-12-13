@@ -343,3 +343,11 @@ export function getCaseNodeRoot(caseNodeId, data) {
 export function getSuiteItem(suiteId) {
   return getRequest(`/v1/suite/${suiteId}`);
 }
+
+export function getManualJob(data) {
+  return getRequest('/v1/manual-job', data);
+}
+
+export function getManualJobLog(jobId, stepId) {
+  return getRequest(`/v1/manual-job/${jobId}/step/${stepId}`);
+}

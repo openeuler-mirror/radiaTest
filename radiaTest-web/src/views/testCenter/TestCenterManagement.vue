@@ -4,7 +4,7 @@
     size="huge"
     content-style="padding:5px 50px"
     :segmented="{
-      content: 'hard',
+      content: 'hard'
     }"
     style="height: 100%"
     header-style="
@@ -16,9 +16,16 @@
         "
   >
     <template #default>
-      <n-tabs animated type="card" size="large" tab-style="width: 200px">
+      <n-tabs
+        animated
+        type="card"
+        size="large"
+        tab-style="width: 200px"
+        @update:value="changeView"
+        v-model:value="tabValue"
+      >
         <n-tab name="automatic">自动化测试</n-tab>
-        <n-tab name="manual" :disabled="true">手工测试</n-tab>
+        <n-tab name="manual">手工测试</n-tab>
         <n-tab name="gui" :disabled="true">GUI测试</n-tab>
       </n-tabs>
       <router-view></router-view>
@@ -26,21 +33,16 @@
   </n-card>
 </template>
 
-<script>
-import { defineComponent } from 'vue';
-import { modules } from './modules/index';
-import settings from '@/assets/config/settings.js';
-export default defineComponent({
-  components: {
-  },
-  mounted() {
-  },
-  setup() {
-    return {
-      ...modules,
-      settings,
-    };
-  },
+<script setup>
+const router = useRouter();
+const tabValue = ref('');
+
+const changeView = (name) => {
+  router.push(`/home/workflow/testing/${name}`);
+};
+
+onMounted(() => {
+  tabValue.value = router.currentRoute.value.fullPath.split('/')[4];
 });
 </script>
 
@@ -90,5 +92,4 @@ export default defineComponent({
     }
   }
 }
-
 </style>

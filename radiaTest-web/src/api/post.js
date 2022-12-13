@@ -144,3 +144,11 @@ export function addBaseline(data) {
 export function casenodeApplyTemplate(caseNodeId, baselineTemplateId) {
   return postRequest(`/v1/case-node/${caseNodeId}/apply/baseline-template/${baselineTemplateId}`);
 }
+
+export function createManualJob(data) {
+  return postRequest('/v1/manual-job', data);
+}
+
+export function submitManualJob(jobId) {
+  return postRequest(`/v1/manual-job/${jobId}/submit`);
+}
