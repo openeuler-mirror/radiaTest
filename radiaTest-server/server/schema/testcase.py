@@ -69,7 +69,7 @@ class CaseNodeBodySchema(BaseModel):
 
         if values["is_root"] is True and values["in_set"] is True:
             values["title"] = "用例集"
-            values["type"] = "caseset"
+            values["type"] = "directory"
 
         if values["in_set"] is False and values["title"] == "用例集":
             raise ValueError("title is not valid for this type of node")

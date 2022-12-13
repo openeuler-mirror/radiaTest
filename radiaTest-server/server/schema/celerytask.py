@@ -2,6 +2,8 @@ from typing import Optional
 
 from pydantic import BaseModel
 
+from server.schema import PermissionType
+
 
 class CeleryTaskQuerySchema(BaseModel):
     tid: Optional[str]
@@ -22,5 +24,6 @@ class CeleryTaskCreateSchema(BaseModel):
 class CeleryTaskUserInfoSchema(BaseModel):
     auth: str
     user_id: int
-    group_id: int
-    org_id: int
+    group_id: Optional[int]
+    org_id: Optional[int]
+    permission_type: PermissionType = "person"

@@ -68,10 +68,15 @@ class TestcaseHandler(TaskAuthHandler):
                 case["automatic"] = False
 
             _case = Case.query.filter_by(name=case.get("name")).first()
-
+            if _case and _case.permission_type != self.user.get("permission_type"):
+                continue
+            
             _suite = Suite.query.filter_by(
                 name=case.get("suite")
             ).first()
+            if _suite and _suite.permission_type != self.user.get("permission_type"):
+                continue
+
             if not _suite:
                 try:
                     Insert(
@@ -81,7 +86,7 @@ class TestcaseHandler(TaskAuthHandler):
                             "group_id": self.user.get("group_id"),
                             "org_id": self.user.get("org_id"),
                             "creator_id": self.user.get("user_id"),
-                            "permission_type": "group",
+                            "permission_type": self.user.get("permission_type"),
                         }
                     ).single(Suite, '/suite')
                     _suite = Suite.query.filter_by(
@@ -104,7 +109,7 @@ class TestcaseHandler(TaskAuthHandler):
                 case["group_id"] = self.user.get("group_id")
                 case["org_id"] = self.user.get("org_id")
                 case["creator_id"] = self.user.get("user_id")
-                case["permission_type"] = "group"
+                case["permission_type"] = self.user.get("permission_type")
                 Insert(Case, case).single(Case, "/case")
 
                 _case = Case.query.filter_by(name=case.get("name")).first()
@@ -123,6 +128,7 @@ class TestcaseHandler(TaskAuthHandler):
             type=_type,
             group_id=self.user.get("group_id"),
             org_id=self.user.get("org_id"),
+            permission_type=self.user.get("permission_type"),
             parent_id=_parent_id,
             suite_id=_suite_id,
             case_id=_case_id,
@@ -148,6 +154,7 @@ class TestcaseHandler(TaskAuthHandler):
                 CaseNode.type == _type,
                 CaseNode.group_id == self.user.get("group_id"),
                 CaseNode.org_id == self.user.get("org_id"),
+                CaseNode.permission_type == self.user.get("permission_type"),
                 CaseNode.suite_id == _body.suite_id,
                 CaseNode.case_id == _body.case_id,
                 CaseNode.parent.contains(parent_case_node),
@@ -159,6 +166,7 @@ class TestcaseHandler(TaskAuthHandler):
                 CaseNode.type == _type,
                 CaseNode.group_id == self.user.get("group_id"),
                 CaseNode.org_id == self.user.get("org_id"),
+                CaseNode.permission_type == self.user.get("permission_type"),
                 CaseNode.suite_id == _body.suite_id,
                 CaseNode.case_id == _body.case_id,
                 CaseNode.in_set == True

@@ -116,12 +116,6 @@ class CaseNodeImportEvent(Resource):
     @response_collect
     @validate()
     def post(self):
-        if not request.form.get("group_id"):
-            return jsonify(
-                error_code=RET.PARMA_ERR,
-                error_msg="the id of group could not be empty as importing case set"
-            )
-
         return CaseNodeHandler.import_case_set(
             request.files.get("file"),
             request.form.get("group_id"),
@@ -520,6 +514,10 @@ class ResolveTestcaseByFilepath(Resource):
     def post(self):
         body = request.json
 
+        permission_type = "org"
+        if body.get("group_id"):
+            permission_type = "group"
+
         _task = resolve_testcase_file.delay(
             body.get("filepath"),
             CeleryTaskUserInfoSchema(
@@ -529,7 +527,8 @@ class ResolveTestcaseByFilepath(Resource):
                 org_id=redis_client.hget(
                     RedisKey.user(g.gitee_id),
                     'current_org_id'
-                )
+                ),
+                permission_type=permission_type,
             ).__dict__,
             body.get("parent_id"),
         )
