@@ -609,7 +609,6 @@ class RequirementItemHandler:
             filepath = f"{self.progress_attachment_path}/{secure_filename(''.join(lazy_pinyin(filename)))}"
 
         elif _type == "validation":
-            self._handle_not_publisher('download validation attachment')
             filepath = f"{self.validation_attachment_path}/{secure_filename(''.join(lazy_pinyin(filename)))}"
 
         if not os.path.isfile(filepath):
