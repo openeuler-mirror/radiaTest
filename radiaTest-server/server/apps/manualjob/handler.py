@@ -41,8 +41,10 @@ class ManualJobHandler:
             separators=[". ", "、"],
             terminators=["\n"]
         )
-        step_item_dict = text_item_splitter.split_text_items(_case.steps)
-        total_step = len(step_item_dict)
+        step_operation_dict = text_item_splitter.split_text_items(_case.steps)
+        total_step = len(step_operation_dict)
+        step_operation_dict_key_list = sorted(list(step_operation_dict.keys()))
+
         manual_job_dict["total_step"] = total_step
 
         manual_job = ManualJob(**manual_job_dict)
@@ -57,6 +59,7 @@ class ManualJobHandler:
             manual_job_step_dict = {}
             manual_job_step_dict["manual_job_id"] = manual_job_id
             manual_job_step_dict["step_num"] = cnt + 1
+            manual_job_step_dict["operation"] = step_operation_dict.get(step_operation_dict_key_list[cnt])
             manual_job_step = ManualJobStep(**manual_job_step_dict)
             db.session.add(manual_job_step)
 
@@ -100,40 +103,22 @@ class ManualJobHandler:
         )
 
 
-class ManualJobStatusHandler:
+class ManualJobSubmitHandler:
     @staticmethod
     @collect_sql_error
-    def update(manual_job: ManualJob, body):
-        # 直接在查询到的结果上修改即可
-        status = body.status
-        if status == 0 or status == 1:
-            manual_job.status = status
-        else:
-            return jsonify(
-                error_code=RET.PARMA_ERR,
-                error_msg="status of a manual_job can only be 0 or 1"
-            )
+    def post(manual_job: ManualJob):
+        manual_job.status = 1
 
-        if status == 1:
-            manual_job.end_time = datetime.now(pytz.timezone('Asia/Shanghai'))
+        result = 1
+        # 查询此manual_job所有步骤的日志, 如果此manual_job所有步骤的日志都存在且结果都是True, 则设置manual_job的结果为1.
+        for cnt in range(1, manual_job.total_step + 1):
+            manual_job_step = ManualJobStep.query.filter_by(manual_job_id=manual_job.id, step_num=cnt).first()
+            if manual_job_step is None or manual_job_step.passed is None or manual_job_step.passed is False:
+                result = 0
+                break
 
-        try:
-            db.session.commit()
-        except (IntegrityError, SQLAlchemyError) as e:
-            db.session.rollback()
-            raise e
+        manual_job.result = result
 
-        return jsonify(
-            error_code=RET.OK,
-            error_msg="Request processed successfully."
-        )
-
-
-class ManualJobResultHandler:
-    @staticmethod
-    @collect_sql_error
-    def update(manual_job: ManualJob, body):
-        manual_job.result = body.result  # 直接在查询到的结果上修改
         try:
             db.session.commit()
         except (IntegrityError, SQLAlchemyError) as e:
@@ -284,7 +269,8 @@ class ManualJobLogQueryHandler:
 
         log_content = manual_job_step.log_content
         passed = manual_job_step.passed
-        return_data_dict = {"content": log_content, "passed": passed}
+        operation = manual_job_step.operation
+        return_data_dict = {"content": log_content, "passed": passed, "operation": operation}
         return jsonify(
             data=return_data_dict,
             error_code=RET.OK,

@@ -22,6 +22,8 @@ from datetime import datetime
 
 from server import db
 from server.model.base import BaseModel
+from server.model.user import User
+from server.model.milestone import Milestone
 
 
 class ManualJob(BaseModel, db.Model):
@@ -29,7 +31,7 @@ class ManualJob(BaseModel, db.Model):
     name = db.Column(db.String(255), nullable=False, unique=True)
     start_time = db.Column(db.DateTime(), nullable=False, default=datetime.now)
     end_time = db.Column(db.DateTime(), nullable=False, default=datetime.now)
-    result = db.Column(db.String(255), nullable=True)
+    result = db.Column(db.Integer(), nullable=False, default=0)  # With expectation, 0: Inconsistent, 1: Consistent.
     current_step = db.Column(db.Integer(), nullable=False, default=0)
     total_step = db.Column(db.Integer(), nullable=False)
 
@@ -42,6 +44,8 @@ class ManualJob(BaseModel, db.Model):
     steps = db.relationship("ManualJobStep", backref="manual_job", cascade="all, delete")
 
     def to_json(self):
+        executor_name = User.query.filter_by(gitee_id=self.executor_id).first().gitee_name  # 这里没有用backref, 可以改成用backref
+        milestone_name = Milestone.query.filter_by(id=self.milestone_id).first().name
         return {
             "id": self.id,
             "name": self.name,
@@ -52,8 +56,8 @@ class ManualJob(BaseModel, db.Model):
             "end_time": self.end_time,
             "total_step": self.total_step,
             "current_step": self.current_step,
-            "executor_id": self.executor_id,
-            "milestone_id": self.milestone_id,
+            "executor_name": executor_name,
+            "milestone_name": milestone_name,
             "result": self.result,
             "status": self.status
         }
@@ -64,6 +68,7 @@ class ManualJobStep(BaseModel, db.Model):
     log_content = db.Column(db.String(255), nullable=True)
     passed = db.Column(db.Boolean(), nullable=True)
     step_num = db.Column(db.Integer(), nullable=False)
+    operation = db.Column(db.String(255), nullable=True)  # 操作内容, 是这个manual_job_step所属的manual_job所属的case的steps字段经文本分割的结果
 
     manual_job_id = db.Column(db.Integer(), db.ForeignKey("manual_job.id"))
     

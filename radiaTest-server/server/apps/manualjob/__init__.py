@@ -17,8 +17,7 @@ from flask_restful import Api
 
 from server.apps.manualjob.routes import (
     ManualJobEvent,
-    ManualJobStatusEvent,
-    ManualJobResultEvent,
+    ManualJobSubmitEvent,
     ManualJobLogEvent,
     ManualJobDeleteEvent,
     ManualJobLogQueryEvent
@@ -28,10 +27,8 @@ from server.apps.manualjob.routes import (
 def init_api(api: Api):
     # 创建、查询手工测试任务(ManualJob).
     api.add_resource(ManualJobEvent, "/api/v1/manual-job", methods=["POST", "GET"])
-    # 修改指定id的手工测试任务的状态.
-    api.add_resource(ManualJobStatusEvent, "/api/v1/manual-job/<int:manual_job_id>/status", methods=["PUT"])
-    # 修改指定id的手工测试任务的结果.
-    api.add_resource(ManualJobResultEvent, "/api/v1/manual-job/<int:manual_job_id>/result", methods=["PUT"])
+    # 提交完成执行指定id的手工测试任务.
+    api.add_resource(ManualJobSubmitEvent, "/api/v1/manual-job/<int:manual_job_id>/submit", methods=["POST"])
     # 更新、删除指定id的手工测试任务的日志.
     api.add_resource(ManualJobLogEvent, "/api/v1/manual-job/log/<int:manual_job_id>", methods=["PUT", "DELETE"])
     # 删除指定id的手工测试任务(ManualJob).
