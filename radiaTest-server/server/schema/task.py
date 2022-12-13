@@ -54,6 +54,7 @@ class AddTaskSchema(BaseModel):
     group_id: int = None
     executor_type: EnumsTaskExecutorType
     executor_id: int
+    start_time: str = None
     deadline: str = None
     is_version_task: bool = False
     parent_id: List[int] = None
@@ -61,6 +62,7 @@ class AddTaskSchema(BaseModel):
     keywords: str = None
     abstract: str = None
     abbreviation: str = None
+    content: str = None
     milestone_id: int = None
     case_id: int = None
     is_single_case: bool = False

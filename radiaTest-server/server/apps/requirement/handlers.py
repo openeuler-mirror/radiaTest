@@ -25,6 +25,8 @@ from server.utils.response_util import RET
 from server.utils.file_util import ImportFile
 from server.utils.db import Insert, Delete, collect_sql_error
 from server.utils.redis_util import RedisKey
+from server.apps.task.handlers import HandlerTask
+from server.schema.task import AddTaskSchema
 
 
 class REQ_STATUS:
@@ -430,35 +432,35 @@ class RequirementItemHandler:
         _ = Insert(RequirementAcceptor, _acceptor_body).insert_id()
 
         _now = datetime.now(tz=pytz.timezone("Asia/Shanghai"))
-
-        task_body = {
-            "permission_type": self.body.get("acceptor_type"),
-            "title": f"{self.requirement.title}_"\
-                f"{datetime.now(tz=pytz.timezone('Asia/Shanghai')).strftime('%Y%m%d%H%M%S')}",
-            "creator_id": int(g.gitee_id),
-            "type": self.body.get("acceptor_type").upper(),
-            "start_time": _now,
-            "abstract": self.requirement.remark,
-            "content": self.requirement.description,
-            "executor_id": int(g.gitee_id),
-            "executor_type": self.body.get("acceptor_type").upper(),
-            "deadline": _now + timedelta(days=self.requirement.period),
-            "status_id": 1,
-            "group_id": self.body.get("acceptor_group_id"),
-            "org_id": int(redis_client.hget(RedisKey.user(g.gitee_id), "current_org_id")),
-            "is_manage_task": True,
-            "automatic_finish": True,
-        }
-        task_id = Insert(Task, task_body).insert_id()
-
-        _task = Task.query.filter_by(id=task_id).first()
+        _now_str = _now.strftime('%Y%m%d')
+        task_title = f"{self.requirement.title}_{_now_str}"
+        deadline = (_now + timedelta(days=self.requirement.period)).strftime('%Y%m%d')
+        addtaskschema = AddTaskSchema(
+            title=task_title,
+            creator_id=int(g.gitee_id),
+            type=self.body.get("acceptor_type").upper(),
+            start_time=_now_str,
+            abstract=self.requirement.remark,
+            content=self.requirement.description,
+            executor_id=int(g.gitee_id),
+            executor_type=self.body.get("acceptor_type").upper(),
+            deadline=deadline,
+            status_id=1,
+            group_id=self.body.get("acceptor_group_id"),
+            org_id=int(redis_client.hget(RedisKey.user(g.gitee_id), "current_org_id")),
+            is_manage_task=True,
+            automatic_finish=True,
+        )
+        HandlerTask.create(addtaskschema)
+        
+        _task = Task.query.filter_by(title=task_title).first()
         for _milestone in self.requirement.milestones:
             _task.milestones.append(
                 TaskMilestone(task_id=_task.id, milestone_id=_milestone.id)
             )
 
         self.requirement.status = REQ_STATUS.ACCEPTED
-        self.requirement.task_id = task_id
+        self.requirement.task_id = _task.id
         self.requirement.add_update(Requirement, '/requirement')
 
         return jsonify(
