@@ -496,7 +496,12 @@ class RequirementItemHandler:
             _progress.delete()
         
         self.requirement.status = REQ_STATUS.IDLE
-        self.requirement.task_id = sqlalchemy.null()
+
+        if self.requirement.task:
+            self.requirement.task.is_delete = True
+            self.requirement.task.add_update()
+            self.requirement.task_id = sqlalchemy.null()
+        
         self.requirement.add_update(Requirement, '/requirement')
 
         return jsonify(

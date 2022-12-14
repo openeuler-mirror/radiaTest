@@ -25,10 +25,11 @@ from server.utils.response_util import response_collect
 from server.model.framework import Framework, GitRepo
 from server.model.template import Template
 from server.utils.db import Insert, Delete, Edit, Select
-from server.schema.framework import FrameworkBase, FrameworkQuery, GitRepoBase, GitRepoQuery
+from server.schema.framework import FrameworkBase, FrameworkQuery, GitRepoBase, GitRepoQuery, GitRepoScopedQuery
 from server.utils.resource_utils import ResourceManager
 from server.utils.permission_utils import GetAllByPermission
 from server import casbin_enforcer
+from server.apps.framework.handlers import GitRepoHandler
 
 
 class FrameworkEvent(Resource):
@@ -109,6 +110,22 @@ class FrameworkItemEvent(Resource):
         )
 
 
+class GitRepoScopedEvent(Resource):
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def get(self, query: GitRepoScopedQuery):
+        filter_params = [
+            GitRepo.permission_type == query.type
+        ]
+        if query.type == "group":
+            filter_params.append(GitRepo.group_id == query.group_id)
+        elif query.type == "org":
+            filter_params.append(GitRepo.org_id == query.org_id)
+
+        return GitRepoHandler.get_git_repo(query, filter_params)
+
+
 class GitRepoEvent(Resource):
     @auth.login_required()
     @response_collect
@@ -121,34 +138,7 @@ class GitRepoEvent(Resource):
     @validate()
     def get(self, query: GitRepoQuery):
         filter_params = GetAllByPermission(GitRepo).get_filter()
-        if query.name:
-            filter_params.append(
-                GitRepo.name.like(f'%{query.name}%')
-            )
-        if query.git_url:
-            filter_params.append(
-                GitRepo.git_url.like(f'%{query.git_url}%')
-            )
-        if query.sync_rule:
-            filter_params.append(
-                GitRepo.sync_rule == query.sync_rule
-            )
-        if query.framework_id:
-            filter_params.append(
-                GitRepo.framework_id == query.framework_id
-            )
-
-        git_repos = GitRepo.query.filter(*filter_params).all()
-        if not git_repos:
-            return jsonify(error_code=RET.OK, error_msg="OK", data=[])
-
-        return jsonify(
-            error_code=RET.OK,
-            error_msg="OK",
-            data=[
-                _git_repo.to_json() for _git_repo in git_repos
-            ]
-        )
+        return GitRepoHandler.get_git_repo(query, filter_params)
 
 
 class GitRepoItemEvent(Resource):

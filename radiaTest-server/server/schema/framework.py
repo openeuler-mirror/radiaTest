@@ -1,6 +1,6 @@
-from typing import Optional
+from typing import Literal, Optional
 
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, root_validator, validator
 from pydantic.networks import HttpUrl
 from server.schema.base import PermissionBase
 from server.schema import PermissionType
@@ -38,8 +38,24 @@ class GitRepoBase(PermissionBase):
             raise ValueError("gitrepo's permission_type must be group.")
         return v
 
+
 class GitRepoQuery(BaseModel):
     name: Optional[str]
     git_url: Optional[HttpUrl]
     sync_rule: Optional[bool]
     framework_id: Optional[int]
+
+
+class GitRepoScopedQuery(GitRepoQuery):
+    type: Literal["group", "org"]
+    group_id: Optional[int]
+    org_id: Optional[int]
+
+    @root_validator
+    def check_id(cls, values):
+        if values.get("type") == "group" and not values.get("group_id"):
+            raise ValueError("could not query git repos for unknown group")
+        elif values.get("type") == "org" and not values.get("org_id"):
+            raise ValueError("could not query git repos for unknown organization")
+        
+        return values
