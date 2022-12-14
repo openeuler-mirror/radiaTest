@@ -57,7 +57,7 @@ from server.apps.testcase.routes import (
 def init_api(api: Api):
     api.add_resource(
         CaseNodeEvent,
-        "/api/v1/case-node,",
+        "/api/v1/case-node",
         methods=["POST", "GET"]
     )
     api.add_resource(

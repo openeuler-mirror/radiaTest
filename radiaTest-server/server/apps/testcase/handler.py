@@ -1220,7 +1220,7 @@ class ResourceItemHandler:
         ).count()
         auto_count = Case.query.join(CaseNode).filter(
             *cases_filter, 
-            Case.automatic is True
+            Case.automatic.is_(True)
         ).count()
 
         auto_ratio = '0%'
