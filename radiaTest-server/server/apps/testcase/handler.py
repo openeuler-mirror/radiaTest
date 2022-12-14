@@ -21,12 +21,12 @@ import shutil
 import time
 import datetime
 import uuid
-from xml.dom.xmlbuilder import DocumentLS
 import pytz
 
 from flask import jsonify, g, current_app, request
 from sqlalchemy import func
 import sqlalchemy
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 
 from server import db, redis_client
@@ -127,6 +127,10 @@ class CaseImportHandler:
                     current_app.config.get("TMP_FILE_SAVE_PATH")
                 )
 
+                permission_type = "org"
+                if group_id:
+                    permission_type = "group"
+
                 _task = resolve_testcase_file.delay(
                     case_file.filepath,
                     CeleryTaskUserInfoSchema(
@@ -136,7 +140,8 @@ class CaseImportHandler:
                         org_id=redis_client.hget(
                             RedisKey.user(g.gitee_id),
                             'current_org_id'
-                        )
+                        ),
+                        permission_type=permission_type,
                     ).__dict__,
                     case_node_id
                 )
@@ -354,15 +359,18 @@ class CaseNodeHandler:
         if current_org_id != case_node.org_id:
             return jsonify(error_code=RET.VERIFY_ERR, error_msg="No right to delete")
 
-
-        _, res_items = CaseNodeHandler.get_all_case(case_node_id)
-
-        db.session.delete(case_node)
-        db.session.commit()
-
         if case_node.in_set:
-            [ db.session.delete(case) for case in res_items ]
+            _, res_items = CaseNodeHandler.get_all_suite(case_node_id)
+            for suite in res_items:
+                db.session.delete(suite)
+        
+        db.session.delete(case_node)
+
+        try:
             db.session.commit()
+        except (IntegrityError, SQLAlchemyError) as e:
+            db.session.rollback()
+            raise e
 
         return jsonify(error_code=RET.OK, error_msg="OK")
 
@@ -385,6 +393,10 @@ class CaseNodeHandler:
 
                 zip_case_set.uncompress(os.path.dirname(zip_case_set.filepath))
 
+                permission_type = "org"
+                if group_id:
+                    permission_type = "group"
+
                 _task = resolve_testcase_set.delay(
                     zip_case_set.filepath,
                     uncompressed_filepath,
@@ -395,7 +407,8 @@ class CaseNodeHandler:
                         org_id=redis_client.hget(
                             RedisKey.user(g.gitee_id),
                             'current_org_id'
-                        )
+                        ),
+                        permission_type=permission_type,
                     ).__dict__,
                 )
 
@@ -429,6 +442,26 @@ class CaseNodeHandler:
                 shutil.rmtree(uncompressed_filepath)
 
             return jsonify(error_code=RET.SERVER_ERR, error_msg=str(e))
+
+    @staticmethod
+    @collect_sql_error
+    def get_all_suite(case_node_id):
+        _case_node = CaseNode.query.get(case_node_id)
+        res_ids = []
+        res_items = []
+
+        def get_children(case_node: CaseNode):
+            if case_node.type != 'suite' and case_node.type != "case":
+                children = CaseNode.query.filter(CaseNode.parent.contains(case_node)).all()
+                for child in children:
+                    get_children(child)
+            elif case_node.type == "suite":
+                res_ids.append(case_node.suite_id)
+                res_items.append(Suite.query.get(case_node.suite_id))
+
+        if _case_node:
+            get_children(_case_node)
+        return res_ids, res_items
 
     @staticmethod
     @collect_sql_error
