@@ -22,11 +22,8 @@ from . import permission
 from . import celerytask
 from . import qualityboard
 from . import requirement
-<<<<<<< HEAD
 from . import manualjob
-=======
 from . import baseline_template
->>>>>>> add70a2 (Add testcases for baseline, baseline_template and so on.)
 
 
 def init_api(app: Flask):
