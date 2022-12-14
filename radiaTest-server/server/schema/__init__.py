@@ -115,3 +115,6 @@ RequirementPublishType = Literal["person", "group", "organization"]
 
 # 日志类型
 LoggingType = Literal["info", "warning", "success", "error"]
+
+# 基线模板类型
+BaselineTemplateType = Literal["group", "org"]

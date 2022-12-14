@@ -57,9 +57,6 @@ class CaseNode(BaseModel, PermissionBaseModel, db.Model):
     base_nodes = db.relationship(
         "BaseNode", backref="case_node", cascade="all, delete, delete-orphan"
     )
-    mind_nodes = db.relationship(
-        "MindNode", backref="case_node", cascade="all, delete, delete-orphan"
-    )
     children = db.relationship(
         "CaseNode",
         secondary=case_node_family,
