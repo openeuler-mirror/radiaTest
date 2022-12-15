@@ -577,8 +577,9 @@ class InstallVmachine(VmachineBaseSchema):
 
     def _download_qcow2(self, block_file, source_qcow2_file):
         exitcode, output = getstatusoutput(
-            "echo block > {};sudo wget -nv -c {} -O {} 2>&1".format(
+            "echo block > {};rm -rf {}*;sudo wget -nv -c {} -O {} 2>&1".format(
                 block_file,
+                source_qcow2_file,
                 self._body.get("url"),
                 source_qcow2_file
             )

@@ -19,6 +19,10 @@ from server.model import ReUserGroup
 
 
 class PermissionManager:
+    def __init__(self, creator_id=None, org_id=None):
+        self._creator_id = creator_id if creator_id else g.gitee_id
+        self._org_id = org_id if org_id else int(redis_client.hget(RedisKey.user(g.gitee_id), "current_org_id"))
+
     def get_api_list(self, table_name, path, item_id):
         with open(path, "r", encoding="utf-8") as f:
             result = yaml.safe_load(f.read())
@@ -103,9 +107,8 @@ class PermissionManager:
                 )
             ]
         elif _data["permission_type"] == "org":
-            if redis_client.hget(RedisKey.user(g.gitee_id), "current_org_id"):
-                org_id = int(redis_client.hget(
-                    RedisKey.user(g.gitee_id), "current_org_id"))
+            if self._org_id:
+                org_id = self._org_id
             else:
                 org_id = _data.get("org_id")
             role_filter = [
@@ -156,7 +159,7 @@ class PermissionManager:
                         Insert(ReScopeRole, scope_role_data).insert_id()
             except (SQLAlchemyError, IntegrityError) as e:
                 raise RuntimeError(str(e)) from e
-        creator_id = g.gitee_id
+        creator_id = self._creator_id
         if _data.get("creator_id"):
             creator_id = _data.get("creator_id")
 

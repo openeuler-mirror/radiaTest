@@ -14,7 +14,7 @@
 
 
 #####################################
-
+from urllib import request as urllib_request, error
 from datetime import datetime, timedelta
 import os
 import re
@@ -32,19 +32,22 @@ from server.schema.external import (
     LoginOrgListSchema,
     OpenEulerUpdateTaskBase,
     VmachineExistSchema,
-    DeleteCertifiSchema
+    DeleteCertifiSchema,
 )
 from server.model.group import Group
 from server.model.mirroring import Repo
 from server.model.vmachine import Vmachine
 from server.model.organization import Organization
 from server.model.product import Product
-from server.model.qualityboard import DailyBuild, WeeklyHealth, RpmCheck, RpmCheckDetail
+from server.model.qualityboard import DailyBuild, WeeklyHealth, RpmCheck
 from server.utils.db import Insert, Edit
 from server.utils.response_util import RET
 from server.utils.file_util import ImportFile
 from celeryservice.tasks import resolve_dailybuild_detail, resolve_rpmcheck_detail
-from .handler import UpdateRepo, UpdateTaskHandler, UpdateTaskForm
+from server.model.pmachine import Pmachine, MachineGroup
+from server.model.milestone import Milestone
+from server.utils.response_util import response_collect
+from server.apps.external.handler import UpdateRepo, UpdateTaskHandler, UpdateTaskForm, AtMessenger
 
 
 class UpdateTaskEvent(Resource):
@@ -60,7 +63,6 @@ class UpdateTaskEvent(Resource):
             return {"error_code": RET.TASK_WRONG_GROUP_NAME, "error_msg": "invalid group name by openEuler QA config"}
 
         group = _group[0]
-
         form.group = group
         # get product_id
         UpdateTaskHandler.get_product_id(form)
@@ -85,7 +87,7 @@ class UpdateTaskEvent(Resource):
         # get cases
         UpdateTaskHandler.create_case_node(form)
 
-        #create repo config content
+        # create repo config content
         update_repo = UpdateRepo(body)
         update_repo.create_repo_config()
 
@@ -113,8 +115,10 @@ class UpdateTaskEvent(Resource):
                         "content": update_repo.content,
                     }
                 ).single(Repo, "/repo")
-
-        return {"error_code": RET.OK, "error_msg": "OK"}
+        milstone_info = Milestone.query.filter_by(id=form.milestone_id).first()
+        if not milstone_info:
+            return {"error_code": RET.NO_DATA_ERR, "error_msg": "invalid milstone id"}
+        return {"error_code": RET.OK, "error_msg": "OK", "data": {"milestone_name": milstone_info.name}}
 
 
 class LoginOrgList(Resource):
@@ -264,7 +268,7 @@ class DailyBuildEvent(Resource):
                 error_code=RET.PARMA_ERR,
                 error_msg="params invalid"
             )
-        
+
         _name, _version = _product.split("-")
         product = Product.query.filter_by(name=_name, version=_version).first()
         if not product:
@@ -277,9 +281,9 @@ class DailyBuildEvent(Resource):
         _dailybuild = DailyBuild.query.filter_by(product_id=product.id, name=_build).first()
         if _dailybuild:
             _id = _dailybuild.id
-        
+
         _id = Insert(
-            DailyBuild, 
+            DailyBuild,
             {
                 "name": _build,
                 "product_id": product.id,
@@ -316,9 +320,9 @@ class DailyBuildEvent(Resource):
             )
 
         resolve_dailybuild_detail.delay(
-            dailybuild_id = _id,
-            dailybuild_detail = _detail,
-            weekly_health_id = _weekly_health_id
+            dailybuild_id=_id,
+            dailybuild_detail=_detail,
+            weekly_health_id=_weekly_health_id
         )
 
         return jsonify(
@@ -337,7 +341,7 @@ class RpmCheckEvent(Resource):
                 error_code=RET.PARMA_ERR,
                 error_msg="params invalid"
             )
-        
+
         _name, _version = _product.split("-")
         product = Product.query.filter_by(name=_name, version=_version).first()
         if not product:
@@ -347,7 +351,7 @@ class RpmCheckEvent(Resource):
             )
 
         _detail = yaml.safe_load(_file)
-        if  not isinstance(_detail, list):
+        if not isinstance(_detail, list):
             return jsonify(
                 error_code=RET.PARMA_ERR,
                 error_msg="the file with rpmcheck detail is not in valid format"
@@ -359,17 +363,51 @@ class RpmCheckEvent(Resource):
             _id = _rpm_check.id
         else:
             _id = Insert(
-                RpmCheck, 
+                RpmCheck,
                 {
                     "name": f"{_product}-{_build}",
                     "build_time": _build,
                     "product_id": product.id,
                 }
             ).insert_id(RpmCheck, "/rpm_check")
-        
+
         resolve_rpmcheck_detail.delay(_id, _detail)
         return jsonify(
             error_code=RET.OK,
             error_msg="OK",
         )
 
+
+class AtEvent(Resource):
+    @auth.login_required
+    @response_collect
+    @validate()
+    def post(self):
+        body = request.get_json()
+        try:
+            urllib_request.urlopen(body.get("release_url"))
+        except error.HTTPError:
+            return jsonify(
+                error_code=RET.NET_CONECT_ERR,
+                error_msg="the release url is unreachable {}".format(body.get("release_url"))
+            )
+
+        pmachine_info = Pmachine.query.filter_by(
+            description=current_app.config.get("OPENQA_SERVER"), state="occupied"
+        ).first()
+        if not pmachine_info:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="the openqa server machine does not exist"
+            )
+
+        machine_group = MachineGroup.query.filter_by(id=pmachine_info.machine_group_id).first()
+        body.update({
+            "user": pmachine_info.user,
+            "password": pmachine_info.password,
+            "port": pmachine_info.port,
+            "ip": pmachine_info.ip
+        })
+        messenger = AtMessenger(body)
+
+        return messenger.send_request(machine_group, "/api/v1/openeuler/at")
