@@ -135,3 +135,7 @@ export function updateBaseNode(id, data) {
 export function updateCaseNodeParent(caseNodeId, nextParentId) {
   return putRequest(`/v1/case-node/${caseNodeId}/move-to/${nextParentId}`);
 }
+
+export function updateStepLogAxios(jobId, data) {
+  return putRequest(`/v1/manual-job/log/${jobId}`, data);
+}
