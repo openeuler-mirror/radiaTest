@@ -360,7 +360,6 @@ class BaselineCreateSchema(BaseModel):
     name: str = None
     title: str = None
     milestone_id: int = None
-    type: CaseNodeType = "baseline"
     group_id: Optional[int]
     org_id: Optional[int]
     permission_type: Optional[PermissionType] = "group"
