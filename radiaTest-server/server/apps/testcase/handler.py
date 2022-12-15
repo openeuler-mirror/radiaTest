@@ -358,11 +358,6 @@ class CaseNodeHandler:
 
         if current_org_id != case_node.org_id:
             return jsonify(error_code=RET.VERIFY_ERR, error_msg="No right to delete")
-
-        if case_node.in_set:
-            _, res_items = CaseNodeHandler.get_all_suite(case_node_id)
-            for suite in res_items:
-                db.session.delete(suite)
         
         db.session.delete(case_node)
 
