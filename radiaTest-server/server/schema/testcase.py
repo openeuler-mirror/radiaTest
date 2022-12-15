@@ -363,12 +363,6 @@ class BaselineCreateSchema(BaseModel):
     org_id: Optional[int]
     permission_type: Optional[PermissionType] = "group"
 
-    @root_validator
-    def validate_values(cls, values):
-        if not values["name"]:
-            values["name"] = values["title"]
-        return values
-
 
 class CaseNodeRelateSchema(BaseModel):
     suite_id: int
