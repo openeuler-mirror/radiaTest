@@ -357,7 +357,6 @@ class SuiteDocumentUpdateSchema(BaseModel):
 
 
 class BaselineCreateSchema(BaseModel):
-    name: str = None
     title: str = None
     milestone_id: int = None
     group_id: Optional[int]

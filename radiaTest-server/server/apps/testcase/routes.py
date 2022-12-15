@@ -1079,14 +1079,6 @@ class BaselineEvent(Resource):
 
         baseline_body = BaselineCreateSchema(**body.__dict__).dict()
         
-        baseline = Baseline.query.filter_by(name=baseline_body["name"]).all()
-        if baseline:
-            return jsonify(
-                error_code=RET.DATA_EXIST_ERR,
-                error_msg="The title of baseline {} is already exist".format(
-                    baseline_body["name"]
-                ),
-            )
         baseline_body.update({"creator_id": g.gitee_id})
         baseline_body.update({
             "org_id": redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')
