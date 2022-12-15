@@ -9,6 +9,9 @@ from server.model import (
     QMirroring,
     Framework,
     GitRepo,
+    SuiteDocument,
+    BaselineTemplate,
+    BaseNode,
 )
 
 class TableAdapter:
@@ -22,3 +25,6 @@ class TableAdapter:
     q_mirroring=QMirroring
     framework=Framework
     git_repo=GitRepo
+    suite_document=SuiteDocument
+    baseline_template=BaselineTemplate
+    base_node=BaseNode
