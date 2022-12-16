@@ -351,3 +351,7 @@ export function getManualJob(data) {
 export function getManualJobLog(jobId, stepId) {
   return getRequest(`/v1/manual-job/${jobId}/step/${stepId}`);
 }
+
+export function getChecklistResult(roundId) {
+  return getRequest(`/v1/round/${roundId}/checklist-result`);
+}

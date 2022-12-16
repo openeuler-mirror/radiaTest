@@ -1,8 +1,9 @@
 /* eslint-disable no-use-before-define */
 /* eslint-disable max-lines-per-function */
 import { NButton, NIcon, NSpace, NTag, useMessage, NCheckbox } from 'naive-ui';
-import { CancelRound, CheckCircleFilled } from '@vicons/material';
+import { CancelRound, CheckCircleFilled, CancelFilled } from '@vicons/material';
 import { QuestionCircle16Filled } from '@vicons/fluent';
+import { CheckCircle } from '@vicons/fa';
 import { AddAlt } from '@vicons/carbon';
 import {
   getProduct,
@@ -11,7 +12,8 @@ import {
   getCheckListTableRounds,
   getCheckListTableDataAxios,
   getMilestones,
-  getRoundIssueRate
+  getRoundIssueRate,
+  getChecklistResult
 } from '@/api/get';
 import { createProductMessage, addCheckListItem } from '@/api/post';
 import {
@@ -32,7 +34,6 @@ import {
 } from './productDetailDrawer';
 import _ from 'lodash';
 import textDialog from '@/assets/utils/dialog';
-import { CheckmarkCircle, CloseCircleOutline } from '@vicons/ionicons5';
 import { getCheckItemOpts } from '@/assets/utils/getOpts';
 import { formatTime } from '@/assets/utils/dateFormatUtils.js';
 
@@ -1036,14 +1037,12 @@ const addBaseline = async () => {
 const showChecklistBoard = ref(false);
 const checklistBoardTableLoading = ref(false);
 const checklistBoardTableData = ref([]);
-
 const checklistBoardTablePagination = ref({
   page: 1,
-  pageSize: 3, //受控模式下的分页大小
+  pageSize: 5, //受控模式下的分页大小
   pageCount: 1, //总页数
   showSizePicker: true,
-  pageSizes: [1, 3, 5, 10]
-  // pageSizes: [5, 10, 20, 50]
+  pageSizes: [5, 10, 20, 50]
 });
 const checklistBoardTableColumns = ref([
   {
@@ -1071,15 +1070,31 @@ const checklistBoardTableColumns = ref([
     title: '检查结果',
     align: 'center',
     render: (row) => {
+      if (row.result) {
+        return h(
+          NIcon,
+          {
+            color: 'green',
+            size: '24',
+            style: {
+              position: 'relative',
+              top: '3px'
+            }
+          },
+          h(CheckCircle, {})
+        );
+      }
       return h(
-        NTag,
+        NIcon,
         {
-          type: row.result ? 'success' : 'error'
+          color: 'rgba(206,64,64,1)',
+          size: '26',
+          style: {
+            position: 'relative',
+            top: '1px'
+          }
         },
-        {
-          icon: () => h(NIcon, { component: row.result ? CheckmarkCircle : CloseCircleOutline }),
-          default: () => (row.result ? '检查通过' : '检查未通过')
-        }
+        h(CancelFilled, {})
       );
     }
   }
@@ -1088,6 +1103,20 @@ const checklistBoardTableColumns = ref([
 // 点击round的checklist图标
 const handleChecklistBoard = () => {
   showChecklistBoard.value = true;
+  checklistBoardTableLoading.value = true;
+  getChecklistResult(currentRound.value.id).then((res) => {
+    checklistBoardTableLoading.value = false;
+    checklistBoardTableData.value = [];
+    res.data?.forEach((v) => {
+      checklistBoardTableData.value.push({
+        check_item: v.title,
+        baseline: v.baseline,
+        operation: v.operation,
+        currentValue: v.current_value,
+        result: v.compare_result
+      });
+    });
+  });
 };
 
 const checklistBoardTablePageChange = (page) => {
