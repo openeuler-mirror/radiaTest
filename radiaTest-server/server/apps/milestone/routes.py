@@ -170,6 +170,8 @@ class GenerateTestReportEvent(Resource):
 
 
 class TestReportFileEvent(Resource):
+    @auth.login_required()
+    @response_collect
     @validate()
     def get(self, milestone_id, query: QueryTestReportFile):
         _test_report = TestReport.query.filter_by(milestone_id=milestone_id).first()

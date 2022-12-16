@@ -137,6 +137,7 @@ class ATOverviewSchema(PageBaseSchema):
 class CheckItemSchema(BaseModel):
     field_name: str
     title: str
+    type: Literal["issue", "at"]
 
 
 class QueryCheckItemSchema(PageBaseSchema):

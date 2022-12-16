@@ -24,7 +24,8 @@ from .routes import (
     CaCert,
     DailyBuildEvent,
     RpmCheckEvent,
-    AtEvent
+    AtEvent,
+    GetTestReportFileEvent,
 )
 
 
@@ -36,3 +37,4 @@ def init_api(api: Api):
     api.add_resource(DailyBuildEvent, "/api/v1/dailybuild")
     api.add_resource(RpmCheckEvent, "/api/v1/rpmcheck")
     api.add_resource(AtEvent, "/api/v1/openeuler/at")
+    api.add_resource(GetTestReportFileEvent, "/api/v1/test-report/file")
