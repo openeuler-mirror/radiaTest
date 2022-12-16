@@ -1,5 +1,5 @@
 import os
-from typing import List, Optional
+from typing import List, Optional, Literal
 from urllib import request, error
 
 from pydantic import BaseModel, Field, validator
@@ -63,3 +63,8 @@ class VmachineExistSchema(BaseModel):
 
 class DeleteCertifiSchema(BaseModel):
     ip: str
+
+
+class QueryTestReportFileSchema(BaseModel):
+    file_type: Literal["md", "html"]
+    milestone_name: str

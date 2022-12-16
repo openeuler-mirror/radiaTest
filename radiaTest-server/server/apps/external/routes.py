@@ -23,7 +23,7 @@ from subprocess import getstatusoutput
 import pytz
 
 import yaml
-from flask import current_app, jsonify, request, make_response, send_file
+from flask import current_app, jsonify, request, make_response, send_file, render_template
 from flask_restful import Resource
 from flask_pydantic import validate
 
@@ -33,6 +33,7 @@ from server.schema.external import (
     OpenEulerUpdateTaskBase,
     VmachineExistSchema,
     DeleteCertifiSchema,
+    QueryTestReportFileSchema,
 )
 from server.model.group import Group
 from server.model.mirroring import Repo
@@ -40,6 +41,7 @@ from server.model.vmachine import Vmachine
 from server.model.organization import Organization
 from server.model.product import Product
 from server.model.qualityboard import DailyBuild, WeeklyHealth, RpmCheck
+from server.model.milestone import Milestone, TestReport
 from server.utils.db import Insert, Edit
 from server.utils.response_util import RET
 from server.utils.file_util import ImportFile
@@ -411,3 +413,26 @@ class AtEvent(Resource):
         messenger = AtMessenger(body)
 
         return messenger.send_request(machine_group, "/api/v1/openeuler/at")
+
+
+class GetTestReportFileEvent(Resource):
+    @validate()
+    def get(self, query: QueryTestReportFileSchema):
+        _test_report = TestReport.query.join(Milestone).filter(
+            Milestone.name == query.milestone_name,
+            TestReport.milestone_id == Milestone.id
+        ).first()
+        if not _test_report:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="no test report.",
+            )
+
+        tmp_folder = current_app.template_folder
+        current_app.template_folder = current_app.config.get("TEST_REPORT_PATH")
+        if query.file_type == "md":
+            resp =  make_response(render_template(_test_report.md_file))
+        else:
+            resp = make_response(render_template(_test_report.html_file))
+        current_app.template_folder = tmp_folder
+        return resp
