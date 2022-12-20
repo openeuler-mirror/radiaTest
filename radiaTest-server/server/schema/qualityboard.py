@@ -219,7 +219,6 @@ class RoundToMilestone(BaseModel):
 
 
 class RoundUpdateSchema(BaseModel):
-    built_by_ebs: bool = False
     buildname: Optional[str]
 
 

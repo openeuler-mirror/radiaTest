@@ -558,7 +558,7 @@ class PackageListHandler:
             round_num = _round.round_num
         _dirname = _product
         _buildname = None
-        if _round.built_by_ebs is True:
+        if _round.product.built_by_ebs is True:
             _dirname = f"EBS-{_product}"
             _buildname = _round.buildname
         _keys = redis_client.keys(f"resolving_{_filename_p}*")
