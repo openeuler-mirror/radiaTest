@@ -33,6 +33,7 @@ class Product(BaseModel, PermissionBaseModel, db.Model):
     left_all_cnt = db.Column(db.Integer(), nullable=True, default=0)
     left_resolved_rate = db.Column(db.String(6), nullable=True)
     left_resolved_passed = db.Column(db.Boolean(), nullable=True)
+    built_by_ebs = db.Column(db.Boolean(), nullable=False, default=False)
 
     milestone = db.relationship(
         "Milestone", backref="product", cascade="all, delete, delete-orphan"
@@ -84,6 +85,7 @@ class Product(BaseModel, PermissionBaseModel, db.Model):
             "creator_id": self.creator_id,
             "permission_type": self.permission_type,
             "group_id": self.group_id,
-            "org_id": self.org_id
+            "org_id": self.org_id,
+            "built_by_ebs": self.built_by_ebs
         }
 
