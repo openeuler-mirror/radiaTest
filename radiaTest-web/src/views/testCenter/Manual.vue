@@ -120,7 +120,7 @@
             </div>
           </n-collapse-item>
           <n-collapse-item title="操作步骤" name="2">
-            <div class="contentWrap">{{ caseDrawerData.operation }}</div>
+            <pre class="contentWrap">{{ caseDrawerData.operation }}</pre>
           </n-collapse-item>
           <n-collapse-item title="实际结果" name="3">
             <template #header-extra>

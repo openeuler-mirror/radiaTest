@@ -434,7 +434,7 @@
           </n-drawer>
         </div>
         <n-modal v-model:show="showChecklistBoard">
-          <n-card style="width: 1000px" title="CheckList" :bordered="false" size="huge" role="dialog" aria-modal="true">
+          <n-card style="width: 1000px" title="检查项比对结果" :bordered="false" size="huge" role="dialog" aria-modal="true">
             <n-data-table
               :loading="checklistBoardTableLoading"
               :columns="checklistBoardTableColumns"

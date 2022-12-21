@@ -49,6 +49,14 @@
               <n-form-item label="检查项名称" path="title">
                 <n-input v-model:value="checkItemModel.title" placeholder="请输入检查项名称"></n-input>
               </n-form-item>
+              <n-form-item label="类型" path="type">
+                <n-select
+                  v-model:value="checkItemModel.type"
+                  placeholder="请选择类型"
+                  :options="checkItemTypeOptions"
+                  clearable
+                />
+              </n-form-item>
             </n-form>
             <template #action>
               <n-space style="width: 100%">
@@ -79,8 +87,37 @@ const isCreate = ref(true);
 const checkItemId = ref(null);
 const checkItemModel = ref({
   field_name: '',
-  title: ''
+  title: '',
+  type: ''
 });
+const checkItemTypeOptions = [
+  {
+    label: 'issue',
+    value: 'issue'
+  },
+  {
+    label: 'at',
+    value: 'at'
+  }
+];
+const checkItemFormRules = ref({
+  field_name: {
+    required: true,
+    trigger: ['blur', 'input'],
+    message: '请输入字段名'
+  },
+  title: {
+    required: true,
+    trigger: ['blur', 'input'],
+    message: '请输入检查项名称'
+  },
+  type: {
+    required: true,
+    trigger: ['blur', 'change'],
+    message: '请选择类型'
+  }
+});
+const checkItemFormRef = ref(null);
 const checkItemData = ref([]);
 const checkItemPagination = ref({
   page: 1,
@@ -106,6 +143,11 @@ const checkItemColumns = ref([
     align: 'center'
   },
   {
+    key: 'type',
+    title: '类型',
+    align: 'center'
+  },
+  {
     title: '操作',
     align: 'center',
     render(row) {
@@ -125,7 +167,8 @@ const checkItemColumns = ref([
                     isCreate.value = false;
                     checkItemModel.value = {
                       field_name: row.field_name,
-                      title: row.title
+                      title: row.title,
+                      type: row.type
                     };
                     checkItemId.value = row.id;
                     showAddCheckItemModal.value = true;
@@ -166,20 +209,6 @@ const checkItemColumns = ref([
   }
 ]);
 
-const checkItemFormRules = ref({
-  field_name: {
-    required: true,
-    trigger: ['blur', 'input'],
-    message: '请输入字段名'
-  },
-  title: {
-    required: true,
-    trigger: ['blur', 'input'],
-    message: '请输入检查项名称'
-  }
-});
-const checkItemFormRef = ref(null);
-
 const checkItemTablePageChange = (page) => {
   checkItemPagination.value.page = page;
 };
@@ -195,7 +224,7 @@ const addCheckItemBtn = () => {
 };
 
 const closeAddCheckItemModal = () => {
-  checkItemModel.value = { field_name: '', title: '' };
+  checkItemModel.value = { field_name: '', title: '', type: '' };
   showAddCheckItemModal.value = false;
 };
 
