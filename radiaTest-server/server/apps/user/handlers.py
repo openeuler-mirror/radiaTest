@@ -215,13 +215,13 @@ def handler_login(gitee_token, org_id):
     redis_client.hmset(
         RedisKey.gitee_user(gitee_user.get("id")),
         gitee_user,
-        ex=int(current_app.config.get("TOKEN_EXPIRES_TIME"))
+        ex=600,
     )
 
     redis_client.hmset(
         RedisKey.access_token(gitee_user.get("id")),
         {"org_id": org_id},
-        ex=int(current_app.config.get("TOKEN_EXPIRES_TIME"))
+        ex=int(current_app.config.get("LOGIN_EXPIRES_TIME"))
     )
 
     # 从数据库中获取用户信息
@@ -238,7 +238,7 @@ def handler_login(gitee_token, org_id):
         token = generate_token(
             user.gitee_id, 
             user.gitee_login,
-            int(current_app.config.get("TOKEN_EXPIRES_TIME"))
+            int(current_app.config.get("LOGIN_EXPIRES_TIME"))
         )
 
         if org_id is not None and isinstance(org_id, int):
@@ -377,7 +377,7 @@ def handler_register(gitee_id, body):
     token = generate_token(
         user.gitee_id, 
         user.gitee_login,
-        int(current_app.config.get("TOKEN_EXPIRES_TIME"))
+        int(current_app.config.get("LOGIN_EXPIRES_TIME"))
     )
     return_data = {
         'token': token,

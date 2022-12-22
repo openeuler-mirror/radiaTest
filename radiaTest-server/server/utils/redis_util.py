@@ -80,6 +80,9 @@ class RedisClient(object):
     def keys(self, pattern):
         return self.connection.keys(pattern)
 
+    def ttl(self, name):
+        return self.connection.ttl(name)
+
 
 class RedisKey(object):
     token = lambda gitee_id: f"token_{gitee_id}"

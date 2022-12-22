@@ -7,9 +7,9 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 ####################################
-# @Author  : 
-# @email   : 
-# @Date    : 
+# @Author  : Ethan-Zhang
+# @email   : ethanzhang55@outlook.com
+# @Date    : 2022/12/26
 # @License : Mulan PSL v2
 
 
@@ -67,7 +67,7 @@ def handler_login(body):
     token = generate_token(
         user_dict.get('gitee_id'),
         admin.account,
-        int(current_app.config.get("TOKEN_EXPIRES_TIME"))
+        int(current_app.config.get("LOGIN_EXPIRES_TIME"))
     )
     return_dict = {
         'token': token,
@@ -107,7 +107,7 @@ def handler_register(body):
     token = generate_token(
         user_dict.get('gitee_id'), 
         admin.account,
-        int(current_app.config.get("TOKEN_EXPIRES_TIME"))
+        int(current_app.config.get("LOGIN_EXPIRES_TIME"))
     )
     return_dict = {
         'token': token,
