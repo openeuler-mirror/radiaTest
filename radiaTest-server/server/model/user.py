@@ -74,8 +74,10 @@ class User(db.Model, BaseModel):
         ).filter(
             ReUserOrganization.is_delete == False,
             ReUserOrganization.organization_id == int(
-                redis_client.hget(RedisKey.user(g.gitee_id),
-                                  "current_org_id")
+                redis_client.hget(
+                    RedisKey.user(g.gitee_id),
+                    "current_org_id"
+                )
             ),
         ).update(
             {

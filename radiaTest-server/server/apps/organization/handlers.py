@@ -41,7 +41,7 @@ def handler_org_cla(org_id, body):
     if re:
         return jsonify(
             error_code=RET.DATA_EXIST_ERR,
-            error_msg="relationship has exist"
+            error_msg="relationship has already existed"
         )
 
     # 从数据库中获取cla信息
@@ -49,7 +49,7 @@ def handler_org_cla(org_id, body):
     if not org:
         return jsonify(
             error_code=RET.NO_DATA_ERR,
-            error_msg=f"database no find data"
+            error_msg=f"the organization does not exist"
         )
 
     org_info = org.to_dict()
@@ -61,7 +61,7 @@ def handler_org_cla(org_id, body):
     ):
         return jsonify(
             error_code=RET.CLA_VERIFY_ERR,
-            error_msg="user is not pass cla verification, please retry",
+            error_msg="the user does not pass cla verification, please retry",
             data=g.gitee_id
         )
 
@@ -72,12 +72,13 @@ def handler_org_cla(org_id, body):
         json.dumps({**body.cla_verify_params, **body.cla_verify_body}),
         default=False
     ).add_update()
+
     # 绑定用户和组织基础角色
     org_suffix = get_default_suffix('org')
     filter_params = [
-            Role.org_id == org_id,
-            Role.type == 'org',
-            Role.name == org_suffix
+        Role.org_id == org_id,
+        Role.type == 'org',
+        Role.name == org_suffix
     ]
     _role = Role.query.filter(*filter_params).first()
     Insert(ReUserRole, {"user_id": g.gitee_id, "role_id": _role.id}).single()
