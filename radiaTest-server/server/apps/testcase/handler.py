@@ -21,6 +21,7 @@ import shutil
 import time
 import datetime
 import uuid
+import openpyxl
 import pytz
 
 from flask import jsonify, g, current_app, request
@@ -32,159 +33,156 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from server import db, redis_client
 from server.utils.redis_util import RedisKey
 from server.utils.response_util import RET
-from server.utils.db import Edit, Insert, Delete, collect_sql_error
+from server.utils.db import Insert, Delete, collect_sql_error
 from server.utils.page_util import PageUtil
 from server.utils.permission_utils import GetAllByPermission
-from server.model.testcase import CaseNode, Baseline, Suite, Case, \
-    Commit, CaseDetailHistory, CommitComment, SuiteDocument
-from server.model.qualityboard import Checklist
+from server.model.testcase import (
+    CaseNode, 
+    Suite, 
+    Case,
+    Commit, 
+    CaseDetailHistory, 
+    CommitComment, 
+    SuiteDocument
+)
 from server.model.framework import GitRepo
 from server.model.task import Task, TaskMilestone, TaskManualCase
 from server.model.celerytask import CeleryTask
-from server.model.group import Group
 from server.model.message import Message, MsgType, MsgLevel
 from server.model.user import User
 from server.model.milestone import Milestone
 from server.model.job import Analyzed
 from server.schema.base import PageBaseSchema
-from server.schema.testcase import CaseNodeBaseSchema, AddCaseCommitSchema, BaselineCreateSchema, \
-    UpdateCaseCommitSchema, CommitQuerySchema, CaseCommitBatch, \
-    QueryHistorySchema, CaseNodeBodySchema
+from server.schema.testcase import (
+    CaseNodeBaseSchema, 
+    AddCaseCommitSchema,
+    UpdateCaseCommitSchema, 
+    CommitQuerySchema, 
+    CaseCommitBatch,
+    QueryHistorySchema, 
+    CaseNodeBodySchema
+)
 from server.schema.celerytask import CeleryTaskUserInfoSchema
-from server.utils.file_util import ZipImportFile, ExcelImportFile
-from server.utils.sheet import Excel, SheetExtractor
+from server.utils.file_util import ExcelStaticImportFile, MarkdownImportFile, ZipImportFile, ExcelImportFile
+from server.utils.sheet import Excel
 from server.utils.permission_utils import GetAllByPermission
+from server.utils.md_util import MdUtil
 from celeryservice.tasks import resolve_testcase_file, resolve_testcase_set
 
 
 class CaseImportHandler:
-    @staticmethod
-    @collect_sql_error
-    def loads_data(filetype, filepath, group_id):
-        excel = Excel(filetype).load(filepath)
-
-        cases = SheetExtractor(
-            current_app.config.get("OE_QA_TESTCASE_DICT")
-        ).run(excel)
-
-        suites = set()
-
-        for case in cases:
-            if not case.get("name") or not case.get("suite") or not case.get("steps") \
-                    or not case.get("expection") or not case.get("description"):
-                continue
-
-            if case.get("automatic") == '是' or case.get("automatic") == 'Y':
-                case["automatic"] = True
-            else:
-                case["automatic"] = False
-
-            _case = Case.query.filter_by(name=case.get("name")).first()
-
-            _suite = Suite.query.filter_by(
-                name=case.get("suite")
-            ).first()
-            if not _suite:
-                Insert(
-                    Suite,
-                    {
-                        "name": case.get("suite"),
-                        "group_id": group_id,
-                        "org_id": redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id'),
-                        "permission_type": "group",
-                    }
-                ).single(Suite, '/suite')
-                _suite = Suite.query.filter_by(
-                    name=case.get("suite")
-                ).first()
-
-            case["suite_id"] = _suite.id
-
-            suites.add(_suite.id)
-
-            del case["suite"]
-
-            if not _case:
-                case.update({"permission_type": "group"})
-                case.update({"group_id": group_id})
-                case.update({"org_id": redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')})
-                Insert(Case, case).single(Case, "/case")
-            else:
-                case["id"] = _case.id
-
-                Edit(Case, case).single(Case, "/case")
-
-        return suites
-
-    @staticmethod
-    @collect_sql_error
-    def import_case(file, group_id, case_node_id=None):
+    CONVERT_METHOD = {
+        "md": MdUtil.df2md,
+        "xlsx": MdUtil.md2wb,
+    }
+    
+    def __init__(self, file):
         try:
-            case_file = ExcelImportFile(file)
-
-            if case_file.filetype:
-                case_file.file_save(
+            try:
+                self.case_file = ExcelImportFile(file)
+            except TypeError:
+                self.case_file = MarkdownImportFile(file)
+            
+            if self.case_file.filetype:
+                self.case_file.file_save(
                     current_app.config.get("TMP_FILE_SAVE_PATH")
                 )
-
-                permission_type = "org"
-                if isinstance(group_id, int):
-                    permission_type = "group"
-                else:
-                    group_id = None
-
-                _task = resolve_testcase_file.delay(
-                    case_file.filepath,
-                    CeleryTaskUserInfoSchema(
-                        auth=request.headers.get("authorization"),
-                        user_id=int(g.gitee_id),
-                        group_id=group_id,
-                        org_id=redis_client.hget(
-                            RedisKey.user(g.gitee_id),
-                            'current_org_id'
-                        ),
-                        permission_type=permission_type,
-                    ).__dict__,
-                    case_node_id
-                )
-
-                if not _task:
-                    return jsonify(error_code=RET.SERVER_ERR, error_msg="could not send task to resolve file")
-
-                _ = Insert(
-                    CeleryTask,
-                    {
-                        "tid": _task.task_id,
-                        "status": "PENDING",
-                        "object_type": "testcase_resolve",
-                        "description": f"resolve testcase {case_file.filepath}",
-                        "user_id": int(g.gitee_id)
-                    }
-                ).single(CeleryTask, '/celerytask')
-
-                return jsonify(error_code=RET.OK, error_msg="OK")
-
             else:
                 mesg = "Filetype of {}.{} is not supported".format(
-                    case_file.filename,
-                    case_file.filetype,
-                )
-
-                current_app.logger.error(mesg)
-
-                if os.path.exists(case_file.filepath):
-                    case_file.file_remove()
-
-                return jsonify(error_code=RET.OK, error_msg=mesg)
-
+                        self.case_file.filename,
+                        self.case_file.filetype,
+                    )
+                raise RuntimeError(mesg)
+        
         except RuntimeError as e:
             current_app.logger.error(str(e))
+            if os.path.exists(self.case_file.filepath):
+                self.case_file.file_remove()
+            raise e
 
-            if os.path.exists(case_file.filepath):
-                case_file.file_remove()
+    def import_case(self, group_id=None, case_node_id=None):
+        permission_type = "org"
+        if isinstance(group_id, int):
+            permission_type = "group"
+        else:
+            group_id = None
 
-            return jsonify(error_code=RET.SERVER_ERR, error_msg=str(e))
-    
+        _task = resolve_testcase_file.delay(
+            self.case_file.filepath,
+            CeleryTaskUserInfoSchema(
+                auth=request.headers.get("authorization"),
+                user_id=int(g.gitee_id),
+                group_id=group_id,
+                org_id=redis_client.hget(
+                    RedisKey.user(g.gitee_id),
+                    'current_org_id'
+                ),
+                permission_type=permission_type,
+            ).__dict__,
+            case_node_id
+        )
+
+        if not _task:
+            return jsonify(
+                error_code=RET.SERVER_ERR, 
+                error_msg="could not send task to resolve file"
+            )
+
+        _ = Insert(
+            CeleryTask,
+            {
+                "tid": _task.task_id,
+                "status": "PENDING",
+                "object_type": "testcase_resolve",
+                "description": f"resolve testcase {self.case_file.filepath}",
+                "user_id": int(g.gitee_id)
+            }
+        ).single(CeleryTask, '/celerytask')
+
+        return jsonify(error_code=RET.OK, error_msg="OK")
+
+    def convert(self, to=None):
+        """convert md => xlsx or xlsx => md
+
+        Args:
+            to (str): the target filetype to transfer
+        
+        Return:
+            filepath (str): the convert file save path 
+
+        """
+        try:                       
+            if to == "md":
+                kwargs = {
+                    "df": Excel(self.case_file.filetype).load(self.case_file.filepath),
+                    "md_path": "{}{}.md".format(
+                        current_app.config.get("TMP_FILE_SAVE_PATH"),
+                        self.case_file.filename,
+                    )
+                }
+            elif to == "xlsx":
+                with open(self.case_file.filepath, "r") as f:
+                    _wb_path = "{}{}.xlsx".format(
+                        current_app.config.get("TMP_FILE_SAVE_PATH"),
+                        self.case_file.filename,
+                    )
+
+                    kwargs = {
+                        "md_content": f.read(), 
+                        "wb_path": _wb_path,
+                        "sheet_name": self.case_file.filename,
+                    }
+                
+                wb = openpyxl.Workbook()
+                wb.create_sheet(self.case_file.filename)
+                wb.save(_wb_path)
+            
+            return self.CONVERT_METHOD[to](**kwargs)
+
+        except KeyError as e:
+            current_app.logger.error(str(e))
+            raise RuntimeError(f"convert to {to} is not supported") from e
+
 
 class CaseNodeHandler:
     @staticmethod

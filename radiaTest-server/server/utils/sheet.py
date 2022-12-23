@@ -13,7 +13,7 @@ class Excel:
     def __init__(self, filetype):
         self.filetype = filetype
     
-    def load(self, filepath):
+    def load(self, filepath, sheet_name=None):
         _load_method = PandasDict.load_methods[self.filetype]
         
         if self.filetype == 'csv':
@@ -23,7 +23,7 @@ class Excel:
 
         with open(filepath, 'rb') as file:
             df = dict()
-            df = _load_method(file, sheet_name=None)
+            df = _load_method(file, sheet_name=sheet_name)
             total_df = []      
             
             for sheet in df.values():
@@ -42,8 +42,8 @@ class SheetExtractor:
         for row in data:
             _row = {}
             for key, value in row.items():
-                if key in self._dict.keys() and value == value and value:
-                    _row[self._dict.get(key)] = value
+                if key.strip() in self._dict.keys() and value == value and value:
+                    _row[self._dict.get(key.strip())] = value.strip()
             
             _result.append(_row)
 

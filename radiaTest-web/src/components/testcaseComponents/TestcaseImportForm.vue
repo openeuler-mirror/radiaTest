@@ -53,7 +53,7 @@
       </div>
       <n-text style="font-size: 16px">点击或者拖动文件到该区域来上传</n-text>
       <n-p depth="3" style="margin: 8px 0 0 0">
-        仅支持导入xlsx、csv、xls格式的Excel文件，且表格列名需与平台保持一致
+        仅支持导入xlsx、csv、xls、md、markdown格式的文件，且表格列名需与平台标准保持一致
       </n-p>
     </n-upload-dragger>
   </n-upload>

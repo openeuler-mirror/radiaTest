@@ -199,3 +199,13 @@ class ExcelImportFile(ImportFile):
             "xls", 
         ]
         self.filename, self.filetype = self._validate_filetype()
+
+
+class MarkdownImportFile(ImportFile):
+    def __init__(self, file) -> None:
+        super().__init__(file)
+        self.valid_types = [
+            "md",
+            "markdown",
+        ]
+        self.filename, self.filetype = self._validate_filetype()

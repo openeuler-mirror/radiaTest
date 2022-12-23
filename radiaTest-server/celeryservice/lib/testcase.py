@@ -1,18 +1,20 @@
 import os
 import re
 import json
+import openpyxl
 import requests
-import shutil
 
-from flask import current_app, jsonify, Response
+from flask import current_app, jsonify
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from celeryservice.lib import TaskAuthHandler
 from server.utils.sheet import Excel, SheetExtractor
 from server.utils.response_util import RET, ssl_cert_verify_error_collect
-from server.utils.db import Insert, Edit
+from server.utils.db import Insert
 from server.schema.testcase import CaseNodeBodyInternalSchema
 from server.model.testcase import Suite, Case, CaseNode
+from server.utils.md_util import MdUtil
+from server import db
 
 
 class TestcaseHandler(TaskAuthHandler):
@@ -49,8 +51,34 @@ class TestcaseHandler(TaskAuthHandler):
 
         return case_node.id
 
+    def md2xlsx(self, file):
+        _wb_path = "{}{}.xlsx".format(
+            current_app.config.get("TMP_FILE_SAVE_PATH"),
+            file.name.split('/')[-1],
+        )
+        
+        wb = openpyxl.Workbook()
+        wb.create_sheet(file.name.split('/')[-1])
+        wb.save(_wb_path)
+        
+        return MdUtil.md2wb(
+            md_content=file.read(),
+            wb_path=_wb_path,
+            sheet_name=file.name.split('/')[-1],
+        )
+
     def loads_data(self, filetype, filepath):
-        excel = Excel(filetype).load(filepath)
+        _filetype = filetype
+        _filepath = filepath
+
+        if filetype == "md" or filetype == "markdown":
+            with open(filepath, "r") as f:
+                _filepath = self.md2xlsx(f)
+                _filetype = "xlsx"
+
+        excel = Excel(_filetype).load(_filepath)
+
+        self.logger.info(excel)
 
         cases = SheetExtractor(
             current_app.config.get("OE_QA_TESTCASE_DICT")
@@ -77,46 +105,45 @@ class TestcaseHandler(TaskAuthHandler):
             if _suite and _suite.permission_type != self.user.get("permission_type"):
                 continue
 
-            if not _suite:
-                try:
-                    Insert(
-                        Suite,
-                        {
-                            "name": case.get("suite"),
-                            "group_id": self.user.get("group_id"),
-                            "org_id": self.user.get("org_id"),
-                            "creator_id": self.user.get("user_id"),
-                            "permission_type": self.user.get("permission_type"),
-                        }
-                    ).single(Suite, '/suite')
-                    _suite = Suite.query.filter_by(
-                        name=case.get("suite")
-                    ).first()
-                except IntegrityError as e:
-                    self.logger.error(f'database operate error -> {e}')
-                    raise RuntimeError(f'data has exist / foreign key is bond') from e
-                except SQLAlchemyError as e:
-                    current_app.logger.error(f'database operate error -> {e}')
-                    raise RuntimeError(f'database operate error -> {e}') from e
+            try:
+                if not _suite:
+                    _suite = Suite(
+                        name=case.get("suite"),
+                        group_id=self.user.get("group_id"),
+                        org_id=self.user.get("org_id"),
+                        creator_id=self.user.get("user_id"),
+                        permission_type=self.user.get("permission_type"),
+                    )
+                    db.session.add(_suite)
+                    db.session.flush()
 
-            case["suite_id"] = _suite.id
+                case["suite_id"] = _suite.id
 
-            suites.add(_suite.id)
+                suites.add(_suite.id)
 
-            del case["suite"]
+                del case["suite"]
 
-            if not _case:
-                case["group_id"] = self.user.get("group_id")
-                case["org_id"] = self.user.get("org_id")
-                case["creator_id"] = self.user.get("user_id")
-                case["permission_type"] = self.user.get("permission_type")
-                Insert(Case, case).single(Case, "/case")
+                if not _case:
+                    case["group_id"] = self.user.get("group_id")
+                    case["org_id"] = self.user.get("org_id")
+                    case["creator_id"] = self.user.get("user_id")
+                    case["permission_type"] = self.user.get("permission_type")
 
-                _case = Case.query.filter_by(name=case.get("name")).first()
-            else:
-                case["id"] = _case.id
+                    _case = Case(case)
+                    db.session.add(_case)
+                    db.session.flush()
+                else:
+                    for key, value in case.items():
+                        setattr(_case, key, value)
+                    db.session.add(_case)
+                    db.session.flush()
 
-                Edit(Case, case).single(Case, "/case")
+                db.session.commit()
+
+            except (IntegrityError, SQLAlchemyError) as e:
+                self.logger.error(f'database operate error -> {e}')
+                db.session.rollback()
+                continue
 
         return suites
 
@@ -303,17 +330,12 @@ class TestcaseHandler(TaskAuthHandler):
 
             filetype = os.path.splitext(filepath)[-1]
 
-            pattern = r'^([^(\.|~)].*)\.(xls|xlsx|csv)$'
-
+            pattern = r'^([^(\.|~)].*)\.(xls|xlsx|csv|md|markdown)$'
             if re.match(pattern, os.path.basename(filepath)) is not None:
                 suites = self.loads_data(
                     filetype[1:],
                     filepath,
                 )
-
-                if isinstance(suites, Response):
-                    r = json.loads(suites.response[0])
-                    raise RuntimeError(r.get("error_msg"))
 
                 mesg = "File {} has been import".format(
                     os.path.basename(filepath),
