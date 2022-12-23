@@ -51,14 +51,6 @@ class CaseNodeBodySchema(BaseModel):
 
     @root_validator
     def validate_suite(cls, values):
-        if values["permission_type"] == "org":
-            if not values["org_id"]:
-                raise ValueError("The case_node should relate to one org")
-
-        if values["permission_type"] == "group":
-            if not values["group_id"]:
-                raise ValueError("The case_node should relate to one group")
-
         if values["parent_id"]:
             values["is_root"] = False
             if values["in_set"] is True and values["milestone_id"]:

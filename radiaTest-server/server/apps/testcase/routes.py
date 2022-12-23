@@ -252,25 +252,18 @@ class SuiteItemEvent(Resource):
     @auth.login_required()
     @response_collect
     @validate()
-    def delete(self, suite_id, body: DeleteSchema):
+    def delete(self, suite_id):
         case_node = CaseNode.query.filter(
-            CaseNode.id == body.case_node_id,
+            CaseNode.suite_id == suite_id,
+            CaseNode.type == "suite",
+            CaseNode.baseline_id.is_(None)
             ).first()
         if not case_node:
             return jsonify(
                 error_code=RET.NO_DATA_ERR,
                 error_msg="the case_node does not exist"
             )
-        task = Task.query.filter(
-            Task.case_node_id == case_node.id,
-            Task.accomplish_time.is_(None),
-            Task.is_delete.is_(False),
-            ).first()
-        if task:
-            return jsonify(
-                error_code=RET.DATA_EXIST_ERR,
-                error_msg="task exists,not allowed to delete the suite"
-            )
+        Delete(CaseNode, {"id": case_node.id}).single(CaseNode, "/case_node")
         return Delete(Suite, {"id": suite_id}).single(Suite, "/suite")
 
 
@@ -406,7 +399,7 @@ class CaseItemEvent(Resource):
         
         if body.name and body.name != _case.name: 
             case_nodes = CaseNode.query.filter(
-                    CaseNode.case_id==case_id,
+                    CaseNode.case_id == case_id,
                     ).all()
             if not case_nodes:
                 return jsonify(
@@ -431,25 +424,15 @@ class CaseItemEvent(Resource):
         case_node = CaseNode.query.filter(
             CaseNode.case_id == case_id,
             CaseNode.type == "case",
+            CaseNode.baseline_id.is_(None)
             ).first()
         if not case_node:
             return jsonify(
                 error_code=RET.NO_DATA_ERR,
                 error_msg="the case_node does not exist"
             )
-        task = Task.query.filter(
-            Task.case_node_id == case_node.id,
-            Task.accomplish_time.is_(None),
-            Task.is_delete.is_(False),
-            ).first()
-        if task:
-            return jsonify(
-                error_code=RET.DATA_EXIST_ERR,
-                error_msg="task exists, not allowed to delete the case"
-            )
-
+        Delete(CaseNode, {"id": case_node.id}).single(CaseNode, "/case_node")
         return Delete(Case, {"id": case_id}).single(Case, "/case")
-
 
 
     @auth.login_required()
@@ -899,7 +882,7 @@ class CaseNodeMoveToEvent(Resource):
         if from_id == to_id:
             return jsonify(error_code=RET.OK, error_msg="OK")
         
-        if from_casenode.in_set==1 and from_casenode.type == "case":
+        if from_casenode.in_set == True and from_casenode.type == "case":
             return jsonify(
                 error_code=RET.VERIFY_ERR, 
                 error_msg="Only suite and directory could be moved."
@@ -1012,15 +995,15 @@ class CaseSetItemEvent(Resource):
                 error_msg="casenode is not exist."
             )
 
-        if casenode.type=="baseline" and casenode.is_root==1:
+        if casenode.type == "baseline" and casenode.is_root == True:
             # 获取基线baseline的details
             return_data = CaseSetHandler.get_caseset_details(
                 casenode, "baseline", query)
             if isinstance(return_data, Response):
                 return  return_data
-        elif casenode.type=="directory" and\
-                casenode.is_root==1 and \
-                casenode.title=="用例集":
+        elif casenode.type == "directory" and\
+                casenode.is_root == 1 and \
+                casenode.title == "用例集":
             # 获取用例集details
             return_data = CaseSetHandler.get_caseset_details(
                 casenode, "directory", query)
