@@ -84,6 +84,14 @@ class RestApi:
             **kwargs
         )
 
+    def get2(self, **kwargs):
+        return self.session.get(
+            self.api_url, 
+            headers=self.header, 
+            **kwargs
+        )
+
+
     def post(self, data=None, **kwargs):
         return self.session.post(
             self.api_url, 

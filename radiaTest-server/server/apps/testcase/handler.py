@@ -288,6 +288,13 @@ class CaseNodeHandler:
         parent = CaseNode.query.filter_by(id=body.parent_id).first()
         if not parent:
             return jsonify(error_code=RET.NO_DATA_ERR, error_msg="parent node does not exist")
+        
+        _body.update({
+            "permission_type": parent.permission_type,
+            "in_set": parent.in_set,
+            "group_id": parent.group_id,
+        })
+
         root_case_node = CaseNodeHandler.get_root_case_node(body.parent_id)
         task = Task.query.filter(
             Task.case_node_id == root_case_node.id,
