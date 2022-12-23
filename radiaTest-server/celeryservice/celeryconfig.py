@@ -46,7 +46,7 @@ worker_state_db = "celeryservice/celerymain/celery_revokes_state_db"
 # Task结果储存配置
 task_ignore_result = False
 
-# Using mysql to store state and results
+# Using redis to store state and results
 result_backend = loads_config_ini("celery", "RESULT_BACKEND")
 
 # Using redis to store data of spiders

@@ -128,8 +128,10 @@ class CaseImportHandler:
                 )
 
                 permission_type = "org"
-                if group_id:
+                if isinstance(group_id, int):
                     permission_type = "group"
+                else:
+                    group_id = None
 
                 _task = resolve_testcase_file.delay(
                     case_file.filepath,
@@ -389,8 +391,10 @@ class CaseNodeHandler:
                 zip_case_set.uncompress(os.path.dirname(zip_case_set.filepath))
 
                 permission_type = "org"
-                if group_id:
+                if isinstance(group_id, int):
                     permission_type = "group"
+                else:
+                    group_id = None
 
                 _task = resolve_testcase_set.delay(
                     zip_case_set.filepath,
