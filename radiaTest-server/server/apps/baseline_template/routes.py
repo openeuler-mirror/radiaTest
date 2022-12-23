@@ -350,7 +350,7 @@ class BaseNodeEvent(Resource):
     @auth.login_required()
     @response_collect
     @validate()
-    def get(self, query: BaseNodeQuerySchema):
+    def get(self, baseline_template_id, query: BaseNodeQuerySchema):
         """
             在数据库中查询BaseNode数据.
             API:/api/v1/base-node/<int:base_node_id>?case_node_id=case_node_id
@@ -361,7 +361,7 @@ class BaseNodeEvent(Resource):
             "error_msg": "OK"
             }
         """
-        return BaseNodeHandler.get_all(query)
+        return BaseNodeHandler.get_all(baseline_template_id, query)
 
 
 class BaseNodeItemEvent(Resource):

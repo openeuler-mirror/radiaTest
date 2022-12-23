@@ -339,8 +339,12 @@ class BaseNodeHandler:
 
     @staticmethod
     @collect_sql_error
-    def get_all(query):
+    def get_all(baseline_template_id, query):
         filter_params = GetAllByPermission(BaseNode).get_filter()
+        filter_params.append(
+            BaseNode.baseline_template_id == baseline_template_id
+        )
+        
         for key, value in query.dict().items():
             if not value:
                 continue
