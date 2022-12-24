@@ -102,8 +102,12 @@ class CaseImportHandler:
 
     def import_case(self, group_id=None, case_node_id=None):
         permission_type = "org"
-        if isinstance(group_id, int):
-            permission_type = "group"
+        if group_id:
+            try:
+                _ = int(group_id)
+                permission_type = "group"
+            except (ValueError, TypeError):
+                group_id = None
         else:
             group_id = None
 
@@ -389,8 +393,12 @@ class CaseNodeHandler:
                 zip_case_set.uncompress(os.path.dirname(zip_case_set.filepath))
 
                 permission_type = "org"
-                if isinstance(group_id, int):
-                    permission_type = "group"
+                if group_id:
+                    try:
+                        _ = int(group_id)
+                        permission_type = "group"
+                    except (ValueError, TypeError):
+                        group_id = None
                 else:
                     group_id = None
 

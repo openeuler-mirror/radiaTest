@@ -677,8 +677,8 @@ class SuiteDocumentEvent(Resource):
             在数据库中新增Document数据.
             请求体:
             {
-            "url": str,
-            "name": str,
+                "url": str,
+                "title": str,
             }
             返回体:
             {
