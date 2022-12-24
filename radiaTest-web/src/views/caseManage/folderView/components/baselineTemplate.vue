@@ -425,7 +425,7 @@ const inheriteeId = ref();
 const inheritOptions = ref([]);
 
 function handleInheritSelectLoad(option) {
-  let params = { openable: true };
+  let params = {};
   if (option.type === 'org') {
     params.org_id = option.info.org_id;
   } else if (option.type === 'group') {
