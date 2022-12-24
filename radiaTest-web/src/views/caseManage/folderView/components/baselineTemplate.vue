@@ -254,13 +254,11 @@
     >
       <n-form 
         ref="nodeEditFormRef"
-        inline
         :model="nodeEditForm"
         :rules="nodeEditRules"
       >
         <n-form-item label="标题" path="title">
           <n-input
-            style="width: 100%;"
             clearable
             v-model:value="nodeEditForm.title"
           />
@@ -586,6 +584,7 @@ function handleCasesetOptionsLoad(option) {
 
 function editNodeFunc() {
   showNodeEditModal.value = true;
+  nodeEditForm.value.title = selectedNode.value.text;
   showDropdown.value = false;
 }
 function removeNodeFunc() {
@@ -614,6 +613,7 @@ function cancelNodeDeleteCallback() {
   showNodeDeleteModal.value = false;
 }
 function cancelNodeEditCallback() {
+  nodeEditForm.value.title = undefined;
   showNodeEditModal.value = false;
 }
 
@@ -656,6 +656,8 @@ function submitNodeEditCallback() {
   updateBaseNode(selectedNode.value.id, nodeEditForm.value)
     .then(() => {
       message.success('编辑成功');
+      nodeEditForm.value.title = undefined;
+      showNodeEditModal.value = false;
       getBaselineTemplateItem(checkedItem.value.id)
         .then((res) => {
           templateDetail.value = res.data;
