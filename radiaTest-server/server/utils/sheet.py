@@ -42,8 +42,10 @@ class SheetExtractor:
         for row in data:
             _row = {}
             for key, value in row.items():
-                if key.strip() in self._dict.keys() and value == value and value:
-                    _row[self._dict.get(key.strip())] = value.strip()
+                _name = key.strip()
+                _value = str(value).strip()
+                if _name in self._dict.keys() and value == value and value:
+                    _row[self._dict.get(_name)] = _value
             
             _result.append(_row)
 
