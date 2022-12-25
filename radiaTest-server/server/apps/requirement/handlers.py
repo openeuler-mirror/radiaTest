@@ -338,29 +338,28 @@ class RequirementItemHandler:
             raise RuntimeError(f"only the publisher could {msg} the requirement")
 
     def _handle_not_in_project(self, msg):
-        if (
-            (
-                self.requirement.acceptor
-                and g.gitee_id != self.requirement.acceptor[0].user_id
-            )
-            and (
-                g.gitee_id != self.requirement.publisher[0].user_id
-            )
-            and (
-                self.requirement.acceptor
-                and self.requirement.acceptor[0].type == "group" 
-                and in_group(
-                    g.gitee_id, 
-                    self.requirement.acceptor[0].group_id
+        if  (
+                (
+                    self.requirement.acceptor
+                    and g.gitee_id != self.requirement.acceptor[0].user_id
+                ) or (
+                    self.requirement.acceptor
+                    and self.requirement.acceptor[0].type == "group" 
+                    and in_group(
+                        g.gitee_id, 
+                        self.requirement.acceptor[0].group_id
+                    )
                 )
-            )
-            and (
-                self.requirement.publisher[0].type == "group"
-                and in_group(
-                    g.gitee_id,
-                    self.requirement.publisher[0].group_id
+            ) and (
+                (
+                    g.gitee_id != self.requirement.publisher[0].user_id
+                ) or (
+                    self.requirement.publisher[0].type == "group"
+                    and in_group(
+                        g.gitee_id,
+                        self.requirement.publisher[0].group_id
+                    )
                 )
-            )
         ):
             raise RuntimeError(
                 "only the member involved in this project "\
