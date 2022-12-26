@@ -74,34 +74,6 @@
         </template>
         <div class="drawer-content">
           <n-grid x-gap="12" :cols="3">
-            <n-gi
-              :span="3"
-              style="display: flex; margin-top: 15px; cursor: pointer; align-items: center"
-              @click="cardClick"
-            >
-              <div style="width: 150px; margin-right: 10px">
-                <span>遗留问题解决率</span><br />
-                <span style="color: #dae0e8; width: 135px; text-align: center; margin-left: 22px">前置版本</span>
-              </div>
-              <n-progress
-                type="line"
-                :status="
-                  previousLeftResolvedPassed !== true
-                    ? previousLeftResolvedPassed === false
-                      ? 'error'
-                      : 'default'
-                    : 'success'
-                "
-                :percentage="previousLeftResolvedRate"
-                :height="20"
-                :border-radius="4"
-                :fill-border-radius="0"
-                processing
-              />
-              <span style="width: 60px">
-                {{ previousLeftResolvedPassed ? '转测' : null }}
-              </span>
-            </n-gi>
             <n-gi :span="3" style="margin-top: 40px; margin-bottom: 20px">
               <autoSteps
                 @stepClick="handleClick"
