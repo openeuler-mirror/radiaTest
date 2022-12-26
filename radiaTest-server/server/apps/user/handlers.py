@@ -284,7 +284,7 @@ def handler_register(gitee_id, body):
     if not org:
         return jsonify(
             error_code=RET.NO_DATA_ERR,
-            error_msg=f"database no find data"
+            error_msg=f"the organization does not exist"
         )
 
     # 若组织需要CLA签署验证，则判断是否已签署CLA
@@ -317,16 +317,24 @@ def handler_register(gitee_id, body):
             cla_email,
         )
 
-    # 生成用户和组织的关系
-    _ = ReUserOrganization.create(
-        user.gitee_id,
-        body.organization_id,
-        json.dumps({
-            **body.cla_verify_params,
-            **body.cla_verify_body
-        }),
-        default=False
-    )
+    # 查询用户和组织是否已存在关系
+    re = ReUserOrganization.query.filter_by(
+        is_delete=False,
+        user_gitee_id=user.gitee_id,
+        organization_id=org.id,
+    ).first()
+    if not re:
+        # 生成用户和组织的关系
+        _ = ReUserOrganization.create(
+            user.gitee_id,
+            org.id,
+            json.dumps({
+                **body.cla_verify_params,
+                **body.cla_verify_body
+            }),
+            default=False
+        )
+    
     _role = Role.query.filter_by(name=user.gitee_id, type='person').first()
     if not _role:
         role = Role(name=user.gitee_id, type='person')
