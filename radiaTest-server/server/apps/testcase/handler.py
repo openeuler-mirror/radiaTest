@@ -63,7 +63,7 @@ from server.schema.testcase import (
     CaseNodeBodySchema
 )
 from server.schema.celerytask import CeleryTaskUserInfoSchema
-from server.utils.file_util import ExcelStaticImportFile, MarkdownImportFile, ZipImportFile, ExcelImportFile
+from server.utils.file_util import MarkdownImportFile, ZipImportFile, ExcelImportFile
 from server.utils.sheet import Excel
 from server.utils.permission_utils import GetAllByPermission
 from server.utils.md_util import MdUtil
