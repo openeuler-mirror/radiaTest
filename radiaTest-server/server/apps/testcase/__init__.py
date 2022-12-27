@@ -51,6 +51,7 @@ from server.apps.testcase.routes import (
     OrgCasesetEvent,
     CaseNodeGetRootEvent,
     CaseNodeMoveToEvent,
+    CasefileConvertEvent,
 )
 
 
@@ -220,4 +221,8 @@ def init_api(api: Api):
         OrgCasesetEvent,
         "/api/v1/org/<int:org_id>/caseset",
         methods=["GET"]
+    )
+    api.add_resource(
+        CasefileConvertEvent,
+        "/api/v1/casefile/convert",
     )

@@ -16,7 +16,7 @@
 
 import json
 from celeryservice.tasks import resolve_testcase_file
-from flask import request, g, jsonify, current_app, Response
+from flask import request, g, jsonify, Response, send_file
 from flask_restful import Resource
 from flask_pydantic import validate
 from server import redis_client, casbin_enforcer
@@ -27,23 +27,19 @@ from server.utils.permission_utils import GetAllByPermission
 from server.model.organization import Organization
 from server.model.group import Group
 from server.model.testcase import Suite, Case, CaseNode, SuiteDocument, Baseline
-from server.model.task import Task
 from server.model.milestone import Milestone
 from server.utils.db import Insert, Edit, Delete, collect_sql_error
 from server.schema.base import PageBaseSchema
 from server.schema.celerytask import CeleryTaskUserInfoSchema
-from server.schema.task import AddTaskSchema
 from server.schema.testcase import (
     CaseNodeBodySchema,
     CaseNodeQuerySchema,
     CaseNodeItemQuerySchema,
     CaseNodeUpdateSchema,
     SuiteCreate,
-    SuiteUpdate,
     CaseCreate,
     CaseCreateBody,
     CaseNodeCommitCreate,
-    CaseUpdate,
     AddCaseCommitSchema,
     UpdateCaseCommitSchema,
     CommitQuerySchema,
@@ -52,12 +48,10 @@ from server.schema.testcase import (
     CaseCommitBatch,
     QueryHistorySchema,
     SuiteDocumentBodySchema,
-    SuiteDocumentQuerySchema,
     SuiteDocumentUpdateSchema,
     BaselineCreateSchema,
     SuiteCreateBody,
     SuiteCaseNodeUpdate,
-    DeleteSchema,
     CaseCaseNodeUpdate,
     CaseNodeRelateSchema,
     ResourceQuerySchema,
@@ -66,7 +60,6 @@ from server.schema.testcase import (
 from server.apps.testcase.handler import (
     CaseImportHandler,
     CaseNodeHandler,
-    SuiteHandler,
     CaseHandler,
     TemplateCasesHandler,
     HandlerCaseReview,
@@ -477,14 +470,15 @@ class CaseImport(Resource):
                 error_msg="The file being uploaded is not exist"
             )
 
-        if not request.form.get("group_id"):
+        try:
+            import_handler = CaseImportHandler(request.files.get("file"))
+        except RuntimeError as e:
             return jsonify(
-                error_code=RET.PARMA_ERR, 
-                error_msg="The file should be binded to a group"
+                error_code=RET.RUNTIME_ERROR,
+                error_msg=str(e),
             )
-
-        return CaseImportHandler.import_case(
-            request.files.get("file"),
+        
+        return import_handler.import_case(
             request.form.get("group_id"),
             request.form.get("case_node_id"),
         )
@@ -1091,3 +1085,43 @@ class GroupCasesetEvent(Resource):
     @response_collect
     def get(self, group_id):
         return CaseNodeHandler.get_caseset_children("group", Group, group_id)
+
+
+class CasefileConvertEvent(Resource):
+    @auth.login_required()
+    @response_collect
+    def post(self):
+        """
+            文本用例格式转换，markdown <=> excel
+            请求表单:
+            {
+                "file": binary,
+                "to": "md" | "xlsx",
+            }
+            返回体:
+            .md/.xlsx file attachment
+            or
+            {
+                "error_code": str,
+                "error_msg": str
+            }
+        """
+        file = request.files.get("file")
+        to = request.form.get("to")
+
+        if file.headers.get("Content-Type") == "text/markdown" and to != "xlsx" or to != "md":
+            return jsonify(
+                error_code=RET.BAD_REQ_ERR,
+                error_msg="only supports md => xlsx or xlsx => md"
+            )
+
+        try:
+            import_handler = CaseImportHandler(file)
+            converted_filepath = import_handler.convert(to)
+        except RuntimeError as e:
+            return jsonify(
+                error_code=RET.RUNTIME_ERROR,
+                error_msg=str(e)
+            )
+        
+        return send_file(converted_filepath, as_attachment=True)

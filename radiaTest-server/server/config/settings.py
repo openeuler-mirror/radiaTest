@@ -119,6 +119,7 @@ class Config(object):
         "预置条件": "preset",
         "操作步骤": "steps",
         "预期输出": "expection",
+        "预期结果": "expection",
         "是否自动": "automatic",
         "是否自动化": "automatic",
         "备注": "remark",

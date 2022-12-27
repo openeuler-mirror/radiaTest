@@ -80,8 +80,9 @@ async function beforeUpload({ file }) {
   const matchList = file.file.name.match(/\..*$/);
   let fileType = null;
   matchList.length > 0 ? (fileType = matchList[matchList.length - 1]) : 0;
-  if (fileType !== '.xlsx' && fileType !== '.xls' && fileType !== '.csv') {
-    window.$message?.error('只能上传xlsx、xls、csv格式的Excel文件，请重新上传');
+  const supportedFiletypes = ['.xlsx', '.xls', '.csv', '.md', '.markdown'];
+  if (!supportedFiletypes.includes(fileType)) {
+    window.$message?.error('只能上传xlsx、xls、csv、md、markdown格式的文件，请重新上传');
     return false;
   }
   return true;
