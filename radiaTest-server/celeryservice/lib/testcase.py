@@ -78,8 +78,6 @@ class TestcaseHandler(TaskAuthHandler):
 
         excel = Excel(_filetype).load(_filepath)
 
-        self.logger.info(excel)
-
         cases = SheetExtractor(
             current_app.config.get("OE_QA_TESTCASE_DICT")
         ).run(excel)
@@ -342,7 +340,7 @@ class TestcaseHandler(TaskAuthHandler):
                     filetype,
                 )
 
-                current_app.logger.info(mesg)
+                current_app.logger.warning(mesg)
 
                 self.next_period()
                 self.promise.update_state(
