@@ -170,7 +170,11 @@ const editForm = ref({
 });
 
 function documentInit() {
-  getSuiteDocuments(window.atob(router.params.suiteId))
+  let params = {};
+  if (searchWords.value) {
+    params.title = searchWords.value;
+  }
+  getSuiteDocuments(window.atob(router.params.suiteId), params)
     .then(res => {
       documentList.value = res.data;
     });
@@ -236,6 +240,10 @@ function submitDeleteCallback() {
       documentInit();
     });
 }
+
+watch(searchWords, () => {
+  documentInit();
+});
 </script>
 
 <style lang="less" scoped>
