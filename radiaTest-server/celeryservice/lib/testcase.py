@@ -127,7 +127,7 @@ class TestcaseHandler(TaskAuthHandler):
                     case["creator_id"] = self.user.get("user_id")
                     case["permission_type"] = self.user.get("permission_type")
 
-                    _case = Case(case)
+                    _case = Case(**case)
                     db.session.add(_case)
                     db.session.flush()
                 else:

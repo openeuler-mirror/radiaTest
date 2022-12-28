@@ -575,7 +575,7 @@ function getCurMilestones(node, query) {
 }
 
 function getTemplates(node, query) {
-  let params = {};
+  let params = { openable: true };
   if (query) {
     params.title = query;
   }
