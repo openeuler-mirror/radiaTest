@@ -18,6 +18,7 @@ from typing import Optional
 from typing import List
 from pydantic import BaseModel, validator
 from pydantic.class_validators import root_validator
+from pydantic.networks import HttpUrl
 from typing_extensions import Literal
 from server.model.testcase import Suite, Case
 from server.schema.base import UpdateBaseModel, PageBaseSchema
@@ -332,8 +333,8 @@ class QueryHistorySchema(PageBaseSchema):
 
 
 class SuiteDocumentBodySchema(BaseModel):
-    title: str = None
-    url: str = None
+    title: str
+    url: HttpUrl
     permission_type: Optional[PermissionType] = "group"
 
 
@@ -344,7 +345,7 @@ class SuiteDocumentQuerySchema(BaseModel):
 
 class SuiteDocumentUpdateSchema(BaseModel):
     title: str = None
-    url: str = None
+    url: HttpUrl = None
     suite_id: int = None
 
 

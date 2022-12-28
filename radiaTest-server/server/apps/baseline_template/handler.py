@@ -550,22 +550,15 @@ class BaselineTemplateApplyHandler:
 
     @staticmethod
     @collect_sql_error
-    def check_node_not_equal(base_node, case_node):
+    def check_node_not_equal(case_node_old, base_node, res_new_basenode):
         check_flag = False
         
-        base_children = base_node.children
-        case_children = case_node.children
-        
-        res_case_children = [casenode.to_json() for casenode in case_children]
-
-        if base_children.scalar() != case_children.scalar():
+        old_parent = CaseNode.query.filter(CaseNode.children.contains(case_node_old)).first()
+        base_parent = BaseNode.query.filter(BaseNode.children.contains(base_node)).first()
+        if old_parent.title not in list(map(lambda node: node.get("title"), res_new_basenode)) \
+            and old_parent.title != base_parent.title: 
             check_flag = True
-        else:
-            for child in base_children:
-                if child.title not in list(
-            map(lambda node: node.get("title"), res_case_children)
-        ):
-                    check_flag = True
+
         return check_flag
 
 
@@ -615,6 +608,7 @@ class BaselineTemplateApplyHandler:
     @staticmethod
     @collect_sql_error
     def modify_bind(case_node_old, base_node, map_node):
+        case_parent_id = None
         old_parent = CaseNode.query.filter(CaseNode.children.contains(case_node_old)).first()
         base_parent = BaseNode.query.filter(BaseNode.children.contains(base_node)).first()
 
@@ -623,11 +617,12 @@ class BaselineTemplateApplyHandler:
                 if base_parent.id == value:
                     case_parent_id = key
                     break
-            case_parent = CaseNode.query.filter_by(id=case_parent_id).first()
+            if case_parent_id:
+                case_parent = CaseNode.query.filter_by(id=case_parent_id).first()
             
-            case_node_old.parent.remove(old_parent)
-            case_node_old.parent.append(case_parent)
-            case_node_old.add_update()
+                case_node_old.parent.remove(old_parent)
+                case_node_old.parent.append(case_parent)
+                case_node_old.add_update()  
 
 
     @staticmethod
@@ -662,6 +657,7 @@ class BaselineTemplateApplyHandler:
             return _resp 
 
         res_old_casenode = list()
+        res_new_basenode = list()
         old_casenodes = CaseNode.query.filter(
             CaseNode.baseline_id == baseline_id,
             CaseNode.type != "baseline"
@@ -672,6 +668,7 @@ class BaselineTemplateApplyHandler:
             BaseNode.baseline_template_id == baseline_template_id,
             BaseNode.is_root.isnot(True),
             ).all()
+        [res_new_basenode.append(basenode.to_json()) for basenode in base_nodes]
 
         nodes = list()
         res_node = dict()
@@ -702,7 +699,7 @@ class BaselineTemplateApplyHandler:
                 _id = _case_node_old.id
 
                 check_flag = BaselineTemplateApplyHandler.check_node_not_equal(
-                    base_node, _case_node_old
+                   _case_node_old, base_node, res_new_basenode
                 )
                 if check_flag:
                     BaselineTemplateApplyHandler.modify_bind(
