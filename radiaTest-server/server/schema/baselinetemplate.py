@@ -114,7 +114,6 @@ class BaselineTemplateQuerySchema(BaseModel):
     org_id: Optional[int]
     group_id: Optional[int]
     title: Optional[str]
-    openable: Optional[bool]
 
     @root_validator
     def validate_query(cls, values):
