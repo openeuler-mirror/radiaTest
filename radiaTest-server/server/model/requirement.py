@@ -4,7 +4,6 @@ from sqlalchemy.dialects.mysql import LONGTEXT
 from server import db
 from server.model.base import BaseModel
 from server.model.user import User
-from server.model.milestone import Milestone
 
 
 def _to_list(data):

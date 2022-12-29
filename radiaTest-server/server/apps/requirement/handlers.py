@@ -345,7 +345,7 @@ class RequirementItemHandler:
                 ) or (
                     self.requirement.acceptor
                     and self.requirement.acceptor[0].type == "group" 
-                    and in_group(
+                    and not in_group(
                         g.gitee_id, 
                         self.requirement.acceptor[0].group_id
                     )
@@ -355,7 +355,7 @@ class RequirementItemHandler:
                     g.gitee_id != self.requirement.publisher[0].user_id
                 ) or (
                     self.requirement.publisher[0].type == "group"
-                    and in_group(
+                    and not in_group(
                         g.gitee_id,
                         self.requirement.publisher[0].group_id
                     )
@@ -439,7 +439,7 @@ class RequirementItemHandler:
         _ = Insert(RequirementAcceptor, _acceptor_body).insert_id()
 
         _now = datetime.now(tz=pytz.timezone("Asia/Shanghai"))
-        _now_str = _now.strftime('%Y%m%d')
+        _now_str = _now.strftime('%Y%m%d%H%M%S')
         task_title = f"{self.requirement.title}_{_now_str}"
         deadline = (_now + timedelta(days=self.requirement.period)).strftime('%Y%m%d')
         addtaskschema = AddTaskSchema(
