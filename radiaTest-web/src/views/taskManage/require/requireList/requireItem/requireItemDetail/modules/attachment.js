@@ -53,6 +53,7 @@ function handleRemove(id, _type, data) {
     return new Promise((resolve) => {
       deleteRequireAttachment(id, { type: _type, filename: data.file.name })
         .then(() => {
+          getFileList(id, _type);
           resolve(true);
         })
         .catch(() => {

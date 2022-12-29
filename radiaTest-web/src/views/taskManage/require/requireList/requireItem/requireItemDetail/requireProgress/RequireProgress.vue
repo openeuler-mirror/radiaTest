@@ -541,12 +541,14 @@ function deleteSubmitCallback() {
   deleteRequireProgress(props.requireItem.id, currentProgress.value.id)
     .then(() => {
       getProgress();
-      currentProgress.value = {};
-      deleteModalShow.value = false;
       message.success('进展删除成功');
     })
     .catch(() => {
       message.error('进展删除失败');
+    })
+    .finally(() => {
+      currentProgress.value = {};
+      deleteModalShow.value = false;
     });
 }
 

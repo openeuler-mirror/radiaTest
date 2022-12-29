@@ -199,6 +199,26 @@ const columns = [
             )
           }
         );
+      } else if (props.requireItem.acceptor?.type === 'person') {
+        return h(
+          NTooltip,
+          {},
+          {
+            trigger: () => h(
+              NAvatar,
+              {
+                round: true,
+                size: 22,
+                src: props.requireItem.acceptor.avatar_url
+              }
+            ),
+            default: () => h(
+              'span',
+              {},
+              props.requireItem.acceptor.gitee_name
+            ),
+          }
+        );
       }
       return '';
     },

@@ -285,12 +285,12 @@ class RequirementItemProgressEvent(Resource):
     def delete(self, requirement_id, progress_id):
         try:
             _handler = RequirementItemHandler(requirement_id)
+            return _handler.delete_progress(progress_id)
         except RuntimeError as e:
             return jsonify(
                 error_code=RET.BAD_REQ_ERR,
                 error_msg=str(e)
             )
-        return _handler.delete_progress(progress_id)
 
 
 class RequirementItemRewardEvent(Resource):
