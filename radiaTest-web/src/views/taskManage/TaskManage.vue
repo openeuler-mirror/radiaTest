@@ -1,5 +1,6 @@
 <template>
   <n-card
+    :bordered="false"
     size="huge"
     :segmented="{
       content: 'hard'

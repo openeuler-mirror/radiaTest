@@ -35,11 +35,13 @@
           </div>
           <div class="item filterCondition">
             <n-select disabled v-if="!item.name" />
+            <n-select v-else-if="item.conditionFlag" :options="item.conditionOptions" v-model:value="item.condition" />
             <n-select disabled v-else v-model:value="item.condition" />
           </div>
           <div class="item filterValue">
             <n-input type="text" v-if="!item.name" disabled />
             <n-input type="text" v-else-if="item.type === 'input'" @input="item.cb(item)" v-model:value="item.value" />
+            <n-input-number v-else-if="item.type === 'number'" v-model:value="item.value" />
             <n-select
               v-else-if="item.type === 'select'"
               v-model:value="item.value"
@@ -73,9 +75,7 @@
             </div>
             <div class="cancelConfirmBtnWrap">
               <n-button class="btn" @click="handleClose">取消</n-button>
-              <n-button class="btn" type="info" @click="confirmFilter">
-                筛选
-              </n-button>
+              <n-button class="btn" type="info" @click="confirmFilter"> 筛选 </n-button>
             </div>
           </div>
         </template>
@@ -89,6 +89,7 @@ import { Filter } from '@vicons/tabler';
 import { Add } from '@vicons/ionicons5';
 import { Delete24Regular } from '@vicons/fluent';
 import { ref, computed } from 'vue';
+import _ from 'lodash';
 
 export default {
   components: {
@@ -143,6 +144,9 @@ export default {
         case 'select':
           condition = '等于';
           break;
+        case 'number':
+          condition = '等于';
+          break;
         case 'multipleselect':
           condition = '等于';
           break;
@@ -167,7 +171,13 @@ export default {
           filterArray.value[index].path = v.path;
           filterArray.value[index].type = v.type;
           filterArray.value[index].value = null;
-          filterArray.value[index].condition = filterCondition(v.type);
+          if (!v.condition) {
+            filterArray.value[index].condition = filterCondition(v.type);
+          } else {
+            filterArray.value[index].conditionFlag = true;
+            filterArray.value[index].conditionOptions = v?.conditionOptions;
+            filterArray.value[index].conditionValue = v?.conditionValue;
+          }
           filterArray.value[index].options = v?.options;
           filterArray.value[index].cb = v?.cb || (() => {});
         }
@@ -177,7 +187,16 @@ export default {
     // 筛选
     const confirmFilter = () => {
       showPopover.value = false;
-      context.emit('filterchange', filterArray.value);
+      let tempArr = _.cloneDeep(filterArray.value);
+      tempArr.forEach((v) => {
+        if (v.conditionFlag) {
+          tempArr.push({
+            path: v.conditionValue,
+            value: v.condition
+          });
+        }
+      });
+      context.emit('filterchange', tempArr);
     };
 
     // 是否可添加筛选条件
