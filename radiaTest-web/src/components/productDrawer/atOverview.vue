@@ -5,12 +5,14 @@
     :loading="atLoading"
     :data="atGroupOverviewData"
     :row-key="(rowData) => rowData.build"
-    :row-props="(row) => {
-      return {
-        style: 'cursor: pointer;',
-        onClick: () => handleAtBuildClick(qualityBoardId, row),
+    :row-props="
+      (row) => {
+        return {
+          style: 'cursor: pointer;',
+          onClick: () => handleAtBuildClick(qualityBoardId, row)
+        };
       }
-    }"
+    "
     :columns="atColumns"
     :pagination="atPagination"
     :bordered="false"
@@ -24,10 +26,7 @@
     :trap-focus="false"
     :block-scroll="false"
   >
-    <n-card 
-      style="height: 100%;"
-      :title="currentBuild" 
-    >
+    <n-card style="height: 100%" :title="currentBuild">
       <template #header-extra>
         <n-button text @click="handleTestsClose">
           <n-icon :size="24">
@@ -35,8 +34,8 @@
           </n-icon>
         </n-button>
       </template>
-      <n-data-table 
-        style="height: 100%;"
+      <n-data-table
+        style="height: 100%"
         :data="atTestsOverviewData"
         :loading="atLoading"
         :bordered="false"
@@ -54,7 +53,7 @@ import { Close } from '@vicons/ionicons5';
 
 export default defineComponent({
   components: {
-    Close,
+    Close
   },
   props: {
     qualityBoardId: Number
@@ -87,12 +86,16 @@ export default defineComponent({
         page_size: atPagination.pageSize
       });
     });
-    watch(atOverview.totalNum, () => { atPagination.itemCount = atOverview.totalNum.value; });
-    onUnmounted(() => { atOverview.cleanData(); });
-    return { 
-      atPagination, 
+    watch(atOverview.totalNum, () => {
+      atPagination.itemCount = atOverview.totalNum.value;
+    });
+    onUnmounted(() => {
+      atOverview.cleanData();
+    });
+    return {
+      atPagination,
       ...atOverview,
-      handleSorterChange (sorter) {
+      handleSorterChange(sorter) {
         atOverview.getAtData(props.qualityBoardId, {
           page_num: atPagination.page,
           page_size: atPagination.pageSize,

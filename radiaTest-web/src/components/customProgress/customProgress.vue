@@ -3,32 +3,32 @@
     <!--有状态就显示状态的占比-->
     <div v-if="progress.total !== 0" class="bar-item-wrap">
       <n-popover trigger="hover">
-        <template #trigger>  
-          <div class="bar-running" :style="{width:runningWidth + '%'}">
+        <template #trigger>
+          <div class="bar-running" :style="{ width: runningWidth + '%' }">
             {{ progress.running }}
           </div>
         </template>
         <span>running {{ runningWidth.toFixed(2) }}%</span>
       </n-popover>
       <n-popover trigger="hover">
-        <template #trigger>  
-          <div class="bar-check" :style="{width:checkWidth + '%'}">
+        <template #trigger>
+          <div class="bar-check" :style="{ width: checkWidth + '%' }">
             {{ progress.success }}
           </div>
         </template>
         <span>passed {{ checkWidth.toFixed(2) }}%</span>
       </n-popover>
       <n-popover trigger="hover">
-        <template #trigger>  
-          <div class="bar-fail" :style="{width:failWidth + '%'}">
+        <template #trigger>
+          <div class="bar-fail" :style="{ width: failWidth + '%' }">
             {{ progress.failure }}
           </div>
         </template>
         <span>failed {{ failWidth.toFixed(2) }}%</span>
       </n-popover>
       <n-popover trigger="hover">
-        <template #trigger>  
-          <div class="bar-skip" :style="{width:blockWidth + '%'}">
+        <template #trigger>
+          <div class="bar-skip" :style="{ width: blockWidth + '%' }">
             {{ progress.block }}
           </div>
         </template>
@@ -37,12 +37,12 @@
     </div>
     <!--无状态时显示0,bg是灰色-->
     <div v-else class="bar-item-wrap">
-        <n-popover trigger="hover">
-          <template #trigger>  
-            <div class="bar-no-data" style="width: 100%;"></div>
-          </template>
-          <span>无数据 100%</span>
-        </n-popover>
+      <n-popover trigger="hover">
+        <template #trigger>
+          <div class="bar-no-data" style="width: 100%"></div>
+        </template>
+        <span>无数据 100%</span>
+      </n-popover>
     </div>
     <span>{{ progress.success + progress.failure + progress.block + progress.running }}/{{ progress.total }}</span>
   </div>
@@ -69,12 +69,10 @@ export default {
   },
   props: {
     progress: {
-      type: Object,
+      type: Object
     }
   },
-  methods: {
-  },
-
+  methods: {}
 };
 </script>
 
@@ -88,7 +86,7 @@ export default {
   .bar-item-wrap {
     text-align: center;
     color: white;
-    border: 1px solid #F0F8FF;
+    border: 1px solid #f0f8ff;
     display: flex;
     flex-direction: row;
     justify-content: flex-start;
@@ -101,15 +99,15 @@ export default {
     overflow: hidden;
     background: #e3e4ea;
     li {
-        list-style: none;
+      list-style: none;
     }
     .bar-running {
       overflow: hidden;
-      background: #2080F0;
+      background: #2080f0;
     }
     .bar-check {
       overflow: hidden;
-      background: #18A058;
+      background: #18a058;
     }
 
     .bar-fail {
@@ -119,7 +117,7 @@ export default {
 
     .bar-skip {
       overflow: hidden;
-      background: #F0F0F0;
+      background: #f0f0f0;
     }
 
     .bar-no-data {
