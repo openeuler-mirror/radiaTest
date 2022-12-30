@@ -57,8 +57,6 @@ const currentResolvedPassed = ref(null);
 
 const leftIssuesCnt = ref(null);
 const leftIssuesPassed = ref(null);
-const previousLeftResolvedRate = ref(null);
-const previousLeftResolvedPassed = ref(null);
 const issuesResolvedPassed = ref(null);
 watch(
   [currentResolvedPassed, seriousMainResolvedPassed, seriousResolvedPassed, mainResolvedPassed, leftIssuesPassed],
@@ -159,8 +157,6 @@ const setResolvedData = (rateData) => {
   currentResolvedPassed.value = rateData.current_resolved_passed;
   leftIssuesCnt.value = rateData.left_issues_cnt;
   leftIssuesPassed.value = rateData.left_issues_passed;
-  previousLeftResolvedRate.value = rateData.previous_left_resolved_rate;
-  previousLeftResolvedPassed.value = rateData.previous_left_resolved_passed;
 };
 
 // 点击每个Round
@@ -281,12 +277,12 @@ const columns = [
     title: '发布时间'
   },
   {
-    key: 'previous_left_resolved_rate',
+    key: 'current_resolved_rate',
     align: 'center',
     className: 'resolvedRate',
-    title: '遗留问题解决率',
+    title: '版本问题解决率',
     render(row) {
-      if (row.left_resolved_passed === true) {
+      if (row.current_resolved_passed === true) {
         return h(
           NTag,
           {
@@ -295,14 +291,14 @@ const columns = [
             bordered: false
           },
           {
-            default: row.left_resolved_rate,
+            default: row.current_resolved_rate,
             icon: () =>
               h(NIcon, {
                 component: CheckCircleFilled
               })
           }
         );
-      } else if (row.left_resolved_passed !== false) {
+      } else if (row.current_resolved_passed !== false) {
         return h(
           NTag,
           {
@@ -327,7 +323,7 @@ const columns = [
           bordered: false
         },
         {
-          default: row.left_resolved_rate,
+          default: row.current_resolved_rate,
           icon: () =>
             h(NIcon, {
               component: CancelRound
@@ -384,62 +380,6 @@ const columns = [
         },
         {
           default: row.serious_main_resolved_rate,
-          icon: () =>
-            h(NIcon, {
-              component: CancelRound
-            })
-        }
-      );
-    }
-  },
-  {
-    key: 'current_resolved_rate',
-    align: 'center',
-    className: 'resolvedRate',
-    title: '版本问题解决率',
-    render(row) {
-      if (row.current_resolved_passed === true) {
-        return h(
-          NTag,
-          {
-            type: 'success',
-            round: true,
-            bordered: false
-          },
-          {
-            default: row.current_resolved_rate,
-            icon: () =>
-              h(NIcon, {
-                component: CheckCircleFilled
-              })
-          }
-        );
-      } else if (row.current_resolved_passed !== false) {
-        return h(
-          NTag,
-          {
-            type: 'default',
-            round: true,
-            bordered: false
-          },
-          {
-            default: 'unknown',
-            icon: () =>
-              h(NIcon, {
-                component: QuestionCircle16Filled
-              })
-          }
-        );
-      }
-      return h(
-        NTag,
-        {
-          type: 'error',
-          round: true,
-          bordered: false
-        },
-        {
-          default: row.current_resolved_rate,
           icon: () =>
             h(NIcon, {
               component: CancelRound
@@ -1219,8 +1159,6 @@ export {
   currentResolvedPassed,
   leftIssuesCnt,
   leftIssuesPassed,
-  previousLeftResolvedRate,
-  previousLeftResolvedPassed,
   issuesResolvedPassed,
   checkItemList,
   stepAdd,
