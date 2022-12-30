@@ -199,7 +199,7 @@ const featureListColumns = [
     }
   },
   {
-    key: 'release-to',
+    key: 'release_to',
     title: '发布方式',
     className: 'feature-release-to'
   },
