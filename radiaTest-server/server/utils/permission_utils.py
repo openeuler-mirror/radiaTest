@@ -23,7 +23,16 @@ class PermissionManager:
         self._creator_id = creator_id if creator_id else g.gitee_id
         self._org_id = org_id if org_id else int(redis_client.hget(RedisKey.user(g.gitee_id), "current_org_id"))
 
+    
     def get_api_list(self, table_name, path, item_id):
+        """
+        :description: get api list
+        :param table_name: str, table name
+        :param path: str, api info file path
+        :param item_id: int,  resource id, which is used to combine complete api
+        :return: allow_list: list, list of allowed apis
+                deny_list: list, list of denied apis
+        """
         with open(path, "r", encoding="utf-8") as f:
             result = yaml.safe_load(f.read())
 
@@ -54,6 +63,11 @@ class PermissionManager:
         return allow_list, deny_list
 
     def insert_scope(self, scope_datas):
+        """
+        :description:insert scope data to database table
+        :return: scope_ids: list, scpoe data id
+                get_scope_ids: list, scpoe data id whose act is get
+        """
         scope_ids = []
         get_scope_ids = []
         for sdata in scope_datas:
@@ -76,6 +90,14 @@ class PermissionManager:
     def generate(
         self, scope_datas_allow, scope_datas_deny, _data: dict, admin_only=False
     ):
+        """
+        :description: Generate the associated permission relationship between resources and users
+        :param: scope_datas_allow: list, scope data allowed
+        :param: scope_datas_deny: list, scope data denied
+        :param: _data: dict, filter condtions, contain permission_type, creator_id
+        :param: admin_only: bool=false, when value is true, then current user is admin
+        :return: jsonify
+        """
         default_role_filter = []
         role_filter = []
         if _data["permission_type"] == "public":
@@ -183,6 +205,13 @@ class PermissionManager:
         return jsonify(error_code=RET.OK, error_msg="OK.")
 
     def bind_scope_nouser(self, scope_datas_allow, scope_datas_deny, _data: dict):
+        """
+        :description: Generate the associated permission relationship between resources and role
+        :param: scope_datas_allow: list, scope data allowed
+        :param: scope_datas_deny: list, scope data denied
+        :param: _data: dict, filter condtions, contain permission_type, creator_id
+        :return: jsonify
+        """
         role_filter = []
         if _data["permission_type"] == "public":
             role_filter = [
@@ -227,6 +256,13 @@ class PermissionManager:
         return jsonify(error_code=RET.OK, error_msg="OK.")
 
     def bind_scope_user(self, scope_datas_allow, scope_datas_deny, gitee_id):
+        """
+        :description: Generate the associated permission relationship between resources and person user
+        :param: scope_datas_allow: list, scope data allowed
+        :param: scope_datas_deny: list, scope data denied
+        :param: gitee_id: int, user's gitee id
+        :return: jsonify
+        """
         _role = Role.query.filter_by(name=str(gitee_id), type="person").first()
         if not _role:
             return jsonify(
@@ -248,6 +284,11 @@ class PermissionManager:
         return jsonify(error_code=RET.OK, error_msg="OK.")
 
     def clean(self, uri_part, item_ids: List[int]):
+        """
+        :description: clean all the associated permission relationship of apis
+        :param: uri_part: str, Part of API address information
+        :param: item_ids: List[int], resource ids
+        """
         try:
             for item_id in item_ids:
                 filter_str = uri_part + str(item_id)
@@ -268,6 +309,12 @@ class PermissionManager:
 
     @staticmethod
     def unbind_scope_role(scope_data_allow, del_scope: bool = False, role_id=None):
+        """
+        :description: delete the relationship between scope data and role
+        :param: scope_data_allow, scope data allowed
+        :param: del_scope: bool = False, whether delete scope data
+        :param: role_id, role id
+        """
         _scopes = list()
         for scope in scope_data_allow:
             _scop = Scope.query.filter_by(
@@ -342,16 +389,42 @@ class GetAllByPermission:
             ]
 
     def get_filter(self):
+        """
+        :description: get filter condtion
+        :return: filter condtion
+        """
         return self.filter_params
 
-    def get(self):
-        tdata = self._table.query.filter(*self.filter_params).all()
+    def get_data(self, ords: list = None, _type: str = "json"):
+        """
+        :description: get data from database table
+        :param ords: list, sorting condition
+        :param _type: str = [query, json, data], the return value type
+        :return: query | data | jsonify
+        """
+        _query = self._table.query.filter(*self.filter_params)
+        if ords:
+            for _ord in ords:
+                _query = _query.order_by(_ord)
+        if _type == "query":
+            return _query
+        tdata = _query.all()
         data = []
         if tdata:
             data = [dt.to_json() for dt in tdata]
+        if _type == "data":
+            return data
         return jsonify(error_code=RET.OK, error_msg="OK!", data=data)
 
-    def fuzz(self, _data, ords: list = None):
+    
+    def fuzz(self, _data, ords: list = None, _type: str = "json"):
+        """
+        :description: get data from database table by fuzzy match
+        :param _data: dict, fuzzy match condition
+        :param ords: list, sorting condition
+        :param _type: str = [query, json, data], the return value type
+        :return: query | data | jsonify
+        """
         for key, value in _data.items():
             if (
                 hasattr(self._table, key)
@@ -361,19 +434,16 @@ class GetAllByPermission:
                 self.filter_params.append(
                     getattr(self._table, key).like("%{}%".format(value))
                 )
-        if ords:
-            _query = self._table.query.filter(*self.filter_params)
-            for _ord in ords:
-                _query = _query.order_by(_ord)
-            tdata = _query.all()
-        else:
-            tdata = self._table.query.filter(*self.filter_params).all()
-        data = []
-        if tdata:
-            data = [dt.to_json() for dt in tdata]
-        return jsonify(error_code=RET.OK, error_msg="OK!", data=data)
+        return self.get_data(ords, _type)
 
-    def precise(self, _data, ords: list = None):
+    def precise(self, _data, ords: list = None, _type: str = "json"):
+        """
+        :description: get data from database table by percise match
+        :param _data: dict, percise match condition
+        :param ords: list, sorting condition
+        :param _type: str = [query, json, data], the return value type
+        :return: query | data | jsonify
+        """
         for key, value in _data.items():
             if (
                 hasattr(self._table, key)
@@ -381,19 +451,16 @@ class GetAllByPermission:
                 and key not in ("permission_type", "group_id")
             ):
                 self.filter_params.append(getattr(self._table, key) == value)
-        if ords:
-            _query = self._table.query.filter(*self.filter_params)
-            for _ord in ords:
-                _query = _query.order_by(_ord)
-            tdata = _query.all()
-        else:
-            tdata = self._table.query.filter(*self.filter_params).all()
-        data = []
-        if tdata:
-            data = [dt.to_json() for dt in tdata]
-        return jsonify(error_code=RET.OK, error_msg="OK!", data=data)
+        return self.get_data(ords, _type)
 
-    def multicondition(self, _data, ords: list = None):
+    def multicondition(self, _data, ords: list = None, _type: str = "json"):
+        """
+        :description: get data from database table by mutil-condition match
+        :param _data: dict, mutil-condition match condition
+        :param ords: list, sorting condition
+        :param _type: str = [query, json, data], the return value type
+        :return: query | data | jsonify
+        """
         for key, value in _data.items():
             if (
                 hasattr(self._table, key)
@@ -403,20 +470,14 @@ class GetAllByPermission:
                 if not isinstance(value, list):
                     value = [value]
                 self.filter_params.append(getattr(self._table, key).in_(value))
-        tdata = self._table.query.filter(*self.filter_params).all()
-        if ords:
-            _query = self._table.query.filter(*self.filter_params)
-            for _ord in ords:
-                _query = _query.order_by(_ord)
-            tdata = _query.all()
-        else:
-            tdata = self._table.query.filter(*self.filter_params).all()
-        data = []
-        if tdata:
-            data = [dt.to_json() for dt in tdata]
-        return jsonify(error_code=RET.OK, error_msg="OK!", data=data)
+        return self.get_data(ords, _type)
 
     def single(self, _data):
+        """
+        :description: get data from database table by unique condition match
+        :param _data: dict,  unique condition match condition
+        :return: data
+        """
         for key, value in _data.items():
             if (
                 hasattr(self._table, key)

@@ -6,18 +6,20 @@ from flask_pydantic import validate
 from server.model import Product, Milestone, TestReport
 from server.utils.auth_util import auth
 from server.utils.db import Edit, Select
+from server.utils.page_util import PageUtil
 
-from server.schema.product import ProductBase, ProductIssueRateFieldSchema, ProductUpdate
+from server.schema.product import ProductBase, ProductUpdate, ProductQueryBase
 from server.utils.permission_utils import GetAllByPermission
 from server.utils.resource_utils import ResourceManager
 from server import casbin_enforcer
-from server.utils.response_util import RET
+from server.utils.response_util import RET, response_collect
 
 
 class ProductEventItem(Resource):
     @auth.login_required
     @validate()
     @casbin_enforcer.enforcer
+    @response_collect
     def delete(self, product_id):
         return ResourceManager("product").del_cascade_single(
             product_id, Milestone, [Milestone.product_id == product_id], False
@@ -26,12 +28,14 @@ class ProductEventItem(Resource):
     @auth.login_required
     @validate()
     @casbin_enforcer.enforcer
+    @response_collect
     def get(self, product_id):
         return Select(Product, {"id": product_id}).single()
 
     @auth.login_required
     @validate()
     @casbin_enforcer.enforcer
+    @response_collect
     def put(self, product_id, body: ProductUpdate):
         product = Product.query.filter_by(id=product_id).first()
         if not product:
@@ -62,19 +66,24 @@ class ProductEventItem(Resource):
 class ProductEvent(Resource):
     @auth.login_required
     @validate()
+    @response_collect
     def post(self, body: ProductBase):
         return ResourceManager("product").add("api_infos.yaml", body.__dict__)
 
     @auth.login_required
-    def get(self):
-        body = request.args.to_dict()
-        return GetAllByPermission(Product).fuzz(
-            body, [Product.name.asc(), Product.create_time.asc()]
+    @validate()
+    def get(self, query: ProductQueryBase):
+        query_filter = GetAllByPermission(Product).fuzz(
+            query.__dict__,
+            [Product.name.asc(), Product.create_time.asc()],
+            "query"
         )
+        return PageUtil.get_data(query_filter, query)
 
 
 class PreciseProductEvent(Resource):
     @auth.login_required
+    @response_collect
     def get(self):
         body = dict()
 
@@ -85,11 +94,12 @@ class PreciseProductEvent(Resource):
         return GetAllByPermission(Product).precise(body)
 
 
-class UpdateProductIssueRateByField(Resource):
+class UpdateProductIssueRate(Resource):
     @auth.login_required
     @validate()
-    def put(self, product_id, body: ProductIssueRateFieldSchema):
-        from celeryservice.lib.issuerate import update_field_issue_rate
+    @response_collect
+    def put(self, product_id):
+        from celeryservice.lib.issuerate import UpdateIssueRate
         from server.apps.milestone.handler import IssueStatisticsHandlerV8
         
         product = Product.query.filter_by(id=product_id).first()
@@ -101,12 +111,11 @@ class UpdateProductIssueRateByField(Resource):
      
         gitee_id = IssueStatisticsHandlerV8.get_gitee_id(product.org_id)
         if gitee_id:
-            update_field_issue_rate.delay(
-                "product",
+            UpdateIssueRate.update_product_issue_resolved_rate(
                 gitee_id,
                 {"product_id": product_id, "org_id": product.org_id},
-                body.field,
             )
+
         return jsonify(
             error_code=RET.OK,
             error_msg="OK",
@@ -115,6 +124,7 @@ class UpdateProductIssueRateByField(Resource):
 
 class ProductTestReportEvent(Resource):
     @auth.login_required()
+    @response_collect
     def get(self, product_id):
         _product = Product.query.filter_by(id=product_id).first()
         if not _product:

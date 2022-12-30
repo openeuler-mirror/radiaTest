@@ -1,4 +1,5 @@
-from flask import current_app
+from flask import jsonify, current_app
+from server.utils.response_util import RET
 
 
 class PageUtil(object):
@@ -32,3 +33,38 @@ class PageUtil(object):
         except Exception as e:
             current_app.logger.error(f"get page info error {e}")
             return {}, e
+
+    @staticmethod
+    def get_data(query_filter, query):
+        if not query.paged:
+            query_datas = query_filter.all()
+            data = dict()
+            items = []
+            for _qd in query_datas:
+                items.append(_qd.to_json())
+            data.update(
+                {
+                    "total": query_filter.count(),
+                    "items": items,
+                }
+            )
+            return jsonify(error_code=RET.OK, error_msg="OK", data=data)
+
+        def page_func(item):
+            data_dict = item.to_json()
+            return data_dict
+
+        page_dict, e = PageUtil.get_page_dict(
+            query_filter, query.page_num, query.page_size, func=page_func
+        )
+        if e:
+            return jsonify(
+                error_code=RET.SERVER_ERR,
+                error_msg=f"get page data error {e}"
+            )
+
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+            data=page_dict
+        )

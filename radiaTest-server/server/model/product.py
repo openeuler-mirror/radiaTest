@@ -29,10 +29,6 @@ class Product(BaseModel, PermissionBaseModel, db.Model):
     serious_main_all_cnt = db.Column(db.Integer(), nullable=False, default=0)
     serious_main_resolved_rate = db.Column(db.String(6), nullable=True)
     serious_main_resolved_passed = db.Column(db.Boolean(), nullable=True)
-    left_resolved_cnt = db.Column(db.Integer(), nullable=True, default=0)
-    left_all_cnt = db.Column(db.Integer(), nullable=True, default=0)
-    left_resolved_rate = db.Column(db.String(6), nullable=True)
-    left_resolved_passed = db.Column(db.Boolean(), nullable=True)
     built_by_ebs = db.Column(db.Boolean(), nullable=False, default=False)
 
     milestone = db.relationship(
@@ -78,10 +74,6 @@ class Product(BaseModel, PermissionBaseModel, db.Model):
             "current_all_cnt": self.current_all_cnt,
             "current_resolved_rate": self.current_resolved_rate,
             "current_resolved_passed": self.current_resolved_passed,
-            "left_resolved_rate": self.current_resolved_rate,
-            "left_resolved_passed": self.current_resolved_passed,
-            "left_resolved_cnt": self.left_resolved_cnt,
-            "left_all_cnt": self.left_all_cnt,
             "creator_id": self.creator_id,
             "permission_type": self.permission_type,
             "group_id": self.group_id,

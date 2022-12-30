@@ -325,8 +325,7 @@ def update_field_issue_rate(obj_type: str, gitee_id, products: dict, field: str,
 class UpdateIssueRate(TaskHandlerBase):
     @staticmethod
     def update_product_issue_resolved_rate(gitee_id, products: dict):
-        fields = ["serious_resolved_rate", "serious_main_resolved_rate",
-                  "current_resolved_rate", "left_issues_cnt"]
+        fields = ["serious_main_resolved_rate", "current_resolved_rate"]
         for _f in fields:
             update_field_issue_rate.delay(
                 "product",
