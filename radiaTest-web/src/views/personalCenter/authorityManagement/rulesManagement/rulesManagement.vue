@@ -25,7 +25,8 @@
       @submitform="submitForm"
     />
     <table-filter :filters="filters" @filterchange="filterChange" />
-    <n-data-table 
+    <n-data-table
+      remote
       :columns="columns" 
       :data="data" 
       :pagination="pagination" 

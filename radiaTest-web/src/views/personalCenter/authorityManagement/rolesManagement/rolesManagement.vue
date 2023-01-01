@@ -92,6 +92,7 @@
           </n-input>
         </n-input-group>
         <n-data-table
+          remote
           :columns="relationRuleColumns"
           :data="relationRuleData"
           :pagination="relationRulePagination"
