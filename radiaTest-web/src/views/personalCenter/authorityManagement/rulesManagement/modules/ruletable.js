@@ -8,6 +8,7 @@ import { changeLoadingStatus } from '@/assets/utils/loading';
 import { unkonwnErrorMsg } from '@/assets/utils/description';
 
 const data = ref();
+const filterOptions = ref({});
 const pagination = ref({
   page: 1,
   pageSize: 10,
@@ -16,10 +17,10 @@ const pagination = ref({
   pageSizes: [5, 10, 20, 50]
 });
 
-function getRules(options) {
+function getRules() {
   changeLoadingStatus(true);
   axios.get('/v1/scope', {
-    ...options,
+    ...filterOptions.value,
     page_num: pagination.value.page,
     page_size: pagination.value.pageSize,
   })
@@ -149,8 +150,12 @@ const filters = [
 ];
 
 function filterChange(options) {
-  getRules(options);
+  filterOptions.value = options;
 }
+
+watch(filterOptions, () => {
+  getRules();
+}, { deep: true });
 
 export { 
   filters, 
