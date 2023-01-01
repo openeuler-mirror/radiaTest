@@ -186,10 +186,15 @@ const relationRuleColumns = [
   },
 ];
 const relationRuleData = ref();
-const rulesData = ref();
-const relationRulePagination = {
-  pageSize: 5,
-};
+
+const relationRulePagination = ref({
+  page: 1,
+  pageSize: 10,
+  pageCount: 1,
+  showSizePicker: true,
+  pageSizes: [5, 10, 20, 50]
+});
+
 function getRelationRules() {
   changeLoadingStatus(true);
   let {scopeType, ownerId} = activeRole.value;
@@ -200,12 +205,15 @@ function getRelationRules() {
   axios.get(scopeUrl, {
     alias: aliasSearch.value,
     uri: uriSearch.value,
+    page_size: relationRulePagination.value.pageSize,
+    page_num: relationRulePagination.value.page,
   }).then((res) => {
-    relationRuleData.value = res.data.map((item) => {
+    relationRuleData.value = res.data?.items || [];
+    relationRuleData.value = relationRuleData.value.map((item) => {
       item.allow = ruleData.value.findIndex((i) => i.id === item.id) !== -1;
       return { ...item };
     });
-    rulesData.value = relationRuleData.value.map(item => item);
+    relationRulePagination.value.pageCount = res.data?.pages || 1;
     isAuthorized.value = true;
     changeLoadingStatus(false);
   }).catch((err) => {
@@ -214,13 +222,26 @@ function getRelationRules() {
     changeLoadingStatus(false);
   });
 }
+
+const relationRulePageChange = (page) => {
+  relationRulePagination.value.page = page;
+  getRelationRules();
+};
+const relationRuleSizeChange = (pageSize) => {
+  relationRulePagination.value.pageSize = pageSize;
+  relationRulePagination.value.page = 1;
+  getRelationRules();
+};
+
 function relationRule() {
   getRelationRules();
   ruleModal.value.show();
 }
+
 const rulePagination = {
   pageSize: 5,
 };
+
 const filters = [
   { key: 'alias', placeholder: '请输入名称', type: 'input' },
   { key: 'uri', placeholder: '请输入路由', type: 'input' },
@@ -270,4 +291,6 @@ export {
   tabValue,
   getRelationRules,
   isAuthorized,
+  relationRulePageChange,
+  relationRuleSizeChange,
 };

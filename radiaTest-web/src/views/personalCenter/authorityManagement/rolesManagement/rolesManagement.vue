@@ -95,6 +95,8 @@
           :columns="relationRuleColumns"
           :data="relationRuleData"
           :pagination="relationRulePagination"
+          @update:page="relationRulePageChange"
+          @update:page-size="relationRuleSizeChange"
           v-if="isAuthorized"
         />
         <n-empty v-else />
