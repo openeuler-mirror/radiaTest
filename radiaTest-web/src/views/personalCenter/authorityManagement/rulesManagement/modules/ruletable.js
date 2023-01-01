@@ -4,29 +4,45 @@ import { CheckmarkCircleOutline } from '@vicons/ionicons5';
 import { Delete24Regular as Delete, Prohibited24Regular } from '@vicons/fluent';
 import { renderTooltip } from '@/assets/render/tooltip';
 import axios from '@/axios';
-// import { setFormType, createRef, setEditData } from './ruleForm';
 import { changeLoadingStatus } from '@/assets/utils/loading';
 import { unkonwnErrorMsg } from '@/assets/utils/description';
 
 const data = ref();
-const pagination = {
+const pagination = ref({
+  page: 1,
   pageSize: 10,
-};
-function getRules() {
+  pageCount: 1,
+  showSizePicker: true,
+  pageSizes: [5, 10, 20, 50]
+});
+
+function getRules(options) {
   changeLoadingStatus(true);
-  axios.get('/v1/scope').then((res) => {
-    data.value = res.data;
-    changeLoadingStatus(false);
-  }).catch((err) => {
-    window.$notification?.error({ content: err.data.error_msg || unkonwnErrorMsg });
-    changeLoadingStatus(false);
-  });
+  axios.get('/v1/scope', {
+    ...options,
+    page_num: pagination.value.page,
+    page_size: pagination.value.pageSize,
+  })
+    .then((res) => {
+      data.value = res.data?.items || [];
+      pagination.value.pageCount = res.data?.pages || 1;
+      changeLoadingStatus(false);
+    }).catch((err) => {
+      window.$notification?.error({ content: err.data.error_msg || unkonwnErrorMsg });
+      changeLoadingStatus(false);
+    });
 }
-// function editRule(row) {
-//   setFormType('edit');
-//   setEditData(JSON.parse(JSON.stringify(row)));
-//   createRef.value.show();
-// }
+
+const pageChange = (page) => {
+  pagination.value.page = page;
+  getRules();
+};
+const pageSizeChange = (pageSize) => {
+  pagination.value.pageSize = pageSize;
+  pagination.value.page = 1;
+  getRules();
+};
+
 function deleteRule(row) {
   axios.delete(`/v1/scope/${row.id}`).then(() => getRules());
 }
@@ -87,19 +103,6 @@ const columns = [
           align: 'center',
         },
         [
-          // renderTooltip(
-          //   h(
-          //     NButton,
-          //     {
-          //       size: 'medium',
-          //       type: 'warning',
-          //       circle: true,
-          //       onClick: () => editRule(row),
-          //     },
-          //     h(NIcon, { size: '20' }, h(Construct))
-          //   ),
-          //   '修改'
-          // ),
           renderTooltip(
             h(
               NButton,
@@ -146,14 +149,16 @@ const filters = [
 ];
 
 function filterChange(options) {
-  changeLoadingStatus(true);
-  axios.get('/v1/scope', options).then((res) => {
-    data.value = res.data;
-    changeLoadingStatus(false);
-  }).catch((err) => {
-    window.$notification?.error({ content: err.data.error_msg || unkonwnErrorMsg });
-    changeLoadingStatus(false);
-  });
+  getRules(options);
 }
 
-export { filters, data, columns, pagination, getRules, filterChange };
+export { 
+  filters, 
+  data, 
+  columns, 
+  pagination,
+  pageChange,
+  pageSizeChange,
+  getRules, 
+  filterChange 
+};

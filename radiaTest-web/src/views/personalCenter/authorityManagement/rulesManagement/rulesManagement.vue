@@ -25,7 +25,13 @@
       @submitform="submitForm"
     />
     <table-filter :filters="filters" @filterchange="filterChange" />
-    <n-data-table :columns="columns" :data="data" :pagination="pagination" />
+    <n-data-table 
+      :columns="columns" 
+      :data="data" 
+      :pagination="pagination" 
+      @update:page="pageChange"
+      @update:page-size="pageSizeChange"
+    />
   </div>
 </template>
 <script>
