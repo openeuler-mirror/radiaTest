@@ -9,15 +9,13 @@ import ConnectButton from '@/components/pmachineComponents/changeState/ConnectBu
 import InstallButton from '@/components/pmachineComponents/changeState/InstallButton';
 import ExpandedCardPmachine from '@/components/pmachineComponents/ExpandedCardPmachine.vue';
 import { formatTime } from '@/assets/utils/dateFormatUtils';
-import pmachineTable from './pmachineTable';
 import { modifyPmachineDelayTime } from '@/api/put';
-import { get } from '@/assets/CRUD/read';
 
-const delayModalRef = ref();
 const delay = ref({
   time: '',
   id: ''
 });
+const showDelayModal = ref(false);
 
 const ColumnEndtime = ref({
   title: '释放时间',
@@ -42,7 +40,7 @@ const ColumnEndtime = ref({
               onClick: () => {
                 delay.value.time = new Date(row.end_time).getTime();
                 delay.value.id = row.id;
-                delayModalRef.value.show();
+                showDelayModal.value = true;
               }
             },
             row.end_time
@@ -220,11 +218,10 @@ const createColumns = (updateHandler) => {
 function submitDelay() {
   modifyPmachineDelayTime(delay.value.id, {
     end_time: formatTime(delay.value.time, 'yyyy-MM-dd hh:mm:ss')
-  }).then(() => {
-    delay.value.id = '';
-    delay.value.time = '';
-    get.list('/v1/pmachine', pmachineTable.totalData, pmachineTable.loading);
-  });
+  })
+    .then(() => {
+      showDelayModal.value = false;
+    });
 }
 
-export { ColumnDefault, createColumns, ColumnEndtime, submitDelay, delay, delayModalRef };
+export { ColumnDefault, createColumns, ColumnEndtime, submitDelay, delay, showDelayModal };

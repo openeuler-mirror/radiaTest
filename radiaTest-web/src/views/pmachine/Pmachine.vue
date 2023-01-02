@@ -57,8 +57,16 @@
     <n-gi :span="24"></n-gi>
     <n-gi :span="24">
       <pmachine-table ref="tableRef" @update="() => updateModalRef.show()" />
-      <modal-card title="延长占用时间" ref="delayModalRef" @validate="submitDelay">
-        <template #form>
+      <n-modal v-model:show="showDelayModal">
+        <n-dialog
+          type="info"
+          title="延长占用时间"
+          negative-text="取消"
+          positive-text="确认"
+          @positive-click="submitDelay"
+          @negative-click="() => { showDelayModal = false; }"
+          @close="() => { showDelayModal = false; }"
+        >
           <n-form-item label="释放时间">
             <n-date-picker
               style="width: 100%"
@@ -68,8 +76,8 @@
               :is-date-disabled="(current) => delay.time > current"
             />
           </n-form-item>
-        </template>
-      </modal-card>
+        </n-dialog>
+      </n-modal>
       <modal-card
         title="修改物理机"
         url="/v1/pmachine"
@@ -148,7 +156,7 @@ import { ref, defineComponent } from 'vue';
 import settings from '@/assets/config/settings.js';
 import Common from '@/components/CRUD';
 import Essential from '@/components/pmachineComponents';
-import { delay, delayModalRef, submitDelay } from './modules/pmachineTableColumns';
+import { delay, submitDelay, showDelayModal } from './modules/pmachineTableColumns';
 import filterButton from '@/components/filter/filterButton.vue';
 import { useStore } from 'vuex';
 import pmachineFilter from '@/views/pmachine/modules/pmachineFilter.js';
@@ -249,7 +257,6 @@ export default defineComponent({
 
     return {
       delay,
-      delayModalRef,
       submitDelay,
       settings,
       tableRef,
@@ -258,7 +265,8 @@ export default defineComponent({
       createModalRef,
       updateModalRef,
       filterRule,
-      filterchange
+      filterchange,
+      showDelayModal
     };
   }
 });
