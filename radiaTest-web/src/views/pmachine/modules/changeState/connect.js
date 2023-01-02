@@ -9,8 +9,13 @@ class ConnectState {
   constructor(data) {
     this.originData = data;
     this.formValue = ref(data);
-    this.datetime = ref(data.end_time);
-    data.end_time ? (this.datetime.value = any2stamp(data.end_time)) : 0;
+    this.datetime = ref();
+    if (data.end_time) {
+      this.datetime.value = any2stamp(data.end_time);
+    } else {
+      const oneDay = 1000 * 60 * 60 * 24;
+      this.datetime.value = Date.now() + oneDay;
+    }
   }
   update(newData) {
     this.formValue.value = newData;
@@ -75,8 +80,18 @@ class ConnectState {
           if (date.getDate() === now.getDate()) {
             return {
               isHourDisabled: (hour) => hour < now.getHours(),
-              isMinuteDisabled: (minute) => minute < now.getMinutes(),
-              isSecondDisabled: (second) => second < now.getSeconds(),
+              isMinuteDisabled: (minute) => {
+                if (date.getHours() === now.getHours()) {
+                  return minute < now.getMinutes();
+                }
+                return false;
+              },
+              isSecondDisabled: (second) => {
+                if (date.getMinutes() === now.getMinutes()) {
+                  return second < now.getSeconds();
+                }
+                return false;
+              },
             };
           }
           return false;
@@ -97,7 +112,7 @@ class ConnectState {
             height: '20px',
           },
         },
-        '请选择释放时间'
+        '请选择释放时间(默认1天)'
       );
     }
     return null;
@@ -178,6 +193,14 @@ const handleRelease = (dRelease, connect) => {
 };
 
 const handlePositiveClick = (dOccupy, connect) => {
+  if (
+    connect.formValue.value.description !== 'as the host of ci' 
+    && connect.formValue.value.defaultValue !== 'used for ci'
+    && !connect.datetime.value
+  ) {
+    window.$message?.error('此用途释放时间不可为空');
+    return new Promise();
+  }
   dOccupy.loading = true;
   return handleOccupy(dOccupy, connect);
 };
@@ -219,7 +242,8 @@ const renderOccupy = (connect) => {
   ]);
 };
 
-const handleConnectClick = (connect, type) => {
+const handleConnectClick = (data, type) => {
+  const connect = new ConnectState(data);
   if (type === 'occupy') {
     const dOccupy = window.$dialog?.info({
       title: '确定要占用该机器吗？',

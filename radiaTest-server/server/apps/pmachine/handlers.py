@@ -16,6 +16,8 @@
 #####################################
 
 import json
+import datetime
+import pytz
 
 from flask import g, current_app, jsonify, request
 from sqlalchemy import or_, and_
@@ -24,9 +26,10 @@ from server import redis_client
 from server.model.pmachine import Pmachine, MachineGroup
 from server.model.group import Group, ReUserGroup
 from server.model.message import Message, MsgType, MsgLevel
+from server.model.permission import Scope, Role, ReScopeRole
 from server.utils.response_util import ssl_cert_verify_error_collect
 from server.utils.redis_util import RedisKey
-from server.utils.db import Insert, collect_sql_error
+from server.utils.db import Insert, Edit, collect_sql_error
 from server.utils.requests_util import do_request
 from server.utils.response_util import RET
 from server.utils.page_util import PageUtil
@@ -141,6 +144,81 @@ class PmachineHandler:
                 error_msg=f'get group page error {e}'
             )
         return jsonify(error_code=RET.OK, error_msg="OK", data=page_dict)
+
+
+class PmachineOccupyReleaseHandler:
+    @staticmethod
+    def check_scope_exist(act, uri, eft):
+        scope = Scope.query.filter_by(act=act, uri=uri, eft=eft).first()
+        if not scope:
+            return False, None
+        return True, scope
+
+    @staticmethod
+    def occupy_with_bind_scopes(pmachine_id, body):
+        pmachine = Pmachine.query.filter_by(id=pmachine_id).first()
+        if not pmachine:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="The pmachine does not exist. Please check."
+            )
+        if pmachine.state == "occupied":
+            return jsonify(
+                error_code=RET.VERIFY_ERR,
+                error_msg="Pmachine state has not been modified. Please check."
+            )
+
+        if not all((pmachine.ip, pmachine.user, pmachine.password, pmachine.port,)):
+            return jsonify(
+                error_code=RET.VERIFY_ERR,
+                error_msg="The pmachine lacks of SSH info. Please add."
+            )
+
+        # 若当前请求用户非创建者，则进行临时赋权
+        if g.gitee_id != pmachine.creator_id:
+            role = Role.query.filter_by(type='person', name=g.gitee_id).first()
+            if not role:
+                return jsonify(
+                    error_code=RET.NO_DATA_ERR,
+                    error_msg="The role policy info is invalid."
+                )
+
+            scopes_list = ['occupy', 'release', 'power', 'install', 'ssh', 'data']
+            for sub_uri in scopes_list:
+                _uri = '/api/v1/pmachine/{}'.format(pmachine.id)
+                if sub_uri != 'data':
+                    _uri += f'/{sub_uri}'
+                
+                exist, scope = PmachineOccupyReleaseHandler.check_scope_exist(
+                    act='put',
+                    uri=_uri,
+                    eft='allow'
+                )
+                if not exist:
+                    return jsonify(
+                        error_code=RET.NO_DATA_ERR,
+                        error_msg=f"policy put_{_uri}_allow does not exist"
+                    )
+                
+                bind_body = {
+                    "role_id": role.id,
+                    "scope_id": scope.id,
+                }
+                Insert(ReScopeRole, bind_body).single()
+            
+        _body = body.__dict__
+        end_time = _body.get("end_time")
+        if end_time:
+            _body.update({
+                "end_time": datetime.datetime.strptime(end_time, "%Y-%m-%d %H:%M:%S").
+                    replace(tzinfo=pytz.timezone('Asia/Shanghai'))
+            })
+        _body.update({
+            "id": pmachine_id,
+            "state": "occupied"
+        })
+
+        return Edit(Pmachine, _body).single(Pmachine, "/pmachine")
 
 
 class PmachineMessenger:

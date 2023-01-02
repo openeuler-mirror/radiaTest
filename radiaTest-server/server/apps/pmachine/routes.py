@@ -2,8 +2,6 @@
 # @Author: Your name
 # @Date:   2022-04-12 14:05:57
 import json
-import datetime
-import pytz
 
 from flask import jsonify, current_app, g
 from flask_restful import Resource
@@ -14,7 +12,7 @@ from server import casbin_enforcer
 from server.model import Pmachine, IMirroring, Vmachine
 from server.model.pmachine import MachineGroup
 from server.model.permission import ReScopeRole, Role, Scope
-from server.utils.db import Edit, Insert, collect_sql_error, Delete
+from server.utils.db import Edit, collect_sql_error, Delete
 from server.utils.auth_util import auth
 from server.utils.response_util import response_collect, RET
 from server.utils.resource_utils import ResourceManager
@@ -34,7 +32,7 @@ from server.schema.pmachine import (
     PmachineSshSchema,
     PmachineBmcSchema,
 )
-from .handlers import PmachineHandler, PmachineMessenger, ResourcePoolHandler
+from .handlers import PmachineHandler, PmachineMessenger, PmachineOccupyReleaseHandler, ResourcePoolHandler
 
 
 class MachineGroupEvent(Resource):
@@ -158,149 +156,10 @@ class PmachineOccupyEvent(Resource):
     @validate()
     @casbin_enforcer.enforcer
     def put(self, pmachine_id, body: PmachineOccupySchema):
-        pmachine = Pmachine.query.filter_by(id=pmachine_id).first()
-        if not pmachine:
-            return jsonify(
-                error_code=RET.NO_DATA_ERR,
-                error_msg="The pmachine does not exist. Please check."
-            )
-        if pmachine.state == "occupied":
-            return jsonify(
-                error_code=RET.VERIFY_ERR,
-                error_msg="Pmachine state has not been modified. Please check."
-            )
-
-        # 赋权
-        if not all((
-                pmachine.ip,
-                pmachine.user,
-                pmachine.password,
-                pmachine.port,
-        )):
-            return jsonify(
-                error_code=RET.VERIFY_ERR,
-                error_msg="The pmachine lacks SSH parameters. Please add."
-            )
-
-        if g.gitee_id != pmachine.creator_id:
-            role = Role.query.filter_by(type='person', name=g.gitee_id).first()
-            if not role:
-                return jsonify(
-                    error_code=RET.NO_DATA_ERR,
-                    error_msg="The role policy info is invalid."
-                )
-
-            scope_occupy = Scope.query.filter_by(
-                act='put',
-                uri='/api/v1/pmachine/{}/occupy'.format(pmachine_id),
-                eft='allow'
-            ).first()
-            if not scope_occupy:
-                return jsonify(
-                    error_code=RET.NO_DATA_ERR,
-                    error_msg="The scope_occupy policy info is invalid."
-                )
-
-            scope_release = Scope.query.filter_by(
-                act='put',
-                uri='/api/v1/pmachine/{}/release'.format(pmachine_id),
-                eft='allow'
-            ).first()
-            if not scope_release:
-                return jsonify(
-                    error_code=RET.NO_DATA_ERR,
-                    error_msg="The scope_release policy info is invalid."
-                )
-
-            scope_power = Scope.query.filter_by(
-                act='put',
-                uri='/api/v1/pmachine/{}/power'.format(pmachine_id),
-                eft='allow'
-            ).first()
-            if not scope_power:
-                return jsonify(
-                    error_code=RET.NO_DATA_ERR,
-                    error_msg="The scope_power policy info is invalid."
-                )
-
-            scope_install = Scope.query.filter_by(
-                act='put',
-                uri='/api/v1/pmachine/{}/install'.format(pmachine_id),
-                eft='allow'
-            ).first()
-            if not scope_install:
-                return jsonify(
-                    error_code=RET.NO_DATA_ERR,
-                    error_msg="The scope_install policy info is invalid."
-                )
-
-            scope_update = Scope.query.filter_by(
-                act='put',
-                uri='/api/v1/pmachine/{}'.format(pmachine_id),
-                eft='allow'
-            ).first()
-            if not scope_update:
-                return jsonify(
-                    error_code=RET.NO_DATA_ERR,
-                    error_msg="The scope_update policy info is invalid."
-                )
-
-            scope_ssh = Scope.query.filter_by(
-                act='put',
-                uri='/api/v1/pmachine/{}/ssh'.format(pmachine_id),
-                eft='allow'
-            ).first()
-            if not scope_ssh:
-                return jsonify(
-                    error_code=RET.NO_DATA_ERR,
-                    error_msg="The scope_ssh policy info is invalid."
-                )
-
-            scope_occupy_role_data = {
-                "role_id": role.id,
-                "scope_id": scope_occupy.id
-            }
-            scope_release_role_data = {
-                "role_id": role.id,
-                "scope_id": scope_release.id
-            }
-            scope_power_role_data = {
-                "role_id": role.id,
-                "scope_id": scope_power.id
-            }
-            scope_install_role_data = {
-                "role_id": role.id,
-                "scope_id": scope_install.id
-            }
-            scope_update_role_data = {
-                "role_id": role.id,
-                "scope_id": scope_update.id
-            }
-            scope_ssh_role_data = {
-                "role_id": role.id,
-                "scope_id": scope_ssh.id
-            }
-
-            Insert(ReScopeRole, scope_release_role_data).single()
-            Insert(ReScopeRole, scope_occupy_role_data).single()
-            Insert(ReScopeRole, scope_power_role_data).single()
-            Insert(ReScopeRole, scope_install_role_data).single()
-            Insert(ReScopeRole, scope_update_role_data).single()
-            Insert(ReScopeRole, scope_ssh_role_data).single()
-
-        _body = body.__dict__
-        end_time = _body.get("end_time")
-        if end_time:
-            _body.update({
-                "end_time": datetime.datetime.strptime(end_time, "%Y-%m-%d %H:%M:%S").
-                    replace(tzinfo=pytz.timezone('Asia/Shanghai'))
-            })
-        _body.update({
-            "id": pmachine_id,
-            "state": "occupied"
-        })
-
-        return Edit(Pmachine, _body).single(Pmachine, "/pmachine")
+        return PmachineOccupyReleaseHandler.occupy_with_bind_scopes(
+            pmachine_id, 
+            body
+        )
 
 
 class PmachineReleaseEvent(Resource):
