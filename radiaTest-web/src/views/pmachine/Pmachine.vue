@@ -63,7 +63,8 @@
             <n-date-picker
               style="width: 100%"
               v-model:value="delay.time"
-              type="date"
+              :actions="['confirm']"
+              type="datetime"
               :is-date-disabled="(current) => delay.time > current"
             />
           </n-form-item>
