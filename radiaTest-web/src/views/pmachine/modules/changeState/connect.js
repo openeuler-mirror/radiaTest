@@ -193,6 +193,10 @@ const handleRelease = (dRelease, connect) => {
 };
 
 const handlePositiveClick = (dOccupy, connect) => {
+  if (!connect.formValue.value.description) {
+    window.$message?.error('使用说明不可为空');
+    return new Promise();
+  }
   if (
     connect.formValue.value.description !== 'as the host of ci' 
     && connect.formValue.value.defaultValue !== 'used for ci'
