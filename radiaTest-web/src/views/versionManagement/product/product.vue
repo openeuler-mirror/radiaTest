@@ -31,6 +31,8 @@
           placeholder="请选择产品"
           style="width: 200px"
           :options="productList"
+          :consistent-menu-width="false"
+          filterable
           clearable
         />
         <n-button :disabled="!currentProduct" @click="clickCheckList" style="margin-right: 40px">
@@ -45,7 +47,16 @@
       </div>
     </div>
     <div>
-      <n-data-table :loading="tableLoading" :columns="columns" :data="tableData" :row-props="rowProps" />
+      <n-data-table
+        remote
+        :loading="tableLoading"
+        :columns="columns"
+        :data="tableData"
+        :pagination="productVersionPagination"
+        @update:page="productVersionPageChange"
+        @update:page-size="productVersionPageSizeChange"
+        :row-props="rowProps"
+      />
     </div>
     <!-- 产品版本抽屉 -->
     <n-drawer v-model:show="drawerShow" style="width: 60%">
@@ -406,7 +417,14 @@
           </n-drawer>
         </div>
         <n-modal v-model:show="showChecklistBoard">
-          <n-card style="width: 1000px" title="检查项比对结果" :bordered="false" size="huge" role="dialog" aria-modal="true">
+          <n-card
+            style="width: 1000px"
+            title="检查项比对结果"
+            :bordered="false"
+            size="huge"
+            role="dialog"
+            aria-modal="true"
+          >
             <n-data-table
               :loading="checklistBoardTableLoading"
               :columns="checklistBoardTableColumns"
@@ -535,7 +553,6 @@
   </div>
 </template>
 <script>
-import { useStore } from 'vuex';
 import { getProduct } from '@/api/get';
 import Common from '@/components/CRUD';
 import Essential from '@/components/productComponents';
@@ -577,34 +594,23 @@ export default {
     echart
   },
   setup() {
-    const store = useStore();
     const additionFeatureOption = reactive(JSON.parse(JSON.stringify(modules.featureOption)));
     const inheritFeatureOption = reactive(JSON.parse(JSON.stringify(modules.featureOption)));
     const refreshTableData = () => {
-      store.commit('filterProduct/setName', null);
-      store.commit('filterProduct/setVersion', null);
-      store.commit('filterProduct/setDescription', null);
-      store.commit('filterProduct/setStartTime', null);
-      store.commit('filterProduct/setEndTime', null);
-      store.commit('filterProduct/setPublishTime', null);
+      modules.getTableData({
+        page_num: 1,
+        page_size: modules.productVersionPagination.value.pageSize
+      });
     };
     onMounted(() => {
-      modules.getTableData();
+      modules.getTableData({
+        page_num: modules.productVersionPagination.value.page,
+        page_size: modules.productVersionPagination.value.pageSize
+      });
       modules.getDefaultList();
       getProductVersionOpts(modules.productList);
       modules.setFeatureOption(additionFeatureOption, '新增特性', modules.additionFeatureSummary.value);
       modules.setFeatureOption(inheritFeatureOption, '继承特性', modules.inheritFeatureSummary.value);
-    });
-    watch(store.getters.filterProductState, () => {
-      modules.tableLoading.value = true;
-      getProduct(store.getters.filterProductState)
-        .then((res) => {
-          modules.tableData.value = res.data || [];
-          modules.tableLoading.value = false;
-        })
-        .catch(() => {
-          modules.tableLoading.value = false;
-        });
     });
     watch([modules.additionFeatureSummary, modules.inheritFeatureSummary], () => {
       modules.setFeatureOption(additionFeatureOption, '新增特性', modules.additionFeatureSummary.value);

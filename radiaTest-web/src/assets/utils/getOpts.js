@@ -35,10 +35,10 @@ const getProductOpts = (productOpts, loading) => {
   loading ? (loading.value = true) : 0;
   productOpts.value = [];
   axios
-    .get('/v1/product')
+    .get('/v1/product', { paged: false })
     .then((res) => {
       loading ? (loading.value = false) : 0;
-      res.data.forEach((item) => {
+      res.data.items.forEach((item) => {
         if (!productOpts.value.includes(item.name)) {
           productOpts.value.push(item.name);
         }
@@ -60,10 +60,10 @@ const getProductVersionOpts = (productOpts, loading) => {
   loading ? (loading.value = true) : 0;
   productOpts.value = [];
   axios
-    .get('/v1/product')
+    .get('/v1/product', { paged: false })
     .then((res) => {
       loading ? (loading.value = false) : 0;
-      productOpts.value = res.data.map((item) => {
+      productOpts.value = res.data.items.map((item) => {
         return {
           label: `${item.name} ${item.version}`,
           value: item.id.toString()

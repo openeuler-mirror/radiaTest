@@ -21,7 +21,8 @@ import {
   milestoneRollback,
   updateCheckListItem,
   deselectCheckListItem,
-  updateProductVersion
+  updateProductVersion,
+  statisticsProduct
 } from '@/api/put';
 import { deleteProductVersion } from '@/api/delete';
 import {
@@ -78,12 +79,19 @@ watch(
   }
 );
 
+const tableLoading = ref(false);
 const tableData = ref([]);
+const productVersionPagination = ref({
+  page: 1,
+  pageSize: 10,
+  pageCount: 1,
+  showSizePicker: true,
+  pageSizes: [5, 10, 20, 50]
+});
 const testList = ref([]);
 const list = ref([]);
 const currentId = ref('');
 const preId = ref('');
-const tableLoading = ref(false);
 const showCheckList = ref(false);
 const message = useMessage();
 const productList = ref([]); // 产品列表
@@ -91,15 +99,93 @@ const currentProduct = ref(''); // 当前产品
 const checkItemList = ref([]); // 检查项列表
 const existedCheckItemList = ref([]); // 新增基准值表单检查项列表
 
+const productVersionPageChange = (page) => {
+  productVersionPagination.value.page = page;
+  getTableData({
+    ...productFilterParam.value,
+    page_num: productVersionPagination.value.page,
+    page_size: productVersionPagination.value.pageSize
+  });
+};
+const productVersionPageSizeChange = (pageSize) => {
+  productVersionPagination.value.pageSize = pageSize;
+  productVersionPagination.value.page = 1;
+  getTableData({
+    ...productFilterParam.value,
+    page_num: productVersionPagination.value.page,
+    page_size: productVersionPagination.value.pageSize
+  });
+};
+
+const filterRule = ref([
+  {
+    path: 'name',
+    name: '产品名称',
+    type: 'input'
+  },
+  {
+    path: 'version',
+    name: '版本名称',
+    type: 'input'
+  },
+  {
+    path: 'description',
+    name: '描述',
+    type: 'input'
+  },
+  {
+    path: 'start_time',
+    name: '开始时间',
+    type: 'startdate'
+  },
+  {
+    path: 'end_time',
+    name: '结束时间',
+    type: 'enddate'
+  },
+  {
+    path: 'public_time',
+    name: '发布时间',
+    type: 'otherdate'
+  }
+]);
+
+const productFilterParam = ref({
+  name: null,
+  version: null,
+  description: null,
+  start_time: null,
+  end_time: null,
+  publish_time: null
+});
+
+const filterchange = (filterArray) => {
+  productFilterParam.value = {
+    name: null,
+    version: null,
+    description: null,
+    start_time: null,
+    end_time: null,
+    publish_time: null
+  };
+  filterArray.forEach((v) => {
+    productFilterParam.value[v.path] = v.value;
+  });
+  getTableData({ ...productFilterParam.value, page_num: 1, page_size: productVersionPagination.value.pageSize });
+};
+
 function getDefaultList() {
   testList.value = testProgressList.value[testProgressList.value.length - 1];
 }
-function getTableData() {
+function getTableData(param) {
   tableLoading.value = true;
-  getProduct()
+  getProduct(param)
     .then((res) => {
-      tableData.value = res.data || [];
+      tableData.value = res.data.items || [];
       tableLoading.value = false;
+      productVersionPagination.value.pageCount = res.data.pages;
+      productVersionPagination.value.page = res.data.current_page;
+      productVersionPagination.value.pageSize = res.data.page_size;
     })
     .catch(() => {
       tableLoading.value = false;
@@ -205,6 +291,7 @@ const cancelEditProductVersionModal = () => {
   };
 };
 
+// 编辑产品信息
 function confirmEditProductVersionModal(e) {
   e.preventDefault();
   productVersionFormRef.value?.validate((errors) => {
@@ -215,16 +302,28 @@ function confirmEditProductVersionModal(e) {
 
       updateProductVersion(editProductId.value, obj).then(() => {
         cancelEditProductVersionModal();
-        getTableData();
+        getTableData({
+          ...productFilterParam.value,
+          page_num: productVersionPagination.value.page,
+          page_size: productVersionPagination.value.pageSize
+        });
       });
     }
   });
 }
 
+function statisticsRow(row) {
+  statisticsProduct(row.id);
+}
+
 function deleteRow(row) {
   textDialog('warning', '警告', '确认删除产品版本？', () => {
     deleteProductVersion(row.id).then(() => {
-      getTableData();
+      getTableData({
+        ...productFilterParam.value,
+        page_num: 1,
+        page_size: productVersionPagination.value.pageSize
+      });
     });
   });
 }
@@ -397,7 +496,12 @@ const columns = [
         {
           style: 'justify-content: center'
         },
-        [renderBtn('编辑', editRow, row), renderBtn('删除', deleteRow, row), renderBtn('报告', reportRow, row)]
+        [
+          renderBtn('编辑', editRow, row),
+          renderBtn('统计', statisticsRow, row),
+          renderBtn('删除', deleteRow, row),
+          renderBtn('报告', reportRow, row)
+        ]
       );
     }
   }
@@ -1175,5 +1279,10 @@ export {
   handlePackageCardClick,
   handleRollback,
   cancelEditProductVersionModal,
-  hasQualityboard
+  hasQualityboard,
+  productVersionPagination,
+  productVersionPageChange,
+  productVersionPageSizeChange,
+  filterRule,
+  filterchange
 };

@@ -1,11 +1,11 @@
 import { modifySuccessMsg, unkonwnErrorMsg } from '@/assets/utils/description';
 import axios from '@/axios';
-function putRequest(url, data) {
+function putRequest(url, data, msg) {
   return new Promise((resolve, reject) => {
     axios
       .put(url, data)
       .then((res) => {
-        window.$message?.success(modifySuccessMsg);
+        window.$message?.success(msg?.successMsg || modifySuccessMsg);
         resolve(res);
       })
       .catch((err) => {
@@ -138,4 +138,8 @@ export function updateCaseNodeParent(caseNodeId, nextParentId) {
 
 export function updateStepLogAxios(jobId, data) {
   return putRequest(`/v1/manual-job/log/${jobId}`, data);
+}
+
+export function statisticsProduct(id) {
+  return putRequest(`/v1/product/${id}/issue-rate`, {}, { successMsg: '统计成功' });
 }
