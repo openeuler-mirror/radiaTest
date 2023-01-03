@@ -182,8 +182,8 @@ const filterRule = ref([
     type: 'select',
     options: [
       { label: '可接受', value: 'idle' },
-      { label: '已接收', value: 'accepted' },
-      { label: '已完成', value: 'validated' }
+      { label: '已接受', value: 'accepted' },
+      { label: '已验收', value: 'validated' }
     ]
   },
   {

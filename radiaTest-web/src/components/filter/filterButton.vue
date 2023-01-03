@@ -172,9 +172,13 @@ export default {
           filterArray.value[index].type = v.type;
           filterArray.value[index].value = null;
           if (!v.condition) {
+            filterArray.value[index].conditionFlag = false;
             filterArray.value[index].condition = filterCondition(v.type);
+            filterArray.value[index].conditionOptions = null;
+            filterArray.value[index].conditionValue = null;
           } else {
             filterArray.value[index].conditionFlag = true;
+            filterArray.value[index].condition = null;
             filterArray.value[index].conditionOptions = v?.conditionOptions;
             filterArray.value[index].conditionValue = v?.conditionValue;
           }
