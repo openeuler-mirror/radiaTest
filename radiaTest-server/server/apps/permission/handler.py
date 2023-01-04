@@ -15,6 +15,7 @@ from server.utils.db import Insert, Delete, collect_sql_error
 from server.utils.read_from_yaml import get_default_suffix
 from server.utils.redis_util import RedisKey
 from server.utils.permission_utils import GetAllByPermission
+from server.utils.page_util import PageUtil
 
 
 class RoleHandler:
@@ -219,10 +220,17 @@ class ScopeHandler:
             if key == 'eft':
                 filter_params.append(Scope.eft == value)
 
-        scopes = Scope.query.filter(*filter_params).all()
-        return_data = [scope.to_json() for scope in scopes]
+        scopes = Scope.query.filter(*filter_params)
 
-        return jsonify(error_code=RET.OK, error_msg="OK", data=return_data)
+        def page_func(item):
+            scope_dict = item.to_json()
+            return scope_dict
+
+        page_dict, e = PageUtil.get_page_dict(scopes, query.page_num, query.page_size, func=page_func)
+
+        if e:
+            return jsonify(error_code=RET.SERVER_ERR, error_msg=f'get public scope page info error {e}')
+        return jsonify(error_code=RET.OK, error_msg="OK", data=page_dict)
 
     @staticmethod
     def get_scopes_by_role(role_id, query):
