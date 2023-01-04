@@ -271,10 +271,11 @@ def resolve_dailybuild_detail(self, dailybuild_id, dailybuild_detail, weekly_hea
 
 
 @celery.task(bind=True)
-def resolve_rpmcheck_detail(self, rpm_check_id, rpm_check_detail):
+def resolve_rpmcheck_detail(self, build_name, rpm_check_detail, _file=None):
     RpmCheckHandler(logger, self).resolve_detail(
-        rpm_check_id,
+        build_name,
         rpm_check_detail,
+        _file,
     )
 
 

@@ -40,7 +40,7 @@ from server.model.mirroring import Repo
 from server.model.vmachine import Vmachine
 from server.model.organization import Organization
 from server.model.product import Product
-from server.model.qualityboard import DailyBuild, WeeklyHealth, RpmCheck
+from server.model.qualityboard import DailyBuild, WeeklyHealth
 from server.model.milestone import Milestone, TestReport
 from server.utils.db import Insert, Edit
 from server.utils.response_util import RET
@@ -359,21 +359,11 @@ class RpmCheckEvent(Resource):
                 error_msg="the file with rpmcheck detail is not in valid format"
             )
 
-        _id = None
-        _rpm_check = RpmCheck.query.filter_by(product_id=product.id, name=f"{_product}-{_build}").first()
-        if _rpm_check:
-            _id = _rpm_check.id
-        else:
-            _id = Insert(
-                RpmCheck,
-                {
-                    "name": f"{_product}-{_build}",
-                    "build_time": _build,
-                    "product_id": product.id,
-                }
-            ).insert_id(RpmCheck, "/rpm_check")
+        _file.seek(0)
+        rpmcheck_path = current_app.config.get("RPMCHECK_FILE_PATH")
+        _file.save(f"{rpmcheck_path}/rpmcheck_{_product}_{_build}.yaml")
 
-        resolve_rpmcheck_detail.delay(_id, _detail)
+        resolve_rpmcheck_detail.delay(f"{_product}_{_build}", _detail)
         return jsonify(
             error_code=RET.OK,
             error_msg="OK",
