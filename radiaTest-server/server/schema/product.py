@@ -3,7 +3,7 @@ from pydantic import BaseModel, constr, root_validator
 
 from server.model import Product
 from server.utils.db import Precise
-from server.schema.base import PermissionBase, TimeBaseSchema
+from server.schema.base import PermissionBase, TimeBaseSchema, PageBaseSchema
 
 
 class ProductBase(PermissionBase, TimeBaseSchema):
@@ -29,12 +29,10 @@ class ProductUpdate(TimeBaseSchema):
     description: Optional[constr(max_length=255)]
 
 
-class ProductQueryBase(BaseModel):
+class ProductQueryBase(PageBaseSchema):
     name: Optional[constr(max_length=32)]
     version: Optional[constr(max_length=32)]
     description: Optional[constr(max_length=255)]
-
-
-class ProductIssueRateFieldSchema(BaseModel):
-    field: Literal["serious_resolved_rate", "main_resolved_rate",
-                   "serious_main_resolved_rate", "current_resolved_rate", "left_issues_cnt"]
+    start_time: Optional[str]
+    end_time: Optional[str]
+    released_time: Optional[str]
