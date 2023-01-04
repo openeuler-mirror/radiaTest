@@ -2,6 +2,7 @@ from typing import Optional
 from typing_extensions import Literal
 from pydantic import BaseModel, root_validator
 from server.schema import Frame, MachinePurpose, MachineType, RoleType, ActionType, EffectType
+from server.schema.base import PageBaseSchema
 
 
 class RoleBaseSchema(BaseModel):
@@ -64,6 +65,7 @@ class ScopeBaseSchema(BaseModel):
     act: ActionType
     eft: EffectType
 
+
 class ScopeUpdateSchema(ScopeBaseSchema):
     alias: Optional[str]
     uri: Optional[str]
@@ -71,7 +73,7 @@ class ScopeUpdateSchema(ScopeBaseSchema):
     eft: Optional[EffectType]
 
 
-class ScopeQuerySchema(ScopeUpdateSchema):
+class ScopeQuerySchema(ScopeUpdateSchema, PageBaseSchema):
     pass
 
 
