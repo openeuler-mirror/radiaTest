@@ -20,12 +20,11 @@
 </template>
 
 <script>
-import { ref, onMounted, onUnmounted, defineComponent } from 'vue';
+import { ref, defineComponent } from 'vue';
 import { useStore } from 'vuex';
 import { Socket } from '@/socket';
 import { getPmachine } from '@/api/get';
 import settings from '@/assets/config/settings.js';
-import { get, selection } from '@/assets/CRUD/read';
 import pmachineTable from '@/views/pmachine/modules/pmachineTable.js';
 import { createColumns } from '@/views/pmachine/modules/pmachineTableColumns.js';
 import pmachineFilter from '@/views/pmachine/modules/pmachineFilter';
@@ -86,18 +85,6 @@ export default defineComponent({
   },
   setup(props, context) {
     const store = useStore();
-    // const pmachineSocket = new Socket(`${settings.websocketProtocol}://${settings.serverPath}/pmachine`);
-    // pmachineSocket.connect();
-
-    onMounted(() => {
-      // get.list('/v1/pmachine', pmachineTable.totalData, pmachineTable.loading);
-      // pmachineSocket.listen('update', (res) => {
-      //   pmachineTable.totalData.value = JSON.parse(res);
-      // });
-    });
-    onUnmounted(() => {
-      // pmachineSocket.disconnect();
-    });
 
     const updateHandler = (row) => {
       store.commit('rowData/set', JSON.parse(JSON.stringify(row)));
@@ -111,14 +98,6 @@ export default defineComponent({
       columns,
       ...pmachineTable,
       pmachineFilter: pmachineFilter.filterValue,
-      showSelection: () => selection.show(columns),
-      offSelection: () => selection.off(columns),
-      refreshData: () =>
-        get.refresh(
-          '/v1/pmachine',
-          pmachineTable.totalData,
-          pmachineTable.loading
-        ),
     };
   },
 });
