@@ -211,7 +211,7 @@ class PmachineOccupyReleaseHandler:
         if end_time:
             _body.update({
                 "end_time": datetime.datetime.strptime(end_time, "%Y-%m-%d %H:%M:%S").
-                    replace(tzinfo=pytz.timezone('Asia/Shanghai'))
+                    astimezone(pytz.timezone('Asia/Shanghai'))
             })
         _body.update({
             "id": pmachine_id,
