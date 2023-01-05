@@ -196,13 +196,13 @@ class VmachineDelaySchema(BaseModel):
 
     @validator("end_time")
     def check_end_time(cls, v, values):
-        if not v or v.replace(tzinfo=pytz.timezone('Asia/Shanghai')) \
+        if not v or v.astimezone(pytz.timezone('Asia/Shanghai')) \
             < (datetime.now(pytz.timezone('Asia/Shanghai'))):
             raise ValueError(
                 "Empty time and Past time cannot be modified."
             )
 
-        dl = (v.replace(tzinfo=pytz.timezone('Asia/Shanghai')) -
+        dl = (v.astimezone(pytz.timezone('Asia/Shanghai')) -
                 datetime.now(pytz.timezone('Asia/Shanghai'))
             ).days
         if dl > current_app.config.get("VM_MAX_DAYS"):
