@@ -1,43 +1,46 @@
 <template>
   <span>
-      <span class="account">{{ title }}</span>
+      <span class="account">{{ props.title }}</span>
       <span class="account">用户名/密码:</span>
-      <span class="account">{{ accountInfo[title] }}</span>  
+      <span class="account">{{ accountInfo[props.title] }}</span>  
   </span>
   <n-button 
     class="account"
-    v-if="!isShow[title]" 
+    v-if="!isShow[props.title]" 
     type="success" 
     text
-    @click="handleShowClick(machineId, title)"
+    @click="handleShowClick(props.machineId, props.title)"
   >
     显示
   </n-button>
   <n-button 
     class="account" 
-    v-if="isShow[title]" 
+    v-if="isShow[props.title]" 
     type="info" 
     text
-    @click="handleHideClick(title)"
+    @click="handleHideClick(props.title)"
   >
     隐藏
   </n-button>
   <n-button 
-    v-if="isShow[title]"
+    v-if="isShow[props.title]"
     class="account" 
     type="primary" 
     text
-    @click="accountModalRef.show()"
+    @click="() => { showModal = true; }"
   >
     修改
   </n-button>
-  <modal-card
-    :initY="100"
-    :title="`修改${title}信息`"
-    ref="accountModalRef"
-    @validate="handleModifyClick(machineId, title)"
-  >
-    <template #form>
+  <n-modal v-model:show="showModal">
+    <n-dialog
+      type="info"
+      :title="`修改${props.title}信息`"
+      negative-text="取消"
+      positive-text="确认"
+      @positive-click="submitCallback"
+      @negative-click="cancelCallback"
+      @close="cancelCallback"
+    >
       <n-form 
         :label-width="80" 
         :model="formValue" 
@@ -67,31 +70,116 @@
           />
         </n-form-item>
       </n-form>
-    </template>
-  </modal-card>
+    </n-dialog>
+  </n-modal>
 </template>
 
-<script>
-import { defineComponent, onUnmounted } from 'vue';
-import secretInfo from '@/views/pmachine/modules/expandedContent/secretInfo.js';
-import ModalCard from '@/components/CRUD/ModalCard';
+<script setup>
+import { onUnmounted } from 'vue';
+import { getPmachineBmc, getPmachineSsh } from '@/api/get';
+import { modifyPmachineBmc, modifyPmachineSsh } from '@/api/put';
 
-export default defineComponent({
-  components: {
-    ModalCard,
-  },
-  props: {
-    title: String,
-    machineId: Number,
-  },
-  setup() {
-    onUnmounted(() => {
-      secretInfo.formValue.value = {};
+const props = defineProps({
+  title: String,
+  machineId: Number,
+});
+
+const showModal = ref(false);
+const isShow = ref({
+  SSH: false,
+  BMC: false,
+});
+const accountInfo = ref({
+  SSH: '***** / *****',
+  BMC: '***** / *****',
+});
+const formValue = ref({});
+const formRef = ref();
+
+function handleHideClick(target) {
+  isShow.value[target] = false;
+  formValue.value[target] = {};
+  accountInfo.value[target] = '***** / *****';
+}
+
+function handleShowClick(machineId, target) {
+  if (target === 'BMC') {
+    getPmachineBmc(props.machineId).then((res) => {
+      accountInfo.value[target] = `${res.data.bmc_user} / ${res.data.bmc_password}`;
+      formValue.value.user = res.data.bmc_user;
+      formValue.value.password = res.data.bmc_password;
+      isShow.value[target] = true;
     });
-    return {
-      ...secretInfo
-    };
+  } else if (target === 'SSH') {
+    getPmachineSsh(props.machineId).then((res) => {
+      accountInfo.value[target] = `${res.data.user} / ${res.data.password}`;
+      formValue.value.user = res.data.user;
+      formValue.value.password = res.data.password;
+      isShow.value[target] = true;
+    });
+  }
+}
+
+function handleModifyClick(machineId, target) {
+  formRef.value.validate((errors) => {
+    if (!errors) {
+      if (target === 'BMC') {
+        modifyPmachineBmc(props.machineId, { password: formValue.value.password }).finally(() => {
+          handleHideClick(target);
+          showModal.value = false;
+        });
+      } else if (target === 'SSH') {
+        modifyPmachineSsh(props.machineId, { password: formValue.value.password }).finally(() => {
+          handleHideClick(target);
+          showModal.value = false;
+        });
+      }
+    } else {
+      window.$message?.error('填写信息不符合要求');
+    }
+  });    
+}
+
+function submitCallback() {
+  handleModifyClick(props.machineId, props.title);
+  showModal.value = false;
+}
+function cancelCallback() {
+  showModal.value = false;
+}
+
+const passwordValidator = (rule, value) => {
+  if (!value) {
+    return new Error('密码不可为空');
+  } else if (value.length < 8) {
+    return new Error('密码不可小于8位');
+  }
+  return true;
+};
+const rePasswordValidator = (rule, value, password) => {
+  if (!value) {
+    return new Error('请再次输入待修改密码');
+  } else if (value !== password) {
+    return new Error('两次输入的密码不一致');
+  }
+  return true;
+};
+
+const rules = {
+  password: {
+    trigger: ['blur', 'change'],
+    required: true,
+    validator: (rule, value) => passwordValidator(rule, value),
   },
+  rePassword: {
+    trigger: ['blur', 'change'],
+    required: true,
+    validator: (rule, value) => rePasswordValidator(rule, value, formValue.value.password),
+  }
+};
+
+onUnmounted(() => {
+  formValue.value = {};
 });
 </script>
 

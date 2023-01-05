@@ -149,7 +149,7 @@ const getColumnOperation = (updateHandler) => {
         }),
         h(ConnectButton, {
           disabled: row.locked,
-          data: row
+          data: JSON.parse(JSON.stringify(row))
         }),
         h(InstallButton, {
           id: row.id,
@@ -162,7 +162,7 @@ const getColumnOperation = (updateHandler) => {
               size: 'medium',
               type: 'warning',
               circle: true,
-              disabled: row.state === 'occupied' || row.locked,
+              disabled: row.locked,
               onClick: () => updateHandler(row)
             },
             h(NIcon, { size: '20' }, h(Construct))

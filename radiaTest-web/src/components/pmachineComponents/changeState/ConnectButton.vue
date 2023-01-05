@@ -6,7 +6,7 @@
         v-show="connectShow"
         size="medium"
         type="info"
-        @click="() => !disabled && handleConnectClick(connect, 'occupy')"
+        @click="() => !disabled && handleConnectClick(data, 'occupy')"
         circle
       >
         <n-icon size="20">
@@ -23,7 +23,7 @@
         size="medium"
         :disabled="disabled"
         type="info"
-        @click="() => !disabled && handleConnectClick(connect, 'release')"
+        @click="() => !disabled && handleConnectClick(data, 'release')"
         circle
       >
         <n-icon size="20">
@@ -36,14 +36,13 @@
 </template>
 
 <script>
-import { watch, computed, defineComponent } from 'vue';
+import { computed, defineComponent } from 'vue';
 
 import {
   PlugDisconnected20Filled as Disconnect,
   Connector20Filled as Connect,
 } from '@vicons/fluent';
 import {
-  ConnectState,
   handleConnectClick,
 } from '@/views/pmachine/modules/changeState/connect.js';
 
@@ -61,19 +60,7 @@ export default defineComponent({
   },
   setup(props) {
     const connectShow = computed(() => props.data.state === 'idle');
-
-    const connect = new ConnectState(props.data);
-
-    watch(
-      props,
-      () => {
-        connect.update(props.data);
-      },
-      { deep: true }
-    );
-
     return {
-      connect,
       connectShow,
       handleConnectClick,
     };

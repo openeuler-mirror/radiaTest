@@ -154,6 +154,7 @@ function filterChange(options) {
 }
 
 watch(filterOptions, () => {
+  pagination.value.page = 1;
   getRules();
 }, { deep: true });
 
