@@ -114,7 +114,7 @@
             />
           </template>
         </modal-card>
-        <extend-drawer />
+        <TestcaseExtendDrawer />
       </n-gi>
     </n-grid>
   </div>

@@ -60,7 +60,7 @@
           </div>
         </n-card>
       </n-modal>
-      <extend-drawer />
+      <MilestoneExtendDrawer />
     </n-gi>
   </n-grid>
 </template>
