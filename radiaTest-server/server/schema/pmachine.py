@@ -232,12 +232,12 @@ class PmachineDelaySchema(BaseModel):
 
     @validator("end_time")
     def check_end_time(cls, v):
-        if not v or v.replace(tzinfo=pytz.timezone('Asia/Shanghai')).__lt__(
+        if not v or v.astimezone(pytz.timezone('Asia/Shanghai')).__lt__(
                 datetime.now(pytz.timezone('Asia/Shanghai'))):
             raise ValueError(
                 "Empty time and Past time is invalid."
             )
-        if v.replace(tzinfo=pytz.timezone('Asia/Shanghai')).__gt__(
+        if v.astimezone(pytz.timezone('Asia/Shanghai')).__gt__(
                 datetime.now(pytz.timezone('Asia/Shanghai'))
                 + timedelta(
                     days=current_app.config.get("MAX_OCUPY_TIME"))
@@ -276,13 +276,13 @@ class PmachineOccupySchema(BaseModel):
                     + timedelta(days=current_app.config.get("MAX_OCUPY_TIME"))
             )
             if not values["end_time"] or datetime.strptime(values["end_time"], "%Y-%m-%d %H:%M:%S"). \
-                    replace(tzinfo=pytz.timezone('Asia/Shanghai')). \
+                    astimezone(pytz.timezone('Asia/Shanghai')). \
                     __lt__(datetime.now(pytz.timezone('Asia/Shanghai'))):
                 raise ValueError(
                     "Empty time and Past time is invalid."
                 )
             elif datetime.strptime(values["end_time"], "%Y-%m-%d %H:%M:%S"). \
-                    replace(tzinfo=pytz.timezone('Asia/Shanghai')).__gt__(max_endtime):
+                    astimezone(pytz.timezone('Asia/Shanghai')).__gt__(max_endtime):
                 raise ValueError(
                     "The max occupation duration is %s days."
                     % current_app.config.get("MAX_OCUPY_TIME")
