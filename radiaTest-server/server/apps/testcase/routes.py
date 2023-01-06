@@ -49,6 +49,7 @@ from server.schema.testcase import (
     QueryHistorySchema,
     SuiteDocumentBodySchema,
     SuiteDocumentUpdateSchema,
+    SuiteDocumentQuerySchema,
     BaselineCreateSchema,
     SuiteCreateBody,
     SuiteCaseNodeUpdate,
