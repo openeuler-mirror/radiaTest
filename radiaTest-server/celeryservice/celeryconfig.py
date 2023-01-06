@@ -55,7 +55,6 @@ scrapyspider_backend = loads_config_ini("celery", "SCRAPYSPIDER_BACKEND")
 # socketio pubsub redis url
 socketio_pubsub = loads_config_ini("celery", "SOCKETIO_PUBSUB")
 
-
 # 频次限制配置
 worker_disable_rate_limits = True
 # task_default_rate_limit = '10000/m' (10000 times per minute)
@@ -181,6 +180,11 @@ task_queues = (
         "queue_update_samerpm_compare_result",
         exchange=Exchange("server_exchange", type="direct"),
         routing_key="samerpm_compare_result",
+    ),
+    Queue(
+        "queue_check_pmachine_lifecycle",
+        exchange=Exchange("server_exchange", type="direct"),
+        routing_key="pmachine_lifecycle",
     )
 )
 

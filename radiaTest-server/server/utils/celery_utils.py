@@ -31,9 +31,9 @@ def make_celery(app_name):
                 'routing_key': 'celerytask_status',
                 'delivery_mode': 1,
             },
-            'celeryservice.tasks.async_check_machine_lifecycle': {
-                'queue': 'queue_check_machine_lifecycle',
-                'routing_key': 'machine_lifecycle',
+            'celeryservice.tasks.async_check_vmachine_lifecycle': {
+                'queue': 'queue_check_vmachine_lifecycle',
+                'routing_key': 'vmachine_lifecycle',
                 'delivery_mode': 1,
             },
             'celeryservice.tasks.async_update_all_issue_rate': {
@@ -113,6 +113,11 @@ def make_celery(app_name):
             'celeryservice.sub_tasks.update_samerpm_compare_result': {
                 'queue': 'queue_update_samerpm_compare_result',
                 'routing_key': 'samerpm_compare_result',
+                'delivery_mode': 1,
+            },
+            'celeryservice.tasks.async_check_pmachine_lifecycle': {
+                'queue': 'queue_check_pmachine_lifecycle',
+                'routing_key': 'pmachine_lifecycle',
                 'delivery_mode': 1,
             },
         }
