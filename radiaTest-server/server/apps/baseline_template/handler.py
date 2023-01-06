@@ -84,14 +84,13 @@ class BaselineTemplateHandler:
                 continue
             if key == 'title':
                 filter_params.append(BaselineTemplate.title.like(f'%{value}%'))
-            if key == 'group_id':
+            elif key == 'group_id':
                 filter_params.append(BaselineTemplate.group_id == value)
                 filter_params.append(BaselineTemplate.permission_type == 'group')
-            if key == 'org_id':
+            elif key == 'org_id':
                 filter_params.append(BaselineTemplate.org_id == value)
                 filter_params.append(BaselineTemplate.permission_type == 'org')
-            if key == 'openable':
-                filter_params.append(BaselineTemplate.openable == value)                 
+            
         baselinetemps = BaselineTemplate.query.filter(*filter_params).all()
         
         return_data = [baseline_template.to_json() for baseline_template in baselinetemps]
@@ -100,26 +99,18 @@ class BaselineTemplateHandler:
 
     @staticmethod
     @collect_sql_error
-    def check_impl(baseline_template, inherit_baseline_template):
-        if baseline_template.type == inherit_baseline_template.type:
-            if baseline_template.type == "org" and \
-                baseline_template.org_id != inherit_baseline_template.org_id:
-                return jsonify(
-                    error_code=RET.VERIFY_ERR,
-                    error_msg="The org_id of two baseline_template is not equal."
-                )
-            if baseline_template.type == "group" and \
-                baseline_template.group_id != inherit_baseline_template.group_id:
-                return jsonify(
-                    error_code=RET.VERIFY_ERR,
-                    error_msg="The group_id of two baseline_template is not equal."
-                )
-        elif baseline_template.org_id != inherit_baseline_template.org_id:
-            return jsonify(
-                error_code=RET.VERIFY_ERR,
-                error_msg="The org_id of two baseline_template is not equal or not right."
-            )
-        return jsonify(error_code=RET.OK, error_msg="OK")
+    def check_enable_inherit_all(baseline_template, inherit_template):
+        result = False
+        if baseline_template.type == inherit_template.type:
+            if (
+                baseline_template.type == "org" and \
+                baseline_template.org_id == inherit_template.org_id
+            ) or (
+                baseline_template.type == "group" and \
+                baseline_template.group_id == inherit_template.group_id
+            ):
+                result = True
+        return result
 
 
     @staticmethod
@@ -128,7 +119,6 @@ class BaselineTemplateHandler:
         _casenode = None
         
         filter_params = [
-            CaseNode.permission_type== baseline_template.type,
             CaseNode.baseline_id == sqlalchemy.null()
         ]
 
@@ -227,27 +217,37 @@ class BaselineTemplateHandler:
                 error_msg="baseline_template does not exist"
             )
 
-        inherit_baseline_template = BaselineTemplate.query.filter(
-            BaselineTemplate.id == inherit_baseline_template_id,
-            BaselineTemplate.openable == 1,
-            ).first()
+        filter_params = [
+            BaselineTemplate.id == inherit_baseline_template_id
+        ]
+        inherit_template = BaselineTemplate.query.filter(*filter_params).first()
+        if not inherit_template:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR, 
+                error_msg="inherit_baseline_template does not exist."
+            )
+
+        enable_inherit_all = BaselineTemplateHandler.check_enable_inherit_all(
+            baseline_template, inherit_template
+        )
+        if not enable_inherit_all:
+            filter_params.append(BaselineTemplate.openable.is_(True))
+        inherit_baseline_template = BaselineTemplate.query.filter(*filter_params).first()
         if not inherit_baseline_template:
             return jsonify(
                 error_code=RET.NO_DATA_ERR, 
                 error_msg="inherit_baseline_template does not exist or not openable."
             )
-
-        resp = BaselineTemplateHandler.check_impl(baseline_template, inherit_baseline_template)
-        _resp = json.loads(resp.response[0])
-        if _resp.get("error_code") != RET.OK:
-            return _resp
         
         old_root_base_node = BaseNode.query.filter(
             BaseNode.baseline_template_id == baseline_template_id,
             BaseNode.is_root == 1,
             ).first()
         if not old_root_base_node:
-            return jsonify(error_code=RET.VERIFY_ERR, error_msg="The root node of baseLineTemplate is empty.")
+            return jsonify(
+                error_code = RET.VERIFY_ERR,
+                error_msg = "The root node of baseLineTemplate is empty."
+            )
 
         res_old_nodes = list()
         res_old_base_nodes = list()
@@ -569,7 +569,6 @@ class BaselineTemplateApplyHandler:
         _casenode_old = None
         
         filter_params = [
-            CaseNode.permission_type == baseline.permission_type,
             CaseNode.baseline_id == sqlalchemy.null(),
         ]
 

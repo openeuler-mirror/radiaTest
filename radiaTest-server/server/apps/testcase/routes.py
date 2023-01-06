@@ -695,7 +695,7 @@ class SuiteDocumentEvent(Resource):
     @auth.login_required()
     @response_collect
     @validate()
-    def get(self, suite_id):
+    def get(self, suite_id, query: SuiteDocumentQuerySchema):
         """
             在数据库中查询Document数据.
             api:/api/v1/suite/<int:suite_id>/document
@@ -720,9 +720,19 @@ class SuiteDocumentEvent(Resource):
                 error_code=RET.NO_DATA_ERR,
                 error_msg="The suite is not exist"
         )
-        return GetAllByPermission(SuiteDocument).precise({
-            "suite_id": suite_id
-        })
+        filter_params = GetAllByPermission(SuiteDocument).get_filter()
+        filter_params.append(SuiteDocument.suite_id == suite_id)
+
+        for key, value in query.dict().items():
+
+            if not value:
+                continue
+            if key == 'title':
+                filter_params.append(SuiteDocument.title.like(f'%{value}%'))               
+        suitedocuments = SuiteDocument.query.filter(*filter_params).all()
+        return_data = [document.to_json() for document in suitedocuments]
+        
+        return jsonify(error_code=RET.OK, error_msg="OK", data=return_data)
 
 
 class SuiteDocumentItemEvent(Resource):

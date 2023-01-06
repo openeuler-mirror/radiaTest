@@ -339,8 +339,7 @@ class SuiteDocumentBodySchema(BaseModel):
 
 
 class SuiteDocumentQuerySchema(BaseModel):
-    id: int = None
-    suite_id: int = None
+    title: str = None
 
 
 class SuiteDocumentUpdateSchema(BaseModel):

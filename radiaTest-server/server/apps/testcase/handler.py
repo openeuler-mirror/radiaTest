@@ -50,6 +50,7 @@ from server.model.task import Task, TaskMilestone, TaskManualCase
 from server.model.celerytask import CeleryTask
 from server.model.message import Message, MsgType, MsgLevel
 from server.model.user import User
+from server.model.organization import Organization
 from server.model.milestone import Milestone
 from server.model.job import Analyzed
 from server.schema.base import PageBaseSchema
@@ -512,42 +513,114 @@ class CaseNodeHandler:
             get_parent(_case_node)
         return root_case_node[0]
 
+
+    @staticmethod
+    @collect_sql_error
+    def get_caseset_filter(_type, _id, current_org_id):
+        filter_group_params = list()
+        filter_org_params = list()
+        filter_params = [
+            CaseNode.title == "用例集",
+            CaseNode.is_root.is_(True),
+            CaseNode.type == "directory",
+        ]
+
+        if _type == "org":
+            filter_params.append(CaseNode.org_id == _id)
+            filter_params.append(CaseNode.permission_type == _type)
+        else:
+            filter_group_params.append(CaseNode.group_id == _id)
+            filter_group_params.append(CaseNode.permission_type == _type)
+
+            filter_org_params.append(CaseNode.org_id == current_org_id)
+            filter_org_params.append(CaseNode.permission_type == "org")
+        return filter_params, filter_group_params, filter_org_params
+
+
+    @staticmethod
+    @collect_sql_error
+    def get_caseset_return_data(current_org_id, filter_params, filter_group_params,\
+            filter_org_params, return_data):
+
+        current_org_name = Organization.query.filter_by(
+            id = current_org_id
+        ).first().name
+        
+        if filter_org_params or filter_group_params:
+            filter_org_params.extend(filter_params)
+            _caseset_org = CaseNode.query.filter(*filter_org_params).first()
+            if _caseset_org:
+                return_data.update({
+                    "org": {
+                        "name": current_org_name,
+                        "id": current_org_id,
+                        "children": [
+                            child.to_json() for child in _caseset_org.children
+                        ]
+                    }
+                })
+            filter_group_params.extend(filter_params)
+            _caseset_group = CaseNode.query.filter(*filter_group_params).first()
+            if _caseset_group:
+                return_data["group"]["children"] = [
+                    child.to_json() for child in _caseset_group.children
+                ]
+        else:
+            _caseset = CaseNode.query.filter(*filter_params).first()
+            if _caseset:   
+                return_data["org"]["children"] = [
+                    child.to_json() for child in _caseset.children
+                ]
+        return return_data
+
+
     @staticmethod
     @collect_sql_error
     def get_caseset_children(_type, _table, _id):
+        current_org_id = redis_client.hget(
+            RedisKey.user(g.gitee_id), 'current_org_id'
+        )
+
+        if _type not in ["org", "group"]:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg=f"{_type} is invalid.",
+            )
+        
         _item = _table.query.filter_by(id=_id).first()
         if not _item:
             return jsonify(
                 error_code=RET.NO_DATA_ERR,
                 error_msg=f"{_type} does not exist",
             )
+        return_data = {
+            _type: {
+                "name": _item.name,
+                "id": _id,
+                "children": []
+            }
+        }
         
-        filter_params = [
-            CaseNode.title == "用例集",
-            CaseNode.is_root == True,
-            CaseNode.type == "directory",
-            CaseNode.permission_type == _type,
-        ]
-
-        if _type == "org":
-            filter_params.append(CaseNode.org_id == _id)
-        else:
-            filter_params.append(CaseNode.group_id == _id)
-
-        _caseset = CaseNode.query.filter(*filter_params).first()
-        if not _caseset:
-            return jsonify(
-                error_code=RET.OK,
-                error_msg="OK",
-                data=[]
-            )
+        filters = CaseNodeHandler.get_caseset_filter(
+            _type, 
+            _id,
+            current_org_id
+        )
         
-        return_data = [child.to_json() for child in _caseset.children]
+        return_data = CaseNodeHandler.get_caseset_return_data(
+            current_org_id,
+            filters[0],
+            filters[1], 
+            filters[2], 
+            return_data
+        )
+
         return jsonify(
             error_code=RET.OK,
             error_msg="OK",
             data=return_data,
         )
+
 
     @staticmethod
     @collect_sql_error
@@ -560,7 +633,7 @@ class CaseNodeHandler:
         if task:         
             return HandlerTask.get(task.id, res_type=res_type)
         else:
-            return None
+            return jsonify(error_code=RET.OK, error_msg="OK", data=[])
 
 
     @staticmethod
@@ -1040,10 +1113,10 @@ class HandlerCaseReview(object):
         if query.end_time:
             _filter.append(Commit.create_time <= query.end_time)
 
-        all = Commit.query.filter(*_filter).order_by(Commit.create_time.desc(), Commit.id.asc()).all()
+        all_items = Commit.query.filter(*_filter).order_by(Commit.create_time.desc(), Commit.id.asc()).all()
         commit_list = []
 
-        for item in all:
+        for item in all_items:
             dict_item = {'commit_id': item.id, 'version': item.version, 'title': item.title}
             commit_list.append(dict_item)
         return jsonify(error_code=RET.OK, error_msg="OK", data=commit_list)
@@ -1223,34 +1296,6 @@ class ResourceItemHandler:
             step = {key: value}
             steps.update(step)
         return steps
-    
-    def _count_accepted_commit(self, _start: datetime.datetime, _end: datetime.datetime):
-        _filter_params = self._get_table_filter(Commit)
-        _filter_params.extend([
-            Commit.review_time.between(_start, _end),
-            Commit.status == 'accepted'
-        ])
-        count_result = Commit.query.filter(*_filter_params).count()
-        return count_result
-
-    def _stat_commit(self, start_date: datetime.datetime, period: int):
-        total_commit = 0
-        date_range = {}
-        for i in range(period):
-            _date = start_date - datetime.timedelta(days=i)
-            _end_of_date = _date + datetime.timedelta(days=1)
-            _end_of_date_set_zero = datetime.datetime(
-                _end_of_date.year, _end_of_date.month, _end_of_date.day, 
-                0, 0, 0
-            )
-            _commit_count = self._count_accepted_commit(_date, _end_of_date_set_zero)
-            
-            total_commit += _commit_count
-            date_range.update({
-                _date.strftime("%Y-%m-%d"): _commit_count
-            })
-        
-        return total_commit, date_range
 
 
     def get_case(self):
@@ -1275,20 +1320,15 @@ class ResourceItemHandler:
 
         return all_count, auto_ratio
 
-
-    def _get_table_filter(self, table): 
-        if self._type == 'group':
-            table_filter = [
-                table.permission_type == 'group',
-                table.org_id == int(redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')),
-                table.group_id == self.group_id
-            ]
-        else:
-            table_filter = [
-                table.permission_type == 'org',
-                table.org_id == self.org_id
-            ]
-        return table_filter
+    
+    def _count_accepted_commit(self, _start: datetime.datetime, _end: datetime.datetime):
+        _filter_params = self._get_table_filter(Commit)
+        _filter_params.extend([
+            Commit.review_time.between(_start, _end),
+            Commit.status == 'accepted'
+        ])
+        count_result = Commit.query.filter(*_filter_params).count()
+        return count_result
 
 
     def get_suite(self):
@@ -1305,6 +1345,26 @@ class ResourceItemHandler:
         return all_count
 
 
+    def _stat_commit(self, start_date: datetime.datetime, period: int):
+        total_commit = 0
+        date_range = {}
+        for i in range(period):
+            _date = start_date - datetime.timedelta(days=i)
+            _end_of_date = _date + datetime.timedelta(days=1)
+            _end_of_date_set_zero = datetime.datetime(
+                _end_of_date.year, _end_of_date.month, _end_of_date.day, 
+                0, 0, 0
+            )
+            _commit_count = self._count_accepted_commit(_date, _end_of_date_set_zero)
+            
+            total_commit += _commit_count
+            date_range.update({
+                _date.strftime("%Y-%m-%d"): _commit_count
+            })
+        
+        return total_commit, date_range
+
+
     def count_children_case(self, node):
         if not node.children:
             return 0
@@ -1316,6 +1376,21 @@ class ResourceItemHandler:
                 res += self.count_children_case(child)
             
         return res
+
+
+    def _get_table_filter(self, table): 
+        if self._type == 'group':
+            table_filter = [
+                table.permission_type == 'group',
+                table.org_id == int(redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')),
+                table.group_id == self.group_id
+            ]
+        else:
+            table_filter = [
+                table.permission_type == 'org',
+                table.org_id == self.org_id
+            ]
+        return table_filter
 
 
     def get_case_distribute(self):
@@ -1378,6 +1453,7 @@ class ResourceItemHandler:
             error_msg='OK',
             data=return_data
         )
+
 
 class CaseSetHandler:
     @staticmethod
