@@ -1,11 +1,11 @@
 <template>
   <div v-show="!showDetail">
     <n-data-table
-      remote
       :loading="rpmcheckLoading"
       :columns="rpmcheckColumns"
       :data="rpmcheckTableData"
       :pagination="rpmcheckPagination"
+      :row-key="rpmcheckRowKey"
       @update:page="rpmcheckPageChange"
       @update:page-size="rpmcheckPageSizeChange"
     />
@@ -31,11 +31,13 @@
 <script setup>
 import { useTable } from '@/hooks/useTable';
 import { ArrowBackUp } from '@vicons/tabler';
+import { getRpmcheck } from '@/api/get';
 
 const props = defineProps(['qualityBoardId']);
 let { qualityBoardId } = toRefs(props);
 const showDetail = ref(false);
 const rpmcheckLoading = ref(false);
+let stop; // 清除副作用
 const rpmcheckColumns = [
   {
     title: '名称',
@@ -45,8 +47,10 @@ const rpmcheckColumns = [
         {
           class: 'rpmcheckName',
           onClick: () => {
-            useTable(
-              `v1/rpmcheck/${row.id}`,
+            rpmcheckDetailParams.value.name = row.name;
+            rpmcheckDetailPagination.value.page = 1;
+            stop = useTable(
+              'v1/rpmcheck',
               rpmcheckDetailParams.value,
               rpmcheckDetailTableData,
               rpmcheckDetailPagination,
@@ -58,12 +62,11 @@ const rpmcheckColumns = [
         row.name
       )
   },
-  { title: '软件包数量', key: 'all_cnt', align: 'center' },
+  { title: '软件包总数', key: 'all_cnt', align: 'center' },
   { title: '构建时间', key: 'build_time', align: 'center' },
-  { title: '成功率', key: 'success_rate', align: 'center' },
-  { title: '失败率', key: 'failed_rate', align: 'center' },
-  { title: '中断率', key: 'broken_rate', align: 'center' },
-  { title: '未解决率', key: 'unresolvable_rate', align: 'center' }
+  { title: '状态', key: 'status', align: 'center' },
+  { title: '数量', key: 'cnt', align: 'center' },
+  { title: '占比', key: 'rate', align: 'center' }
 ];
 const rpmcheckTableData = ref([]);
 const rpmcheckPagination = ref({
@@ -73,16 +76,27 @@ const rpmcheckPagination = ref({
   showSizePicker: true,
   pageSizes: [5, 10, 20, 50]
 });
-const rpmcheckParams = ref({
-  page_num: toRef(rpmcheckPagination.value, 'page'),
-  page_size: toRef(rpmcheckPagination.value, 'pageSize')
-});
 const rpmcheckPageChange = (page) => {
   rpmcheckPagination.value.page = page;
 };
 const rpmcheckPageSizeChange = (pageSize) => {
   rpmcheckPagination.value.pageSize = pageSize;
   rpmcheckPagination.value.page = 1;
+};
+const rpmcheckRowKey = (row) => row.index;
+const getRpmcheckData = () => {
+  getRpmcheck(qualityBoardId.value).then((res) => {
+    rpmcheckTableData.value = [];
+    res.data.forEach((v, i) => {
+      rpmcheckTableData.value.push({
+        index: i,
+        name: v.name,
+        all_cnt: v.all_cnt,
+        build_time: v.build_time,
+        children: v.data
+      });
+    });
+  });
 };
 
 const rpmcheckDetailLoading = ref(false);
@@ -121,7 +135,8 @@ const rpmcheckDetailPagination = ref({
 });
 const rpmcheckDetailParams = ref({
   page_num: toRef(rpmcheckDetailPagination.value, 'page'),
-  page_size: toRef(rpmcheckDetailPagination.value, 'pageSize')
+  page_size: toRef(rpmcheckDetailPagination.value, 'pageSize'),
+  name: null
 });
 const rpmcheckDetailPageChange = (page) => {
   rpmcheckDetailPagination.value.page = page;
@@ -133,15 +148,12 @@ const rpmcheckDetailPageSizeChange = (pageSize) => {
 
 const clickBackIcon = () => {
   showDetail.value = false;
+  stop();
 };
 
-useTable(
-  `/v1/qualityboard/${qualityBoardId.value}/rpmcheck`,
-  rpmcheckParams.value,
-  rpmcheckTableData,
-  rpmcheckPagination,
-  rpmcheckLoading
-);
+onMounted(() => {
+  getRpmcheckData();
+});
 </script>
 
 <style lang="less">

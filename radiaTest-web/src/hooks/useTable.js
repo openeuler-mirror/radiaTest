@@ -15,8 +15,5 @@ export const useTable = (url, params, tableData, pagination, loading, once) => {
   } else {
     stop = watchEffect(getTableData);
   }
-
-  onUnmounted(() => {
-    stop();
-  });
+  return stop;
 };

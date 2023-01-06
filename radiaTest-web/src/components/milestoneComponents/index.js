@@ -1,11 +1,11 @@
 import MilestoneTable from './MilestoneTable';
 import MilestoneCreateForm from './MilestoneCreateForm';
 import MilestoneUpdateForm from './MilestoneUpdateForm';
-import ExtendDrawer from './ExtendDrawer';
+import MilestoneExtendDrawer from './MilestoneExtendDrawer';
 
 export default {
   MilestoneTable,
   MilestoneCreateForm,
   MilestoneUpdateForm,
-  ExtendDrawer,
+  MilestoneExtendDrawer,
 };

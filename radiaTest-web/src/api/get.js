@@ -355,3 +355,7 @@ export function getManualJobLog(jobId, stepId) {
 export function getChecklistResult(roundId) {
   return getRequest(`/v1/round/${roundId}/checklist-result`);
 }
+
+export function getRpmcheck(qualityBoardId) {
+  return getRequest(`/v1/qualityboard/${qualityBoardId}/rpmcheck`);
+}
