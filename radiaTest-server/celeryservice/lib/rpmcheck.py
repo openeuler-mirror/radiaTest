@@ -12,9 +12,10 @@
 # @Date    : 2022/09/15
 # @License : Mulan PSL v2
 #####################################
+import subprocess
+from flask import current_app
 
-from server.utils.db import Insert, Edit
-from server.model.qualityboard import RpmCheck, RpmCheckDetail
+from server import redis_client
 from celeryservice.lib import TaskHandlerBase
 
 
@@ -23,61 +24,66 @@ class RpmCheckHandler(TaskHandlerBase):
         self.promise = promise
         super().__init__(logger)
 
-    def resolve_detail(self, _id, _detail):
-        cnt_dict = {
-            "success": 0,
-            "failed": 0,
-            "broken": 0,
-            "unresolvable": 0,
-        }
+    def resolve_detail(self, build_name, _detail, _file=None):
+        cnt_dict = dict()
         all_cnt = 0
 
-        for _d in _detail:
-            status = _d.get("status")
-            cnt_dict.update({
-                status: cnt_dict.get(status) + 1
-            })
-            all_cnt += 1
-            _d.update({"rpm_check_id": _id})
-            _rpmcd = RpmCheckDetail.query.filter_by(
-                package=_d.get("package"),
-                arch=_d.get("arch")
-            ).first()
-            if _rpmcd:
-                _d.update({"id": _rpmcd.id})
-                Edit(RpmCheckDetail, _d).single()
+        for _det in _detail:
+            status = _det.get("status")
+            if cnt_dict.get(status):
+                cnt_dict.update({
+                    status: cnt_dict.get(status) + 1
+                })
             else:
-                _ = Insert(
-                    RpmCheckDetail,
-                    _d,
-                ).insert_id()
+                cnt_dict.update({
+                    status: 1
+                })
+            all_cnt += 1
 
         def calculate_rate(part_cnt, all_cnt):
-            _rate = None
+            rate = None
             if int(all_cnt) != 0:
-                _rate = int(part_cnt) / int(all_cnt)
-            if _rate:
-                _rate = "%.f%%" % (_rate * 100)
-            return _rate
+                rate = int(part_cnt) / int(all_cnt)
+            if rate:
+                rate = "%.2f%%" % (rate * 100)
+            return rate
 
-        success_rate = calculate_rate(cnt_dict.get("success"), all_cnt)
-        failed_rate = calculate_rate(cnt_dict.get("failed"), all_cnt)
-        broken_rate = calculate_rate(cnt_dict.get("broken"), all_cnt)
-        unresolvable_rate = calculate_rate(
-            cnt_dict.get("unresolvable"), all_cnt
-        )
-        Edit(
-            RpmCheck,
+        data = []
+        for _key in cnt_dict.keys():
+            data.append(
+                {
+                    "status": _key,
+                    "cnt": cnt_dict.get(_key),
+                    "rate": calculate_rate(cnt_dict.get(_key), all_cnt)
+                }
+            )
+        
+        rpm_key = f"rpmcheck_{build_name}"
+        redis_client.hmset(
+            rpm_key, 
             {
-                "id": _id,
                 "all_cnt": all_cnt,
-                "success_cnt": cnt_dict.get("success"),
-                "success_rate": success_rate,
-                "failed_cnt": cnt_dict.get("failed"),
-                "failed_rate": failed_rate,
-                "broken_cnt": cnt_dict.get("broken"),
-                "broken_rate": broken_rate,
-                "unresolvable_cnt": cnt_dict.get("unresolvable"),
-                "unresolvable_rate": unresolvable_rate,
+                "data": data,
+                "file": f"{rpm_key}.yaml",
             }
-        ).single()
+        )
+
+        expires_time = int(current_app.config.get("RPMCHECK_RESULT_EXPIRES_TIME"))
+        redis_client.expire(rpm_key, expires_time)
+        _rpmchecks = redis_client.keys(
+            f"rpmcheck_{build_name.split('_')[0]}_*"
+        )
+
+        rpmcheck_path = current_app.config.get("RPMCHECK_FILE_PATH")
+        exitcode, file_list = subprocess.getstatusoutput(
+            f"ls -l {rpmcheck_path} | sed '1d' " + " | awk '{print $9}'"
+        )
+        if exitcode != 0:
+            current_app.logger.info(file_list)
+            return
+        for _file in file_list.split("\n"):
+            if _file.replace(".yaml", "") not in _rpmchecks:
+                exitcode, output = subprocess.getstatusoutput(
+                    f"rm -f {rpmcheck_path}/{_file}"
+                )
+

@@ -1,11 +1,27 @@
+# Copyright (c) [2022] Huawei Technologies Co.,Ltd.ALL rights reserved.
+# This program is licensed under Mulan PSL v2.
+# You can use it according to the terms and conditions of the Mulan PSL v2.
+#          http://license.coscl.org.cn/MulanPSL2
+# THIS PROGRAM IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+# EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+# MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+# See the Mulan PSL v2 for more details.
+####################################
+# @Author  :
+# @email   :
+# @Date    :
+# @License : Mulan PSL v2
+#####################################
+
 import subprocess
-from datetime import datetime
+import json
+
+import yaml
 import redis
 from flask import jsonify, current_app, g
 from flask_restful import Resource
 from flask_pydantic import validate
 from sqlalchemy import func, or_
-import pytz
 
 from server import db, redis_client
 from server.utils.auth_util import auth
@@ -26,8 +42,6 @@ from server.model.qualityboard import (
     CheckItem,
     Round,
     RoundGroup,
-    RpmCheck,
-    RpmCheckDetail,
 )
 from server.utils.db import Delete, Edit, Select, Insert, collect_sql_error
 from server.schema.base import PageBaseSchema
@@ -52,6 +66,7 @@ from server.schema.qualityboard import (
     QueryQualityResultSchema,
     DeselectChecklistSchema,
     QueryRound,
+    QueryRpmCheckSchema,
 )
 from server.apps.qualityboard.handlers import (
     ChecklistHandler,
@@ -66,7 +81,7 @@ from server.apps.qualityboard.handlers import (
 from server.apps.milestone.handler import IssueOpenApiHandlerV8
 from server.utils.shell import add_escape
 from server.utils.at_utils import OpenqaATStatistic
-from server.utils.page_util import PageUtil
+from server.utils.page_util import PageUtil, Paginate
 from server.utils.rpm_util import RpmNameLoader
 from celeryservice.tasks import resolve_pkglist_after_resolve_rc_name
 from celeryservice.sub_tasks import update_compare_result, update_samerpm_compare_result
@@ -113,6 +128,7 @@ class QualityBoardEvent(Resource):
         )
 
     @auth.login_required()
+    @response_collect
     @validate()
     def get(self, query: QualityBoardSchema):
         return Select(QualityBoard, query.__dict__).precise()
@@ -880,52 +896,101 @@ class RpmCheckOverview(Resource):
                 error_code=RET.NO_DATA_ERR,
                 error_msg="qualityboard {} not exitst".format(qualityboard_id)
             )
-        query_filter = RpmCheck.query.filter(
-            RpmCheck.product_id == qualityboard.product.id
-        ).order_by(
-            RpmCheck.create_time.desc()
+        _prouduct = Product.query.filter_by(
+            id=qualityboard.product.id
+        ).first()
+        _rpmchecks = redis_client.keys(
+            f"rpmcheck_{_prouduct.name}-{_prouduct.version}_*"
         )
+        data = list()
 
-        def page_func(item):
-            qualityboard_dict = item.to_json()
-            return qualityboard_dict
-
-        page_dict, e = PageUtil.get_page_dict(
-            query_filter, query.page_num, query.page_size, func=page_func
+        for _rpmcheck in _rpmchecks:
+            _data = redis_client.hget(
+                _rpmcheck, "data"
+            )
+            _data = _data[1:-1].replace(
+                "\'", "\"").replace("}, {", "}#{").split("#")
+            data_t = list()
+            for _dat in _data:
+                data_t.append(json.loads(_dat))
+            data.append(
+                {
+                    "name": _rpmcheck,
+                    "all_cnt": redis_client.hget(_rpmcheck, "all_cnt"),
+                    "build_time": _rpmcheck.split("_")[-1],
+                    "data": data_t,
+                }
+            )
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+            data=data
         )
-        if e:
-            return jsonify(error_code=RET.SERVER_ERR, error_msg=f'get rpmcheck page error {e}')
-        return jsonify(error_code=RET.OK, error_msg="OK", data=page_dict)
 
 
 class RpmCheckDetailEvent(Resource):
     @auth.login_required()
     @response_collect
     @validate()
-    def get(self, rpm_check_id, query: PageBaseSchema):
-        _rpmcheck = RpmCheck.query.filter_by(id=rpm_check_id).first()
-        if not _rpmcheck:
+    def get(self, query: QueryRpmCheckSchema):
+        _rpmcheck = redis_client.keys(
+            query.name
+        )
+        if len(_rpmcheck) <= 0:
             return jsonify(
                 error_code=RET.NO_DATA_ERR,
-                error_msg="rpmcheck {} not exist".format(rpm_check_id)
+                error_msg=f"no rpmcheck info of {query.name}."
+            )
+        rpmcheck_path = current_app.config.get("RPMCHECK_FILE_PATH")
+        row_num = int(current_app.config.get("RPMCHECK_RESULT_ROWS_NUM"))
+        if row_num <= 0:
+            return jsonify(
+                error_code=RET.SYS_CONF_ERR,
+                error_msg=f"the value of RPMCHECK_RESULT_ROWS_NUM must be greater than 0."
+            )
+            
+        file_name = f"{rpmcheck_path}/{query.name}.yaml"
+        exitcode, total = subprocess.getstatusoutput(
+            f"wc -l {file_name}" + " | awk '{print $1}'"
+        )
+        
+        if exitcode != 0:
+            return jsonify(
+                error_code=RET.FILE_ERR,
+                error_msg=f"get rpmcheck data failed."
             )
 
-        query_filter = RpmCheckDetail.query.filter(
-            RpmCheckDetail.rpm_check_id == _rpmcheck.id
-        ).order_by(
-            RpmCheckDetail.package.desc()
+        def get_part_file_data(start, end, file_name):
+            exitcode, content = subprocess.getstatusoutput(
+                f"sed -n '{start},{end}p' {file_name}"
+            )
+            return exitcode, content
+  
+        exitcode, content = get_part_file_data(
+            (query.page_num - 1) * query.page_size * row_num + 1,
+            query.page_num * query.page_size * row_num,
+            file_name
         )
+        if exitcode != 0:
+            return jsonify(
+                error_code=RET.FILE_ERR,
+                error_msg=f"get rpmcheck data failed."
+            )
 
-        def page_func(item):
-            qualityboard_dict = item.to_json()
-            return qualityboard_dict
-
-        page_dict, e = PageUtil.get_page_dict(
-            query_filter, query.page_num, query.page_size, func=page_func
+        content = yaml.safe_load(content)
+        content, e = Paginate.get_page_dict(
+            total=int(int(total) / row_num),
+            data=content,
+            page_num=query.page_num,
+            page_size=query.page_size
         )
         if e:
-            return jsonify(error_code=RET.SERVER_ERR, error_msg=f'get rpmcheck detail page error {e}')
-        return jsonify(error_code=RET.OK, error_msg="OK", data=page_dict)
+            return jsonify(
+                error_code=RET.SERVER_ERR,
+                error_msg=f"get rpmcheck page error: {e}"
+            )
+
+        return jsonify(error_code=RET.OK, error_msg="OK", data=content)
 
 
 class WeeklybuildHealthOverview(Resource):
@@ -1528,8 +1593,8 @@ class RoundItemEvent(Resource):
     @auth.login_required
     @validate()
     def put(self, round_id, body: RoundUpdateSchema):
-        round = Round.query.filter_by(id=round_id).first()
-        if not round:
+        _round = Round.query.filter_by(id=round_id).first()
+        if not _round:
             return jsonify(
                 error_code=RET.NO_DATA_ERR,
                 error_msg="the round does not exist"
