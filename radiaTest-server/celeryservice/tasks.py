@@ -70,8 +70,8 @@ def setup_periodic_tasks(sender, **kwargs):
     )
     sender.add_periodic_task(
         crontab(minute="*/30"),
-        async_check_machine_lifecycle.s(),
-        name="check_machine_lifecycle",
+        async_check_vmachine_lifecycle.s(),
+        name="check_vmachine_lifecycle",
     )
     sender.add_periodic_task(
         crontab(minute="*/60"), async_read_git_repo.s(), name="read_git_repo"
@@ -89,6 +89,11 @@ def setup_periodic_tasks(sender, **kwargs):
         crontab(minute="*/50"),
         async_send_vmachine_release_message.s(),
         name="send_vmachine_release_message",
+    )
+    sender.add_periodic_task(
+        crontab(minute="*/5"),
+        async_check_pmachine_lifecycle.s(),
+        name="check_pmachine_lifecycle",
     )
 
 
@@ -195,8 +200,8 @@ def async_update_celerytask_status():
 
 
 @celery.task
-def async_check_machine_lifecycle():
-    LifecycleMonitor(logger).main()
+def async_check_vmachine_lifecycle():
+    LifecycleMonitor(logger).check_vmachine_lifecycle()
 
 
 @celery.task
@@ -347,3 +352,8 @@ def resolve_pkglist_after_resolve_rc_name(repo_url, repo_path, arch, product: di
 @celery.task
 def async_send_vmachine_release_message():
     VmachineReleaseNotice(logger).main()
+
+
+@celery.task
+def async_check_pmachine_lifecycle():
+    LifecycleMonitor(logger).check_pmachine_lifecycle()

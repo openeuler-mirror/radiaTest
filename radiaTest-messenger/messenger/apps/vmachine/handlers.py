@@ -28,6 +28,7 @@ from messenger.utils.pxe import QueryIp
 from messenger.utils.token_creator import VncTokenCreator
 from messenger.utils.response_util import RET
 from messenger.utils.requests_util import create_request, do_request, query_request, update_request
+from messenger.config.settings import Config
 
 
 class RequestWorkerParam:
@@ -207,9 +208,12 @@ def check_available_mem(ip, pwd, port, user, vm_mem):
     conn = ssh.conn()
     if not conn:
         raise "failed to connect to physical machine."
-    _, avail_mem = ssh.command("free -g | sed -n '2p' | awk '{print $7}'")
+    _, total_mem = ssh.command("free -g | sed -n '2p' | awk '{print $2}'")
+    _, used_mem = ssh.command("free -g | sed -n '2p' | awk '{print $3}'")
     ssh.close()
-    return int(avail_mem) > int(vm_mem) / 1024 + 5
+    if total_mem and int(total_mem) == 0:
+        return False
+    return Config.PMACHINE_MAX_MEM_USAGE_RATIO > round(int(used_mem) / int(total_mem), 2)
 
 
 class CreateVmachine(AuthMessageBody):

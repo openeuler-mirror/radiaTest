@@ -1,16 +1,9 @@
 from typing import Optional
-from urllib import request, error
-from fake_useragent import UserAgent
-import requests
 from pydantic import BaseModel, HttpUrl, constr, validator, root_validator
-from flask import current_app
-
 
 from server.schema import Frame
 from server.schema.base import UpdateBaseModel
-
 from server.utils.db import Precise
-
 from server.model import Milestone, IMirroring, QMirroring, Repo
 
 
@@ -72,6 +65,7 @@ class IMirroringUpdate(MirroringBase, UpdateBaseModel):
             )
         return values
 
+
 class QMirroringBase(MirroringBase):
     user: constr(max_length=32) = "root"
     port: int = 22
@@ -111,6 +105,7 @@ class QMirroringUpdate(MirroringBase, UpdateBaseModel):
             )
         return values
 
+
 class RepoBase(BaseModel):
     milestone_id: int
     frame: Frame
@@ -122,6 +117,13 @@ class RepoBase(BaseModel):
         if not milestone:
             raise ValueError("The milestone does not exist.")
         return v
+
+    @validator("content")
+    def check_content(cls, v):
+        if not v:
+            raise ValueError("Content can't be empty")
+        return v
+
 
 class RepoCreate(RepoBase):
     @root_validator
