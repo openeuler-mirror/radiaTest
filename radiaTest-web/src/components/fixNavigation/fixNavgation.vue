@@ -86,7 +86,13 @@ export default {
   },
   methods: {
     backToTop() {
-      document.querySelector('#homeBody > div').scrollTop = 0;
+      if (this.$route.name === 'resourcePool') {
+        document.querySelector('#resourcePoolRight > div').scrollTop = 0;
+      } else if (this.$route.name === 'folderview') {
+        document.querySelector('#folderviewRight > div').scrollTop = 0;
+      } else {
+        document.querySelector('#homeBody > div').scrollTop = 0;
+      }
     },
     swapTheme() {
       this.lightTheme = !this.lightTheme;
@@ -108,7 +114,15 @@ export default {
       }
     },
     backToBottom() {
-      document.querySelector('#homeBody > div').scrollTop = document.querySelector('#homeBody > div').scrollHeight;
+      if (this.$route.name === 'resourcePool') {
+        document.querySelector('#resourcePoolRight > div').scrollTop =
+          document.querySelector('#resourcePoolRight > div').scrollHeight;
+      } else if (this.$route.name === 'folderview') {
+        document.querySelector('#folderviewRight > div').scrollTop =
+          document.querySelector('#folderviewRight > div').scrollHeight;
+      } else {
+        document.querySelector('#homeBody > div').scrollTop = document.querySelector('#homeBody > div').scrollHeight;
+      }
     }
   }
 };
