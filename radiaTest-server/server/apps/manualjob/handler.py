@@ -36,14 +36,16 @@ class ManualJobHandler:
         manual_job_dict = deepcopy(body.__dict__)
         manual_job_dict["executor_id"] = g.gitee_id
         # 从所属的Case那里计算总步骤数
-        text_item_splitter = TextItemSplitter(
-            numeral_rules=[DefaultNumeralRule],
-            separators=[". ", "、"],
-            terminators=["\n"]
-        )
-        step_operation_dict = text_item_splitter.split_text_items(_case.steps)
-        total_step = len(step_operation_dict)
-        step_operation_dict_key_list = sorted(list(step_operation_dict.keys()))
+        total_step = 0
+        if _case.steps is not None:
+            text_item_splitter = TextItemSplitter(
+                numeral_rules=[DefaultNumeralRule],
+                separators=[". ", "、"],
+                terminators=["\n"]
+            )
+            step_operation_dict = text_item_splitter.split_text_items(_case.steps)
+            total_step = len(step_operation_dict)
+            step_operation_dict_key_list = sorted(list(step_operation_dict.keys()))
 
         manual_job_dict["total_step"] = total_step
 
