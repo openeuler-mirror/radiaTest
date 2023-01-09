@@ -1,3 +1,18 @@
+# Copyright (c) [2023] Huawei Technologies Co.,Ltd.ALL rights reserved.
+# This program is licensed under Mulan PSL v2.
+# You can use it according to the terms and conditions of the Mulan PSL v2.
+#          http://license.coscl.org.cn/MulanPSL2
+# THIS PROGRAM IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+# EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+# MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+# See the Mulan PSL v2 for more details.
+####################################
+# @Author  : 凹凸曼打小怪兽
+# @email   : 15710801006@163.com
+# @Date    : 2023/01/11
+# @License : Mulan PSL v2
+#####################################
+
 from enum import Enum
 
 from sqlalchemy import func
@@ -64,7 +79,12 @@ class Group(db.Model, PermissionBaseModel, BaseModel):
             Group.org_id == int(self.org_id),
             groups.influence > Group.influence,
         ).as_scalar()
-        db.session.query(Group).update({"rank": sub_query + 1}, synchronize_session=False)
+        db.session.query(Group).filter(
+            Group.is_delete.is_(False), Group.org_id == int(self.org_id)
+        ).update(
+            {"rank": sub_query + 1}, synchronize_session=False
+        )
+
         return super().add_update(table, namespace, broadcast)
 
     def to_summary(self):

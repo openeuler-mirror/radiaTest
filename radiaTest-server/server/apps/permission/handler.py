@@ -1,3 +1,18 @@
+# Copyright (c) [2023] Huawei Technologies Co.,Ltd.ALL rights reserved.
+# This program is licensed under Mulan PSL v2.
+# You can use it according to the terms and conditions of the Mulan PSL v2.
+#          http://license.coscl.org.cn/MulanPSL2
+# THIS PROGRAM IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+# EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+# MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+# See the Mulan PSL v2 for more details.
+####################################
+# @Author  : 凹凸曼打小怪兽
+# @email   : 15710801006@163.com
+# @Date    : 2023/01/11
+# @License : Mulan PSL v2
+#####################################
+
 import yaml
 from flask import jsonify, g, request, current_app
 from sqlalchemy import or_, and_
@@ -222,15 +237,7 @@ class ScopeHandler:
 
         scopes = Scope.query.filter(*filter_params)
 
-        def page_func(item):
-            scope_dict = item.to_json()
-            return scope_dict
-
-        page_dict, e = PageUtil.get_page_dict(scopes, query.page_num, query.page_size, func=page_func)
-
-        if e:
-            return jsonify(error_code=RET.SERVER_ERR, error_msg=f'get public scope page info error {e}')
-        return jsonify(error_code=RET.OK, error_msg="OK", data=page_dict)
+        return PageUtil.get_data(scopes, query)
 
     @staticmethod
     def get_scopes_by_role(role_id, query):
@@ -250,13 +257,8 @@ class ScopeHandler:
         scopes = Scope.query.filter(*_filter_params).order_by(
             Scope.create_time.desc(),
             Scope.id.asc()
-        ).all()
-
-        return jsonify(
-            error_code=RET.OK,
-            error_msg="OK",
-            data=[scope.to_json() for scope in scopes]
         )
+        return PageUtil.get_data(scopes, query)
 
     @staticmethod
     @collect_sql_error
