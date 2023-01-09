@@ -183,12 +183,14 @@ class RpmNameLoader():
             rpmlist : list of rpmname [<rpm name 1>, <rpm name 2>, ...]
         """
         real_path = os.path.realpath(filepath)
-        rpmlist = []
+        rpmset = set()
         # now only supported read from utf-8
         with open(real_path, "r", encoding='utf-8') as f:
             lines = f.readlines()
             for line in lines:
-                rpmlist.append(line.strip())
+                if line.strip().endswith(".rpm"):
+                    rpmset.add(line.strip())
+        rpmlist = list(rpmset)
         return rpmlist
 
     @staticmethod
