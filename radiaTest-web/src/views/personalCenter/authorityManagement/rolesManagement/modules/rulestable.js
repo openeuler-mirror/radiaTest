@@ -21,17 +21,17 @@ const ruleColumns = [
   {
     title: '名称',
     key: 'alias',
-    align: 'center',
+    align: 'center'
   },
   {
     title: '路由',
     key: 'uri',
-    align: 'center',
+    align: 'center'
   },
   {
     title: '请求方式',
     key: 'act',
-    align: 'center',
+    align: 'center'
   },
   {
     title: '规则类型',
@@ -51,17 +51,17 @@ const ruleColumns = [
       return h(
         'div',
         {
-          style: `color:${color};display:flex;align-items:center;justify-content:center`,
+          style: `color:${color};display:flex;align-items:center;justify-content:center`
         },
         [
           h(NIcon, null, {
-            default: () => h(icon),
+            default: () => h(icon)
           }),
-          text,
+          text
         ]
       );
-    },
-  },
+    }
+  }
 ];
 function setDrawerStatus(status) {
   showDrawer.value = status;
@@ -88,17 +88,17 @@ const relationRuleColumns = [
   {
     title: '名称',
     key: 'alias',
-    align: 'center',
+    align: 'center'
   },
   {
     title: '路由',
     key: 'uri',
-    align: 'center',
+    align: 'center'
   },
   {
     title: '请求方式',
     key: 'act',
-    align: 'center',
+    align: 'center'
   },
   {
     title: '规则类型',
@@ -118,16 +118,16 @@ const relationRuleColumns = [
       return h(
         'div',
         {
-          style: `color:${color};display:flex;align-items:center;justify-content:center`,
+          style: `color:${color};display:flex;align-items:center;justify-content:center`
         },
         [
           h(NIcon, null, {
-            default: () => h(icon),
+            default: () => h(icon)
           }),
-          text,
+          text
         ]
       );
-    },
+    }
   },
   {
     title: '操作',
@@ -140,7 +140,7 @@ const relationRuleColumns = [
         NSpace,
         {
           justify: 'center',
-          align: 'center',
+          align: 'center'
         },
         [
           h(
@@ -153,7 +153,7 @@ const relationRuleColumns = [
                 loading = true;
                 axios[method](actionUrl, {
                   scope_id: row.id,
-                  role_id: Number(roleId.value),
+                  role_id: Number(roleId.value)
                 })
                   .then(() => {
                     loading = false;
@@ -173,17 +173,17 @@ const relationRuleColumns = [
                   style.background = '#2080f0';
                 }
                 return style;
-              },
+              }
             },
             {
               checked: () => '启用',
-              unchecked: () => '关闭',
+              unchecked: () => '关闭'
             }
-          ),
+          )
         ]
       );
-    },
-  },
+    }
+  }
 ];
 const relationRuleData = ref();
 
@@ -197,30 +197,33 @@ const relationRulePagination = ref({
 
 function getRelationRules() {
   changeLoadingStatus(true);
-  let {scopeType, ownerId} = activeRole.value;
+  let { scopeType, ownerId } = activeRole.value;
   let scopeUrl = ownerId ? `/v1/scope/${scopeType}/${ownerId}` : `/v1/scope/${scopeType}`;
   if (storage.getValue('role') === 1 || tabValue.value === 'public') {
     scopeUrl = '/v1/scope';
   }
-  axios.get(scopeUrl, {
-    alias: aliasSearch.value,
-    uri: uriSearch.value,
-    page_size: relationRulePagination.value.pageSize,
-    page_num: relationRulePagination.value.page,
-  }).then((res) => {
-    relationRuleData.value = res.data?.items || [];
-    relationRuleData.value = relationRuleData.value.map((item) => {
-      item.allow = ruleData.value.findIndex((i) => i.id === item.id) !== -1;
-      return { ...item };
+  axios
+    .get(scopeUrl, {
+      alias: aliasSearch.value,
+      uri: uriSearch.value,
+      page_size: relationRulePagination.value.pageSize,
+      page_num: relationRulePagination.value.page
+    })
+    .then((res) => {
+      relationRuleData.value = res.data?.items || [];
+      relationRuleData.value = relationRuleData.value.map((item) => {
+        item.allow = ruleData.value.findIndex((i) => i.id === item.id) !== -1;
+        return { ...item };
+      });
+      relationRulePagination.value.pageCount = res.data?.pages || 1;
+      isAuthorized.value = true;
+      changeLoadingStatus(false);
+    })
+    .catch((err) => {
+      isAuthorized.value = false;
+      window.$notification?.error({ content: err.data.error_msg || unkonwnErrorMsg });
+      changeLoadingStatus(false);
     });
-    relationRulePagination.value.pageCount = res.data?.pages || 1;
-    isAuthorized.value = true;
-    changeLoadingStatus(false);
-  }).catch((err) => {
-    isAuthorized.value = false;
-    window.$notification?.error({ content: err.data.error_msg || unkonwnErrorMsg });
-    changeLoadingStatus(false);
-  });
 }
 
 const relationRulePageChange = (page) => {
@@ -232,6 +235,10 @@ const relationRuleSizeChange = (pageSize) => {
   relationRulePagination.value.page = 1;
   getRelationRules();
 };
+const relationRuleSearch = () => {
+  relationRulePagination.value.page = 1;
+  getRelationRules();
+};
 
 function relationRule() {
   getRelationRules();
@@ -239,7 +246,7 @@ function relationRule() {
 }
 
 const rulePagination = {
-  pageSize: 5,
+  pageSize: 5
 };
 
 const filters = [
@@ -253,8 +260,8 @@ const filters = [
       { label: 'get', value: 'get' },
       { label: 'post', value: 'post' },
       { label: 'delete', value: 'delete' },
-      { label: 'put', value: 'put' },
-    ],
+      { label: 'put', value: 'put' }
+    ]
   },
   {
     key: 'eft',
@@ -262,9 +269,9 @@ const filters = [
     type: 'select',
     options: [
       { label: '允许', value: 'allow' },
-      { label: '拒绝', value: 'deny' },
-    ],
-  },
+      { label: '拒绝', value: 'deny' }
+    ]
+  }
 ];
 
 function filterChange(options) {
@@ -293,4 +300,5 @@ export {
   isAuthorized,
   relationRulePageChange,
   relationRuleSizeChange,
+  relationRuleSearch
 };

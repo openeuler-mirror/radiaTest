@@ -184,7 +184,7 @@ const menu = ref([
   {
     id: 0,
     text: '个人概览',
-    name: 'dashboard',
+    name: 'dashboard'
   },
   {
     id: 1,
@@ -205,7 +205,7 @@ const menu = ref([
     id: 4,
     text: '测试执行',
     name: 'testing'
-  },
+  }
 ]);
 
 //获取里程碑列表
@@ -273,8 +273,8 @@ function initCondition() {
 function menuClick(item, index) {
   menuSelect.value = index;
   router.push(`/home/workflow/${item.name}`);
-  index === 2 ? isTask.value = true : isTask.value = false;
-  item.name === 'task' ? backable.value = false : backable.value = true;
+  index === 2 ? (isTask.value = true) : (isTask.value = false);
+  item.name === 'task' ? (backable.value = false) : (backable.value = true);
 }
 
 // 视图切换
@@ -380,6 +380,8 @@ function filterchange(filterArray) {
   if (model.start_time > 0) {
     model.start_time = formatTime(model.start_time, 'yyyy-MM-dd hh:mm:ss');
   }
+  model.page_num = 1;
+  model.page_size = 99999999;
   document.dispatchEvent(
     new CustomEvent('searchTask', {
       detail: model

@@ -9,12 +9,12 @@
       @submit="submitCreateCase"
     >
       <template #form>
-        <n-tabs 
+        <n-tabs
           animated
-          type="line" 
-          size="large" 
-          :tab-padding="20"  
-          @update:value="(value)=>createFormRef.changeTabs(value)"
+          type="line"
+          size="large"
+          :tab-padding="20"
+          @update:value="(value) => createFormRef.changeTabs(value)"
         >
           <n-tab-pane tab="基本信息" name="basic">
             <div></div>
@@ -34,13 +34,7 @@
         />
       </template>
     </modal-card>
-    <modal-card
-      :initY="100"
-      :initX="300"
-      title="修改测试套"
-      ref="putModalRef"
-      @validate="() => putFormRef.put()"
-    >
+    <modal-card :initY="100" :initX="300" title="修改测试套" ref="putModalRef" @validate="() => putFormRef.put()">
       <template #form>
         <testsuite-create
           ref="putFormRef"
@@ -66,10 +60,12 @@
           :showGroup="false"
           ref="importFormRef"
           @submitForm="extendSubmit"
-          @valid="() => {
-            importModalRef.submitCreateForm();
-            importModalRef.close();
-          }"
+          @valid="
+            () => {
+              importModalRef.submitCreateForm();
+              importModalRef.close();
+            }
+          "
           @close="
             () => {
               importModalRef.close();
@@ -124,6 +120,7 @@
       <n-layout-content
         content-style="padding: 24px;"
         :style="{ height: contentHeight + 'px', overflowY: 'auto' }"
+        id="folderviewRight"
       >
         <router-view :key="key" />
       </n-layout-content>
@@ -150,7 +147,7 @@ export default {
   computed: {
     key() {
       return this.$route.path + new Date();
-    },
+    }
   },
   mounted() {
     this.$axios.get('/v1/framework').then((res) => {
@@ -185,9 +182,9 @@ export default {
     return {
       caseTemplateUrl,
       contentHeight,
-      ...modules,
+      ...modules
     };
-  },
+  }
 };
 </script>
 <style lang="less">

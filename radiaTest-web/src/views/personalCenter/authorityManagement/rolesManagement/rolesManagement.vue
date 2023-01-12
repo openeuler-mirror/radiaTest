@@ -2,11 +2,11 @@
   <div>
     <n-descriptions label-placement="left">
       <template #header>
-        <div style="display: flex;">
-          <breadcrumb :list="titles" :fontsize="20" style="padding-right: 20px;" />
+        <div style="display: flex">
+          <breadcrumb :list="titles" :fontsize="20" style="padding-right: 20px" />
           <n-button round quaternary type="error" @click="deleteRole">
             <n-icon :size="20">
-             <delete />
+              <delete />
             </n-icon>
           </n-button>
         </div>
@@ -28,11 +28,7 @@
       </n-button>
     </div>
     <table-filter :filters="filters" @filterchange="filterChange" />
-    <n-data-table
-      :columns="ruleColumns"
-      :data="ruleData"
-      :pagination="rulePagination"
-    />
+    <n-data-table :columns="ruleColumns" :data="ruleData" :pagination="rulePagination" />
     <div class="tabel-title">
       <h4>用户列表</h4>
     </div>
@@ -49,19 +45,10 @@
             <p>邮箱:{{ roleInfo.cla_email }}</p>
           </template>
         </n-thing>
-        <n-data-table
-          :columns="ruleColumns"
-          :data="ruleData"
-          :pagination="rulePagination"
-        />
+        <n-data-table :columns="ruleColumns" :data="ruleData" :pagination="rulePagination" />
       </n-drawer-content>
     </n-drawer>
-    <modal-card
-      title="权限变更"
-      ref="ruleModal"
-      cancelText="关闭"
-      :showConfirm="false"
-    >
+    <modal-card title="权限变更" ref="ruleModal" cancelText="关闭" :showConfirm="false">
       <template #form>
         <n-tabs animated v-model:value="tabValue" type="line" @update:value="getRelationRules">
           <n-tab-pane v-if="isPermitted" name="permitted" tab="授权权限域"></n-tab-pane>
@@ -69,22 +56,22 @@
         </n-tabs>
         <n-input-group>
           <n-input
-            style="margin:5px 0;width:800px"
+            style="margin: 5px 0; width: 800px"
             round
             placeholder="搜索规则名称"
             v-model:value="aliasSearch"
-            @change="getRelationRules"
+            @change="relationRuleSearch"
           >
             <template #suffix>
               <n-icon :component="Search" />
             </template>
           </n-input>
           <n-input
-            style="margin:5px 0;width:800px"
+            style="margin: 5px 0; width: 800px"
             round
             placeholder="搜索规则路由"
             v-model:value="uriSearch"
-            @change="getRelationRules"
+            @change="relationRuleSearch"
           >
             <template #suffix>
               <n-icon :component="Search" />
@@ -134,7 +121,7 @@ export default {
       return true;
     });
     return { ...modules, Search, isPermitted };
-  },
+  }
 };
 </script>
 <style lang="less" scoped>
