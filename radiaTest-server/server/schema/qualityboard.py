@@ -135,6 +135,15 @@ class UpdateChecklistSchema(CheckBaseline):
                 )
         return rounds
 
+    @root_validator
+    def check_validation(cls, values):
+        if values.get("baseline") is not None and values.get("operation") is not None:
+            if values.get("baseline") == "100%" and values.get("operation") == ">":
+                raise ValueError("operation can't be '>', when baseline is 100%.")
+            if values.get("baseline").startswith("0") and values.get("operation") == "<":
+                raise ValueError("operation can't be '<', when baseline is 0 or 0%.")
+        return values
+
 
 class DeselectChecklistSchema(CheckRound):
     rounds: str

@@ -88,7 +88,7 @@ class MilestoneUpdateSchema(UpdateBaseModel, TimeBaseSchema):
         return values
 
 
-class MilestoneCreateSchema(MilestoneBaseSchema, PermissionBase):
+class MilestoneCreateSchema(MilestoneBaseSchema, PermissionBase, TimeBaseSchema):
     product_id: int
     type: MilestoneType
     end_time: str
@@ -99,7 +99,13 @@ class MilestoneCreateSchema(MilestoneBaseSchema, PermissionBase):
 
     @root_validator
     def assign_name(cls, values):
-        product = Precise(Product, {"id": values.get("product_id")}).first()
+        product = Precise(
+            Product,
+            {
+                "id": values.get("product_id"),
+                "org_id": values.get("org_id"),
+            }
+        ).first()
         if not product:
             raise ValueError("The bound product version does not exist.")
         if values.get("start_time") >= values.get("end_time"):
