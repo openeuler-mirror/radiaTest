@@ -19,11 +19,13 @@
 #   +----+ 1   n +----------+ 1   n +---------------+
 
 from datetime import datetime
+from sqlalchemy.dialects.mysql import LONGTEXT
 
 from server import db
 from server.model.base import BaseModel
 from server.model.user import User
 from server.model.milestone import Milestone
+from server.model.testcase import Case
 
 
 class ManualJob(BaseModel, db.Model):
@@ -44,8 +46,9 @@ class ManualJob(BaseModel, db.Model):
     steps = db.relationship("ManualJobStep", backref="manual_job", cascade="all, delete")
 
     def to_json(self):
-        executor_name = User.query.filter_by(gitee_id=self.executor_id).first().gitee_name  # 这里没有用backref, 可以改成用backref
+        executor_name = User.query.filter_by(gitee_id=self.executor_id).first().gitee_name  # 这里没有用backref
         milestone_name = Milestone.query.filter_by(id=self.milestone_id).first().name
+        _case = Case.query.filter_by(id=self.case_id).first()
         return {
             "id": self.id,
             "name": self.name,
@@ -59,13 +62,16 @@ class ManualJob(BaseModel, db.Model):
             "executor_name": executor_name,
             "milestone_name": milestone_name,
             "result": self.result,
-            "status": self.status
+            "status": self.status,
+            "case_description": _case.description,
+            "case_preset": _case.preset,
+            "case_expection": _case.expection
         }
 
 
 class ManualJobStep(BaseModel, db.Model):
     id = db.Column(db.Integer(), primary_key=True, autoincrement=True)
-    log_content = db.Column(db.String(255), nullable=True)
+    log_content = db.Column(LONGTEXT, nullable=True)
     passed = db.Column(db.Boolean(), nullable=True)
     step_num = db.Column(db.Integer(), nullable=False)
     operation = db.Column(db.String(255), nullable=True)  # 操作内容, 是这个manual_job_step所属的manual_job所属的case的steps字段经文本分割的结果

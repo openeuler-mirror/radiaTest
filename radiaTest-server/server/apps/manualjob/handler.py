@@ -36,16 +36,19 @@ class ManualJobHandler:
         manual_job_dict = deepcopy(body.__dict__)
         manual_job_dict["executor_id"] = g.gitee_id
         # 从所属的Case那里计算总步骤数
-        total_step = 0
-        if _case.steps is not None:
+        if _case.steps is not None and _case.steps != "":
             text_item_splitter = TextItemSplitter(
                 numeral_rules=[DefaultNumeralRule],
-                separators=[". ", "、"],
+                separators=[".", "、"],
                 terminators=["\n"]
             )
             step_operation_dict = text_item_splitter.split_text_items(_case.steps)
             total_step = len(step_operation_dict)
             step_operation_dict_key_list = sorted(list(step_operation_dict.keys()))
+        else:  # 如果该manualjob所属case的steps字段留空, 视为有1个步骤(而不是0个步骤)
+            total_step = 1
+            step_operation_dict = {1: ""}
+            step_operation_dict_key_list = [1]
 
         manual_job_dict["total_step"] = total_step
 
@@ -115,22 +118,28 @@ class ManualJobSubmitHandler:
         # 查询此manual_job所有步骤的日志, 如果此manual_job所有步骤的日志都存在且结果都是True, 则设置manual_job的结果为1.
         for cnt in range(1, manual_job.total_step + 1):
             manual_job_step = ManualJobStep.query.filter_by(manual_job_id=manual_job.id, step_num=cnt).first()
-            if manual_job_step is None or manual_job_step.passed is None or manual_job_step.passed is False:
-                result = 0
+            if manual_job_step is None or manual_job_step.passed is None:
+                result = -1  # -1表示存在一些步骤的日志未填写. 提交完成执行失败.
                 break
+            elif manual_job_step.passed is False:
+                result = 0  # 0表示存在一些步骤的日志结果与预期不符
 
-        manual_job.result = result
-
-        try:
-            db.session.commit()
-        except (IntegrityError, SQLAlchemyError) as e:
-            db.session.rollback()
-            raise e
-
-        return jsonify(
-            error_code=RET.OK,
-            error_msg="Request processed successfully."
-        )
+        if result >= 0:
+            manual_job.result = result
+            try:
+                db.session.commit()
+            except (IntegrityError, SQLAlchemyError) as e:
+                db.session.rollback()
+                raise e
+            return jsonify(
+                error_code=RET.OK,
+                error_msg="Request processed successfully."
+            )
+        else:
+            return jsonify(
+                error_code=RET.VERIFY_ERR,
+                error_msg="Not all the steps' logs are filled."
+            )
 
 
 class ManualJobLogHandler:
