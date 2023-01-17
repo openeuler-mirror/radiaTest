@@ -211,7 +211,7 @@
                       :percentage="seriousResolvedRate"
                     />
                   </template>
-                  严重问题解决率
+                  严重问题解决率{{ seriousResolvedRate }}%
                 </n-tooltip>
                 <n-tooltip>
                   <template #trigger>
@@ -224,7 +224,7 @@
                       :percentage="mainResolvedRate"
                     />
                   </template>
-                  主要问题解决率
+                  主要问题解决率{{ mainResolvedRate }}%
                 </n-tooltip>
               </div>
             </n-gi>
