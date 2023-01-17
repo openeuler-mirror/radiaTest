@@ -449,7 +449,7 @@ class ChecklistEvent(Resource):
         if _cl:
             return jsonify(
                 error_code=RET.DB_DATA_ERR,
-                error_msg="Checklist {} for product {} has existed".format(ci.title, _p.id)
+                error_msg="Checklist {} for {} product has existed".format(ci.title, _p.name)
             )
         cl = Insert(Checklist, body.__dict__).insert_obj(Checklist, "/checklist")
         return jsonify(

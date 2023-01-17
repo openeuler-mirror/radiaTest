@@ -50,7 +50,24 @@ class PageUtil(object):
             return {}, e
 
     @staticmethod
-    def get_data(query_filter, query):
+    def page_func(item):
+        """
+        :description: convert item to json
+        :param: item, object, item must has to_json function
+        :return : data_dict, dict, dict result of item
+        """
+        data_dict = item.to_json()
+        return data_dict
+
+    @staticmethod
+    def get_data(query_filter, query, func=None):
+        """
+        :description: get paged data
+        :param: query_filter, object, sqlalchemy.BaseQuery
+        :param: query, class, query contains page_num, page_size
+        :param: func, function, the function can convert item to json
+        :return : jsonify, contains paged data
+        """
         if not query.paged:
             query_datas = query_filter.all()
             data = dict()
@@ -65,12 +82,11 @@ class PageUtil(object):
             )
             return jsonify(error_code=RET.OK, error_msg="OK", data=data)
 
-        def page_func(item):
-            data_dict = item.to_json()
-            return data_dict
+        if func is None:
+            func = PageUtil.page_func
 
         page_dict, e = PageUtil.get_page_dict(
-            query_filter, query.page_num, query.page_size, func=page_func
+            query_filter, query.page_num, query.page_size, func=func
         )
         if e:
             return jsonify(
