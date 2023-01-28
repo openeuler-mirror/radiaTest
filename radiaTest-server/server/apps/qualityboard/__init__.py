@@ -17,7 +17,7 @@ from flask_restful import Api
 
 from .routes import (
     ChecklistResultEvent,
-    FeatureListSummary,
+    FeatureSummary,
     PackageListCompareEvent,
     RoundIssueEvent,
     RoundMilestoneEvent,
@@ -36,7 +36,7 @@ from .routes import (
     DailyBuildDetail,
     WeeklybuildHealthOverview,
     WeeklybuildHealthEvent,
-    FeatureListEvent,
+    FeatureEvent,
     CheckItemEvent,
     CheckItemSingleEvent,
     QualityResultCompare,
@@ -115,11 +115,11 @@ def init_api(api: Api):
         "/api/v1/weeklybuild/<int:weeklybuild_id>",
     )
     api.add_resource(
-        FeatureListEvent,
+        FeatureEvent,
         "/api/v1/qualityboard/<int:qualityboard_id>/feature-list"
     )
     api.add_resource(
-        FeatureListSummary,
+        FeatureSummary,
         "/api/v1/qualityboard/<int:qualityboard_id>/feature-list/summary"
     )
     api.add_resource(

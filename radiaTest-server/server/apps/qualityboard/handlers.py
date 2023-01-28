@@ -23,6 +23,7 @@ import subprocess
 from flask import jsonify, current_app, g
 from sqlalchemy import func, or_
 import pytz
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from server import db, redis_client
 from sqlalchemy import and_
@@ -265,7 +266,7 @@ class CheckItemHandler:
         )
 
 
-class FeatureListResolver:
+class FeatureResolver:
     """parse html format text
     table format as follow
     <table>
@@ -291,7 +292,7 @@ class FeatureListResolver:
         pass
 
 
-class OpenEulerFeatureListResolver(FeatureListResolver):
+class OpenEulerFeatureResolver(FeatureResolver):
     def parse_table(self):
         """parse xpath table element 2 python list
 
@@ -349,15 +350,18 @@ class OpenEulerFeatureListResolver(FeatureListResolver):
         return ""
 
 
-class FeatureListHandler:
-    resolver = FeatureListResolver
+class FeatureHandler:
+    resolver = FeatureResolver
     table_num = 1
     target_index = 0
     colname_dict = {}
 
-    def __init__(self, table, qualityboard_id) -> None:
+    def __init__(self, table, re_table, **kwargs) -> None:
         self.table = table
-        self.qualityboard_id = qualityboard_id
+        self.re_table = re_table
+        if kwargs.get("product_id"):
+            self.product_id = kwargs.get("product_id")
+
 
     @abc.abstractmethod
     def get_md_content(self, product_version) -> str:
@@ -395,8 +399,8 @@ class FeatureListHandler:
         pass
 
 
-class OpenEulerReleasePlanHandler(FeatureListHandler):
-    resolver = OpenEulerFeatureListResolver
+class OpenEulerReleasePlanHandler(FeatureHandler):
+    resolver = OpenEulerFeatureResolver
     table_num = 2
     target_index = 1
     colname_dict = {
@@ -412,17 +416,20 @@ class OpenEulerReleasePlanHandler(FeatureListHandler):
             )
         else:
             exitcode, _ = subprocess.getstatusoutput(
-                "pushd /tmp && git clone https://gitee.com/openeuler/release-management && popd"
+                "pushd /tmp && git clone \
+                    https://gitee.com/openeuler/release-management && popd"
             )
         if exitcode != 0:
             return None
 
         md_content = None
-        with open(f"/tmp/release-management/{product_version}/release-plan.md", 'r') as f:
+        with open(f"/tmp/release-management/{product_version}/release-plan.md", 'r'
+        ) as f:
             md_content = f.read()
 
         return md_content
     
+
     def store(self, socket_namespace=None):       
         for data in self.rows:
             if data.get("status") == "discussion":
@@ -438,48 +445,45 @@ class OpenEulerReleasePlanHandler(FeatureListHandler):
                 no=data.get("no")
             ).first()
             if not _row:
-                Insert(
-                    self.table,
-                    {
-                        "qualityboard_id": self.qualityboard_id,
-                        **data,
+                table_row = self.table(**data)
+                db.session.add(table_row)
+                db.session.flush()
+                feature_id = table_row.id
+
+                re_row = self.re_table(
+                    **{
+                        "feature_id": feature_id,
+                        "is_new": True,
+                        "product_id": self.product_id,
+                        "is_archived": False,                       
                     }
-                ).single(
-                    self.table, socket_namespace
                 )
+                db.session.add(re_row)
+                try:
+                    db.session.commit()
+                except (IntegrityError, SQLAlchemyError) as e:
+                    db.session.rollback()
+                    raise e
             else:
-                Edit(
-                    self.table,
-                    {
-                        "id": _row.id,
-                        **data,
-                    }
-                ).single(
-                    self.table, socket_namespace
-                )
-        
+                for key, value in data.items():
+                    if value is not None:
+                        setattr(_row, key, value)
+                try:
+                    db.session.commit()
+                except (IntegrityError, SQLAlchemyError) as e:
+                    db.session.rollback()
+                    raise e
+
+
     def statistic(self, _is_new: bool):
         result = defaultdict(int)
-
-        _query = db.session.query(func.count(self.table.id))
-        result["developing_count"] = _query.filter_by(
-            qualityboard_id=self.qualityboard_id,
-            is_new=_is_new,
-            status='Developing',
-        ).scalar()
-        result["testing_count"] = _query.filter_by(
-            qualityboard_id=self.qualityboard_id,
-            is_new=_is_new,
-            status="Testing",
-        ).scalar()
-        result["accepted_count"] = _query.filter_by(
-            qualityboard_id=self.qualityboard_id,
-            is_new=_is_new,
-            status="Accepted",
-        ).scalar()
-
-        accepted_count = result["developing_count"] + result["testing_count"] + result["accepted_count"]
-
+        result["developing_count"] = self._stat_status(_is_new, "Developing")
+        result["testing_count"] = self._stat_status(_is_new, "Testing")
+        result["accepted_count"] = self._stat_status(_is_new, "Accepted")
+        
+        accepted_count = result["developing_count"] + \
+            result["testing_count"] + result["accepted_count"]
+         
         result["accepted_rate"] = 100
         if accepted_count != 0:
             result["accepted_rate"] = floor(
@@ -489,8 +493,23 @@ class OpenEulerReleasePlanHandler(FeatureListHandler):
         return result
 
 
-feature_list_handlers = {
-    "default": FeatureListHandler,
+    def _stat_status(self, _is_new, _status):
+        _query = db.session.query(func.count(self.table.id))
+        filter_params = [
+            self.re_table.product_id == self.product_id,
+            self.re_table.is_new == _is_new,
+            self.re_table.feature_id == self.table.id
+        ]
+        _count = _query.filter(
+            *filter_params,
+            self.table.status == _status,
+        ).scalar()
+
+        return _count
+
+
+feature_handlers = {
+    "default": FeatureHandler,
     "openEuler": OpenEulerReleasePlanHandler,
 }
 
