@@ -3,10 +3,13 @@ import {
   getFeatureCompletionRates,
   getFeatureList as getFeatureData,
   getPackageListComparationSummaryAxios,
-  getPackageListComparationDetail as getPackageChangeSummary
+  getPackageListComparationDetail as getPackageChangeSummary,
+  getProduct,
+  getAllMilestone,
 } from '@/api/get';
+import { updateCompareRounds } from '@/api/put';
 import { NButton, NTag, NSpace } from 'naive-ui';
-import { list, currentId, preId } from './productTable';
+import { list, currentId, preId, currentRound } from './productTable';
 
 const detail = ref({});
 const drawerShow = ref(false);
@@ -40,9 +43,8 @@ const packageChangeSummary = ref({
 // 获取软件包变更数据
 function getPackageListComparationSummary(qualityboardId, params) {
   const idList = list.value.map((item) => item.id);
-  const currentIndex = idList.indexOf(currentId.value);
+  const currentIndex = idList.indexOf(currentRound.value.id);
   if (currentIndex === 0) {
-    // 暂时设为round1，未来设置为前正式发布版本的release里程碑
     preId.value = currentId.value;
     getPackageListComparationSummaryAxios(qualityboardId, currentId.value, {
       summary: true,
@@ -129,6 +131,138 @@ watch(showPackage, () => {
     packageWidth.value = requestCard.value.$el.clientWidth;
   });
 });
+
+const currentPanel = ref('fixed');
+
+const packageComparePanels = ref([
+  {
+    name: '上轮迭代',
+    id: 'fixed',
+  },
+]);
+
+watch(currentRound, () => {
+  packageComparePanels.value = [
+    {
+      name: '上轮迭代',
+      id: 'fixed',
+    },
+    ...currentRound.value.comparee_round_ids,
+  ];
+});
+
+const showAddNewCompare = ref(false);
+
+const productOptions = ref([]);
+const productLoading = ref(false);
+const roundOptions = ref([]);
+const roundLoading = ref(false);
+
+const newCompareForm = ref({
+  product: undefined,
+  type: 'release',
+  round: undefined,
+});
+
+const packageCompareClosable = computed(() => packageComparePanels.value.length > 1);
+
+function handlePackageCompareAdd() {
+  showAddNewCompare.value = true;
+}
+
+function handleNewCompareCreate() {
+  updateCompareRounds(
+    currentId.value, 
+    {
+      comparee_round_ids: [
+        ...currentRound.value.comparee_round_ids,
+        newCompareForm.value.round
+      ]
+    }
+  )
+    .then((res) => {
+      packageComparePanels.value = res.data;
+    })
+    .finally(() => {
+      showAddNewCompare.value = false;
+    });
+}
+
+function handlePackageCompareClose(id) {
+  const { value: panelList } = packageComparePanels;
+  const closeIndex = panelList.findIndex((panel) => panel.id === id);
+  if (closeIndex === 0) {
+    window.$message?.error('默认比对项无法关闭');
+    return;
+  } else if (!~closeIndex) {
+    return;
+  }
+
+  const compareeRoundIds = JSON.parse(
+    JSON.stringify(currentRound.value.comparee_round_ids)
+  );
+  compareeRoundIds.splice(closeIndex, 1);
+
+  updateCompareRounds(currentId.value, { comparee_round_ids: compareeRoundIds })
+    .then((res) => {
+      packageComparePanels.value = res.data;
+    });
+}
+
+watch(showAddNewCompare, () => {
+  if(showAddNewCompare.value) {
+    const params = {
+      paged: false,
+    }; 
+    productLoading.value = true;
+    getProduct(params)
+      .then((res) => {
+        productOptions.value = res.data?.items?.map((item) => {
+          return {
+            label: `${item.name}-${item.version}`,
+            value: item.id,
+          };
+        });
+      })
+      .finally(() => {
+        productLoading.value = false;
+      });
+  } else {
+    newCompareForm.value = {
+      product: undefined,
+      type: 'release',
+      round: undefined,
+    };
+    productOptions.value = [];
+    roundOptions.value = [];
+  }
+});
+
+watch(
+  () => [ newCompareForm.value.type, newCompareForm.value.product ], 
+  () => {
+    newCompareForm.value.round = undefined;
+    const params = {
+      paged: false,
+      type: newCompareForm.value.type,
+      product_id: newCompareForm.value.product,
+    };
+    roundLoading.value = true;
+    getAllMilestone(params)
+      .then((res) => {
+        roundOptions.value = res.data?.items?.map((item) => {
+          return {
+            label: item.name,
+            value: item.round_id,
+          };
+        });
+        roundOptions.value = roundOptions.value.filter(item => item.value);
+      })
+      .finally(() => {
+        roundLoading.value = false;
+      });
+  }
+);
 
 const featureListColumns = [
   {
@@ -297,5 +431,17 @@ export {
   featureListData,
   featureLoading,
   getPackageListComparationSummary,
-  packageChangeSummary
+  packageChangeSummary,
+  packageComparePanels,
+  packageCompareClosable,
+  handlePackageCompareAdd,
+  handlePackageCompareClose,
+  newCompareForm,
+  showAddNewCompare,
+  currentPanel,
+  handleNewCompareCreate,
+  productLoading,
+  productOptions,
+  roundLoading,
+  roundOptions,
 };

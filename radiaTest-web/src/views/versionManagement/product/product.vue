@@ -333,46 +333,109 @@
                     </div>
                   </div>
                   <div v-if="showPackage">
-                    <n-tabs animated type="line" @update:value="changePackageTabFirst">
-                      <n-tab name="softwarescope"> 软件范围 </n-tab>
-                      <n-tab name="homonymousIsomerism"> 同名异构 </n-tab>
+                    <n-tabs
+                      v-model:value="currentPanel"
+                      animated 
+                      addable
+                      type="card" 
+                      :closable="packageCompareClosable" 
+                      @close="handlePackageCompareClose"
+                      @add="handlePackageCompareAdd"
+                    >
+                      <n-tab-pane 
+                        v-for="packageComparePanel in packageComparePanels" 
+                        :key="packageComparePanel" 
+                        :tab="`对比${packageComparePanel.name}`"
+                        :name="packageComparePanel.id"
+                      >
+                        <n-tabs animated type="line" @update:value="changePackageTabFirst">
+                          <n-tab name="softwarescope"> 软件范围 </n-tab>
+                          <n-tab name="homonymousIsomerism"> 同名异构 </n-tab>
+                        </n-tabs>
+                        <n-tabs animated type="line" @update:value="changePackageTabSecond">
+                          <n-tab name="everything"> everything </n-tab>
+                          <n-tab name="EPOL"> EPOL </n-tab>
+                        </n-tabs>
+                        <div class="packageCard" v-show="packageTabValueFirst !== 'homonymousIsomerism'">
+                          <div class="package-left">
+                            <n-h3>
+                              {{ oldPackage.size }}
+                            </n-h3>
+                            <p>{{ oldPackage.name }}</p>
+                          </div>
+                          <div class="package-middle">
+                            <p style="font-size: 15px; margin-top: 0px">
+                              <span>+{{ packageChangeSummary.addPackagesNum }}</span>
+                            </p>
+                            <p style="font-size: 15px; margin-top: 0px">
+                              <span>-{{ packageChangeSummary.delPackagesNum }}</span>
+                            </p>
+                            <n-icon color="green">
+                              <DoubleArrowFilled />
+                            </n-icon>
+                          </div>
+                          <div class="package-right">
+                            <n-h3>
+                              {{ newPackage.size }}
+                            </n-h3>
+                            <p>{{ newPackage.name }}</p>
+                          </div>
+                        </div>
+                        <package-table
+                          :qualityboard-id="dashboardId"
+                          :round-pre-id="preId"
+                          :round-cur-id="currentId"
+                          :packageTabValueFirst="packageTabValueFirst"
+                          :packageTabValueSecond="packageTabValueSecond"
+                        />
+                      </n-tab-pane>
                     </n-tabs>
-                    <n-tabs animated type="line" @update:value="changePackageTabSecond">
-                      <n-tab name="everything"> everything </n-tab>
-                      <n-tab name="EPOL"> EPOL </n-tab>
-                    </n-tabs>
-                    <div class="packageCard" v-show="packageTabValueFirst !== 'homonymousIsomerism'">
-                      <div class="package-left">
-                        <n-h3>
-                          {{ oldPackage.size }}
-                        </n-h3>
-                        <p>{{ oldPackage.name }}</p>
+                    <n-modal v-model:show="showAddNewCompare" preset="dialog" title="Dialog">
+                      <template #header>
+                        <div>新增比对</div>
+                      </template>
+                      <div>
+                        <n-form :model="newCompareForm">
+                          <n-form-item label="版本" path="product">
+                            <n-select
+                              filterable
+                              v-model:value="newCompareForm.product"
+                              :options="productOptions"
+                              :loading="productLoading"
+                              placeholder="请选择比对的基线版本"
+                            />
+                          </n-form-item>
+                          <n-radio-group v-model:value="newCompareForm.type">
+                            <n-space>
+                              <n-radio value="release">
+                                发布版本
+                              </n-radio>
+                              <n-radio value="round">
+                                迭代轮次
+                              </n-radio>
+                            </n-space>
+                          </n-radio-group>
+                          <n-form-item 
+                            path="round"
+                          >
+                            <n-select
+                              filterable
+                              v-model:value="newCompareForm.round"
+                              :options="roundOptions"
+                              :loading="roundLoading"
+                            />
+                          </n-form-item>
+                        </n-form>
                       </div>
-                      <div class="package-middle">
-                        <p style="font-size: 15px; margin-top: 0px">
-                          <span>+{{ packageChangeSummary.addPackagesNum }}</span>
-                        </p>
-                        <p style="font-size: 15px; margin-top: 0px">
-                          <span>-{{ packageChangeSummary.delPackagesNum }}</span>
-                        </p>
-                        <n-icon color="green">
-                          <DoubleArrowFilled />
-                        </n-icon>
-                      </div>
-                      <div class="package-right">
-                        <n-h3>
-                          {{ newPackage.size }}
-                        </n-h3>
-                        <p>{{ newPackage.name }}</p>
-                      </div>
-                    </div>
-                    <package-table
-                      :qualityboard-id="dashboardId"
-                      :round-pre-id="preId"
-                      :round-cur-id="currentId"
-                      :packageTabValueFirst="packageTabValueFirst"
-                      :packageTabValueSecond="packageTabValueSecond"
-                    />
+                      <template #action>
+                        <n-button
+                          type="primary"
+                          @click="handleNewCompareCreate"
+                        >
+                          提交
+                        </n-button>
+                      </template>
+                    </n-modal>
                   </div>
                 </div>
               </n-card>
