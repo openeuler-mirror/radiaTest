@@ -1,15 +1,30 @@
+# Copyright (c) [2023] Huawei Technologies Co.,Ltd.ALL rights reserved.
+# This program is licensed under Mulan PSL v2.
+# You can use it according to the terms and conditions of the Mulan PSL v2.
+#          http://license.coscl.org.cn/MulanPSL2
+# THIS PROGRAM IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+# EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+# MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+# See the Mulan PSL v2 for more details.
+####################################
+# @Author  : Ethan-Zhang,凹凸曼打小怪兽
+# @email   : 15710801006@163.com
+# @Date    : 2023/01/29
+# @License : Mulan PSL v2
+#####################################
+
 from datetime import datetime
 from typing import Literal, Optional
 import pytz
 
-from pydantic import BaseModel, Field, constr, root_validator, validator
+from pydantic import BaseModel, Field, constr, root_validator
 from sqlalchemy import func
 from server import db
 
 
 from server.model import Product, Milestone
 from server.utils.db import Precise
-from server.schema import MilestoneType, MilestoneState, MilestoneStateEvent, SortOrder
+from server.schema import MilestoneType, MilestoneState, SortOrder
 from server.schema.base import TimeBaseSchema, PermissionBase, UpdateBaseModel, PageBaseSchema
 
 
@@ -88,13 +103,11 @@ class MilestoneUpdateSchema(UpdateBaseModel, TimeBaseSchema):
         return values
 
 
-class MilestoneCreateSchema(MilestoneBaseSchema, PermissionBase, TimeBaseSchema):
+class MilestoneCreateSchema(MilestoneBaseSchema, PermissionBase):
     product_id: int
     type: MilestoneType
     end_time: str
-    start_time: Optional[str] = datetime.now(
-        tz=pytz.timezone("Asia/Shanghai")
-    ).strftime("%Y-%m-%d %H:%M:%S")
+    start_time: Optional[str]
     is_sync: Optional[bool]
 
     @root_validator
@@ -108,6 +121,8 @@ class MilestoneCreateSchema(MilestoneBaseSchema, PermissionBase, TimeBaseSchema)
         ).first()
         if not product:
             raise ValueError("The bound product version does not exist.")
+        if not values.get("start_time"):
+            values["start_time"] = datetime.now(tz=pytz.timezone("Asia/Shanghai")).strftime("%Y-%m-%d %H:%M:%S")
         if values.get("start_time") >= values.get("end_time"):
             raise ValueError("end_time is earlier than start_time.")
         milestones = (
