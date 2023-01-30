@@ -20,11 +20,12 @@ ENV TZ Asia/Shanghai
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 ENV GIT_REPO https://gitee.com/openeuler/radiaTest
+ENV BRANCH master
 
 WORKDIR /opt
 
 RUN dnf install -y git \
-    && git clone $GIT_REPO \
+    && git clone -b $BRANCH $GIT_REPO \
     && dnf install -y nginx \
     && dnf install -y wget \
     && dnf install -y tar \

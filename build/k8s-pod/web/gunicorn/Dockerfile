@@ -21,11 +21,12 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 ENV GIT_REPO https://gitee.com/openeuler/radiaTest
 ENV PIP_REPO https://pypi.tuna.tsinghua.edu.cn/simple
+ENV BRANCH master
 
 WORKDIR /opt
 
 RUN dnf install -y git \
-    && git clone $GIT_REPO \
+    && git clone -b $BRANCH $GIT_REPO \
     && dnf install -y make \
     && dnf install -y openssl \
     && dnf install -y expect \
