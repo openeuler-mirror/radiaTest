@@ -742,10 +742,10 @@ class CompareRoundHandler:
         """
         修改当前round的比对round项
         @param: compare_round_ids: list, 比对项id列表
-        @return: 异常,返回错误信息;正常,返回操作ok
+        @return: 异常,返回错误信息;正常,返回{error_code, error_msg, round_data}
         """
-        _round = Round.query.filter_by(id=self.round_id).first()
-        if not _round:
+        round_ = Round.query.filter_by(id=self.round_id).first()
+        if not round_:
             return jsonify(
                 error_code=RET.NO_DATA_ERR,
                 error_msg="the round does not exist"
@@ -764,10 +764,11 @@ class CompareRoundHandler:
                     error_msg=f"the round whose id is {compare_round_id} does not exist"
                 )
         comparee_round_ids_list = list(map(str, compare_round_ids))
-        _round.comparee_round_ids = ",".join(comparee_round_ids_list)
-        _round.add_update()
+        round_.comparee_round_ids = ",".join(comparee_round_ids_list)
+        round_.add_update()
 
         return jsonify(
             error_code=RET.OK,
             error_msg="OK",
+            data=round_.to_json(),
         )

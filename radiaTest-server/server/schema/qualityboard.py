@@ -256,7 +256,7 @@ class RoundUpdateSchema(BaseModel):
 
 
 class CompareRoundUpdateSchema(BaseModel):
-    compare_round_ids: List[int]
+    comparee_round_ids: List[int]
 
 
 class RoundIssueQueryV8(BaseModel):
