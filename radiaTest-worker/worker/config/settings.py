@@ -6,3 +6,5 @@ class Config(object):
 
     # Config.ini 文件目录
     CONFIG_INI_FILE_PATH = "/etc/radiaTest/worker.ini"
+
+    VNC_START_PORT = 5900
