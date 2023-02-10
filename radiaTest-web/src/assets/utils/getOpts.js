@@ -16,6 +16,11 @@ export async function createSuiteOptions(filter) {
     machineType: item.machine_type
   }));
 }
+export async function createCaseOptions(filter) {
+  const res = await axios.get('v1/case/preciseget', filter);
+  return res?.data.map((v) => ({ label: v.name, value: v.id }));
+}
+
 export async function createPmOptions(filter) {
   const data = await getPm(filter);
   return data.data.map((item) => ({
