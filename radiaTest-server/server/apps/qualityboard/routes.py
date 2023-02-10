@@ -53,6 +53,7 @@ from server.schema.qualityboard import (
     RoundIssueRateSchema,
     RoundToMilestone,
     RoundUpdateSchema,
+    CompareRoundUpdateSchema,
     SamePackageCompareQuerySchema,
     PackageListQuerySchema,
     QualityBoardSchema,
@@ -77,6 +78,7 @@ from server.apps.qualityboard.handlers import (
     QualityResultCompareHandler,
     RoundHandler,
     ChecklistResultHandler,
+    CompareRoundHandler,
 )
 from server.apps.milestone.handler import IssueOpenApiHandlerV8
 from server.utils.shell import add_escape
@@ -1584,6 +1586,7 @@ class QualityResult(Resource):
 
 class RoundEvent(Resource):
     @auth.login_required
+    @response_collect
     @validate()
     def get(self, query: QueryRound):
         return Select(Round, query.__dict__).precise()
@@ -1591,6 +1594,7 @@ class RoundEvent(Resource):
 
 class RoundItemEvent(Resource):
     @auth.login_required
+    @response_collect
     @validate()
     def put(self, round_id, body: RoundUpdateSchema):
         _round = Round.query.filter_by(id=round_id).first()
@@ -1606,9 +1610,40 @@ class RoundItemEvent(Resource):
         }
         return Edit(Round, _edit_body).single()
 
+    @auth.login_required
+    @response_collect
+    @collect_sql_error
+    def get(self, round_id):
+        _round = Round.query.filter_by(id=round_id).first()
+        if not _round:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="the round does not exist"
+            )
+
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+            data=_round.to_json()
+        )
+
+
+class CompareRoundEvent(Resource):
+    @auth.login_required
+    @response_collect
+    @validate()
+    def put(self, round_id, body: CompareRoundUpdateSchema):
+        """
+        修改当前round的比对round项
+        """
+        return CompareRoundHandler(round_id).excute(
+            body.compare_round_ids
+        )
+
 
 class RoundMilestoneEvent(Resource):
     @auth.login_required
+    @response_collect
     @validate()
     def put(self, round_id, body: RoundToMilestone):
         return RoundHandler.bind_round_milestone(round_id, body.milestone_id, body.isbind)
@@ -1616,11 +1651,13 @@ class RoundMilestoneEvent(Resource):
 
 class RoundIssueRateEvent(Resource):
     @auth.login_required
+    @response_collect
     @validate()
     def put(self, round_id, body: RoundIssueRateSchema):
         return RoundHandler.update_round_issue_rate_by_field(round_id, body.field)
     
     @auth.login_required
+    @response_collect
     @validate()
     def get(self, round_id):
         return RoundHandler.get_rate_by_round(round_id)
@@ -1628,6 +1665,7 @@ class RoundIssueRateEvent(Resource):
 
 class RoundIssueEvent(Resource):
     @auth.login_required
+    @response_collect
     @validate()
     def get(self, round_id, query: RoundIssueQueryV8):
         milestones = Milestone.query.filter_by(round_id=round_id, is_sync=True).all()

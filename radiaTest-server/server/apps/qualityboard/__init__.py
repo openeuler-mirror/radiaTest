@@ -44,6 +44,7 @@ from .routes import (
     RoundEvent,
     RoundIssueRateEvent,
     RoundItemEvent,
+    CompareRoundEvent,
     RpmCheckOverview,
     RpmCheckDetailEvent,
 )
@@ -149,6 +150,10 @@ def init_api(api: Api):
     api.add_resource(
         RoundItemEvent,
         "/api/v1/round/<int:round_id>"
+    )
+    api.add_resource(
+        CompareRoundEvent,
+        "/api/v1/round/<int:round_id>/compare-round"
     )
     api.add_resource(
         RoundMilestoneEvent,

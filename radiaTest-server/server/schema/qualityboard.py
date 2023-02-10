@@ -255,6 +255,10 @@ class RoundUpdateSchema(BaseModel):
     buildname: Optional[str]
 
 
+class CompareRoundUpdateSchema(BaseModel):
+    compare_round_ids: List[int]
+
+
 class RoundIssueQueryV8(BaseModel):
     state: Optional[MilestoneState]
     only_related_me: Optional[str]

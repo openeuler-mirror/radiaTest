@@ -381,6 +381,7 @@ class Round(BaseModel, db.Model):
         db.Integer(), nullable=False,
     )
     buildname = db.Column(db.String(128))
+    comparee_round_ids = db.Column(db.String(256), default="")
 
     product_id = db.Column(
         db.Integer(), db.ForeignKey("product.id"),
@@ -397,6 +398,7 @@ class Round(BaseModel, db.Model):
             "default_milestone_id": self.default_milestone_id,
             "product_id": self.product_id,
             "buildname": self.buildname,
+            "comparee_round_ids": self.comparee_round_ids.split(",") if self.comparee_round_ids else [],
         }
 
 
