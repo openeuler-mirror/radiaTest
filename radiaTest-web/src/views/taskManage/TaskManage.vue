@@ -28,10 +28,10 @@
         <div class="nav-footer">
           <div v-show="isTask" class="footer-wrapper">
             <a class="footer-item" v-show="kanban && isTask && !backable" @click="toggleView">
-              <n-icon size="16"> <LayoutKanban /> </n-icon>表格视图
+              <n-icon size="16"> <LayoutKanban /> </n-icon>甘特视图
             </a>
             <a class="footer-item" v-show="!kanban && isTask && !backable" @click="toggleView">
-              <n-icon size="16"> <Table /> </n-icon>看板视图
+              <n-icon size="16"> <Table /> </n-icon>泳道视图
             </a>
             <a class="footer-item" v-show="isTask && backable" @click="menuClick({ name: 'task' }, 0)">
               <n-icon size="16"> <Table /> </n-icon>返回看板

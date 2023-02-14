@@ -76,6 +76,7 @@
           </n-form>
         </n-drawer-content>
       </n-drawer>
+      <!-- 泳道视图 -->
       <div v-if="kanban" style="height: 100%">
         <n-scrollbar x-scrollable style="height: 100%">
           <div class="task-board">
@@ -127,14 +128,9 @@
           </div>
         </n-scrollbar>
       </div>
-      <div v-else style="padding: 20px">
-        <n-data-table
-          :columns="columns"
-          children-key="tasks"
-          :row-key="listRowKey"
-          :data="listData"
-          :row-props="rowProps"
-        />
+      <!-- 甘特视图 -->
+      <div v-else style="padding: 20px; height: 100%">
+        <GanttView></GanttView>
       </div>
       <div>
         <n-modal v-model:show="showModal" class="modalBox" @after-leave="leaveModal">

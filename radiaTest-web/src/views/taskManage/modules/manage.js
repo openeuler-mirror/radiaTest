@@ -10,7 +10,7 @@ import { getGroup } from '@/api/get';
 const menuSelect = ref(null); // 当前页面索引值
 const isTask = ref(true); // 是否是任务看板页面
 const backable = ref(false); // 是否可以返回任务看板
-const kanban = toRef(store.state.taskManage, 'kanban'); // 看板视图、表格视图切换
+const kanban = toRef(store.state.taskManage, 'kanban'); // 泳道视图、甘特视图切换
 const originators = ref([]); // 创建者
 const executors = ref([]); // 执行者
 const participants = ref([]); // 协助人
