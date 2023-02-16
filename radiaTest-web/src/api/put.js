@@ -143,3 +143,7 @@ export function updateStepLogAxios(jobId, data) {
 export function statisticsProduct(id) {
   return putRequest(`/v1/product/${id}/issue-rate`, {}, { successMsg: '统计成功' });
 }
+
+export function updateCompareRounds(roundId, data) {
+  return putRequest(`/v1/round/${roundId}/compare-round/`, data);
+}
