@@ -732,3 +732,42 @@ class RoundHandler:
             error_msg="OK",
         )
 
+
+class CompareRoundHandler:
+    def __init__(self, round_id) -> None:
+        self.round_id = round_id
+
+    @collect_sql_error
+    def excute(self, compare_round_ids):
+        """
+        修改当前round的比对round项
+        @param: compare_round_ids: list, 比对项id列表
+        @return: 异常,返回错误信息;正常,返回操作ok
+        """
+        _round = Round.query.filter_by(id=self.round_id).first()
+        if not _round:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="the round does not exist"
+            )
+
+        for compare_round_id in compare_round_ids:
+            if self.round_id == compare_round_id:
+                return jsonify(
+                    error_code=RET.NO_DATA_ERR,
+                    error_msg=f"The id of round and compare round can't be equal."
+                )
+            compare_round = Round.query.filter_by(id=compare_round_id).first()
+            if not compare_round:
+                return jsonify(
+                    error_code=RET.NO_DATA_ERR,
+                    error_msg=f"the round whose id is {compare_round_id} does not exist"
+                )
+        comparee_round_ids_list = list(map(str, compare_round_ids))
+        _round.comparee_round_ids = ",".join(comparee_round_ids_list)
+        _round.add_update()
+
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+        )
