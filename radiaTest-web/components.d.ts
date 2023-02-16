@@ -53,6 +53,8 @@ declare module '@vue/runtime-core' {
     FeatureTable: typeof import('./src/components/productDrawer/FeatureTable.vue')['default']
     FilterButton: typeof import('./src/components/filter/filterButton.vue')['default']
     FixNavgation: typeof import('./src/components/fixNavigation/fixNavgation.vue')['default']
+    GanttItem: typeof import('./src/components/tm/GanttItem.vue')['default']
+    GanttView: typeof import('./src/components/tm/GanttView.vue')['default']
     Header: typeof import('./src/components/header/Header.vue')['default']
     HomeButton: typeof import('./src/components/public/HomeButton.vue')['default']
     ImageCreateForm: typeof import('./src/components/milestoneComponents/milestoneImageForm/ImageCreateForm.vue')['default']
