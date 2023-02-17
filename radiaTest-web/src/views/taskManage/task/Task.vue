@@ -253,7 +253,7 @@
                               <span
                                 ><userInfo :userInfo="modalData.detail.originator">
                                   <template #username>
-                                    <span class="sub-content">{{ modalData.detail.originator?.gitee_name }}</span>
+                                    <span class="sub-content">{{ modalData.detail.originator?.user_name }}</span>
                                   </template>
                                 </userInfo></span
                               >
@@ -284,9 +284,9 @@
                                       modalData.detail.executor
                                         ? modalData.detail.executor_type === 'PERSON'
                                           ? modalData.detail.type === 'GROUP'
-                                            ? `${modalData.detail.executor_group?.name}/${modalData.detail.executor?.gitee_name}`
-                                            : modalData.detail.executor?.gitee_name
-                                          : `${modalData.detail.executor_group?.name}/${modalData.detail.executor?.gitee_name}`
+                                            ? `${modalData.detail.executor_group?.name}/${modalData.detail.executor?.user_name}`
+                                            : modalData.detail.executor?.user_name
+                                          : `${modalData.detail.executor_group?.name}/${modalData.detail.executor?.user_name}`
                                         : '待认领'
                                     }}
                                   </div>
@@ -300,7 +300,7 @@
                                   :groupId="modalData.detail.group_id"
                                   @getPerson="getExecutors"
                                   :disabled="!editStatus"
-                                  :defaultValue="modalData.detail.executor.gitee_name"
+                                  :defaultValue="modalData.detail.executor.user_name"
                                 ></taskMemberMenu>
                               </n-popover>
                             </div>
@@ -327,7 +327,7 @@
                                         <userInfo :userInfo="item">
                                           <template #username>
                                             <span class="sub-content">{{
-                                              item.name ? item.name : item.gitee_name
+                                              item.name ? item.name : item.user_name
                                             }}</span>
                                           </template> </userInfo
                                         >&nbsp;&nbsp;
@@ -341,7 +341,7 @@
                                 <taskMemberMenu
                                   @getPerson="getHelper"
                                   :multiple="true"
-                                  :originator="modalData.detail.originator.gitee_id"
+                                  :originator="modalData.detail.originator.user_id"
                                   :type="
                                     modalData.detail.type === 'ORGANIZATION' || modalData.detail.type === 'VERSION'
                                       ? 'ALL'
@@ -583,7 +583,7 @@
                         <div class="log-txt">
                           <div class="user">
                             <span><img :src="v.avatar_url" class="avatar" /></span>
-                            <div class="name">{{ v.gitee_name }}</div>
+                            <div class="name">{{ v.user_name }}</div>
                           </div>
                           <span class="time">{{ formatTime(v.create_time, 'yyyy-MM-dd hh:mm:ss') }}</span>
                         </div>

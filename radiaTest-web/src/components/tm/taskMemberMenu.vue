@@ -105,9 +105,9 @@ export default {
           .then((res) => {
             for (const item of res.data.items) {
               const element = {
-                id: item.gitee_id,
+                id: item.user_id,
                 avatar: item.avatar_url,
-                name: item.gitee_name,
+                name: item.user_name,
                 type: 'PERSON',
               };
               this.personArrayTemp.push(element);
@@ -132,9 +132,9 @@ export default {
           .then((res) => {
             for (const item of res.data.items) {
               const element = {
-                id: item.gitee_id,
+                id: item.user_id,
                 avatar: item.avatar_url,
-                name: item.gitee_name,
+                name: item.user_name,
                 type: 'PERSON',
               };
               this.personArrayTemp.push(element);
@@ -208,7 +208,7 @@ export default {
             if (item.name) {
               return i.id === item.participant_id && i.name === item.name;
             }
-            return i.id === item.gitee_id && i.name === item.gitee_name;
+            return i.id === item.user_id && i.name === item.user_name;
           });
           console.log(element);
           return JSON.stringify(element);

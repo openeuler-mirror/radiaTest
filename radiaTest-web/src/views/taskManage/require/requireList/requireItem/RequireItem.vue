@@ -24,7 +24,7 @@
         <p class="info">
           发布人:
           <span class="var">
-            {{ props.item.publisher.name ? props.item.publisher.name : props.item.publisher.gitee_name }}
+            {{ props.item.publisher.name ? props.item.publisher.name : props.item.publisher.user_name }}
           </span>
         </p>
         <p class="info">
@@ -48,7 +48,7 @@
         trigger="hover"
         v-if="
           props.item.status === 'idle' 
-          && props.item.publisher.gitee_id.toString() === storage.getValue('gitee_id')
+          && props.item.publisher.user_id.toString() === storage.getValue('user_id')
         " 
       >
         <template #trigger>
@@ -64,7 +64,7 @@
         trigger="hover"
         v-if="
           props.item.status === 'idle' 
-          && props.item.publisher.gitee_id.toString() !== storage.getValue('gitee_id')
+          && props.item.publisher.user_id.toString() !== storage.getValue('user_id')
         " 
       >
         <template #trigger>
@@ -80,7 +80,7 @@
         trigger="hover"
         v-if="
           props.item.status === 'accepted' 
-          && props.item.acceptor.gitee_id.toString() === storage.getValue('gitee_id')
+          && props.item.acceptor.user_id.toString() === storage.getValue('user_id')
         " 
       >
         <template #trigger>
@@ -96,7 +96,7 @@
         trigger="hover"
         v-if="
           props.item.status === 'accepted' 
-          && props.item.publisher.gitee_id.toString() === storage.getValue('gitee_id')
+          && props.item.publisher.user_id.toString() === storage.getValue('user_id')
         " 
       >
         <template #trigger>
@@ -112,7 +112,7 @@
         trigger="hover"
         v-if="
           props.item.status === 'validated' 
-          && props.item.acceptor.gitee_id.toString() === storage.getValue('gitee_id')
+          && props.item.acceptor.user_id.toString() === storage.getValue('user_id')
           && props.item.dividable_reward > 0
         " 
       >
@@ -423,8 +423,8 @@ function handleDivideRewards() {
     .then((res) => {
       requireAttributors.value = res.data.map((item) => {
         return {
-          user_id: item.gitee_id,
-          user_name: item.gitee_name,
+          user_id: item.user_id,
+          user_name: item.user_name,
           reward: 0,
         };
       });

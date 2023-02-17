@@ -18,7 +18,7 @@
           <!--任务协助人-->
           <n-gi :span="6">
             <span class="sub-title"
-              >协助人：{{ task?.originator?.gitee_name }}</span
+              >协助人：{{ task?.originator?.user_name }}</span
             >
             <!--用户信息组件-->
           </n-gi>

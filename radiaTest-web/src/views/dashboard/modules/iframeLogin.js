@@ -10,7 +10,7 @@ function getIframeMessage(val) {
   }
   if(params.url) {
     storage.setValue('token', params.token);
-    storage.setValue('gitee_id', params.giteeId);
+    storage.setValue('user_id', params.userId);
     window.location = params.url;
   }
 }

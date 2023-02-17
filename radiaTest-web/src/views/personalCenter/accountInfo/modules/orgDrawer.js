@@ -50,13 +50,13 @@ function drawerUpdateShow (value) {
 }
 function deleteRole (row) {
   deleteOrgUserRole(activeOrg.value.org_id, {
-    user_id: row.gitee_id,
+    user_id: row.user_id,
     role_id: row.role.id,
   }).then(() => getTableData());
 }
 function selectRole (row, item) {
   setOrgUserRole(activeOrg.value.org_id, {
-    user_id: row.gitee_id,
+    user_id: row.user_id,
     role_id: Number(item.value),
   }).then(() => {
     getTableData();
@@ -69,12 +69,12 @@ const orgDrawerColumns = [
     key: 'avatar_url',
     align: 'center',
     render (row) {
-      return h(NAvatar, { size: 'small', src: row.avatar_url, fallbackSrc: createAvatar(row.gitee_name.slice(0,1))});
+      return h(NAvatar, { size: 'small', src: row.avatar_url, fallbackSrc: createAvatar(row.user_name.slice(0,1))});
     }
   },
   {
     title: '用户',
-    key: 'gitee_name',
+    key: 'user_name',
     align: 'center',
   },
   {

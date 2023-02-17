@@ -208,14 +208,14 @@ export default defineComponent({
           formValue.value = {
             ...basic,
             ...ssh,
-            occupier: storage.getValue('gitee_name'),
+            occupier: storage.getValue('user_name'),
           };
         }
         createAjax.postForm('/v1/pmachine', {
           value: {
             ...formValue.value,
             permission_type: createForm.basicFormValue.value.permission_type.split('-')[0],
-            creator_id: Number(storage.getValue('gitee_id')),
+            creator_id: String(storage.getValue('user_id')),
             org_id: storage.getValue('orgId'),
             group_id: Number(createForm.basicFormValue.value.permission_type.split('-')[1]),
             machine_group_id:window.atob(router.currentRoute.value.params.machineId)

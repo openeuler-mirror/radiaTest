@@ -68,7 +68,7 @@ watch(
   () => {
     if (formValue.value.template_type === 'personal') {
       disabled.value = true;
-      formValue.value.owner = storage.getValue('gitee_name');
+      formValue.value.owner = storage.getValue('user_name');
     } else if (formValue.value.template_type === 'team') {
       disabled.value = false;
       formValue.value.owner = null;

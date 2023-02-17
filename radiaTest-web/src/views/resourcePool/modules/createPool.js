@@ -93,7 +93,7 @@ function createMachines() {
   createMachineGroup({
     ...createMachinesForm.value,
     permission_type: createMachinesForm.value.permission_type.split('-')[0],
-    creator_id: Number(storage.getValue('gitee_id')),
+    creator_id: String(storage.getValue('user_id')),
     org_id: storage.getValue('orgId'),
     group_id: Number(createMachinesForm.value.permission_type.split('-')[1]),
   }).then(() => {

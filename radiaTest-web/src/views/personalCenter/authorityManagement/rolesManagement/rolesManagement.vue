@@ -39,7 +39,7 @@
           <template #avatar>
             <n-avatar :src="roleInfo.avatar_url"> </n-avatar>
           </template>
-          <template #header> {{ roleInfo.gitee_name }} </template>
+          <template #header> {{ roleInfo.user_name }} </template>
           <template #description>
             <p>手机号:{{ roleInfo.phone }}</p>
             <p>邮箱:{{ roleInfo.cla_email }}</p>

@@ -75,21 +75,24 @@ function requireEnterprise(orgid) {
   }
   return false;
 }
-function hanleLogin (orgId) {
+function hanleLogin(orgId) {
   changeLoadingStatus(true);
   storage.setValue('loginOrgId', Number(orgId));
   storage.setValue('hasEnterprise', requireEnterprise(orgId));
   const isIframe = storage.getValue('isIframe');
   axios
-    .get('/v1/gitee/oauth/login', { org_id: Number(orgId) })
+    .get('/v1/oauth/login', { org_id: Number(orgId) })
     .then((res) => {
       if (res?.data) {
         const giteeUrl = res.data;
         changeLoadingStatus(false);
-        if(isIframe && isIframe === '1') {
-          window.parent.postMessage({
-            giteeUrl
-          },'*');
+        if (isIframe && isIframe === '1') {
+          window.parent.postMessage(
+            {
+              giteeUrl
+            },
+            '*'
+          );
         } else {
           window.location = giteeUrl;
         }
@@ -110,10 +113,10 @@ function handleIsSuccess() {
     setTimeout(() => {
       registerShow.value = false;
       const isIframe = storage.getValue('isIframe');
-      if(!isIframe || isIframe !== '1') {
+      if (!isIframe || isIframe !== '1') {
         storage.setValue('token', getCookieValByKey('token'));
         storage.setValue('refresh_token', getCookieValByKey('refresh_token'));
-        storage.setValue('gitee_id', getCookieValByKey('gitee_id'));
+        storage.setValue('user_id', getCookieValByKey('user_id'));
       }
       router.push({ name: 'home' }).then(() => {
         addRoom(storage.getValue('token'));
@@ -126,7 +129,7 @@ function handleIsSuccess() {
     getClaOrg();
   }
 }
-function gotoHome () {
+function gotoHome() {
   orgListLoading.value = true;
   getAllOrg().then((res) => {
     orgOpts.value = res.data.map((item) => ({
@@ -140,12 +143,16 @@ function gotoHome () {
     loginByCode({
       code: urlArgs().code,
       org_id: storage.getValue('loginOrgId')
-    }).then((res) => {
-      storage.setValue('token', getCookieValByKey('token'));
-      storage.setValue('refresh_token', getCookieValByKey('refresh_token'));
-      storage.setValue('gitee_id', getCookieValByKey('gitee_id'));
-      window.location = res.data;
-    });
+    })
+      .then((res) => {
+        storage.setValue('token', getCookieValByKey('token'));
+        storage.setValue('refresh_token', getCookieValByKey('refresh_token'));
+        storage.setValue('user_id', getCookieValByKey('user_id'));
+        window.location = res.data;
+      })
+      .catch((err) => {
+        window.$message?.error(err?.data?.error_msg || '未知错误');
+      });
   }
   handleIsSuccess();
 }
@@ -172,14 +179,25 @@ function renderLabel(option) {
     ]
   );
 }
+
+const authorityType = ref('gitee');
+const selecttdOrg = ref({});
+
 function selectOrg(value) {
   const org = orgOpts.value.find((item) => item.value === value);
+  selecttdOrg.value = org;
   hasCLA.value = org.cla;
   hasEnterprise.value = org.enterprise;
   loginOrg.value = org.value;
   claSignUrl.value = org.cla_sign_url ? org.cla_sign_url : undefined;
   enterpriseJoinUrl.value = org.enterprise_join_url ? org.enterprise_join_url : undefined;
+  if (org.authority === 'gitee') {
+    authorityType.value = 'gitee';
+  } else {
+    authorityType.value = 'oneid';
+  }
 }
+
 function handleClaSignClick() {
   if (claSignUrl.value) {
     openChildWindow(claSignUrl.value);
@@ -213,5 +231,7 @@ export {
   renderLabel,
   selectOrg,
   handleClaSignClick,
-  handleEnterpriseJoinClick
+  handleEnterpriseJoinClick,
+  authorityType,
+  selecttdOrg
 };

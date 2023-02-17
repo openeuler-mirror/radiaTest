@@ -1,11 +1,11 @@
 <template>
   <n-avatar-group :options="props.data" :size="props.size" :max="props.max">
-    <template #avatar="{ option: { gitee_name, avatar_url } }">
+    <template #avatar="{ option: { user_name, avatar_url } }">
       <n-tooltip>
         <template #trigger>
           <n-avatar :src="avatar_url" />
         </template>
-        {{ gitee_name }}
+        {{ user_name }}
       </n-tooltip>
     </template>
     <template #rest="{ options: restOptions, rest }">
@@ -14,7 +14,7 @@
           <n-avatar>+{{ rest }}</n-avatar>
         </template>
         <span class="rest-username" v-for="(item, index) in restOptions" :key="index">
-          {{ item.gitee_name }}
+          {{ item.user_name }}
         </span>
       </n-tooltip>
     </template>

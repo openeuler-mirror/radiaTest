@@ -94,7 +94,7 @@ function groupUserDel (rowIndex) {
               changeLoadingStatus(true);
               axios.put(`/v1/groups/${groupInfo.id}/users`, {
                 role_type: groupInfo.re_user_group_role_type,
-                gitee_ids: [groupInfo.usersData[rowIndex].gitee_id],
+                user_ids: [groupInfo.usersData[rowIndex].user_id],
                 is_delete: true,
               }).then(res => {
                 groupInfo.usersData.splice(rowIndex, 1);
@@ -119,13 +119,13 @@ function groupUserDel (rowIndex) {
 function selectRole (row, item) {
   setGroupUserRole(groupInfo.id, {
     role_id: Number(item.value),
-    user_id: row.gitee_id
+    user_id: row.user_id
   }).then(() => {
     getGroupUsers();
   });
 }
 function deleteRole (row) {
-  deleteGroupUserRole(groupInfo.id, { user_id: row.gitee_id, role_id: row.role.id }).then(() => getGroupUsers());
+  deleteGroupUserRole(groupInfo.id, { user_id: row.user_id, role_id: row.role.id }).then(() => getGroupUsers());
 }
 //drawer-table columns
 const usersColumns = [
@@ -139,10 +139,10 @@ const usersColumns = [
   },
   {
     title: '用户',
-    key: 'gitee_name',
+    key: 'user_name',
     align: 'center',
     render (row) {
-      return h('span', null, [row.gitee_name]);
+      return h('span', null, [row.user_name]);
     }
   },
   {
@@ -193,9 +193,9 @@ const usersColumns = [
           tag: 'span',
           text: true,
           type: 'primary',
-          disabled: storage.getValue('gitee_id') === String(row.gitee_id) || groupInfo.re_user_group_role_type !== 1,
+          disabled: storage.getValue('user_id') === String(row.user_id) || groupInfo.re_user_group_role_type !== 1,
           onClick: () => {
-            if (storage.getValue('gitee_id') !== String(row.gitee_id) && groupInfo.re_user_group_role_type === 1) {
+            if (storage.getValue('user_id') !== String(row.user_id) && groupInfo.re_user_group_role_type === 1) {
               groupUserDel(rowIndex);
             }
           },

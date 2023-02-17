@@ -20,10 +20,10 @@ const columns = [
   },
   {
     title: '用户',
-    key: 'gitee_name',
+    key: 'user_name',
     align: 'center',
     render (row) {
-      return h('span', null, [row.gitee_name]);
+      return h('span', null, [row.user_name]);
     },
   },
   {

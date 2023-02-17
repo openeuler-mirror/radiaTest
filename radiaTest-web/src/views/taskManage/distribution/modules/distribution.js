@@ -94,8 +94,8 @@ function getUserAxios() {
       if (res.data.items) {
         res.data.items.forEach((item) => {
           helpersOptions.value.push({
-            label: item.gitee_name,
-            value: item.gitee_id,
+            label: item.user_name,
+            value: item.user_id,
           });
         });
         helpersTemp = helpersOptions.value;
@@ -191,8 +191,8 @@ function handleChangeGroup(value) {
       if (res.data.items) {
         res.data.items.forEach((item) => {
           helpersOptions.value.push({
-            label: item.gitee_name,
-            value: item.gitee_id,
+            label: item.user_name,
+            value: item.user_id,
           });
         });
         helpersTemp = helpersOptions.value;
@@ -239,8 +239,8 @@ function handleChangeExecutor(v) {
       if (res.data.items) {
         res.data.items.forEach((item) => {
           helpersOptions.value.push({
-            label: item.gitee_name,
-            value: item.gitee_id,
+            label: item.user_name,
+            value: item.user_id,
           });
         });
         helpersTemp = helpersOptions.value;
@@ -265,8 +265,8 @@ function handleChangeHelper(v) {
       if (res.data.items) {
         res.data.items.forEach((item) => {
           executorOptions.value.push({
-            label: item.gitee_name,
-            value: item.gitee_id,
+            label: item.user_name,
+            value: item.user_id,
           });
         });
         executorTemp = helpersOptions.value;
@@ -328,7 +328,7 @@ function getTemplateTableRowsData(items) {
     if (item.types) {
       distributionTableData.value[i].children = [];
       item.types.forEach((type, j) => {
-        let helpers = type.helpers?.map((helper) => helper.gitee_name).join(',');
+        let helpers = type.helpers?.map((helper) => helper.user_name).join(',');
         distributionTableData.value[i].children.push({
           key: index++,
           level: 'templateType',
@@ -338,8 +338,8 @@ function getTemplateTableRowsData(items) {
           templateType: type.name,
           groupID: item.group.id,
           group: item.group.name,
-          creator: type.creator.gitee_name,
-          executor: type.executor.gitee_name,
+          creator: type.creator.user_name,
+          executor: type.executor.user_name,
           helper: helpers,
           creatingTime: formatTime(type.create_time, 'yyyy-MM-dd hh:mm:ss'),
         });
@@ -353,8 +353,8 @@ function getTemplateTableRowsData(items) {
               templateType: type.name,
               suiteName: suite.name,
               group: item.group.name,
-              creator: type.creator.gitee_name,
-              executor: type.executor.gitee_name,
+              creator: type.creator.user_name,
+              executor: type.executor.user_name,
               helper: helpers,
               creatingTime: formatTime(type.create_time, 'yyyy-MM-dd hh:mm:ss'),
             });
@@ -477,10 +477,10 @@ function getTemplateType(value) {
           drawerModel.value.suiteNames.push(item.id);
         });
       }
-      drawerModel.value.executor = res.data.executor.gitee_id;
+      drawerModel.value.executor = res.data.executor.user_id;
       if (res.data.helpers) {
         res.data.helpers.forEach((item) => {
-          drawerModel.value.helpers.push(item.gitee_id);
+          drawerModel.value.helpers.push(item.user_id);
         });
       }
       handleChangeExecutor(drawerModel.value.executor);

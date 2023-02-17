@@ -320,7 +320,7 @@ function getRootNodes() {
   actions.unshift(createBaselineAction);
   menuList.value = [];
   axios
-    .get(`/v1/users/${storage.getValue('gitee_id')}`)
+    .get(`/v1/users/${storage.getValue('user_id')}`)
     .then((res) => {
       const { data } = res;  
       data.orgs.forEach((item) => {

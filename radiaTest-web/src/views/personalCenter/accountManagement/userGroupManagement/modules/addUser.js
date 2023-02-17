@@ -27,9 +27,9 @@ function searchUser () {
     if (res.data?.items) {
       usersList.value.push(...res.data.items);
       for (let i of usersList.value) {
-        if (!obj[i.gitee_id]) {
+        if (!obj[i.user_id]) {
           result.push(i);
-          obj[i.gitee_id] = true;
+          obj[i.user_id] = true;
         }
       }
       usersList.value = result;
@@ -51,11 +51,11 @@ function cancelAdd () {
 function handlePositiveClick () {
   if (usersList.value.length) {
     changeLoadingStatus(true);
-    const giteeIds = usersList.value.map(item => {
-      return item.gitee_id;
+    const userIds = usersList.value.map(item => {
+      return item.user_id;
     });
     axios.post(`/v1/groups/${groupInfo.id}/users`, {
-      gitee_ids: giteeIds
+      user_ids: userIds
     }).then(res => {
       changeLoadingStatus(false);
       if (res.error_code === '2000') {
@@ -74,9 +74,9 @@ function handlePositiveClick () {
 const options = computed(() => {
   return usersList.value.map((info) => {
     return {
-      label: info.gitee_name,
-      key: info.gitee_id,
-      value: info.gitee_id,
+      label: info.user_name,
+      key: info.user_id,
+      value: info.user_id,
     };
   });
 });

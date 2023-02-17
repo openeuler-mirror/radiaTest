@@ -41,7 +41,7 @@ const postForm = (formValue) => {
     git_repo_id: formValue.value.git_repo,
     cases: formValue.value.casesValue,
     permission_type: formValue.value.permission_type.split('-')[0],
-    creator_id: Number(storage.getValue('gitee_id')),
+    creator_id: String(storage.getValue('user_id')),
     org_id: storage.getValue('orgId'),
     group_id: Number(formValue.value.permission_type.split('-')[1])
   });

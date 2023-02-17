@@ -259,8 +259,8 @@ export default {
         .then((res) => {
           for (const item of res.data.items) {
             this.personArray.push({
-              label: item.gitee_name,
-              value: String(item.gitee_id),
+              label: item.user_name,
+              value: String(item.user_id),
               avatar_url: item.avatar_url,
             });
           }
@@ -294,14 +294,14 @@ export default {
       if (this.model.type === 'PERSON') {
         this.personArray = [
           {
-            label: storage.getValue('gitee_name'),
-            value: String(storage.getValue('gitee_id')),
+            label: storage.getValue('user_name'),
+            value: String(storage.getValue('user_id')),
           },
         ];
         this.groups = [{ label: '个人', value: '0' }];
         this.$nextTick(() => {
           this.model.group_id = '0';
-          this.model.executor_id = String(storage.getValue('gitee_id'));
+          this.model.executor_id = String(storage.getValue('user_id'));
         });
       } else {
         this.model.group_id = '';

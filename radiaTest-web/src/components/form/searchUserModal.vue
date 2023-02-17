@@ -21,10 +21,10 @@
         :key="index"
         style="text-align: center; width: 80px; margin: 3px"
       >
-        <n-avatar round size="small" :src="item.avatar_url" :fallback-src="createAvatar(item.gitee_name.slice(0,1))" />
+        <n-avatar round size="small" :src="item.avatar_url" :fallback-src="createAvatar(item.user_name.slice(0,1))" />
         <p style="max-width: 80px">
           <n-ellipsis style="max-width: 80px">
-            {{ item.gitee_name }}
+            {{ item.user_name }}
           </n-ellipsis>
         </p>
       </delete-item>

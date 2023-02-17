@@ -151,7 +151,7 @@ const list = ref([
             label: '发布人', 
             value: props.requireItem.publisher.name 
               ? props.requireItem.publisher.name 
-              : props.requireItem.publisher.gitee_name
+              : props.requireItem.publisher.user_name
           },
           { label: '需求类型', value: renderPublisherType(props.requireItem.publisher.type) },
           { label: '发布时间', value: props.requireItem.create_time },

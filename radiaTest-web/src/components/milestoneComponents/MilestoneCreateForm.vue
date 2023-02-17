@@ -126,7 +126,7 @@ export default defineComponent({
             start_time: formatTime(createForm.formValue.value.start_time, 'yyyy-MM-dd hh:mm:ss'),
             end_time: formatTime(createForm.formValue.value.end_time, 'yyyy-MM-dd hh:mm:ss'),
             permission_type: createForm.formValue.value.permission_type.split('-')[0],
-            creator_id: Number(storage.getValue('gitee_id')),
+            creator_id: String(storage.getValue('user_id')),
             org_id: storage.getValue('orgId'),
             group_id: Number(createForm.formValue.value.permission_type.split('-')[1])
           }

@@ -122,7 +122,7 @@ function handleCloneSubmit() {
       if (!error) {
         cloneTemplate({
           permission_type: cloneFormValue.value.permissionType.split('-')[0],
-          creator_id: Number(storage.getValue('gitee_id')),
+          creator_id: String(storage.getValue('user_id')),
           org_id: storage.getValue('orgId'),
           group_id: Number(cloneFormValue.value.permissionType.split('-')[1]),
           id: Number(cloneFormValue.value.cloneTemplateId),

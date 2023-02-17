@@ -28,7 +28,7 @@
         style="width: 700px"
       >
         <template #header>
-          <h3>{{isCreate ? '注册新组织' : '修改组织信息'}}</h3>
+          <h3>{{ isCreate ? '注册新组织' : '修改组织信息' }}</h3>
         </template>
         <n-form
           :label-width="150"
@@ -50,28 +50,19 @@
             </n-upload>
           </n-form-item>
           <n-form-item label="组织名称" path="name">
-            <n-input
-              v-model:value="registerModel.name"
-              placeholder="请输入组织名"
-            ></n-input>
+            <n-input v-model:value="registerModel.name" placeholder="请输入组织名"></n-input>
           </n-form-item>
           <n-form-item label="描述" path="description">
-            <n-input
-              v-model:value="registerModel.description"
-              placeholder="请输入"
-            ></n-input>
+            <n-input v-model:value="registerModel.description" placeholder="请输入"></n-input>
           </n-form-item>
           <n-form-item>
             <n-checkbox v-model:checked="requireCla" label="填写cla信息" />
           </n-form-item>
-          <n-form-item
-            v-if="requireCla"
-            label="cla验证地址"
-            path="claVerifyUrl"
-          >
+          <n-form-item v-if="requireCla" label="cla验证地址" path="claVerifyUrl">
             <n-input
               v-model:value="registerModel.claVerifyUrl"
               placeholder="请输入cla验证地址, 必须包括协议头http或https"
+              @change="claVerifyUrlChange"
             ></n-input>
           </n-form-item>
           <n-form-item v-if="requireCla" label="cla签署地址" path="claSignUrl">
@@ -80,21 +71,10 @@
               placeholder="请输入cla签署地址, 必须包括协议头http或https"
             ></n-input>
           </n-form-item>
-          <n-form-item
-            v-if="requireCla"
-            label="cla验证通过的标志"
-            path="claPassFlag"
-          >
-            <n-input
-              v-model:value="registerModel.claPassFlag"
-              placeholder="请输入cla验证通过的标志"
-            ></n-input>
+          <n-form-item v-if="requireCla" label="cla验证通过的标志" path="claPassFlag">
+            <n-input v-model:value="registerModel.claPassFlag" placeholder="请输入cla验证通过的标志"></n-input>
           </n-form-item>
-          <n-form-item
-            v-if="requireCla"
-            label="请求方式"
-            path="claRequestMethod"
-          >
+          <n-form-item v-if="requireCla" label="请求方式" path="claRequestMethod">
             <n-select
               v-model:value="registerModel.claRequestMethod"
               placeholder="请选择验证地址的请求方式"
@@ -118,15 +98,79 @@
             />
           </n-form-item>
           <n-form-item>
-            <n-checkbox
-              v-model:checked="requireEnterprise"
-              label="填写企业仓信息"
-            />
+            <n-radio-group
+              v-model:value="registerModel.authorityType"
+              name="authorityTypeGroup"
+              @update:value="changeAuthorityType"
+            >
+              <n-space>
+                <n-radio value="gitee"> gitee鉴权 </n-radio>
+                <n-radio value="oneid"> oneid鉴权 </n-radio>
+              </n-space>
+            </n-radio-group>
+          </n-form-item>
+          <n-form-item v-if="registerModel.authorityType === 'gitee'" style="margin-left: 25px">
+            <n-radio-group
+              v-model:value="registerModel.authoritySecondaryType"
+              name="authoritySecondaryTypeGroup"
+              @update:value="changeAuthoritySecondaryTypeGroup"
+            >
+              <n-space>
+                <n-radio value="personal"> 个人应用 </n-radio>
+                <n-radio value="enterprise"> 企业应用 </n-radio>
+                <n-radio value="public"> 公共应用 </n-radio>
+              </n-space>
+            </n-radio-group>
           </n-form-item>
           <n-form-item
-            v-if="requireEnterprise"
+            label="oauth_login_url"
+            path="oauthLoginUrl"
+            v-if="registerModel.authoritySecondaryType !== 'public' || registerModel.authorityType === 'oneid'"
+          >
+            <n-input v-model:value="registerModel.oauthLoginUrl" placeholder="请填写oauth_login_url"></n-input>
+          </n-form-item>
+          <n-form-item
+            label="oauth_client_id"
+            path="oauthClientId"
+            v-if="registerModel.authoritySecondaryType !== 'public' || registerModel.authorityType === 'oneid'"
+          >
+            <n-input v-model:value="registerModel.oauthClientId" placeholder="请填写oauth_client_id"></n-input>
+          </n-form-item>
+          <n-form-item
+            label="oauth_client_secret"
+            path="oauthClientSecret"
+            v-if="registerModel.authoritySecondaryType !== 'public' || registerModel.authorityType === 'oneid'"
+          >
+            <n-input v-model:value="registerModel.oauthClientSecret" placeholder="请填写oauth_client_secret"></n-input>
+          </n-form-item>
+          <n-form-item
+            label="oauth_scope"
+            path="oauthClientScope"
+            v-if="registerModel.authoritySecondaryType !== 'public' || registerModel.authorityType === 'oneid'"
+          >
+            <n-dynamic-tags v-model:value="registerModel.oauthClientScope" />
+          </n-form-item>
+          <n-form-item
+            label="oauth_get_token_url"
+            path="oauthGetTokenUrl"
+            v-if="registerModel.authoritySecondaryType !== 'public' || registerModel.authorityType === 'oneid'"
+          >
+            <n-input v-model:value="registerModel.oauthGetTokenUrl" placeholder="请填写oauth_get_token_url"></n-input>
+          </n-form-item>
+          <n-form-item
+            label="oauth_get_user_info_url"
+            path="oauthGetUserInfoUrl"
+            v-if="registerModel.authoritySecondaryType !== 'public' || registerModel.authorityType === 'oneid'"
+          >
+            <n-input
+              v-model:value="registerModel.oauthGetUserInfoUrl"
+              placeholder="请填写oauth_get_user_info_url"
+            ></n-input>
+          </n-form-item>
+          <n-form-item
             label="Gitee企业仓"
             path="enterpriseId"
+            v-if="registerModel.authoritySecondaryType === 'enterprise' && registerModel.authorityType === 'gitee'"
           >
             <n-input
               v-model:value="registerModel.enterpriseId"
@@ -135,56 +179,20 @@
             ></n-input>
           </n-form-item>
           <n-form-item
-            v-if="requireEnterprise"
             label="企业仓加入申请URL"
             path="enterpriseJoinUrl"
+            v-if="registerModel.authoritySecondaryType === 'enterprise' && registerModel.authorityType === 'gitee'"
           >
             <n-input
               v-model:value="registerModel.enterpriseJoinUrl"
               placeholder="若存在公开加入申请链接可填, URL必须存在协议头http或https"
             ></n-input>
           </n-form-item>
-          <n-form-item
-            v-if="requireEnterprise"
-            label="oauth_client_id"
-            path="oauthClientId"
-          >
-            <n-input
-              v-model:value="registerModel.oauthClientId"
-              placeholder="请填写oauth_client_id"
-            ></n-input>
-          </n-form-item>
-          <n-form-item
-            v-if="requireEnterprise"
-            label="oauth_client_secret"
-            path="oauthClientSecret"
-          >
-            <n-input
-              v-model:value="registerModel.oauthClientSecret"
-              placeholder="请填写oauth_client_secret"
-            ></n-input>
-          </n-form-item>
-          <n-form-item
-            v-if="requireEnterprise"
-            label="oauth_scope"
-            path="oauthClientScope"
-          >
-            <n-dynamic-tags v-model:value="registerModel.oauthClientScope" />
-          </n-form-item>
         </n-form>
         <template #action>
           <n-space style="width: 100%">
-            <n-button
-              type="error"
-              size="large"
-              ghost
-              @click="closeOrgFrom"
-            >
-              取消
-            </n-button>
-            <n-button size="large" type="primary" ghost @click="submitOrgInfo">
-              提交
-            </n-button>
+            <n-button type="error" size="large" ghost @click="closeOrgFrom"> 取消 </n-button>
+            <n-button size="large" type="primary" ghost @click="submitOrgInfo"> 提交 </n-button>
           </n-space>
         </template>
       </n-modal>
@@ -199,30 +207,26 @@ import { modules } from './modules/index.js';
 export default {
   components: {
     cardPage,
-    Add,
+    Add
   },
   watch: {
     fileList: {
       handler(val) {
-        this.$nextTick(()=>{
+        this.$nextTick(() => {
           if (val.length === 1 && document.querySelector('.n-upload-trigger.n-upload-trigger--image-card')) {
-            document.querySelector(
-              '.n-upload-trigger.n-upload-trigger--image-card'
-            ).style.display = 'none';
+            document.querySelector('.n-upload-trigger.n-upload-trigger--image-card').style.display = 'none';
           } else {
-            document.querySelector(
-              '.n-upload-trigger.n-upload-trigger--image-card'
-            ).style.display = 'block';
+            document.querySelector('.n-upload-trigger.n-upload-trigger--image-card').style.display = 'block';
           }
         });
       },
-      deep: true,
-    },
+      deep: true
+    }
   },
   setup() {
     modules.getData();
     return modules;
-  },
+  }
 };
 </script>
 

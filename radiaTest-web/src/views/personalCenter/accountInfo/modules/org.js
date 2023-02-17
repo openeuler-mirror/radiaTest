@@ -40,7 +40,7 @@ const claEmailRule = {
 };
 function init () {
   let hasOrg = '';
-  axios.get(`/v1/users/${storage.getValue('gitee_id')}`).then(res => {
+  axios.get(`/v1/users/${storage.getValue('user_id')}`).then(res => {
     const { data } = res;
     state.userInfo = data;
     data.orgs.forEach(item => {

@@ -832,7 +832,7 @@ function handleRenderPrefix({option}) {
 function handleInheritButtonClick() {
   showInheritModal.value = true;
   inheritOptions.value = [];
-  getUserInfo(storage.getValue('gitee_id'))
+  getUserInfo(storage.getValue('user_id'))
     .then((res) => {
       const { data } = res;  
       data.orgs.forEach((item) => {
