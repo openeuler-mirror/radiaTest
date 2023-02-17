@@ -1637,7 +1637,7 @@ class CompareRoundEvent(Resource):
         修改当前round的比对round项
         """
         return CompareRoundHandler(round_id).excute(
-            body.compare_round_ids
+            body.comparee_round_ids
         )
 
 

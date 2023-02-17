@@ -519,15 +519,17 @@ function getDefaultCheckNode(id) {
       setResolvedData(rateData);
       currentId.value = res.data[0].current_round_id;
       const newArr = Object.keys(res.data[0].rounds).map((item) => {
-        if (item === currentId.value) {
-          currentRound.value = res.data[0].rounds[item];
-        }
-        return {
+        const thisRoundData = {
           id: item,
           name: res.data[0].rounds[item].name,
           type: res.data[0].rounds[item].type,
-          product_id: res.data[0].rounds[item].product_id
+          product_id: res.data[0].rounds[item].product_id,
+          comparee_round_ids: res.data[0].rounds[item].comparee_round_ids,
         };
+        if (item === currentId.value) {
+          currentRound.value = thisRoundData;
+        }
+        return thisRoundData;
       });
       resolvedMilestone.value = { name: '当前迭代', id: currentRound.value.id };
       list.value = newArr;

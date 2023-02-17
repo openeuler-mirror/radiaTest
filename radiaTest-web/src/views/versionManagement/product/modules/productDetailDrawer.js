@@ -9,7 +9,14 @@ import {
 } from '@/api/get';
 import { updateCompareRounds } from '@/api/put';
 import { NButton, NTag, NSpace } from 'naive-ui';
-import { list, currentId, preId, currentRound } from './productTable';
+import { 
+  list, 
+  currentId, 
+  preId, 
+  currentRound, 
+  dashboardId, 
+  packageTabValueSecond 
+} from './productTable';
 
 const detail = ref({});
 const drawerShow = ref(false);
@@ -40,11 +47,13 @@ const packageChangeSummary = ref({
   delPackagesNum: 0
 });
 
+const currentPanel = ref('fixed');
+
 // 获取软件包变更数据
 function getPackageListComparationSummary(qualityboardId, params) {
   const idList = list.value.map((item) => item.id);
   const currentIndex = idList.indexOf(currentRound.value.id);
-  if (currentIndex === 0) {
+  if (currentIndex === 0 && currentPanel.value === 'fixed') {
     preId.value = currentId.value;
     getPackageListComparationSummaryAxios(qualityboardId, currentId.value, {
       summary: true,
@@ -73,12 +82,18 @@ function getPackageListComparationSummary(qualityboardId, params) {
       });
   } else {
     preId.value = idList[currentIndex - 1];
-    getPackageListComparationSummaryAxios(qualityboardId, preId.value, {
-      summary: true,
-      refresh: params.refresh,
-      repo_path: params.repoPath,
-      arch: params.arch
-    })
+    getPackageListComparationSummaryAxios(
+      qualityboardId, 
+      currentPanel.value === 'fixed' 
+        ? preId.value 
+        : currentPanel.value, 
+      {
+        summary: true,
+        refresh: params.refresh,
+        repo_path: params.repoPath,
+        arch: params.arch
+      }
+    )
       .then((res) => {
         if (!params.refresh) {
           oldPackage.value.size = res.data.size;
@@ -132,7 +147,13 @@ watch(showPackage, () => {
   });
 });
 
-const currentPanel = ref('fixed');
+watch(currentPanel, () => {
+  getPackageListComparationSummary(dashboardId.value, {
+    refresh: false,
+    repoPath: packageTabValueSecond.value,
+    arch: 'all'
+  });
+});
 
 const packageComparePanels = ref([
   {
@@ -164,7 +185,9 @@ const newCompareForm = ref({
   round: undefined,
 });
 
-const packageCompareClosable = computed(() => packageComparePanels.value.length > 1);
+const packageCompareClosable = computed(() => {
+  return packageComparePanels.value.length > 1;
+});
 
 function handlePackageCompareAdd() {
   showAddNewCompare.value = true;
@@ -175,13 +198,19 @@ function handleNewCompareCreate() {
     currentId.value, 
     {
       comparee_round_ids: [
-        ...currentRound.value.comparee_round_ids,
+        ...currentRound.value.comparee_round_ids.map(item => item.id),
         newCompareForm.value.round
       ]
     }
   )
     .then((res) => {
-      packageComparePanels.value = res.data;
+      packageComparePanels.value = [
+        {
+          name: '上轮迭代',
+          id: 'fixed',
+        },
+        ...res.data.comparee_round_ids,
+      ];
     })
     .finally(() => {
       showAddNewCompare.value = false;
@@ -198,14 +227,24 @@ function handlePackageCompareClose(id) {
     return;
   }
 
-  const compareeRoundIds = JSON.parse(
-    JSON.stringify(currentRound.value.comparee_round_ids)
-  );
-  compareeRoundIds.splice(closeIndex, 1);
+  panelList.splice(closeIndex, 1);
+  if (panelList[0]?.id === 'fixed') {
+    panelList.splice(0, 1);
+  }
 
-  updateCompareRounds(currentId.value, { comparee_round_ids: compareeRoundIds })
+  updateCompareRounds(
+    currentId.value, 
+    { comparee_round_ids: panelList.map(item => item.id) }
+  )
     .then((res) => {
-      packageComparePanels.value = res.data;
+      packageComparePanels.value = [
+        {
+          name: '上轮迭代',
+          id: 'fixed',
+        },
+        ...res.data.comparee_round_ids,
+      ];
+      currentPanel.value = 'fixed';
     });
 }
 

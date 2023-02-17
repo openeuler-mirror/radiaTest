@@ -389,6 +389,17 @@ class Round(BaseModel, db.Model):
     milestone = db.relationship('Milestone', backref='round')
     issuesolvedrate = db.relationship('IssueSolvedRate', backref='round')
 
+    def get_comparee_rounds(self):
+        if self.comparee_round_ids:
+            round_list = list(map(int, self.comparee_round_ids.split(",")))
+            rounds = Round.query.filter(Round.id.in_(round_list)).all()
+            return [{
+                "id": round_.id,
+                "name": round_.name,
+            } for round_ in rounds]
+        else:
+            return []
+
     def to_json(self):
         return {
             "id": self.id,
@@ -398,7 +409,7 @@ class Round(BaseModel, db.Model):
             "default_milestone_id": self.default_milestone_id,
             "product_id": self.product_id,
             "buildname": self.buildname,
-            "comparee_round_ids": self.comparee_round_ids.split(",") if self.comparee_round_ids else [],
+            "comparee_round_ids": self.get_comparee_rounds(),
         }
 
 

@@ -145,5 +145,5 @@ export function statisticsProduct(id) {
 }
 
 export function updateCompareRounds(roundId, data) {
-  return putRequest(`/v1/round/${roundId}/compare-round/`, data);
+  return putRequest(`/v1/round/${roundId}/compare-round`, data);
 }
