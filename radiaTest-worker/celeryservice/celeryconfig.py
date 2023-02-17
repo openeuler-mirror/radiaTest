@@ -123,3 +123,5 @@ local_source_storage_pool = loads_config_ini("worker", "LOCAL_SOURCE_STORAGE_POO
 autoinstall_expired_time = loads_config_ini("worker", "AUTOINSTALL_EXPIRED_TIME")
 
 vnc_start_port = 5900
+
+worker_ip = loads_config_ini("worker", "WORKER_IP")

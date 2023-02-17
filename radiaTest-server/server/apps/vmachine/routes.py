@@ -12,14 +12,16 @@
 # @Date    : 2022/09/20
 # @License : Mulan PSL v2
 #####################################
-
+import os
 import json
 import string
 import random
+
 from flask import current_app, request
 from flask.json import jsonify
 from flask_restful import Resource
 from flask_pydantic import validate
+
 from server.apps.vmachine.handlers import (
     VmachineHandler,
     search_device,
@@ -51,11 +53,11 @@ from server.utils.db import Delete, Edit, Insert
 from server.utils.response_util import attribute_error_collect, response_collect, RET
 from server.model import Vmachine, Vdisk, Vnic
 from server.utils.permission_utils import PermissionManager, GetAllByPermission
-import os
 from server.utils.resource_utils import ResourceManager
 from server import casbin_enforcer
 from server.utils.callback_auth_util import callback_auth
 from server import redis_client
+from server.utils.vmachine_util import EditVmachine
 
 
 class VmachineItemEvent(Resource):
@@ -590,23 +592,14 @@ class VmachineStatusEvent(Resource):
     @validate()
     def put(self):
         _body = request.get_json()
-        domains_run = dict()
-        domains_shut_off = dict()
+        vmachines_name = list(_body.keys())
 
-        if len(_body.get("domains_run").get("domain")) != 0:
-            domains_run.update(_body.get("domains_run"))
-            Edit(Vmachine, domains_run).batch_update_status(Vmachine, "/vmachine", True)
-
-        if len(_body.get("domains_shut_off").get("domain")) != 0:
-            domains_shut_off.update(_body.get("domains_shut_off"))
-            Edit(Vmachine, domains_shut_off).batch_update_status(Vmachine, "/vmachine", True)
+        if len(_body) != 0:
+            EditVmachine(Vmachine, _body).batch_update_status(Vmachine, vmachines_name, "/vmachine", True)
 
         return jsonify(
             error_code=RET.OK,
-            error_msg="vmachines status update success:{},{}".format(
-                _body.get("domains_run"),
-                _body.get("domains_shut_off")
-            )
+            error_msg="vmachines status update success:{}".format(_body)
         )
 
 

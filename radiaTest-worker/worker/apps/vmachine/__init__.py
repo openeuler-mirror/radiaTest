@@ -9,7 +9,7 @@ from worker.apps.vmachine.handlers import (
     OperateVdisk,
     OperateVnic,
 )
-
+from worker.config.settings import Config
 from celeryservice.tasks import *
 
 
@@ -36,22 +36,27 @@ class VmachinePower(Resource):
     def put(self):
         body = request.json
 
-        exitcode, status = domain_state(body.get("name"))
+        _, _ = domain_cli(body.get("status"), body.get("name"))
 
-        exitcode, output = domain_cli(body.get("status"), body.get("name"))
-        if exitcode:
-            return jsonify({"error_code": exitcode, "error_msg": output})
+        exitcode, cur_status = domain_state(body.get("name"))
 
-        while [True]:
-            exitcode, output = domain_state(body.get("name"))
-            if output in ["running", "shut off", "paused"] and output != status:
-                break
+        if body.get("status") == "shutdown":
+            cur_status = "shut off"
 
-        exitcode, output = domain_state(body.get("name"))
-        if exitcode:
-            return jsonify({"error_code": exitcode, "error_msg": output})
+        if cur_status in ["running", "paused"] or body.get("status") == "start":
+            vnc_port = int(domain_cli("vncdisplay", body.get("name"))[1].strip("\n").split(":")[-1])
+            token_list = body.get("vnc_token").split("-")
+            token_list[-1] = str(vnc_port + Config.VNC_START_PORT)
+            vnc_token = ("-").join(token_list)
+            return jsonify(
+                {
+                    "vnc_port": vnc_port,
+                    "status": cur_status,
+                    "vnc_token": vnc_token
+                }
+            )
 
-        return jsonify({"status": output})
+        return jsonify({"status": cur_status})
 
 
 class VnicEvent(Resource):
