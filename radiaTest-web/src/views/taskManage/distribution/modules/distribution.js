@@ -309,7 +309,7 @@ const distributionLoading = ref(false);
 const templatePagination = reactive({
   page: 1,
   pageCount: 1, //总页数
-  pageSize: 15, //受控模式下的分页大小
+  pageSize: 10, //受控模式下的分页大小
   showSizePicker: true,
   pageSizes: [5, 10, 20, 50]
 });
