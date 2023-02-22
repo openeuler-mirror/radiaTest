@@ -36,10 +36,10 @@ const getData = (options, id) => {
 const postForm = (formValue) => {
   const postData = ref({
     name: formValue.value.name,
-    milestone_id: formValue.value.milestone,
+    milestone_id: formValue.value.milestone_id,
     description: formValue.value.description,
-    git_repo_id: formValue.value.git_repo,
-    cases: formValue.value.casesValue,
+    git_repo_id: formValue.value.git_repo_id,
+    cases: formValue.value.cases,
     permission_type: formValue.value.permission_type.split('-')[0],
     creator_id: Number(storage.getValue('gitee_id')),
     org_id: storage.getValue('orgId'),

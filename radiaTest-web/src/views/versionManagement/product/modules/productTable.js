@@ -524,7 +524,7 @@ function getDefaultCheckNode(id) {
           name: res.data[0].rounds[item].name,
           type: res.data[0].rounds[item].type,
           product_id: res.data[0].rounds[item].product_id,
-          comparee_round_ids: res.data[0].rounds[item].comparee_round_ids,
+          comparee_round_ids: res.data[0].rounds[item].comparee_round_ids
         };
         if (item === currentId.value) {
           currentRound.value = thisRoundData;
@@ -658,6 +658,7 @@ function haveRecovery() {
 
 const resolvedMilestone = ref({});
 const resolvedMilestoneOptions = ref([]);
+const defaultMilestoneId = ref(null);
 const MilestoneIssuesCardType = computed(() => {
   return resolvedMilestone.value.name === '当前迭代' ? 'round' : 'milestone';
 });
@@ -665,6 +666,7 @@ const MilestoneIssuesCardType = computed(() => {
 const getRoundRelateMilestones = (roundId) => {
   getMilestones({ round_id: roundId, paged: false }).then((res) => {
     resolvedMilestoneOptions.value = [{ label: '当前迭代', value: { name: '当前迭代', id: currentRound.value.id } }];
+    defaultMilestoneId.value = res.data.items[0]?.round_info?.default_milestone_id;
     res.data.items.forEach((item) => {
       resolvedMilestoneOptions.value.push({
         label: item.name,
@@ -1286,5 +1288,6 @@ export {
   productVersionPageChange,
   productVersionPageSizeChange,
   filterRule,
-  filterchange
+  filterchange,
+  defaultMilestoneId
 };

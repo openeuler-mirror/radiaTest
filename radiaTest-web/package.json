@@ -86,13 +86,6 @@
       "no-irregular-whitespace": "error",
       "eol-last": "error",
       "semi": "error",
-      "indent": [
-        "error",
-        2,
-        {
-          "SwitchCase": 1
-        }
-      ],
       "max-lines-per-function": [
         "error",
         100

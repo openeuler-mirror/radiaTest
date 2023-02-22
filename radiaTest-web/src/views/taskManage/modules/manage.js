@@ -414,6 +414,10 @@ const watchRoute = () => {
     menuSelect.value = 2;
     isTask.value = true;
     backable.value = true;
+  } else if (router.currentRoute.value.path === '/home/workflow/design') {
+    menuSelect.value = 3;
+    isTask.value = false;
+    backable.value = false;
   }
 };
 

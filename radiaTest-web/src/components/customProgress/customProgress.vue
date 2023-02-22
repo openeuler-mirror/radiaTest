@@ -44,7 +44,11 @@
         <span>无数据 100%</span>
       </n-popover>
     </div>
-    <span>{{ progress.success + progress.failure + progress.block + progress.running }}/{{ progress.total }}</span>
+    <span
+      >{{ progress.success || 0 + progress.failure || 0 + progress.block || 0 + progress.running || 0 }}/{{
+        progress.total || 0
+      }}</span
+    >
   </div>
 </template>
 
