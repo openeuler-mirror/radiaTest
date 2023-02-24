@@ -56,14 +56,11 @@ class HandlerTemplate:
             ).filter(*filter_params)
         else:
             query_filter = TaskDistributeTemplate.query.filter(*filter_params)
-        page_dict, e = PageUtil.get_page_dict(
-            query_filter, query.page_num, query.page_size, func=lambda x: x.to_json()
+
+        return PageUtil.get_data(
+            query_filter=query_filter,
+            query=query,
         )
-        if e:
-            return jsonify(
-                error_code=RET.SERVER_ERR, error_msg=f"get group page error {e}"
-            )
-        return jsonify(error_code=RET.OK, error_msg="OK", data=page_dict)
 
     @staticmethod
     @collect_sql_error
@@ -127,7 +124,7 @@ class HandlerTemplate:
         template = TaskDistributeTemplate.query.get(template_id)
         pm = PermissionManager()
         for item in template.types:
-            pm.clean("/api/v1/tasks/distribute-templates/types/", [template_id])
+            pm.clean("/api/v1/tasks/distribute-templates/types/", [item.id])
             db.session.delete(item)
         db.session.commit()
         pm.clean("/api/v1/tasks/distribute-templates/", [template_id])
@@ -156,14 +153,11 @@ class HandlerTemplateType:
             template_suites = HandlerTemplateType.get_all_suites(template)
             filter_params.append(Suite.id.notin_(template_suites))
         query_filter = Suite.query.filter(*filter_params)
-        page_dict, e = PageUtil.get_page_dict(
-            query_filter, query.page_num, query.page_size, func=lambda x: x.to_json()
+
+        return PageUtil.get_data(
+            query_filter=query_filter,
+            query=query,
         )
-        if e:
-            return jsonify(
-                error_code=RET.SERVER_ERR, error_msg=f"get group page error {e}"
-            )
-        return jsonify(error_code=RET.OK, error_msg="OK", data=page_dict)
 
     @staticmethod
     @collect_sql_error

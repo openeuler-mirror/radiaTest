@@ -408,15 +408,30 @@ class AtEvent(Resource):
 class GetTestReportFileEvent(Resource):
     @validate()
     def get(self, query: QueryTestReportFileSchema):
+        _milstone = Milestone.query.filter_by(name=query.milestone_name).first()
+        if not _milstone:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg=f"{query.milestone_name} milestone does not exist.",
+            )
         _test_report = TestReport.query.join(Milestone).filter(
             Milestone.name == query.milestone_name,
             TestReport.milestone_id == Milestone.id
         ).first()
         if not _test_report:
-            return jsonify(
-                error_code=RET.NO_DATA_ERR,
-                error_msg="no test report.",
-            )
+            from server.apps.task.handlers import HandlerTaskProgress
+            try:
+                progress = HandlerTaskProgress(_milstone.id).get_milestone_test_progress
+                return jsonify(
+                    error_code=RET.OK,
+                    error_msg="test is in progress.",
+                    data={"progress": progress}
+                )
+            except RuntimeError as e:
+                return jsonify(
+                    error_code=RET.NO_DATA_ERR,
+                    error_msg="test is not in progress.",
+                )
 
         tmp_folder = current_app.template_folder
         current_app.template_folder = current_app.config.get("TEST_REPORT_PATH")

@@ -1,3 +1,18 @@
+# Copyright (c) [2022] Huawei Technologies Co.,Ltd.ALL rights reserved.
+# This program is licensed under Mulan PSL v2.
+# You can use it according to the terms and conditions of the Mulan PSL v2.
+#          http://license.coscl.org.cn/MulanPSL2
+# THIS PROGRAM IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+# EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+# MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+# See the Mulan PSL v2 for more details.
+####################################
+# @Author  :
+# @email   :
+# @Date    :
+# @License : Mulan PSL v2
+#####################################
+
 from datetime import datetime, timedelta
 import json
 import math
@@ -184,11 +199,7 @@ class HandlerTask(object):
                     error_code=RET.PARMA_ERR,
                     error_msg="current test strategy can not create task/case_node not exist",
                 )
-            if not case_node.milestone:
-                return jsonify(
-                    error_code=RET.PARMA_ERR,
-                    error_msg="current test strategy must relate to a milestone",
-                )
+
             if current_org_id != case_node.org_id:
                 return jsonify(error_code=RET.VERIFY_ERR, error_msg="No right to query")
 
@@ -202,9 +213,8 @@ class HandlerTask(object):
                     error_code=RET.PARMA_ERR,
                     error_msg=f"current test strategy has already associated with task {task.title}",
                 )
-            insert_dict["milestone_id"] = case_node.milestone
             insert_dict["test_strategy"] = True
-            case_ids = CaseNodeHandler.get_all_case(body.case_node_id)
+            case_ids, _ = CaseNodeHandler.get_all_case(body.case_node_id)
         executor_id = body.executor_id
         insert_dict["permission_type"] = (
             body.type.lower() if body.type in ["PERSON", "GROUP"] else "org"
@@ -243,8 +253,11 @@ class HandlerTask(object):
             task.display = False
         task.add_update()
 
-        if case_ids:
+        if case_ids and body.milestone_id:
             task = Task.query.filter_by(title=body.title).first()
+            task.milestones.append(
+                TaskMilestone(task_id=task.id, milestone_id=body.milestone_id)
+            )
             update_task_schema = UpdateTaskSchema(milestone_id=body.milestone_id)
             HandlerTask.update(task.id, update_task_schema)
             add_task_case_schema = AddTaskCaseSchema(case_id=case_ids)
@@ -338,14 +351,11 @@ class HandlerTask(object):
                     break
             return item_dict
 
-        page_dict, e = PageUtil.get_page_dict(
-            query_filter, query.page_num, query.page_size, func=page_func
+        return PageUtil.get_data(
+            query_filter=query_filter,
+            query=query,
+            func=page_func
         )
-        if e:
-            return jsonify(
-                error_code=RET.SERVER_ERR, error_msg=f"get group page error {e}"
-            )
-        return dict(error_code=RET.OK, error_msg="OK", data=page_dict)
 
     @staticmethod
     @collect_sql_error
@@ -718,14 +728,11 @@ class HandlerTask(object):
         query_filter = (
             Task.query.join(TaskMilestone).filter(*_filter).order_by(Task.create_time)
         )
-        page_dict, e = PageUtil.get_page_dict(
-            query_filter, query.page_num, query.page_size, func=page_func
+        return PageUtil.get_data(
+            query_filter=query_filter,
+            query=query,
+            func=page_func
         )
-        if e:
-            return jsonify(
-                error_code=RET.SERVER_ERR, error_msg=f"get task page error {e}"
-            )
-        return jsonify(error_code=RET.OK, error_msg="OK", data=page_dict)
 
     @staticmethod
     @collect_sql_error
@@ -746,15 +753,11 @@ class HandlerTask(object):
             ).dict()
             return item_dict
 
-        page_info, e = PageUtil.get_page_dict(
-            query_filter, query.page_num, query.page_size, func=page_func
+        return PageUtil.get_data(
+            query_filter=query_filter,
+            query=query,
+            func=page_func
         )
-        if e:
-            return jsonify(
-                error_code=RET.SERVER_ERR, error_msg=f"get group page error {e}"
-            )
-        return_data = page_info
-        return jsonify(error_code=RET.OK, error_msg="OK", data=return_data)
 
     @staticmethod
     @collect_sql_error
@@ -1240,18 +1243,7 @@ class HandlerTaskCase(object):
         @param query:
         @return:
         """
-        if query.is_contain:
-            task_milestones = TaskMilestone.query.filter_by(task_id=task_id).all()
-            return_data = []
-            for item in task_milestones:
-                item_dict = item.to_json()
-                item_dict["milestone"] = None
-                if item.milestone_id:
-                    item_dict["milestone"] = Milestone.query.get(
-                        item.milestone_id
-                    ).to_json()
-                return_data.append(item_dict)
-        else:
+        if not query.is_contain:
             task_milestone = TaskMilestone.query.filter_by(
                 task_id=task_id, milestone_id=query.milestone_id
             ).first()
@@ -1264,17 +1256,20 @@ class HandlerTaskCase(object):
             if query.suite_id:
                 filter_params.append(Case.suite_id == query.suite_id)
             query_filter = Case.query.filter(*filter_params)
-            page_info, e = PageUtil.get_page_dict(
-                query_filter,
-                query.page_num,
-                query.page_size,
-                func=lambda x: x.to_json(),
+            return PageUtil.get_data(
+                query_filter=query_filter,
+                query=query,
             )
-            if e:
-                return jsonify(
-                    error_code=RET.SERVER_ERR, error_msg=f"get group page error {e}"
-                )
-            return_data = page_info
+        task_milestones = TaskMilestone.query.filter_by(task_id=task_id).all()
+        return_data = []
+        for item in task_milestones:
+            item_dict = item.to_json()
+            item_dict["milestone"] = None
+            if item.milestone_id:
+                item_dict["milestone"] = Milestone.query.get(
+                    item.milestone_id
+                ).to_json()
+            return_data.append(item_dict)
         return jsonify(error_code=RET.OK, error_msg="OK", data=return_data)
 
     @staticmethod
@@ -1300,8 +1295,6 @@ class HandlerTaskCase(object):
                 error_code=RET.PARMA_ERR,
                 error_msg="current task status not allowed operate",
             )
-
-        task = Task.query.get(task_id)
 
         cases = Case.query.filter(
             Case.id.in_(body.case_id), Case.deleted.is_(False)
@@ -1338,8 +1331,6 @@ class HandlerTaskCase(object):
                 error_code=RET.PARMA_ERR,
                 error_msg="current task status not allowed operate",
             )
-
-        task = Task.query.get(task_id)
 
         cases = Case.query.filter(Case.id.in_(query.case_id)).all()
         _ = [
@@ -1833,3 +1824,357 @@ class HandlerCaseFrame(object):
         index = _frame.index("[", 0, len(_frame))
         frame = ast.literal_eval(_frame[index : len(_frame)])
         return jsonify(error_code=RET.OK, error_msg="OK", data=frame)
+
+
+class HandlerTaskProgress(object):
+    def __init__(self, milestone_id) -> None:
+        self.milestone_id = milestone_id
+        self.all_node_ids = list()
+        self.all_task_case_node_infos = dict()
+        self.task_ids = list()
+        self.all_task_test_case_infos = dict()
+        self.all_task_test_static_info = dict()
+        self.task = None
+        self.task_key = f"MILESTONE_{self.milestone_id}_TASK_TEST_INFO"
+        _key = redis_client.keys(self.task_key)
+        if not _key:
+            try:
+                self.get_version_task()
+            except RuntimeError as e:
+                raise RuntimeError(str(e)) from e
+            self.get_task_case_node()
+            HandlerTaskProgress.get_test_infos_by_task(
+                self.task,
+                self.all_task_case_node_infos,
+                self.task_ids,
+                self.all_task_test_case_infos,
+                self.all_task_test_static_info
+            )
+            self.save_test_info_to_redis()
+        else:
+            self.get_test_info_from_redis()
+
+    def save_test_info_to_redis(self):
+        redis_client.hmset(
+            self.task_key, 
+            {
+                "milestone_id": self.milestone_id,
+                "task_id": self.task.id,
+                "all_task_ids": self.task_ids,
+                "all_node_ids": self.all_node_ids,
+                "all_task_case_node_infos": json.dumps(self.all_task_case_node_infos),
+                "all_task_test_case_infos": json.dumps(self.all_task_test_case_infos),
+                "all_task_test_static_info": json.dumps(self.all_task_test_static_info),
+            }
+        )
+        redis_client.expire(self.task_key, 60 * 30)
+
+    def get_test_info_from_redis(self):
+        task_id = redis_client.hget(
+            self.task_key, "task_id")
+        self.task = Task.query.get(task_id)
+        all_task_ids = redis_client.hget(
+            self.task_key, "all_task_ids")
+        self.task_ids += list(map(int, all_task_ids[1:-1].split(",")))
+        all_node_ids = redis_client.hget(
+            self.task_key, "all_node_ids")
+        self.all_node_ids += list(map(int, all_node_ids[1:-1].split(",")))
+        all_task_case_node_infos = redis_client.hget(
+            self.task_key, "all_task_case_node_infos")
+        self.all_task_case_node_infos.update(json.loads(all_task_case_node_infos))
+        all_task_test_case_infos = redis_client.hget(
+            self.task_key, "all_task_test_case_infos")
+        self.all_task_test_case_infos.update(json.loads(all_task_test_case_infos))
+        all_task_test_static_info = redis_client.hget(
+            self.task_key, "all_task_test_static_info")
+        self.all_task_test_static_info.update(json.loads(all_task_test_static_info))
+
+    def get_version_task(self):
+        """
+        :description: Get the version task associated with the milestone
+        """
+        #一个里程碑可以创建多个版本任务，这块没有做限制
+        task = Task.query.join(TaskMilestone).filter(
+            Task.id == TaskMilestone.task_id,
+            TaskMilestone.milestone_id == self.milestone_id,
+            Task.type == "VERSION",
+            Task.is_delete.is_(False),
+        ).first()
+        if not task:
+            raise RuntimeError("no version task.")
+        if task and not task.children:
+            raise RuntimeError("task not assigned.")
+        self.task = task
+
+    @staticmethod
+    def get_case_node(case_node, case_node_infos: dict, all_node_ids: list, source: str=""):
+        """
+        :description: Get all child case_nodes under the case_node
+        :param: case_node_infos: dict, store all child case_node whose type is case under the case_node
+        :param: all_node_ids: list, store all child case_node ids under the case_node
+        :param: source: str, a temporary variable
+        """
+        if case_node.type == "case":
+            tmp_source = source + "," + str(case_node.id)
+            [all_node_ids.append(_id) for _id in  list(map(int, tmp_source[1:].split(","))) if _id not in all_node_ids]
+            case_node_infos.update(
+                {
+                    str(case_node.case_id): {
+                        "case_node_id": case_node.id,
+                        "source": tmp_source[1:],
+                    }
+                }
+            )
+        else:
+            tmp_source = source + "," + str(case_node.id)
+            if not case_node.children.all():
+                return
+            for case_node_tmp in case_node.children.all():
+                HandlerTaskProgress.get_case_node(case_node_tmp, case_node_infos, all_node_ids, tmp_source)
+
+    @collect_sql_error
+    def get_task_case_node(self):
+        """
+        :description: Get all child case_nodes under the version task
+        :return: 
+            case_node_infos: dict, store all child case_node whose type is case under the case_node
+            all_node_ids: list, store all child case_node ids under the case_node
+        """
+        case_node = CaseNode.query.filter_by(id=self.task.case_node_id).first()
+        HandlerTaskProgress.get_case_node(case_node, self.all_task_case_node_infos, self.all_node_ids)
+
+    @staticmethod
+    def get_test_infos_by_task(task, all_case_infos: dict, task_ids: list, task_case_infos: dict, test_stat_info: dict):
+        """
+        :description: Get task-related test infoinformation
+        :param: all_case_infos: dict, all task-related case information
+        :param: task_ids: list, store all child task ids under the task
+        :param: task_case_infos: dict, store all task-related case test information
+        :param: test_stat_info: dict, store task-related case test statistics information
+        """
+        if task.type != "VERSION":
+            task_ids.append(task.id)
+            tm = TaskMilestone.query.filter(
+                TaskMilestone.task_id == task.id,
+            ).first()
+            query_filter = [
+                Analyzed.job_id == tm.job_id,
+            ]
+
+            for auto_case in tm.cases:
+                query_filter.append(Analyzed.case_id == auto_case.id)
+                case_analyze = Analyzed.query.filter(*query_filter).first()
+                task_case_infos.update({
+                    str(auto_case.id): {
+                        "result": case_analyze.result if case_analyze else "pending",
+                        "task_id": task.id,
+                        "type": "auto",
+                    }
+                })
+                task_case_infos[str(auto_case.id)].update(all_case_infos.get(str(auto_case.id)))
+                result = task_case_infos[str(auto_case.id)]["result"]
+                if test_stat_info.get(result):
+                    test_stat_info.update({result: test_stat_info.get(result) + 1})
+                else:
+                    test_stat_info.update({result: 1})
+
+            for manual_case in tm.manual_cases:
+                task_case_infos.update({
+                    str(manual_case.case_id): {
+                        "result": manual_case.case_result,
+                        "task_id": task.id,
+                        "type": "manual",
+                    }
+                })
+                task_case_infos[str(manual_case.case_id)].update(all_case_infos.get(str(manual_case.case_id)))
+                result = task_case_infos[str(manual_case.case_id)]["result"]
+                if test_stat_info.get(result):
+                    test_stat_info.update({result: test_stat_info.get(result) + 1})
+                else:
+                    test_stat_info.update({result: 1})
+
+        for sub_task in task.children.filter(Task.is_delete.is_(False)).all():
+            HandlerTaskProgress.get_test_infos_by_task(
+                sub_task,
+                all_case_infos,
+                task_ids,
+                task_case_infos,
+                test_stat_info
+            )
+
+    def get_latest_test_infos(self):
+        """
+        获取版本任务最新统计测试进展
+        """
+        tm = TaskMilestone.query.filter(
+            TaskMilestone.task_id == self.task.id,
+        ).first()
+        query_filter = [
+            Analyzed.job_id == tm.job_id,
+        ]
+        test_stat_info = dict()
+        for case_id in self.all_task_test_case_infos.keys():
+            _type = self.all_task_test_case_infos.get(case_id).get("type")
+            if _type == "auto":
+                query_filter.append(Analyzed.case_id == int(case_id))
+                case_analyze = Analyzed.query.filter(*query_filter).first()
+                self.all_task_test_case_infos.get(case_id).update(
+                    {"result": case_analyze.result if case_analyze else "pending"}
+                )
+            else:
+                munual_case = TaskManualCase.query.filter_by(id=int(case_id)).first()
+                self.all_task_test_case_infos.get(case_id).update(
+                    {"result": munual_case.case_result if munual_case else "unknown"}
+                )
+            result = self.all_task_test_case_infos.get(case_id).get("result")
+            if test_stat_info.get(result):
+                test_stat_info.update({result: test_stat_info.get(result) + 1})
+            else:
+                test_stat_info.update({result: 1})
+        self.all_task_test_static_info = test_stat_info
+        self.save_test_info_to_redis()
+
+    def get_task_test_progress(self):
+        return self.get_task_case_node_by_case_node(self.task.case_node_id, False)
+    
+    def get_milestone_test_progress(self):
+        test_stat_info = HandlerTaskProgress.statistic(self.all_task_test_static_info)
+        return test_stat_info.get("test_progress")
+
+    def get_test_progress_by_case_node(self, case_node_id):
+        """
+        根据case_node_id统计测试进展
+        """
+        test_static_info = dict()
+        for case_id in self.all_task_test_case_infos.keys():
+            case_node_path = self.all_task_test_case_infos.get(case_id).get("source")
+            if (
+                case_node_path.startswith(str(case_node_id) + ",") 
+            ) or (
+                case_node_path.find("," + str(case_node_id) + ",") > -1
+            ):
+                result = self.all_task_test_case_infos.get(case_id).get("result")
+                if test_static_info.get(result):
+                    test_static_info.update({result: test_static_info.get(result) + 1})
+                else:
+                    test_static_info.update({result: 1})
+        return HandlerTaskProgress.statistic(test_static_info)
+
+    def get_test_progress_by_task(self, task_id):
+        """
+        根据task_id统计测试进展
+        """
+        if task_id not in self.task_ids:
+            return jsonify(
+                error_code=RET.DB_DATA_ERR,
+                error_msg="this task does not belong to the current milestone.",
+            )
+        test_static_info = dict()
+        for case_id in self.all_task_test_case_infos.keys():
+            tmp_task_id = self.all_task_test_case_infos.get(case_id).get("task_id")
+            if int(task_id) == int(tmp_task_id):
+                result = self.all_task_test_case_infos.get(case_id).get("result")
+                if test_static_info.get(result):
+                    test_static_info.update({result: test_static_info.get(result) + 1})
+                else:
+                    test_static_info.update({result: 1})
+
+        return_data = HandlerTaskProgress.statistic(test_static_info)
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+            data=return_data
+        )
+
+    @staticmethod
+    def statistic(test_static_info):
+        from server.utils.math_util import calculate_rate
+        tmp_test_static_info = dict()
+        tmp_test_static_info.update(test_static_info)
+
+        all_cnt = 0
+        for _result in test_static_info.keys():
+            _count = test_static_info.get(_result)
+            all_cnt += _count
+        tmp_test_static_info.update(
+            {
+                "all_cnt": all_cnt
+            }
+        )
+        test_progress_cnt = 0
+        if test_static_info.get("failed"):
+            test_progress_cnt += test_static_info.get("failed")
+        if test_static_info.get("success"):
+            test_progress_cnt += test_static_info.get("success")
+        tmp_test_static_info.update(
+            {
+                "test_progress": calculate_rate(test_progress_cnt, all_cnt, 2)
+            }
+        )
+
+        for _result in test_static_info.keys():
+            _count = test_static_info.get(_result)
+            tmp_test_static_info.update(
+                {
+                    _result+"_rate": calculate_rate(_count, all_cnt, 2)
+                }
+            )
+        return tmp_test_static_info
+
+    @collect_sql_error
+    def get_task_case_node_and_test_progress(self, case_node_id, unfold:bool=True):
+        from server.schema.testcase import CaseNodeBaseSchema
+        case_node = CaseNode.query.filter_by(id=case_node_id).first()
+        if not case_node:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="case_node does not exists"
+            )
+        if case_node_id not in self.all_node_ids:
+            return jsonify(
+                error_code=RET.DB_DATA_ERR,
+                error_msg="case_node no right"
+            )
+
+        return_data = CaseNodeBaseSchema(**case_node.__dict__).dict()
+        if unfold:
+            return_data["children"] = list()
+            children = CaseNode.query.filter(
+                CaseNode.parent.contains(case_node)
+            ).all()
+            for child in children:
+                if child.id in self.all_node_ids:
+                    child_dict = child.to_json()
+                    if child.type == 'case':
+                        case_result = self.all_task_test_case_infos.get(str(child.case_id)).get("result")
+                        child_dict["result"] = case_result
+                    else:
+                        test_progress = self.get_test_progress_by_case_node(child.id)
+                        child_dict["test_progress"] = test_progress
+                    return_data["children"].append(child_dict)
+
+        source = list()
+        cur = case_node
+        while cur:
+            if not cur.parent.all():
+                source.append(cur.id)
+                break
+            if len(cur.parent.all()) > 1:
+                raise RuntimeError(
+                    "case_node should not have parents beyond one")
+
+            source.append(cur.id)
+            cur = cur.parent[0]
+
+        return_data["source"] = source
+        if case_node.type == 'case':
+            case_result = self.all_task_test_case_infos.get(str(case_node.case_id)).get("result")
+            return_data["result"] = case_result
+        else:
+            test_progress = self.get_test_progress_by_case_node(case_node_id)
+            return_data["test_progress"] = test_progress
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+            data=return_data
+        )
