@@ -28,6 +28,7 @@ from server.utils.auth_util import auth
 from server.utils.response_util import response_collect, RET
 from server.model import Milestone, Product, Organization
 from server.model.milestone import IssueSolvedRate
+from server.model.strategy import ReProductFeature
 from server.model.qualityboard import (
     QualityBoard, 
     Checklist, 
@@ -38,7 +39,7 @@ from server.model.qualityboard import (
     Checklist,
     DailyBuild,
     WeeklyHealth,
-    FeatureList,
+    Feature,
     CheckItem,
     Round,
     RoundGroup,
@@ -46,7 +47,7 @@ from server.model.qualityboard import (
 from server.utils.db import Delete, Edit, Select, Insert, collect_sql_error
 from server.schema.base import PageBaseSchema
 from server.schema.qualityboard import (
-    FeatureListQuerySchema,
+    FeatureQuerySchema,
     PackageCompareSchema,
     PackageCompareQuerySchema,
     RoundIssueQueryV8,
@@ -73,7 +74,7 @@ from server.apps.qualityboard.handlers import (
     ChecklistHandler,
     PackageListHandler,
     RoundHandler,
-    feature_list_handlers,
+    feature_handlers,
     CheckItemHandler,
     QualityResultCompareHandler,
     RoundHandler,
@@ -1073,12 +1074,12 @@ class WeeklybuildHealthEvent(Resource):
         )
 
 
-class FeatureListEvent(Resource):
+class FeatureEvent(Resource):
     @auth.login_required
     @response_collect
     @collect_sql_error
     @validate()
-    def get(self, qualityboard_id, query: FeatureListQuerySchema):
+    def get(self, qualityboard_id, query: FeatureQuerySchema):
         qualityboard = QualityBoard.query.filter_by(id=qualityboard_id).first()
         if not qualityboard:
             return jsonify(
@@ -1088,14 +1089,19 @@ class FeatureListEvent(Resource):
         if qualityboard.product:
             org_id = qualityboard.product.org_id
             org = Organization.query.filter_by(id=org_id).first()
-            feature_list_handler = feature_list_handlers.get(org.name)
-            if not feature_list_handler:
+            feature_handler = feature_handlers.get(org.name)
+            if not feature_handler:
                 return jsonify(
                     error_code=RET.NO_DATA_ERR,
-                    error_msg=f"feature adapter for {org.name} does not exist.please contact the administrator in time."
+                    error_msg=f"feature adapter for {org.name} \
+                        does not exist.please contact the administrator in time."
                 )
 
-            handler = feature_list_handler(FeatureList, qualityboard_id)
+            handler = feature_handler(
+                Feature, 
+                ReProductFeature, 
+                product_id = qualityboard.product_id
+            )
             if query.new:
                 md_content = handler.get_md_content(
                     f"{qualityboard.product.name}-{qualityboard.product.version}"
@@ -1115,17 +1121,19 @@ class FeatureListEvent(Resource):
                 # 社区暂未统一继承特性的定义
                 pass
 
-        feature_list = FeatureList.query.filter_by(
-            qualityboard_id=qualityboard_id, is_new=query.new
+        features = Feature.query.join(ReProductFeature).filter( 
+            ReProductFeature.product_id == qualityboard.product_id,
+            ReProductFeature.is_new == query.new,
+            ReProductFeature.feature_id == Feature.id
         ).all()
         return jsonify(
             error_code=RET.OK,
             error_msg="OK",
-            data=[feature.to_json() for feature in feature_list],
+            data=[feature.to_json() for feature in features],
         )
 
 
-class FeatureListSummary(Resource):
+class FeatureSummary(Resource):
     @auth.login_required
     @response_collect
     def get(self, qualityboard_id):
@@ -1142,14 +1150,19 @@ class FeatureListSummary(Resource):
         if qualityboard.product:
             org_id = qualityboard.product.org_id
             org = Organization.query.filter_by(id=org_id).first()
-            feature_list_handler = feature_list_handlers.get(org.name)
-            if not feature_list_handler:
+            feature_handler = feature_handlers.get(org.name)
+            if not feature_handler:
                 return jsonify(
                     error_code=RET.NO_DATA_ERR,
-                    error_msg=f"feature adapter for {org.name} does not exist.please contact the administrator in time."
+                    error_msg=f"feature adapter for {org.name}\
+                         does not exist.please contact the administrator in time."
                 )
 
-            handler = feature_list_handler(FeatureList, qualityboard_id)
+            handler = feature_handler(
+                Feature, 
+                ReProductFeature, 
+                product_id = qualityboard.product_id
+            )
             addition_feature_summary = handler.statistic(_is_new=True)
             inherit_feature_summary = handler.statistic(_is_new=False)
 

@@ -33,9 +33,6 @@ class QualityBoard(BaseModel, db.Model):
         db.Integer(), db.ForeignKey("product.id"), nullable=True
     )
 
-    feature_list = db.relationship(
-        'FeatureList', backref="qualityboard", cascade="all, delete"
-    )
 
     def get_round_milestones(self):
         milestones = dict()
@@ -286,11 +283,11 @@ class WeeklyHealth(db.Model, BaseModel):
         }
 
 
-class FeatureList(db.Model, BaseModel):
-    __tablename__ = "feature_list"
+class Feature(db.Model, BaseModel):
+    __tablename__ = "feature"
 
     id = db.Column(db.Integer(), primary_key=True, autoincrement=True)
-    no = db.Column(db.String(50), nullable=False, unique=True)
+    no = db.Column(db.String(50), nullable=False, unique=False)
     url = db.Column(db.String(512))
     status = db.Column(db.String(50))
     feature = db.Column(db.String(512), nullable=False)
@@ -298,10 +295,11 @@ class FeatureList(db.Model, BaseModel):
     owner = db.Column(LONGTEXT())
     release_to = db.Column(db.String(50))
     pkgs = db.Column(LONGTEXT())
-    is_new = db.Column(db.Boolean(), nullable=False, default=True)
-
-    qualityboard_id = db.Column(db.Integer(), db.ForeignKey("qualityboard.id"))
     task_id = db.Column(db.Integer(), db.ForeignKey("task.id"))
+    re_feature_products = db.relationship(
+        'ReProductFeature', backref="feature", cascade="all, delete, delete-orphan"
+    )
+
 
     def to_json(self):
         return {
@@ -315,7 +313,6 @@ class FeatureList(db.Model, BaseModel):
             "release_to": self.release_to,
             "pkgs": None if not self.pkgs else self.pkgs.split(','),
             "task_status": self.task.task_status.name if self.task else None,
-            "is_new": self.is_new,
         }
 
 

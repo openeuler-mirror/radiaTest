@@ -178,7 +178,7 @@ class QueryCheckItemSchema(PageBaseSchema):
     title: Optional[str]
 
 
-class FeatureListCreateSchema(BaseModel):
+class FeatureCreateSchema(BaseModel):
     no: str
     url: Optional[HttpUrl]
     feature: str
@@ -188,7 +188,7 @@ class FeatureListCreateSchema(BaseModel):
     pkgs: str
 
 
-class FeatureListQuerySchema(BaseModel):
+class FeatureQuerySchema(BaseModel):
     new: bool = True
 
 

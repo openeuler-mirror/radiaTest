@@ -169,7 +169,7 @@ class Task(db.Model, PermissionBaseModel, BaseModel):
 
     milestones = db.relationship('TaskMilestone', backref='task')  # 关联的里程碑
 
-    feature = db.relationship('FeatureList', backref='task') # 关联的特性
+    feature = db.relationship('Feature', backref='task') # 关联的特性
 
     requirement = db.relationship('Requirement', backref='task') # 关联的需求
     requirement_package = db.relationship('RequirementPackage', backref='task') # 关联的子需求
