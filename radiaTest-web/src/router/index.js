@@ -238,23 +238,23 @@ const router = createRouter({
                 {
                   path: 'caseset-node/:taskId/',
                   component: casesetNode,
-                  name: 'casesetNode',
+                  name: 'casesetNode'
                 },
                 {
                   path: 'baseline-node/:taskId/',
                   component: baselineNode,
-                  name: 'baselineNode',
+                  name: 'baselineNode'
                 },
                 {
                   path: 'suite-node/:taskId/:suiteId',
                   component: suiteNode,
-                  name: 'suiteNode',
+                  name: 'suiteNode'
                 },
                 {
                   path: 'testcase-node/:taskId/:caseId',
                   component: testcaseNodes,
                   name: 'testcaseNodes'
-                },
+                }
               ]
             },
             {

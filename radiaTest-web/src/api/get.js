@@ -359,3 +359,11 @@ export function getChecklistResult(roundId) {
 export function getRpmcheck(qualityBoardId) {
   return getRequest(`/v1/qualityboard/${qualityBoardId}/rpmcheck`);
 }
+
+export function getMilestoneProgress(milestoneId) {
+  return getRequest(`/v1/milestone/${milestoneId}/task-progress`);
+}
+
+export function getMilestoneProgressCaseNode(milestoneId, caseNode) {
+  return getRequest(`/v1/milestone/${milestoneId}/task-progress/case-node/${caseNode}`);
+}

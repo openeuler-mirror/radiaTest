@@ -5,18 +5,11 @@ import {
   getPackageListComparationSummaryAxios,
   getPackageListComparationDetail as getPackageChangeSummary,
   getProduct,
-  getAllMilestone,
+  getAllMilestone
 } from '@/api/get';
 import { updateCompareRounds } from '@/api/put';
 import { NButton, NTag, NSpace } from 'naive-ui';
-import { 
-  list, 
-  currentId, 
-  preId, 
-  currentRound, 
-  dashboardId, 
-  packageTabValueSecond 
-} from './productTable';
+import { list, currentId, preId, currentRound, dashboardId, packageTabValueSecond } from './productTable';
 
 const detail = ref({});
 const drawerShow = ref(false);
@@ -51,7 +44,7 @@ const currentPanel = ref('fixed');
 
 // 获取软件包变更数据
 function getPackageListComparationSummary(qualityboardId, params) {
-  const idList = list.value.map((item) => item.id);
+  const idList = list.value.map((item) => item.id); // roundId列表
   const currentIndex = idList.indexOf(currentRound.value.id);
   if (currentIndex === 0 && currentPanel.value === 'fixed') {
     preId.value = currentId.value;
@@ -81,19 +74,17 @@ function getPackageListComparationSummary(qualityboardId, params) {
         newPackage.value.name = null;
       });
   } else {
-    preId.value = idList[currentIndex - 1];
-    getPackageListComparationSummaryAxios(
-      qualityboardId, 
-      currentPanel.value === 'fixed' 
-        ? preId.value 
-        : currentPanel.value, 
-      {
-        summary: true,
-        refresh: params.refresh,
-        repo_path: params.repoPath,
-        arch: params.arch
-      }
-    )
+    if (currentPanel.value === 'fixed') {
+      preId.value = idList[currentIndex - 1];
+    } else {
+      preId.value = currentPanel.value;
+    }
+    getPackageListComparationSummaryAxios(qualityboardId, preId.value, {
+      summary: true,
+      refresh: params.refresh,
+      repo_path: params.repoPath,
+      arch: params.arch
+    })
       .then((res) => {
         if (!params.refresh) {
           oldPackage.value.size = res.data.size;
@@ -158,17 +149,17 @@ watch(currentPanel, () => {
 const packageComparePanels = ref([
   {
     name: '上轮迭代',
-    id: 'fixed',
-  },
+    id: 'fixed'
+  }
 ]);
 
 watch(currentRound, () => {
   packageComparePanels.value = [
     {
       name: '上轮迭代',
-      id: 'fixed',
+      id: 'fixed'
     },
-    ...currentRound.value.comparee_round_ids,
+    ...currentRound.value.comparee_round_ids
   ];
 });
 
@@ -182,7 +173,7 @@ const roundLoading = ref(false);
 const newCompareForm = ref({
   product: undefined,
   type: 'release',
-  round: undefined,
+  round: undefined
 });
 
 const packageCompareClosable = computed(() => {
@@ -194,22 +185,16 @@ function handlePackageCompareAdd() {
 }
 
 function handleNewCompareCreate() {
-  updateCompareRounds(
-    currentId.value, 
-    {
-      comparee_round_ids: [
-        ...currentRound.value.comparee_round_ids.map(item => item.id),
-        newCompareForm.value.round
-      ]
-    }
-  )
+  updateCompareRounds(currentId.value, {
+    comparee_round_ids: [...currentRound.value.comparee_round_ids.map((item) => item.id), newCompareForm.value.round]
+  })
     .then((res) => {
       packageComparePanels.value = [
         {
           name: '上轮迭代',
-          id: 'fixed',
+          id: 'fixed'
         },
-        ...res.data.comparee_round_ids,
+        ...res.data.comparee_round_ids
       ];
     })
     .finally(() => {
@@ -232,34 +217,30 @@ function handlePackageCompareClose(id) {
     panelList.splice(0, 1);
   }
 
-  updateCompareRounds(
-    currentId.value, 
-    { comparee_round_ids: panelList.map(item => item.id) }
-  )
-    .then((res) => {
-      packageComparePanels.value = [
-        {
-          name: '上轮迭代',
-          id: 'fixed',
-        },
-        ...res.data.comparee_round_ids,
-      ];
-      currentPanel.value = 'fixed';
-    });
+  updateCompareRounds(currentId.value, { comparee_round_ids: panelList.map((item) => item.id) }).then((res) => {
+    packageComparePanels.value = [
+      {
+        name: '上轮迭代',
+        id: 'fixed'
+      },
+      ...res.data.comparee_round_ids
+    ];
+    currentPanel.value = 'fixed';
+  });
 }
 
 watch(showAddNewCompare, () => {
-  if(showAddNewCompare.value) {
+  if (showAddNewCompare.value) {
     const params = {
-      paged: false,
-    }; 
+      paged: false
+    };
     productLoading.value = true;
     getProduct(params)
       .then((res) => {
         productOptions.value = res.data?.items?.map((item) => {
           return {
             label: `${item.name}-${item.version}`,
-            value: item.id,
+            value: item.id
           };
         });
       })
@@ -270,7 +251,7 @@ watch(showAddNewCompare, () => {
     newCompareForm.value = {
       product: undefined,
       type: 'release',
-      round: undefined,
+      round: undefined
     };
     productOptions.value = [];
     roundOptions.value = [];
@@ -278,13 +259,13 @@ watch(showAddNewCompare, () => {
 });
 
 watch(
-  () => [ newCompareForm.value.type, newCompareForm.value.product ], 
+  () => [newCompareForm.value.type, newCompareForm.value.product],
   () => {
     newCompareForm.value.round = undefined;
     const params = {
       paged: false,
       type: newCompareForm.value.type,
-      product_id: newCompareForm.value.product,
+      product_id: newCompareForm.value.product
     };
     roundLoading.value = true;
     getAllMilestone(params)
@@ -292,10 +273,10 @@ watch(
         roundOptions.value = res.data?.items?.map((item) => {
           return {
             label: item.name,
-            value: item.round_id,
+            value: item.round_id
           };
         });
-        roundOptions.value = roundOptions.value.filter(item => item.value);
+        roundOptions.value = roundOptions.value.filter((item) => item.value);
       })
       .finally(() => {
         roundLoading.value = false;
@@ -482,5 +463,5 @@ export {
   productLoading,
   productOptions,
   roundLoading,
-  roundOptions,
+  roundOptions
 };

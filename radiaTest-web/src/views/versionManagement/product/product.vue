@@ -335,16 +335,16 @@
                   <div v-if="showPackage">
                     <n-tabs
                       v-model:value="currentPanel"
-                      animated 
+                      animated
                       addable
-                      type="card" 
-                      :closable="packageCompareClosable" 
+                      type="card"
+                      :closable="packageCompareClosable"
                       @close="handlePackageCompareClose"
                       @add="handlePackageCompareAdd"
                     >
-                      <n-tab-pane 
-                        v-for="packageComparePanel in packageComparePanels" 
-                        :key="packageComparePanel" 
+                      <n-tab-pane
+                        v-for="packageComparePanel in packageComparePanels"
+                        :key="packageComparePanel"
                         :tab="`对比${packageComparePanel.name}`"
                         :name="packageComparePanel.id"
                       >
@@ -407,17 +407,11 @@
                           </n-form-item>
                           <n-radio-group v-model:value="newCompareForm.type">
                             <n-space>
-                              <n-radio value="release">
-                                发布版本
-                              </n-radio>
-                              <n-radio value="round">
-                                迭代轮次
-                              </n-radio>
+                              <n-radio value="release"> 发布版本 </n-radio>
+                              <n-radio value="round"> 迭代轮次 </n-radio>
                             </n-space>
                           </n-radio-group>
-                          <n-form-item 
-                            path="round"
-                          >
+                          <n-form-item path="round">
                             <n-select
                               filterable
                               v-model:value="newCompareForm.round"
@@ -428,12 +422,7 @@
                         </n-form>
                       </div>
                       <template #action>
-                        <n-button
-                          type="primary"
-                          @click="handleNewCompareCreate"
-                        >
-                          提交
-                        </n-button>
+                        <n-button type="primary" @click="handleNewCompareCreate"> 提交 </n-button>
                       </template>
                     </n-modal>
                   </div>
@@ -449,7 +438,7 @@
               </n-tabs>
               <div>
                 <keep-alive>
-                  <test-progress v-if="activeTab === 'testProgress'" :treeList="testList" />
+                  <test-progress v-if="activeTab === 'testProgress'" :defaultMilestoneId="defaultMilestoneId" />
                   <quality-protect
                     v-else-if="activeTab === 'qualityProtect'"
                     :quality-board-id="dashboardId"
