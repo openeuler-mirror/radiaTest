@@ -332,6 +332,7 @@
                       </div>
                     </div>
                   </div>
+                  <!-- 软件包变更详情卡片 -->
                   <div v-if="showPackage">
                     <n-tabs
                       v-model:value="currentPanel"
@@ -383,7 +384,7 @@
                         </div>
                         <package-table
                           :qualityboard-id="dashboardId"
-                          :round-pre-id="preId"
+                          :roundCompareeId="roundCompareeId"
                           :round-cur-id="currentId"
                           :packageTabValueFirst="packageTabValueFirst"
                           :packageTabValueSecond="packageTabValueSecond"

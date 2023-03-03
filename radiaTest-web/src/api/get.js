@@ -217,9 +217,9 @@ export function getPackageListComparationSummaryAxios(qualityboardId, roundId, p
   return getRequestWithoutCatch(`/v1/qualityboard/${qualityboardId}/round/${roundId}/pkg-list`, params);
 }
 
-export function getPackageListComparationDetail(qualityboardId, roundPreId, roundCurId, params) {
+export function getPackageListComparationDetail(qualityboardId, roundCompareeId, roundCurId, params) {
   return getRequestWithoutCatch(
-    `/v1/qualityboard/${qualityboardId}/round/${roundPreId}/with/${roundCurId}/pkg-compare`,
+    `/v1/qualityboard/${qualityboardId}/round/${roundCompareeId}/with/${roundCurId}/pkg-compare`,
     params
   );
 }

@@ -14,7 +14,7 @@
               circle
               quaternary
               :disabled="buttonDisabled"
-              @click="handleCreateClick(qualityboardId, roundPreId, roundCurId, { repo_path: packageTabValueSecond })"
+              @click="handleCreateClick(qualityboardId, roundCompareeId, roundCurId, { repo_path: packageTabValueSecond })"
             >
               <template #icon>
                 <n-icon>
@@ -29,7 +29,7 @@
           :size="18"
           @refresh="
             () => {
-              getData(qualityboardId, roundPreId, roundCurId);
+              getData(qualityboardId, roundCompareeId, roundCurId);
             }
           "
         >
@@ -41,18 +41,18 @@
   <n-input-group>
     <n-input v-model:value="thisParams.search" placeholder="搜索软件包..." clearable />
     <n-input-group-label style="width: 15%">
-      {{ packageTabValueFirst === 'softwarescope' ? totalNum : frameworktotalNum }} in total
+      {{ packageTabValueFirst === 'softwarescope' ? softwarescopeTotalNum : frameworktotalNum }} in total
     </n-input-group-label>
   </n-input-group>
   <div v-if="packageTabValueFirst === 'softwarescope'">
     <n-data-table
       remote
       :loading="loading"
-      :columns="columns"
-      :data="data"
+      :columns="softwarescopeColumns"
+      :data="softwarescopeTableData"
       :bordered="false"
-      :pagination="pagination"
-      @update:filters="handleFiltersChange"
+      :pagination="softwarescopePagination"
+      @update:filters="softwarescopeFiltersChange"
     />
   </div>
   <div v-else>
@@ -63,7 +63,7 @@
       :data="frameworkDate"
       :bordered="false"
       :pagination="frameworkPagination"
-      @update:filters="frameworkhandleFiltersChange"
+      @update:filters="frameworkFiltersChange"
     />
   </div>
 </template>
@@ -81,12 +81,12 @@ import { setPackageListComparationDetail, setHomonymousIsomerismPkgcompare } fro
 
 const props = defineProps([
   'qualityboardId',
-  'roundPreId',
+  'roundCompareeId',
   'roundCurId',
   'packageTabValueFirst',
   'packageTabValueSecond'
 ]);
-const { qualityboardId, roundPreId, roundCurId, packageTabValueFirst, packageTabValueSecond } = toRefs(props);
+const { qualityboardId, roundCompareeId, roundCurId, packageTabValueFirst, packageTabValueSecond } = toRefs(props);
 const rpmCompareStatus = ['SAME', 'VER_UP', 'VER_DOWN', 'REL_UP', 'REL_DOWN', 'ADD', 'DEL', 'ERROR'];
 const rpmCompareStatusDict = {
   SAME: '一致',
@@ -98,18 +98,22 @@ const rpmCompareStatusDict = {
   DEL: '移除',
   ERROR: '比对异常'
 };
+// 软件范围比对结果筛选项
 const rpmCompareStatusOptions = rpmCompareStatus.map((item) => {
   return {
     label: rpmCompareStatusDict[item],
     value: item
   };
 });
+// 被比较列（第一列）
 const compareeColumn = reactive({
   key: 'rpm_comparee'
 });
+// 比较列（第二列）
 const comparerColumn = reactive({
   key: 'rpm_comparer'
 });
+// 比对结果列
 const compareResultColumn = reactive({
   key: 'compare_result',
   title: '比对结果',
@@ -121,42 +125,42 @@ const compareResultColumn = reactive({
     return h('span', {}, rpmCompareStatusDict[row.compare_result]);
   }
 });
-const columns = [compareeColumn, comparerColumn, compareResultColumn];
+// 软件范围表格列
+const softwarescopeColumns = [compareeColumn, comparerColumn, compareResultColumn];
 const loading = ref(false);
-const data = ref([]);
-const totalNum = ref(null);
-const archesParam = ref(['aarch64', 'x86_64', 'noarch']);
+const softwarescopeTableData = ref([]); // 软件范围表格数据
+const softwarescopeTotalNum = ref(null); // 软件范围表格总数
+const archesParam = ref(['aarch64', 'x86_64', 'noarch']); // arches参数
+// 比对参数
 const thisParams = ref({
   search: null,
   desc: false,
-  page_num: 1,
-  page_size: 10,
   repo_path: packageTabValueSecond
 });
 
-const pagination = reactive({
+const softwarescopePagination = reactive({
   page: 1,
   pageSize: 10,
   showSizePicker: true,
   pageSizes: [10, 20, 50, 100],
   onChange: (page) => {
-    pagination.page = page;
-    thisParams.value.page_num = page;
+    softwarescopePagination.page = page;
+    getData(qualityboardId.value, roundCompareeId.value, roundCurId.value);
   },
   onUpdatePageSize: (pageSize) => {
-    pagination.pageSize = pageSize;
-    pagination.page = 1;
-    thisParams.value.page_num = 1;
-    thisParams.value.page_size = pageSize;
+    softwarescopePagination.pageSize = pageSize;
+    softwarescopePagination.page = 1;
+    getData(qualityboardId.value, roundCompareeId.value, roundCurId.value);
   }
 });
-const buttonDisabled = ref(false);
+const buttonDisabled = ref(false); // 禁用重新比对
 const frameworkStatus = ['SAME', 'DIFFERENT', 'LACK'];
 const frameworkStatusDict = {
   SAME: '一致',
   DIFFERENT: '不一致',
   LACK: '缺失'
 };
+// 同名异构比对结果筛选项
 const frameworkStatusOptions = frameworkStatus.map((item) => {
   return {
     label: frameworkStatusDict[item],
@@ -188,48 +192,46 @@ const frameworkPagination = reactive({
   pageSizes: [10, 20, 50, 100],
   onChange: (page) => {
     frameworkPagination.page = page;
-    thisParams.value.page_num = page;
+    getData(qualityboardId.value, roundCompareeId.value, roundCurId.value);
   },
   onUpdatePageSize: (pageSize) => {
     frameworkPagination.pageSize = pageSize;
     frameworkPagination.page = 1;
-    thisParams.value.page_num = 1;
-    thisParams.value.page_size = pageSize;
+    getData(qualityboardId.value, roundCompareeId.value, roundCurId.value);
   }
 });
 
-function getData(qualityboardIdParam, roundPreIdParam, roundCurIdParam) {
+// 获取比对数据
+function getData(qualityboardIdParam, roundCompareeIdParam, roundCurIdParam) {
   loading.value = true;
+  // 软件范围比对
   if (packageTabValueFirst.value === 'softwarescope') {
-    getPackageListComparationDetail(qualityboardIdParam, roundPreIdParam, roundCurIdParam, {
+    getPackageListComparationDetail(qualityboardIdParam, roundCompareeIdParam, roundCurIdParam, {
       compare_result_list: JSON.stringify(compareResultColumn.filterOptionValues),
       arches: JSON.stringify(archesParam.value),
-      ...thisParams.value
+      ...thisParams.value,
+      page_num: softwarescopePagination.page,
+      page_size: softwarescopePagination.pageSize
     })
       .then((res) => {
-        compareeColumn.title = oldPackage.value.name;
-        comparerColumn.title = newPackage.value.name;
-        data.value = res.data.items;
-        totalNum.value = res.data.total;
-        pagination.itemCount = res.data.total;
-        packageChangeSummary.value.addPackagesNum = res.data.add_pkgs_num;
-        packageChangeSummary.value.delPackagesNum = res.data.del_pkgs_num;
-        if (roundCurIdParam === roundPreIdParam) {
-          data.value.forEach((item) => {
-            item.rpm_comparee = null;
-            item.compare_result = null;
-          });
-          packageChangeSummary.value.addPackagesNum = 0;
-          packageChangeSummary.value.delPackagesNum = 0;
-        }
+        compareeColumn.title = oldPackage.value.name; // 第一列名称
+        comparerColumn.title = newPackage.value.name; // 第二列名称
+        packageChangeSummary.value.addPackagesNum = res.data.add_pkgs_num; // 新增
+        packageChangeSummary.value.delPackagesNum = res.data.del_pkgs_num; // 减少
+        softwarescopeTableData.value = res.data.items; // 表格数据
+        softwarescopeTotalNum.value = res.data.total; // 总数
+        softwarescopePagination.itemCount = res.data.total; // 总数
       })
       .finally(() => {
         loading.value = false;
       });
   } else {
+    // 同名异构
     getHomonymousIsomerismPkgcompare(qualityboardIdParam, roundCurIdParam, {
       compare_result_list: JSON.stringify(frameworkCompareResultColumn.filterOptionValues),
-      ...thisParams.value
+      ...thisParams.value,
+      page_num: frameworkPagination.page,
+      page_size: frameworkPagination.pageSize
     })
       .then((res) => {
         frameworkDate.value = res.data.items;
@@ -244,29 +246,27 @@ function getData(qualityboardIdParam, roundPreIdParam, roundCurIdParam) {
 
 const cleanData = () => {
   loading.value = false;
-  data.value = [];
+  softwarescopeTableData.value = [];
   frameworkDate.value = [];
   thisParams.value = {
     search: null,
     desc: false,
-    page_num: 1,
-    page_size: 10,
     repo_path: packageTabValueSecond
   };
   archesParam.value = ['aarch64', 'x86_64', 'noarch'];
-  totalNum.value = null;
+  softwarescopeTotalNum.value = null;
   frameworktotalNum.value = null;
 };
 
 // 重新比对
-function handleCreateClick(qualityboardIdParam, roundPreIdParam, roundCurIdParam, params) {
+function handleCreateClick(qualityboardIdParam, roundCompareeIdParam, roundCurIdParam, params) {
   buttonDisabled.value = true;
   window.$message?.loading('开始比对，请稍等');
   if (packageTabValueFirst.value === 'softwarescope') {
-    setPackageListComparationDetail(qualityboardIdParam, roundPreIdParam, roundCurIdParam, params)
+    setPackageListComparationDetail(qualityboardIdParam, roundCompareeIdParam, roundCurIdParam, params)
       .then(() => {
         window.$message?.success('比对成功');
-        getData(qualityboardIdParam, roundPreIdParam, roundCurIdParam);
+        getData(qualityboardIdParam, roundCompareeIdParam, roundCurIdParam);
       })
       .catch(() => {
         window.$message?.error('比对失败');
@@ -278,7 +278,7 @@ function handleCreateClick(qualityboardIdParam, roundPreIdParam, roundCurIdParam
     setHomonymousIsomerismPkgcompare(qualityboardIdParam, roundCurIdParam, params)
       .then(() => {
         window.$message?.success('比对成功');
-        getData(qualityboardIdParam, roundPreIdParam, roundCurIdParam);
+        getData(qualityboardIdParam, roundCompareeIdParam, roundCurIdParam);
       })
       .catch(() => {
         window.$message?.error('比对失败');
@@ -289,41 +289,39 @@ function handleCreateClick(qualityboardIdParam, roundPreIdParam, roundCurIdParam
   }
 }
 
-const handleFiltersChange = (filters) => {
+const softwarescopeFiltersChange = (filters) => {
   compareResultColumn.filterOptionValues = filters.compare_result || [];
-  pagination.page = 1;
-  thisParams.value.page_num = 1;
-  getData(qualityboardId.value, roundPreId.value, roundCurId.value);
+  softwarescopePagination.page = 1;
+  getData(qualityboardId.value, roundCompareeId.value, roundCurId.value);
 };
-const frameworkhandleFiltersChange = (filters) => {
+const frameworkFiltersChange = (filters) => {
   frameworkCompareResultColumn.filterOptionValues = filters.compare_result || [];
-  pagination.page = 1;
-  thisParams.value.page_num = 1;
-  getData(qualityboardId.value, roundPreId.value, roundCurId.value);
+  softwarescopePagination.page = 1;
+  getData(qualityboardId.value, roundCompareeId.value, roundCurId.value);
 };
 
 watch(
   thisParams,
   () => {
-    getData(qualityboardId.value, roundPreId.value, roundCurId.value);
+    getData(qualityboardId.value, roundCompareeId.value, roundCurId.value);
   },
   { deep: true }
 );
 watch(archesParam, () => {
-  getData(qualityboardId.value, roundPreId.value, roundCurId.value);
+  getData(qualityboardId.value, roundCompareeId.value, roundCurId.value);
 });
 watch(roundCurId, () => {
-  totalNum.value = null;
+  softwarescopeTotalNum.value = null;
   frameworktotalNum.value = null;
-  data.value = [];
+  softwarescopeTableData.value = [];
   frameworkDate.value = [];
-  getData(qualityboardId.value, roundPreId.value, roundCurId.value);
+  getData(qualityboardId.value, roundCompareeId.value, roundCurId.value);
 });
 watch(packageTabValueFirst, () => {
-  getData(qualityboardId.value, roundPreId.value, roundCurId.value);
+  getData(qualityboardId.value, roundCompareeId.value, roundCurId.value);
 });
 onMounted(() => {
-  getData(qualityboardId.value, roundPreId.value, roundCurId.value);
+  getData(qualityboardId.value, roundCompareeId.value, roundCurId.value);
 });
 onUnmounted(() => {
   cleanData();
