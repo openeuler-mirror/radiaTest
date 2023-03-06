@@ -285,7 +285,7 @@ def resolve_rpmcheck_detail(self, build_name, rpm_check_detail, _file=None):
 
 
 @celery.task
-def resolve_openeuler_pkglist(repo_url, product, build, repo_path, arch, round):
+def resolve_openeuler_pkglist(repo_url, product, build, repo_path, arch, round=None):
     exitcode, output = subprocess.getstatusoutput(
         "pushd scrapyspider && scrapy crawl openeuler_pkgs_list_spider "\
             f"-a openeuler_repo_url={repo_url} "\
@@ -300,7 +300,7 @@ def resolve_openeuler_pkglist(repo_url, product, build, repo_path, arch, round):
         return
     
     logger.info(f"crawl openeuler's packages list of build {build} of {product} succeed")
-    lock_key = f"resolving_{product}-{repo_path}-{arch}_pkglist"
+    lock_key = f"resolving_{product}-release-{repo_path}-{arch}_pkglist"
     if product != build:
         lock_key = f"resolving_{product}-round-{round}-{repo_path.split('/')[0]}-{arch}_pkglist"
     redis_client.delete(lock_key)

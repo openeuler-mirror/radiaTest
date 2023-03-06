@@ -86,7 +86,7 @@ class FilePipeline:
         if not self.product or not self.build:
             return
 
-        if self.round:
+        if self.round != "None":
             if os.path.isfile(f"{self.pkglist_storage_path}/{self.product}"\
                 f"-round-{self.round}-{self.repo_path}-{self.arch}.pkgs"):
                 os.remove(
