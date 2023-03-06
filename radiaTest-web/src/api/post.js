@@ -60,8 +60,8 @@ export function setOrgUserRole(id, data) {
 export function setGroupRepo(data) {
   return postRequest('/v1/git-repo', data);
 }
-export function setPackageListComparationDetail(qualityboardId, roundPreId, roundCurId, params) {
-  return postRequest(`/v1/qualityboard/${qualityboardId}/round/${roundPreId}/with/${roundCurId}/pkg-compare`, params);
+export function setPackageListComparationDetail(qualityboardId, roundCompareeId, roundCurId, params) {
+  return postRequest(`/v1/qualityboard/${qualityboardId}/round/${roundCompareeId}/with/${roundCurId}/pkg-compare`, params);
 }
 
 export function addCheckListItem(data) {

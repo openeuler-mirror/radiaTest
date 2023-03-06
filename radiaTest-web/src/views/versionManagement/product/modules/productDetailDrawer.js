@@ -9,8 +9,9 @@ import {
 } from '@/api/get';
 import { updateCompareRounds } from '@/api/put';
 import { NButton, NTag, NSpace } from 'naive-ui';
-import { list, currentId, preId, currentRound, dashboardId, packageTabValueSecond } from './productTable';
+import { list, currentId, currentRound, dashboardId, packageTabValueSecond } from './productTable';
 
+const roundCompareeId = ref(''); // 对比roundId
 const detail = ref({});
 const drawerShow = ref(false);
 const active = ref(false);
@@ -40,14 +41,14 @@ const packageChangeSummary = ref({
   delPackagesNum: 0
 });
 
-const currentPanel = ref('fixed');
+const currentPanel = ref('fixed'); // 当前软件包对比tab
 
 // 获取软件包变更数据
 function getPackageListComparationSummary(qualityboardId, params) {
   const idList = list.value.map((item) => item.id); // roundId列表
   const currentIndex = idList.indexOf(currentRound.value.id);
   if (currentIndex === 0 && currentPanel.value === 'fixed') {
-    preId.value = currentId.value;
+    roundCompareeId.value = currentId.value;
     getPackageListComparationSummaryAxios(qualityboardId, currentId.value, {
       summary: true,
       refresh: params.refresh,
@@ -75,11 +76,11 @@ function getPackageListComparationSummary(qualityboardId, params) {
       });
   } else {
     if (currentPanel.value === 'fixed') {
-      preId.value = idList[currentIndex - 1];
+      roundCompareeId.value = idList[currentIndex - 1];
     } else {
-      preId.value = currentPanel.value;
+      roundCompareeId.value = currentPanel.value;
     }
-    getPackageListComparationSummaryAxios(qualityboardId, preId.value, {
+    getPackageListComparationSummaryAxios(qualityboardId, roundCompareeId.value, {
       summary: true,
       refresh: params.refresh,
       repo_path: params.repoPath,
@@ -117,7 +118,10 @@ function getPackageListComparationSummary(qualityboardId, params) {
         newPackage.value.size = '?';
         newPackage.value.name = null;
       });
-    getPackageChangeSummary(qualityboardId, preId.value, currentId.value, { summary: true, repo_path: params.repoPath })
+    getPackageChangeSummary(qualityboardId, roundCompareeId.value, currentId.value, {
+      summary: true,
+      repo_path: params.repoPath
+    })
       .then((res) => {
         packageChangeSummary.value.addPackagesNum = res.data.add_pkgs_num;
         packageChangeSummary.value.delPackagesNum = res.data.del_pkgs_num;
@@ -129,7 +133,7 @@ function getPackageListComparationSummary(qualityboardId, params) {
   }
 }
 
-const showPackage = ref(false);
+const showPackage = ref(false); // 显示软件包变更详情
 const packageBox = ref(null);
 const packageWidth = ref(0);
 watch(showPackage, () => {
@@ -161,6 +165,7 @@ watch(currentRound, () => {
     },
     ...currentRound.value.comparee_round_ids
   ];
+  currentPanel.value = 'fixed';
 });
 
 const showAddNewCompare = ref(false);
@@ -170,20 +175,24 @@ const productLoading = ref(false);
 const roundOptions = ref([]);
 const roundLoading = ref(false);
 
+// 软件包对比tab新增表单
 const newCompareForm = ref({
   product: undefined,
   type: 'release',
   round: undefined
 });
 
+// 软件包对比tab是否可关闭
 const packageCompareClosable = computed(() => {
   return packageComparePanels.value.length > 1;
 });
 
+// 显示软件包对比tab增加表单
 function handlePackageCompareAdd() {
   showAddNewCompare.value = true;
 }
 
+// 新增软件包对比tab
 function handleNewCompareCreate() {
   updateCompareRounds(currentId.value, {
     comparee_round_ids: [...currentRound.value.comparee_round_ids.map((item) => item.id), newCompareForm.value.round]
@@ -196,12 +205,14 @@ function handleNewCompareCreate() {
         },
         ...res.data.comparee_round_ids
       ];
+      currentRound.value.comparee_round_ids = res.data.comparee_round_ids;
     })
     .finally(() => {
       showAddNewCompare.value = false;
     });
 }
 
+// 删除软件包对比tab
 function handlePackageCompareClose(id) {
   const { value: panelList } = packageComparePanels;
   const closeIndex = panelList.findIndex((panel) => panel.id === id);
@@ -226,9 +237,11 @@ function handlePackageCompareClose(id) {
       ...res.data.comparee_round_ids
     ];
     currentPanel.value = 'fixed';
+    currentRound.value.comparee_round_ids = res.data.comparee_round_ids;
   });
 }
 
+// 新增比对modal回调
 watch(showAddNewCompare, () => {
   if (showAddNewCompare.value) {
     const params = {
@@ -258,6 +271,7 @@ watch(showAddNewCompare, () => {
   }
 });
 
+// 根据版本和类型获取round列表
 watch(
   () => [newCompareForm.value.type, newCompareForm.value.product],
   () => {
@@ -381,7 +395,7 @@ const inheritFeatureSummary = ref({});
 
 const featureLoading = ref(false);
 const featureListData = ref([]);
-const showList = ref(false);
+const showList = ref(false); // 显示新增/继承特性详情
 
 function handleListClick() {
   showList.value = true;
@@ -463,5 +477,6 @@ export {
   productLoading,
   productOptions,
   roundLoading,
-  roundOptions
+  roundOptions,
+  roundCompareeId
 };

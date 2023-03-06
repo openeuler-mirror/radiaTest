@@ -89,9 +89,8 @@ const productVersionPagination = ref({
   pageSizes: [5, 10, 20, 50]
 });
 const testList = ref([]);
-const list = ref([]);
-const currentId = ref('');
-const preId = ref('');
+const list = ref([]); // round列表
+const currentId = ref(''); // 当前roundId
 const showCheckList = ref(false);
 const message = useMessage();
 const productList = ref([]); // 产品列表
@@ -245,7 +244,7 @@ const setResolvedData = (rateData) => {
   leftIssuesPassed.value = rateData.left_issues_passed;
 };
 
-// 点击每个Round
+// 切换Round
 function handleClick(item) {
   currentRound.value = item;
   if (item.id > currentId.value) {
@@ -1243,7 +1242,6 @@ export {
   testList,
   list,
   currentId,
-  preId,
   dashboardId,
   productVersionFormRef,
   message,
