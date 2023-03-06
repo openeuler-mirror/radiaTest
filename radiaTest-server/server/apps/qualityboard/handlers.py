@@ -550,7 +550,7 @@ class PackageListHandler:
         _product = _round.product.name + "-" + _round.product.version
         if _round.type == "release":
             _pkgs_repo_url = current_app.config.get(f"{org.name.upper()}_OFFICIAL_REPO_URL")
-            _filename_p = _product
+            _filename_p = f"{_product}-release"
             round_num = None
         else:
             _pkgs_repo_url = current_app.config.get(f"{org.name.upper()}_DAILYBUILD_REPO_URL")

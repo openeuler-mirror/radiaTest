@@ -14,7 +14,7 @@ from server.utils.redis_util import RedisKey
 from server.utils.db import collect_sql_error, Insert, Edit, Delete
 from server.utils.page_util import PageUtil
 from server.utils.response_util import RET
-from server.utils.common_util import calculate_rate
+from server.utils.math_util import calculate_rate
 from server.model.organization import Organization
 from server.model.milestone import Milestone, IssueSolvedRate, TestReport
 from server.model.mirroring import Repo
