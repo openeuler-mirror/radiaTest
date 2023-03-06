@@ -11,10 +11,10 @@
 # @email   : 
 # @Date    : 
 # @License : Mulan PSL v2
-
-
 #####################################
+
 from datetime import datetime
+import pytz
 from flask import request, jsonify, g
 from flask_restful import Resource
 from flask_pydantic import validate
@@ -76,8 +76,11 @@ class TemplateItemEvent(Resource):
         _body = body.__dict__
         _body.update({"id": template_id})
         cases = []
-        for case_name in _body.get("cases"):
-            cases.append(Case.query.filter_by(name=case_name).first())
+        for case_id in _body.get("cases"):
+            case = Case.query.filter_by(id=int(case_id)).first()
+            if not case:
+                continue
+            cases.append(case)
 
         _body.pop("cases")
         resp = Edit(Template, _body).single(Template, '/template')
@@ -122,6 +125,7 @@ class TemplateItemEvent(Resource):
     def delete(self, template_id):
         return ResourceManager("template").del_single(template_id)
 
+
 class TemplateCloneEvent(Resource):
     @auth.login_required
     @validate()
@@ -129,7 +133,7 @@ class TemplateCloneEvent(Resource):
         _template = Template.query.filter_by(id=body.id).first()
         if not _template:
             raise RuntimeError("the selected template does not exist.")
-        _nowstr = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+        _nowstr = datetime.now(tz=pytz.timezone('Asia/Shanghai')).strftime("%Y-%m-%d-%H-%M-%S")
         _body = {
             "name": _template.name + _nowstr,
             "description": _template.description + _nowstr if _template.description else _nowstr,

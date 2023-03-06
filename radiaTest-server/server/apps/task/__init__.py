@@ -1,3 +1,18 @@
+# Copyright (c) [2022] Huawei Technologies Co.,Ltd.ALL rights reserved.
+# This program is licensed under Mulan PSL v2.
+# You can use it according to the terms and conditions of the Mulan PSL v2.
+#          http://license.coscl.org.cn/MulanPSL2
+# THIS PROGRAM IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+# EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+# MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+# See the Mulan PSL v2 for more details.
+####################################
+# @Author  :
+# @email   :
+# @Date    :
+# @License : Mulan PSL v2
+#####################################
+
 from flask_restful import Api
 from .routes import (
     Status,
@@ -20,7 +35,16 @@ from .routes import (
     CasesResult,
     ExecutorItem,
 )
-from .routes import TaskMilestonesCases, TaskExecute, TaskList, CaseTask, TaskFrame
+from .routes import (
+    TaskMilestonesCases,
+    TaskExecute,
+    TaskList,
+    CaseTask,
+    TaskFrame,
+    MilestoneTaskProgress,
+    CaseNodeTaskProgress,
+    SubTaskProgress
+)
 from .routes import (
     TaskDistributeTemplate,
     DistributeType,
@@ -116,3 +140,16 @@ def init_api(api: Api):
     api.add_resource(CaseTask, "/api/v1/case/<int:case_id>/task")
     api.add_resource(TaskFrame, "/api/v1/task/frame")
     api.add_resource(MileStoneTask, "/api/v1/milestone/<int:milestone_id>/tasks")
+
+    api.add_resource(
+        MilestoneTaskProgress,
+        "/api/v1/milestone/<int:milestone_id>/task-progress"
+    )
+    api.add_resource(
+        CaseNodeTaskProgress,
+        "/api/v1/milestone/<int:milestone_id>/task-progress/case-node/<int:case_node_id>"
+    )
+    api.add_resource(
+        SubTaskProgress,
+        "/api/v1/milestone/<int:milestone_id>/task-progress/task/<int:task_id>"
+    )

@@ -69,6 +69,12 @@ class AddTaskSchema(BaseModel):
     is_manage_task: bool = False
     case_node_id: int = None
 
+    @root_validator
+    def check(cls, values):
+        if values.get("case_node_id") and not values.get("milestone_id"):
+            raise ValueError("when case_node_id is not None, milestone_id must be not None.")
+        return values
+
 
 class OutAddTaskSchema(BaseModel):
     title: str

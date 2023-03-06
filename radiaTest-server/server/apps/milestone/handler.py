@@ -14,6 +14,7 @@ from server.utils.redis_util import RedisKey
 from server.utils.db import collect_sql_error, Insert, Edit, Delete
 from server.utils.page_util import PageUtil
 from server.utils.response_util import RET
+from server.utils.common_util import calculate_rate
 from server.model.organization import Organization
 from server.model.milestone import Milestone, IssueSolvedRate, TestReport
 from server.model.mirroring import Repo
@@ -506,15 +507,6 @@ class IssueBaseHandlerV8:
             state_ids = state_ids[:-1]
         return state_ids
 
-    @staticmethod
-    def calculate_rate(solved_cnt, all_cnt):
-        solved_rate = None
-        if int(all_cnt) != 0:
-            solved_rate = int(solved_cnt) / int(all_cnt)
-        if solved_rate is not None:
-            solved_rate = "%.f%%" % (solved_rate * 100)
-        return solved_rate
-
     def get_issue_cnt_rate(self, param1, param2):
         solved_cnt, all_cnt, solved_rate = None, None, None
         all_cnt = self.get_issues_cnt(param1)
@@ -581,19 +573,19 @@ class IssueHandlerV8(IssueBaseHandlerV8):
                 minor_data + not_main_data + no_assign_data
             issue_data_cnt = len(issue_data)
             _data = {
-                "serious_issue_rate": IssueHandlerV8.calculate_rate(len(serious_data), issue_data_cnt),
+                "serious_issue_rate": calculate_rate(len(serious_data), issue_data_cnt),
                 "serious_issue_cnt": len(serious_data),
                 "serious_issue": serious_data,
-                "main_issue_rate": self.calculate_rate(len(main_data), issue_data_cnt),
+                "main_issue_rate": calculate_rate(len(main_data), issue_data_cnt),
                 "main_issue_cnt": len(main_data),
                 "main_issue": main_data,
-                "minor_issue_rate": self.calculate_rate(len(minor_data), issue_data_cnt),
+                "minor_issue_rate": calculate_rate(len(minor_data), issue_data_cnt),
                 "minor_issue_cnt": len(minor_data),
                 "minor_issue": minor_data,
-                "not_main_issue_rate": self.calculate_rate(len(not_main_data), issue_data_cnt),
+                "not_main_issue_rate": calculate_rate(len(not_main_data), issue_data_cnt),
                 "not_main_issue_cnt": len(not_main_data),
                 "not_main_issue": not_main_data,
-                "no_assign_issue_rate": self.calculate_rate(len(no_assign_data), issue_data_cnt),
+                "no_assign_issue_rate": calculate_rate(len(no_assign_data), issue_data_cnt),
                 "no_assign_issue_cnt": len(no_assign_data),
                 "no_assign_issue": no_assign_data,
                 "issue_data": issue_data,

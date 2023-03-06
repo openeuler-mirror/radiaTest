@@ -16,6 +16,7 @@ import subprocess
 from flask import current_app
 
 from server import redis_client
+from server.utils.math_util import calculate_rate
 from celeryservice.lib import TaskHandlerBase
 
 
@@ -40,21 +41,13 @@ class RpmCheckHandler(TaskHandlerBase):
                 })
             all_cnt += 1
 
-        def calculate_rate(part_cnt, all_cnt):
-            rate = None
-            if int(all_cnt) != 0:
-                rate = int(part_cnt) / int(all_cnt)
-            if rate:
-                rate = "%.2f%%" % (rate * 100)
-            return rate
-
         data = []
         for _key in cnt_dict.keys():
             data.append(
                 {
                     "status": _key,
                     "cnt": cnt_dict.get(_key),
-                    "rate": calculate_rate(cnt_dict.get(_key), all_cnt)
+                    "rate": calculate_rate(cnt_dict.get(_key), all_cnt, 2)
                 }
             )
         
