@@ -51,11 +51,27 @@ from server.schema.task import (
     DeleteTaskList,
     MilestoneTaskSchema,
 )
-from handlers import HandlerTaskStatus, HandlerTask, HandlerTaskParticipant, HandlerTaskComment, HandlerTaskTag
-from handlers import HandlerTaskFamily, HandlerTaskCase, HandlerTaskReport, HandlerTaskProgress
-from handlers import HandlerTaskMilestone, HandlerTaskStatistics
-from handlers import HandlerTaskExecute, HandlerCaseTask, HandlerCaseFrame
-from template_handler import HandlerTemplate, HandlerTemplateType, HandlerTaskDistributeCass
+from server.apps.task.handlers import (
+    HandlerTaskStatus,
+    HandlerTask,
+    HandlerTaskParticipant,
+    HandlerTaskComment,
+    HandlerTaskTag,
+    HandlerTaskFamily,
+    HandlerTaskCase,
+    HandlerTaskReport,
+    HandlerTaskProgress,
+    HandlerTaskMilestone,
+    HandlerTaskStatistics,
+    HandlerTaskExecute,
+    HandlerCaseTask,
+    HandlerCaseFrame,
+)
+from server.apps.task.template_handler import (
+    HandlerTemplate,
+    HandlerTemplateType,
+    HandlerTaskDistributeCass
+)
 
 
 class Status(Resource):
