@@ -105,7 +105,7 @@ def handler_register(body):
     }
     redis_client.hmset(RedisKey.user(user_dict.get('gitee_id')), user_dict)
     token = generate_token(
-        user_dict.get('gitee_id'), 
+        user_dict.get('gitee_id'),
         admin.account,
         int(current_app.config.get("LOGIN_EXPIRES_TIME"))
     )
