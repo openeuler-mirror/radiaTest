@@ -31,6 +31,7 @@ import {
   getFeatureSummary,
   getPackageListComparationSummary,
   showPackage,
+  showList,
   testProgressList
 } from './productDetailDrawer';
 import _ from 'lodash';
@@ -1191,7 +1192,16 @@ const updateRoundMilestoneBoard = (value) => {
   }
 };
 
+// 关闭产品抽屉回调
+const leaveProductDrawer = () => {
+  packageTabValueFirst.value = 'softwarescope';
+  packageTabValueSecond.value = 'everything';
+  showPackage.value = false;
+  showList.value = false;
+};
+
 export {
+  leaveProductDrawer,
   MilestoneIssuesCardType,
   packageTabValueFirst,
   packageTabValueSecond,
