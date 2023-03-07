@@ -38,8 +38,8 @@ def handler_login(body):
     admin = Admin.query.filter_by(account=body.account).first()
     if not admin:
         return jsonify(
-            error_code=RET.NO_DATA_ERR,
-            error_msg='admin no find'
+            error_code=RET.VERIFY_ERR,
+            error_msg='Account does not exist or password is incorrect. Please re-enter'
         )
 
     # 防止用户多次登录
@@ -56,7 +56,7 @@ def handler_login(body):
         redis_client.expire(lock_key, ex=1800)
         return jsonify(
             error_code=RET.VERIFY_ERR,
-            error_msg='password error'
+            error_msg='Account does not exist or password is incorrect. Please re-enter'
         )
 
     user_dict = {
