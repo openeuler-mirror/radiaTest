@@ -1,5 +1,5 @@
 <template>
-  <n-checkbox-group v-model:value="archesParam">
+  <n-checkbox-group v-model:value="archesParam" :min="1">
     <n-space justify="space-between">
       <n-space item-style="display: flex;" v-show="packageTabValueFirst === 'softwarescope'">
         <n-checkbox value="aarch64" label="aarch64" />
@@ -14,7 +14,9 @@
               circle
               quaternary
               :disabled="buttonDisabled"
-              @click="handleCreateClick(qualityboardId, roundCompareeId, roundCurId, { repo_path: packageTabValueSecond })"
+              @click="
+                handleCreateClick(qualityboardId, roundCompareeId, roundCurId, { repo_path: packageTabValueSecond })
+              "
             >
               <template #icon>
                 <n-icon>
@@ -29,6 +31,8 @@
           :size="18"
           @refresh="
             () => {
+              softwarescopePagination.page = 1;
+              frameworkPagination.page = 1;
               getData(qualityboardId, roundCompareeId, roundCurId);
             }
           "
@@ -266,6 +270,7 @@ function handleCreateClick(qualityboardIdParam, roundCompareeIdParam, roundCurId
     setPackageListComparationDetail(qualityboardIdParam, roundCompareeIdParam, roundCurIdParam, params)
       .then(() => {
         window.$message?.success('比对成功');
+        softwarescopePagination.page = 1;
         getData(qualityboardIdParam, roundCompareeIdParam, roundCurIdParam);
       })
       .catch(() => {
@@ -278,6 +283,7 @@ function handleCreateClick(qualityboardIdParam, roundCompareeIdParam, roundCurId
     setHomonymousIsomerismPkgcompare(qualityboardIdParam, roundCurIdParam, params)
       .then(() => {
         window.$message?.success('比对成功');
+        frameworkPagination.page = 1;
         getData(qualityboardIdParam, roundCompareeIdParam, roundCurIdParam);
       })
       .catch(() => {
@@ -289,25 +295,32 @@ function handleCreateClick(qualityboardIdParam, roundCompareeIdParam, roundCurId
   }
 }
 
+// 软件范围筛选条件变化
 const softwarescopeFiltersChange = (filters) => {
   compareResultColumn.filterOptionValues = filters.compare_result || [];
   softwarescopePagination.page = 1;
   getData(qualityboardId.value, roundCompareeId.value, roundCurId.value);
 };
+
+// 同名异构筛选条件变化
 const frameworkFiltersChange = (filters) => {
   frameworkCompareResultColumn.filterOptionValues = filters.compare_result || [];
-  softwarescopePagination.page = 1;
+  frameworkPagination.page = 1;
   getData(qualityboardId.value, roundCompareeId.value, roundCurId.value);
 };
 
 watch(
   thisParams,
   () => {
+    softwarescopePagination.page = 1;
+    frameworkPagination.page = 1;
     getData(qualityboardId.value, roundCompareeId.value, roundCurId.value);
   },
   { deep: true }
 );
 watch(archesParam, () => {
+  softwarescopePagination.page = 1;
+  frameworkPagination.page = 1;
   getData(qualityboardId.value, roundCompareeId.value, roundCurId.value);
 });
 watch(roundCurId, () => {
@@ -315,12 +328,18 @@ watch(roundCurId, () => {
   frameworktotalNum.value = null;
   softwarescopeTableData.value = [];
   frameworkDate.value = [];
+  softwarescopePagination.page = 1;
+  frameworkPagination.page = 1;
   getData(qualityboardId.value, roundCompareeId.value, roundCurId.value);
 });
 watch(packageTabValueFirst, () => {
+  softwarescopePagination.page = 1;
+  frameworkPagination.page = 1;
   getData(qualityboardId.value, roundCompareeId.value, roundCurId.value);
 });
 onMounted(() => {
+  softwarescopePagination.page = 1;
+  frameworkPagination.page = 1;
   getData(qualityboardId.value, roundCompareeId.value, roundCurId.value);
 });
 onUnmounted(() => {

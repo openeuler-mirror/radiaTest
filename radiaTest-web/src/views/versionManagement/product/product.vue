@@ -59,7 +59,7 @@
       />
     </div>
     <!-- 产品版本抽屉 -->
-    <n-drawer v-model:show="drawerShow" style="width: 60%">
+    <n-drawer v-model:show="drawerShow" @after-leave="leaveProductDrawer" style="width: 60%">
       <n-drawer-content id="drawer-target">
         <template #header>
           <div style="display: flex; align-items: center">
