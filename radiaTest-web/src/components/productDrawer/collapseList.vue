@@ -1,9 +1,12 @@
 <template>
   <n-collapse @item-header-click="itemHeaderClick">
-    <n-collapse-item v-for="(item, index) in treeList" :key="index" :title="item.title" :name="item.id">
-      <collapseList v-if="childrenList[0]?.type !== 'case'" :treeList="childrenList" />
+    <n-collapse-item v-for="item in treeList" :key="item.id" :title="item.title" :name="item.id">
+      <collapseList
+        v-if="childrenList[item.id] && childrenList[item.id][0]?.type !== 'case'"
+        :treeList="childrenList[item.id]"
+      />
       <template v-else>
-        <div class="case-item" v-for="(it, ix) in childrenList" :key="ix">
+        <div class="case-item" v-for="(it, ix) in childrenList[item.id]" :key="ix">
           <n-grid x-gap="12" :cols="10">
             <n-gi span="8" style="margin-left: 40px">
               {{ it.title }}
@@ -19,7 +22,7 @@
           </n-grid>
         </div>
       </template>
-      <template v-if="item.progress !== undefined" #header-extra style="width: 70%">
+      <template v-if="item?.progress" #header-extra style="width: 70%">
         <div class="headerExtra">
           <custom-progress :progress="item.progress"> </custom-progress>
         </div>
@@ -33,12 +36,11 @@ import { ChevronDownCircle, CloseCircle } from '@vicons/ionicons5';
 import { Pending } from '@vicons/carbon';
 import { RunningWithErrorsFilled } from '@vicons/material';
 import customProgress from '@/components/customProgress/customProgress.vue';
-import collapseList from '@/components/productDrawer/collapseList.vue';
 import { getMilestoneProgressCaseNode } from '@/api/get.js';
 
 const props = defineProps(['treeList']);
 const { treeList } = toRefs(props);
-const childrenList = ref([]);
+const childrenList = ref({}); // 子节点
 const defaultMilestoneId = inject('defaultMilestoneId');
 
 const exchangeProgress = (progress) => {
@@ -54,9 +56,9 @@ const exchangeProgress = (progress) => {
 const itemHeaderClick = ({ name, expanded }) => {
   if (expanded === true) {
     getMilestoneProgressCaseNode(defaultMilestoneId.value, name).then((res) => {
-      childrenList.value = [];
+      childrenList.value[name] = [];
       res.data?.children?.forEach((v) => {
-        childrenList.value.push({
+        childrenList.value[name].push({
           title: v.title,
           progress: v.test_progress ? exchangeProgress(v.test_progress) : null,
           id: v.id,

@@ -48,7 +48,9 @@ watch(props, () => {
 });
 
 onMounted(() => {
-  getTreeList();
+  if(defaultMilestoneId.value){
+    getTreeList();
+  }
 });
 </script>
 

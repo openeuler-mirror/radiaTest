@@ -840,6 +840,14 @@
                   :on-load="handleLoad"
                 />
               </n-form-item>
+              <n-form-item label="里程碑" path="milestone">
+                <n-select
+                  v-model:value="modelVersion.milestone"
+                  placeholder="请选择里程碑"
+                  :options="milestoneOptions"
+                  clearable
+                />
+              </n-form-item>
               <n-form-item label="截止日期" path="closingTime">
                 <n-date-picker type="datetime" style="width: 100%" v-model:value="modelVersion.closingTime" />
               </n-form-item>
