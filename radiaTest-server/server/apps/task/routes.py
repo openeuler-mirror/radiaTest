@@ -13,12 +13,12 @@
 # @License : Mulan PSL v2
 #####################################
 
-from flask import g
+from flask import g, jsonify
 from flask_restful import Resource
 from flask_pydantic import validate
 from server import socketio, casbin_enforcer
 from server.utils.auth_util import auth
-from server.utils.response_util import response_collect
+from server.utils.response_util import response_collect, RET
 from server.schema.base import PageBaseSchema
 from server.schema.task import (
     AddTaskSchema,
@@ -445,19 +445,40 @@ class MilestoneTaskProgress(Resource):
     @auth.login_required()
     @response_collect
     def get(self, milestone_id):
-        return HandlerTaskProgress(milestone_id).get_task_test_progress()
+        try:
+            taskprogress = HandlerTaskProgress(milestone_id)
+        except RuntimeError as e:
+            return jsonify(
+                error_code=RET.RUNTIME_ERROR,
+                error_msg=str(e),
+            )
+        return taskprogress.get_task_test_progress()
 
 
 class CaseNodeTaskProgress(Resource):
     @auth.login_required()
     @response_collect
     def get(self, milestone_id, case_node_id):
-        return HandlerTaskProgress(milestone_id).get_task_case_node_and_test_progress(case_node_id)
+        try:
+            taskprogress = HandlerTaskProgress(milestone_id)
+        except RuntimeError as e:
+            return jsonify(
+                error_code=RET.RUNTIME_ERROR,
+                error_msg=str(e),
+            )
+        return taskprogress.get_task_case_node_and_test_progress(case_node_id)
 
 
 class SubTaskProgress(Resource):
     @auth.login_required()
     @response_collect
     def get(self, milestone_id, task_id):
-        return HandlerTaskProgress(milestone_id).get_test_progress_by_task(task_id)
+        try:
+            taskprogress = HandlerTaskProgress(milestone_id)
+        except RuntimeError as e:
+            return jsonify(
+                error_code=RET.RUNTIME_ERROR,
+                error_msg=str(e),
+            )
+        return taskprogress.get_test_progress_by_task(task_id)
 
