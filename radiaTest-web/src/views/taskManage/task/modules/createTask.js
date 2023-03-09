@@ -38,7 +38,7 @@ const modelVersion = ref({
   orgTask: '',
   executor: null,
   closingTime: null,
-  versionMilepost: null,
+  milestone: null,
   keyword: null,
   abstract: null,
   taskType: '',
@@ -59,10 +59,10 @@ const rulesVersion = ref({
     message: '执行者必填',
     trigger: ['blur', 'change']
   },
-  versionMilepost: {
-    type: 'array',
+  milestone: {
+    type: 'number',
     required: true,
-    message: '里程碑必填',
+    message: '里程碑必选',
     trigger: ['blur', 'change']
   }
 });
@@ -303,6 +303,8 @@ function cancelCreateVersionTask() {
   showVersionTaskModal.value = false;
 }
 
+const milestoneOptions = ref([]);
+
 // 显示创建版本任务
 function createVersionTask() {
   modelVersion.value = {
@@ -311,7 +313,7 @@ function createVersionTask() {
     orgTask: '',
     executor: null,
     closingTime: null,
-    versionMilepost: null,
+    milestone: null,
     keyword: null,
     abstract: null,
     taskType: '',
@@ -321,6 +323,15 @@ function createVersionTask() {
   };
   store.commit('taskManage/toggleNewTaskDrawer');
   showVersionTaskModal.value = true;
+  axios.get('v2/milestone', { paged: false }).then((res) => {
+    milestoneOptions.value = [];
+    res.data?.items?.forEach((v) => {
+      milestoneOptions.value.push({
+        label: v.name,
+        value: v.id
+      });
+    });
+  });
 }
 
 // 确认创建版本任务
@@ -342,7 +353,8 @@ function createVersionTaskBtn() {
           deadline: formatTime(new Date(modelVersion.value.closingTime), 'yyyy-MM-dd hh:mm:ss'),
           keywords: modelVersion.value.keyword,
           abstract: modelVersion.value.abstract,
-          abbreviation: modelVersion.value.abbreviation
+          abbreviation: modelVersion.value.abbreviation,
+          milestone_id: modelVersion.value.milestone
         })
         .then(() => {
           if (showRelation.value) {
@@ -454,6 +466,7 @@ function getRelationTask() {
 }
 
 export {
+  milestoneOptions,
   showRelation,
   relationTasks,
   showVersionTaskModal,
