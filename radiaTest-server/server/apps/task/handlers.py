@@ -190,22 +190,25 @@ class HandlerTask(object):
             redis_client.hget(RedisKey.user(g.gitee_id), "current_org_id")
         )
         case_ids = []
-        if body.case_node_id:
+        if body.milestone_id:
             case_node = CaseNode.query.filter_by(
-                id=body.case_node_id, in_set=False, is_root=True
+                milestone_id=body.milestone_id,
+                in_set=False,
+                is_root=True,
+                type="baseline",
             ).first()
             if not case_node:
                 return jsonify(
                     error_code=RET.PARMA_ERR,
-                    error_msg="current test strategy can not create task/case_node not exist",
+                    error_msg="version baseline associated with milestone does not exist",
                 )
 
             if current_org_id != case_node.org_id:
                 return jsonify(error_code=RET.VERIFY_ERR, error_msg="No right to query")
 
             task = Task.query.filter(
-                Task.case_node_id == body.case_node_id,
-                Task.accomplish_time.is_(None),
+                Task.case_node_id == case_node.id,
+                Task.type == "VERSION",
                 Task.is_delete.is_(False),
             ).first()
             if task:
@@ -214,7 +217,13 @@ class HandlerTask(object):
                     error_msg=f"current test strategy has already associated with task {task.title}",
                 )
             insert_dict["test_strategy"] = True
-            case_ids, _ = CaseNodeHandler.get_all_case(body.case_node_id)
+            insert_dict["case_node_id"] = case_node.id
+            case_ids, _ = CaseNodeHandler.get_all_case(case_node.id)
+            if len(case_ids) == 0:
+                return jsonify(
+                    error_code=RET.PARMA_ERR,
+                    error_msg=f"version baseline {case_node.title} test cases do not exist",
+                )
         executor_id = body.executor_id
         insert_dict["permission_type"] = (
             body.type.lower() if body.type in ["PERSON", "GROUP"] else "org"
@@ -2035,7 +2044,7 @@ class HandlerTaskProgress(object):
         self.save_test_info_to_redis()
 
     def get_task_test_progress(self):
-        return self.get_task_case_node_by_case_node(self.task.case_node_id, False)
+        return self.get_task_case_node_and_test_progress(self.task.case_node_id, False)
     
     def get_milestone_test_progress(self):
         test_stat_info = HandlerTaskProgress.statistic(self.all_task_test_static_info)

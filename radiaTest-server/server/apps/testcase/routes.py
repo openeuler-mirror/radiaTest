@@ -1064,6 +1064,12 @@ class BaselineEvent(Resource):
                 error_code=RET.NO_DATA_ERR,
                 error_msg="milestone is not exist."
             )
+        _baseline = Baseline.query.filter_by(milestone_id=body.milestone_id).first()
+        if _baseline:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="baseline associated with milestone has exist."
+            )
 
         baseline_body = BaselineCreateSchema(**body.__dict__).dict()
         

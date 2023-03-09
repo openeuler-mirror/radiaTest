@@ -43,7 +43,8 @@ from server.model.testcase import (
     Commit, 
     CaseDetailHistory, 
     CommitComment, 
-    SuiteDocument
+    SuiteDocument,
+    Baseline,
 )
 from server.model.framework import GitRepo
 from server.model.task import Task, TaskMilestone, TaskManualCase
@@ -370,8 +371,11 @@ class CaseNodeHandler:
 
         if current_org_id != case_node.org_id:
             return jsonify(error_code=RET.VERIFY_ERR, error_msg="No right to delete")
-        
-        db.session.delete(case_node)
+        if case_node.type == "baseline":
+            baseline = Baseline.query.filter_by(id=case_node.baseline_id).first()
+            db.session.delete(baseline)
+        else:
+            db.session.delete(case_node)
 
         try:
             db.session.commit()
