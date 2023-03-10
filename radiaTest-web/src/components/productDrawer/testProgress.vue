@@ -32,15 +32,19 @@ const exchangeProgress = (progress) => {
 };
 
 const getTreeList = () => {
-  getMilestoneProgress(defaultMilestoneId.value).then((res) => {
-    treeList.value = [];
-    treeList.value.push({
-      title: res.data.title,
-      progress: exchangeProgress(res.data.test_progress),
-      id: res.data.id,
-      type: res.data.type
+  getMilestoneProgress(defaultMilestoneId.value)
+    .then((res) => {
+      treeList.value = [];
+      treeList.value.push({
+        title: res.data.title,
+        progress: exchangeProgress(res.data.test_progress),
+        id: res.data.id,
+        type: res.data.type
+      });
+    })
+    .catch(() => {
+      treeList.value = [];
     });
-  });
 };
 
 watch(props, () => {
@@ -48,7 +52,7 @@ watch(props, () => {
 });
 
 onMounted(() => {
-  if(defaultMilestoneId.value){
+  if (defaultMilestoneId.value) {
     getTreeList();
   }
 });
