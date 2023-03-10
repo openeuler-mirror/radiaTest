@@ -19,15 +19,17 @@ from datetime import datetime
 from math import floor
 import os
 import subprocess
+import io
 
-from flask import jsonify, current_app, g
+from flask import jsonify, current_app, g, make_response
 from sqlalchemy import func, or_
 import pytz
+import xlwt
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from server import db, redis_client
 from sqlalchemy import and_
-from server.model.qualityboard import Checklist, QualityBoard, CheckItem, Round
+from server.model.qualityboard import Checklist, QualityBoard, CheckItem, Round, SameRpmCompare, RpmCompare
 from server.model.milestone import IssueSolvedRate, Milestone
 from server.model.organization import Organization
 from server.model.product import Product
@@ -791,3 +793,90 @@ class CompareRoundHandler:
             error_msg="OK",
             data=round_.to_json(),
         )
+
+
+class PackagCompareResultExportHandler:
+    def __init__(self, repo_path, round_id=None, rg=None, arches=None) -> None:
+        self.repo_path = repo_path
+        self.round_id = round_id
+        self.rg = rg
+        self.arches = arches
+
+    def get_pkg_compare_result(self):
+        wb = None
+        pkg_results = RpmCompare.query.filter(
+            RpmCompare.round_group_id == self.rg.id,
+            RpmCompare.repo_path == self.repo_path,
+            RpmCompare.arch.in_(self.arches),
+        ).all()
+        if not pkg_results:
+            return wb
+        comparer_round = Round.query.get(self.rg.round_1_id)
+        comparee_round = Round.query.get(self.rg.round_2_id)
+        cnt = 1
+        wb = xlwt.Workbook()
+        ws = wb.add_sheet(f"{self.repo_path}")
+        ws.write(0, 0, comparer_round.name)
+        ws.write(0, 1, comparee_round.name)
+        ws.write(0, 2, "arch")
+        ws.write(0, 3, "compare result")
+        
+        for pkg_result in pkg_results:
+            ws.write(cnt, 0, pkg_result.rpm_comparee)
+            ws.write(cnt, 1, pkg_result.rpm_comparer)
+            ws.write(cnt, 2, pkg_result.arch)
+            ws.write(cnt, 3, pkg_result.compare_result)
+            cnt += 1
+        return wb
+
+    def get_same_pkg_compare_result(self):
+        wb = None
+        pkg_results = SameRpmCompare.query.filter(
+            SameRpmCompare.round_id == self.round_id,
+            SameRpmCompare.repo_path == self.repo_path,
+        ).all()
+        if not pkg_results:
+            return wb
+        wb = xlwt.Workbook()
+        ws = wb.add_sheet(f"{self.repo_path}")
+        ws.write(0, 0, "rpm_arm")
+        ws.write(0, 1, "rpm_x86")
+        ws.write(0, 2, "compare result")
+        cnt = 1
+        for pkg_result in pkg_results:
+            ws.write(cnt, 0, pkg_result.rpm_arm)
+            ws.write(cnt, 1, pkg_result.rpm_x86)
+            ws.write(cnt, 2, pkg_result.compare_result)
+            cnt += 1
+        return wb
+
+    def get_compare_result_file(self, file_path, new_result=False, pkg_type="same"):
+        if os.path.exists(file_path) and not new_result:
+            # 读取保存的文件
+            filedata = open(file_path, 'rb').read()
+        else:
+            wb = None
+            if pkg_type == "same":
+                wb = self.get_same_pkg_compare_result()
+            else:
+                wb = self.get_pkg_compare_result()
+
+            if wb is None:
+                return jsonify(
+                    error_code=RET.NO_DATA_ERR,
+                    error_msg="no compare data.",
+                )
+
+            # 保存比对结果到文件中
+            wb.save(file_path)
+
+            # 保存比对结果到文件流中
+            stream = io.BytesIO()
+            wb.save(stream)
+            filedata = stream.getvalue()
+            stream.close()
+
+        response = make_response(filedata)
+        response.headers["Content-Disposition"] = f'attachment; filename={file_path.split("/")[-1]}'
+        response.headers["Content-Type"] = 'application/x-xlsx'
+        return response

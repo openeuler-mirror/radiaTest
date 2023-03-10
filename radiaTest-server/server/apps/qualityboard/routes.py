@@ -69,6 +69,8 @@ from server.schema.qualityboard import (
     DeselectChecklistSchema,
     QueryRound,
     QueryRpmCheckSchema,
+    PackageCompareResult,
+    SamePackageCompareResult,
 )
 from server.apps.qualityboard.handlers import (
     ChecklistHandler,
@@ -80,6 +82,7 @@ from server.apps.qualityboard.handlers import (
     RoundHandler,
     ChecklistResultHandler,
     CompareRoundHandler,
+    PackagCompareResultExportHandler,
 )
 from server.apps.milestone.handler import IssueOpenApiHandlerV8
 from server.utils.shell import add_escape
@@ -1501,6 +1504,54 @@ class PackageListCompareEvent(Resource):
             "del_pkgs_num": _del_num, 
             **page_dict
         })
+
+
+class PackagCompareResultExportEvent(Resource):
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def get(self, comparer_round_id, comparee_round_id, query: PackageCompareResult):
+        rg = RoundGroup.query.filter_by(
+            round_1_id=comparer_round_id,
+            round_2_id=comparee_round_id,
+        ).first()
+        if not rg:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="round group does not exist.",
+            )
+        comparer_round = Round.query.get(comparer_round_id)
+        comparee_round = Round.query.get(comparee_round_id)
+        _path = current_app.config.get("PRODUCT_PKGLIST_PATH")
+        file_path = f"{_path}/{comparer_round.name}-{comparee_round.name}-{query.repo_path}.xls"
+        result = PackagCompareResultExportHandler(
+            repo_path=query.repo_path,
+            rg=rg,
+            arches=query.arches
+        ).get_compare_result_file(file_path=file_path, new_result=query.new_result, pkg_type="pkg")
+        return result
+
+
+class SamePackagCompareResultExportEvent(Resource):
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def get(self, round_id, query: SamePackageCompareResult):
+        _round = Round.query.filter_by(
+            id=round_id,
+        ).first()
+        if not _round:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="round does not exist.",
+            )
+        _path = current_app.config.get("PRODUCT_PKGLIST_PATH")
+        file_path = f"{_path}/{_round.name}-{query.repo_path}.xls"
+        result = PackagCompareResultExportHandler(
+            repo_path=query.repo_path,
+            round_id=round_id
+        ).get_compare_result_file(file_path=file_path, new_result=query.new_result)
+        return result
 
 
 class QualityResultCompare(Resource):

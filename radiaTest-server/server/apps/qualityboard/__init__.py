@@ -47,6 +47,8 @@ from .routes import (
     CompareRoundEvent,
     RpmCheckOverview,
     RpmCheckDetailEvent,
+    PackagCompareResultExportEvent,
+    SamePackagCompareResultExportEvent,
 )
 
 
@@ -134,6 +136,14 @@ def init_api(api: Api):
     api.add_resource(
         SamePackageListCompareEvent,
         "/api/v1/qualityboard/<int:qualityboard_id>/round/<int:round_id>/pkg-compare"
+    )
+    api.add_resource(
+        PackagCompareResultExportEvent,
+        "/api/v1/round/<int:comparee_round_id>/with/<int:comparer_round_id>/pkg-compare-result-export"
+    )
+    api.add_resource(
+        SamePackagCompareResultExportEvent,
+        "/api/v1/round/<int:round_id>/pkg-compare-result-export"
     )
     api.add_resource(
         QualityResultCompare,

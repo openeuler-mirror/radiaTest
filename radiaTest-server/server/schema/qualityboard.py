@@ -229,6 +229,22 @@ class PackageCompareQuerySchema(SamePackageCompareQuerySchema):
         raise ValueError("the format of arches is not valid")
 
 
+class SamePackageCompareResult(BaseModel):
+    repo_path: Literal["everything", "EPOL"]
+    new_result: bool = False
+
+
+class PackageCompareResult(SamePackageCompareResult):
+    arches: Optional[str]
+
+    @validator("arches")
+    def validate_arches(cls, v):
+        if isinstance(v, str):
+            return json.loads(v)
+
+        raise ValueError("the format of arches is not valid")
+
+
 class QueryQualityResultSchema(BaseModel):
     type: Literal["issue", "AT"]
     obj_type: Literal["product", "round", "milestone"]
