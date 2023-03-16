@@ -89,7 +89,6 @@ from server.utils.shell import add_escape
 from server.utils.at_utils import OpenqaATStatistic
 from server.utils.page_util import PageUtil, Paginate
 from server.utils.rpm_util import RpmNameLoader
-from celeryservice.tasks import resolve_pkglist_after_resolve_rc_name
 from celeryservice.sub_tasks import update_compare_result, update_samerpm_compare_result
 
 

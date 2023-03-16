@@ -308,45 +308,69 @@ def resolve_openeuler_pkglist(repo_url, product, build, repo_path, arch, round=N
 
 
 @celery.task
-def resolve_pkglist_after_resolve_rc_name(repo_url, repo_path, arch, product: dict):
-    if not repo_url or not isinstance(product, dict):
-        raise ValueError("neither param repo_url nor param product could be None.")
+def resolve_pkglist_after_resolve_rc_name(repo_url, store_path, product, round_num=None):
+    if not repo_url or not store_path or not  product:
+        logger.error("neither param repo_url store_path product could be None.")
+        return
 
-    _product_name = product.get("name")
-    if not product.get("round"):
-        resolve_openeuler_pkglist.delay(
-            f"{repo_url}/{_product_name}/{repo_path}",
-            _product_name,
-            _product_name,
-            repo_path,
-            arch,
+    _repo_url = repo_url
+    product_version = f"{store_path}/{product}"
+    if round_num :
+        product_version = f'{product_version}-round-{round_num}'
+        resp = requests.get(repo_url)
+        resp.encoding = 'utf-8'
+        # 网页内容到写入文件中
+        tmp_file_name = f"{product_version}-html.txt"
+        with open(tmp_file_name, "wb") as f:
+            f.write(resp.content)
+            f.close()
+        exitcode, output = subprocess.getstatusoutput(
+            f"cat {tmp_file_name} | grep 'rc{round_num}_openeuler'"
+            + " | awk -F 'title=\"' '{print $2}' | awk -F '\">' '{print $1}' | uniq"
         )
-    else:
-        _product_dirname = product.get("dirname")
-        _product_build = product.get("buildname")
-        _product_round = product.get("round")
-        _rc_name_pattern = _product_build if _product_build else f"rc{_product_round}"
+        if exitcode != 0:
+            logger.error(output)
+            return
+        _repo_url = f'{_repo_url}/{output}'
 
-        resp = requests.get(f"{repo_url}/{_product_dirname}/")
-        root_etree = etree.HTML(resp.text, parser=etree.HTMLParser(encoding="utf-8"))
-        trs_etree = root_etree.xpath("//table[@id='list']/tbody/tr")
-        for tr_etree in trs_etree:
-            rc_list = tr_etree.xpath("./td[@class='link']/a")
-            if len(rc_list):
-                rc_elem = tr_etree.xpath("./td[@class='link']/a")[0]
-                if rc_elem is not None:
-                    rc_name = rc_elem.text
-                    if isinstance(rc_name, str):
-                        if _product_round and rc_name.startswith(_rc_name_pattern):
-                            resolve_openeuler_pkglist.delay(
-                                f"{repo_url}/{_product_dirname}/{rc_name.rstrip('/')}/{repo_path}",
-                                _product_name,
-                                rc_name.rstrip('/'),
-                                repo_path,
-                                arch,
-                                _product_round
-                            )
-                            break
+    for repo_path in ["everything", "EPOL/main"]:
+        product_version_repo = f"{product_version}-{repo_path.split('/')[0]}"
+        for arch in ["aarch64", "x86_64"]:
+            _url =  f"{_repo_url}/{repo_path}/{arch}/Packages/"
+            resp = requests.get(_url)
+            resp.encoding = 'utf-8'
+            # 写入网页内容到文件中
+            tmp_file_name = f"{product_version_repo}-{arch}-html.txt"
+            with open(tmp_file_name, "wb") as f:
+                f.write(resp.content)
+                f.close()
+
+            exitcode, output = subprocess.getstatusoutput(
+                f"cat {tmp_file_name} | " 
+                + "grep 'title=' | awk -F 'title=\"' '{print $2}' | awk -F '\">' '{print $1}' | grep '.rpm' | uniq >" 
+                + f"{product_version_repo}-{arch}.pkgs"
+            )
+            if exitcode != 0:
+                logger.error(output)
+                return
+
+        exitcode, output = subprocess.getstatusoutput(
+            f"sort {product_version_repo}-aarch64.pkgs"
+            + f" {product_version_repo}-x86_64.pkgs | uniq >{product_version_repo}-all.pkgs"
+        )
+        if exitcode != 0:
+            logger.error(output)
+            return
+    _, _ = subprocess.getstatusoutput(
+        f"rm -f {store_path}/{product}*html.txt"
+    )
+
+    logger.info(f"crawl openeuler's packages list of {product} succeed")
+    lock_key = f"resolving_{product}-release_pkglist"
+    if round_num is not None:
+        lock_key = f"resolving_{product}-round-{round_num}_pkglist"
+    redis_client.delete(lock_key)
+    logger.info(f"the lock of crawling has been removed")
 
 
 @celery.task
