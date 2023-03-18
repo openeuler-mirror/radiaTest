@@ -49,6 +49,7 @@ from .routes import (
     RpmCheckDetailEvent,
     PackagCompareResultExportEvent,
     SamePackagCompareResultExportEvent,
+    RoundRepeatRpmEvent,
 )
 
 
@@ -180,4 +181,8 @@ def init_api(api: Api):
     api.add_resource(
         ChecklistResultEvent,
         "/api/v1/round/<int:round_id>/checklist-result",
+    )
+    api.add_resource(
+        RoundRepeatRpmEvent,
+        "/api/v1/round/<int:round_id>/repeat-rpm"
     )

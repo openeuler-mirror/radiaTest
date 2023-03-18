@@ -341,6 +341,25 @@ class RpmCompare(db.Model, BaseModel):
         }
 
 
+class RepeatRpm(db.Model, BaseModel):
+    __tablename__ = "repeat_rpm"
+
+    id = db.Column(db.Integer(), primary_key=True, autoincrement=True)
+    repo_path = db.Column(db.String(50), nullable=False)
+    arch = db.Column(db.String(50), nullable=False)
+    rpm_name = db.Column(db.String(128))
+    round_id = db.Column(db.Integer())
+
+    def to_json(self):
+        return {
+            "id": self.id,
+            "rpm_name": self.rpm_name,
+            "round_id": self.round_id,
+            "repo_path": self.repo_path,
+            "arch": self.arch,
+        }
+
+
 class SameRpmCompare(db.Model, BaseModel):
     __tablename__ = "same_rpm_compare"
 

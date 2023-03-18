@@ -292,3 +292,7 @@ class RoundIssueQueryV8(BaseModel):
     direction: Optional[str]
     page: int = 1
     per_page: int = 10
+
+
+class QueryRepeatRpmSchema(BaseModel):
+    repo_path: Literal["everything", "EPOL"]
