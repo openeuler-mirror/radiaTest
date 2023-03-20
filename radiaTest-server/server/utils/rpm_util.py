@@ -136,7 +136,8 @@ class RpmNameLoader():
             rpmlist : list of rpmname [<rpm name 1>, <rpm name 2>, ...]
         
         return:
-            dict : { <rpm name 1>.<rpm arch 1>: [ RpmName1, RpmName2], ...}
+            rpm_name_dict: dict : { <rpm name 1>.<rpm arch 1>: [ RpmName1], ...}
+            repeat_rpm_name_dict : dict : { <rpm name 1>.<rpm arch 1>: [ RpmName1, RpmName2], ...}
         """
         rpm_name_dict = {}
         for rpm_name in rpmlist:
@@ -146,7 +147,38 @@ class RpmNameLoader():
                 if _rpm_name_arch not in rpm_name_dict:
                     rpm_name_dict[_rpm_name_arch] = []
                 rpm_name_dict[_rpm_name_arch].append(tmp_rpm_info)
-        return rpm_name_dict
+
+        repeat_rpm_name_dict = {}
+        for rpm_name, val in rpm_name_dict.items():
+            if len(val) > 1:
+                tmp_rpm_names = list()
+                for rpm in val:
+                    tmp_rpm_names.append(rpm.to_dict())
+                repeat_rpm_name_dict.update(
+                    {rpm_name: tmp_rpm_names}
+                )
+
+                is_equal = RpmNameComparator.compare_version_str_order(val[0].version, val[1].version)
+                if is_equal == 0:
+                    is_equal1 = RpmNameComparator.compare_version_str_order(val[0].release, val[1].release)
+                    if is_equal1 == 1:
+                        rpm_name_dict.update(
+                            {rpm_name: [val[1]]}
+                        )
+                    elif is_equal1 == 2:
+                        rpm_name_dict.update(
+                            {rpm_name: [val[0]]}
+                        )
+                elif is_equal == 1:
+                    rpm_name_dict.update(
+                        {rpm_name: [val[1]]}
+                    )
+                elif is_equal == 2:
+                    rpm_name_dict.update(
+                        {rpm_name: [val[0]]}
+                    )
+
+        return rpm_name_dict, repeat_rpm_name_dict
 
     @staticmethod
     def rpmlist2rpmdict_by_name(rpmlist):
@@ -201,6 +233,42 @@ class RpmNameLoader():
 class RpmNameComparator():
     
     @staticmethod
+    def compare_version_str_order(version_a, version_b):
+        """Compare the order of two version numbers
+
+        Args:
+            version_a (str): one version numbers a, like "v1.11.1"
+            version_b (str): one version numbers b, like "1.12.1"
+        return:
+            is_equal (int):
+                0: version_a = version_b
+                1: version_a > version_b
+                2: version_a < version_b
+        tip:
+            the count of "." in version_a and in version_b must be equal
+        """
+        version_a_arr = version_a.split(".")
+        version_b_arr = version_b.split(".")
+
+        cnt = len(version_a_arr)
+        is_equal = 0
+        for i in range(cnt):
+            if version_a_arr[i].isnumeric():
+                version_a_t = int(version_a_arr[i])
+            else:
+                version_a_t = int("".join(filter(str.isdigit, version_a_arr[i])))
+            if version_b_arr[i].isnumeric():
+                version_b_t = int(version_b_arr[i])
+            else:
+                version_b_t = int("".join(filter(str.isdigit, version_b_arr[i])))
+            if version_a_t == version_b_t:
+                continue
+            else:
+                is_equal = 1 if version_a_t > version_b_t else 2
+                break
+        return is_equal
+
+    @staticmethod
     def compare_rpm_name_cls(rpm_info_1, rpm_info_2, get_dist=False):
         """compare the rpm info from rpm file name(static method)
 
@@ -218,11 +286,19 @@ class RpmNameComparator():
                 if rpm_info_1.release == rpm_info_2.release:
                     return RpmCompareStatus.SAME
                 else:
-                    if rpm_info_1.release > rpm_info_2.release:
+                    is_equal = RpmNameComparator.compare_version_str_order(
+                        rpm_info_1.release, rpm_info_2.release
+                    )
+                    if is_equal == 1:
                         return RpmCompareStatus.REL_DOWN
                     return RpmCompareStatus.REL_UP
             else:
-                return RpmCompareStatus.VER_DOWN if rpm_info_1.version > rpm_info_2.version else RpmCompareStatus.VER_UP
+                is_equal = RpmNameComparator.compare_version_str_order(
+                    rpm_info_1.version, rpm_info_2.version
+                )
+                if is_equal == 1:
+                    return RpmCompareStatus.VER_DOWN
+                return RpmCompareStatus.VER_UP
         elif isinstance(rpm_info_1, RpmName):
             return RpmCompareStatus.DEL
         elif isinstance(rpm_info_2, RpmName):

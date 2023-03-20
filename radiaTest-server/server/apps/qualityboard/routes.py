@@ -43,6 +43,7 @@ from server.model.qualityboard import (
     CheckItem,
     Round,
     RoundGroup,
+    RepeatRpm,
 )
 from server.utils.db import Delete, Edit, Select, Insert, collect_sql_error
 from server.schema.base import PageBaseSchema
@@ -71,6 +72,7 @@ from server.schema.qualityboard import (
     QueryRpmCheckSchema,
     PackageCompareResult,
     SamePackageCompareResult,
+    QueryRepeatRpmSchema,
 )
 from server.apps.qualityboard.handlers import (
     ChecklistHandler,
@@ -1228,7 +1230,10 @@ class PackageListEvent(Resource):
             )
 
         _pkgs = handler.packages
-        pkgs_dict = RpmNameLoader.rpmlist2rpmdict(_pkgs)
+        pkgs_dict, repeat_pkgs_dict = RpmNameLoader.rpmlist2rpmdict(_pkgs)
+        cnt = 0
+        for val in repeat_pkgs_dict.values():
+            cnt += len(val)
 
         if query.summary:
             _round = Round.query.filter_by(id=round_id).first()
@@ -1237,14 +1242,15 @@ class PackageListEvent(Resource):
                 error_msg="OK",
                 data={
                     "name": _round.name,
-                    "size": len(pkgs_dict)
+                    "size": len(pkgs_dict),
+                    "repeat_rpm_cnt": cnt,
                 },
             )
         
         return jsonify(
            error_code=RET.OK,
            error_msg="OK",
-           data=[ pkg[0].to_dict() for pkg in pkgs_dict.values() ], 
+           data=[ pkg[0].to_dict() for pkg in pkgs_dict.values() ],
         )
 
 
@@ -1385,7 +1391,11 @@ class PackageListCompareEvent(Resource):
                 error_msg=str(e),
             )
 
-        compare_results = comparer.compare(comparee.packages)
+        (
+            compare_results,
+            repeat_rpm_name_dict_comparer,
+            repeat_rpm_name_dict_comparee,
+        ) = comparer.compare(comparee.packages)
         
         round_group = RoundGroup.query.filter_by(
             round_1_id=comparee_round_id,
@@ -1403,12 +1413,44 @@ class PackageListCompareEvent(Resource):
         else:
             round_group_id = round_group.id
 
+        for rpm in repeat_rpm_name_dict_comparer.values():
+            _repeat_rpm = RepeatRpm.query.filter(
+                RepeatRpm.rpm_name == rpm.get("rpm_file_name"),
+                RepeatRpm.repo_path == body.repo_path,
+                RepeatRpm.round_id == comparer_round_id,
+            ).first()
+            if not _repeat_rpm:
+                _repeat_rpm = RepeatRpm(
+                    rpm_name=rpm.get("rpm_file_name"),
+                    arch=rpm.get("arch"),
+                    repo_path=body.repo_path,
+                    round_id=comparer_round_id,
+                )
+                db.session.add(_repeat_rpm)
+                db.session.commit()
+
+        for rpm in repeat_rpm_name_dict_comparee.values():
+            _repeat_rpm = RepeatRpm.query.filter(
+                RepeatRpm.rpm_name == rpm.get("rpm_file_name"),
+                RepeatRpm.repo_path == body.repo_path,
+                RepeatRpm.round_id == comparee_round_id,
+            ).first()
+            if not _repeat_rpm:
+                _repeat_rpm = RepeatRpm(
+                    rpm_name=rpm.get("rpm_file_name"),
+                    arch=rpm.get("arch"),
+                    repo_path=body.repo_path,
+                    round_id=comparee_round_id,
+                )
+                db.session.add(_repeat_rpm)
+                db.session.commit()
+
         update_compare_result.delay(round_group_id, compare_results, body.repo_path)
         return jsonify(
             error_code=RET.OK,
-            error_msg="OK"
+            error_msg="OK",
         )
-    
+
 
     @auth.login_required
     @response_collect
@@ -1749,3 +1791,19 @@ class RoundIssueEvent(Resource):
             }
         )
         return IssueOpenApiHandlerV8().get_all(_body)
+
+
+class RoundRepeatRpmEvent(Resource):
+    @auth.login_required
+    @validate()
+    def get(self, round_id, query: QueryRepeatRpmSchema):
+        _round = Round.query.filter_by(id=round_id).first()
+        if not _round:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="the round does not exist"
+            )
+        
+        body = query.__dict__
+        body.update({"round_id": round_id})
+        return Select(RepeatRpm, body).precise()
