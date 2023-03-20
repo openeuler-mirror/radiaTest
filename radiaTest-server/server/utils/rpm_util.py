@@ -137,7 +137,7 @@ class RpmNameLoader():
         
         return:
             rpm_name_dict: dict : { <rpm name 1>.<rpm arch 1>: [ RpmName1], ...}
-            repeat_rpm_name_dict : dict : { <rpm name 1>.<rpm arch 1>: [ RpmName1, RpmName2], ...}
+            repeat_rpm_name_dict : list : [ RpmName1.to_dict(), RpmName2.to_dict(), ...]
         """
         rpm_name_dict = {}
         for rpm_name in rpmlist:
@@ -148,15 +148,11 @@ class RpmNameLoader():
                     rpm_name_dict[_rpm_name_arch] = []
                 rpm_name_dict[_rpm_name_arch].append(tmp_rpm_info)
 
-        repeat_rpm_name_dict = {}
+        repeat_rpm_dict_list = list()
         for rpm_name, val in rpm_name_dict.items():
             if len(val) > 1:
-                tmp_rpm_names = list()
                 for rpm in val:
-                    tmp_rpm_names.append(rpm.to_dict())
-                repeat_rpm_name_dict.update(
-                    {rpm_name: tmp_rpm_names}
-                )
+                    repeat_rpm_dict_list.append(rpm.to_dict())
 
                 is_equal = RpmNameComparator.compare_version_str_order(val[0].version, val[1].version)
                 if is_equal == 0:
@@ -178,7 +174,7 @@ class RpmNameLoader():
                         {rpm_name: [val[0]]}
                     )
 
-        return rpm_name_dict, repeat_rpm_name_dict
+        return rpm_name_dict, repeat_rpm_dict_list
 
     @staticmethod
     def rpmlist2rpmdict_by_name(rpmlist):

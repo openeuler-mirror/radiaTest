@@ -611,13 +611,13 @@ class PackageListHandler:
         if not self.packages or not packages:
             return None
         
-        rpm_name_dict_comparer, repeat_rpm_name_dict_comparer = RpmNameLoader.rpmlist2rpmdict(self.packages)
-        rpm_name_dict_comparee, repeat_rpm_name_dict_comparee = RpmNameLoader.rpmlist2rpmdict(packages)
+        rpm_name_dict_comparer, repeat_rpm_list_comparer = RpmNameLoader.rpmlist2rpmdict(self.packages)
+        rpm_name_dict_comparee, repeat_rpm_list_comparee = RpmNameLoader.rpmlist2rpmdict(packages)
 
         return RpmNameComparator.compare_rpm_dict(
             rpm_name_dict_comparee,
             rpm_name_dict_comparer,
-        ), repeat_rpm_name_dict_comparer, repeat_rpm_name_dict_comparee
+        ), repeat_rpm_list_comparer, repeat_rpm_list_comparee
 
     def compare2(self, packages):
         if not self.packages or not packages:

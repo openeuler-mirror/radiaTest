@@ -1230,13 +1230,14 @@ class PackageListEvent(Resource):
             )
 
         _pkgs = handler.packages
-        pkgs_dict, repeat_pkgs_dict = RpmNameLoader.rpmlist2rpmdict(_pkgs)
-        cnt = 0
-        for val in repeat_pkgs_dict.values():
-            cnt += len(val)
+        pkgs_dict, _ = RpmNameLoader.rpmlist2rpmdict(_pkgs)
 
         if query.summary:
             _round = Round.query.filter_by(id=round_id).first()
+            cnt = db.session.query(func.count(RepeatRpm.id)).filter_by(
+                round_id=round_id,
+                repo_path=query.repo_path,
+            ).scalar()
             return jsonify(
                 error_code=RET.OK,
                 error_msg="OK",
@@ -1393,8 +1394,8 @@ class PackageListCompareEvent(Resource):
 
         (
             compare_results,
-            repeat_rpm_name_dict_comparer,
-            repeat_rpm_name_dict_comparee,
+            repeat_rpm_list_comparer,
+            repeat_rpm_list_comparee,
         ) = comparer.compare(comparee.packages)
         
         round_group = RoundGroup.query.filter_by(
@@ -1413,37 +1414,25 @@ class PackageListCompareEvent(Resource):
         else:
             round_group_id = round_group.id
 
-        for rpm in repeat_rpm_name_dict_comparer.values():
-            _repeat_rpm = RepeatRpm.query.filter(
-                RepeatRpm.rpm_name == rpm.get("rpm_file_name"),
-                RepeatRpm.repo_path == body.repo_path,
-                RepeatRpm.round_id == comparer_round_id,
-            ).first()
-            if not _repeat_rpm:
-                _repeat_rpm = RepeatRpm(
-                    rpm_name=rpm.get("rpm_file_name"),
-                    arch=rpm.get("arch"),
-                    repo_path=body.repo_path,
-                    round_id=comparer_round_id,
-                )
-                db.session.add(_repeat_rpm)
-                db.session.commit()
-
-        for rpm in repeat_rpm_name_dict_comparee.values():
-            _repeat_rpm = RepeatRpm.query.filter(
-                RepeatRpm.rpm_name == rpm.get("rpm_file_name"),
-                RepeatRpm.repo_path == body.repo_path,
-                RepeatRpm.round_id == comparee_round_id,
-            ).first()
-            if not _repeat_rpm:
-                _repeat_rpm = RepeatRpm(
-                    rpm_name=rpm.get("rpm_file_name"),
-                    arch=rpm.get("arch"),
-                    repo_path=body.repo_path,
-                    round_id=comparee_round_id,
-                )
-                db.session.add(_repeat_rpm)
-                db.session.commit()
+        def add_repeat_rpm(repo_path, round_id, rpm_dict_list):
+            for rpm in rpm_dict_list:
+                _repeat_rpm = RepeatRpm.query.filter(
+                    RepeatRpm.rpm_name == rpm.get("rpm_file_name"),
+                    RepeatRpm.repo_path == repo_path,
+                    RepeatRpm.round_id == round_id,
+                ).first()
+                if not _repeat_rpm:
+                    _repeat_rpm = RepeatRpm(
+                        rpm_name=rpm.get("rpm_file_name"),
+                        arch=rpm.get("arch"),
+                        repo_path=repo_path,
+                        round_id=round_id,
+                    )
+                    db.session.add(_repeat_rpm)
+                    db.session.commit()
+        
+        add_repeat_rpm(body.repo_path, comparer_round_id, repeat_rpm_list_comparer)
+        add_repeat_rpm(body.repo_path, comparer_round_id, repeat_rpm_list_comparee)
 
         update_compare_result.delay(round_group_id, compare_results, body.repo_path)
         return jsonify(
