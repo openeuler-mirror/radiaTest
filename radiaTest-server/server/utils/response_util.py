@@ -80,3 +80,19 @@ def ssl_cert_verify_error_collect(func):
             )
 
     return wrapper
+
+
+def value_error_collect(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            resp = func(*args, **kwargs)
+            return resp
+        except (RuntimeError, ValueError, TypeError) as e:
+            current_app.logger.error(f'value_error_collect:{e}')
+            return jsonify(
+                error_code=RET.RUNTIME_ERROR,
+                error_msg=str(e)
+            )
+
+    return wrapper
