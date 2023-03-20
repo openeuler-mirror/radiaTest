@@ -367,3 +367,23 @@ export function getMilestoneProgress(milestoneId) {
 export function getMilestoneProgressCaseNode(milestoneId, caseNode) {
   return getRequest(`/v1/milestone/${milestoneId}/task-progress/case-node/${caseNode}`);
 }
+
+// 获取特性集特性
+export function getAllFeature() {
+  return getRequest('/v1/feature');
+}
+
+// 查询特性
+export function getProductFeature(productId, param) {
+  return getRequest(`/v1/product/${productId}/feature`, param);
+}
+
+// 查询测试策略
+export function getStrategy(productFeatureId) {
+  return getRequest(`/v1/product-feature/${productFeatureId}/strategy`);
+}
+
+// 查询测试策略模板
+export function getStrategyTemplate(param) {
+  return getRequest('/v1/strategy-template', param);
+}

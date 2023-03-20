@@ -19,6 +19,8 @@ const milestones = ref([]); // 里程碑列表
 const recycleBinTaskTable = ref(null); // 回收站表格名称
 const recycleBinTaskLoading = ref(false); // 回收站表格加载状态
 const showRecycleBinModal = ref(false); // 显示回收站表格
+const isDesign = ref(false); // 是否是测试设计页面
+const isDesignTemplate = ref(false); // 是否是测试设计模板页
 
 // 回收站表格分页
 const recycleBinTaskPagination = ref({
@@ -390,6 +392,7 @@ function filterchange(filterArray) {
 }
 
 const watchRoute = () => {
+  isDesign.value = false;
   if (router.currentRoute.value.path === '/home/workflow/dashboard') {
     menuSelect.value = 0;
     isTask.value = false;
@@ -418,6 +421,7 @@ const watchRoute = () => {
     menuSelect.value = 3;
     isTask.value = false;
     backable.value = false;
+    isDesign.value = true;
   }
 };
 
@@ -445,5 +449,7 @@ export {
   showRecycleBin,
   recycleBinTaskPagination,
   recycleBinTablePageChange,
-  filterRule
+  filterRule,
+  isDesign,
+  isDesignTemplate
 };

@@ -13,7 +13,7 @@ import Report from '@/views/taskManage/report/Report.vue';
 import Task from '@/views/taskManage/task/Task';
 import Require from '@/views/taskManage/require/Require.vue';
 import PersonalBoard from '@/views/taskManage/personalBoard/PersonalBoard';
-import strategyCenter from '@/views/strategyCenter/strategyCenter';
+import StrategyCenter from '@/views/strategyCenter/StrategyCenter';
 import Distribution from '@/views/taskManage/distribution/Distribution.vue';
 import newLogin from '@/views/login/newLogin.vue';
 import PersonalCenter from '@/views/personalCenter/PersonalCenter.vue';
@@ -97,7 +97,7 @@ const router = createRouter({
             },
             {
               path: 'design/',
-              component: strategyCenter,
+              component: StrategyCenter,
               name: 'design'
             },
             {

@@ -83,3 +83,13 @@ export function cleanBaselineTemplate(id) {
 export function deleteManualJob(id) {
   return deleteRequest(`/v1/manual-job/${id}`);
 }
+
+// 删除测试策略模板
+export function deleteStrategyTemplate(strategyTemplateId) {
+  return deleteRequest(`/v1/strategy-template/${strategyTemplateId}`);
+}
+
+// 还原测试策略
+export function deleteStrategyCommit(strategyId) {
+  return deleteRequest(`/v1/strategy/${strategyId}/reduct`);
+}

@@ -151,3 +151,13 @@ export function updateCompareRounds(roundId, data) {
 export function updateTemplateDrawer(data, id) {
   return putRequest(`/v1/template/${id}`, data);
 }
+
+// 更新测试策略模板
+export function updateStrategyTemplate(strategyTemplateId, data) {
+  return putRequest(`/v1/strategy-template/${strategyTemplateId}`, data);
+}
+
+// 修改特性
+export function changeProductFeature(featureId, data) {
+  return putRequest(`/v1/feature/${featureId}`, data);
+}
