@@ -607,10 +607,8 @@ class ATOverview(Resource):
                 error_msg="qualityboard {} not exitst".format(qualityboard_id)
             )
         product = qualityboard.product
-        if product.built_by_ebs:
-            product_name = f"{product.name}-{product.version}-EBS"
-        else:
-            product_name = f"{product.name}-{product.version}"
+
+        product_name = f"{product.name}-{product.version}"
 
         scrapyspider_pool = redis.ConnectionPool.from_url(
             current_app.config.get("SCRAPYSPIDER_BACKEND"),
