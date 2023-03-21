@@ -729,10 +729,8 @@ class QualityDefendEvent(Resource):
                 error_msg="qualityboard {} not exitst".format(qualityboard_id)
             )
         product = qualityboard.product
-        if product.built_by_ebs:
-            product_name = f"{product.name}-{product.version}-EBS"
-        else:
-            product_name = f"{product.name}-{product.version}"
+        
+        product_name = f"{product.name}-{product.version}"
         _arches = current_app.config.get(
             "SUPPORTED_ARCHES", ["aarch64", "x86_64"]
         )

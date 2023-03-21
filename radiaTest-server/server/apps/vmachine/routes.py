@@ -609,4 +609,8 @@ class VmachineCallBackEvent(Resource):
     def put(self, vmachine_id):
         _body = request.get_json()
         _body.update({"id": vmachine_id})
+        if _body.get("ip"):
+            vmachine = Vmachine.query.filter_by(ip=_body.get("ip")).first()
+            if vmachine:
+                _body.pop("ip")
         return Edit(Vmachine, _body).single(Vmachine, "/vmachine", True)
