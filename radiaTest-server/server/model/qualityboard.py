@@ -348,6 +348,8 @@ class RepeatRpm(db.Model, BaseModel):
     repo_path = db.Column(db.String(50), nullable=False)
     arch = db.Column(db.String(50), nullable=False)
     rpm_name = db.Column(db.String(128))
+    version = db.Column(db.String(128))
+    release = db.Column(db.String(128))
     round_id = db.Column(db.Integer())
 
     def to_json(self):
@@ -357,6 +359,8 @@ class RepeatRpm(db.Model, BaseModel):
             "round_id": self.round_id,
             "repo_path": self.repo_path,
             "arch": self.arch,
+            "version": self.version,
+            "release": self.release,
         }
 
 
