@@ -27,6 +27,36 @@
           </template>
           重新比对
         </n-popover>
+        <n-popover>
+          <template #trigger>
+            <n-button style="height: auto" circle quaternary @click="exportPackageComparationFn">
+              <template #icon>
+                <n-icon>
+                  <FileExport />
+                </n-icon>
+              </template>
+            </n-button>
+          </template>
+          导出比对结果
+        </n-popover>
+        <n-popover>
+          <template #trigger>
+            <n-button
+              style="height: auto"
+              circle
+              quaternary
+              @click="showMultiVersionPackage"
+              :disabled="!hasMultiVersionPackage"
+            >
+              <template #icon>
+                <n-icon>
+                  <Package />
+                </n-icon>
+              </template>
+            </n-button>
+          </template>
+          多版本软件包
+        </n-popover>
         <refresh-button
           :size="18"
           @refresh="
@@ -70,11 +100,17 @@
       @update:filters="frameworkFiltersChange"
     />
   </div>
+  <MultiVersionPackage
+    ref="multiVersionPackageRef"
+    :roundCompareeId="roundCompareeId"
+    :roundCurId="roundCurId"
+  ></MultiVersionPackage>
 </template>
 
 <script setup>
 import RefreshButton from '@/components/CRUD/RefreshButton';
 import { CompareArrowsFilled as Compare } from '@vicons/material';
+import { FileExport, Package } from '@vicons/tabler';
 import {
   oldPackage,
   newPackage,
@@ -82,15 +118,26 @@ import {
 } from '@/views/versionManagement/product/modules/productDetailDrawer';
 import { getPackageListComparationDetail, getHomonymousIsomerismPkgcompare } from '@/api/get';
 import { setPackageListComparationDetail, setHomonymousIsomerismPkgcompare } from '@/api/post';
+import MultiVersionPackage from './MultiVersionPackage.vue';
+import axios from '@/axios';
 
 const props = defineProps([
   'qualityboardId',
   'roundCompareeId',
   'roundCurId',
   'packageTabValueFirst',
-  'packageTabValueSecond'
+  'packageTabValueSecond',
+  'hasMultiVersionPackage'
 ]);
-const { qualityboardId, roundCompareeId, roundCurId, packageTabValueFirst, packageTabValueSecond } = toRefs(props);
+const {
+  qualityboardId,
+  roundCompareeId,
+  roundCurId,
+  packageTabValueFirst,
+  packageTabValueSecond,
+  hasMultiVersionPackage
+} = toRefs(props);
+
 const rpmCompareStatus = ['SAME', 'VER_UP', 'VER_DOWN', 'REL_UP', 'REL_DOWN', 'ADD', 'DEL', 'ERROR'];
 const rpmCompareStatusDict = {
   SAME: '一致',
@@ -102,6 +149,7 @@ const rpmCompareStatusDict = {
   DEL: '移除',
   ERROR: '比对异常'
 };
+
 // 软件范围比对结果筛选项
 const rpmCompareStatusOptions = rpmCompareStatus.map((item) => {
   return {
@@ -130,8 +178,11 @@ const compareResultColumn = reactive({
   }
 });
 // 软件范围表格列
-const softwarescopeColumns = [compareeColumn, comparerColumn, compareResultColumn];
-const loading = ref(false);
+const softwarescopeColumns = computed(() => {
+  return [compareeColumn, comparerColumn, compareResultColumn];
+});
+
+const loading = ref(false); // 表格加载状态
 const softwarescopeTableData = ref([]); // 软件范围表格数据
 const softwarescopeTotalNum = ref(null); // 软件范围表格总数
 const archesParam = ref(['aarch64', 'x86_64', 'noarch']); // arches参数
@@ -157,7 +208,7 @@ const softwarescopePagination = reactive({
     getData(qualityboardId.value, roundCompareeId.value, roundCurId.value);
   }
 });
-const buttonDisabled = ref(false); // 禁用重新比对
+
 const frameworkStatus = ['SAME', 'DIFFERENT', 'LACK'];
 const frameworkStatusDict = {
   SAME: '一致',
@@ -187,6 +238,7 @@ const frameworkColumns = reactive([
   { key: 'rpm_x86', title: 'rpm_x86' },
   frameworkCompareResultColumn
 ]);
+
 const frameworkDate = ref([]);
 const frameworktotalNum = ref(null);
 const frameworkPagination = reactive({
@@ -262,6 +314,8 @@ const cleanData = () => {
   frameworktotalNum.value = null;
 };
 
+const buttonDisabled = ref(false); // 禁用重新比对
+
 // 重新比对
 function handleCreateClick(qualityboardIdParam, roundCompareeIdParam, roundCurIdParam, params) {
   buttonDisabled.value = true;
@@ -309,6 +363,33 @@ const frameworkFiltersChange = (filters) => {
   getData(qualityboardId.value, roundCompareeId.value, roundCurId.value);
 };
 
+// 导出比对结果
+const exportPackageComparationFn = () => {
+  axios
+    .downLoad(`/v1/round/${roundCompareeId.value}/with/${roundCurId.value}/pkg-compare-result-export`, {
+      repo_path: packageTabValueSecond.value,
+      arches: JSON.stringify(archesParam.value)
+    })
+    .then((res) => {
+      let blob = new Blob([res], { type: 'application/vnd.ms-excel' });
+      let url = URL.createObjectURL(blob);
+      let alink = document.createElement('a');
+      document.body.appendChild(alink);
+      alink.download = '比对结果';
+      alink.target = '_blank';
+      alink.href = url;
+      alink.click();
+      alink.remove();
+      URL.revokeObjectURL(url);
+    });
+};
+
+// 多版本软件包
+const multiVersionPackageRef = ref(null);
+const showMultiVersionPackage = () => {
+  multiVersionPackageRef.value.showModal = true;
+};
+
 watch(
   thisParams,
   () => {
@@ -318,11 +399,13 @@ watch(
   },
   { deep: true }
 );
+
 watch(archesParam, () => {
   softwarescopePagination.page = 1;
   frameworkPagination.page = 1;
   getData(qualityboardId.value, roundCompareeId.value, roundCurId.value);
 });
+
 watch(roundCurId, () => {
   softwarescopeTotalNum.value = null;
   frameworktotalNum.value = null;
@@ -332,16 +415,19 @@ watch(roundCurId, () => {
   frameworkPagination.page = 1;
   getData(qualityboardId.value, roundCompareeId.value, roundCurId.value);
 });
+
 watch(packageTabValueFirst, () => {
   softwarescopePagination.page = 1;
   frameworkPagination.page = 1;
   getData(qualityboardId.value, roundCompareeId.value, roundCurId.value);
 });
+
 onMounted(() => {
   softwarescopePagination.page = 1;
   frameworkPagination.page = 1;
   getData(qualityboardId.value, roundCompareeId.value, roundCurId.value);
 });
+
 onUnmounted(() => {
   cleanData();
 });
