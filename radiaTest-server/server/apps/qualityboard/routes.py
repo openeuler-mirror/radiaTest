@@ -1425,6 +1425,8 @@ class PackageListCompareEvent(Resource):
                     _repeat_rpm = RepeatRpm(
                         rpm_name=rpm.get("rpm_file_name"),
                         arch=rpm.get("arch"),
+                        release=rpm.get("release"),
+                        version=rpm.get("version"),
                         repo_path=repo_path,
                         round_id=round_id,
                     )
@@ -1432,7 +1434,7 @@ class PackageListCompareEvent(Resource):
                     db.session.commit()
         
         add_repeat_rpm(body.repo_path, comparer_round_id, repeat_rpm_list_comparer)
-        add_repeat_rpm(body.repo_path, comparer_round_id, repeat_rpm_list_comparee)
+        add_repeat_rpm(body.repo_path, comparee_round_id, repeat_rpm_list_comparee)
 
         update_compare_result.delay(round_group_id, compare_results, body.repo_path)
         return jsonify(
@@ -1542,8 +1544,8 @@ class PackagCompareResultExportEvent(Resource):
     @validate()
     def get(self, comparer_round_id, comparee_round_id, query: PackageCompareResult):
         rg = RoundGroup.query.filter_by(
-            round_1_id=comparer_round_id,
-            round_2_id=comparee_round_id,
+            round_1_id=comparee_round_id,
+            round_2_id=comparer_round_id,
         ).first()
         if not rg:
             return jsonify(
@@ -1792,7 +1794,9 @@ class RoundRepeatRpmEvent(Resource):
                 error_code=RET.NO_DATA_ERR,
                 error_msg="the round does not exist"
             )
-        
-        body = query.__dict__
-        body.update({"round_id": round_id})
-        return Select(RepeatRpm, body).precise()
+
+        query_filter = RepeatRpm.query.filter(
+            RepeatRpm.round_id == round_id,
+            RepeatRpm.repo_path == query.repo_path
+        )
+        return PageUtil.get_data(query_filter, query)

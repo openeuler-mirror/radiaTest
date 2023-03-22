@@ -577,10 +577,12 @@ class PackageListHandler:
             _pkgs_repo_url = current_app.config.get(f"{org.name.upper()}_DAILYBUILD_REPO_URL")
             _filename_p = f"{_product}-round-{_round.round_num}"
             round_num = _round.round_num
-        _pkgs_repo_url = f"{_pkgs_repo_url}/{_product}"
 
         if _round.product.built_by_ebs is True and _round.type != "release":
             _pkgs_repo_url = f"{_pkgs_repo_url}/EBS-{_product}"
+        else:
+            _pkgs_repo_url = f"{_pkgs_repo_url}/{_product}"
+
         key_val = f"resolving_{_filename_p}_pkglist"
         _keys = redis_client.keys(key_val)
         if len(_keys) > 0:
