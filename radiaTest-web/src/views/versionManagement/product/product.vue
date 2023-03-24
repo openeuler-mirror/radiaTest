@@ -349,11 +349,11 @@
                         :tab="`对比${packageComparePanel.name}`"
                         :name="packageComparePanel.id"
                       >
-                        <n-tabs animated type="line" @update:value="changePackageTabFirst">
+                        <n-tabs animated type="line" v-model:value="packageTabValueFirst" @update:value="changePackageTabFirst">
                           <n-tab name="softwarescope"> 软件范围 </n-tab>
-                          <n-tab name="homonymousIsomerism"> 同名异构 </n-tab>
+                          <n-tab v-if="currentPanel === 'fixed'" name="homonymousIsomerism"> 同名异构 </n-tab>
                         </n-tabs>
-                        <n-tabs animated type="line" @update:value="changePackageTabSecond">
+                        <n-tabs animated type="line"  v-model:value="packageTabValueSecond" @update:value="changePackageTabSecond">
                           <n-tab name="everything"> everything </n-tab>
                           <n-tab name="EPOL"> EPOL </n-tab>
                         </n-tabs>
@@ -388,6 +388,7 @@
                           :round-cur-id="currentId"
                           :packageTabValueFirst="packageTabValueFirst"
                           :packageTabValueSecond="packageTabValueSecond"
+                          :hasMultiVersionPackage="hasMultiVersionPackage"
                         />
                       </n-tab-pane>
                     </n-tabs>
@@ -440,11 +441,7 @@
               <div>
                 <keep-alive>
                   <test-progress v-if="activeTab === 'testProgress'" :defaultMilestoneId="defaultMilestoneId" />
-                  <quality-protect
-                    v-else-if="activeTab === 'qualityProtect'"
-                    :quality-board-id="dashboardId"
-                    :treeList="testProgressList"
-                  />
+                  <quality-protect v-else-if="activeTab === 'qualityProtect'" :quality-board-id="dashboardId" />
                 </keep-alive>
               </div>
             </n-gi>
@@ -660,7 +657,6 @@ export default {
         page_num: modules.productVersionPagination.value.page,
         page_size: modules.productVersionPagination.value.pageSize
       });
-      modules.getDefaultList();
       getProductVersionOpts(modules.productList);
       modules.setFeatureOption(additionFeatureOption, '新增特性', modules.additionFeatureSummary.value);
       modules.setFeatureOption(inheritFeatureOption, '继承特性', modules.inheritFeatureSummary.value);

@@ -144,8 +144,8 @@ export function statisticsProduct(id) {
   return putRequest(`/v1/product/${id}/issue-rate`, {}, { successMsg: '统计成功' });
 }
 
-export function updateCompareRounds(roundId, data) {
-  return putRequest(`/v1/round/${roundId}/compare-round`, data);
+export function updateCompareRounds(roundId, data, msg) {
+  return putRequest(`/v1/round/${roundId}/compare-round`, data, msg);
 }
 
 export function updateTemplateDrawer(data, id) {

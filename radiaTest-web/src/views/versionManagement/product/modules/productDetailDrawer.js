@@ -1,4 +1,5 @@
 import { h, ref, watch, nextTick } from 'vue';
+import { NButton, NTag, NSpace } from 'naive-ui';
 import {
   getFeatureCompletionRates,
   getFeatureList as getFeatureData,
@@ -8,25 +9,19 @@ import {
   getAllMilestone
 } from '@/api/get';
 import { updateCompareRounds } from '@/api/put';
-import { NButton, NTag, NSpace } from 'naive-ui';
-import { list, currentId, currentRound, dashboardId, packageTabValueSecond } from './productTable';
+import {
+  list,
+  currentId,
+  currentRound,
+  dashboardId,
+  packageTabValueFirst,
+  packageTabValueSecond
+} from './productTable';
 
+const drawerShow = ref(false); // 显示质量看板抽屉
+const detail = ref({}); // 产品版本详情
 const roundCompareeId = ref(''); // 对比roundId
-const detail = ref({});
-const drawerShow = ref(false);
-const active = ref(false);
-const requestCard = ref(null);
-const cardDescription = ref({
-  title: null,
-  progress: null
-});
-function cardClick() {
-  active.value = true;
-}
-const activeTab = ref('testProgress');
-const testProgressList = ref([]);
-
-const boxWidth = ref(0);
+const requestCard = ref(null); // 特性及软件包包裹ref
 
 const oldPackage = ref({
   size: 0,
@@ -40,11 +35,18 @@ const packageChangeSummary = ref({
   addPackagesNum: 0,
   delPackagesNum: 0
 });
+const hasMultiVersionPackage = ref(false); // 是否有多版本软件包
 
-const currentPanel = ref('fixed'); // 当前软件包对比tab
-
-// 获取软件包变更数据
+// 获取软件包变更对比卡片数据
 function getPackageListComparationSummary(qualityboardId, params) {
+  oldPackage.value = {
+    size: 0,
+    name: null
+  };
+  newPackage.value = {
+    size: 0,
+    name: null
+  };
   const idList = list.value.map((item) => item.id); // roundId列表
   const currentIndex = idList.indexOf(currentRound.value.id);
   if (currentIndex === 0 && currentPanel.value === 'fixed') {
@@ -63,6 +65,9 @@ function getPackageListComparationSummary(qualityboardId, params) {
           oldPackage.value.name = res.data.name;
           packageChangeSummary.value.addPackagesNum = 0;
           packageChangeSummary.value.delPackagesNum = 0;
+          if (res.data?.repeat_rpm_cnt > 0) {
+            hasMultiVersionPackage.value = true;
+          }
         } else {
           window.$message?.info(res.error_msg, { duration: 8e3 });
         }
@@ -90,6 +95,9 @@ function getPackageListComparationSummary(qualityboardId, params) {
         if (!params.refresh) {
           oldPackage.value.size = res.data.size;
           oldPackage.value.name = res.data.name;
+          if (res.data?.repeat_rpm_cnt > 0) {
+            hasMultiVersionPackage.value = true;
+          }
         } else {
           window.$message?.info(res.error_msg, { duration: 8e3 });
         }
@@ -109,6 +117,9 @@ function getPackageListComparationSummary(qualityboardId, params) {
         if (!params.refresh) {
           newPackage.value.size = res.data.size;
           newPackage.value.name = res.data.name;
+          if (res.data?.repeat_rpm_cnt > 0) {
+            hasMultiVersionPackage.value = true;
+          }
         } else {
           window.$message?.info(res.error_msg, { duration: 8e3 });
         }
@@ -133,49 +144,36 @@ function getPackageListComparationSummary(qualityboardId, params) {
   }
 }
 
+// 清空对比卡片数据
+function cleanPackageListData() {
+  packageChangeSummary.value = {
+    addPackagesNum: 0,
+    delPackagesNum: 0
+  };
+  newPackage.value = {
+    size: 0,
+    name: null
+  };
+  oldPackage.value = {
+    size: 0,
+    name: null
+  };
+}
+
 const showPackage = ref(false); // 显示软件包变更详情
-const packageBox = ref(null);
-const packageWidth = ref(0);
-watch(showPackage, () => {
-  nextTick(() => {
-    packageWidth.value = requestCard.value.$el.clientWidth;
-  });
-});
-
-watch(currentPanel, () => {
-  getPackageListComparationSummary(dashboardId.value, {
-    refresh: false,
-    repoPath: packageTabValueSecond.value,
-    arch: 'all'
-  });
-});
-
+const currentPanel = ref('fixed'); // 当前软件包对比tab
 const packageComparePanels = ref([
   {
     name: '上轮迭代',
     id: 'fixed'
   }
 ]);
-
-watch(currentRound, () => {
-  packageComparePanels.value = [
-    {
-      name: '上轮迭代',
-      id: 'fixed'
-    },
-    ...currentRound.value.comparee_round_ids
-  ];
-  currentPanel.value = 'fixed';
-});
-
-const showAddNewCompare = ref(false);
-
-const productOptions = ref([]);
+const showAddNewCompare = ref(false); // 新增比对弹框
+const productOptions = ref([]); // 新增比对产品版本选项
 const productLoading = ref(false);
-const roundOptions = ref([]);
+const roundOptions = ref([]); // 新增比对迭代选项
 const roundLoading = ref(false);
-
-// 软件包对比tab新增表单
+// 新增比对表单
 const newCompareForm = ref({
   product: undefined,
   type: 'release',
@@ -194,9 +192,13 @@ function handlePackageCompareAdd() {
 
 // 新增软件包对比tab
 function handleNewCompareCreate() {
-  updateCompareRounds(currentId.value, {
-    comparee_round_ids: [...currentRound.value.comparee_round_ids.map((item) => item.id), newCompareForm.value.round]
-  })
+  updateCompareRounds(
+    currentId.value,
+    {
+      comparee_round_ids: [...currentRound.value.comparee_round_ids.map((item) => item.id), newCompareForm.value.round]
+    },
+    { successMsg: '添加成功' }
+  )
     .then((res) => {
       packageComparePanels.value = [
         {
@@ -228,7 +230,11 @@ function handlePackageCompareClose(id) {
     panelList.splice(0, 1);
   }
 
-  updateCompareRounds(currentId.value, { comparee_round_ids: panelList.map((item) => item.id) }).then((res) => {
+  updateCompareRounds(
+    currentId.value,
+    { comparee_round_ids: panelList.map((item) => item.id) },
+    { successMsg: '删除成功' }
+  ).then((res) => {
     packageComparePanels.value = [
       {
         name: '上轮迭代',
@@ -241,7 +247,7 @@ function handlePackageCompareClose(id) {
   });
 }
 
-// 新增比对modal回调
+// 新增比对modal显示/隐藏回调
 watch(showAddNewCompare, () => {
   if (showAddNewCompare.value) {
     const params = {
@@ -291,6 +297,12 @@ watch(
           };
         });
         roundOptions.value = roundOptions.value.filter((item) => item.value);
+
+        if (newCompareForm.value.type === 'release') {
+          newCompareForm.value.round = roundOptions.value[0]?.value;
+        } else {
+          newCompareForm.value.round = null;
+        }
       })
       .finally(() => {
         roundLoading.value = false;
@@ -298,6 +310,33 @@ watch(
   }
 );
 
+watch(currentPanel, () => {
+  packageTabValueFirst.value = 'softwarescope';
+  packageTabValueSecond.value = 'everything';
+  getPackageListComparationSummary(dashboardId.value, {
+    refresh: false,
+    repoPath: packageTabValueSecond.value,
+    arch: 'all'
+  });
+});
+
+watch(currentRound, () => {
+  packageComparePanels.value = [
+    {
+      name: '上轮迭代',
+      id: 'fixed'
+    },
+    ...currentRound.value.comparee_round_ids
+  ];
+  currentPanel.value = 'fixed';
+});
+
+const showList = ref(false); // 显示新增/继承特性详情
+const boxWidth = ref(0); // 特性卡片宽度
+const additionFeatureSummary = ref({}); // 新增特性总结
+const inheritFeatureSummary = ref({}); // 继承特性总结
+const featureLoading = ref(false);
+const featureListData = ref([]);
 const featureListColumns = [
   {
     key: 'no',
@@ -390,17 +429,12 @@ const featureListColumns = [
   }
 ];
 
-const additionFeatureSummary = ref({});
-const inheritFeatureSummary = ref({});
-
-const featureLoading = ref(false);
-const featureListData = ref([]);
-const showList = ref(false); // 显示新增/继承特性详情
-
+// 点击特性卡片
 function handleListClick() {
   showList.value = true;
 }
 
+// 获取特性表格数据
 function getFeatureList(qualityboardId, _type) {
   featureLoading.value = true;
   getFeatureData(qualityboardId, { new: _type === 'addition' })
@@ -412,6 +446,7 @@ function getFeatureList(qualityboardId, _type) {
     });
 }
 
+// 获取特性总结数据
 function getFeatureSummary(qualityboardId) {
   getFeatureCompletionRates(qualityboardId).then((res) => {
     additionFeatureSummary.value = res.data.addition_feature_summary;
@@ -423,14 +458,6 @@ function cleanFeatureListData() {
   featureLoading.value = false;
   featureListData.value = [];
 }
-function cleanPackageListData() {
-  packageChangeSummary.value = {
-    addPackagesNum: 0,
-    delPackagesNum: 0
-  };
-  newPackage.value = {};
-  oldPackage.value = {};
-}
 
 watch(showList, () => {
   nextTick(() => {
@@ -438,23 +465,28 @@ watch(showList, () => {
   });
 });
 
+const active = ref(false); // milestoneIssuesCard弹窗
+
+// 点击问题解决卡片
+function cardClick() {
+  active.value = true;
+}
+
+const activeTab = ref('testProgress'); // 质量看板下方激活模板
+
 export {
-  packageBox,
   showPackage,
   requestCard,
   newPackage,
   showList,
   oldPackage,
-  packageWidth,
   boxWidth,
   additionFeatureSummary,
   inheritFeatureSummary,
   activeTab,
   active,
   detail,
-  testProgressList,
   drawerShow,
-  cardDescription,
   cardClick,
   handleListClick,
   getFeatureSummary,
@@ -478,5 +510,6 @@ export {
   productOptions,
   roundLoading,
   roundOptions,
-  roundCompareeId
+  roundCompareeId,
+  hasMultiVersionPackage
 };

@@ -204,5 +204,22 @@ export default {
           reject(Error('验证失败，请检查网络连接'));
         });
     });
+  },
+
+  downLoad(url, data) {
+    return new Promise((resolve, reject) => {
+      server({
+        method: 'get',
+        url,
+        params: data,
+        responseType: 'blob'
+      })
+        .then((res) => {
+          resolve(res.data);
+        })
+        .catch((err) => {
+          reject(err);
+        });
+    });
   }
 };

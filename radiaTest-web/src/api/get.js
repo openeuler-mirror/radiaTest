@@ -361,7 +361,7 @@ export function getRpmcheck(qualityBoardId) {
 }
 
 export function getMilestoneProgress(milestoneId) {
-  return getRequest(`/v1/milestone/${milestoneId}/task-progress`);
+  return getRequestWithoutCatch(`/v1/milestone/${milestoneId}/task-progress`);
 }
 
 export function getMilestoneProgressCaseNode(milestoneId, caseNode) {
@@ -386,4 +386,9 @@ export function getStrategy(productFeatureId) {
 // 查询测试策略模板
 export function getStrategyTemplate(param) {
   return getRequest('/v1/strategy-template', param);
+}
+
+// 多版本软件包
+export function getMultiVersionPackageAxios(roundId, param) {
+  return getRequest(`/v1/round/${roundId}/repeat-rpm`, param);
 }

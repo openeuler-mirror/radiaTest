@@ -78,6 +78,7 @@ declare module '@vue/runtime-core' {
     MilestoneTaskTable: typeof import('./src/components/milestoneComponents/MilestoneTaskTable.vue')['default']
     MilestoneUpdateForm: typeof import('./src/components/milestoneComponents/MilestoneUpdateForm.vue')['default']
     ModalCard: typeof import('./src/components/CRUD/ModalCard.vue')['default']
+    MultiVersionPackage: typeof import('./src/components/productDrawer/MultiVersionPackage.vue')['default']
     MyTab: typeof import('./src/components/header/MyTab.vue')['default']
     NicsDataTable: typeof import('./src/components/vmachineComponents/expandedContent/NicsDataTable.vue')['default']
     NicsForm: typeof import('./src/components/vmachineComponents/expandedContent/createForms/NicsForm.vue')['default']
