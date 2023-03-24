@@ -826,6 +826,20 @@ class QualityDefendEvent(Resource):
             )
 
         scrapyspider_pool.disconnect()
+        
+        latest_rpmcheck__data = dict()
+        rpmcheck_latest_key = f"rpmcheck_{product.name}-{product.version}_latest"
+        _rpmcheck_latest = redis_client.keys(
+            rpmcheck_latest_key
+        )
+        if _rpmcheck_latest:
+            latest_rpmcheck__data.update(
+                {
+                    "all_cnt": redis_client.hget(rpmcheck_latest_key, "all_cnt"),
+                    "succeeded_rate": redis_client.hget(rpmcheck_latest_key, "succeeded_rate"),
+                    "name": redis_client.hget(rpmcheck_latest_key, "name"),
+                }
+            )
 
         return jsonify(
             error_code=RET.OK,
@@ -833,7 +847,8 @@ class QualityDefendEvent(Resource):
             data={
                 "at_statistic": at_statistic,
                 "dailybuild_statistic": dailybuild_statistic,
-                "weeklybuild_statistic": weeklybuild_statistic
+                "weeklybuild_statistic": weeklybuild_statistic,
+                "rpmcheck_statistic": latest_rpmcheck__data,
             }
         )
 
@@ -902,8 +917,21 @@ class RpmCheckOverview(Resource):
         _prouduct = Product.query.filter_by(
             id=qualityboard.product.id
         ).first()
+        latest_data = dict()
+        rpmcheck_latest_key = f"rpmcheck_{_prouduct.name}-{_prouduct.version}_latest"
+        _rpmcheck_latest = redis_client.keys(
+            rpmcheck_latest_key
+        )
+        if _rpmcheck_latest:
+            latest_data.update(
+                {
+                    "all_cnt": redis_client.hget(rpmcheck_latest_key, "all_cnt"),
+                    "succeeded_rate": redis_client.hget(rpmcheck_latest_key, "succeeded_rate"),
+                    "name": redis_client.hget(rpmcheck_latest_key, "name"),
+                }
+            )
         _rpmchecks = redis_client.keys(
-            f"rpmcheck_{_prouduct.name}-{_prouduct.version}_*"
+            f"rpmcheck_{_prouduct.name}-{_prouduct.version}_2*"
         )
         data = list()
 
@@ -927,7 +955,8 @@ class RpmCheckOverview(Resource):
         return jsonify(
             error_code=RET.OK,
             error_msg="OK",
-            data=data
+            data=data,
+            latest_data=latest_data,
         )
 
 

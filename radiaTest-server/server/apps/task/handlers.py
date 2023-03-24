@@ -1908,6 +1908,7 @@ class HandlerTaskProgress(object):
             TaskMilestone.milestone_id == self.milestone_id,
             Task.type == "VERSION",
             Task.is_delete.is_(False),
+            Task.case_node_id.isnot(None),
         ).first()
         if not task:
             raise RuntimeError("no version task.")
