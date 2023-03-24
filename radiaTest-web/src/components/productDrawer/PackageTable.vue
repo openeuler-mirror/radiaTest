@@ -100,11 +100,7 @@
       @update:filters="frameworkFiltersChange"
     />
   </div>
-  <MultiVersionPackage
-    ref="multiVersionPackageRef"
-    :roundCompareeId="roundCompareeId"
-    :roundCurId="roundCurId"
-  ></MultiVersionPackage>
+  <MultiVersionPackage ref="multiVersionPackageRef" :roundCurId="roundCurId"></MultiVersionPackage>
 </template>
 
 <script setup>
@@ -159,11 +155,13 @@ const rpmCompareStatusOptions = rpmCompareStatus.map((item) => {
 });
 // 被比较列（第一列）
 const compareeColumn = reactive({
-  key: 'rpm_comparee'
+  key: 'rpm_comparee',
+  title: oldPackage.value.name
 });
 // 比较列（第二列）
 const comparerColumn = reactive({
-  key: 'rpm_comparer'
+  key: 'rpm_comparer',
+  title: newPackage.value.name
 });
 // 比对结果列
 const compareResultColumn = reactive({
@@ -270,8 +268,6 @@ function getData(qualityboardIdParam, roundCompareeIdParam, roundCurIdParam) {
       page_size: softwarescopePagination.pageSize
     })
       .then((res) => {
-        compareeColumn.title = oldPackage.value.name; // 第一列名称
-        comparerColumn.title = newPackage.value.name; // 第二列名称
         packageChangeSummary.value.addPackagesNum = res.data.add_pkgs_num; // 新增
         packageChangeSummary.value.delPackagesNum = res.data.del_pkgs_num; // 减少
         softwarescopeTableData.value = res.data.items; // 表格数据
@@ -421,6 +417,15 @@ watch(packageTabValueFirst, () => {
   frameworkPagination.page = 1;
   getData(qualityboardId.value, roundCompareeId.value, roundCurId.value);
 });
+
+watch(
+  [oldPackage, newPackage],
+  () => {
+    compareeColumn.title = oldPackage.value.name; // 第一列名称
+    comparerColumn.title = newPackage.value.name; // 第二列名称
+  },
+  { deep: true }
+);
 
 onMounted(() => {
   softwarescopePagination.page = 1;
