@@ -1,7 +1,7 @@
 <template>
   <n-modal v-model:show="showModal" @afterEnter="modalEnter">
     <n-card
-      :title="createTitle('多版本软件包')"
+      :title="createTitle(`${newPackage.name}多版本软件包列表`)"
       size="large"
       :bordered="false"
       :segmented="{
@@ -9,10 +9,6 @@
       }"
       style="width: 1200px"
     >
-      <n-tabs animated type="line" v-model:value="roundTab" @update:value="changeRound">
-        <n-tab name="oldPackage"> {{ oldPackage.name }} </n-tab>
-        <n-tab name="newPackage"> {{ newPackage.name }} </n-tab>
-      </n-tabs>
       <n-tabs animated type="line" v-model:value="repoPath" @update:value="changeReoppath">
         <n-tab name="everything"> everything </n-tab>
         <n-tab name="EPOL"> EPOL </n-tab>
@@ -33,14 +29,12 @@
 
 <script setup>
 import { createTitle } from '@/assets/utils/createTitle';
-import { oldPackage, newPackage } from '@/views/versionManagement/product/modules/productDetailDrawer';
+import { newPackage } from '@/views/versionManagement/product/modules/productDetailDrawer';
 import { getMultiVersionPackageAxios } from '@/api/get';
 
-const props = defineProps(['roundCompareeId', 'roundCurId']);
-const { roundCompareeId, roundCurId } = toRefs(props);
+const props = defineProps(['roundCurId']);
+const { roundCurId } = toRefs(props);
 const showModal = ref(false);
-const currentRoundId = ref(null);
-const roundTab = ref('oldPackage');
 const repoPath = ref('everything');
 const multiVersionPackageData = ref([]);
 const multiVersionPackageLoading = ref(false);
@@ -90,42 +84,26 @@ const getMultiVersionPackage = (roundId, repoPathParam) => {
 
 const multiVersionPackagePageChange = (page) => {
   multiVersionPackagePagination.value.page = page;
-  getMultiVersionPackage(currentRoundId.value, repoPath.value);
+  getMultiVersionPackage(roundCurId.value, repoPath.value);
 };
 
 const multiVersionPackagePageSizeChange = (pageSize) => {
   multiVersionPackagePagination.value.page = 1;
   multiVersionPackagePagination.value.pageSize = pageSize;
-  getMultiVersionPackage(currentRoundId.value, repoPath.value);
-};
-
-const changeRound = (value) => {
-  if (value === 'oldPackage') {
-    roundTab.value = 'oldPackage';
-    currentRoundId.value = roundCompareeId.value;
-    multiVersionPackagePagination.value.page = 1;
-    getMultiVersionPackage(currentRoundId.value, repoPath.value);
-  } else {
-    roundTab.value = 'newPackage';
-    currentRoundId.value = roundCurId.value;
-    multiVersionPackagePagination.value.page = 1;
-    getMultiVersionPackage(currentRoundId.value, repoPath.value);
-  }
+  getMultiVersionPackage(roundCurId.value, repoPath.value);
 };
 
 const changeReoppath = (value) => {
   repoPath.value = value;
   multiVersionPackagePagination.value.page = 1;
-  getMultiVersionPackage(currentRoundId.value, repoPath.value);
+  getMultiVersionPackage(roundCurId.value, repoPath.value);
 };
 
 // 弹框显示回调
 const modalEnter = () => {
-  roundTab.value = 'oldPackage';
   repoPath.value = 'everything';
-  currentRoundId.value = roundCompareeId.value;
   multiVersionPackagePagination.value.page = 1;
-  getMultiVersionPackage(currentRoundId.value, repoPath.value);
+  getMultiVersionPackage(roundCurId.value, repoPath.value);
 };
 
 defineExpose({
