@@ -318,6 +318,9 @@ def resolve_pkglist_after_resolve_rc_name(repo_url, store_path, product, round_n
     if round_num :
         product_version = f'{product_version}-round-{round_num}'
         resp = requests.get(repo_url)
+        if resp.status_code != 200:
+            logger.error("Could not connect to the url: {}".format(repo_url))
+            return
         resp.encoding = 'utf-8'
         # 网页内容到写入文件中
         tmp_file_name = f"{product_version}-html.txt"
@@ -338,6 +341,9 @@ def resolve_pkglist_after_resolve_rc_name(repo_url, store_path, product, round_n
         for arch in ["aarch64", "x86_64"]:
             _url =  f"{_repo_url}/{repo_path}/{arch}/Packages/"
             resp = requests.get(_url)
+            if resp.status_code != 200:
+                logger.error("Could not connect to the url: {}".format(_url))
+                return
             resp.encoding = 'utf-8'
             # 写入网页内容到文件中
             tmp_file_name = f"{product_version_repo}-{arch}-html.txt"

@@ -154,9 +154,9 @@ class RpmNameLoader():
                 for rpm in val:
                     repeat_rpm_dict_list.append(rpm.to_dict())
 
-                is_equal = RpmNameComparator.compare_version_str_order(val[0].version, val[1].version)
+                is_equal = RpmNameComparator.compare_str_version(val[0].version, val[1].version)
                 if is_equal == 0:
-                    is_equal1 = RpmNameComparator.compare_version_str_order(val[0].release, val[1].release)
+                    is_equal1 = RpmNameComparator.compare_str_version(val[0].release, val[1].release)
                     if is_equal1 == 1:
                         rpm_name_dict.update(
                             {rpm_name: [val[1]]}
@@ -229,8 +229,8 @@ class RpmNameLoader():
 class RpmNameComparator():
     
     @staticmethod
-    def compare_version_str_order(version_a, version_b):
-        """Compare the order of two version numbers
+    def compare_str_version(version_a, version_b):
+        """Compare the order between two given version strings
 
         Args:
             version_a (str): one version numbers a, like "v1.11.1"
@@ -240,23 +240,55 @@ class RpmNameComparator():
                 0: version_a = version_b
                 1: version_a > version_b
                 2: version_a < version_b
-        tip:
-            the count of "." in version_a and in version_b must be equal
+        e.g.
+            v1.11.1 < 1.12.1
+            v1.22.2 > v1.22
+            4.oe2203sp1 < 4.oe2209
         """
         version_a_arr = version_a.split(".")
         version_b_arr = version_b.split(".")
 
-        cnt = len(version_a_arr)
+        cnt = len(version_a_arr) if len(version_a_arr) > len(version_b_arr) else len(version_b_arr)
         is_equal = 0
         for i in range(cnt):
+            if i == len(version_a_arr):
+                is_equal = 2
+                break
+            if i == len(version_b_arr):
+                is_equal = 1
+                break
+            if version_a_arr[i] == version_b_arr[i]:
+                continue
+            if version_a_arr[i].startswith("oe") and version_b_arr[i].startswith("oe"):
+                tmp_a = version_a_arr[i]
+                tmp_b = version_b_arr[i]
+                tmp_cnt = len(tmp_a) if len(tmp_a) > len(tmp_b) else len(tmp_b)
+                for j in range(tmp_cnt):
+                    if tmp_a[j] == tmp_b[j]:
+                        continue
+                    else:
+                        is_equal = 1 if tmp_a[j] > tmp_b[j] else 2
+                if is_equal == 0:
+                    continue
+                else:
+                    break
             if version_a_arr[i].isnumeric():
                 version_a_t = int(version_a_arr[i])
             else:
-                version_a_t = int("".join(filter(str.isdigit, version_a_arr[i])))
+                tmp_a = "".join(filter(str.isdigit, version_a_arr[i]))
+                if tmp_a == "":
+                    version_a_t = -1
+                else:
+                    version_a_t = int(tmp_a)
             if version_b_arr[i].isnumeric():
                 version_b_t = int(version_b_arr[i])
             else:
-                version_b_t = int("".join(filter(str.isdigit, version_b_arr[i])))
+                tmp_b = "".join(filter(str.isdigit, version_b_arr[i]))
+                #如果全为字母，设大小为-1，作为比较值
+                if tmp_a == "":
+                    version_b_t = -1
+                else:
+                    version_b_t = int(tmp_b)
             if version_a_t == version_b_t:
                 continue
             else:
@@ -282,14 +314,14 @@ class RpmNameComparator():
                 if rpm_info_1.release == rpm_info_2.release:
                     return RpmCompareStatus.SAME
                 else:
-                    is_equal = RpmNameComparator.compare_version_str_order(
+                    is_equal = RpmNameComparator.compare_str_version(
                         rpm_info_1.release, rpm_info_2.release
                     )
                     if is_equal == 1:
                         return RpmCompareStatus.REL_DOWN
                     return RpmCompareStatus.REL_UP
             else:
-                is_equal = RpmNameComparator.compare_version_str_order(
+                is_equal = RpmNameComparator.compare_str_version(
                     rpm_info_1.version, rpm_info_2.version
                 )
                 if is_equal == 1:
