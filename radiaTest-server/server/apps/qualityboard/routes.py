@@ -1811,6 +1811,7 @@ class RoundIssueEvent(Resource):
 
 class RoundRepeatRpmEvent(Resource):
     @auth.login_required
+    @response_collect
     @validate()
     def get(self, round_id, query: QueryRepeatRpmSchema):
         _round = Round.query.filter_by(id=round_id).first()
