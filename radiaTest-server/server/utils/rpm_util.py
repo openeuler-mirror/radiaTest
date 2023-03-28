@@ -262,13 +262,17 @@ class RpmNameComparator():
             if version_a_arr[i].startswith("oe") and version_b_arr[i].startswith("oe"):
                 tmp_a = version_a_arr[i]
                 tmp_b = version_b_arr[i]
-                tmp_cnt = len(tmp_a) if len(tmp_a) > len(tmp_b) else len(tmp_b)
+                tmp_cnt = len(tmp_b) if len(tmp_a) > len(tmp_b) else len(tmp_a)
                 for j in range(tmp_cnt):
                     if tmp_a[j] == tmp_b[j]:
                         continue
                     else:
                         is_equal = 1 if tmp_a[j] > tmp_b[j] else 2
+                        break
                 if is_equal == 0:
+                    if len(tmp_a) != len(tmp_b):
+                        is_equal = 1 if len(tmp_a) > len(tmp_b) else 2
+                        break
                     continue
                 else:
                     break
@@ -285,7 +289,7 @@ class RpmNameComparator():
             else:
                 tmp_b = "".join(filter(str.isdigit, version_b_arr[i]))
                 #如果全为字母，设大小为-1，作为比较值
-                if tmp_a == "":
+                if tmp_b == "":
                     version_b_t = -1
                 else:
                     version_b_t = int(tmp_b)
