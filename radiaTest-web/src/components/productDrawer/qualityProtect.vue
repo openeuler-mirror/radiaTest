@@ -29,7 +29,6 @@
           style="cursor: pointer"
         >
           <n-progress
-            color="#ebebeb"
             type="dashboard"
             gap-position="bottom"
             :percentage="rpmCheckProgress ? rpmCheckProgress : ''"

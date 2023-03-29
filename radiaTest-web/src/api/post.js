@@ -195,3 +195,8 @@ export function strategyCommitStage(strategyId, data) {
 export function strategySubmmit(strategyId, data) {
   return postRequest(`/v1/strategy/${strategyId}/submmit`, data);
 }
+
+// 创建issue
+export function createIssues(data) {
+  return postRequest('/v1/issues', data);
+}

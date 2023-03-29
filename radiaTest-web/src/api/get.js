@@ -369,8 +369,8 @@ export function getMilestoneProgressCaseNode(milestoneId, caseNode) {
 }
 
 // 获取特性集特性
-export function getAllFeature() {
-  return getRequest('/v1/feature');
+export function getAllFeature(param) {
+  return getRequest('/v1/feature', param);
 }
 
 // 查询特性
@@ -391,4 +391,9 @@ export function getStrategyTemplate(param) {
 // 多版本软件包
 export function getMultiVersionPackageAxios(roundId, param) {
   return getRequest(`/v1/round/${roundId}/repeat-rpm`, param);
+}
+
+// 查询代码仓
+export function getGiteeProject() {
+  return getRequest('/v1/gitee-project');
 }
