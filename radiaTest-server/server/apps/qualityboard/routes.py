@@ -45,7 +45,7 @@ from server.model.qualityboard import (
     RoundGroup,
     RepeatRpm,
 )
-from server.utils.db import Delete, Edit, Select, Insert, collect_sql_error
+from server.utils.db import Delete, Select, Insert, collect_sql_error
 from server.schema.base import PageBaseSchema
 from server.schema.qualityboard import (
     FeatureQuerySchema,
@@ -86,7 +86,7 @@ from server.apps.qualityboard.handlers import (
     CompareRoundHandler,
     PackagCompareResultExportHandler,
 )
-from server.apps.milestone.handler import IssueOpenApiHandlerV8
+from server.apps.issue.handler import GiteeV8BaseIssueHandler
 from server.utils.shell import add_escape
 from server.utils.at_utils import OpenqaATStatistic
 from server.utils.page_util import PageUtil, Paginate
@@ -237,12 +237,12 @@ class QualityBoardDeleteVersionEvent(Resource):
                 "->"+_versions[-1], "")
         if iteration_version == "":
             return Delete(QualityBoard, {"id": qualityboard_id}).single()
-        _body = {
-            "id": qualityboard_id,
-            "iteration_version": iteration_version
-        }
-
-        return Edit(QualityBoard, _body).single()
+        qualityboard.iteration_version = iteration_version
+        qualityboard.add_update()
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK."
+        )
 
 
 class DeselectChecklistItem(Resource):
@@ -293,7 +293,7 @@ class DeselectChecklistItem(Resource):
                 error_code=RET.DB_DATA_ERR,
                 error_msg="rounds '{}' error".format( body.rounds)
             )
-        _cl.add_update()
+        _cl.add_update(Checklist, "/checklist")
         return jsonify(
             error_code=RET.OK,
             error_msg="OK."
@@ -366,7 +366,7 @@ class ChecklistItem(Resource):
                 _cl.rounds = "".join(rs)
             _cl.baseline = ",".join(bls)
             _cl.operation = ",".join(ops)
-            _cl.add_update()
+            _cl.add_update(Checklist, "/checklist")
 
             return jsonify(
                 error_code=RET.OK,
@@ -405,17 +405,20 @@ class ChecklistItem(Resource):
             baseline = _cl.baseline + "," * (idx + 1 - len(_cl.rounds)) + body.baseline
             operation = _cl.operation + "," * (idx + 1 - len(_cl.rounds)) + body.operation
         
-        _body = {
-            **body.__dict__,
-            "id": checklist_id,
-        }
+        _body = body.__dict__
         _body.update({
             "rounds": rounds,
             "baseline": baseline,
             "operation": operation
         })
-
-        return Edit(Checklist, _body).single(Checklist, "/checklist")
+        for key, value in _body.items():
+            if value is not None:
+                setattr(_cl, key, value)
+        _cl.add_update(Checklist, "/checklist")
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK."
+        )
 
     @auth.login_required()
     @response_collect
@@ -547,11 +550,16 @@ class CheckItemSingleEvent(Resource):
                 error_code=RET.DB_DATA_ERR,
                 error_msg="Checkitem has existed."
             )
-        _body = {
-            "id": checkitem_id
-        }
-        _body.update(body.__dict__)
-        return Edit(CheckItem, _body).single(CheckItem, "/checkitem")
+
+        _body = body.__dict__
+        for key, value in _body.items():
+            if value is not None:
+                setattr(_ci, key, value)
+        _ci.add_update(CheckItem, "/checkitem")
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK."
+        )
 
     @auth.login_required()
     @response_collect
@@ -1725,11 +1733,15 @@ class RoundItemEvent(Resource):
                 error_msg="the round does not exist"
             )
         
-        _edit_body = {
-            "id": round_id,
-            **body.__dict__
-        }
-        return Edit(Round, _edit_body).single()
+        _edit_body = body.__dict__
+        for key, value in _edit_body.items():
+            if value is not None:
+                setattr(_round, key, value)
+        _round.add_update(Round, "/round")
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK."
+        )
 
     @auth.login_required
     @response_collect
@@ -1806,7 +1818,7 @@ class RoundIssueEvent(Resource):
                 "milestone_id": m_ids,
             }
         )
-        return IssueOpenApiHandlerV8().get_all(_body)
+        return GiteeV8BaseIssueHandler().get_all(_body)
 
 
 class RoundRepeatRpmEvent(Resource):

@@ -63,7 +63,7 @@ from server.schema.task import (
     OutAddTaskSchema,
 )
 from server.schema import Frame
-from server.schema.milestone import GiteeIssueQueryV8
+from server.schema.issue import GiteeIssueQueryV8
 from server.schema.user import UserBaseSchema
 from server.schema.group import GroupInfoSchema
 from server.utils.db import collect_sql_error, Insert, Delete
@@ -72,7 +72,7 @@ from server.utils.response_util import RET
 from server.utils.page_util import PageUtil
 from server.utils.read_from_yaml import get_api
 from server.utils.permission_utils import PermissionManager, GetAllByPermission
-from server.apps.milestone.handler import IssueOpenApiHandlerV8
+from server.apps.issue.handler import GiteeV8BaseIssueHandler
 from .services import (
     UpdateTaskStatusService,
     get_family_member,
@@ -1714,7 +1714,7 @@ class HandlerTaskStatistics(object):
             }
         )
 
-        _resp = IssueOpenApiHandlerV8().get_all(GiteeIssueQueryV8(**params).__dict__)
+        _resp = GiteeV8BaseIssueHandler().get_all(GiteeIssueQueryV8(**params).__dict__)
 
         if not isinstance(_resp, Response):
             return []

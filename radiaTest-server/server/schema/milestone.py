@@ -260,10 +260,6 @@ class GiteeIssueQueryV5(BaseModel):
     per_page: int = 10
 
 
-class IssueQuerySchema(BaseModel):
-    is_live: bool = False
-
-
 class GiteeMilestoneQuerySchema(BaseModel):
     search: str
 
