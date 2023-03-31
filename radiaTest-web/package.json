@@ -61,6 +61,7 @@
     "eslint-plugin-vue": "^7.2.0",
     "less": "^4.1.1",
     "less-loader": "^10.0.1",
+    "mockjs": "^1.1.0",
     "naive-ui": "^2.31.0",
     "sass": "^1.26.5",
     "sass-loader": "^8.0.2",
