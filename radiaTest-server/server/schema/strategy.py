@@ -22,7 +22,7 @@ from server.model.group import Group
 from server.model.organization import Organization
 from server.schema import StrategyImportFileType, PermissionType, StrategyCommitStatus
 from server.schema.testcase import CaseNodeBodySchema, SuiteCreate
-
+from server.schema.base import PageBaseSchema
 
 
 class FeatureSetBodySchema(BaseModel):
@@ -36,11 +36,9 @@ class FeatureSetBodySchema(BaseModel):
     url: Optional[str]
 
 
-
 class StrategyRelateSchema(BaseModel):
     feature_id: int
     is_new: Optional[bool] = False
-
 
 
 class FeatureSetUpdateSchema(BaseModel):
@@ -54,11 +52,9 @@ class FeatureSetUpdateSchema(BaseModel):
     url: Optional[str]
 
 
-
 class FeatureQuerySchema(BaseModel):
     feature_id: Optional[int]
     is_new: Optional[bool]
-
 
 
 class StrategyTemplateBodySchema(BaseModel):
@@ -66,10 +62,8 @@ class StrategyTemplateBodySchema(BaseModel):
     tree: dict
 
 
-
 class StrategyTemplateQuerySchema(BaseModel):
     title: Optional[str]
-
 
 
 class FeatureNodeBodySchema(BaseModel):
@@ -78,18 +72,15 @@ class FeatureNodeBodySchema(BaseModel):
     is_root: bool = False
     strategy_template_id: Optional[int]
 
-
     @root_validator
-    def validate_all(cls, values):        
+    def validate_all(cls, values):
         if not values["parent_id"]:
             values["is_root"] = True
         return values
 
 
-
 class FeatureNodeUpdateSchema(BaseModel):
     title: Optional[str]
-    
 
 
 class StrategyBodySchema(BaseModel):
@@ -98,16 +89,13 @@ class StrategyBodySchema(BaseModel):
     file_type: Optional[StrategyImportFileType] = "New"
 
 
-
 class StrategyCommitBodySchema(BaseModel):
     commit_tree: dict
-    commit_status: Optional[StrategyCommitStatus] = "staged" 
-
+    commit_status: Optional[StrategyCommitStatus] = "staged"
 
 
 class StrategyUpdateSchema(BaseModel):
     tree: Optional[dict]
-
 
 
 class StrategyCommitUpdateSchema(BaseModel):
@@ -120,13 +108,14 @@ class CommitBodySchema(BaseModel):
     body: Optional[str]
 
 
-
 class FeatureApplySchema(BaseModel):
     strategy_template_id: Optional[int]
     strategy_node_id: Optional[int]
 
 
-
 class StrategyCaseNodeBodySchema(StrategyBodySchema, SuiteCreate):
     parent_id: Optional[int]
-    
+
+
+class StrategyQuerySchema(PageBaseSchema):
+    type: Optional[str] = None

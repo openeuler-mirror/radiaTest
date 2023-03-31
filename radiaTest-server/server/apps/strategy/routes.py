@@ -9,32 +9,28 @@
 ####################################
 # Author : MDS_ZHR
 # email : 331884949@qq.com
-# Date : 2023/3/20 14:00:00
+# Date : 2023/3/13 14:00:00
 # License : Mulan PSL v2
 #####################################
 # 测试策略(Strategy)相关接口的route层
 
 import json
-import os
 
-from flask import request, g, jsonify, current_app, Response, send_from_directory
+from flask import g, jsonify, current_app, request
 from flask_restful import Resource
 from flask_pydantic import validate
-from sqlalchemy import or_, and_, func
-from server import redis_client, casbin_enforcer, db
+from sqlalchemy import not_
+
+from server import redis_client, db
+from server.utils.page_util import PageUtil
 from server.utils.redis_util import RedisKey
 from server.utils.auth_util import auth
 from server.utils.file_util import FileUtil
 from server.utils.response_util import RET, response_collect
-from server.utils.permission_utils import GetAllByPermission
 from server.model.product import Product
 from server.model.qualityboard import Feature
-from server.model.testcase import CaseNode, Suite, Case
 from server.model.strategy import ReProductFeature, Strategy, StrategyTemplate, StrategyCommit
 from server.utils.db import Insert, Edit, Delete, Precise, collect_sql_error
-from server.schema.base import PageBaseSchema
-from server.apps.testcase.routes import SuiteEvent, CaseEvent, CaseNodeEvent
-from server.schema.testcase import CaseNodeItemQuerySchema, SuiteCreate
 from server.schema.strategy import (
     FeatureQuerySchema,
     FeatureSetBodySchema,
@@ -46,19 +42,14 @@ from server.schema.strategy import (
     StrategyCommitBodySchema,
     StrategyCommitUpdateSchema,
     CommitBodySchema,
-
+    StrategyQuerySchema,
 )
 from server.apps.strategy.handler import (
-    ProductFeatureHandler,
-    StrategyHandler,
-    NodeHandler,
+    FeatureHandler,
     InheritFeatureHandler,
-    StrategyEventHandler,
     CommitHandler,
 )
-from server.utils.resource_utils import ResourceManager
 from server.utils.response_util import value_error_collect
-
 
 
 class FeatureSetEvent(Resource):
@@ -67,10 +58,12 @@ class FeatureSetEvent(Resource):
         url="/api/v1/feature", 
         methods=["POST"]
     """
+
     @auth.login_required()
     @response_collect
     @validate()
     @value_error_collect
+    @collect_sql_error
     def post(self, body: FeatureSetBodySchema):
         """
             在数据库中Feature表中创建特性.
@@ -102,12 +95,17 @@ class FeatureSetEvent(Resource):
             "sig": str(body.sig),
             "owner": str(body.owner),
         })
-        return NodeHandler(
-            Feature,
-            _body,
-        ).create_node()
-
-
+        filter_params = [
+            Feature.feature == _body.get("feature"),
+            Feature.sig == _body.get("sig"),
+            Feature.owner == _body.get("owner")
+        ]
+        feature_id = FeatureHandler(filter_params, True, _body).create_node()
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+            data={'id': feature_id}
+        )
 
     """
         获取特性集
@@ -117,11 +115,11 @@ class FeatureSetEvent(Resource):
     @auth.login_required()
     @response_collect
     @value_error_collect
-    def get(self):
+    def get(self, query: StrategyQuerySchema):
         """
             在数据库中查询特性集.
             API: "/api/v1/feature"
-            
+
             返回体:
             {
                 "data": [
@@ -143,17 +141,22 @@ class FeatureSetEvent(Resource):
                 "error_code": "2000",
                 "error_msg": "OK"
             } 
-        """     
-        features = StrategyHandler(Feature).get_query().all()
-        _data = [feature.to_json() for feature in features]
-        
+        """
+        if query.type:
+            new_feature = ReProductFeature.query.filter_by(is_new=1).all()
+            new_feature_ids = [feature.feature_id for feature in new_feature]
+            features = db.session.query(Feature).filter(not_(Feature.id.in_(set(new_feature_ids)))).all()
+            _data = [feature.to_json() for feature in features]
+        else:
+            features = db.session.query(Feature)
+            return PageUtil.get_data(features, query)
+
         return jsonify(
-            data = _data,
-            error_code = RET.OK,
-            error_msg = "OK"
+            data=_data,
+            error_code=RET.OK,
+            error_msg="OK"
         )
 
-    
 
 class StrategyRelateEvent(Resource):
     """
@@ -161,6 +164,7 @@ class StrategyRelateEvent(Resource):
         url="/api/v1/product/<int:product_id>/relate", 
         methods=["Post"]
     """
+
     @auth.login_required()
     @response_collect
     @validate()
@@ -184,33 +188,20 @@ class StrategyRelateEvent(Resource):
                 "error_msg": "OK"
             }
         """
-        new_features = ReProductFeature.query.filter_by(product_id = product_id).all()
-        new_feature_ids = list()
-        [new_feature_ids.append(f.id) for f in new_features]
-        if body.feature_id in new_feature_ids:
+        re_feature = ReProductFeature.query.filter_by(product_id=product_id, feature_id=body.feature_id).first()
+        if re_feature:
             return jsonify(
-                error_code = RET.VERIFY_ERR,
-                error_msg = "The feature is new, Please select an inherit feature."
+                error_code=RET.VERIFY_ERR,
+                error_msg="The product has related this feature"
             )
 
-        p = Product.query.filter_by(id=product_id).first()
-        products = Product.query.filter(
-            Product.create_time >= p.create_time
-        ).order_by(
-            Product.create_time.asc(),
-        ).all()
+        re_product_feature_id = InheritFeatureHandler.create_relate_data(body, product_id)
 
-        if len(products) < 1:
-            _data = []       
-
-        _data = InheritFeatureHandler().create_relate_data(body, products)
-            
         return jsonify(
-            data = _data,
-            error_code = RET.OK,
-            error_msg = "OK"
+            data={"id": re_product_feature_id},
+            error_code=RET.OK,
+            error_msg="OK"
         )
-
 
 
 class FeatureSetItemEvent(Resource):
@@ -219,6 +210,7 @@ class FeatureSetItemEvent(Resource):
         url="/api/v1/feature/<int:feature_id>", 
         methods=["Get"]
     """
+
     @auth.login_required()
     @response_collect
     @validate()
@@ -227,7 +219,7 @@ class FeatureSetItemEvent(Resource):
         """
             在数据库中查询指定特性. 
             API: "/api/v1/feature/<int:feature_id>"
-            
+
             返回体:
             {
                 "data": {
@@ -246,23 +238,27 @@ class FeatureSetItemEvent(Resource):
                 "error_code": "2000",
                 "error_msg": "OK"
             } 
-        """            
-        return NodeHandler(
-            Feature,
-            {"id": feature_id}
+        """
+        feature = FeatureHandler(
+            body={"id": feature_id}
         ).get_node()
-
-
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+            data=feature.to_json()
+        )
 
     """
         修改指定特性
         url="/api/v1/feature/<int:feature_id>", 
         methods=["Put"]
     """
+
     @auth.login_required()
     @response_collect
     @validate()
     @value_error_collect
+    @collect_sql_error
     def put(self, feature_id, body: FeatureSetUpdateSchema):
         """
             在数据库中修改指定特性.
@@ -285,52 +281,62 @@ class FeatureSetItemEvent(Resource):
                 "error_code": "2000",
                 "error_msg": "Request processed successfully."
             }   
-        """    
+        """
         data = body.__dict__
         data.update({
             "id": feature_id
         })
         if body.feature:
-            feature = Feature.query.filter_by(id = feature_id).first()
-            feature_put = Feature.query.filter_by(feature = body.feature).first()
+            feature = Feature.query.filter_by(id=feature_id).first()
+            feature_put = Feature.query.filter_by(feature=body.feature).first()
             if feature_put and feature != feature_put:
                 return jsonify(
-                    error_code = RET.VERIFY_ERR,
-                    error_msg = "The title of feature is exist, Please modify."
+                    error_code=RET.VERIFY_ERR,
+                    error_msg="The title of feature is exist, Please modify."
                 )
 
-        return NodeHandler(
-            Feature,
-            data
-        ).put_node()
-
-
+            FeatureHandler(
+                body=data
+            ).put_node(feature)
+            return jsonify(
+                error_code=RET.OK,
+                error_msg="update feature success"
+            )
+        else:
+            return jsonify(
+                error_code=RET.PARMA_ERR,
+                error_msg="feature can't be none"
+            )
 
     """
         删除指定特性
         url="/api/v1/feature/<int:feature_id>", 
         methods=["Delete"]
     """
+
     @auth.login_required()
     @response_collect
     @validate()
     @value_error_collect
+    @collect_sql_error
     def delete(self, feature_id):
         """
             在数据库中删除指定特性.
             API: "/api/v1/feature/<int:feature_id>"
-            
+
             返回体:
             {
                 "error_code": "2000",
                 "error_msg": "Request processed successfully."
             } 
-        """ 
-        return NodeHandler(
-            Feature,
-            {"id": feature_id}
+        """
+        FeatureHandler(
+            body={"id": feature_id}
         ).delete_node()
-
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="delete feature success"
+        )
 
 
 class ProductFeatureEvent(Resource):
@@ -338,11 +344,12 @@ class ProductFeatureEvent(Resource):
         查询指定产品下所有特性，包括新特性以及继承特性(Feature).
         url="/api/v1/product/<int:product_id>/feature", methods=["GET"]
     """
+
     @auth.login_required()
     @response_collect
     @validate()
     @value_error_collect
-    def get(self, product_id, query: FeatureQuerySchema):        
+    def get(self, product_id, query: FeatureQuerySchema):
         """
             在数据库查询产品所有特性，包括新特性以及继承特性.
             返回体:
@@ -364,28 +371,19 @@ class ProductFeatureEvent(Resource):
                 "error_msg": "OK"
             }
         """
-        _body = query.__dict__
-        _body.update({
-            "product_id": product_id,
-        })
-        
         return_data = list()
-        _handler = ProductFeatureHandler(
-            table=Feature, 
-            re_table=ReProductFeature, 
-        )
-        
-        _query = _handler.get_query(_has_re_table=True)
-        filter_params = _handler.get_filter_params(
-            product_id = product_id,
-            query = query
-        )
 
-        product_features = _query.filter(*filter_params).all() 
+        filter_params = [
+            ReProductFeature.product_id == product_id,
+            Feature.id == ReProductFeature.feature_id,
+            ReProductFeature.is_new == query.is_new
+        ]
+
+        product_features = db.session.query(ReProductFeature, Feature).filter(*filter_params).all()
         if not product_features:
             return jsonify(
-                error_code = RET.OK,
-                error_msg = "OK"
+                error_code=RET.OK,
+                error_msg="OK"
             )
 
         for p_f, feature in product_features:
@@ -394,15 +392,12 @@ class ProductFeatureEvent(Resource):
                 **feature.to_json(),
             }
             return_data.append(_feature_data)
-            
-            strategy_commit = ProductFeatureHandler(
-                table=Strategy, 
-                re_table=StrategyCommit
-            ).get_query(_has_re_table=True).filter(
+
+            strategy_commit = db.session.query(StrategyCommit, Strategy).filter(
                 p_f.id == Strategy.product_feature_id,
                 Strategy.id == StrategyCommit.strategy_id,
             ).first()
-            
+
             if not strategy_commit:
                 continue
             _feature_data.update(
@@ -410,11 +405,10 @@ class ProductFeatureEvent(Resource):
             )
 
         return jsonify(
-            data = return_data,
-            error_code = RET.OK,
-            error_msg = "OK"
+            data=return_data,
+            error_code=RET.OK,
+            error_msg="OK"
         )
-
 
 
 class StrategyCommitEvent(Resource):
@@ -423,6 +417,7 @@ class StrategyCommitEvent(Resource):
         url="/api/v1/product-feature/<int:product_feature_id>/strategy", 
         methods=["Get"]
     """
+
     @auth.login_required()
     @response_collect
     @validate()
@@ -443,58 +438,57 @@ class StrategyCommitEvent(Resource):
                 "error_code": "2000",
                 "error_msg": "OK"
             } 
-        """   
+        """
         product_feature = ReProductFeature.query.filter_by(
-            id = product_feature_id
+            id=product_feature_id
         ).first()
         if not product_feature:
             return jsonify(
-                error_code = RET.NO_DATA_ERR, 
-                error_msg = "The no. of re_product_feature {} is not exist".format(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="The no. of re_product_feature {} is not exist".format(
                     product_feature_id
                 )
             )
-            
+
         strategy = Strategy.query.filter_by(
-            product_feature_id = product_feature_id
+            product_feature_id=product_feature_id
         ).first()
         if not strategy:
             return jsonify(
-                error_code = RET.OK, 
-                error_msg = "The strategy is not exist."              
+                error_code=RET.OK,
+                error_msg="The strategy is not exist."
             )
 
-        strategy_commit = StrategyHandler(
-            Strategy,
-            StrategyCommit
-        ).get_query(_has_re_table=True).filter(
+        strategy_commit = db.session.query(StrategyCommit, Strategy).filter(
             product_feature_id == Strategy.product_feature_id,
             Strategy.id == StrategyCommit.strategy_id,
         ).first()
-        
+
         if strategy_commit:
             return jsonify(
-                data = strategy_commit[0].to_json(),
-                error_code = RET.OK,
-                error_msg = "OK"
+                data=strategy_commit[0].to_json(),
+                error_code=RET.OK,
+                error_msg="OK"
             )
         else:
-            return NodeHandler(
-                Strategy,
-                {"id": strategy.id}
-            ).get_node()
-            
-        
+            strategy = Strategy.query.filter_by(id=strategy.id).first()
+            return jsonify(
+                data=strategy.to_json(),
+                error_code=RET.OK,
+                error_msg="OK"
+            )
 
     """
         创建测试策略
         url="/api/v1/product-feature/<int:product_feature_id>/strategy", 
         methods=["POST"]
     """
+
     @auth.login_required()
     @response_collect
     @validate()
     @value_error_collect
+    @collect_sql_error
     def post(self, product_feature_id, body: StrategyBodySchema):
         """
             在数据库中创建测试策略.
@@ -515,14 +509,61 @@ class StrategyCommitEvent(Resource):
             "error_code": "2000",
             "error_msg": "OK"
             }  
-        """   
-        handler = StrategyEventHandler(
-            StrategyCommit,
-            Strategy,
-            product_feature_id = product_feature_id
-        )
-        return handler.create_strategy(product_feature_id, body)
+        """
+        feature = Feature.query.join(ReProductFeature).filter(
+            ReProductFeature.id == product_feature_id,
+            ReProductFeature.feature_id == Feature.id
+        ).first()
 
+        if not feature:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="feature is not exists"
+            )
+
+        strategy_commit = db.session.query(StrategyCommit).filter(
+            Strategy.product_feature_id == product_feature_id,
+            StrategyCommit.strategy_id == Strategy.id
+        ).first()
+        if strategy_commit:
+            return jsonify(
+                error_code=RET.DATA_EXIST_ERR,
+                error_msg="strategy commit is not empty"
+            )
+
+        strategy_record = Strategy()
+        strategy_record.product_feature_id = product_feature_id
+        strategy_record.file_type = "New"
+        strategy_record.tree = json.dumps(
+            {"data": {
+                "text": feature.feature + "测试策略",
+                "id": 0
+            }}
+        )
+        strategy_record.creator_id = g.gitee_id
+        strategy_record.org_id = redis_client.hget(
+            RedisKey.user(g.gitee_id),
+            "current_org_id"
+        )
+
+        db.session.add(strategy_record)
+        db.session.flush()
+
+        strategy_commit_record = StrategyCommit()
+        strategy_commit_record.strategy_id = strategy_record.id
+        strategy_commit_record.commit_status = "staged"
+        text = body.tree.get("data").get("text") + "测试策略"
+        body.tree.get("data").update({"text": text})
+        strategy_commit_record.commit_tree = json.dumps(body.tree)
+        db.session.add(strategy_commit_record)
+        db.session.flush()
+
+        db.session.commit()
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+            data={"id": strategy_commit_record.id}
+        )
 
 
 class StrategyItemEvent(Resource):
@@ -531,6 +572,7 @@ class StrategyItemEvent(Resource):
         url="/api/v1/strategy/<int:strategy_id>", 
         methods=["Get"]
     """
+
     @auth.login_required()
     @response_collect
     @validate()
@@ -551,24 +593,25 @@ class StrategyItemEvent(Resource):
                 "error_code": "2000",
                 "error_msg": "OK"
             }
-        """   
-
-        return NodeHandler(
-            Strategy,
-            {"id": strategy_id}
-        ).get_node()
-
-
+        """
+        strategy = Strategy.query.filter_by(id=strategy_id).first()
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+            data=strategy.to_json()
+        )
 
     """
         删除测试策略
         url="/api/v1/strategy/<int:strategy_id>", 
         methods=["Delete"]
     """
+
     @auth.login_required()
     @response_collect
     @validate()
     @value_error_collect
+    @collect_sql_error
     def delete(self, strategy_id):
         """
             在数据库中删除测试策略.
@@ -579,18 +622,28 @@ class StrategyItemEvent(Resource):
                 "error_code": "2000",
                 "error_msg": "Request processed successfully."
             }   
-        """   
-        StrategyEventHandler(
-            StrategyCommit,
-            Strategy,
-            strategy_id = strategy_id
-        ).check_commit_not_exist()
+        """
+        filter_params = [
+            StrategyCommit.strategy_id == strategy_id,
+            StrategyCommit.strategy_id == Strategy.id
+        ]
 
-        return NodeHandler(
-            Strategy,
-            {"id": strategy_id}
-        ).delete_node()
+        strategy_commit = db.session.query(Strategy, StrategyCommit).filter(*filter_params).first()
+        if strategy_commit:
+            return jsonify(
+                error_code=RET.DATA_EXIST_ERR,
+                error_msg="Cannot be deleted because there is strategy-commit data."
+            )
 
+        strategy = Strategy.query.filter_by(id=strategy_id).first()
+        if strategy:
+            db.session.delete(strategy)
+            db.session.commit()
+
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="delete strategy success"
+        )
 
 
 class StrategyTemplateEvent(Resource):
@@ -599,6 +652,7 @@ class StrategyTemplateEvent(Resource):
         url="/api/v1/strategy-template", 
         methods=["Get"]
     """
+
     @auth.login_required()
     @response_collect
     @validate()
@@ -620,22 +674,27 @@ class StrategyTemplateEvent(Resource):
                 "error_msg": "OK"
             }  
         """
-        return NodeHandler(
-            StrategyTemplate,
-            query.__dict__
-        ).get_query_nodes()
-
-
+        if query.title:
+            strategy_templates = StrategyTemplate.query.filter(StrategyTemplate.title.like(f"%{query.title}%")).all()
+        else:
+            strategy_templates = StrategyTemplate.query.all()
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+            data=[item.to_json() for item in strategy_templates]
+        )
 
     """
         创建测试策略模板
         url="/api/v1/strategy-template", 
         methods=["POST"]
     """
+
     @auth.login_required()
     @response_collect
     @validate()
     @value_error_collect
+    @collect_sql_error
     def post(self, body: StrategyTemplateBodySchema):
         """
             在数据库中创建测试策略模板.
@@ -652,21 +711,32 @@ class StrategyTemplateEvent(Resource):
             "error_code": "2000",
             "error_msg": "OK"
             }  
-        """   
+        """
         _body = body.__dict__
-        _body.update({
-            "tree": json.dumps(body.tree)
-        })
-        return NodeHandler(
-            StrategyTemplate,
-            _body,
-            filter_params=[
-                StrategyTemplate.title == body.title
-            ]
-        ).create_node(
-            is_addition_body = True
+        strategy_template = StrategyTemplate.query.filter_by(title=_body.get("title")).first()
+        if strategy_template:
+            return jsonify(
+                error_code=RET.VERIFY_ERR,
+                error_msg="template name is already exists",
+            )
+        creator_id = g.gitee_id
+        org_id = redis_client.hget(
+            RedisKey.user(g.gitee_id),
+            "current_org_id"
         )
 
+        _body.update({
+            "tree": json.dumps(body.tree),
+            "creator_id": creator_id,
+            "org_id": org_id
+        })
+
+        strategy_template_id = Insert(StrategyTemplate, _body).insert_id()
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+            data={"id": strategy_template_id}
+        )
 
 
 class StrategyTemplateItemEvent(Resource):
@@ -675,6 +745,7 @@ class StrategyTemplateItemEvent(Resource):
         url="/api/v1/strategy-template/<int:strategy_template_id>", 
         methods=["Get"]
     """
+
     @auth.login_required()
     @response_collect
     @validate()
@@ -696,18 +767,23 @@ class StrategyTemplateItemEvent(Resource):
                 "error_msg": "OK"
             } 
         """
-        return NodeHandler(
-            StrategyTemplate,
-            {"id": strategy_template_id}
-        ).get_node()
-
-
+        strategy_template = StrategyTemplate.query.filter_by(id=strategy_template_id).first()
+        if not strategy_template:
+            data = {}
+        else:
+            data = strategy_template.to_json()
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+            data=data
+        )
 
     """
         修改测试策略模板
         url="/api/v1/strategy-template/<int:strategy_template_id>", 
         methods=["Put"]
     """
+
     @auth.login_required()
     @response_collect
     @validate()
@@ -728,31 +804,24 @@ class StrategyTemplateItemEvent(Resource):
             "id": strategy_template_id,
             "tree": json.dumps(body.tree)
         })
-        if body.title:
-            s_t = StrategyTemplate.query.filter_by(id = strategy_template_id).first()
-            s_t_put = StrategyTemplate.query.filter_by(title = body.title).first()
-            if s_t_put and s_t != s_t_put:
-                return jsonify(
-                    error_code = RET.VERIFY_ERR,
-                    error_msg = "The title is exist, Please modify."
-                )
-        
-        return NodeHandler(
-            StrategyTemplate,
-            _body,
-        ).put_node()
 
-
+        Edit(StrategyTemplate, _body).single(StrategyTemplate, "/strategytemplate")
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK"
+        )
 
     """
         删除测试策略模板
         url="/api/v1/strategy-template/<int:strategy_template_id>", 
         methods=["Delete"]
     """
+
     @auth.login_required()
     @response_collect
     @validate()
     @value_error_collect
+    @collect_sql_error
     def delete(self, strategy_template_id):
         """
             在数据库中删除测试策略模板.
@@ -764,10 +833,15 @@ class StrategyTemplateItemEvent(Resource):
                 "error_msg": "Request processed successfully."
             }  
         """
-        return NodeHandler(
-            StrategyTemplate,
-            {"id" : strategy_template_id}
-        ).delete_node()
+        strategy_template = StrategyTemplate.query.filter_by(id=strategy_template_id).first()
+        if strategy_template:
+            db.session.delete(strategy_template)
+            db.session.commit()
+
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="delete strategy template success"
+        )
 
 
 class StrategyTemplateApplyEvent(Resource):
@@ -776,10 +850,12 @@ class StrategyTemplateApplyEvent(Resource):
         url=""/api/v1/strategy-template/<int:strategy_template_id>/apply/strategy/<int:product_feature_id>", 
         methods=["POST"]
     """
+
     @auth.login_required()
     @response_collect
     @validate()
     @value_error_collect
+    @collect_sql_error
     def post(self, strategy_template_id, product_feature_id):
         """
             在数据库中应用测试策略模板.
@@ -792,38 +868,144 @@ class StrategyTemplateApplyEvent(Resource):
             "error_code": "2000",
             "error_msg": "OK"
             }  
-        """ 
-        handler = StrategyEventHandler(
-            StrategyCommit,
-            Strategy,
-            product_feature_id = product_feature_id
-        )
-        handler.check_strategy_exist(False) 
-        handler.check_commit_not_exist()   
-        handler.check_feature_exist() 
+        """
+        strategy = Strategy.query.filter_by(product_feature_id=product_feature_id).first()
+        if strategy:
+            return jsonify(
+                error_code=RET.DATA_EXIST_ERR,
+                error_msg="The strategy is already exist."
+            )
+        strategy_commit = db.session.query(StrategyCommit).filter(
+            Strategy.product_feature_id == product_feature_id,
+            StrategyCommit.strategy_id == Strategy.id
+        ).first()
+
+        if strategy_commit:
+            return jsonify(
+                error_code=RET.DATA_EXIST_ERR,
+                error_msg="The strategy commit is exist."
+            )
+
+        feature = Feature.query.join(ReProductFeature).filter(
+            ReProductFeature.id == product_feature_id,
+            ReProductFeature.feature_id == Feature.id
+        ).first()
+
+        if not feature:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="feature is not exist."
+            )
 
         s_t = StrategyTemplate.query.filter_by(
-            id = strategy_template_id
+            id=strategy_template_id
         ).first()
         if not s_t:
             return jsonify(
-                error_code = RET.NO_DATA_ERR,
-                error_msg = "The strategy template is not exist."
+                error_code=RET.NO_DATA_ERR,
+                error_msg="The strategy template is not exist."
             )
-        handler = StrategyEventHandler(
-            StrategyCommit,
-            Strategy,
-            product_feature_id = product_feature_id
+
+        strategy_record = Strategy()
+        strategy_record.product_feature_id = product_feature_id
+        strategy_record.file_type = "New"
+        strategy_record.tree = json.dumps(
+            {"data": {
+                "text": feature.feature,
+                "id": 0
+            }}
         )
-        return handler.create_strategy(
-            product_feature_id, 
-            StrategyBodySchema(**
-                {
-                    "tree": json.loads(s_t.tree),
-                }
-            )
+        strategy_record.creator_id = g.gitee_id
+        strategy_record.org_id = redis_client.hget(
+            RedisKey.user(g.gitee_id),
+            "current_org_id"
         )
 
+        db.session.add(strategy_record)
+        db.session.flush()
+
+        strategy_commit_record = StrategyCommit()
+        strategy_commit_record.strategy_id = strategy_record.id
+        strategy_commit_record.commit_status = "staged"
+        strategy_commit_record.commit_tree = s_t.tree
+        db.session.add(strategy_commit_record)
+        db.session.flush()
+
+        db.session.commit()
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+            data={"id": strategy_commit_record.id}
+        )
+
+
+class StrategyImportEvent(Resource):
+    """
+        暂存测试策略commit
+        url="/api/v1/product-feature/<int:product_feature_id>/import", 
+        methods=["POST"]
+    """
+
+    @auth.login_required()
+    @response_collect
+    @validate()
+    @value_error_collect
+    def post(self, product_feature_id):
+        """
+            暂存在数据库中创建测试策略commit.
+            API: "/api/v1/product-feature/<int:product_feature_id>/import"
+            请求体:
+            {
+                "commit_status": str,
+                "commit_tree": dict,
+            }
+
+            返回体:
+            {
+            "data": {
+                id: int
+            },
+            "error_code": "2000",
+            "error_msg": "OK"
+            }  
+        """
+        # 二进制 md
+        # md dict
+        #
+
+        pass
+
+
+class StrategyExportEvent(Resource):
+    """
+        暂存测试策略commit
+        url="/api/v1/product-feature/<int:product_feature_id>/import", 
+        methods=["POST"]
+    """
+
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def post(self, product_feature_id):
+        """
+            暂存在数据库中创建测试策略commit.
+            API: "/api/v1/product-feature/<int:product_feature_id>/import"
+            请求体:
+            {
+                "commit_status": str,
+                "commit_tree": dict,
+            }
+
+            返回体:
+            {
+            "data": {
+                id: int
+            },
+            "error_code": "2000",
+            "error_msg": "OK"
+            }  
+        """
+        pass
 
 
 class StrategySubmmitEvent(Resource):
@@ -832,11 +1014,13 @@ class StrategySubmmitEvent(Resource):
         url="/api/v1/strategy/<int:strategy_id>/submmit", 
         methods=["POST"]
     """
+
     @auth.login_required()
     @response_collect
     @validate()
     @value_error_collect
-    def post(self, strategy_id, body: CommitBodySchema):
+    @collect_sql_error
+    def post(self, strategy_id):
         """
             暂存在数据库中创建测试策略commit.
             API: "/api/v1/strategy/<int:strategy_id>/submmit"
@@ -854,61 +1038,41 @@ class StrategySubmmitEvent(Resource):
             "error_code": "2000",
             "error_msg": "OK"
             }  
-        """   
-        check_handler = StrategyEventHandler(
-            StrategyCommit,
-            Strategy,
-            strategy_id = strategy_id
-        )
-        strategy = check_handler.check_strategy_exist()  
-        check_handler.check_commit_creator()
-        check_handler.check_commit_status()
-        
-        strategy_commit = StrategyCommit.query.filter_by(
-            strategy_id = strategy.id
+        """
+
+        strategy_commit_info = db.session.query(Strategy, StrategyCommit).filter(
+            StrategyCommit.strategy_id == strategy_id,
+            StrategyCommit.strategy_id == Strategy.id,
+            Strategy.creator_id == g.gitee_id,
+            StrategyCommit.commit_status == "staged"
         ).first()
-        
-        if not strategy_commit:
+        if not strategy_commit_info:
             return jsonify(
-                error_code = RET.VERIFY_ERR,
-                error_msg = "The strategy_commit is not exist."
+                error_code=RET.NO_DATA_ERR,
+                error_msg="strategy commint is not exists"
             )
 
-        NodeHandler(  
-            StrategyCommit,
-            {
-                "commit_status": "submitted", 
-                "id": strategy_commit.id
-            }
-        ).put_node()
-
-        try:             
+        strategy_commit = strategy_commit_info[1]
+        try:
             handler = CommitHandler(strategy_id)
             handler.create_fork()
-            
+
             handler.create_branch()
-            # 需要将tree转成md_content
+
             md_content = strategy_commit.commit_tree
-            
             handler.git_operate(md_content)
-            
-            handler.create_pull_request(body=body.__dict__)  
+            strategy_commit.commit_status = "submitted"
+            strategy_commit.add_update()
         except (RuntimeError, ValueError, TypeError) as e:
-            NodeHandler(  
-                StrategyCommit,
-                {
-                    "commit_status": "staged",
-                    "id": strategy_commit.id
-                }
-            ).put_node()
-            
+            strategy_commit.commit_status = "staged"
+            strategy_commit.add_update()
             return jsonify(
-                error_code = RET.RUNTIME_ERROR,
-                error_msg = str(e)
+                error_code=RET.RUNTIME_ERROR,
+                error_msg=str(e)
             )
         return jsonify(
-            error_code = RET.OK,
-            error_msg = "OK"
+            error_code=RET.OK,
+            error_msg="OK"
         )
 
 
@@ -918,6 +1082,7 @@ class StrategyCommitStageEvent(Resource):
         url="/api/v1/strategy/<int:strategy_id>/strategy-commit/stage", 
         methods=["POST"]
     """
+
     @auth.login_required()
     @response_collect
     @validate()
@@ -940,43 +1105,38 @@ class StrategyCommitStageEvent(Resource):
             "error_code": "2000",
             "error_msg": "OK"
             }  
-        """            
+        """
         _body = body.__dict__
         _body.update({
             "strategy_id": strategy_id,
             "commit_tree": json.dumps(body.commit_tree)
         })
-        
-        
-        handler = StrategyEventHandler(
-            StrategyCommit,
-            Strategy,
-            strategy_id = strategy_id
-        )
-        handler.check_strategy_exist() 
-        is_exist = handler.check_commit() 
-        if is_exist: 
-            handler.check_commit_creator()
-            handler.check_commit_status() 
 
-            strategy_commit = StrategyCommit.query.filter_by(
-                strategy_id = strategy_id
-            ).first()
+        strategy_commit_info = db.session.query(Strategy, StrategyCommit).filter(
+            StrategyCommit.strategy_id == strategy_id,
+            StrategyCommit.strategy_id == Strategy.id,
+            Strategy.creator_id == g.gitee_id,
+            StrategyCommit.commit_status == "staged"
+        ).first()
 
+        if strategy_commit_info:
+            strategy_commit = strategy_commit_info[1]
             _body.update({
                 "id": strategy_commit.id
             })
-
-            return NodeHandler(
-                StrategyCommit,
-                _body
-            ).put_node()
+            Edit(StrategyCommit, _body).single(StrategyCommit, "/strategycommit")
+            return jsonify(
+                error_code=RET.OK,
+                error_msg="OK",
+                data={"id": strategy_commit.id}
+            )
         else:
-            return NodeHandler(
-                StrategyCommit,
-                _body
-            ).create_node()
-
+            strategy_commit_id = Insert(StrategyCommit, _body).insert_id()
+            return jsonify(
+                error_code=RET.OK,
+                error_msg="OK",
+                data={"id": strategy_commit_id}
+            )
 
 
 class StrategyCommitItemEvent(Resource):
@@ -985,6 +1145,7 @@ class StrategyCommitItemEvent(Resource):
         url="/api/v1/product-feature/<int:product_feature_id>/strategy-commit", 
         methods=["Get"]
     """
+
     @auth.login_required()
     @response_collect
     @validate()
@@ -1007,27 +1168,25 @@ class StrategyCommitItemEvent(Resource):
                 "error_code": "2000",
                 "error_msg": "OK"
             }
-        """   
+        """
         strategy = Strategy.query.filter_by(product_feature_id=product_feature_id).first()
         if not strategy:
             return jsonify(
-                error_code = RET.OK,
-                error_msg = "The strategy is not exist."
+                error_code=RET.OK,
+                error_msg="The strategy is not exist."
             )
-        
-        s_c = StrategyCommit.query.filter_by(strategy_id = strategy.id).first()
-        if not s_c:
-            return jsonify(
-                error_code = RET.OK,
-                error_msg = "The strategy-commit is not exist."
-            )
-        
-        return NodeHandler(
-            StrategyCommit,
-            {"id": s_c.id}
-        ).get_node()
 
+        strategy_commit = StrategyCommit.query.filter_by(strategy_id=strategy.id).first()
+        if not strategy_commit:
+            data = {}
+        else:
+            data = strategy_commit.to_json()
 
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+            data=data
+        )
 
     @auth.login_required()
     @response_collect
@@ -1043,19 +1202,14 @@ class StrategyCommitItemEvent(Resource):
                 "error_code": "2000",
                 "error_msg": "Request processed successfully."
             }  
-        """   
+        """
         _body = body.__dict__
         _body.update({
             **_body,
-            "id" : strategy_commit_id,
+            "id": strategy_commit_id,
             "commit_tree": json.dumps(body.commit_tree)
         })
-
-        return NodeHandler(
-            StrategyCommit,
-            _body
-        ).put_node()
-
+        return Edit(StrategyCommit, _body).single(StrategyCommit, "/strategycommit")
 
 
 class StrategyCommitReductEvent(Resource):
@@ -1064,10 +1218,12 @@ class StrategyCommitReductEvent(Resource):
         url="/api/v1/strategy/<int:strategy_id>/reduct", 
         methods=["Delete"]
     """
+
     @auth.login_required()
     @response_collect
     @validate()
     @value_error_collect
+    @collect_sql_error
     def delete(self, strategy_id):
         """
             在数据库中还原测试策略commit.
@@ -1078,29 +1234,27 @@ class StrategyCommitReductEvent(Resource):
                 "error_code": "2000",
                 "error_msg": "Request processed successfully."
             }   
-        """     
-        strategy_commit = StrategyCommit.query.filter_by(
-            strategy_id = strategy_id
+        """
+        strategy_commit_info = db.session.query(Strategy, StrategyCommit).filter(
+            StrategyCommit.strategy_id == strategy_id,
+            StrategyCommit.strategy_id == Strategy.id,
+            Strategy.creator_id == g.gitee_id,
+            StrategyCommit.commit_status == "staged"
         ).first()
-        
-        if not strategy_commit:
-            return jsonify(
-                error_code = RET.VERIFY_ERR,
-                error_msg = "The strategy_commit is not exist."
-            )
-        
-        handler = StrategyEventHandler(
-            StrategyCommit,
-            Strategy,
-            strategy_commit_id = strategy_commit.id
-        )
-        handler.check_commit_creator()
-        handler.check_commit_status()
-        return NodeHandler(
-            StrategyCommit,
-            {"id": strategy_commit.id}
-        ).delete_node()
 
+        if not strategy_commit_info:
+            return jsonify(
+                error_code=RET.VERIFY_ERR,
+                error_msg="The strategy_commit is not exist."
+            )
+
+        strategy_commit = strategy_commit_info[1]
+        db.session.delete(strategy_commit)
+        db.session.commit()
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK"
+        )
 
 
 class ProductInheritFeatureEvent(Resource):
@@ -1109,6 +1263,7 @@ class ProductInheritFeatureEvent(Resource):
         url="/api/v1/product/<int:product_id>/inherit-feature", 
         methods=["POST"]
     """
+
     @auth.login_required()
     @response_collect
     @validate()
@@ -1135,16 +1290,16 @@ class ProductInheritFeatureEvent(Resource):
 
         if not product:
             return jsonify(
-                error_code = RET.OK,
-                error_msg = "The older product is not exist."  
+                error_code=RET.OK,
+                error_msg="The older product is not exist."
             )
 
-        fs,_data = list(), list()
-        fs = InheritFeatureHandler().get_all_feature(product)
-        if fs:
-            _data = InheritFeatureHandler(product_id).create_inherit_data(fs) 
+        fs, _data = list(), list()
+        fs = InheritFeatureHandler().get_inherit_feature(product)
+        for item in fs:
+            _data.append(item.id)
         return jsonify(
-            data = _data,
-            error_code = RET.OK,
-            error_msg = "OK"
+            data=_data,
+            error_code=RET.OK,
+            error_msg="OK"
         )

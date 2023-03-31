@@ -100,7 +100,7 @@ class StrategyTemplate(BaseModel, db.Model):
     __tablename__ = "strategy_template"
 
     id = db.Column(db.Integer(), primary_key=True)
-    title = db.Column(db.String(255), nullable=False)
+    title = db.Column(db.String(255), nullable=False, unique=True)
     tree = db.Column(LONGTEXT())
     org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
     creator_id = db.Column(db.Integer(), db.ForeignKey("user.gitee_id"))
