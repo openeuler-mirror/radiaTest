@@ -83,6 +83,11 @@ CaseNodeType = Literal["directory", "suite", "case", "baseline"]
 #权限归属
 PermissionType = Literal["person", "group", "org", "public"]
 
+## 测试策略导入文件类型
+StrategyImportFileType = Literal["md", "yaml", "json", "New"]
+
+# 测试策略提交状态
+StrategyCommitStatus = Literal["staged", "submitted"]
 
 #提交类型
 CommitType = Literal['week', 'halfMonth', 'month']

@@ -31,15 +31,13 @@ class ReProductFeature(BaseModel, db.Model):
     strategy = db.relationship(
         "Strategy", backref="re_product_feature"
     )
-    is_archived = db.Column(db.Boolean(), default=False)
-
 
     def to_json(self):
         return_data = {
             "product_feature_id": self.id,
             "product_id": self.product_id,
-            "is_archived": self.is_archived,
             "is_new": self.is_new,
+            "feature_id": self.feature_id
         }
         return return_data
 
@@ -85,6 +83,14 @@ class StrategyCommit(BaseModel, db.Model):
             "id": self.id,
             "commit_tree": self.commit_tree,
             "commit_status": self.commit_status,
+            "strategy_id": self.strategy_id,
+        }
+        return return_data
+
+    def to_combine_json(self):
+        return_data = {
+            "strategy_commit_id": self.id,
+            "strategy_commit_status": self.commit_status,
             "strategy_id": self.strategy_id,
         }
         return return_data

@@ -24,7 +24,7 @@ from . import qualityboard
 from . import requirement
 from . import manualjob
 from . import baseline_template
-
+from . import strategy
 
 def init_api(app: Flask):
     app.register_blueprint(gitee)
@@ -51,3 +51,4 @@ def init_api(app: Flask):
     requirement.init_api(api)
     manualjob.init_api(api)  # 手工测试任务(ManualJob)相关接口
     baseline_template.init_api(api)
+    strategy.init_api(api)
