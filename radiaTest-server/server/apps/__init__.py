@@ -1,30 +1,49 @@
+# Copyright (c) [2022] Huawei Technologies Co.,Ltd.ALL rights reserved.
+# This program is licensed under Mulan PSL v2.
+# You can use it according to the terms and conditions of the Mulan PSL v2.
+#          http://license.coscl.org.cn/MulanPSL2
+# THIS PROGRAM IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+# EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+# MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+# See the Mulan PSL v2 for more details.
+####################################
+# @Author  :
+# @email   :
+# @Date    :
+# @License : Mulan PSL v2
+#####################################
+
 from flask import Flask
 from flask_restful import Api
 
-from .user.routes import gitee
-from . import user
-from . import administrator
-from . import group
-from . import organization
-from . import message
-from . import task
-from . import job
-from . import milestone
-from . import mirroring
-from . import pmachine
-from . import product
-from . import template
-from . import testcase
-from . import vmachine
-from . import external
-from . import framework
-from . import permission
-from . import celerytask
-from . import qualityboard
-from . import requirement
-from . import manualjob
-from . import baseline_template
-from . import strategy
+from server.apps.user.routes import gitee
+from server.apps import (
+    user,
+    administrator,
+    group,
+    organization,
+    message,
+    task,
+    job,
+    milestone,
+    issue,
+    mirroring,
+    pmachine,
+    product,
+    template,
+    testcase,
+    vmachine,
+    external,
+    framework,
+    permission,
+    celerytask,
+    qualityboard,
+    requirement,
+    manualjob,
+    baseline_template,
+    strategy,
+)
+
 
 def init_api(app: Flask):
     app.register_blueprint(gitee)
@@ -37,6 +56,7 @@ def init_api(app: Flask):
     task.init_api(api)
     job.init_api(api)
     milestone.init_api(api)
+    issue.init_api(api)
     mirroring.init_api(api)
     pmachine.init_api(api)
     product.init_api(api)

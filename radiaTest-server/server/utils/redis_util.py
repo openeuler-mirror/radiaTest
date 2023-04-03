@@ -1,3 +1,18 @@
+# Copyright (c) [2022] Huawei Technologies Co.,Ltd.ALL rights reserved.
+# This program is licensed under Mulan PSL v2.
+# You can use it according to the terms and conditions of the Mulan PSL v2.
+#          http://license.coscl.org.cn/MulanPSL2
+# THIS PROGRAM IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+# EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+# MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+# See the Mulan PSL v2 for more details.
+####################################
+# @Author  :
+# @email   :
+# @Date    :
+# @License : Mulan PSL v2
+#####################################
+
 import redis
 from flask import _app_ctx_stack
 
@@ -94,3 +109,4 @@ class RedisKey(object):
     access_token = lambda gitee_id: f"access_token_{gitee_id}"
     issue_types = lambda enterprise_id: f"issue_types_{enterprise_id}"
     issue_states = lambda enterprise_id: f"issue_states_{enterprise_id}"
+    projects = lambda enterprise_id: f"projects_{enterprise_id}"

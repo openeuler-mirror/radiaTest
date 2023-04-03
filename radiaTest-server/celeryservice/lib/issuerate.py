@@ -1,15 +1,28 @@
+# Copyright (c) [2022] Huawei Technologies Co.,Ltd.ALL rights reserved.
+# This program is licensed under Mulan PSL v2.
+# You can use it according to the terms and conditions of the Mulan PSL v2.
+#          http://license.coscl.org.cn/MulanPSL2
+# THIS PROGRAM IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+# EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+# MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+# See the Mulan PSL v2 for more details.
+####################################
+# @Author  :
+# @email   :
+# @Date    :
+# @License : Mulan PSL v2
+#####################################
+
 import json
 from celery import current_app as celery
 import sqlalchemy
-from server.utils.requests_util import do_request
 from server.utils.response_util import RET
-from server.utils.db import Insert, Edit, collect_sql_error
-from server import db
+from server.utils.db import Insert
 from server.model.milestone import Milestone, IssueSolvedRate
 from server.model.organization import Organization
 from server.model.product import Product
 from server.model.qualityboard import Round
-from server.apps.milestone.handler import IssueStatisticsHandlerV8, IssueOpenApiHandlerV8
+from server.apps.milestone.handler import IssueStatisticsHandlerV8, GiteeV8BaseIssueHandler
 from celeryservice.lib import TaskHandlerBase
 
 
@@ -17,22 +30,40 @@ class UpdateIssueRateData:
     def __init__(self, gitee_id, products):
         self.gitee_id = gitee_id
         self.products = products
-        self.issue_v8 = IssueStatisticsHandlerV8(
+        self.issue_v8 = GiteeV8BaseIssueHandler(
             gitee_id=gitee_id, org_id=products.get("org_id")
         )
+        self.bug_issue_type_id = self.issue_v8.get_bug_issue_type_id("缺陷")
+
+        self.all_state_ids = self.issue_v8.get_state_ids_inversion(
+            set(["已挂起", "已取消", "已拒绝"])
+        )
+        self.serious_state_ids = self.issue_v8.get_state_ids(
+            set(["已完成", "已验收", "已挂起", "已取消", "已拒绝"])
+        )
+        self.current_resolved_state_ids = self.issue_v8.get_state_ids(
+            set(["已完成", "已验收"])
+        )
+        self.left_state_ids = self.issue_v8.get_state_ids(
+            set(["已挂起"])
+        )
+        self.invalid_state_ids = self.issue_v8.get_state_ids(
+            set(["已取消", "已拒绝"])
+        )
+
 
         self.param = {
             "serious_resolved_rate": {
                 "all": {
                     "milestone_id": "",
                     "priority": 4,
-                    "issue_type_id": self.issue_v8.bug_issue_type_id,
+                    "issue_type_id": self.bug_issue_type_id,
                 },
                 "part": {
                     "milestone_id": "",
                     "priority": 4,
-                    "issue_state_ids": self.issue_v8.serious_state_ids,
-                    "issue_type_id": self.issue_v8.bug_issue_type_id,
+                    "issue_state_ids": self.serious_state_ids,
+                    "issue_type_id": self.bug_issue_type_id,
                 },
                 "p_fields": {
                     "serious_resolved_rate": "",
@@ -47,13 +78,13 @@ class UpdateIssueRateData:
                 "all": {
                     "milestone_id": "",
                     "priority": 3,
-                    "issue_type_id": self.issue_v8.bug_issue_type_id,
+                    "issue_type_id": self.bug_issue_type_id,
                 },
                 "part": {
                     "milestone_id": "",
                     "priority": 3,
-                    "issue_state_ids": self.issue_v8.serious_state_ids,
-                    "issue_type_id": self.issue_v8.bug_issue_type_id,
+                    "issue_state_ids": self.serious_state_ids,
+                    "issue_type_id": self.bug_issue_type_id,
                 },
                 "p_fields": {
                     "main_resolved_rate": "",
@@ -68,13 +99,13 @@ class UpdateIssueRateData:
                 "all": {
                     "milestone_id": "",
                     "priority": "3,4",
-                    "issue_type_id": self.issue_v8.bug_issue_type_id,
+                    "issue_type_id": self.bug_issue_type_id,
                 },
                 "part": {
                     "milestone_id": "",
                     "priority": "3,4",
-                    "issue_state_ids": self.issue_v8.serious_state_ids,
-                    "issue_type_id": self.issue_v8.bug_issue_type_id,
+                    "issue_state_ids": self.serious_state_ids,
+                    "issue_type_id": self.bug_issue_type_id,
                 },
                 "p_fields": {
                     "serious_main_resolved_cnt": "",
@@ -92,13 +123,13 @@ class UpdateIssueRateData:
             "current_resolved_rate": {
                 "all": {
                     "milestone_id": "",
-                    "issue_state_ids": self.issue_v8.all_state_ids,
-                    "issue_type_id": self.issue_v8.bug_issue_type_id,
+                    "issue_state_ids": self.all_state_ids,
+                    "issue_type_id": self.bug_issue_type_id,
                 },
                 "part": {
                     "milestone_id": "",
-                    "issue_state_ids": self.issue_v8.current_resolved_state_ids,
-                    "issue_type_id": self.issue_v8.bug_issue_type_id,
+                    "issue_state_ids": self.current_resolved_state_ids,
+                    "issue_type_id": self.bug_issue_type_id,
                 },
                 "p_fields": {
                     "current_resolved_cnt": "",
@@ -116,8 +147,8 @@ class UpdateIssueRateData:
             "left_issues_cnt": {
                 "all": {
                     "milestone_id": "",
-                    "issue_state_ids": self.issue_v8.left_state_ids,
-                    "issue_type_id": self.issue_v8.bug_issue_type_id,
+                    "issue_state_ids": self.left_state_ids,
+                    "issue_type_id": self.bug_issue_type_id,
                 },
                 "p_fields": {
                     "left_issues_cnt": "",
@@ -131,8 +162,8 @@ class UpdateIssueRateData:
             "invalid_issues_cnt": {
                 "all": {
                     "milestone_id": "",
-                    "issue_state_ids": self.issue_v8.invalid_state_ids,
-                    "issue_type_id": self.issue_v8.bug_issue_type_id,
+                    "issue_state_ids": self.invalid_state_ids,
+                    "issue_type_id": self.bug_issue_type_id,
                 },
                 "p_fields": {
                     "invalid_issues_cnt": "",
@@ -157,11 +188,6 @@ class UpdateIssueRateData:
         if not param1:
             return
         issue_resolved_rate_dict = dict()
-        issue_resolved_rate_dict.update(
-            {
-                "id": self.products.get("product_id"),
-            }
-        )
         milestone_ids = ""
         for _milestone in milestones:
             milestone_ids = ",".join(
@@ -201,7 +227,11 @@ class UpdateIssueRateData:
             if "issues_cnt" in k:
                 issue_resolved_rate_dict.update({k: all_cnt})
 
-        Edit(Product, issue_resolved_rate_dict).single(Product, "/product")
+        product = Product.query.get(self.products.get("product_id"))
+        for key, value in issue_resolved_rate_dict.items():
+            if value is not None:
+                setattr(product, key, value)
+        product.add_update()
 
     def update_milestone_issue_resolved_rate(self,  gitee_milestone_id, field: str):
         from server.apps.qualityboard.handlers import QualityResultCompareHandler
@@ -253,9 +283,10 @@ class UpdateIssueRateData:
         issue_rate = IssueSolvedRate.query.filter_by(
             gitee_milestone_id=gitee_milestone_id).first()
         if issue_rate:
-            issue_resolved_rate_dict.update({"id": issue_rate.id})
-            Edit(IssueSolvedRate, issue_resolved_rate_dict).single(
-                IssueSolvedRate, "/issue_solved_rate")
+            for key, value in issue_resolved_rate_dict.items():
+                if value is not None:
+                    setattr(issue_rate, key, value)
+            issue_rate.add_update()
 
     def update_round_issue_resolved_rate(self, round_id, field: str):
         from server.apps.qualityboard.handlers import QualityResultCompareHandler
@@ -306,9 +337,10 @@ class UpdateIssueRateData:
         issue_rate = IssueSolvedRate.query.filter_by(
             round_id=round_id, type="round").first()
         if issue_rate:
-            issue_resolved_rate_dict.update({"id": issue_rate.id})
-            Edit(IssueSolvedRate, issue_resolved_rate_dict).single(
-                IssueSolvedRate, "/issue_solved_rate")
+            for key, value in issue_resolved_rate_dict.items():
+                if value is not None:
+                    setattr(issue_rate, key, value)
+            issue_rate.add_update()
 
 
 @celery.task
@@ -427,7 +459,7 @@ class UpdateIssueTypeState(TaskHandlerBase):
         for _org in orgs:
             gitee_id = IssueStatisticsHandlerV8.get_gitee_id(_org.id)
             if gitee_id:
-                isa = IssueOpenApiHandlerV8(gitee_id=gitee_id)
+                isa = GiteeV8BaseIssueHandler(gitee_id=gitee_id)
                 resp = isa.get_issue_types()
                 resp = resp.get_json()
                 if resp.get("error_code") == RET.OK:
