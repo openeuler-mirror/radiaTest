@@ -387,10 +387,7 @@ class GiteeV8IssueHandler:
         tm = TaskMilestone.query.filter(
             TaskMilestone.milestone_id == body.milestone_id,
             TaskMilestone.task_id == body.task_id,
-            or_(
-                TaskMilestone.cases.contains(case),
-                TaskMilestone.manual_cases.contains(case)
-            )
+            TaskMilestone.cases.contains(case),
         ).first()
         if not tm:
             return jsonify(
@@ -435,10 +432,7 @@ class GiteeV8IssueHandler:
         tm = TaskMilestone.query.filter(
             TaskMilestone.milestone_id == body.get("milestone_id"),
             TaskMilestone.task_id == body.get("task_id"),
-            or_(
-                TaskMilestone.cases.contains(case),
-                TaskMilestone.manual_cases.contains(case)
-            )
+            TaskMilestone.cases.contains(case),
         ).first()
         if not tm:
             return jsonify(

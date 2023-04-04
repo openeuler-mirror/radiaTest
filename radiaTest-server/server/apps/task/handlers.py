@@ -1844,13 +1844,13 @@ class HandlerTaskProgress(object):
         self.all_task_test_case_infos = dict()
         self.all_task_test_static_info = dict()
         self.task = None
-        self.task_key = f"MILESTONE_{self.milestone_id}_TASK_TEST_INFO"
+        try:
+            self.get_version_task()
+        except RuntimeError as e:
+            raise RuntimeError(str(e)) from e
+        self.task_key = f"MILESTONE_{self.milestone_id}_TASK_{self.task.id}_TEST_INFO"
         _key = redis_client.keys(self.task_key)
         if not _key:
-            try:
-                self.get_version_task()
-            except RuntimeError as e:
-                raise RuntimeError(str(e)) from e
             self.get_task_case_node()
             HandlerTaskProgress.get_test_infos_by_task(
                 self.task,
