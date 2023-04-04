@@ -2155,11 +2155,13 @@ class HandlerTaskProgress(object):
             for child in children:
                 if child.id in self.all_node_ids:
                     child_dict = child.to_json()
-                    if child.type == 'case':
+                    if child.type == 'case' and str(child.case_id) in self.all_task_test_case_infos.keys():
                         case_result = self.all_task_test_case_infos.get(str(child.case_id)).get("result")
                         child_dict["result"] = case_result
-                    else:
+                    elif  child.type != 'case':
                         test_progress = self.get_test_progress_by_case_node(child.id)
+                        if test_progress.get("all_cnt") == 0:
+                            continue
                         child_dict["test_progress"] = test_progress
                     return_data["children"].append(child_dict)
 

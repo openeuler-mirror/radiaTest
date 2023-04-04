@@ -49,6 +49,7 @@ class CreateIssueSchema(BaseModel):
 
 
 class GiteeCreateIssueSchema(BaseModel):
+    access_token: str
     title: str
     description: str
     priority: int
