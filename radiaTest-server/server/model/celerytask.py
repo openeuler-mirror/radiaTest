@@ -15,7 +15,7 @@ class CeleryTask(db.Model, BaseModel):
     pmachine_id = db.Column(db.Integer(), db.ForeignKey("pmachine.id"))
     description = db.Column(db.String(128))
 
-    user_id = db.Column(db.Integer(), db.ForeignKey("user.gitee_id"))
+    user_id = db.Column(db.String(512), db.ForeignKey("user.user_id"))
 
     def to_dict(self):
         _machine = None

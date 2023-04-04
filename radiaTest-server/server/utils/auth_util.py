@@ -20,19 +20,19 @@ def init(app):
     )
 
 
-def generate_token(gitee_id, gitee_login, ex=60 * 60 * 2):
+def generate_token(user_id, user_login, ex=60 * 60 * 2):
     # 根据user_id去获取用户token,防止用户多次创建token值
     # 令牌策略为保证后来者登陆有效，旧令牌清除
 
     # 判断当前用户是否存在令牌
-    if redis_client.exists(RedisKey.token(gitee_id)):
-        pre_token = redis_client.get(RedisKey.token(gitee_id))
+    if redis_client.exists(RedisKey.token(user_id)):
+        pre_token = redis_client.get(RedisKey.token(user_id))
         # 删除旧令牌
         redis_client.delete(RedisKey.token(pre_token))
     # 根据gitee payload序列化生成新令牌
     token_data = dict(
-        gitee_id=gitee_id, 
-        gitee_login=gitee_login
+        user_id=user_id,
+        user_login=user_login
     )
     _token = str(
         serializer.dumps(token_data), 
@@ -43,12 +43,12 @@ def generate_token(gitee_id, gitee_login, ex=60 * 60 * 2):
     token = _token.replace(_token.split('.')[1], aes_payload)
     
     # 缓存新令牌，绑定到当前用户
-    redis_client.set(RedisKey.token(gitee_id), token, ex)
+    redis_client.set(RedisKey.token(user_id), token, ex)
     redis_client.hmset(
         RedisKey.token(token), 
         mapping={
-            "gitee_id": gitee_id, 
-            "gitee_login": gitee_login
+            "user_id": user_id,
+            "user_login": user_login
         }, 
         ex=ex
     )
@@ -78,11 +78,11 @@ def verify_token(token):
             # 获取原令牌剩余登陆失效时间，并使新令牌继承
             rest_login_expires_time = redis_client.ttl(RedisKey.token(token))
 
-            redis_client.delete(RedisKey.token(data.get('gitee_id')))
+            redis_client.delete(RedisKey.token(data.get('user_id')))
             redis_client.expire(RedisKey.token(token), 30)
             new_token = generate_token(
-                data.get('gitee_id'), 
-                data.get('gitee_login'),
+                data.get('user_id'),
+                data.get('user_login'),
                 rest_login_expires_time,
             )
             token = new_token
@@ -100,14 +100,14 @@ def verify_token(token):
         current_app.logger.info(f"Uncrypted/Unknown token {token} attempt to do request")
         return False
     finally:
-        if data and data.get("gitee_login") == redis_client.hget(RedisKey.user(data.get("gitee_id")), "gitee_login"):
+        if data and data.get("user_login") == redis_client.hget(RedisKey.oauth_user(data.get("user_id")), "user_login"):
             try:
-                g.gitee_id = int(data.get("gitee_id"))
+                g.user_id = int(data.get("user_id"))
             except:
-                g.gitee_id = data.get("gitee_id")
-            g.gitee_login = data.get("gitee_login")
+                g.user_id = data.get("user_id")
+            g.user_login = data.get("user_login")
             g.token = token
-            return True, data.get("gitee_id")
+            return True, data.get("user_id")
     return False
 
 

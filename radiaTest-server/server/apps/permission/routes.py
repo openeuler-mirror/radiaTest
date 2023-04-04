@@ -278,7 +278,7 @@ class ScopeRolePersonEvent(Resource):
     @casbin_enforcer.enforcer
     @response_collect
     @validate()
-    def post(self, gitee_id, body: ScopeRoleBaseSchema):
+    def post(self, user_id, body: ScopeRoleBaseSchema):
         return ScopeRoleLimitedHandler(
             _type='person',
             body=body
@@ -288,7 +288,7 @@ class ScopeRolePersonEvent(Resource):
     @casbin_enforcer.enforcer
     @response_collect
     @validate()
-    def delete(self, gitee_id, body: ScopeRoleBaseSchema):
+    def delete(self, user_id, body: ScopeRoleBaseSchema):
         return ScopeRoleLimitedHandler(
             _type='person',
             body=body

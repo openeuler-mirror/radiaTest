@@ -28,9 +28,6 @@ class Config(object):
     # 数据库
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
-    # Gitee oauth login 通用配置
-    GITEE_OAUTH_SCOPE = ['user_info', 'emails', 'enterprises', 'issues']
-
     # API 官方版本
     OFFICIAL_API_VERSION = "v1"
 

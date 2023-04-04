@@ -64,7 +64,7 @@ class RoleHandler:
         users = []
 
         for re in role.re_user_role:
-            user = User.query.filter_by(gitee_id=re.user_id).first()
+            user = User.query.filter_by(user_id=re.user_id).first()
             users.append(user.to_dict())
 
         return_data.update({"users": users})
@@ -76,18 +76,18 @@ class RoleHandler:
     def get_all(query):
         filter_params = []
 
-        admin = Admin.query.filter_by(account=g.gitee_login).first()
+        admin = Admin.query.filter_by(account=g.user_login).first()
         if not admin:
             filter_params = [
                 or_(
                     and_(
-                        ReUserOrganization.organization_id == redis_client.hget(RedisKey.user(g.gitee_id),
+                        ReUserOrganization.organization_id == redis_client.hget(RedisKey.user(g.user_id),
                                                                                 'current_org_id'),
                         Role.type == 'org',
                     ),
                     and_(
-                        ReUserGroup.org_id == redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id'),
-                        ReUserGroup.user_gitee_id == g.gitee_id,
+                        ReUserGroup.org_id == redis_client.hget(RedisKey.user(g.user_id), 'current_org_id'),
+                        ReUserGroup.user_id == g.user_id,
                         ReUserGroup.user_add_group_flag == True,
                         ReUserGroup.is_delete == False,
                     ),
@@ -358,7 +358,7 @@ class BindingHandler:
     @staticmethod
     @collect_sql_error
     def bind_user_role(body):
-        _user = User.query.filter_by(gitee_id=body.user_id).first()
+        _user = User.query.filter_by(user_id=body.user_id).first()
         _role = Role.query.filter_by(id=body.role_id).first()
 
         if not _user or not _role:
@@ -384,9 +384,9 @@ class UserRoleLimitedHandler(RoleLimitedHandler):
         self.org_id = org_id
         self.group_id = group_id
         self.user_id = None
-        _user = User.query.filter_by(gitee_id=body.user_id).first()
+        _user = User.query.filter_by(user_id=body.user_id).first()
         if _user:
-            self.user_id = _user.gitee_id
+            self.user_id = _user.user_id
 
     def bind_user(self):
         if not self.role_id or not self.user_id:
@@ -395,7 +395,7 @@ class UserRoleLimitedHandler(RoleLimitedHandler):
         _role = Role.query.get(self.role_id)
 
         if _role.type == 'group':
-            rug = ReUserGroup.query.filter_by(group_id=self.group_id, user_gitee_id=self.user_id).first()
+            rug = ReUserGroup.query.filter_by(group_id=self.group_id, user_id=self.user_id).first()
             if _role.name == 'admin':
                 rug.role_type = GroupRole.admin.value
             else:
@@ -403,7 +403,7 @@ class UserRoleLimitedHandler(RoleLimitedHandler):
             rug.add_update()
         elif _role.type == 'org':
             ruo = ReUserOrganization.query.filter_by(organization_id=self.org_id,
-                                                     user_gitee_id=self.user_id).first()
+                                                     user_id=self.user_id).first()
             if _role.name == 'admin':
                 ruo.role_type = OrganizationRole.admin.value
             else:
@@ -426,7 +426,7 @@ class UserRoleLimitedHandler(RoleLimitedHandler):
         if not re:
             return jsonify(error_code=RET.DATA_EXIST_ERR, error_msg="This Binding is already not exist")
         if re.role.type == 'group':
-            rug = ReUserGroup.query.filter_by(user_gitee_id=self.user_id, group_id=re.role.group_id).first()
+            rug = ReUserGroup.query.filter_by(user_id=self.user_id, group_id=re.role.group_id).first()
             if not rug:
                 return jsonify(error_code=RET.VERIFY_ERR,
                                error_msg="user-group binding not exist")
@@ -434,7 +434,7 @@ class UserRoleLimitedHandler(RoleLimitedHandler):
                 return jsonify(error_code=RET.VERIFY_ERR,
                                error_msg="group creator user-role bind is not allowed to untie")
         elif re.role.type == 'org':
-            rug = ReUserOrganization.query.filter_by(user_gitee_id=self.user_id, organization_id=re.role.org_id).first()
+            rug = ReUserOrganization.query.filter_by(user_id=self.user_id, organization_id=re.role.org_id).first()
             if not rug:
                 return jsonify(error_code=RET.VERIFY_ERR,
                                error_msg="user-organization binding not exist")
@@ -490,7 +490,7 @@ class AccessableMachinesHandler:
     def get_all(query):
         namespace, machine_pool = None, []
 
-        user = User.query.filter_by(gitee_id=g.gitee_id).first()
+        user = User.query.filter_by(user_id=g.user_id).first()
         if query.machine_type == "physical":
             pmachine_filter = GetAllByPermission(Pmachine).get_filter()
             namespace = "pmachine"
@@ -505,7 +505,7 @@ class AccessableMachinesHandler:
                                          "CI_PURPOSE"
                                      ),
                                      and_(
-                                         Pmachine.occupier == user.gitee_name,
+                                         Pmachine.occupier == user.user_name,
                                          Pmachine.description != current_app.config.get(
                                              "CI_HOST"
                                          )

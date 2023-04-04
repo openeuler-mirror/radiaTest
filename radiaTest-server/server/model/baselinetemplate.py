@@ -38,7 +38,7 @@ class BaselineTemplate(BaseModel, PermissionBaseModel, db.Model):
     type = db.Column(db.String(64), nullable=False, default="group")
     group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
     org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
-    creator_id = db.Column(db.Integer(), db.ForeignKey("user.gitee_id"))
+    creator_id = db.Column(db.String(512), db.ForeignKey("user.user_id"))
     openable = db.Column(db.Boolean(), default=True)
     base_node = db.relationship(
         "BaseNode", backref="baseline_template", cascade="all, delete, delete-orphan"
@@ -76,7 +76,7 @@ class BaseNode(BaseModel, PermissionBaseModel, db.Model):
     is_root = db.Column(db.Boolean(), default=True)
     group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
     org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
-    creator_id = db.Column(db.Integer(), db.ForeignKey("user.gitee_id"))
+    creator_id = db.Column(db.String(512), db.ForeignKey("user.user_id"))
     baseline_template_id = db.Column(db.Integer(), db.ForeignKey("baseline_template.id"))
     case_node_id = db.Column(db.Integer(), db.ForeignKey("case_node.id"))
 

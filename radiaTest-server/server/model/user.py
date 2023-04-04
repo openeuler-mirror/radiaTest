@@ -10,9 +10,9 @@ from server.model.organization import ReUserOrganization
 
 class User(db.Model, BaseModel):
     __tablename__ = "user"
-    gitee_id = db.Column(db.Integer(), primary_key=True)
-    gitee_login = db.Column(db.String(50), nullable=False)
-    gitee_name = db.Column(db.String(50), nullable=False)
+    user_id = db.Column(db.String(512), primary_key=True)
+    user_login = db.Column(db.String(50), nullable=False)
+    user_name = db.Column(db.String(50), nullable=False)
     phone = db.Column(db.String(20), nullable=True, default=None)
     avatar_url = db.Column(db.String(512), nullable=True, default=None)
     cla_email = db.Column(db.String(128), nullable=True, default=None)
@@ -30,9 +30,9 @@ class User(db.Model, BaseModel):
 
     def _get_basic_info(self):
         return {
-            "gitee_id": self.gitee_id,
-            "gitee_login": self.gitee_login,
-            "gitee_name": self.gitee_name,
+            "user_id": self.user_id,
+            "user_login": self.user_login,
+            "user_name": self.user_name,
             "phone": self.phone,
             "avatar_url": self.avatar_url,
             "cla_email": self.cla_email
@@ -47,13 +47,13 @@ class User(db.Model, BaseModel):
 
     def _get_public_role(self):
         from server.model.permission import Role, ReUserRole
-        _filter = [ReUserRole.user_id == self.gitee_id, Role.type == 'public']
+        _filter = [ReUserRole.user_id == self.user_id, Role.type == 'public']
         _role = Role.query.join(ReUserRole).filter(*_filter).first()
         return _role.to_json() if _role else None
 
     def add_update_influence(self, table=None, namespace=None, broadcast=False):
         ranked_users = select([
-            User.gitee_id,
+            User.user_id,
             func.rank().over(
                 order_by=User.influence.desc(),
                 partition_by=ReUserOrganization.organization_id,
@@ -62,11 +62,11 @@ class User(db.Model, BaseModel):
             ReUserOrganization.is_delete == False,
             ReUserOrganization.organization_id == int(
                 redis_client.hget(
-                    RedisKey.user(g.gitee_id),
+                    RedisKey.user(g.user_id),
                     "current_org_id"
                 )
             ),
-            User.gitee_id == ReUserOrganization.user_gitee_id,
+            User.user_id == ReUserOrganization.user_id,
         )
 
         db.session.query(
@@ -75,7 +75,7 @@ class User(db.Model, BaseModel):
             ReUserOrganization.is_delete == False,
             ReUserOrganization.organization_id == int(
                 redis_client.hget(
-                    RedisKey.user(g.gitee_id),
+                    RedisKey.user(g.user_id),
                     "current_org_id"
                 )
             ),
@@ -84,7 +84,7 @@ class User(db.Model, BaseModel):
                 "rank": select([
                     ranked_users.c.rank
                 ]).filter(
-                    ranked_users.c.gitee_id == ReUserOrganization.user_gitee_id
+                    ranked_users.c.user_id == ReUserOrganization.user_id
                 ).scalar_subquery()
             },
             synchronize_session=False
@@ -95,10 +95,10 @@ class User(db.Model, BaseModel):
     @property
     def rank(self):
         _rank = None
-        org_id = redis_client.hget(RedisKey.user(g.gitee_id), "current_org_id")
+        org_id = redis_client.hget(RedisKey.user(g.user_id), "current_org_id")
         if self.re_user_organization and org_id is not None:
             _re = ReUserOrganization.query.filter_by(
-                user_gitee_id=self.gitee_id,
+                user_id=self.user_id,
                 is_delete=False,
                 organization_id=int(org_id)
             ).first()
@@ -132,13 +132,13 @@ class User(db.Model, BaseModel):
         }
 
     @staticmethod
-    def synchronize_gitee_info(gitee_user, user=None):
-        user.gitee_login = gitee_user.get("login")
-        user.gitee_name = gitee_user.get("name")
-        user.avatar_url = gitee_user.get("avatar_url")
+    def synchronize_oauth_info(oauth_user, user=None):
+        user.user_login = oauth_user.get("user_login")
+        user.user_name = oauth_user.get("user_name")
+        user.avatar_url = oauth_user.get("avatar_url")
         user.add_update()
         return user
-
+    #方法废弃
     def save_redis(self, access_token, refresh_token, current_org_id=None):
         redis_data = self.to_dict()
         redis_data['gitee_access_token'] = access_token
@@ -150,15 +150,15 @@ class User(db.Model, BaseModel):
                 if item.default is True:
                     redis_data['current_org_id'] = item.organization_id
                     redis_data['current_org_name'] = item.organization.name
-        redis_client.hmset(RedisKey.user(self.gitee_id), redis_data)
+        redis_client.hmset(RedisKey.user(self.user_id), redis_data)
 
     @staticmethod
-    def create_commit(gitee_user, cla_email=None):
+    def create_commit(oauth_user, cla_email=None):
         new_user = User()
-        new_user.gitee_id = gitee_user.get("id")
-        new_user.gitee_login = gitee_user.get("login")
-        new_user.gitee_name = gitee_user.get("name")
-        new_user.avatar_url = gitee_user.get("avatar_url")
+        new_user.user_id = oauth_user.get("user_id")
+        new_user.user_login = oauth_user.get("user_login")
+        new_user.user_name = oauth_user.get("user_name")
+        new_user.avatar_url = oauth_user.get("avatar_url")
         new_user.cla_email = cla_email
         new_user.add_update()
         return new_user

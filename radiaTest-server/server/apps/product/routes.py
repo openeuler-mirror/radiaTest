@@ -109,10 +109,10 @@ class UpdateProductIssueRate(Resource):
                 error_msg="product does not exist.",
             )
      
-        gitee_id = IssueStatisticsHandlerV8.get_gitee_id(product.org_id)
-        if gitee_id:
+        user_id = IssueStatisticsHandlerV8.get_user_id(product.org_id)
+        if user_id:
             UpdateIssueRate.update_product_issue_resolved_rate(
-                gitee_id,
+                user_id,
                 {"product_id": product_id, "org_id": product.org_id},
             )
 

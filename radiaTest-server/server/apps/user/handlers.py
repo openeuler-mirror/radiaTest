@@ -7,7 +7,7 @@ import sqlalchemy
 
 from server import redis_client
 from server.utils.response_util import RET
-from server.utils.gitee_util import GiteeApi
+from server.utils.oauth_util import LoginApi
 from server.utils.auth_util import generate_token
 from server.utils.redis_util import RedisKey
 from server.utils.db import collect_sql_error, Insert
@@ -32,52 +32,33 @@ from server.schema.vmachine import VmachineBriefSchema
 from server.schema.pmachine import PmachineBriefSchema
 from server.utils.page_util import PageUtil
 from server.utils.requests_util import do_request
+from server.utils.scope_util import ScopeKey
+from server.utils.user_util import ProfileMap
 
 
-def handler_gitee_login(query):
-    org = Organization.query.filter_by(id=query.org_id).first()
+def handler_oauth_login(query):
+    org = Organization.query.filter_by(id=query.org_id, is_delete=0).first()
     if not org:
         return jsonify(
             error_code=RET.NO_DATA_ERR,
             error_msg="the organization not exist"
         )
 
-    if not org.enterprise_id:
-        gitee_oauth_login_url = "https://gitee.com/oauth/authorize?" \
-                                "client_id={}" \
-                                "&redirect_uri={}" \
-                                "&response_type=code&scope={}".format(
-            current_app.config.get(
-                'GITEE_OAUTH_CLIENT_ID'
-            ),
-            current_app.config.get(
-                'GITEE_OAUTH_REDIRECT_URI'
-            ),
-            '%20'.join(
-                current_app.config.get(
-                    'GITEE_OAUTH_SCOPE'
-                )
-            ),
-        )
-        return jsonify(
-            error_code=RET.OK,
-            error_msg='OK',
-            data=gitee_oauth_login_url
-        )
+    return handler_oauth_login_url(org)
 
-    else:
-        gitee_oauth_login_url = "https://gitee.com/oauth/authorize?" \
-                                "client_id={}" \
-                                "&redirect_uri={}" \
-                                "&response_type=code&scope={}".format(
-            org.oauth_client_id,
-            current_app.config.get("GITEE_OAUTH_REDIRECT_URI"),
-            org.oauth_scope.replace(',', '%20'),
-        )
-        return jsonify(
+
+def handler_oauth_login_url(org: Organization):
+    deal_scope = getattr(ScopeKey, org.authority)
+    oauth_login_url = "{}?client_id={}&redirect_uri={}&response_type=code&scope={}".format(
+        org.oauth_login_url,
+        org.oauth_client_id,
+        current_app.config.get("OAUTH_REDIRECT_URI"),
+        deal_scope(org.oauth_scope)
+    )
+    return jsonify(
             error_code=RET.OK,
             error_msg='OK',
-            data=gitee_oauth_login_url
+            data=oauth_login_url
         )
 
 
@@ -108,7 +89,7 @@ def send_majun(code):
     return jsonify(_resp)
 
 
-def handler_gitee_callback():
+def handler_oauth_callback():
     # 校验参数
     code = request.args.get('code')
     if not code:
@@ -116,13 +97,15 @@ def handler_gitee_callback():
             error_code=RET.PARMA_ERR,
             error_msg="user code should not be null"
         )
-    resp = send_majun(code)
-    _resp = json.loads(resp.response[0])
-    current_app.logger.info(_resp)
-    
+    cookie_info = request.cookies.to_dict()
+    if "user_id" in cookie_info:
+        resp = send_majun(code)
+        _resp = json.loads(resp.response[0])
+        current_app.logger.info(_resp)
+
     return redirect(
         '{}?code={}'.format(
-            current_app.config["GITEE_OAUTH_HOME_URL"],
+            current_app.config["OAUTH_HOME_URL"],
             code
         )
     )
@@ -130,36 +113,28 @@ def handler_gitee_callback():
 
 def handler_login_callback(query):
     # 校验参数
-    org = Organization.query.filter_by(id=query.org_id).first()
+    org = Organization.query.filter_by(id=query.org_id, is_delete=0).first()
     if not org:
         return jsonify(
             error_code=RET.NO_DATA_ERR,
             error_msg="the organization not exist"
         )
 
-    oauth_flag, gitee_token = None, None
-    if not org.enterprise_id:
-        oauth_flag, gitee_token = GiteeApi.Oauth.callback(
-            query.code,
-            current_app.config.get("GITEE_OAUTH_CLIENT_ID"),
-            current_app.config.get("GITEE_OAUTH_REDIRECT_URI"),
-            current_app.config.get("GITEE_OAUTH_CLIENT_SECRET")
-        )
-    else:
-        oauth_flag, gitee_token = GiteeApi.Oauth.callback(
-            query.code,
-            org.oauth_client_id,
-            current_app.config.get("GITEE_OAUTH_REDIRECT_URI"),
-            org.oauth_client_secret
-        )
+    oauth_flag, oauth_token = LoginApi.Oauth.callback(
+        org.oauth_get_token_url,
+        query.code,
+        org.oauth_client_id,
+        current_app.config.get("OAUTH_REDIRECT_URI"),
+        org.oauth_client_secret
+    )
         
     if not oauth_flag:
         return jsonify(
             error_code=RET.OTHER_REQ_ERR,
-            error_msg="gitee oauth request error"
+            error_msg="oauth request error"
         )
 
-    result = handler_login(gitee_token, org.id)
+    result = handler_login(oauth_token, org.id, org.oauth_get_user_info_url, org.authority)
     if not isinstance(result, tuple) or not isinstance(result[0], bool):
         return result
     if result[0]:
@@ -169,20 +144,20 @@ def handler_login_callback(query):
                 {
                     "error_code": RET.OK,
                     "error_msg": "OK",
-                    "data": f'{current_app.config["GITEE_OAUTH_HOME_URL"]}?isSuccess=True'
+                    "data": f'{current_app.config["OAUTH_HOME_URL"]}?isSuccess=True'
                 }
             )
         )
         resp.status = 200
         resp.set_cookie('token', result[2])
-        resp.set_cookie('gitee_id', str(result[1]))
+        resp.set_cookie('user_id', str(result[1]))
         return resp
     else:
         return jsonify(
             error_code=RET.OK,
             error_msg="OK",
-            data='{}?isSuccess=False&gitee_id={}&org_id={}&require_cla={}'.format(
-                current_app.config["GITEE_OAUTH_HOME_URL"],
+            data='{}?isSuccess=False&user_id={}&org_id={}&require_cla={}'.format(
+                current_app.config["OAUTH_HOME_URL"],
                 result[1],
                 org.id,
                 org.cla_verify_url is not None,
@@ -191,89 +166,102 @@ def handler_login_callback(query):
 
 
 @collect_sql_error
-def handler_login(gitee_token, org_id):
+def handler_login(oauth_token, org_id, oauth_user_info_url, authority):
     """
     处理用户登录
-    :param gitee_token: gitee_token
+    :param oauth_token: oauth_token
     :param org_id: 当前登入的组织id
-    :return: 元组 (登录是否成功，gitee_id，[token，refresh_token])
+    :param oauth_user_info_url: 鉴权机构的获取用户信息url
+    :param authority: 鉴权机构
+    :return: 元组 (登录是否成功，user_id，[token，refresh_token])
              flask dict
     """
     # 调用gitee的api获取用户的基本信息
-    user_flag, gitee_user = GiteeApi.User.get_info(
-        gitee_token.get("access_token")
+    user_flag, oauth_user = LoginApi.User.get_info(
+        oauth_user_info_url,
+        oauth_token.get("access_token"),
+        authority
     )
     if not user_flag:
         return jsonify(
             error_code=RET.OTHER_REQ_ERR,
-            error_msg="gitee api request error"
+            error_msg="get user info request error"
         )
 
+    profile_map = getattr(ProfileMap, authority)
+    profile = profile_map(oauth_user)
     # 先将gitee的token缓存到redis中, 有效期为10min，这段时间主要用来是验证cla签名
-    gitee_user["access_token"] = gitee_token.get("access_token")
-    gitee_user["refresh_token"] = gitee_token.get("refresh_token")
+    profile["access_token"] = oauth_token.get("access_token")
+    profile["refresh_token"] = oauth_token.get("refresh_token")
     redis_client.hmset(
-        RedisKey.gitee_user(gitee_user.get("id")),
-        gitee_user,
-        ex=600,
+        RedisKey.oauth_user(profile.get("user_id")),
+        profile,
+        ex=60 * 60 * 2,
     )
 
     redis_client.hmset(
-        RedisKey.access_token(gitee_user.get("id")),
+        RedisKey.access_token(profile.get("user_id")),
         {"org_id": org_id},
         ex=int(current_app.config.get("LOGIN_EXPIRES_TIME"))
     )
 
     # 从数据库中获取用户信息
-    user = User.query.filter_by(gitee_id=gitee_user.get("id")).first()
+    user = User.query.filter_by(user_id=profile.get("user_id")).first()
     # 判断用户是否存在
     if user:
-        user = User.synchronize_gitee_info(gitee_user, user)
-        # 用户缓存到redis中
-        user.save_redis(
-            gitee_token.get("access_token"),
-            gitee_token.get("refresh_token")
-        )
+        user = User.synchronize_oauth_info(profile, user)
+
         # 生成token值
         token = generate_token(
-            user.gitee_id, 
-            user.gitee_login,
+            user.user_id,
+            user.user_login,
             int(current_app.config.get("LOGIN_EXPIRES_TIME"))
         )
 
         if org_id is not None and isinstance(org_id, int):
             re = ReUserOrganization.query.filter_by(
-                user_gitee_id=gitee_user.get("id"),
+                user_id=profile.get("user_id"),
                 organization_id=org_id,
                 is_delete=False,
             ).first()
             if not re:
-                return False, gitee_user.get("id")
+                return False, profile.get("user_id")
+
+            redis_client.hset(
+                RedisKey.user(profile.get("user_id")),
+                'current_org_id',
+                org_id
+            )
+            redis_client.hset(
+                RedisKey.user(profile.get("user_id")),
+                'current_org_name',
+                re.organization.name
+            )
 
             if re.default is False:
-                _resp = handler_select_default_org(org_id, gitee_user.get("id"))
+                _resp = handler_select_default_org(org_id, profile.get("user_id"))
                 _r = None
                 try:
                     _r = _resp.json
                 except (AttributeError, TypeError) as e:
                     raise RuntimeError(str(e)) from e
                 if _r.get("error_code") != RET.OK:
-                    return False, gitee_user.get("id")
+                    return False, profile.get("user_id")
 
-        return True, user.gitee_id, token
+        return True, user.user_id, token
 
     # 返回结果
-    return False, gitee_user.get("id")
+    return False, profile.get("user_id")
 
 
 @collect_sql_error
-def handler_register(gitee_id, body):
+def handler_register(user_id, body):
     # 从redis中获取之前的gitee用户信息
-    gitee_user = redis_client.hgetall(RedisKey.gitee_user(gitee_id))
-    if not gitee_user:
+    oauth_user = redis_client.hgetall(RedisKey.oauth_user(user_id))
+    if not oauth_user:
         return jsonify(
             error_code=RET.VERIFY_ERR,
-            error_msg="user gitee info expired"
+            error_msg="user info expired"
         )
 
     # 从数据库中获取cla信息
@@ -296,7 +284,7 @@ def handler_register(gitee_id, body):
         return jsonify(
             error_code=RET.CLA_VERIFY_ERR,
             error_msg="user is not pass cla verification, please retry",
-            data=gitee_user.get("id")
+            data=oauth_user.get("user_id")
         )
 
     # 提取cla邮箱
@@ -309,24 +297,24 @@ def handler_register(gitee_id, body):
             cla_email = value
             break
 
-    user = User.query.filter_by(gitee_id=gitee_user.get("id")).first()
+    user = User.query.filter_by(user_id=oauth_user.get("user_id")).first()
     if not user:
         # 用户注册成功保存用户信息、生成token
         user = User.create_commit(
-            gitee_user,
+            oauth_user,
             cla_email,
         )
 
     # 查询用户和组织是否已存在关系
     re = ReUserOrganization.query.filter_by(
         is_delete=False,
-        user_gitee_id=user.gitee_id,
+        user_id=user.user_id,
         organization_id=org.id,
     ).first()
     if not re:
         # 生成用户和组织的关系
         _ = ReUserOrganization.create(
-            user.gitee_id,
+            user.user_id,
             org.id,
             json.dumps({
                 **body.cla_verify_params,
@@ -335,11 +323,11 @@ def handler_register(gitee_id, body):
             default=False
         )
     
-    _role = Role.query.filter_by(name=user.gitee_id, type='person').first()
+    _role = Role.query.filter_by(name=user.user_id, type='person').first()
     if not _role:
-        role = Role(name=user.gitee_id, type='person')
+        role = Role(name=user.user_id, type='person')
         role_id = role.add_flush_commit_id()
-        Insert(ReUserRole, {"user_id": user.gitee_id, "role_id": role_id}).single()
+        Insert(ReUserRole, {"user_id": user.user_id, "role_id": role_id}).single()
 
     # 绑定用户和组织基础角色、公共基础角色的关系
     org_suffix = get_default_suffix('org')
@@ -359,24 +347,19 @@ def handler_register(gitee_id, body):
     ]
     roles = Role.query.filter(*filter_params).all()
     for _role in roles:
-        Insert(ReUserRole, {"user_id": user.gitee_id, "role_id": _role.id}).single()
+        Insert(ReUserRole, {"user_id": user.user_id, "role_id": _role.id}).single()
 
     # 用户缓存到redis中
-    user.save_redis(
-        gitee_user.get("access_token"),
-        gitee_user.get("refresh_token"),
-        body.organization_id
-    )
     redis_client.hset(
-        RedisKey.user(gitee_user.get("id")),
+        RedisKey.user(oauth_user.get("user_id")),
         'current_org_name',
         org.name
     )
 
     # 生成token值
     token = generate_token(
-        user.gitee_id, 
-        user.gitee_login,
+        user.user_id,
+        user.user_login,
         int(current_app.config.get("LOGIN_EXPIRES_TIME"))
     )
     return_data = {
@@ -384,7 +367,7 @@ def handler_register(gitee_id, body):
     }
 
     # 将当前组织设为注册组织
-    _resp = handler_select_default_org(org.id, gitee_user.get("id"))
+    _resp = handler_select_default_org(org.id, oauth_user.get("user_id"))
     _r = None
     try:
         _r = _resp.json
@@ -400,15 +383,15 @@ def handler_register(gitee_id, body):
 
 
 @collect_sql_error
-def handler_update_user(gitee_id, body):
-    if g.gitee_id != gitee_id:
+def handler_update_user(user_id, body):
+    if g.user_id != user_id:
         return jsonify(
             error_code=RET.VERIFY_ERR,
             error_msg="user token and user id do not match"
         )
 
     # 从数据库中获取用户信息
-    user = User.query.filter_by(gitee_id=gitee_id).first()
+    user = User.query.filter_by(user_id=user_id).first()
     if not user:
         return jsonify(error_code=RET.NO_DATA_ERR, error_msg=f"user is no find")
 
@@ -416,19 +399,19 @@ def handler_update_user(gitee_id, body):
     user.phone = body.phone
     user.add_update()
     # 修改缓存中的数据
-    redis_client.hset(RedisKey.user(gitee_id), 'phone', body.phone)
+    redis_client.hset(RedisKey.user(user_id), 'phone', body.phone)
     return jsonify(error_code=RET.OK, error_msg="OK")
 
 
 @collect_sql_error
-def handler_user_info(gitee_id):
-    if g.gitee_id != gitee_id:
+def handler_user_info(user_id):
+    if g.user_id != user_id:
         return jsonify(
             error_code=RET.VERIFY_ERR,
             error_msg="user token and user id do not match"
         )
 
-    user = User.query.filter_by(gitee_id=gitee_id).first()
+    user = User.query.filter_by(user_id=user_id).first()
     if not user:
         return jsonify(error_code=RET.NO_DATA_ERR, error_msg=f"user is no find")
     user_dict = user.to_json()
@@ -459,23 +442,22 @@ def handler_user_info(gitee_id):
 
 
 def handler_logout():
-    redis_client.delete(RedisKey.user(g.gitee_id))
-    redis_client.delete(RedisKey.token(g.gitee_id))
+    redis_client.delete(RedisKey.user(g.user_id))
+    redis_client.delete(RedisKey.token(g.user_id))
     redis_client.delete(RedisKey.token(g.token))
-    redis_client.delete(RedisKey.access_token(g.gitee_id))
+    redis_client.delete(RedisKey.access_token(g.user_id))
     return jsonify(error_code=RET.OK, error_msg="OK")
 
 
 @collect_sql_error
-def handler_select_default_org(org_id, gitee_id=None):
-    user_gitee_id = None
-    if gitee_id is None:
-        user_gitee_id = g.gitee_id
+def handler_select_default_org(org_id, user_id=None):
+    if user_id is None:
+        user_oauth_id = g.user_id
     else:
-        user_gitee_id = gitee_id
+        user_oauth_id = user_id
 
     re = ReUserOrganization.query.filter_by(
-        user_gitee_id=user_gitee_id,
+        user_id=user_oauth_id,
         organization_id=org_id,
         is_delete=False
     ).first()
@@ -488,7 +470,7 @@ def handler_select_default_org(org_id, gitee_id=None):
 
     # 切换数据
     re_old = ReUserOrganization.query.filter_by(
-        user_gitee_id=user_gitee_id,
+        user_id=user_oauth_id,
         default=True,
         is_delete=False
     ).first()
@@ -508,12 +490,12 @@ def handler_select_default_org(org_id, gitee_id=None):
     re.add_update()
     user.add_update()
     redis_client.hset(
-        RedisKey.user(user_gitee_id),
+        RedisKey.user(user_oauth_id),
         'current_org_id',
         org_id
     )
     redis_client.hset(
-        RedisKey.user(user_gitee_id),
+        RedisKey.user(user_oauth_id),
         'current_org_name',
         re.organization.name
     )
@@ -521,21 +503,21 @@ def handler_select_default_org(org_id, gitee_id=None):
 
 
 def handler_add_group(group_id, body):
-    re = ReUserGroup.query.filter_by(user_gitee_id=g.gitee_id, group_id=group_id, is_delete=False).first()
+    re = ReUserGroup.query.filter_by(user_id=g.user_id, group_id=group_id, is_delete=False).first()
     msg = Message.query.filter_by(id=body.msg_id, is_delete=False).first()
     if not re or not msg:
         return jsonify(error_code=RET.NO_DATA_ERR, error_msg="relationship no find")
     if re.user_add_group_flag or re.role_type == GroupRole.user.value:
         return jsonify(error_code=RET.DATA_EXIST_ERR, error_msg="relationship is exist")
-    info = f'<b>{re.user.gitee_name}</b>{{}}' \
-           f'<b>{redis_client.hget(RedisKey.user(g.gitee_id), "current_org_name")}' \
+    info = f'<b>{re.user.user_name}</b>{{}}' \
+           f'<b>{redis_client.hget(RedisKey.user(g.user_id), "current_org_name")}' \
            f'</b>组织下<b>{re.group.name}</b>用户组'
     if body.access:
         re.user_add_group_flag = True
         re.role_type = GroupRole.user.value
         info = info.format('已加入')
-        message = Message.create_instance(dict(info=info), g.gitee_id, msg.from_id, msg.org_id)
-        message1 = Message.create_instance(dict(info=info), g.gitee_id, g.gitee_id, msg.org_id)
+        message = Message.create_instance(dict(info=info), g.user_id, msg.from_id, msg.org_id)
+        message1 = Message.create_instance(dict(info=info), g.user_id, g.user_id, msg.org_id)
 
         # 绑定用户和用户组基础角色关系
         group_suffix = get_default_suffix('group')
@@ -545,12 +527,12 @@ def handler_add_group(group_id, body):
             Role.name == group_suffix
         ]
         role = Role.query.filter(*filter_params).first()
-        Insert(ReUserRole, {"user_id": g.gitee_id, "role_id": role.id}).single()
+        Insert(ReUserRole, {"user_id": g.user_id, "role_id": role.id}).single()
     else:
         re.is_delete = True
         info = info.format('拒绝加入')
-        message = Message.create_instance(dict(info=info), g.gitee_id, msg.from_id, msg.org_id)
-        message1 = Message.create_instance(dict(info=info), g.gitee_id, g.gitee_id, msg.org_id)
+        message = Message.create_instance(dict(info=info), g.user_id, msg.from_id, msg.org_id)
+        message1 = Message.create_instance(dict(info=info), g.user_id, g.user_id, msg.org_id)
     msg.is_delete = True
     re.add_update()
     message.add_update()
@@ -563,14 +545,14 @@ def handler_add_group(group_id, body):
 def handler_get_all(query):
     filter_params = []
 
-    if query.gitee_id:
-        filter_params.append(User.gitee_id.like(f'%{query.gitee_id}%'))
-    if query.gitee_login:
-        filter_params.append(User.gitee_id.like(f'%{query.gitee_login}%'))
-    if query.gitee_name:
-        filter_params.append(User.gitee_id.like(f'%{query.gitee_name}%'))
+    if query.user_id:
+        filter_params.append(User.user_id.like(f'%{query.user_id}%'))
+    if query.user_login:
+        filter_params.append(User.user_id.like(f'%{query.user_login}%'))
+    if query.user_name:
+        filter_params.append(User.user_id.like(f'%{query.user_name}%'))
 
-    query_filter = User.query.filter(*filter_params).order_by(User.create_time.desc(), User.gitee_id.asc())
+    query_filter = User.query.filter(*filter_params).order_by(User.create_time.desc(), User.user_id.asc())
 
     # 获取用户组下的所有用户
     def page_func(item):
@@ -587,13 +569,13 @@ def handler_get_all(query):
 @collect_sql_error
 def handler_get_user_task(query: UserTaskSchema):
     current_org_id = int(redis_client.hget(
-        RedisKey.user(g.gitee_id),
+        RedisKey.user(g.user_id),
         'current_org_id'
     ))
     now = datetime.now(tz=pytz.timezone('Asia/Shanghai'))
     # 全部任务
     basic_filter_params = [Task.is_delete.is_(False),
-                           Task.executor_id == g.gitee_id,
+                           Task.executor_id == g.user_id,
                            Task.org_id == current_org_id]
 
     # 今日任务总数
@@ -690,7 +672,7 @@ def handler_get_user_task(query: UserTaskSchema):
 @collect_sql_error
 def handler_get_user_machine(query: UserMachineSchema):
     current_org_id = int(redis_client.hget(
-        RedisKey.user(g.gitee_id),
+        RedisKey.user(g.user_id),
         'current_org_id'
     ))
     page_dict = None
@@ -701,8 +683,8 @@ def handler_get_user_machine(query: UserMachineSchema):
 
         filter_params = [
             or_(
-                Pmachine.occupier == User.query.get(g.gitee_id).gitee_name,
-                Pmachine.creator_id == g.gitee_id,
+                Pmachine.occupier == User.query.get(g.user_id).user_name,
+                Pmachine.creator_id == g.user_id,
             ),
             Pmachine.org_id == current_org_id
         ]
@@ -722,7 +704,7 @@ def handler_get_user_machine(query: UserMachineSchema):
             return item_dict
 
         filter_params = [
-            Vmachine.creator_id == g.gitee_id,
+            Vmachine.creator_id == g.user_id,
             Vmachine.org_id == current_org_id
         ]
         if query.machine_name:
@@ -741,13 +723,13 @@ def handler_get_user_machine(query: UserMachineSchema):
 @collect_sql_error
 def handler_get_user_case_commit(query: UserCaseCommitSchema):
     current_org_id = int(redis_client.hget(
-        RedisKey.user(g.gitee_id),
+        RedisKey.user(g.user_id),
         'current_org_id'
     ))
     now = datetime.now(tz=pytz.timezone('Asia/Shanghai'))
     # 全部
     basic_filter_params = [
-        Commit.creator_id == g.gitee_id,
+        Commit.creator_id == g.user_id,
         Commit.status == 'accepted',
         Commit.org_id == current_org_id
     ]
@@ -780,7 +762,7 @@ def handler_get_user_case_commit(query: UserCaseCommitSchema):
     month_filter_params.extend(basic_filter_params)
     month_count = Commit.query.filter(*month_filter_params).count()
 
-    filter_params = [Commit.creator_id == g.gitee_id]
+    filter_params = [Commit.creator_id == g.user_id]
     if query.title:
         filter_params.append(Commit.title.like(f'%{query.title}%'))
 
@@ -803,7 +785,7 @@ def handler_get_user_case_commit(query: UserCaseCommitSchema):
 def handler_get_user_case_commit(query: UserCaseCommitSchema):
     now = datetime.now(tz=pytz.timezone('Asia/Shanghai'))
     # 全部
-    basic_filter_params = [Commit.creator_id == g.gitee_id, Commit.status == 'accepted']
+    basic_filter_params = [Commit.creator_id == g.user_id, Commit.status == 'accepted']
 
     # 今日贡献
     today_filter_params = [extract('year', Commit.create_time) == now.year,
@@ -833,7 +815,7 @@ def handler_get_user_case_commit(query: UserCaseCommitSchema):
     month_filter_params.extend(basic_filter_params)
     month_count = Commit.query.filter(*month_filter_params).count()
 
-    filter_params = [Commit.creator_id == g.gitee_id]
+    filter_params = [Commit.creator_id == g.user_id]
     if query.title:
         filter_params.append(Commit.title.like(f'%{query.title}%'))
 
@@ -859,7 +841,7 @@ def handler_get_user_asset_rank(query):
         ReUserOrganization.rank != sqlalchemy.null(),
         ReUserOrganization.is_delete == False,
         ReUserOrganization.organization_id == redis_client.hget(
-            RedisKey.user(g.gitee_id), 
+            RedisKey.user(g.user_id), 
             "current_org_id"
         )
     ).order_by(

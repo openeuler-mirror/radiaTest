@@ -56,11 +56,11 @@ class MessageManager:
         ).first()
         if not _instance:
             raise RuntimeError("the data does not exsit")
-        cur_org_id = redis_client.hget(RedisKey.user(g.gitee_id), "current_org_id")
+        cur_org_id = redis_client.hget(RedisKey.user(g.user_id), "current_org_id")
 
         re_user_org = Precise(
             ReUserOrganization,
-            {"gitee_id": _instance.creator_id, "org_id": cur_org_id},
+            {"user_id": _instance.creator_id, "org_id": cur_org_id},
         ).first()
         if not re_user_org:
             current_app.logger.info("the creater user does not exsit in current org")
@@ -97,7 +97,7 @@ class MessageManager:
             data=json.dumps(
                 dict(
                     permission_type=permission_type,
-                    info=f'<b>{redis_client.hget(RedisKey.user(g.gitee_id), "gitee_name")}</b>请求{_api.get("alias")}<b>{_api["id"]}</b>。',
+                    info=f'<b>{redis_client.hget(RedisKey.user(g.user_id), "user_name")}</b>请求{_api.get("alias")}<b>{_api["id"]}</b>。',
                     script=_api["cur_uri"],
                     method=_api.get("act"),
                     _alias=_api.get("alias"),
@@ -106,7 +106,7 @@ class MessageManager:
                 )
             ),
             level=msg_leve,
-            from_id=g.gitee_id,
+            from_id=g.user_id,
             to_id=to_user_id,
             type=MsgType.script.value,
             org_id=org_id

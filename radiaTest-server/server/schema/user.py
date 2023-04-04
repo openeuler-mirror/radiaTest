@@ -3,27 +3,27 @@ from typing import List, Optional, Literal
 from server.schema.base import PageBaseSchema
 
 
-class GiteeLoginSchema(BaseModel):
+class OauthLoginSchema(BaseModel):
     org_id: int
 
 
-class LoginSchema(GiteeLoginSchema):
+class LoginSchema(OauthLoginSchema):
     code: str
 
 
 class UserBaseSchema(BaseModel):
-    gitee_id: int
-    gitee_login: str
-    gitee_name: str
+    user_id: str
+    user_login: str
+    user_name: str
     phone: Optional[str]
     avatar_url: str
     cla_email: Optional[str]
 
 
 class UserQuerySchema(BaseModel):
-    gitee_id: Optional[int]
-    gitee_login: Optional[str]
-    gitee_name: Optional[str]
+    user_id: Optional[str]
+    user_login: Optional[str]
+    user_name: Optional[str]
     phone: Optional[str]
     avatar_url: Optional[str]
     cla_email: Optional[str]
@@ -47,7 +47,7 @@ class UserMachineSchema(BaseModel):
     machine_type: str
     page_num: int
     page_size: int
-    gitee_id: int = None
+    user_id: str = None
 
 
 class UserInfoSchema(UserBaseSchema):

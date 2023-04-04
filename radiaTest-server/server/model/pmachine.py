@@ -37,7 +37,7 @@ class MachineGroup(EmitDataModel, PermissionBaseModel, db.Model):
 
     pmachines = db.relationship("Pmachine", backref="machine_group", cascade="all, delete, delete-orphan")
 
-    creator_id = db.Column(db.Integer(), db.ForeignKey("user.gitee_id"))
+    creator_id = db.Column(db.String(512), db.ForeignKey("user.user_id"))
     group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
     org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
 
@@ -99,7 +99,7 @@ class Pmachine(ServiceModel, PermissionBaseModel, db.Model):
     celerytasks = db.relationship(
         "CeleryTask", backref="pmachine", cascade="all, delete, delete-orphan"
     )
-    creator_id = db.Column(db.Integer(), db.ForeignKey("user.gitee_id"))
+    creator_id = db.Column(db.String(512), db.ForeignKey("user.user_id"))
     group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
     org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
 

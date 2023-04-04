@@ -11,7 +11,7 @@ class JobMessenger:
     def __init__(self, body):
         self._body = body
         self._body.update({
-            "user_id": int(g.gitee_id),
+            "user_id": g.user_id,
         })
 
         self._body["pmachine_list"] = self.get_machine_list(

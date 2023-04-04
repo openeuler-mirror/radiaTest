@@ -10,7 +10,7 @@ class Framework(db.Model, PermissionBaseModel, BaseModel):
     url = db.Column(db.String(256), unique=True, nullable=False)
     logs_path = db.Column(db.String(256))
     adaptive = db.Column(db.Boolean(), nullable=False, default=False)
-    creator_id = db.Column(db.Integer(), db.ForeignKey("user.gitee_id"))
+    creator_id = db.Column(db.String(512), db.ForeignKey("user.user_id"))
     group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
     org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
     gitee_repos = db.relationship('GitRepo', backref='framework')
@@ -38,7 +38,7 @@ class GitRepo(db.Model, PermissionBaseModel, BaseModel):
     name = db.Column(db.String(64), nullable=False)
     git_url = db.Column(db.String(256), unique=True, nullable=False)
     sync_rule = db.Column(db.Boolean(), nullable=False, default=True)
-    creator_id = db.Column(db.Integer(), db.ForeignKey("user.gitee_id"))
+    creator_id = db.Column(db.String(512), db.ForeignKey("user.user_id"))
     group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
     org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
 

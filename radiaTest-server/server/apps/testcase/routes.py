@@ -146,9 +146,9 @@ class SuiteEvent(Resource):
                 ),
             )
 
-        suite_body.update({"creator_id": g.gitee_id})
+        suite_body.update({"creator_id": g.user_id})
         suite_body.update({
-            "org_id": redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')
+            "org_id": redis_client.hget(RedisKey.user(g.user_id), 'current_org_id')
         })
         _id = Insert(Suite, suite_body).insert_id(Suite, "/suite")
         return_data["suite_id"] = _id
@@ -321,9 +321,9 @@ class CaseEvent(Resource):
                     case_body["name"]
                 ),
             )
-        case_body.update({"creator_id": g.gitee_id})
+        case_body.update({"creator_id": g.user_id})
         case_body.update({
-            "org_id": redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')
+            "org_id": redis_client.hget(RedisKey.user(g.user_id), 'current_org_id')
         })
 
         _id = Insert(Case, case_body).insert_id(Case, "/case")
@@ -500,10 +500,10 @@ class ResolveTestcaseByFilepath(Resource):
             body.get("filepath"),
             CeleryTaskUserInfoSchema(
                 auth=request.headers.get("authorization"),
-                user_id=int(g.gitee_id),
+                user_id=g.user_id,
                 group_id=body.get("group_id"),
                 org_id=redis_client.hget(
-                    RedisKey.user(g.gitee_id),
+                    RedisKey.user(g.user_id),
                     'current_org_id'
                 ),
                 permission_type=permission_type,
@@ -1067,9 +1067,9 @@ class BaselineEvent(Resource):
 
         baseline_body = BaselineCreateSchema(**body.__dict__).dict()
         
-        baseline_body.update({"creator_id": g.gitee_id})
+        baseline_body.update({"creator_id": g.user_id})
         baseline_body.update({
-            "org_id": redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')
+            "org_id": redis_client.hget(RedisKey.user(g.user_id), 'current_org_id')
         })
         _id = Insert(Baseline, baseline_body).insert_id(Baseline, "/baseline")
         return_data["baseline_id"] = _id

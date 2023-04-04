@@ -14,11 +14,11 @@ from celeryservice.lib import TaskHandlerBase
 
 
 class UpdateIssueRateData:
-    def __init__(self, gitee_id, products):
-        self.gitee_id = gitee_id
+    def __init__(self, user_id, products):
+        self.user_id = user_id
         self.products = products
         self.issue_v8 = IssueStatisticsHandlerV8(
-            gitee_id=gitee_id, org_id=products.get("org_id")
+            user_id=user_id, org_id=products.get("org_id")
         )
 
         self.param = {
@@ -312,8 +312,8 @@ class UpdateIssueRateData:
 
 
 @celery.task
-def update_field_issue_rate(obj_type: str, gitee_id, products: dict, field: str, obj_id=None):
-    _uird = UpdateIssueRateData(gitee_id, products)
+def update_field_issue_rate(obj_type: str, user_id, products: dict, field: str, obj_id=None):
+    _uird = UpdateIssueRateData(user_id, products)
     if obj_type == "product":
         _uird.update_product_issue_resolved_rate(field)
     elif obj_type == "round":
@@ -324,37 +324,37 @@ def update_field_issue_rate(obj_type: str, gitee_id, products: dict, field: str,
 
 class UpdateIssueRate(TaskHandlerBase):
     @staticmethod
-    def update_product_issue_resolved_rate(gitee_id, products: dict):
+    def update_product_issue_resolved_rate(user_id, products: dict):
         fields = ["serious_main_resolved_rate", "current_resolved_rate"]
         for _f in fields:
             update_field_issue_rate.delay(
                 "product",
-                gitee_id,
+                user_id,
                 products,
                 _f
             )
 
     @staticmethod
-    def update_round_issue_resolved_rate(gitee_id, products: dict, round_id):
+    def update_round_issue_resolved_rate(user_id, products: dict, round_id):
         fields = ["serious_resolved_rate", "main_resolved_rate", "serious_main_resolved_rate",
                   "current_resolved_rate", "left_issues_cnt", "invalid_issues_cnt"]
         for _f in fields:
             update_field_issue_rate.delay(
                 "round",
-                gitee_id,
+                user_id,
                 products,
                 _f,
                 round_id,
             )
 
     @staticmethod
-    def update_milestone_issue_resolved_rate(gitee_id, products: dict, gitee_milestone_id):
+    def update_milestone_issue_resolved_rate(user_id, products: dict, gitee_milestone_id):
         fields = ["serious_resolved_rate", "main_resolved_rate", "serious_main_resolved_rate",
                   "current_resolved_rate", "left_issues_cnt", "invalid_issues_cnt"]
         for _f in fields:
             update_field_issue_rate.delay(
                 "milestone",
-                gitee_id,
+                user_id,
                 products,
                 _f,
                 gitee_milestone_id,
@@ -365,14 +365,14 @@ class UpdateIssueRate(TaskHandlerBase):
         t_org_id = -1
         for _p in products:
             if _p.org_id != t_org_id:
-                gitee_id = IssueStatisticsHandlerV8.get_gitee_id(_p.org_id)
-            if gitee_id:
+                user_id = IssueStatisticsHandlerV8.get_user_id(_p.org_id)
+            if user_id:
                 products = {
                     "org_id": _p.org_id,
                     "product_id": _p.id
                 }
                 UpdateIssueRate.update_product_issue_resolved_rate(
-                    gitee_id=gitee_id, products=products
+                    user_id=user_id, products=products
                 )
                 
                 rounds = Round.query.filter_by(
@@ -391,7 +391,7 @@ class UpdateIssueRate(TaskHandlerBase):
                             }
                         ).single()
                     UpdateIssueRate.update_round_issue_resolved_rate(
-                        gitee_id=gitee_id, products=products, round_id=_r.id
+                        user_id=user_id, products=products, round_id=_r.id
                     )
 
                 milestones = Milestone.query.filter(
@@ -413,7 +413,7 @@ class UpdateIssueRate(TaskHandlerBase):
                             }
                         ).single(IssueSolvedRate, "/issue_solved_rate")
                     UpdateIssueRate.update_milestone_issue_resolved_rate(
-                        gitee_id=gitee_id, products=products, gitee_milestone_id=_m.gitee_milestone_id
+                        user_id=user_id, products=products, gitee_milestone_id=_m.gitee_milestone_id
                     )
             t_org_id = _p.org_id
 
@@ -425,9 +425,9 @@ class UpdateIssueTypeState(TaskHandlerBase):
         orgs = Organization.query.filter(
             Organization.enterprise_id is not None).all()
         for _org in orgs:
-            gitee_id = IssueStatisticsHandlerV8.get_gitee_id(_org.id)
-            if gitee_id:
-                isa = IssueOpenApiHandlerV8(gitee_id=gitee_id)
+            user_id = IssueStatisticsHandlerV8.get_user_id(_org.id)
+            if user_id:
+                isa = IssueOpenApiHandlerV8(user_id=user_id)
                 resp = isa.get_issue_types()
                 resp = resp.get_json()
                 if resp.get("error_code") == RET.OK:

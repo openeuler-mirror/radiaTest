@@ -15,7 +15,7 @@
 
 #####################################
 
-from flask import request
+from flask import request, current_app
 from flask_restful import Resource
 from flask_pydantic import validate
 from server import casbin_enforcer
@@ -29,7 +29,8 @@ from server.apps.administrator.handlers import (
     handler_read_org_list,
     handler_save_org,
     handler_update_org,
-    handler_change_passwd
+    handler_change_passwd,
+    check_authority
 )
 
 
@@ -60,8 +61,11 @@ class Org(Resource):
         for key, value in request.form.items():
             if value:
                 _form[key] = value
-
-        body = AddSchema(**_form)
+        current_app.logger.info("register org:{}".format(_form))
+        result, form = check_authority(_form)
+        if not result:
+            return form
+        body = AddSchema(**form)
         avatar = request.files.get("avatar_url")
         return handler_save_org(body, avatar)
 

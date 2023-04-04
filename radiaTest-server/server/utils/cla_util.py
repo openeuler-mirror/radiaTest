@@ -102,3 +102,7 @@ class ClaShowAdminSchema(ClaShowUserSchema):
     oauth_client_id: Optional[str]
     oauth_client_secret: Optional[str]
     oauth_scope: Optional[str]
+    authority: Optional[str]
+    oauth_login_url: Optional[str]
+    oauth_get_token_url: Optional[str]
+    oauth_get_user_info_url: Optional[str]

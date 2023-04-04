@@ -21,7 +21,7 @@ from messenger.config.settings import Config
 
 
 class AuthBaseModel(BaseModel):
-    user_id: Optional[int]
+    user_id: Optional[str]
 
 
 class VmachineItemSchema(AuthBaseModel):
@@ -30,7 +30,7 @@ class VmachineItemSchema(AuthBaseModel):
 
 
 class PermissionBase(BaseModel):
-    creator_id: int
+    creator_id: str
     permission_type: PermissionType
     group_id: Optional[int] = None
     org_id: int

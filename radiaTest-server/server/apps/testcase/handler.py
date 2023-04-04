@@ -116,10 +116,10 @@ class CaseImportHandler:
             self.case_file.filepath,
             CeleryTaskUserInfoSchema(
                 auth=request.headers.get("authorization"),
-                user_id=int(g.gitee_id),
+                user_id=g.user_id,
                 group_id=group_id,
                 org_id=redis_client.hget(
-                    RedisKey.user(g.gitee_id),
+                    RedisKey.user(g.user_id),
                     'current_org_id'
                 ),
                 permission_type=permission_type,
@@ -140,7 +140,7 @@ class CaseImportHandler:
                 "status": "PENDING",
                 "object_type": "testcase_resolve",
                 "description": f"resolve testcase {self.case_file.filepath}",
-                "user_id": int(g.gitee_id)
+                "user_id": g.user_id
             }
         ).single(CeleryTask, '/celerytask')
 
@@ -282,8 +282,8 @@ class CaseNodeHandler:
     @collect_sql_error
     def create(body):
         _body = body.__dict__
-        _body.update({"creator_id": g.gitee_id})
-        _body.update({"org_id": redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')})
+        _body.update({"creator_id": g.user_id})
+        _body.update({"org_id": redis_client.hget(RedisKey.user(g.user_id), 'current_org_id')})
         if not body.parent_id:
             case_node_id = Insert(CaseNode, body.__dict__).insert_id()
             return jsonify(error_code=RET.OK, error_msg="OK", data=case_node_id)
@@ -342,7 +342,7 @@ class CaseNodeHandler:
         case_node = CaseNode.query.filter_by(id=case_node_id).first()
 
         current_org_id = int(
-            redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')
+            redis_client.hget(RedisKey.user(g.user_id), 'current_org_id')
         )
 
         if current_org_id != case_node.org_id:
@@ -365,7 +365,7 @@ class CaseNodeHandler:
             return jsonify(error_code=RET.NO_DATA_ERR, error_msg="case_node does not exist")
 
         current_org_id = int(
-            redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')
+            redis_client.hget(RedisKey.user(g.user_id), 'current_org_id')
         )
 
         if current_org_id != case_node.org_id:
@@ -415,10 +415,10 @@ class CaseNodeHandler:
                     uncompressed_filepath,
                     CeleryTaskUserInfoSchema(
                         auth=request.headers.get("authorization"),
-                        user_id=int(g.gitee_id),
+                        user_id=g.user_id,
                         group_id=group_id,
                         org_id=redis_client.hget(
-                            RedisKey.user(g.gitee_id),
+                            RedisKey.user(g.user_id),
                             'current_org_id'
                         ),
                         permission_type=permission_type,
@@ -432,7 +432,7 @@ class CaseNodeHandler:
                         "status": "PENDING",
                         "object_type": "caseset_resolve",
                         "description": "Import a set of testcases",
-                        "user_id": int(g.gitee_id)
+                        "user_id": g.user_id
                     }
                 ).single(CeleryTask, '/celerytask')
 
@@ -578,7 +578,7 @@ class CaseNodeHandler:
     @collect_sql_error
     def get_caseset_children(_type, _table, _id):
         current_org_id = redis_client.hget(
-            RedisKey.user(g.gitee_id), 'current_org_id'
+            RedisKey.user(g.user_id), 'current_org_id'
         )
 
         if _type not in ["org", "group"]:
@@ -672,7 +672,7 @@ class CaseNodeHandler:
             node_body.pop("id")
             node_body.update({
                 "baseline_id":case_node.baseline_id,
-                "creator_id": g.gitee_id,
+                "creator_id": g.user_id,
                 "case_node_id": suite_case_node.id if suite_case_node else case_case_node.id,
                 "title": suite_case_node.title if suite_case_node else case_case_node.title,
                 "milestone_id": case_node.milestone_id,
@@ -810,8 +810,8 @@ class SuiteHandler:
     @collect_sql_error
     def create(body):
         _body = body.__dict__
-        _body.update({"creator_id": g.gitee_id})
-        _body.update({"org_id": redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')})
+        _body.update({"creator_id": g.user_id})
+        _body.update({"org_id": redis_client.hget(RedisKey.user(g.user_id), 'current_org_id')})
         _id = Insert(Suite, _body).insert_id(Suite, "/suite")
         return jsonify(error_code=RET.OK, error_msg="OK", data={"id": _id})
 
@@ -832,8 +832,8 @@ class CaseHandler:
             )
         _body["suite_id"] = _suite.id
         _body.pop("suite")
-        _body.update({"creator_id": g.gitee_id})
-        _body.update({"org_id": redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')})
+        _body.update({"creator_id": g.user_id})
+        _body.update({"org_id": redis_client.hget(RedisKey.user(g.user_id), 'current_org_id')})
         _body.update({"group_id": _suite.group_id})
         _id = Insert(Case, _body).insert_id(Case, "/case")
         return jsonify(error_code=RET.OK, error_msg="OK", data={"id": _id})
@@ -853,8 +853,8 @@ class CaseHandler:
             )
         _body["suite_id"] = _suite.id
         _body.pop("suite")
-        _body.update({"creator_id": g.gitee_id})
-        _body.update({"org_id": redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')})
+        _body.update({"creator_id": g.user_id})
+        _body.update({"org_id": redis_client.hget(RedisKey.user(g.user_id), 'current_org_id')})
 
         _id = Insert(Case, _body).insert_id(Case, "/case")
 
@@ -864,8 +864,8 @@ class CaseHandler:
             parent_id=_body.get("parent_id"),
             title=_body.get("name"),
             type="case",
-            creator_id=g.gitee_id,
-            org_id=redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id'),
+            creator_id=g.user_id,
+            org_id=redis_client.hget(RedisKey.user(g.user_id), 'current_org_id'),
         )
 
         _result = CaseNodeHandler.create(_case_node_body)
@@ -932,14 +932,14 @@ class HandlerCaseReview(object):
     def create(body: AddCaseCommitSchema):
         """发起"""
         _commit = Commit.query.filter(Commit.case_detail_id == body.case_detail_id,
-                                      Commit.creator_id == g.gitee_id,
+                                      Commit.creator_id == g.user_id,
                                       Commit.status.in_(['pending', 'open'])).first()
         if _commit:
             return jsonify(error_code=RET.OTHER_REQ_ERR, error_msg="has no right")
         insert_data = body.__dict__
 
         insert_data['status'] = 'pending'
-        insert_data['creator_id'] = g.gitee_id
+        insert_data['creator_id'] = g.user_id
         case = Case.query.get(body.case_detail_id)
         insert_data['permission_type'] = case.permission_type
         insert_data['org_id'] = case.org_id
@@ -970,11 +970,11 @@ class HandlerCaseReview(object):
                     "data": json.dumps(
                         {
                             "info": f'您提交的名为<b>{_commit.title}</b>的用例评审因已合入'
-                                    f'<b>{creator.gitee_name}</b>提交版本,故已退回,请知悉'
+                                    f'<b>{creator.user_name}</b>提交版本,故已退回,请知悉'
                         }
                     ),
                     "level": MsgLevel.user.value,
-                    "from_id": g.gitee_id,
+                    "from_id": g.user_id,
                     "to_id": _commit.creator_id,
                     "type": MsgType.text.value,
                     "org_id": _commit.org_id
@@ -990,7 +990,7 @@ class HandlerCaseReview(object):
         if body.open_edit:
             comment = CommitComment(
                 content='creator re-edit',
-                creator_id=g.gitee_id,
+                creator_id=g.user_id,
                 parent_id=0,
                 commit_id=commit.id)
             comment.add_update()
@@ -1001,7 +1001,7 @@ class HandlerCaseReview(object):
             commit.add_update()
 
         if body.status == 'accepted':
-            commit.reviewer_id = g.gitee_id
+            commit.reviewer_id = g.user_id
             commit.review_time = datetime.datetime.now(tz=pytz.timezone('Asia/Shanghai'))
             commits = Commit.query.filter_by(case_detail_id=commit.case_detail_id, status='open').all()
             HandlerCaseReview.send_massage(commit, commits)
@@ -1037,7 +1037,7 @@ class HandlerCaseReview(object):
             case.version = case_history.version
             case.add_update()
         if body.status == 'rejected':
-            commit.reviewer_id = g.gitee_id
+            commit.reviewer_id = g.user_id
             commit.review_time = datetime.datetime.now(tz=pytz.timezone('Asia/Shanghai'))
             if commit.case_mod_type == "add":
                 _case_node = CaseNode.query.filter_by(case_id=commit.case_detail_id).first()
@@ -1056,10 +1056,10 @@ class HandlerCaseReview(object):
     def update_batch(body: CaseCommitBatch):
         if len(body.commit_ids) == 0:
             return jsonify(error_code=RET.NO_DATA_ERR, error_msg="No data is selected.")
-        org_id = redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')
+        org_id = redis_client.hget(RedisKey.user(g.user_id), 'current_org_id')
         if body.commit_ids:
             for commit_id in body.commit_ids:
-                commit = Commit.query.filter_by(id=commit_id, creator_id=g.gitee_id, org_id=org_id).first()
+                commit = Commit.query.filter_by(id=commit_id, creator_id=g.user_id, org_id=org_id).first()
                 if not commit:
                     continue
                 if commit and commit.status == 'pending':
@@ -1131,8 +1131,8 @@ class HandlerCaseReview(object):
             permission_filter = GetAllByPermission(Commit).get_filter()
             _filter.extend(permission_filter)
         elif query.user_type == 'creator':
-            _filter.append(Commit.creator_id == g.gitee_id)
-            _filter.append(Commit.org_id == redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id'))
+            _filter.append(Commit.creator_id == g.user_id)
+            _filter.append(Commit.org_id == redis_client.hget(RedisKey.user(g.user_id), 'current_org_id'))
         if query.title:
             _filter.append(Commit.title.like(f'%{query.title}%'))
 
@@ -1168,8 +1168,8 @@ class HandlerCommitComment(object):
         comment = CommitComment(commit_id=commit_id,
                                 content=body.content,
                                 parent_id=body.parent_id,
-                                creator_id=g.gitee_id,
-                                org_id=redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id'))
+                                creator_id=g.user_id,
+                                org_id=redis_client.hget(RedisKey.user(g.user_id), 'current_org_id'))
         comment.add_update()
         return jsonify(error_code=RET.OK, error_msg='OK')
 
@@ -1179,7 +1179,7 @@ class HandlerCommitComment(object):
         _body = body.__dict__
         if "content" not in _body.keys() or _body.get("content") == '':
             return jsonify(error_code=RET.NO_DATA_ERR, error_msg="no data")
-        comment = CommitComment.query.filter_by(id=comment_id, creator_id=g.gitee_id).first()
+        comment = CommitComment.query.filter_by(id=comment_id, creator_id=g.user_id).first()
         if not comment:
             return jsonify(error_code=RET.NO_DATA_ERR, error_msg="Comment not exist/has no right")
         setattr(comment, 'content', _body.get("content"))
@@ -1237,8 +1237,8 @@ class HandlerCommitComment(object):
     def delete(comment_id):
         comment = CommitComment.query.filter_by(
             id=comment_id,
-            creator_id=g.gitee_id,
-            org_id=redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')).first()
+            creator_id=g.user_id,
+            org_id=redis_client.hget(RedisKey.user(g.user_id), 'current_org_id')).first()
         if not comment:
             return jsonify(error_code=RET.NO_DATA_ERR, error_msg="Comment not exist/has no right")
         id_set = {comment_id}
@@ -1249,10 +1249,10 @@ class HandlerCommitComment(object):
     @staticmethod
     @collect_sql_error
     def get_pending_status(query: PageBaseSchema):
-        org_id = redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')
+        org_id = redis_client.hget(RedisKey.user(g.user_id), 'current_org_id')
         filter_chain = Commit.query.filter_by(
             status='pending',
-            creator_id=g.gitee_id,
+            creator_id=g.user_id,
             org_id=org_id).order_by(Commit.create_time.desc(), Commit.id.asc())
         page_dict, e = PageUtil.get_page_dict(filter_chain, query.page_num, query.page_size,
                                               func=lambda x: x.to_json())
@@ -1382,7 +1382,7 @@ class ResourceItemHandler:
         if self._type == 'group':
             table_filter = [
                 table.permission_type == 'group',
-                table.org_id == int(redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')),
+                table.org_id == int(redis_client.hget(RedisKey.user(g.user_id), 'current_org_id')),
                 table.group_id == self.group_id
             ]
         else:
@@ -1427,11 +1427,11 @@ class ResourceItemHandler:
             Commit.group_id.isnot(None),
             Commit.group_id == self.group_id,
             Commit.status == 'accepted',
-            User.gitee_id == Commit.creator_id 
+            User.user_id == Commit.creator_id 
         ]
 
         commit_attribute = db.session.query(
-            User.gitee_name, func.count(Commit.id).label('count') 
+            User.user_name, func.count(Commit.id).label('count') 
         ).filter(*_filter).group_by(Commit.creator_id).all()
 
         return self._transform(commit_attribute)
@@ -1544,8 +1544,8 @@ class SuiteDocumentHandler:
             )
         suites.append(suite)
         _body.update({
-            "creator_id": g.gitee_id,
-            "org_id": redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id'),
+            "creator_id": g.user_id,
+            "org_id": redis_client.hget(RedisKey.user(g.user_id), 'current_org_id'),
             "group_id": suite.group_id,
             "suite_id": suite_id,
             "permission_type": suite.permission_type,

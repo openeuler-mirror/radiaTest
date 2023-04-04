@@ -152,9 +152,9 @@ class BaselineTemplateHandler:
             "baseline_template_id": baseline_template.id,
             "permission_type": base_node.permission_type,
             "type": base_node.type,
-            "creator_id": g.gitee_id,
+            "creator_id": g.user_id,
             "case_node_id": casenode.id if casenode is not None else None,
-            "org_id": redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')
+            "org_id": redis_client.hget(RedisKey.user(g.user_id), 'current_org_id')
         })
         if node_body["type"] == "group":
             node_body.update({
@@ -374,7 +374,7 @@ class BaseNodeHandler:
 
         _body = body.__dict__
         _body.update({
-            "creator_id": g.gitee_id,
+            "creator_id": g.user_id,
             "group_id": baseline_template.group_id,
             "org_id": baseline_template.org_id,
             "baseline_template_id": baseline_template.id,
@@ -480,8 +480,8 @@ class BaselineTemplateApplyHandler:
             "type": base_node.type,
             "permission_type":baseline.permission_type,
             "milestone_id": baseline.milestone_id,
-            "creator_id": g.gitee_id,
-            "org_id": redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')
+            "creator_id": g.user_id,
+            "org_id": redis_client.hget(RedisKey.user(g.user_id), 'current_org_id')
         })
         if baseline.permission_type == "group":
             node_body.update({

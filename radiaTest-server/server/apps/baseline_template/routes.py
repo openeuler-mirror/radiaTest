@@ -83,7 +83,7 @@ class BaselineTemplateEvent(Resource):
             org_id = body.org_id
         else:
             org_id = redis_client.hget(
-                RedisKey.user(g.gitee_id), 
+                RedisKey.user(g.user_id), 
                 'current_org_id'
             )
             
@@ -92,7 +92,7 @@ class BaselineTemplateEvent(Resource):
             "type": body.type,
             "permission_type": body.type,
             "openable": body.openable,
-            "creator_id": g.gitee_id,
+            "creator_id": g.user_id,
             "org_id": org_id,
             "group_id": body.group_id,
         }
@@ -104,7 +104,7 @@ class BaselineTemplateEvent(Resource):
 
         _base_node_body = {
             "title": body.title,
-            "creator_id": g.gitee_id,
+            "creator_id": g.user_id,
             "openable": new_baseline_template.openable,
             "group_id": new_baseline_template.group_id,
             "org_id": new_baseline_template.org_id,

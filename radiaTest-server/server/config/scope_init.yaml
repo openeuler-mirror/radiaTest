@@ -47,13 +47,13 @@
   uri: /api/v1/users
   act: get
 - alias: 用户注册
-  uri: /api/v1/users/{gitee_id}
+  uri: /api/v1/users/{user_id}
   act: post
 - alias: 更新用户信息
-  uri: /api/v1/users/{gitee_id}
+  uri: /api/v1/users/{user_id}
   act: put
 - alias: 获取用户信息
-  uri: /api/v1/users/{gitee_id}
+  uri: /api/v1/users/{user_id}
   act: get
 - alias: 切换当前组织
   uri: /api/v1/users/org/{org_id}

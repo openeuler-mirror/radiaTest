@@ -55,6 +55,7 @@ class LoginOrgListSchema(BaseModel):
     org_avatar: Optional[str] = Field(alias="avatar_url")
     cla_sign_url: Optional[str]
     enterprise_join_url: Optional[str]
+    authority: Optional[str]
 
 
 class VmachineExistSchema(BaseModel):

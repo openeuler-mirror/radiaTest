@@ -35,7 +35,7 @@ def handler_show_org_cla_list():
 def handler_org_cla(org_id, body):
     re = ReUserOrganization.query.filter_by(
         is_delete=False,
-        user_gitee_id=g.gitee_id,
+        user_id=g.user_id,
         organization_id=org_id
     ).first()
     if re:
@@ -62,12 +62,12 @@ def handler_org_cla(org_id, body):
         return jsonify(
             error_code=RET.CLA_VERIFY_ERR,
             error_msg="the user does not pass cla verification, please retry",
-            data=g.gitee_id
+            data=g.user_id
         )
 
     # 生成用户和组织的关系
     ReUserOrganization.create(
-        g.gitee_id,
+        g.user_id,
         org_id,
         json.dumps({**body.cla_verify_params, **body.cla_verify_body}),
         default=False
@@ -81,7 +81,7 @@ def handler_org_cla(org_id, body):
         Role.name == org_suffix
     ]
     _role = Role.query.filter(*filter_params).first()
-    Insert(ReUserRole, {"user_id": g.gitee_id, "role_id": _role.id}).single()
+    Insert(ReUserRole, {"user_id": g.user_id, "role_id": _role.id}).single()
 
     return jsonify(error_code=RET.OK, error_msg="OK")
 
@@ -101,10 +101,10 @@ def handler_org_user_page(org_id):
     ]
     if group_id:
         re_u_g = ReUserGroup.query.filter_by(is_delete=False, group_id=group_id).all()
-        user_gitee_ids = [item.user.gitee_id for item in re_u_g]
-        filter_params.append(ReUserOrganization.user_gitee_id.notin_(user_gitee_ids))
+        user_ids = [item.user.user_id for item in re_u_g]
+        filter_params.append(ReUserOrganization.user_id.notin_(user_ids))
     if name:
-        filter_params.append(or_(User.gitee_name.like(f'%{name}%'), User.gitee_login.like(f'%{name}%')))
+        filter_params.append(or_(User.user_name.like(f'%{name}%'), User.user_login.like(f'%{name}%')))
 
     query_filter = ReUserOrganization.query.join(Organization).join(User).filter(*filter_params)
 

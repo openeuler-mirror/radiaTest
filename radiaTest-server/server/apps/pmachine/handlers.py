@@ -43,11 +43,11 @@ class ResourcePoolHandler:
     def get_all(query):
         filter_params = [
             or_(
-                MachineGroup.org_id == redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id'),
+                MachineGroup.org_id == redis_client.hget(RedisKey.user(g.user_id), 'current_org_id'),
                 MachineGroup.permission_type == 'public',
                 and_(
                     MachineGroup.permission_type == 'person',
-                    MachineGroup.creator_id == g.gitee_id
+                    MachineGroup.creator_id == g.user_id
                 )
             )
         ]
@@ -175,8 +175,8 @@ class PmachineOccupyReleaseHandler:
             )
 
         # 若当前请求用户非创建者，则进行临时赋权
-        if g.gitee_id != pmachine.creator_id:
-            role = Role.query.filter_by(type='person', name=g.gitee_id).first()
+        if g.user_id != pmachine.creator_id:
+            role = Role.query.filter_by(type='person', name=g.user_id).first()
             if not role:
                 return jsonify(
                     error_code=RET.NO_DATA_ERR,
@@ -225,7 +225,7 @@ class PmachineMessenger:
     def __init__(self, body):
         self._body = body
         self._body.update({
-            "user_id": int(g.gitee_id),
+            "user_id": g.user_id,
         })
 
     @ssl_cert_verify_error_collect
@@ -281,7 +281,7 @@ class StateHandler:
             )
         
         # 暂时请求通知统一发送于openEuler-QA的创建者
-        org_id = redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')
+        org_id = redis_client.hget(RedisKey.user(g.user_id), 'current_org_id')
         filter_params = [
             Group.name == current_app.config.get("OE_QA_GROUP_NAME"),
             Group.is_delete.is_(False),
@@ -298,13 +298,13 @@ class StateHandler:
             data=json.dumps(
                 dict(
                     group_id=re.group.id,
-                    info=f'<b>{redis_client.hget(RedisKey.user(g.gitee_id), "gitee_name")}</b>\
+                    info=f'<b>{redis_client.hget(RedisKey.user(g.user_id), "user_name")}</b>\
                     请求{StateHandler.english_to_chinese.get(self.to_state)}物理机<b>{self.pmachine.ip}</b>。'
                 )
             ),
             level=MsgLevel.user.value,
-            from_id=g.gitee_id,
-            to_id=re.user.gitee_name,
+            from_id=g.user_id,
+            to_id=re.user.user_name,
             type=MsgType.script.value,
             org_id=org_id
         )

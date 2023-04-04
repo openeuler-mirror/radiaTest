@@ -6,6 +6,7 @@ from flask import current_app
 from pydantic import BaseModel, Field, root_validator, validator
 
 from .base import PageBaseSchema
+from server.schema import Authority
 
 
 class OrgUserInfoSchema(BaseModel):
@@ -22,6 +23,10 @@ class AddSchema(BaseModel):
     description: Optional[str]
     avatar_url: Optional[str]
 
+    authority: Optional[Authority]
+    oauth_login_url: Optional[str]
+    oauth_get_token_url: Optional[str]
+    oauth_get_user_info_url: Optional[str]
     enterprise_id: Optional[str]
     enterprise_join_url: Optional[str]
     oauth_client_id: Optional[str]
@@ -37,8 +42,12 @@ class AddSchema(BaseModel):
 
     @root_validator
     def validate_enterpise(cls, values):
+        if not values["oauth_client_id"] or not values["oauth_client_secret"] or not values["oauth_login_url"] \
+                or not values["oauth_get_token_url"] or not values["oauth_get_user_info_url"]:
+            raise TypeError("lack of oauth info to create this organization")
+
         if values.get("enterprise_id"):
-            if not values["oauth_client_id"] or not values["oauth_client_secret"] or not values["oauth_scope"]:
+            if not values["oauth_scope"]:
                 raise TypeError("lack of enterprise info to create this organization")
 
             try:
@@ -71,6 +80,10 @@ class UpdateSchema(BaseModel):
     description: Optional[str]
     avatar_url: Optional[str]
 
+    authority: Optional[Authority]
+    oauth_login_url: Optional[str]
+    oauth_get_token_url: Optional[str]
+    oauth_get_user_info_url: Optional[str]
     enterprise_id: Optional[str]
     enterprise_join_url: Optional[str]
     oauth_client_id: Optional[str]

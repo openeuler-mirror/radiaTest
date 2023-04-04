@@ -251,8 +251,8 @@ class PmachineReleaseEvent(Resource):
             return _resp 
 
         # 删除权利
-        if g.gitee_id != pmachine.creator_id:
-            role = Role.query.filter_by(type='person', name=g.gitee_id).first()
+        if g.user_id != pmachine.creator_id:
+            role = Role.query.filter_by(type='person', name=g.user_id).first()
             if not role:
                 return jsonify(
                     error_code=RET.NO_DATA_ERR,

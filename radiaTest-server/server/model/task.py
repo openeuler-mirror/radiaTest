@@ -134,7 +134,7 @@ class Task(db.Model, PermissionBaseModel, BaseModel):
     __tablename__ = "task"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     title = db.Column(db.String(100), nullable=False, unique=True)
-    creator_id = db.Column(db.Integer, db.ForeignKey("user.gitee_id"))  # 任务发起人id
+    creator_id = db.Column(db.String(512), db.ForeignKey("user.user_id"))  # 任务发起人id
     type = db.Column(db.Enum("ORGANIZATION", "GROUP", "PERSON", "VERSION"), default="PERSON")
     start_time = db.Column(db.DateTime(), nullable=True)
     content = db.Column(db.Text, nullable=True)
@@ -190,7 +190,7 @@ class TaskComment(BaseModel, PermissionBaseModel, db.Model):
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     content = db.Column(db.Text, nullable=True)  # 内容
-    creator_id = db.Column(db.Integer(), db.ForeignKey("user.gitee_id"))
+    creator_id = db.Column(db.String(512), db.ForeignKey("user.user_id"))
     group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
     org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
 
@@ -202,7 +202,7 @@ class TaskStatus(BaseModel, PermissionBaseModel, db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(32), nullable=False, unique=True)
     order = db.Column(db.Integer, nullable=False)
-    creator_id = db.Column(db.Integer(), db.ForeignKey("user.gitee_id"))
+    creator_id = db.Column(db.String(512), db.ForeignKey("user.user_id"))
     group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
     org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
 
@@ -229,7 +229,7 @@ class TaskReportContent(BaseModel, db.Model):
     # model_id = db.Column(db.Integer, db.ForeignKey("task_report_model.id"), primary_key=True)
     title = db.Column(db.String(50), nullable=False)
     content = db.Column(db.Text, nullable=False)
-    creator_id = db.Column(db.Integer(), db.ForeignKey("user.gitee_id"))
+    creator_id = db.Column(db.String(512), db.ForeignKey("user.user_id"))
     group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
     org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
 
@@ -259,8 +259,8 @@ class DistributeTemplateType(BaseModel, PermissionBaseModel, db.Model):
     __tablename__ = 'distribute_template_type'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(32), nullable=False)
-    creator_id = db.Column(db.Integer, db.ForeignKey("user.gitee_id"), nullable=False)
-    executor_id = db.Column(db.Integer, db.ForeignKey("user.gitee_id"), nullable=False)
+    creator_id = db.Column(db.String(512), db.ForeignKey("user.user_id"), nullable=False)
+    executor_id = db.Column(db.String(512), db.ForeignKey("user.user_id"), nullable=False)
     suites = db.Column(db.Text, nullable=True)
     helpers = db.Column(db.Text, nullable=True)
     group_id = db.Column(db.Integer, db.ForeignKey("group.id"))
@@ -275,7 +275,7 @@ class DistributeTemplateType(BaseModel, PermissionBaseModel, db.Model):
         helpers = None
         if self.helpers:
             _helpers = self.helpers.split(',')
-            helpers = [item.to_dict() for item in User.query.filter(User.gitee_id.in_(_helpers))]
+            helpers = [item.to_dict() for item in User.query.filter(User.user_id.in_(_helpers))]
         return {
             'id': self.id,
             'name': self.name,

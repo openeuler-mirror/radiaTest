@@ -6,11 +6,11 @@ from server.utils.cla_util import ClaSignSchema
 from server.utils.auth_util import auth
 from server.utils.response_util import response_collect
 from server.schema.user import UpdateUserSchema, JoinGroupSchema, UserQuerySchema, UserTaskSchema, UserMachineSchema
-from server.schema.user import GiteeLoginSchema, LoginSchema, UpdateUserSchema, JoinGroupSchema, UserQuerySchema
+from server.schema.user import OauthLoginSchema, LoginSchema, UpdateUserSchema, JoinGroupSchema, UserQuerySchema
 from server.schema.user import UserCaseCommitSchema
 from server.schema.base import PageBaseSchema
-from .handlers import handler_gitee_callback
-from .handlers import handler_gitee_login
+from .handlers import handler_oauth_callback
+from .handlers import handler_oauth_login
 from .handlers import handler_register
 from .handlers import handler_update_user
 from .handlers import handler_user_info
@@ -24,18 +24,18 @@ from .handlers import handler_login_callback
 from .handlers import handler_get_user_case_commit
 from .handlers import handler_get_user_asset_rank
 
-gitee = Blueprint('gitee', __name__)
+oauth = Blueprint('oauth', __name__)
 
 
-@gitee.route("/api/v1/gitee/oauth/callback", methods=["GET"])
-def gitee_callback():
-    return handler_gitee_callback()
+@oauth.route("/api/v1/oauth/callback", methods=["GET"])
+def oauth_callback():
+    return handler_oauth_callback()
 
 
-class GiteeLogin(Resource):
+class OauthLogin(Resource):
     @validate()
-    def get(self, query: GiteeLoginSchema):
-        return handler_gitee_login(query)
+    def get(self, query: OauthLoginSchema):
+        return handler_oauth_login(query)
 
 
 class Login(Resource):
@@ -54,19 +54,19 @@ class User(Resource):
 
 class UserItem(Resource):
     @validate()
-    def post(self, gitee_id, body: ClaSignSchema):
-        return handler_register(gitee_id, body)
+    def post(self, user_id, body: ClaSignSchema):
+        return handler_register(user_id, body)
 
     @auth.login_required()
     @response_collect
     @validate()
-    def put(self, gitee_id, body: UpdateUserSchema):
-        return handler_update_user(gitee_id, body)
+    def put(self, user_id, body: UpdateUserSchema):
+        return handler_update_user(user_id, body)
 
     @auth.login_required()
     @response_collect
-    def get(self, gitee_id):
-        return handler_user_info(gitee_id)
+    def get(self, user_id):
+        return handler_user_info(user_id)
 
 
 class Logout(Resource):

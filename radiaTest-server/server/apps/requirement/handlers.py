@@ -44,7 +44,7 @@ class RequirementCreator:
         self.body.update({
             "status": REQ_STATUS.IDLE,
             "org_id": redis_client.hget(
-                RedisKey.user(g.gitee_id), 
+                RedisKey.user(g.user_id), 
                 "current_org_id"
             ),
         })
@@ -66,7 +66,7 @@ class RequirementCreator:
             _requirement.add_update(Requirement, "/requirement")
 
     def create_packages(self, requirement_id: int, type_: str = None):
-        _validator_id = g.gitee_id if type_ == "person" else sqlalchemy.null()
+        _validator_id = g.user_id if type_ == "person" else sqlalchemy.null()
 
         for _package in self._packages:
             _ = Insert(
@@ -85,7 +85,7 @@ class RequirementHandler:
     def get_all(query):
         filter_params = [
             Requirement.org_id == redis_client.hget(
-                RedisKey.user(g.gitee_id), 
+                RedisKey.user(g.user_id), 
                 "current_org_id"
             ),
         ]
@@ -150,7 +150,7 @@ class RequirementHandler:
     @collect_sql_error
     def free_publish(org_id: int, body: dict):
         _org = Organization.query.filter_by(
-            id=int(redis_client.hget(RedisKey.user(g.gitee_id), "current_org_id"))
+            id=int(redis_client.hget(RedisKey.user(g.user_id), "current_org_id"))
         ).first()
         if not _org or _org.id != org_id:
             return jsonify(
@@ -164,7 +164,7 @@ class RequirementHandler:
         publisher_body = {
             "type": "organization",
             "requirement_id": _requirement_id, 
-            "user_id": g.gitee_id,
+            "user_id": g.user_id,
             "org_id": _org.id,
         }
         _ = Insert(RequirementPublisher, publisher_body).insert_id()
@@ -193,19 +193,19 @@ class RequirementHandler:
                 )
             _publisher = group
             _foreign_key = {
-                "user_id": g.gitee_id,
+                "user_id": g.user_id,
                 "group_id": group.id
             }
             _publisher_table = Group
         elif publisher_type == "person":
-            user = User.query.filter_by(gitee_id=g.gitee_id).first()
+            user = User.query.filter_by(user_id=g.user_id).first()
             if not user:
                 return jsonify(
                     error_code=RET.NO_DATA_ERR,
-                    error_msg=f"the person publisher {g.gitee_id} is not valid"
+                    error_msg=f"the person publisher {g.user_id} is not valid"
                 )
             _publisher = user
-            _foreign_key = {"user_id": user.gitee_id}
+            _foreign_key = {"user_id": user.user_id}
             _publisher_table = User
 
         if not _publisher:
@@ -243,7 +243,7 @@ class RequirementHandler:
 
 def in_group(user_id, group_id):
     re_user_group = ReUserGroup.query.filter_by(
-        user_gitee_id=user_id, 
+        user_id=user_id, 
         group_id=group_id,
         is_delete=False,
     ).first()
@@ -302,7 +302,7 @@ class RequirementItemHandler:
         if self.requirement.publisher[0].type == "person":
             _accord = (
                 self.body.get("acceptor_type") == "person" 
-                and self.requirement.publisher[0].user_id == g.gitee_id
+                and self.requirement.publisher[0].user_id == g.user_id
             ) or (
                 self.body.get("acceptor_type") == "group" 
                 and in_group(
@@ -314,7 +314,7 @@ class RequirementItemHandler:
             _accord = (
                 self.body.get("acceptor_type") == "person" 
                 and in_group(
-                    g.gitee_id,
+                    g.user_id,
                     self.requirement.publisher[0].group_id
                 )
             ) or (
@@ -326,7 +326,7 @@ class RequirementItemHandler:
             raise RuntimeError("the publisher could not be the same with acceptor")
 
     def _handle_not_acceptor(self, msg):
-        if self.requirement.acceptor[0].user_id != g.gitee_id:
+        if self.requirement.acceptor[0].user_id != g.user_id:
             raise RuntimeError(f"only the acceptor could {msg} the requirement")
 
     def _handle_not_group_acceptor(self, msg):
@@ -334,29 +334,29 @@ class RequirementItemHandler:
             raise RuntimeError(f"only group acceptor could {msg} the requirement")
 
     def _handle_not_publisher(self, msg):
-        if self.requirement.publisher[0].user_id != g.gitee_id:
+        if self.requirement.publisher[0].user_id != g.user_id:
             raise RuntimeError(f"only the publisher could {msg} the requirement")
 
     def _handle_not_in_project(self, msg):
         if  (
                 (
                     self.requirement.acceptor
-                    and g.gitee_id != self.requirement.acceptor[0].user_id
+                    and g.user_id != self.requirement.acceptor[0].user_id
                 ) or (
                     self.requirement.acceptor
                     and self.requirement.acceptor[0].type == "group" 
                     and not in_group(
-                        g.gitee_id, 
+                        g.user_id, 
                         self.requirement.acceptor[0].group_id
                     )
                 )
             ) and (
                 (
-                    g.gitee_id != self.requirement.publisher[0].user_id
+                    g.user_id != self.requirement.publisher[0].user_id
                 ) or (
                     self.requirement.publisher[0].type == "group"
                     and not in_group(
-                        g.gitee_id,
+                        g.user_id,
                         self.requirement.publisher[0].group_id
                     )
                 )
@@ -400,7 +400,7 @@ class RequirementItemHandler:
         
         if self.body.get("acceptor_type") == "group":
             _group = Group.query.filter_by(id=self.body.get("acceptor_group_id")).first()
-            if _group.org_id != int(redis_client.hget(RedisKey.user(g.gitee_id), "current_org_id")):
+            if _group.org_id != int(redis_client.hget(RedisKey.user(g.user_id), "current_org_id")):
                 raise RuntimeError(
                     f"the group {_group.name} does not belong to current organization"
                 )
@@ -413,7 +413,7 @@ class RequirementItemHandler:
                     f"the group {_group.name} does not satisfy the behavior requirement"
                 )
         else:
-            _user = User.query.filter_by(gitee_id=int(g.gitee_id)).first()
+            _user = User.query.filter_by(user_id=g.user_id).first()
             if _user.influence < self.requirement.influence_require:
                 raise RuntimeError(
                     f"not satisfy the influence requirement"
@@ -425,7 +425,7 @@ class RequirementItemHandler:
 
         _acceptor_body = {
             "type": self.body.get("acceptor_type"),
-            "user_id": g.gitee_id,
+            "user_id": g.user_id,
             "requirement_id": self.requirement.id,
         }
         if self.body.get("acceptor_type") == "group":
@@ -434,7 +434,7 @@ class RequirementItemHandler:
                 "group_id": _acceptor_id,
             })
         else:
-            _acceptor_id = g.gitee_id
+            _acceptor_id = g.user_id
 
         _ = Insert(RequirementAcceptor, _acceptor_body).insert_id()
 
@@ -444,17 +444,17 @@ class RequirementItemHandler:
         deadline = (_now + timedelta(days=self.requirement.period)).strftime('%Y%m%d')
         addtaskschema = AddTaskSchema(
             title=task_title,
-            creator_id=int(g.gitee_id),
+            creator_id=g.user_id,
             type=self.body.get("acceptor_type").upper(),
             start_time=_now_str,
             abstract=self.requirement.remark,
             content=self.requirement.description,
-            executor_id=int(g.gitee_id),
+            executor_id=g.user_id,
             executor_type=self.body.get("acceptor_type").upper(),
             deadline=deadline,
             status_id=1,
             group_id=self.body.get("acceptor_group_id"),
-            org_id=int(redis_client.hget(RedisKey.user(g.gitee_id), "current_org_id")),
+            org_id=int(redis_client.hget(RedisKey.user(g.user_id), "current_org_id")),
             is_manage_task=True,
             automatic_finish=True,
         )
@@ -514,7 +514,7 @@ class RequirementItemHandler:
         self._handle_not_publisher('validate')
         
         if self.requirement.acceptor[0].type == "person":
-            acceptor = User.query.filter_by(gitee_id=self.requirement.acceptor[0].user_id).first()
+            acceptor = User.query.filter_by(user_id=self.requirement.acceptor[0].user_id).first()
             acceptor.influence += self.requirement.total_reward
         elif self.requirement.acceptor[0].type == "group":
             self.requirement.dividable_reward = self.requirement.total_reward
@@ -752,7 +752,7 @@ class RequirementItemHandler:
                 _attributors.add(_participant.participant_id)
         
         attributors = [
-            User.query.filter_by(gitee_id=_attributor_id).first() for _attributor_id in _attributors
+            User.query.filter_by(user_id=_attributor_id).first() for _attributor_id in _attributors
         ]
         return jsonify(
             error_code=RET.OK,
@@ -768,7 +768,7 @@ class RequirementItemHandler:
         user_dict = {}
         for strategy in strategies:
             _sum += int(strategy.reward)
-            user = User.query.filter_by(gitee_id=int(strategy.user_id)).first()
+            user = User.query.filter_by(user_id=int(strategy.user_id)).first()
             if not user:
                 return jsonify(
                     error_code=RET.NO_DATA_ERR,
@@ -785,7 +785,7 @@ class RequirementItemHandler:
         _sum = 0
         for strategy in strategies:
             user = user_dict.get(strategy.user_id)
-            if not in_group(user.gitee_id, self.requirement.acceptor[0].group_id):
+            if not in_group(user.user_id, self.requirement.acceptor[0].group_id):
                 continue
 
             user.influence += strategy.reward
@@ -832,7 +832,7 @@ class RequirementPackageHandler:
             raise RuntimeError("the acceptor type should not be person")
 
     def _get_user(self, user_id):
-        user = User.query.filter_by(gitee_id=user_id).first()
+        user = User.query.filter_by(user_id=user_id).first()
         if not user:
             raise RuntimeError("the user does not exist")
         return user
@@ -844,7 +844,7 @@ class RequirementPackageHandler:
 
         if (
             self.requirement.publisher[0].type == "group" 
-            and not in_group(user.gitee_id, self.requirement.publisher[0].group_id)
+            and not in_group(user.user_id, self.requirement.publisher[0].group_id)
         ):
             return jsonify(
                 error_code=RET.BAD_REQ_ERR,
@@ -852,7 +852,7 @@ class RequirementPackageHandler:
             )
         elif self.requirement.publisher[0].org_id != int(
             redis_client.hget(
-                RedisKey.user(g.gitee_id), 
+                RedisKey.user(g.user_id), 
                 "current_org_id"
             )
         ):
@@ -861,7 +861,7 @@ class RequirementPackageHandler:
                 error_msg="could only set validator who is in the publisher organization"
             )
         
-        self.package.validator_id = user.gitee_id
+        self.package.validator_id = user.user_id
         self.package.add_update()
 
         return jsonify(
@@ -870,7 +870,7 @@ class RequirementPackageHandler:
         )
 
     def validate(self, completions: list):
-        if self.package.validator_id != g.gitee_id:
+        if self.package.validator_id != g.user_id:
             return jsonify(
                 error_code=RET.UNAUTHORIZE_ERR,
                 error_msg="only the validator could validate requirement package"
@@ -903,10 +903,10 @@ class RequirementPackageHandler:
 
         _user = self._get_user(body.get("executor_id"))
         _group_id = self.requirement.acceptor[0].group_id
-        if not in_group(_user.gitee_id, _group_id):
+        if not in_group(_user.user_id, _group_id):
             return jsonify(
                 error_code=RET.BAD_REQ_ERR,
-                error_msg=f"the user {_user.gitee_name} is not in acceptor group"
+                error_msg=f"the user {_user.user_name} is not in acceptor group"
             )
 
         _parent = Task.query.filter_by(id=self.requirement.task_id).first()
@@ -924,9 +924,9 @@ class RequirementPackageHandler:
             "title": f"{self.package.name}_{self.requirement.title}_"\
                 f"{datetime.now(tz=pytz.timezone('Asia/Shanghai')).strftime('%Y%m%d%H%M%S')}",
             "type": _parent.type,
-            "creator_id": int(g.gitee_id),
+            "creator_id": g.user_id,
             "start_time": _now,
-            "executor_id": _user.gitee_id,
+            "executor_id": _user.user_id,
             "deadline": _parent.deadline,
             "status_id": 1,
             "group_id": _parent.group_id,

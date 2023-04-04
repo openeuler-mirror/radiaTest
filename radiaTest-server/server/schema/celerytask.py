@@ -18,12 +18,12 @@ class CeleryTaskCreateSchema(BaseModel):
     status: Optional[str]
     object_type: str
     vmachine_id: Optional[int]
-    user_id: Optional[int]
+    user_id: Optional[str]
 
 
 class CeleryTaskUserInfoSchema(BaseModel):
     auth: str
-    user_id: int
+    user_id: str
     group_id: Optional[int]
     org_id: Optional[int]
     permission_type: PermissionType = "person"

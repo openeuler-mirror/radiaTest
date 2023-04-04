@@ -118,3 +118,6 @@ LoggingType = Literal["info", "warning", "success", "error"]
 
 # 基线模板类型
 BaselineTemplateType = Literal["group", "org"]
+
+#鉴权机构
+Authority = Literal["gitee", "oneid", "default"]
