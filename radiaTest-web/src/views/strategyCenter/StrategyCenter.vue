@@ -35,7 +35,7 @@
             :currentFeature="currentFeature"
             @submitPullRequestCb="submitPullRequestCb"
           ></StrategyContent>
-          <FeatureSetDetail :currentFeature="currentFeature" v-else></FeatureSetDetail>
+          <FeatureSetDetail ref="FeatureSetDetailRef" :currentFeature="currentFeature" v-else></FeatureSetDetail>
         </n-layout-content>
       </n-layout>
       <n-modal v-model:show="showInputFeatureModal" :mask-closable="false">
@@ -267,23 +267,25 @@ import { createTitle } from '@/assets/utils/createTitle';
 import { getProductVersionOpts } from '@/assets/utils/getOpts';
 import { storage } from '@/assets/utils/storageUtils';
 import { getUserInfo, getAllFeature, getProductFeature } from '@/api/get';
-import { productInheritFeature, relateProductFeature, createProductFeature } from '@/api/post';
+import { relateProductFeature, createProductFeature } from '@/api/post';
+import _ from 'lodash';
 
 const showLoading = ref(false);
 const treeData = ref([]);
 const currentNode = ref(null); // 当前选中节点
 const currentFeature = ref(null); // 当前选中特性
-const showStrategy = ref(false); // 展示特性详情或测试策略
+const showStrategy = ref(false); // 展示特性集或测试策略
 const productList = ref([]); // 产品版本列表
+const orgList = ref([]);
+const FeatureSetDetailRef = ref(null); // 特性集页面
 
-// 获取树根节点
-const getRootNodes = () => {
-  treeData.value = [];
+// 获取组织节点
+const getOrgList = () => {
   getUserInfo(storage.getValue('gitee_id')).then((res) => {
     const { data } = res;
     data.orgs.forEach((item) => {
       if (item.re_user_org_default) {
-        treeData.value.push({
+        orgList.value.push({
           label: item.org_name,
           key: `org-${item.org_id}`,
           info: {
@@ -296,7 +298,13 @@ const getRootNodes = () => {
         });
       }
     });
+    treeData.value = _.cloneDeep(orgList.value);
   });
+};
+
+// 获取树根节点
+const getRootNodes = () => {
+  treeData.value = _.cloneDeep(orgList.value);
 };
 
 // 创建组织下级目录
@@ -305,7 +313,7 @@ const createOrgChildren = (node) => {
   node.children.push({
     label: '特性集',
     key: `featureSet-${node.info.org_id}`,
-    isLeaf: false,
+    isLeaf: true,
     type: 'featureSet',
     root: false,
     icon: Database,
@@ -334,32 +342,6 @@ const loadTreeData = (node) => {
   return new Promise((resolve, reject) => {
     if (node.type === 'org') {
       createOrgChildren(node);
-      resolve();
-    } else if (node.type === 'featureSet') {
-      node.children = [];
-      getAllFeature().then((res) => {
-        res?.data?.forEach((item) => {
-          node.children.push({
-            label: item.feature,
-            key: `featureSetFeature-${item.id}`,
-            isLeaf: true,
-            type: 'feature',
-            root: false,
-            icon: SettingsSuggestOutlined,
-            info: {
-              org_id: node.info.org_id,
-              feature_id: item.id,
-              feature: item.feature,
-              no: item.no,
-              release_to: item.release_to,
-              pkgs: item.pkgs,
-              owner: item.owner,
-              sig: item.sig,
-              url: item.url
-            }
-          });
-        });
-      });
       resolve();
     } else if (node.type === 'productVersion') {
       node.children = [];
@@ -392,48 +374,45 @@ const loadTreeData = (node) => {
       resolve();
     } else if (node.type === 'inherit') {
       node.children = [];
-      productInheritFeature(node.info.productVersionId).then(() => {
-        getProductFeature(node.info.productVersionId, { is_new: false }).then((res) => {
-          res?.data?.forEach((item) => {
-            node.children.push({
-              label: item.feature,
-              key: `inheritFeature-${node.info.productVersionId}-${item.id}`,
-              isLeaf: true,
-              type: 'inheritFeature',
-              root: false,
-              icon: SettingsSuggestOutlined,
-              status: item.strategy_commit_status,
-              info: {
-                org_id: node.info.org_id,
-                productVersionId: node.info.productVersionId,
-                feature_id: item.id,
-                product_feature_id: item.product_feature_id
-              }
-            });
+      getProductFeature(node.info.productVersionId, { is_new: false }).then((res) => {
+        res?.data?.forEach((item) => {
+          node.children.push({
+            label: item.feature,
+            key: `inheritFeature-${node.info.productVersionId}-${item.id}`,
+            isLeaf: true,
+            type: 'inheritFeature',
+            root: false,
+            icon: SettingsSuggestOutlined,
+            status: item.strategy_commit_status,
+            info: {
+              org_id: node.info.org_id,
+              productVersionId: node.info.productVersionId,
+              feature_id: item.id,
+              product_feature_id: item.product_feature_id
+            }
           });
         });
       });
       resolve();
     } else if (node.type === 'increase') {
       node.children = [];
-      productInheritFeature(node.info.productVersionId).then(() => {
-        getProductFeature(node.info.productVersionId, { is_new: true }).then((res) => {
-          res?.data?.forEach((item) => {
-            node.children.push({
-              label: item.feature,
-              key: `increaseFeature-${node.info.productVersionId}-${item.id}`,
-              isLeaf: true,
-              type: 'increaseFeature',
-              root: false,
-              icon: SettingsSuggestOutlined,
-              status: item.strategy_commit_status,
-              info: {
-                org_id: node.info.org_id,
-                productVersionId: node.info.productVersionId,
-                feature_id: item.id,
-                product_feature_id: item.product_feature_id
-              }
-            });
+      getProductFeature(node.info.productVersionId, { is_new: true }).then((res) => {
+        console.log(2);
+        res?.data?.forEach((item) => {
+          node.children.push({
+            label: item.feature,
+            key: `increaseFeature-${node.info.productVersionId}-${item.id}`,
+            isLeaf: true,
+            type: 'increaseFeature',
+            root: false,
+            icon: SettingsSuggestOutlined,
+            status: item.strategy_commit_status,
+            info: {
+              org_id: node.info.org_id,
+              productVersionId: node.info.productVersionId,
+              feature_id: item.id,
+              product_feature_id: item.product_feature_id
+            }
           });
         });
       });
@@ -483,6 +462,7 @@ const handleDropdownSelect = (key) => {
     getRootNodes();
   } else if (key === 'relateFeature') {
     showRelateFeatureModal.value = true;
+    getAllFeatureFn({ type: 'inherite', paged: false });
   } else if (key === 'updateFeature') {
     // showUpdateFeatureModal.value = true;
     // updateFeatureFormValue.value.featureName = currentNode.value.label;
@@ -599,9 +579,9 @@ const nodeProps = ({ option }) => {
       if (option.type === 'inheritFeature' || option.type === 'increaseFeature') {
         currentFeature.value = option;
         showStrategy.value = true;
-      } else if (option.type === 'feature') {
-        currentFeature.value = option;
+      } else if (option.type === 'featureSet') {
         showStrategy.value = false;
+        currentFeature.value = option;
       }
     },
     onContextmenu(e) {
@@ -662,8 +642,8 @@ const submitInputFeature = (e) => {
     if (!errors) {
       createProductFeature(inputFeatureFormValue.value).then(() => {
         getRootNodes();
-        getAllFeatureFn();
         cancelInputFeature();
+        FeatureSetDetailRef.value.getFeatureSet(1);
       });
     } else {
       console.log(errors);
@@ -687,9 +667,9 @@ const relateFeatureFormRules = ref({
 const relateFeatureOptions = ref([]);
 
 // 获取特性集
-const getAllFeatureFn = () => {
-  getAllFeature().then((res) => {
-    res?.data?.forEach((item) => {
+const getAllFeatureFn = (param) => {
+  getAllFeature(param).then((res) => {
+    res.data?.items?.forEach((item) => {
       relateFeatureOptions.value.push({
         label: item.feature,
         value: item.id
@@ -839,9 +819,8 @@ const submitPullRequestCb = () => {
 
 onMounted(() => {
   isDesignTemplate.value = false;
-  getRootNodes();
+  getOrgList();
   getProductVersionOpts(productList); // 获取产品版本列表
-  getAllFeatureFn();
 });
 </script>
 
