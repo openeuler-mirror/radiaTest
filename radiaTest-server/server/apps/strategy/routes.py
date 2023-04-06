@@ -115,6 +115,7 @@ class FeatureSetEvent(Resource):
     @auth.login_required()
     @response_collect
     @value_error_collect
+    @validate()
     def get(self, query: StrategyQuerySchema):
         """
             在数据库中查询特性集.
