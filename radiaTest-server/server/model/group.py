@@ -37,7 +37,7 @@ class Group(db.Model, PermissionBaseModel, BaseModel):
     description = db.Column(db.String(256), nullable=True)
     avatar_url = db.Column(db.String(512), nullable=True, default=None)
     is_delete = db.Column(db.Boolean(), default=False, nullable=False)
-    creator_id = db.Column(db.Integer(), db.ForeignKey("user.gitee_id"))
+    creator_id = db.Column(db.String(512), db.ForeignKey("user.user_id"))
     org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
 
     influence = db.Column(db.Integer(), nullable=False, default=0)
@@ -131,19 +131,19 @@ class ReUserGroup(db.Model, BaseModel):
     is_delete = db.Column(db.Boolean(), default=False, nullable=False)
     # 0 待加入用户；1 创建者；2 管理员；3 普通用户
     role_type = db.Column(db.Integer(), default=0, nullable=False)
-    user_gitee_id = db.Column(db.Integer(), db.ForeignKey('user.gitee_id'))
+    user_id = db.Column(db.String(512), db.ForeignKey('user.user_id'))
     group_id = db.Column(db.Integer(), db.ForeignKey('group.id'))
     org_id = db.Column(db.Integer(), nullable=False)
 
     def to_dict(self):
-        _filter = [ReUserRole.user_id == self.user_gitee_id, Role.type == 'group', Role.group_id == self.group_id]
+        _filter = [ReUserRole.user_id == self.user_id, Role.type == 'group', Role.group_id == self.group_id]
         _role = Role.query.join(ReUserRole).filter(*_filter).first()
         return {
             "id": self.id,
             "user_add_group_flag": self.user_add_group_flag,
             "is_delete": self.is_delete,
             "role_type": self.role_type,
-            "user_gitee_id": self.user_gitee_id,
+            "user_id": self.user_id,
             "group_id": self.group_id,
             "org_id": self.org_id,
             "create_time": self.create_time.strftime("%Y-%m-%d %H:%M:%S"),
@@ -152,11 +152,11 @@ class ReUserGroup(db.Model, BaseModel):
         }
 
     @staticmethod
-    def create(flag, role_type, user_gitee_id, group_id, org_id):
+    def create(flag, role_type, user_id, group_id, org_id):
         new_recode = ReUserGroup()
         new_recode.user_add_group_flag = flag
         new_recode.role_type = role_type
-        new_recode.user_gitee_id = user_gitee_id
+        new_recode.user_id = user_id
         new_recode.group_id = group_id
         new_recode.org_id = org_id
         new_recode.add_update()

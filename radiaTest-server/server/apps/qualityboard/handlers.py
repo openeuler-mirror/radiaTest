@@ -573,7 +573,7 @@ class PackageListHandler:
                 _filename = f"{_filename_p}-{sub_path.split('/')[0]}-{arch}"
                 if not redis_client.hgetall(f"resolving_{_filename}_pkglist"):
                     redis_client.hset(
-                        f"resolving_{_filename}_pkglist", "gitee_id", g.gitee_id
+                        f"resolving_{_filename}_pkglist", "user_id", g.user_id
                     )
                     redis_client.hset(
                         f"resolving_{_filename}_pkglist", 
@@ -722,7 +722,7 @@ class RoundHandler:
 
         update_field_issue_rate.delay(
             "round",
-            g.gitee_id,
+            g.user_id,
             {"org_id": _round.product.org_id, "product_id": _round.product_id},
             field,
             round_id

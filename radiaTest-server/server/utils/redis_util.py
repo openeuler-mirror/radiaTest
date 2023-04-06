@@ -85,12 +85,13 @@ class RedisClient(object):
 
 
 class RedisKey(object):
-    token = lambda gitee_id: f"token_{gitee_id}"
-    refresh_token = lambda gitee_id: f"refresh_token_{gitee_id}"
-    user = lambda gitee_id: f"user_{gitee_id}"
-    gitee_user = lambda gitee_id: f"gitee_user_{gitee_id}"
+    token = lambda user_id: f"token_{user_id}"
+    refresh_token = lambda user_id: f"refresh_token_{user_id}"
+    user = lambda user_id: f"user_{user_id}"
+    gitee_user = lambda user_id: f"gitee_user_{user_id}"
     organization = lambda organization_id: f"organization_{organization_id}"
-    login_org = lambda gitee_id: f"{gitee_id}_login_org"
-    access_token = lambda gitee_id: f"access_token_{gitee_id}"
+    login_org = lambda user_id: f"{user_id}_login_org"
+    access_token = lambda user_id: f"access_token_{user_id}"
     issue_types = lambda enterprise_id: f"issue_types_{enterprise_id}"
     issue_states = lambda enterprise_id: f"issue_states_{enterprise_id}"
+    oauth_user = lambda user_id: f"{user_id}"

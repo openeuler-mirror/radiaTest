@@ -159,10 +159,10 @@ class MilestoneHandler:
 
 
 class BaseOpenApiHandler:
-    def __init__(self, table=None, namespace=None, gitee_id=None):
+    def __init__(self, table=None, namespace=None, user_id=None):
         self.table = table
         self.namespace = namespace
-        self.gitee_id = gitee_id if gitee_id else g.gitee_id
+        self.user_id = user_id if user_id else g.user_id
 
     @abc.abstractmethod
     def gitee_2_radia(self):
@@ -174,12 +174,12 @@ class BaseOpenApiHandler:
 
     @property
     def access_token(self):
-        return redis_client.hget(RedisKey.user(self.gitee_id), "gitee_access_token")
+        return redis_client.hget(RedisKey.user(self.user_id), "gitee_access_token")
 
     @property
     def current_org(self):
         org_id = redis_client.hget(
-            RedisKey.user(self.gitee_id), "current_org_id")
+            RedisKey.user(self.user_id), "current_org_id")
         org = Organization.query.filter_by(id=org_id).first()
         return org
 
@@ -372,7 +372,7 @@ class IssueOpenApiHandlerV5:
         )
 
         self.access_token = redis_client.hget(
-            RedisKey.user(g.gitee_id), "gitee_access_token"
+            RedisKey.user(g.user_id), "gitee_access_token"
         )
 
         self.total_count, self.total_page = self._get_summary(
@@ -459,11 +459,11 @@ class IssueOpenApiHandlerV8(BaseOpenApiHandler):
 
 
 class IssueBaseHandlerV8:
-    def __init__(self, gitee_id=None, org_id=None) -> None:
-        self.issv8 = IssueOpenApiHandlerV8(gitee_id=gitee_id)
+    def __init__(self, user_id=None, org_id=None) -> None:
+        self.issv8 = IssueOpenApiHandlerV8(user_id=user_id)
         if org_id is None:
             org_id = redis_client.hget(
-                RedisKey.user(g.gitee_id), "current_org_id")
+                RedisKey.user(g.user_id), "current_org_id")
         org = Organization.query.filter_by(id=org_id).first()
         self.issue_types = redis_client.hget(
             RedisKey.issue_types(org.enterprise_id), "data")
@@ -541,8 +541,8 @@ class IssueBaseHandlerV8:
 
 
 class IssueHandlerV8(IssueBaseHandlerV8):
-    def __init__(self, gitee_id=None, org_id=None) -> None:
-        super().__init__(gitee_id, org_id)
+    def __init__(self, user_id=None, org_id=None) -> None:
+        super().__init__(user_id, org_id)
         self.bug_issue_type_id = self.get_bug_issue_type_id("缺陷")
 
     def get_issues(self, gitee_milestone_id, state_ids, uri):
@@ -746,8 +746,8 @@ class IssueHandlerV8(IssueBaseHandlerV8):
 
 
 class IssueStatisticsHandlerV8(IssueBaseHandlerV8):
-    def __init__(self, gitee_id=None, org_id=None) -> None:
-        super().__init__(gitee_id, org_id)
+    def __init__(self, user_id=None, org_id=None) -> None:
+        super().__init__(user_id, org_id)
         self.bug_issue_type_id = self.get_bug_issue_type_id("缺陷")
 
         self.all_state_ids = self.get_state_ids_inversion(
@@ -767,19 +767,19 @@ class IssueStatisticsHandlerV8(IssueBaseHandlerV8):
         )
 
     @staticmethod
-    def get_gitee_id(org_id):
+    def get_user_id(org_id):
         access_token_list = redis_client.keys("access_token*")
-        gitee_id = None
+        user_id = None
         for _token in access_token_list:
             _org_id = redis_client.hget(_token, "org_id")
             if int(_org_id) == int(org_id):
-                gitee_id = _token.split("_")[-1]
+                user_id = _token.split("_")[-1]
                 break
-        return gitee_id
+        return user_id
 
     @staticmethod
     def get_issue_type():
-        org_id = redis_client.hget(RedisKey.user(g.gitee_id), "current_org_id")
+        org_id = redis_client.hget(RedisKey.user(g.user_id), "current_org_id")
         org = Organization.query.filter(
             Organization.id == org_id, Organization.enterprise_id is not None).first()
         if not org:
@@ -804,7 +804,7 @@ class IssueStatisticsHandlerV8(IssueBaseHandlerV8):
 
     @staticmethod
     def get_issue_state():
-        org_id = redis_client.hget(RedisKey.user(g.gitee_id), "current_org_id")
+        org_id = redis_client.hget(RedisKey.user(g.user_id), "current_org_id")
         org = Organization.query.filter(
             Organization.id == org_id, Organization.enterprise_id is not None).first()
         if not org:
@@ -982,7 +982,7 @@ class IssueStatisticsHandlerV8(IssueBaseHandlerV8):
 
         update_field_issue_rate.delay(
             "milestone",
-            g.gitee_id,
+            g.user_id,
             {"org_id": milestone.org_id, "product_id": milestone.product_id},
             field,
             milestone.gitee_milestone_id

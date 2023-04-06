@@ -35,14 +35,14 @@ class Template(BaseModel, PermissionBaseModel, db.Model):
         db.Integer(), db.ForeignKey("git_repo.id"), nullable=False
     )
 
-    creator_id = db.Column(db.Integer(), db.ForeignKey("user.gitee_id"))
+    creator_id = db.Column(db.String(512), db.ForeignKey("user.user_id"))
     group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
     org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
 
     def to_json(self):
-        author = User.query.filter_by(gitee_id=self.creator_id).first().gitee_name
+        author = User.query.filter_by(user_id=self.creator_id).first().user_name
         if self.permission_type == "person":
-            owner = User.query.filter_by(gitee_id=self.creator_id).first().gitee_name
+            owner = User.query.filter_by(user_id=self.creator_id).first().user_name
         elif self.permission_type == "group":
             owner = Group.query.filter_by(id=self.group_id).first().name
         elif self.permission_type == "org":

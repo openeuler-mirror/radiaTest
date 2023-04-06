@@ -46,7 +46,7 @@ class CaseNode(BaseModel, PermissionBaseModel, db.Model):
     group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
 
     org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
-    creator_id = db.Column(db.Integer(), db.ForeignKey("user.gitee_id"))
+    creator_id = db.Column(db.String(512), db.ForeignKey("user.user_id"))
 
     suite_id = db.Column(db.Integer(), db.ForeignKey("suite.id"))
 
@@ -84,7 +84,7 @@ class CaseNode(BaseModel, PermissionBaseModel, db.Model):
         if self.type == 'case' and self.case_id:
             _commit = Commit.query.filter_by(
                 case_detail_id=self.case_id,
-                creator_id = g.gitee_id,
+                creator_id = g.user_id,
                 ).order_by(
                     Commit.create_time.desc(), Commit.id.asc()
             ).first()
@@ -114,7 +114,7 @@ class Baseline(PermissionBaseModel, BaseModel, db.Model):
     id = db.Column(db.Integer(), primary_key=True)
     group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
     org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
-    creator_id = db.Column(db.Integer(), db.ForeignKey("user.gitee_id"))
+    creator_id = db.Column(db.String(512), db.ForeignKey("user.user_id"))
 
     milestone_id = db.Column(db.Integer(), db.ForeignKey("milestone.id"))
     suite_document = db.relationship(
@@ -152,7 +152,7 @@ class Suite(PermissionBaseModel, BaseModel, db.Model):
     group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
 
     org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
-    creator_id = db.Column(db.Integer(), db.ForeignKey("user.gitee_id"))
+    creator_id = db.Column(db.String(512), db.ForeignKey("user.user_id"))
 
     case = db.relationship(
         "Case", backref="suite", cascade="all, delete, delete-orphan"
@@ -230,7 +230,7 @@ class Case(BaseModel, PermissionBaseModel, db.Model):
     version = db.Column(db.String(32))
     group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
     org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
-    creator_id = db.Column(db.Integer(), db.ForeignKey("user.gitee_id"))
+    creator_id = db.Column(db.String(512), db.ForeignKey("user.user_id"))
 
     analyzeds = db.relationship('Analyzed', backref='case')
 
@@ -303,7 +303,7 @@ class Commit(BaseModel, PermissionBaseModel, db.Model):
     case_detail_id = db.Column(db.Integer, db.ForeignKey("case.id"), nullable=False)  # 归属case
     case_mod_type = db.Column(db.Enum("add", "edit"), default="edit", nullable=False)
     source = db.Column(db.String(255))
-    creator_id = db.Column(db.Integer(), db.ForeignKey("user.gitee_id"))
+    creator_id = db.Column(db.String(512), db.ForeignKey("user.user_id"))
     group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
     org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
 
@@ -312,7 +312,7 @@ class Commit(BaseModel, PermissionBaseModel, db.Model):
     def to_json(self):
         reviewer_name = None
         if self.reviewer_id:
-            reviewer_name = User.query.get(self.reviewer_id).gitee_name
+            reviewer_name = User.query.get(self.reviewer_id).user_name
         comment_count = CommitComment.query.filter_by(commit_id=self.id).count()
         _review_time = None
         if self.review_time:
@@ -372,7 +372,7 @@ class CaseDetailHistory(BaseModel, PermissionBaseModel, db.Model):
             "creator_id": self.creator_id,
             "create_time": self.create_time.strftime("%Y-%m-%d %H:%M:%S"),
             "version": self.version,
-            "creator_name": User.query.get(self.creator_id).gitee_name,
+            "creator_name": User.query.get(self.creator_id).user_name,
             "machine_num": self.machine_num,
             "machine_type": self.machine_type,
             "case_description": self.case_description,
@@ -389,7 +389,7 @@ class CommitComment(BaseModel, PermissionBaseModel, db.Model):
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     content = db.Column(db.Text, nullable=True)  # 内容
-    creator_id = db.Column(db.Integer(), db.ForeignKey("user.gitee_id"))
+    creator_id = db.Column(db.String(512), db.ForeignKey("user.user_id"))
     group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
     org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
     parent_id = db.Column(db.Integer(), default=0)
@@ -420,7 +420,7 @@ class SuiteDocument(BaseModel, db.Model):
     title = db.Column(db.String(50), nullable=False, unique=True)
     url = db.Column(db.String(512), nullable=False, unique=True)
     suite_id = db.Column(db.Integer(), db.ForeignKey("suite.id"))
-    creator_id = db.Column(db.Integer(), db.ForeignKey("user.gitee_id"))
+    creator_id = db.Column(db.String(512), db.ForeignKey("user.user_id"))
     group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
     org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
     baseline_id = db.Column(db.Integer(), db.ForeignKey("baseline.id"))

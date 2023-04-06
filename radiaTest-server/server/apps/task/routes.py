@@ -56,7 +56,7 @@ class Task(Resource):
     @response_collect
     @validate()
     def get(self, query: QueryTaskSchema):
-        return HandlerTask.get_all(g.gitee_id, query)
+        return HandlerTask.get_all(g.user_id, query)
 
     @auth.login_required()
     @response_collect

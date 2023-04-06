@@ -63,6 +63,6 @@ def authorization_decoder(config, auth_str: str):
             config.get("TOKEN_SECRET_KEY"),
             algorithms=["HS512", "HS384", "HS256"],
         )
-        return str(decoded_jwt.get("gitee_id", ""))
+        return str(decoded_jwt.get("user_id", ""))
     else:
         raise UnSupportedAuthType("%s Authorization is not supported" % _type)

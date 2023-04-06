@@ -42,7 +42,7 @@ class Milestone(BaseModel, PermissionBaseModel, db.Model):
     )
 
     jobs = db.relationship('Job', backref='milestone')
-    creator_id = db.Column(db.Integer(), db.ForeignKey("user.gitee_id"))
+    creator_id = db.Column(db.String(512), db.ForeignKey("user.user_id"))
     group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
     org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
 

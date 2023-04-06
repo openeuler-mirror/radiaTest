@@ -29,5 +29,5 @@ def init_api(api: Api):
     api.add_resource(ScopeRolePublicEvent, "/api/v1/scope-role")
     api.add_resource(ScopeRoleOrgEvent, "/api/v1/scope-role/org/<int:org_id>")
     api.add_resource(ScopeRoleGroupEvent, "/api/v1/scope-role/group/<int:group_id>")
-    api.add_resource(ScopeRolePersonEvent, "/api/v1/scope-role/user/<int:gitee_id>")
+    api.add_resource(ScopeRolePersonEvent, "/api/v1/scope-role/user/<string:user_id>")
     api.add_resource(AccessableMachinesEvent, "/api/v1/accessable-machines")

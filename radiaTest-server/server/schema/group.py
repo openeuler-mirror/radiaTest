@@ -43,11 +43,11 @@ class GroupInfoSchema(BaseModel):
 
 
 class AddGroupUserSchema(BaseModel):
-    gitee_ids: list
+    user_ids: list
 
 
 class UpdateGroupUserSchema(BaseModel):
-    gitee_ids: list
+    user_ids: list
     is_delete: Optional[bool] = False
     flag: Optional[bool] = True
     role_type: Optional[int]

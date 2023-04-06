@@ -37,7 +37,7 @@ class ManualJob(BaseModel, db.Model):
     current_step = db.Column(db.Integer(), nullable=False, default=0)
     total_step = db.Column(db.Integer(), nullable=False)
 
-    executor_id = db.Column(db.Integer(), db.ForeignKey("user.gitee_id"))
+    executor_id = db.Column(db.String(512), db.ForeignKey("user.user_id"))
     milestone_id = db.Column(db.Integer(), db.ForeignKey("milestone.id"))
     case_id = db.Column(db.Integer(), db.ForeignKey("case.id"))
 
@@ -46,7 +46,7 @@ class ManualJob(BaseModel, db.Model):
     steps = db.relationship("ManualJobStep", backref="manual_job", cascade="all, delete")
 
     def to_json(self):
-        executor_name = User.query.filter_by(gitee_id=self.executor_id).first().gitee_name  # 这里没有用backref
+        executor_name = User.query.filter_by(user_id=self.executor_id).first().user_name  # 这里没有用backref
         milestone_name = Milestone.query.filter_by(id=self.milestone_id).first().name
         _case = Case.query.filter_by(id=self.case_id).first()
         return {

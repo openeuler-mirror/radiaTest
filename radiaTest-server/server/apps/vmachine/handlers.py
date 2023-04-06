@@ -60,7 +60,7 @@ class VmachineMessenger:
     def __init__(self, body):
         self._body = body
         self._body.update({
-            "user_id": int(g.gitee_id),
+            "user_id": g.user_id,
         })
 
     @ssl_cert_verify_error_collect

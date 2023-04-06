@@ -16,6 +16,9 @@
 #####################################
 
 from flask import request, g, jsonify, current_app
+from sqlalchemy.orm.session import make_transient
+from server import db
+
 from server import redis_client
 from server.utils.response_util import RET
 from server.utils.redis_util import RedisKey
@@ -60,12 +63,12 @@ def handler_login(body):
         )
 
     user_dict = {
-        'gitee_id': f'admin_{admin.id}',
-        'gitee_login': admin.account
+        'user_id': f'admin_{admin.id}',
+        'user_login': admin.account
     }
-    redis_client.hmset(RedisKey.user(user_dict.get('gitee_id')), user_dict)
+    redis_client.hmset(RedisKey.oauth_user(user_dict.get('user_id')), user_dict)
     token = generate_token(
-        user_dict.get('gitee_id'),
+        user_dict.get('user_id'),
         admin.account,
         int(current_app.config.get("LOGIN_EXPIRES_TIME"))
     )
@@ -100,12 +103,12 @@ def handler_register(body):
         )
 
     user_dict = {
-        'gitee_id': f'admin_{admin_id}',
-        'gitee_login': admin.account
+        'user_id': f'admin_{admin_id}',
+        'user_login': admin.account
     }
-    redis_client.hmset(RedisKey.user(user_dict.get('gitee_id')), user_dict)
+    redis_client.hmset(RedisKey.user(user_dict.get('user_id')), user_dict)
     token = generate_token(
-        user_dict.get('gitee_id'), 
+        user_dict.get('user_id'),
         admin.account,
         int(current_app.config.get("LOGIN_EXPIRES_TIME"))
     )
@@ -121,7 +124,7 @@ def handler_register(body):
 
 @collect_sql_error
 def handler_read_org_list():
-    admin = Admin.query.filter_by(account=g.gitee_login).first()
+    admin = Admin.query.filter_by(account=g.user_login).first()
     if not admin:
         return jsonify(error_code=RET.VERIFY_ERR, error_msg='no right')
     org_list = Organization.query.filter_by(is_delete=False).all()
@@ -138,7 +141,7 @@ def handler_read_org_list():
 @collect_sql_error
 def handler_save_org(body, avatar=None):
     # 判断用户是否为管理员
-    admin = Admin.query.filter_by(account=g.gitee_login).first()
+    admin = Admin.query.filter_by(account=g.user_login).first()
     if not admin:
         return jsonify(
             error_code=RET.VERIFY_ERR,
@@ -173,13 +176,13 @@ def handler_save_org(body, avatar=None):
         "org_id": org.id
     }
     scope_data_allow, scope_data_deny = get_api("organization", "org.yaml", "org", org.id)
-    PermissionManager().generate(scope_datas_allow=scope_data_allow, scope_datas_deny=scope_data_deny,
-                                 _data=_data)
+    PermissionManager(org_id=org.id).generate(scope_datas_allow=scope_data_allow, scope_datas_deny=scope_data_deny,
+                                              _data=_data)
 
     for role in role_list:
         scope_data_allow, scope_data_deny = get_api("permission", "role.yaml", "role", role.id)
-        PermissionManager().generate(scope_datas_allow=scope_data_allow, scope_datas_deny=scope_data_deny,
-                                     _data=_data)
+        PermissionManager(org_id=org.id).generate(scope_datas_allow=scope_data_allow, scope_datas_deny=scope_data_deny,
+                                                  _data=_data)
     return jsonify(
         error_code=RET.OK,
         error_msg="OK",
@@ -190,7 +193,7 @@ def handler_save_org(body, avatar=None):
 @collect_sql_error
 def handler_update_org(org_id):
     # 判断用户是否为管理员
-    admin = Admin.query.filter_by(account=g.gitee_login).first()
+    admin = Admin.query.filter_by(account=g.user_login).first()
     if not admin:
         return jsonify(
             error_code=RET.VERIFY_ERR,
@@ -206,18 +209,20 @@ def handler_update_org(org_id):
     _form = dict()
     if request.form.get('is_delete'):
         org.is_delete = True
-        flag = org.add_update()
-        if not flag:
-            return jsonify(
-                error_code=RET.OTHER_REQ_ERR,
-                error_msg='resources are related to current group, please delete these resources and retry!'
-            )
+        db.session.add(org)
+        db.session.commit()
     else:
         for key, value in request.form.items():
             if value:
                 _form[key] = value
-        body = UpdateSchema(**_form)
+
+        result, form = check_authority(_form)
+        if not result:
+            return form
+
+        body = UpdateSchema(**form)
         avatar = request.files.get("avatar_url")
+
         if avatar:
             org.avatar_url = FileUtil.flask_save_file(
                 avatar, org.avatar_url if org.avatar_url else FileUtil.generate_filepath('avatar'))
@@ -277,3 +282,31 @@ def handler_change_passwd(body):
         error_code=RET.OK,
         error_msg="new password update success"
     )
+
+
+def check_authority(form: dict):
+    if form.get("authority") == "default":
+        if not all((
+            current_app.config.get("GITEE_OAUTH_CLIENT_ID"),
+            current_app.config.get("GITEE_OAUTH_CLIENT_SECRET"),
+            current_app.config.get("GITEE_OAUTH_LOGIN_URL"),
+            current_app.config.get("GITEE_OAUTH_GET_TOKEN_URL"),
+            current_app.config.get("GITEE_OAUTH_GET_USER_INFO_URL"),
+            current_app.config.get("GITEE_OAUTH_SCOPE")
+        )):
+            return False, jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="default config is not complete",
+            )
+        else:
+            form.update({
+                "authority": "gitee",
+                "oauth_client_id": current_app.config.get("GITEE_OAUTH_CLIENT_ID"),
+                "oauth_client_secret": current_app.config.get("GITEE_OAUTH_CLIENT_SECRET"),
+                "oauth_login_url": current_app.config.get("GITEE_OAUTH_LOGIN_URL"),
+                "oauth_get_token_url": current_app.config.get("GITEE_OAUTH_GET_TOKEN_URL"),
+                "oauth_get_user_info_url": current_app.config.get("GITEE_OAUTH_GET_USER_INFO_URL"),
+                "oauth_scope": current_app.config.get("GITEE_OAUTH_SCOPE")
+            })
+    current_app.logger.info("form:{}".format(form))
+    return True, form

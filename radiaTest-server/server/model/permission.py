@@ -145,7 +145,7 @@ class ReUserRole(db.Model, CasbinRoleModel):
     __tablename__ = "re_user_role"
 
     id = db.Column(db.Integer(), primary_key=True)
-    user_id = db.Column(db.Integer(), db.ForeignKey("user.gitee_id"))
+    user_id = db.Column(db.String(512), db.ForeignKey("user.user_id"))
     role_id = db.Column(db.Integer(), db.ForeignKey("role.id"))
 
     def _generate_group(self):
@@ -172,7 +172,7 @@ class ReUserRole(db.Model, CasbinRoleModel):
         return {
             "id": self.id,
             "user_id": self.user_id,
-            "user_name": self.user.gitee_name,
+            "user_name": self.user.user_name,
             "role_id": self.role_id,
             "role_name": self.role.name,
             "role_type": self.role.type,

@@ -1,7 +1,7 @@
 from flask import Flask
 from flask_restful import Api
 
-from .user.routes import gitee
+from .user.routes import oauth
 from . import user
 from . import administrator
 from . import group
@@ -27,7 +27,7 @@ from . import baseline_template
 
 
 def init_api(app: Flask):
-    app.register_blueprint(gitee)
+    app.register_blueprint(oauth)
     api = Api(app)
     administrator.init_api(api)
     user.init_api(api)

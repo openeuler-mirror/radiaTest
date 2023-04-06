@@ -100,7 +100,7 @@ class HandlerTaskStatus(object):
             TaskStatus.order.desc(), TaskStatus.id.asc()
         ).first()
         new_order = (status.order + 1) if status else 1
-        status = TaskStatus(name=body.name, order=new_order, creator_id=g.gitee_id)
+        status = TaskStatus(name=body.name, order=new_order, creator_id=g.user_id)
         status.add_update()
         return jsonify(error_code=RET.OK, error_msg="OK")
 
@@ -167,12 +167,12 @@ class HandlerTask(object):
             return jsonify(error_code=RET.DATA_EXIST_ERR, error_msg="task has exist")
 
         insert_dict = body.dict()
-        insert_dict["creator_id"] = g.gitee_id
+        insert_dict["creator_id"] = g.user_id
         insert_dict["org_id"] = redis_client.hget(
-            RedisKey.user(g.gitee_id), "current_org_id"
+            RedisKey.user(g.user_id), "current_org_id"
         )
         current_org_id = int(
-            redis_client.hget(RedisKey.user(g.gitee_id), "current_org_id")
+            redis_client.hget(RedisKey.user(g.user_id), "current_org_id")
         )
         case_ids = []
         if body.case_node_id:
@@ -223,7 +223,7 @@ class HandlerTask(object):
                 return jsonify(
                     error_code=RET.NO_DATA_ERR, error_msg="group is not exists"
                 )
-            executor_id = relationship.user.gitee_id
+            executor_id = relationship.user.user_id
         insert_dict["executor_id"] = executor_id
         task = Task()
         for key, value in insert_dict.items():
@@ -281,14 +281,14 @@ class HandlerTask(object):
                 pm.bind_scope_user(
                     scope_datas_allow=scope_data_allow,
                     scope_datas_deny=scope_data_deny,
-                    gitee_id=executor_id,
+                    user_id=executor_id,
                 )
 
         return jsonify(error_code=RET.OK, error_msg="OK")
 
     @staticmethod
     @collect_sql_error
-    def get_all(gitee_id, query):
+    def get_all(user_id, query):
         """获取任务列表"""
         join_params = []
         filter_params = GetAllByPermission(Task).get_filter()
@@ -387,7 +387,7 @@ class HandlerTask(object):
             )
   
         if body.executor_type == EnumsTaskExecutorType.PERSON.value:
-            user = User.query.filter_by(gitee_id=body.executor_id).first()
+            user = User.query.filter_by(user_id=body.executor_id).first()
             if not user:
                 return jsonify(
                     error_code=RET.NO_DATA_ERR, error_msg="user is not exists"
@@ -442,7 +442,7 @@ class HandlerTask(object):
                         return jsonify(
                             error_code=RET.NO_DATA_ERR, error_msg="group is not exists"
                         )
-                    task.executor_id = relationship.user.gitee_id
+                    task.executor_id = relationship.user.user_id
                     task.group_id = relationship.group.id
                     task.executor_type = body.executor_type
                     _data = {
@@ -474,7 +474,7 @@ class HandlerTask(object):
                     pm.bind_scope_user(
                         scope_datas_allow=scope_data_allow,
                         scope_datas_deny=scope_data_deny,
-                        gitee_id=task.executor_id,
+                        user_id=task.executor_id,
                     )
         else:
             if body.executor_type == EnumsTaskExecutorType.GROUP.value:
@@ -500,7 +500,7 @@ class HandlerTask(object):
                         role.id,
                     )
 
-                task.executor_id = relationship.user.gitee_id
+                task.executor_id = relationship.user.user_id
                 task.group_id = relationship.group.id
                 task.executor_type = body.executor_type
                 _data = {
@@ -531,7 +531,7 @@ class HandlerTask(object):
                         pm.bind_scope_user(
                             scope_datas_allow=scope_data_allow,
                             scope_datas_deny=scope_data_deny,
-                            gitee_id=task.executor_id,
+                            user_id=task.executor_id,
                         )
         task.add_update()
         db.session.commit()
@@ -736,7 +736,7 @@ class HandlerTask(object):
         """
         query_filter = Task.query.filter_by(
             is_delete=True,
-            org_id=redis_client.hget(RedisKey.user(g.gitee_id), "current_org_id"),
+            org_id=redis_client.hget(RedisKey.user(g.user_id), "current_org_id"),
         ).order_by(Task.update_time.desc(), Task.id.asc())
 
         def page_func(item: Task):
@@ -761,7 +761,7 @@ class HandlerTask(object):
     def delete_task_list(body: DeleteTaskList):
         if body.task_ids:
             for task_id in body.task_ids:
-                task = Task.query.filter_by(id=task_id, creator_id=g.gitee_id).first()
+                task = Task.query.filter_by(id=task_id, creator_id=g.user_id).first()
                 if not task:
                     continue
                 if task and task.task_status.name == "待办中":
@@ -782,7 +782,7 @@ class HandlerTaskParticipant(object):
         """
         if query_task:
             current_org = int(
-                redis_client.hget(RedisKey.user(g.gitee_id), "current_org_id")
+                redis_client.hget(RedisKey.user(g.user_id), "current_org_id")
             )
             participants = (
                 TaskParticipant.query.join(Task)
@@ -820,7 +820,7 @@ class HandlerTaskParticipant(object):
         task = Task.query.filter(
             Task.id == task_id,
             Task.is_delete.is_(False),
-            or_(Task.creator_id == g.gitee_id, Task.executor_id == g.gitee_id),
+            or_(Task.creator_id == g.user_id, Task.executor_id == g.user_id),
         ).first()
         if not task:
             return jsonify(
@@ -834,7 +834,7 @@ class HandlerTaskParticipant(object):
             relationship = ReUserGroup.query.filter_by(
                 is_delete=False,
                 org_id=task.org_id,
-                user_gitee_id=task.executor_id,
+                user_id=task.executor_id,
                 role_type=GroupRole.create_user.value,
             ).first()
             executor_to_participant_id = relationship.group_id
@@ -885,7 +885,7 @@ class HandlerTaskParticipant(object):
                     _data=_data,
                 )
             else:
-                user = User.query.filter_by(gitee_id=apc.participant_id).first()
+                user = User.query.filter_by(user_id=apc.participant_id).first()
                 if not user:
                     return jsonify(
                         error_code=RET.NO_DATA_ERR, error_msg="user is not exists"
@@ -894,7 +894,7 @@ class HandlerTaskParticipant(object):
                     pm.bind_scope_user(
                         scope_datas_allow=scope_data_allow,
                         scope_datas_deny=scope_data_deny,
-                        gitee_id=apc.participant_id,
+                        user_id=apc.participant_id,
                     )
             participant = TaskParticipant(
                 task_id=task_id, participant_id=apc.participant_id, type=apc.type
@@ -927,7 +927,7 @@ class HandlerTaskComment(object):
     @collect_sql_error
     def add(task_id, body):
         comment = TaskComment(
-            task_id=task_id, content=body.content, creator_id=g.gitee_id
+            task_id=task_id, content=body.content, creator_id=g.user_id
         )
         comment.add_update()
         return jsonify(error_code=RET.OK, error_msg="OK")
@@ -938,7 +938,7 @@ class HandlerTaskComment(object):
         task = Task.query.filter(
             Task.id == task_id,
             Task.is_delete.is_(False),
-            or_(Task.creator_id == g.gitee_id, Task.executor_id == g.gitee_id),
+            or_(Task.creator_id == g.user_id, Task.executor_id == g.user_id),
         ).first()
         if not task:
             return jsonify(
@@ -989,7 +989,7 @@ class HandlerTaskTag(object):
     @collect_sql_error
     def add(body: AddTaskTagSchema):
         task = Task.query.get(body.task_id)
-        if not task or g.gitee_id not in [task.creator_id, task.executor_id]:
+        if not task or g.user_id not in [task.creator_id, task.executor_id]:
             return jsonify(
                 error_code=RET.NO_DATA_ERR,
                 error_msg="task is not exists / user is no right",
@@ -1012,7 +1012,7 @@ class HandlerTaskTag(object):
         tag = TaskTag.query.get(query.id)
         if query.task_id:
             task = Task.query.get(query.task_id)
-            if not task or g.gitee_id not in [task.creator_id, task.executor_id]:
+            if not task or g.user_id not in [task.creator_id, task.executor_id]:
                 return jsonify(
                     error_code=RET.NO_DATA_ERR,
                     error_msg="task is not exists / user is no right",
@@ -1035,7 +1035,7 @@ class HandlerTaskFamily(object):
         task = Task.query.filter(
             Task.id == task_id,
             Task.is_delete.is_(False),
-            or_(Task.creator_id == g.gitee_id, Task.executor_id == g.gitee_id),
+            or_(Task.creator_id == g.user_id, Task.executor_id == g.user_id),
         ).first()
         if not task:
             return jsonify(
@@ -1085,7 +1085,7 @@ class HandlerTaskFamily(object):
             _filter = [
                 Task.is_delete.is_(False),
                 Task.org_id
-                == redis_client.hget(RedisKey.user(g.gitee_id), "current_org_id"),
+                == redis_client.hget(RedisKey.user(g.user_id), "current_org_id"),
             ]
             _filter.extend(permission_filter)
             tasks = Task.query.filter(*_filter).all()
@@ -1156,7 +1156,7 @@ class HandlerTaskFamily(object):
         task = Task.query.filter(
             Task.id == task_id,
             Task.is_delete.is_(False),
-            or_(Task.creator_id == g.gitee_id, Task.executor_id == g.gitee_id),
+            or_(Task.creator_id == g.user_id, Task.executor_id == g.user_id),
         ).first()
         if not task:
             return jsonify(
@@ -1201,7 +1201,7 @@ class HandlerTaskReport(object):
         task = Task.query.filter(
             Task.id == task_id,
             Task.is_delete.is_(False),
-            or_(Task.creator_id == g.gitee_id, Task.executor_id == g.gitee_id),
+            or_(Task.creator_id == g.user_id, Task.executor_id == g.user_id),
         ).first()
         if not task:
             return jsonify(
@@ -1286,7 +1286,7 @@ class HandlerTaskCase(object):
                 TaskMilestone.task_id == task_id,
                 Task.is_delete.is_(False),
                 TaskMilestone.milestone_id == milestone_id,
-                or_(Task.creator_id == g.gitee_id, Task.executor_id == g.gitee_id),
+                or_(Task.creator_id == g.user_id, Task.executor_id == g.user_id),
             )
             .first()
         )
@@ -1324,7 +1324,7 @@ class HandlerTaskCase(object):
                 TaskMilestone.task_id == task_id,
                 Task.is_delete.is_(False),
                 TaskMilestone.milestone_id == milestone_id,
-                or_(Task.creator_id == g.gitee_id, Task.executor_id == g.gitee_id),
+                or_(Task.creator_id == g.user_id, Task.executor_id == g.user_id),
             )
             .first()
         )
@@ -1540,7 +1540,7 @@ class HandlerTaskStatistics(object):
         if query.type:
             filter_params.append(Task.type == query.type)
             if query.type == "PERSON":
-                filter_params.append(Task.executor_id == g.gitee_id)
+                filter_params.append(Task.executor_id == g.user_id)
         if query.executors and query.type != "PERSON":
             filter_params.append(Task.executor_id.in_(query.executors))
         if query.groups:
@@ -1585,13 +1585,13 @@ class HandlerTaskStatistics(object):
             item_count = executor_list.count(item)
             if item[0] == "PERSON":
                 executor = User.query.get(item[1])
-                executor_data[executor.gitee_name] = item_count
+                executor_data[executor.user_name] = item_count
             elif item[0] == "GROUP":
                 executor = ReUserGroup.query.filter_by(
-                    user_gitee_id=item[1], group_id=item[2], is_delete=False
+                    user_id=item[1], group_id=item[2], is_delete=False
                 ).first()
                 if executor:
-                    key = f"{executor.user.gitee_name}({executor.group.name})"
+                    key = f"{executor.user.user_name}({executor.group.name})"
                     executor_data[key] = item_count
         return executor_data
 
@@ -1699,7 +1699,7 @@ class HandlerTaskStatistics(object):
             return []
 
         org = Organization.query.filter_by(
-            id=redis_client.hget(RedisKey.user(g.gitee_id), "current_org_id")
+            id=redis_client.hget(RedisKey.user(g.user_id), "current_org_id")
         ).first()
         if not org or not org.enterprise_id:
             return []
@@ -1750,13 +1750,13 @@ class HandlerTaskExecute(object):
             )
         if Task.query.filter_by(title=params.title, is_delete=False).first():
             return jsonify(error_code=RET.DATA_EXIST_ERR, error_msg="task has exist")
-        g.gitee_id = executor.user_gitee_id
+        g.user_id = executor.user_id
         record = Task()
         record.title = params.title
         record.group_id = params.group_id
         record.executor_type = "GROUP"
-        record.executor_id = executor.user.gitee_id
-        record.creator_id = executor.user.gitee_id
+        record.executor_id = executor.user.user_id
+        record.creator_id = executor.user.user_id
         record.type = "VERSION"
         record.permission_type = "org"
         record.org_id = executor.org_id

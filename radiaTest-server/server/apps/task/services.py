@@ -79,7 +79,7 @@ class UpdateTaskStatusService(object):
         if accomplish_flag:
             parents = self.task.parents.filter(Task.is_delete.is_(False)).all()
             for item in parents:
-                send_message(item, msg=f"子任务{self.task.title}已完成。", from_id=g.gitee_id)
+                send_message(item, msg=f"子任务{self.task.title}已完成。", from_id=g.user_id)
                 if item.automatic_finish:
                     children_ = get_task_children(tasks=[item], children=[])
                     all_accomplish = True
@@ -165,9 +165,9 @@ class UpdateTaskStatusService(object):
                 if not template_id or old_cases != auto_cases:
                     template = Template()
                     template.name = template_name
-                    template.creator_id = int(g.gitee_id)
+                    template.creator_id = g.user_id
                     template.org_id = int(
-                        redis_client.hget(RedisKey.user(g.gitee_id), "current_org_id")
+                        redis_client.hget(RedisKey.user(g.user_id), "current_org_id")
                     )
                     template.milestone_id = milestone.milestone_id
                     template.permission_type = "person"
@@ -341,7 +341,7 @@ def send_message(task: Task, msg, from_id=1):
                 group_id=item.participant_id, role_type=1, is_delete=False
             ).first()
             if re:
-                to_id.append(re.user_gitee_id)
+                to_id.append(re.user_id)
     to_id.append(task.executor_id)
     to_id.append(task.creator_id)
     to_id = set(to_id)

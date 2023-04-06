@@ -72,7 +72,7 @@ class TimeBaseSchema(BaseModel):
 
 
 class PermissionBase(BaseModel):
-    creator_id: int
+    creator_id: str
     permission_type: PermissionType
     group_id: Optional[int] = None
     org_id: int
@@ -80,15 +80,15 @@ class PermissionBase(BaseModel):
     @root_validator
     def check_exist(cls, values):
         user = Precise(
-            User, {"gitee_id": values.get("creator_id")}
+            User, {"user_id": values.get("creator_id")}
         ).first()
         if not user:
             raise ValueError("The user does not exist.")
         
-        if values.get("creator_id") != int(g.gitee_id):
+        if values.get("creator_id") != g.user_id:
             raise ValueError("The user is not current login user.")
         
-        if values.get("org_id") != int(redis_client.hget(RedisKey.user(g.gitee_id), "current_org_id")):
+        if values.get("org_id") != int(redis_client.hget(RedisKey.user(g.user_id), "current_org_id")):
             raise ValueError("The org is not current login org.")
 
         if values.get("permission_type") == "group":
@@ -96,7 +96,7 @@ class PermissionBase(BaseModel):
                 raise ValueError("Lack of group_id for a role of group")
             else:
                 re_user_group = Precise(
-                    ReUserGroup, {"group_id": values.get("group_id"), "org_id": values.get("org_id"), "user_gitee_id": values.get("creator_id")}
+                    ReUserGroup, {"group_id": values.get("group_id"), "org_id": values.get("org_id"), "user_id": values.get("creator_id")}
                 ).first()
                 if not re_user_group:
                     raise ValueError("The group does not exist or does not belong to current org.")

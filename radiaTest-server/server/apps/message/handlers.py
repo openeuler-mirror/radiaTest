@@ -21,10 +21,10 @@ def handler_msg_list():
     has_read = int(request.args.get('has_read', 0))
     page_size = int(request.args.get('page_size', 10))
     page_num = int(request.args.get('page_num', 1))
-    org_id = redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')
+    org_id = redis_client.hget(RedisKey.user(g.user_id), 'current_org_id')
 
     filter_params = [
-        Message.to_id == g.gitee_id,
+        Message.to_id == g.user_id,
         Message.is_delete.is_(False),
         Message.org_id == org_id
     ]
@@ -45,13 +45,13 @@ def handler_update_msg():
     is_delete = request.json.get('is_delete')
     has_read = request.json.get('has_read')
     has_all_read = request.json.get('has_all_read')
-    org_id = redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')
+    org_id = redis_client.hget(RedisKey.user(g.user_id), 'current_org_id')
 
     if not msg_id_list and not has_all_read:
         return jsonify(errro_code=RET.PARMA_ERR, error_msg='msg_ids is not null')
     # 获取数据
     filter_params = [
-        Message.to_id == g.gitee_id,
+        Message.to_id == g.user_id,
         Message.is_delete.is_(False),
         Message.org_id == org_id
     ]
@@ -66,7 +66,7 @@ def handler_update_msg():
         return jsonify(error_code=RET.PARMA_ERR, error_msg='no params need update')
     Message.query.filter(*filter_params).update(update_dict, synchronize_session=False)
     db.session.commit()
-    msg_count = Message.query.filter(Message.to_id == g.gitee_id,
+    msg_count = Message.query.filter(Message.to_id == g.user_id,
                                      Message.is_delete.is_(False),
                                      Message.has_read.is_(False),
                                      Message.org_id == org_id).count()
@@ -74,7 +74,7 @@ def handler_update_msg():
         "count",
         {"num": msg_count},
         namespace='/message',
-        room=str(g.gitee_id)
+        room=str(g.user_id)
     )
     return jsonify(error_code=RET.OK, error_msg='OK')
 
@@ -90,7 +90,7 @@ def handler_msg_callback(body):
         info = info.format('管理员处理')
     else:
         info = info.format('管理员拒绝')
-    message = Message.create_instance(dict(info=info), g.gitee_id, msg.from_id, msg.org_id)
+    message = Message.create_instance(dict(info=info), g.user_id, msg.from_id, msg.org_id)
     msg.has_read = True
 
     msg.type = 0
@@ -101,14 +101,14 @@ def handler_msg_callback(body):
 
 @collect_sql_error
 def handler_addgroup_msg_callback(body):
-    org_name = redis_client.hget(RedisKey.user(g.gitee_id), "current_org_name")
+    org_name = redis_client.hget(RedisKey.user(g.user_id), "current_org_name")
     msg = Message.query.filter_by(id=body.msg_id, is_delete=False, has_read=False).first()
     if not msg:
         raise RuntimeError("the msg does not exist.")
     _data = json.loads(msg.data)
     info = f'您请求加入<b>{org_name}</b>组织下的<b>{_data.get("group_name")}</b>组已经被<b>{{}}</b>。'
     re = ReUserGroup.query.filter_by(
-        user_gitee_id=msg.from_id,
+        user_id=msg.from_id,
         group_id=_data.get("group_id"),
         org_id=msg.org_id,
         is_delete=False
@@ -133,7 +133,7 @@ def handler_addgroup_msg_callback(body):
         else:
             info = info.format('管理员拒绝')
             re.delete()
-    message = Message.create_instance(dict(info=info), g.gitee_id, msg.from_id, msg.org_id)
+    message = Message.create_instance(dict(info=info), g.user_id, msg.from_id, msg.org_id)
     message.add_update()
 
     return jsonify(error_code=RET.OK, error_msg="OK")
@@ -147,12 +147,12 @@ def handler_group_page():
     name = request.args.get('name')
     filter_group = [
         Group.is_delete.is_(False),
-        Group.org_id == redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')
+        Group.org_id == redis_client.hget(RedisKey.user(g.user_id), 'current_org_id')
     ]
     filter_re_user_group = [
-        ReUserGroup.user_gitee_id == g.gitee_id,
+        ReUserGroup.user_id == g.user_id,
         ReUserGroup.is_delete.is_(False),
-        ReUserGroup.org_id == redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')
+        ReUserGroup.org_id == redis_client.hget(RedisKey.user(g.user_id), 'current_org_id')
     ]
     if name:
         filter_group.append(Group.name.like(f"%{name}%"))
@@ -179,16 +179,16 @@ def handler_group_page():
         group_dict = GroupInfoSchema(**item[0].to_dict()).dict()
         filter_re_user_group = [
             ReUserGroup.is_delete.is_(False),
-            ReUserGroup.org_id == redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id'),
+            ReUserGroup.org_id == redis_client.hget(RedisKey.user(g.user_id), 'current_org_id'),
             ReUserGroup.role_type.in_([1, 2]),
             ReUserGroup.group_id == group_dict.get("id"),
             ReUserGroup.user_add_group_flag.is_(True)
         ]
         group_admin_sub = ReUserGroup.query.filter(*filter_re_user_group).subquery()
-        query_res = User.query.join(group_admin_sub, User.gitee_id == group_admin_sub.c.user_gitee_id).all()
+        query_res = User.query.join(group_admin_sub, User.user_id == group_admin_sub.c.user_id).all()
         admin_awatar = list()
         for res in query_res:
-            admin_awatar.append(dict(gitee_name=res.gitee_name, avatar_url=res.avatar_url))
+            admin_awatar.append(dict(user_name=res.user_name, avatar_url=res.avatar_url))
         group_dict.update({
             "admin_awatar": admin_awatar
         })

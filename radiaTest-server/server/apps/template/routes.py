@@ -136,7 +136,7 @@ class TemplateCloneEvent(Resource):
             "milestone_id": _template.milestone_id,
             "git_repo_id": _template.git_repo_id,
             "permission_type": body.permission_type,
-            "creator_id": g.gitee_id,
+            "creator_id": g.user_id,
             "group_id": body.group_id,
             "org_id": _template.org_id,
         }

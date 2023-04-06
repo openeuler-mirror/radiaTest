@@ -20,8 +20,8 @@ from server.model import ReUserGroup
 
 class PermissionManager:
     def __init__(self, creator_id=None, org_id=None):
-        self._creator_id = creator_id if creator_id else g.gitee_id
-        self._org_id = org_id if org_id else int(redis_client.hget(RedisKey.user(g.gitee_id), "current_org_id"))
+        self._creator_id = creator_id if creator_id else g.user_id
+        self._org_id = org_id if org_id else int(redis_client.hget(RedisKey.user(g.user_id), "current_org_id"))
 
     
     def get_api_list(self, table_name, path, item_id):
@@ -255,15 +255,15 @@ class PermissionManager:
             raise RuntimeError(str(e)) from e
         return jsonify(error_code=RET.OK, error_msg="OK.")
 
-    def bind_scope_user(self, scope_datas_allow, scope_datas_deny, gitee_id):
+    def bind_scope_user(self, scope_datas_allow, scope_datas_deny, user_id):
         """
         :description: Generate the associated permission relationship between resources and person user
         :param: scope_datas_allow: list, scope data allowed
         :param: scope_datas_deny: list, scope data denied
-        :param: gitee_id: int, user's gitee id
+        :param: user_id: int, user's  id
         :return: jsonify
         """
-        _role = Role.query.filter_by(name=str(gitee_id), type="person").first()
+        _role = Role.query.filter_by(name=str(user_id), type="person").first()
         if not _role:
             return jsonify(
                 error_code=RET.NO_DATA_ERR, error_msg="Role has not been exist"
@@ -346,7 +346,7 @@ class GetAllByPermission:
     def __init__(self, _table) -> None:
         self._table = _table
         current_org_id = redis_client.hget(
-            RedisKey.user(g.gitee_id), "current_org_id")
+            RedisKey.user(g.user_id), "current_org_id")
         self.filter_params = [
             or_(
                 self._table.permission_type == "public",
@@ -357,13 +357,13 @@ class GetAllByPermission:
                 and_(
                     self._table.permission_type == "person",
                     self._table.org_id == int(current_org_id),
-                    self._table.creator_id == int(g.gitee_id),
+                    self._table.creator_id == g.user_id,
                 ),
             )
         ]
 
         _re_user_groups = ReUserGroup.query.filter_by(
-            user_gitee_id=int(g.gitee_id), org_id=int(current_org_id)
+            user_id=g.user_id, org_id=int(current_org_id)
         ).all()
         if _re_user_groups:
             group_ids = [
@@ -383,7 +383,7 @@ class GetAllByPermission:
                     and_(
                         self._table.permission_type == "person",
                         self._table.org_id == int(current_org_id),
-                        self._table.creator_id == int(g.gitee_id),
+                        self._table.creator_id == g.user_id,
                     ),
                 )
             ]

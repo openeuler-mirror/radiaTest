@@ -83,7 +83,7 @@ class VmachineReleaseNotice(TaskHandlerBase):
                     text = "Some virtual machines you created on the radiaTest platform will be " \
                            "released one day later," \
                            "If you still want to use it, log in to the platform, then delay them:{}".format(vmachines)
-                    userinfo = User.query.filter_by(gitee_id=user_org[0]).first()
+                    userinfo = User.query.filter_by(user_id=user_org[0]).first()
                     if userinfo.cla_email:
                         mail.send_text_mail(userinfo.cla_email, subject="【radiaTest平台】虚拟机释放通知", text=text)
             except (ConnectionError, SQLAlchemyError) as e:

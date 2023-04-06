@@ -11,7 +11,7 @@ def _to_list(data):
 
 
 def _get_user_summary(user_id):
-    _user = User.query.filter_by(gitee_id=user_id).first()
+    _user = User.query.filter_by(user_id=user_id).first()
     if not _user:
         return None
     return _user.to_summary()
@@ -110,7 +110,7 @@ class RequirementPublisher(db.Model, BaseModel):
     id = db.Column(db.Integer(), primary_key=True, autoincrement=True)
     type = db.Column(db.String(64))
 
-    user_id = db.Column(db.Integer(), db.ForeignKey("user.gitee_id"))
+    user_id = db.Column(db.String(512), db.ForeignKey("user.user_id"))
     group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
     org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
     requirement_id = db.Column(db.Integer(), db.ForeignKey("requirement.id"))
@@ -121,7 +121,7 @@ class RequirementPublisher(db.Model, BaseModel):
             return_data.update({
                 "type": self.type,
                 "group_id": self.group_id,
-                "gitee_id": self.user_id,
+                "user_id": self.user_id,
             })
             return return_data
         elif self.type == "person" and self.user_id:
@@ -135,7 +135,7 @@ class RequirementPublisher(db.Model, BaseModel):
             return_data.update({
                 "type": self.type,
                 "org_id": self.org_id,
-                "gitee_id": self.user_id,
+                "user_id": self.user_id,
             })
             return return_data
         else:
@@ -147,7 +147,7 @@ class RequirementAcceptor(db.Model, BaseModel):
     id = db.Column(db.Integer(), primary_key=True, autoincrement=True)
     type = db.Column(db.String(64))
 
-    user_id = db.Column(db.Integer(), db.ForeignKey("user.gitee_id"))
+    user_id = db.Column(db.String(512), db.ForeignKey("user.user_id"))
     group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
     requirement_id = db.Column(db.Integer(), db.ForeignKey("requirement.id"))
 
@@ -156,7 +156,7 @@ class RequirementAcceptor(db.Model, BaseModel):
             return_data = self.group.to_summary()
             return_data.update({
                 "type": self.type,
-                "gitee_id": self.user_id,
+                "user_id": self.user_id,
                 "group_id": self.group_id,
                 "start_time": self.create_time.strftime("%Y-%m-%d"),
                 "estimated_finish_time": (
@@ -186,7 +186,7 @@ class RequirementPackage(db.Model, BaseModel):
     completions = db.Column(db.String(128))
     
     requirement_id = db.Column(db.Integer(), db.ForeignKey("requirement.id"))
-    validator_id = db.Column(db.Integer(), db.ForeignKey("user.gitee_id"))
+    validator_id = db.Column(db.String(512), db.ForeignKey("user.user_id"))
     task_id = db.Column(db.Integer(), db.ForeignKey("task.id"))
 
     def to_json(self):
@@ -198,7 +198,7 @@ class RequirementPackage(db.Model, BaseModel):
             _task_status = self.task.task_status.name
             _task_executor = _get_user_summary(self.task.executor_id)
             for participant in self.task.participants:
-                _participant_user = User.query.filter_by(gitee_id=participant.participant_id).first()
+                _participant_user = User.query.filter_by(user_id=participant.participant_id).first()
                 if _participant_user:
                     _task_participants.append(_participant_user.to_summary())
 

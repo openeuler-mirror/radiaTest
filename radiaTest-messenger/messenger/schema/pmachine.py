@@ -11,14 +11,14 @@ from messenger.utils.iptype_util import ip_type
 
 class PmachineInstallSchema(BaseModel):
     id: int
-    user_id: Optional[int]
+    user_id: Optional[str]
     pmachine: dict
     mirroring: dict
 
 
 class PmachinePowerSchema(BaseModel):
     id: int
-    user: Optional[int]
+    user: Optional[str]
     status: Power
     pmachine: dict
 

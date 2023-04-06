@@ -50,7 +50,7 @@ class RoleQuerySchema(BaseModel):
 
 
 class UserRoleBaseSchema(BaseModel):
-    user_id: int
+    user_id: str
     role_id: int
 
 

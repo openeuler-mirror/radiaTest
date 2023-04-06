@@ -34,9 +34,9 @@ class HandlerTemplate:
     @staticmethod
     @collect_sql_error
     def get(query):
-        org_id = redis_client.hget(RedisKey.user(g.gitee_id), "current_org_id")
+        org_id = redis_client.hget(RedisKey.user(g.user_id), "current_org_id")
         rugs = ReUserGroup.query.filter_by(
-            user_gitee_id=g.gitee_id,
+            user_id=g.user_id,
             org_id=org_id,
             is_delete=False,
             user_add_group_flag=True,
@@ -68,10 +68,10 @@ class HandlerTemplate:
     @staticmethod
     @collect_sql_error
     def add(body):
-        org_id = redis_client.hget(RedisKey.user(g.gitee_id), "current_org_id")
+        org_id = redis_client.hget(RedisKey.user(g.user_id), "current_org_id")
         template = TaskDistributeTemplate(
             name=body.name,
-            creator_id=g.gitee_id,
+            creator_id=g.user_id,
             group_id=body.group_id,
             permission_type="group",
             org_id=org_id,
@@ -81,7 +81,7 @@ class HandlerTemplate:
                 dtt = DistributeTemplateType()
                 dtt.name = item.name
                 dtt.executor_id = item.executor_id
-                dtt.creator_id = g.gitee_id
+                dtt.creator_id = g.user_id
                 dtt.group_id = template.group_id
                 dtt.permission_type = template.permission_type
                 dtt.suites = ",".join(item.suites)
@@ -179,7 +179,7 @@ class HandlerTemplateType:
             return jsonify(error_code=RET.PARMA_ERR, error_msg="name has exists")
         dtt = DistributeTemplateType()
         dtt.name = body.name
-        dtt.creator_id = g.gitee_id
+        dtt.creator_id = g.user_id
         dtt.executor_id = body.executor_id
         dtt.group_id = template.group_id
         dtt.permission_type = template.permission_type
@@ -312,7 +312,7 @@ class HandlerTaskDistributeCass:
         child_task.type = "GROUP"
         child_task.permission_type = "group"
         child_task.group_id = group_id
-        child_task.creator_id = g.gitee_id
+        child_task.creator_id = g.user_id
         child_task.start_time = self.parent_task.start_time
         child_task.executor_id = executor_id
         child_task.deadline = self.parent_task.deadline
@@ -333,7 +333,7 @@ class HandlerTaskDistributeCass:
             pm.bind_scope_user(
                 scope_datas_allow=scope_data_allow,
                 scope_datas_deny=scope_data_deny,
-                gitee_id=user_id,
+                user_id=user_id,
             )
 
     @staticmethod

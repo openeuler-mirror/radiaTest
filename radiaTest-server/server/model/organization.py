@@ -18,11 +18,15 @@ class Organization(db.Model, PermissionBaseModel, BaseModel):
     avatar_url = db.Column(db.String(512), nullable=True, default=None)
     is_delete = db.Column(db.Boolean, default=False, nullable=False)
 
+    authority = db.Column(db.String(50), nullable=False)
     enterprise_id = db.Column(db.String(50))
     enterprise_join_url = db.Column(db.String(512))
-    oauth_client_id = db.Column(db.String(512))
-    oauth_client_secret = db.Column(db.String(512))
-    oauth_scope = db.Column(db.String(256))
+    oauth_login_url = db.Column(db.String(512), nullable=False)
+    oauth_get_token_url = db.Column(db.String(512), nullable=False)
+    oauth_get_user_info_url = db.Column(db.String(512), nullable=False)
+    oauth_client_id = db.Column(db.String(512), nullable=False)
+    oauth_client_secret = db.Column(db.String(512), nullable=False)
+    oauth_scope = db.Column(db.String(512), nullable=False)
 
     cla_verify_url = db.Column(db.String(512), nullable=True)
     cla_verify_params = db.Column(db.String(512), nullable=True)
@@ -71,6 +75,10 @@ class Organization(db.Model, PermissionBaseModel, BaseModel):
             "cla_pass_flag": self.cla_pass_flag,
             "create_time": self.create_time.strftime("%Y-%m-%d %H:%M:%S"),
             "update_time": self.update_time.strftime("%Y-%m-%d %H:%M:%S"),
+            "authority": self.authority,
+            "oauth_login_url": self.oauth_login_url,
+            "oauth_get_token_url": self.oauth_get_token_url,
+            "oauth_get_user_info_url": self.oauth_get_user_info_url,
         }
 
         return _dict
@@ -99,6 +107,10 @@ class Organization(db.Model, PermissionBaseModel, BaseModel):
         new_recode.oauth_client_id = model.oauth_client_id
         new_recode.oauth_client_secret = model.oauth_client_secret
         new_recode.oauth_scope = model.oauth_scope
+        new_recode.authority = model.authority
+        new_recode.oauth_login_url = model.oauth_login_url
+        new_recode.oauth_get_token_url = model.oauth_get_token_url
+        new_recode.oauth_get_user_info_url = model.oauth_get_user_info_url
         new_id = new_recode.add_flush_commit_id()
         if not new_id:
             return None
@@ -116,12 +128,12 @@ class ReUserOrganization(db.Model, BaseModel):
     default = db.Column(db.Boolean, default=False, nullable=False)
     rank = db.Column(db.Integer())
 
-    user_gitee_id = db.Column(db.Integer, db.ForeignKey('user.gitee_id'))
+    user_id = db.Column(db.String(512), db.ForeignKey('user.user_id'))
     organization_id = db.Column(db.Integer, db.ForeignKey('organization.id'))
 
     def to_dict(self):
         _dict = self.__dict__
-        _filter = [ReUserRole.user_id == self.user_gitee_id, Role.type == 'org', Role.org_id == self.organization_id]
+        _filter = [ReUserRole.user_id == self.user_id, Role.type == 'org', Role.org_id == self.organization_id]
         _role = Role.query.join(ReUserRole).filter(*_filter).first()
 
         _dict.update({
@@ -133,9 +145,9 @@ class ReUserOrganization(db.Model, BaseModel):
         return _dict
 
     @staticmethod
-    def create(user_gitee_id, organization_id, cla_info, role_type=0, default=False):
+    def create(user_id, organization_id, cla_info, role_type=0, default=False):
         new_record = ReUserOrganization()
-        new_record.user_gitee_id = user_gitee_id
+        new_record.user_id = user_id
         new_record.organization_id = organization_id
         new_record.role_type = role_type
         new_record.cla_info = cla_info

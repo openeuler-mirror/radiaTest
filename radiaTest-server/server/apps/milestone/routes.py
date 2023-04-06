@@ -262,9 +262,9 @@ class UpdateGiteeIssuesTypeState(Resource):
         orgs = Organization.query.filter(
             Organization.enterprise_id is not None).all()
         for _org in orgs:
-            gitee_id = IssueStatisticsHandlerV8.get_gitee_id(_org.id)
-            if gitee_id:
-                isa = IssueOpenApiHandlerV8(gitee_id=gitee_id)
+            user_id = IssueStatisticsHandlerV8.get_user_id(_org.id)
+            if user_id:
+                isa = IssueOpenApiHandlerV8(user_id=user_id)
                 _resp = isa.get_issue_types()
                 resp = _resp.get_json()
                 if resp.get("error_code") == RET.OK:

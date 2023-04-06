@@ -23,17 +23,17 @@ def after_connect(token):
     """
     与客户端建立连接后执行
     """
-    flag, gitee_id = False, None
+    flag, user_id = False, None
     _verify_result = verify_token(token)
     if isinstance(_verify_result, tuple):
-        flag, gitee_id = _verify_result
+        flag, user_id = _verify_result
 
     # 若检验出user_id，将此客户端添加到user_id的room中
-    if flag is True and gitee_id is not None:
-        org_id = redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')
-        join_room(str(gitee_id))
+    if flag is True and user_id is not None:
+        org_id = redis_client.hget(RedisKey.user(g.user_id), 'current_org_id')
+        join_room(str(user_id))
         msg_count = Message.query.filter(
-            Message.to_id == g.gitee_id,
+            Message.to_id == g.user_id,
             Message.is_delete.is_(False),
             Message.has_read.is_(False),
             Message.org_id == org_id
@@ -42,7 +42,7 @@ def after_connect(token):
             "count",
             {"num": msg_count},
             namespace='/message',
-            room=str(g.gitee_id)
+            room=str(g.user_id)
         )
 
 

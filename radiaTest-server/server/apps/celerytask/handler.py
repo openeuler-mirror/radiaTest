@@ -31,9 +31,9 @@ class CeleryTaskHandler:
     def get_all(query):
         filter_params = []
 
-        admin = Admin.query.filter_by(account=g.gitee_login).first()
+        admin = Admin.query.filter_by(account=g.user_login).first()
         if not admin:
-            filter_params.append(CeleryTask.user_id == int(g.gitee_id))
+            filter_params.append(CeleryTask.user_id == g.user_id)
 
         if query.tid:
             filter_params.append(CeleryTask.tid.like(f'%{query.tid}%'))
