@@ -208,6 +208,7 @@ class GiteeV8BaseIssueHandler(IssueOpenApiHandler):
                 "gitee_issue_id": body.get("id"),
                 "ident": body.get("ident"),
                 "gitee_issue_url": body.get("issue_url"),
+                "creator_id": g.gitee_id,
             }
         )
         return radia_body

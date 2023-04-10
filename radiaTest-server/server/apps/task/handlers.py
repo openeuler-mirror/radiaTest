@@ -2163,6 +2163,8 @@ class HandlerTaskProgress(object):
                         if test_progress.get("all_cnt") == 0:
                             continue
                         child_dict["test_progress"] = test_progress
+                    else:
+                        continue
                     return_data["children"].append(child_dict)
 
         source = list()

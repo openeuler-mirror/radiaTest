@@ -120,8 +120,8 @@ class UpdateTaskHandler:
         root_case_node_body = {
             "group_id": form.group.id,
             "title": milestone.name,
-            "type": "directory",
-            "milestone": milestone.id,
+            "type": "baseline",
+            "milestone_id": milestone.id,
             "org_id": form.group.org_id,
             "permission_type": "group"
         }
