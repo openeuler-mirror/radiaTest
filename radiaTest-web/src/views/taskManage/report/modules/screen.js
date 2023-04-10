@@ -50,9 +50,9 @@ function getGroup() {
       if (item.value?.data?.items) {
         for (const i of item.value.data.items) {
           const element = {
-            value: i.id ? i.id : i.gitee_id,
+            value: i.id ? i.id : i.user_id,
             avatar: i.avatar_url,
-            label: i.name ? i.name : i.gitee_name,
+            label: i.name ? i.name : i.user_name,
           };
           groupOptions.value.push(element);
         }
@@ -72,9 +72,9 @@ function getOwner() {
       if (item.value?.data?.items) {
         for (const i of item.value.data.items) {
           const element = {
-            value: i.id ? i.id : i.gitee_id,
+            value: i.id ? i.id : i.user_id,
             avatar: i.avatar_url,
-            label: i.name ? i.name : i.gitee_name,
+            label: i.name ? i.name : i.user_name,
           };
           ownerOptions.value.push(element);
         }

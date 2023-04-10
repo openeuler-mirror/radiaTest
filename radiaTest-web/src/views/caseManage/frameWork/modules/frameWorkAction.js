@@ -67,7 +67,7 @@ function submitForm() {
         : `/v1/framework/${editFramework}`;
       const formData = JSON.parse(JSON.stringify(frameworkForm.value));
       if (isCreate.value) {
-        formData.creator_id = storage.getValue('gitee_id');
+        formData.creator_id = storage.getValue('user_id');
         formData.permission_type = 'public';
         formData.org_id = storage.getValue('loginOrgId');
       }

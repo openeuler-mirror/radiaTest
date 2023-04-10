@@ -166,7 +166,7 @@
             />
             <p style="max-width: 80px;">
               <n-ellipsis style="max-width: 80px;">
-                {{item.gitee_name}}
+                {{item.user_name}}
               </n-ellipsis>
             </p>
           </delete-item>

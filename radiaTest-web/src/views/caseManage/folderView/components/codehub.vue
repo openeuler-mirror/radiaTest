@@ -201,7 +201,7 @@ function submitRepoForm() {
     if (!errors) {
       let body = { 
         permission_type: props.type,
-        creator_id: storage.getValue('gitee_id'),
+        creator_id: storage.getValue('user_id'),
         org_id: parseInt(storage.getValue('orgId')),
       };
       if (props.type === 'group') {

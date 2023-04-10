@@ -72,7 +72,7 @@
                     :src="item.avatar_url"
                     style="margin-right: 10px"
                   />
-                  <span class="rank-item-header-name">{{ item.gitee_name ? item.gitee_name : item.name }}</span>
+                  <span class="rank-item-header-name">{{ item.user_name ? item.user_name : item.name }}</span>
                 </p>
                 <p class="rank-item-bq">
                   <span class="rank-item-bq-number">{{ item.influence }}</span>
@@ -314,16 +314,16 @@ function handlePageSizeChange(_pageSize) {
 }
 
 function handleFallbackSrc(item) {
-  if (item.gitee_name) {
-    return createAvatar(item.gitee_name.slice(0, 1));
+  if (item.user_name) {
+    return createAvatar(item.user_name.slice(0, 1));
   }
   return null;
 }
 
 onMounted(() => {
   getRank(getUserAssetRank);
-  getUserInfo(storage.getValue('gitee_id')).then((res) => {
-    accountName.value = res.data.gitee_name;
+  getUserInfo(storage.getValue('user_id')).then((res) => {
+    accountName.value = res.data.user_name;
     accountRank.value = res.data.rank;
     avatarUrl.value = res.data.avatar_url;
     influenceScore.value = res.data.influence;

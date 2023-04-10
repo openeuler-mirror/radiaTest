@@ -1,31 +1,17 @@
 <template>
   <div class="login-page">
-    <div
-      class="left-slider"
-      :style="{ borderWidth: `${windowHeight}px 0 0 ${windowWidth * 0.4}px` }"
-    ></div>
+    <div class="left-slider" :style="{ borderWidth: `${windowHeight}px 0 0 ${windowWidth * 0.4}px` }"></div>
     <div
       class="bottom-slider"
       :style="{
-        borderWidth: `${windowHeight * 0.8}px 0 0 ${windowWidth * 0.6}px`,
+        borderWidth: `${windowHeight * 0.8}px 0 0 ${windowWidth * 0.6}px`
       }"
     ></div>
-    <div
-      class="img-box"
-      :style="{ height: `${windowHeight}px`, width: `${windowWidth * 0.6}px` }"
-    >
+    <div class="img-box" :style="{ height: `${windowHeight}px`, width: `${windowWidth * 0.6}px` }">
       <div class="carousel-container">
-        <carousel
-          :sliders="sliders"
-          :duration="6000"
-          :autoplay="true"
-          @change="indexChange"
-          :mouseStop="true"
-        >
+        <carousel :sliders="sliders" :duration="6000" :autoplay="true" @change="indexChange" :mouseStop="true">
           <template v-slot:imgTop-0>
-            <div
-              :class="{ loginActive: activeIndex === 0 || activeIndex === 5 }"
-            >
+            <div :class="{ loginActive: activeIndex === 0 || activeIndex === 5 }">
               <p class="carousel-description">便捷轻松地管理测试任务，</p>
               <p class="carousel-description">为团队效率加速</p>
             </div>
@@ -63,12 +49,7 @@
           <n-gradient-text type="primary">radiaTest</n-gradient-text>
         </span>
       </div>
-      <n-tabs
-        animated
-        default-value="signin"
-        size="large"
-        justify-content="space-around"
-      >
+      <n-tabs animated default-value="signin" size="large" justify-content="space-around">
         <n-tab-pane name="signin" tab="用户登录" display-directive="show">
           <n-form>
             <n-form-item style="--label-height: 6px">
@@ -80,37 +61,20 @@
                 v-model:value="loginOrg"
                 @update:value="selectOrg"
                 :render-label="renderLabel"
-                palceholder="请选择组织"
+                placeholder="请选择组织"
                 size="large"
               />
             </n-form-item>
             <n-form-item style="--label-height: 6px">
-              <div
-                style="
-                  width: 100%;
-                  display: flex;
-                  justify-content: space-around;
-                  height:40px
-                "
-              >
+              <div style="width: 100%; display: flex; justify-content: space-around; height: 40px">
                 <p style="display: flex; align-items: center">
-                  <n-icon
-                    v-if="hasCLA"
-                    size="20"
-                    color="rgba(0, 47, 167, 1)"
-                  >
+                  <n-icon v-if="hasCLA" size="20" color="rgba(0, 47, 167, 1)">
                     <CheckmarkCircle />
                   </n-icon>
-                  <n-icon
-                    v-else
-                    size="20"
-                    color="grey"
-                  >
+                  <n-icon v-else size="20" color="grey">
                     <CheckmarkCircleOutline />
                   </n-icon>
-                  <span
-                    :style="{ color: hasCLA ? 'rgba(0, 47, 167, 1)' : 'grey' }"
-                  >
+                  <span :style="{ color: hasCLA ? 'rgba(0, 47, 167, 1)' : 'grey' }">
                     <n-tooltip trigger="hover" v-if="!hasCLA">
                       <template #trigger>
                         <n-button :disabled="true" text style="color: grey"> CLA </n-button>
@@ -119,36 +83,22 @@
                     </n-tooltip>
                     <n-tooltip trigger="hover" v-else>
                       <template #trigger>
-                        <n-button 
-                          style="color: rgba(0, 47, 167, 1);"
-                          @click="handleClaSignClick" 
-                          text
-                        > 
-                          CLA 
-                        </n-button>
+                        <n-button style="color: rgba(0, 47, 167, 1)" @click="handleClaSignClick" text> CLA </n-button>
                       </template>
                       此组织要求签署CLA，点击签署CLA
                     </n-tooltip>
                   </span>
                 </p>
                 <p style="display: flex; align-items: center">
-                  <n-icon
-                    v-if="hasEnterprise"
-                    size="20"
-                    color="rgba(0, 47, 167, 1)"
-                  >
+                  <n-icon v-if="hasEnterprise" size="20" color="rgba(0, 47, 167, 1)">
                     <CheckmarkCircle />
                   </n-icon>
-                  <n-icon
-                    v-else
-                    size="20"
-                    color="grey"
-                  >
+                  <n-icon v-else size="20" color="grey">
                     <CheckmarkCircleOutline />
                   </n-icon>
                   <span
                     :style="{
-                      color: hasEnterprise ? 'rgba(0, 47, 167, 1)' : 'grey',
+                      color: hasEnterprise ? 'rgba(0, 47, 167, 1)' : 'grey'
                     }"
                   >
                     <n-tooltip trigger="hover" v-if="!hasEnterprise">
@@ -159,11 +109,7 @@
                     </n-tooltip>
                     <n-tooltip trigger="hover" v-else>
                       <template #trigger>
-                        <n-button 
-                          style="color: rgba(0, 47, 167, 1);" 
-                          @click="handleEnterpriseJoinClick" 
-                          text
-                        > 
+                        <n-button style="color: rgba(0, 47, 167, 1)" @click="handleEnterpriseJoinClick" text>
                           企业仓
                         </n-button>
                       </template>
@@ -182,21 +128,23 @@
             style="margin-top: 10px"
             @click="hanleLogin(loginOrg)"
           >
-            <span class="iconfont icon-gitee2"></span>
-            <span style="margin-left: 10px">码云鉴权登录</span>
+            <div v-if="authorityType === 'gitee'" class="loginOrgWrap">
+              <span class="iconfont icon-gitee2"></span>
+              <span style="margin-left: 10px">码云鉴权登录</span>
+            </div>
+            <div v-else class="loginOrgWrap">
+              <span class="iconfont"
+                ><n-avatar :style="{ backgroundColor: 'white' }" round :size="24" :src="selecttdOrg.org_avatar"
+              /></span>
+              <span style="margin-left: 10px">{{ selecttdOrg.org_name }}鉴权登录</span>
+            </div>
           </n-button>
         </n-tab-pane>
         <n-tab-pane name="signup" tab="管理员登录" v-if="!isFrame">
           <div id="loginForm">
             <n-form :rules="rules" :model="loginForm" ref="loginFormRef">
               <n-form-item style="--label-height: 6px" path="userName">
-                <n-input
-                  round
-                  size="large"
-                  placeholder="请输入用户名"
-                  v-model:value="loginForm.userName"
-                  type="text"
-                >
+                <n-input round size="large" placeholder="请输入用户名" v-model:value="loginForm.userName" type="text">
                   <template #prefix>
                     <n-icon size="20">
                       <user />
@@ -205,13 +153,7 @@
                 </n-input>
               </n-form-item>
               <n-form-item style="--label-height: 6px" path="passWord">
-                <n-input
-                  round
-                  size="large"
-                  placeholder="请输入密码"
-                  type="password"
-                  v-model:value="loginForm.passWord"
-                >
+                <n-input round size="large" placeholder="请输入密码" type="password" v-model:value="loginForm.passWord">
                   <template #prefix>
                     <n-icon size="20">
                       <lock />
@@ -220,22 +162,15 @@
                 </n-input>
               </n-form-item>
             </n-form>
-            <n-button
-              type="primary"
-              block
-              round
-              style="margin-top: 10px"
-              @click="handleLoginByForm"
-              >登录</n-button
-            >
+            <n-button type="primary" block round style="margin-top: 10px" @click="handleLoginByForm">登录</n-button>
           </div>
         </n-tab-pane>
       </n-tabs>
-      <p style="text-align: center;margin-top:30%">
+      <p style="text-align: center; margin-top: 30%">
         {{ `${config.name} ${config.version}·${config.license}` }}
       </p>
       <template #footer>
-        <p style="display: flex;justify-content: space-around">
+        <p style="display: flex; justify-content: space-around">
           <n-button text @click="handleGuideClick">使用指南</n-button>
           <n-button text @click="handleGiteeClick">项目仓库</n-button>
         </p>
@@ -255,28 +190,12 @@
       </template>
       <div>
         <n-steps size="small" :current="current" :status="currentStatus">
-          <n-step
-            :title="item.title"
-            v-for="(item, index) in stepList"
-            :key="index"
-            :status="item.status"
-          >
-          </n-step>
+          <n-step :title="item.title" v-for="(item, index) in stepList" :key="index" :status="item.status"> </n-step>
         </n-steps>
         <div class="registerContent">
           <div v-if="contentName === 'perfectInfo'">
-            <n-form-item
-              label="组织"
-              :rule="orgNameRule"
-              label-placement="left"
-              label-align="left"
-              label-width="100"
-            >
-              <n-select
-                v-model:value="loginInfo.org"
-                :options="orgList"
-                :disabled="true"
-              />
+            <n-form-item label="组织" :rule="orgNameRule" label-placement="left" label-align="left" label-width="100">
+              <n-select v-model:value="loginInfo.org" :options="orgList" :disabled="true" />
             </n-form-item>
             <n-form-item
               label="cla邮箱"
@@ -286,10 +205,7 @@
               label-width="100"
               v-if="requireCLA"
             >
-              <n-input
-                v-model:value="loginInfo.claEmail"
-                style="margin: 5px 0"
-              />
+              <n-input v-model:value="loginInfo.claEmail" style="margin: 5px 0" />
             </n-form-item>
           </div>
           <div v-if="contentName === 'success'">
@@ -299,12 +215,7 @@
           </div>
           <div
             v-if="contentName === 'signCLA'"
-            style="
-              height: 100%;
-              display: flex;
-              flex-direction: column;
-              justify-content: space-around;
-            "
+            style="height: 100%; display: flex; flex-direction: column; justify-content: space-around"
           >
             <div style="display: flex; align-items: center">
               <p style="width: 50px; flex-shrink: 0">组织:</p>
@@ -313,11 +224,7 @@
             <div style="text-align: center">
               <n-tooltip placement="bottom" trigger="hover">
                 <template #trigger>
-                  <img
-                    style="width: 100px; cursor: pointer"
-                    src="/cla.jpg"
-                    @click="gotoCLA"
-                  />
+                  <img style="width: 100px; cursor: pointer" src="/cla.jpg" @click="gotoCLA" />
                 </template>
                 点击前往CLA签署界面
               </n-tooltip>
@@ -335,12 +242,7 @@
           v-show="contentName === 'perfectInfo' && stepList.length === 4"
           >上一步</n-button
         >
-        <n-button
-          @click="nextStep"
-          type="primary"
-          size="large"
-          ghost
-          v-show="current !== stepList.length"
+        <n-button @click="nextStep" type="primary" size="large" ghost v-show="current !== stepList.length"
           >下一步</n-button
         >
       </template>
@@ -362,7 +264,7 @@ export default {
     Lock,
     carousel,
     CheckmarkCircle,
-    CheckmarkCircleOutline,
+    CheckmarkCircleOutline
   },
   mounted() {
     this.$refs.select.$el.children[0].children[1].style.borderRadius = '20px';
@@ -371,13 +273,13 @@ export default {
   methods: {
     indexChange(index) {
       this.activeIndex = index;
-    },
+    }
   },
   setup() {
     const message = useMessage();
     window.$message = message;
     const isIframe = storage.getValue('isIframe');
-    if(isIframe && isIframe === '1') {
+    if (isIframe && isIframe === '1') {
       modules.handleIsSuccess();
     } else {
       modules.gotoHome();
@@ -391,7 +293,7 @@ export default {
       { id: 2, imgUrl: '/annotation.png' },
       { id: 3, imgUrl: '/programming.png' },
       { id: 4, imgUrl: '/report.png' },
-      { id: 5, imgUrl: '/server.png' },
+      { id: 5, imgUrl: '/server.png' }
     ];
     return {
       sliders,
@@ -401,17 +303,15 @@ export default {
       activeIndex,
       ...modules,
       handleGiteeClick() {
-        window.open(
-          'https://gitee.com/openeuler/radiaTest'
-        );
+        window.open('https://gitee.com/openeuler/radiaTest');
       },
       handleGuideClick() {
         window.open(
           'https://gitee.com/openeuler/radiaTest/blob/master/doc/radiaTest%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97.md'
         );
-      },
+      }
     };
-  },
+  }
 };
 </script>
 <style lang="less">
@@ -430,6 +330,11 @@ export default {
   font-style: normal;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+.loginOrgWrap {
+  display: flex;
+  align-items: center;
 }
 
 .icon-gitee2:before {

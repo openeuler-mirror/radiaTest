@@ -7,7 +7,7 @@
           circle
           :size="100"
           :src="state.userInfo.avatar_url"
-          :fallback-src="createAvatar(String(state.userInfo.gitee_name).slice(0,1))"
+          :fallback-src="createAvatar(String(state.userInfo.user_name).slice(0,1))"
         />
       </div>
       <div class="container">
@@ -18,7 +18,7 @@
               <p>用户名</p>
             </n-gi>
             <n-gi :span="2">
-              <p>{{ state.userInfo.gitee_name }}</p>
+              <p>{{ state.userInfo.user_name }}</p>
             </n-gi>
             <n-gi :span="9"> </n-gi>
           </n-grid>

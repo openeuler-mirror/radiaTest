@@ -344,7 +344,7 @@ const columns = [
                 default: () => h(
                   'span',
                   {},
-                  props.requireItem.acceptor.gitee_name
+                  props.requireItem.acceptor.user_name
                 ),
               }
             );
@@ -385,7 +385,7 @@ const columns = [
                     default: () => h(
                       'span',
                       {},
-                      row.executor.gitee_name
+                      row.executor.user_name
                     )
                   }
                 );
@@ -408,7 +408,7 @@ const columns = [
             default: () => h(
               'span',
               {},
-              row.executor.gitee_name
+              row.executor.user_name
             )
           }
         );

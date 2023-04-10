@@ -12,7 +12,7 @@ const kanban = computed(() => store.state.taskManage.kanban); // 获取看板、
 const showCreate = ref(true); // 显示新建任务状态
 const inputInstRef = ref(null); // 新建任务状态文本框名称
 const statusValue = ref(null); // 新建任务状态数据
-let giteeId;
+let userId;
 
 // 任务状态数组
 const statusArray = computed(() => {
@@ -51,7 +51,7 @@ const columns = ref([
         {
           style: 'display:flex;align-items:center;justify-content:center;',
         },
-        [avatar, row.originator?.gitee_name]
+        [avatar, row.originator?.user_name]
       );
     },
   },
@@ -92,7 +92,7 @@ function getTask() {
 
 // 初始化数据
 function initData(cb) {
-  giteeId=Number(storage.getValue('gitee_id'));
+  userId=String(storage.getValue('user_id'));
   showLoading.value = true;
   axios
     .get('/v1/task/status')
@@ -294,7 +294,7 @@ function toggleComplete2($event) {
         tempData.value = v.tasks;
         let tempArr = [];
         v.tasks.forEach((task) => {
-          if (task?.executor?.gitee_id === giteeId) {
+          if (task?.executor?.user_id === userId) {
             tempArr.push(task);
           }
         });

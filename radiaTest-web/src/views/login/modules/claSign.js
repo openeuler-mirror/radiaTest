@@ -54,20 +54,20 @@ function gotoCLA() {
   openChildWindow(itemCla.jumpUrl);
 }
 function perfectInfo() {
-  const giteeId = route.gitee_id;
+  const userId = route.user_id;
   if (
     (!requireCLA.value ||(claEmailRule.validator() &&typeof claEmailRule.validator() !== 'object')) &&
     orgNameRule.validator()
   ) {
     axios
-      .post(`/v1/users/${giteeId}`, {
+      .post(`/v1/users/${userId}`, {
         cla_verify_params: requireCLA.value?JSON.stringify({ email: loginInfo.claEmail }):'',
         organization_id: loginInfo.org,
       })
       .then((res) => {
         storage.setValue('token', res.data.token);
         storage.setValue('refresh_token', res.data.refresh_token);
-        storage.setValue('gitee_id', giteeId);
+        storage.setValue('user_id', userId);
         stepList.value[current.value - 1].status = 'finish';
         current.value++;
         contentName.value = stepList.value[current.value - 1].name;

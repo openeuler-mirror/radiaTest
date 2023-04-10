@@ -272,7 +272,7 @@ const columns = [
     align: 'center',
     render(row) {
       let options = row.admin_awatar.map((item) => {
-        return { name: item.gitee_name, src: item.avatar_url };
+        return { name: item.user_name, src: item.avatar_url };
       });
 
       return h(AvatarGroup, {

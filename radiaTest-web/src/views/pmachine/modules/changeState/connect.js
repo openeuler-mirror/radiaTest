@@ -124,21 +124,21 @@ const handleSendRequest = (dOccupy, connect) => {
   if (connect.formValue.value.description === 'used for ci') {
     return axios.put(`/v1/pmachine/${connect.formValue.value.id}/occupy`, {
       description: connect.formValue.value.description,
-      occupier: storage.getValue('gitee_name'),
+      occupier: storage.getValue('user_name'),
       user: connect.formValue.value.user,
     });
   } else if (connect.formValue.value.description !== 'as the host of ci') {
     return axios.put(`/v1/pmachine/${connect.formValue.value.id}/occupy`, {
       description: connect.formValue.value.description,
       end_time: any2standard(connect.datetime.value),
-      occupier: storage.getValue('gitee_name'),
+      occupier: storage.getValue('user_name'),
       user: connect.formValue.value.user,
     });
   }
   return axios.put(`/v1/pmachine/${connect.formValue.value.id}/occupy`, {
     description: connect.formValue.value.description,
     listen: connect.formValue.value.listen,
-    occupier: storage.getValue('gitee_name'),
+    occupier: storage.getValue('user_name'),
     user: connect.formValue.value.user,
   });
 };

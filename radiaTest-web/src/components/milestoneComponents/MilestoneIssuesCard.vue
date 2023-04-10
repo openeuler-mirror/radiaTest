@@ -223,7 +223,7 @@ const rowProps = (row) => {
         details.value = JSON.parse(res.data);
         details.value.creatorInfo = {
           avatar_url: JSON.parse(res.data).author?.avatar_url,
-          gitee_name: JSON.parse(res.data).author?.username,
+          user_name: JSON.parse(res.data).author?.username,
           phone: JSON.parse(res.data).author?.phone,
           cla_email: JSON.parse(res.data).author?.email
         };

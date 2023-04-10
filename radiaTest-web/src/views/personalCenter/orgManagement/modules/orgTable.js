@@ -7,7 +7,6 @@ import { Delete24Regular as Delete } from '@vicons/fluent';
 import { registerModel, showRegisterOrgWindow, isCreate, fileList } from './registerOrg';
 import { organizationInfo } from '@/api/put';
 import textDialog from '@/assets/utils/dialog';
-
 import axios from '@/axios';
 
 const orgs = ref([]);
@@ -17,12 +16,12 @@ function getData() {
   });
 }
 
-function cloneRegisterModel(row){
-  for(const key in row.cla_verify_params){
-    registerModel.urlParams.push({key, 'value': row.cla_verify_params[key]});
+function cloneRegisterModel(row) {
+  for (const key in row.cla_verify_params) {
+    registerModel.urlParams.push({ key, value: row.cla_verify_params[key] });
   }
-  for(const key in row.cla_verify_body){
-    registerModel.bodyParams.push({key, 'value': row.cla_verify_params[key]});
+  for (const key in row.cla_verify_body) {
+    registerModel.bodyParams.push({ key, value: row.cla_verify_params[key] });
   }
   const cloneData = JSON.parse(JSON.stringify(row));
   Object.keys(cloneData).forEach((key) => {
@@ -30,12 +29,25 @@ function cloneRegisterModel(row){
       cloneData[key] = undefined;
     }
   });
+  if (cloneData.authority === 'default') {
+    registerModel.authorityType = 'gitee';
+    registerModel.authoritySecondaryType = 'public';
+  } else if (cloneData.authority === 'oneid') {
+    registerModel.authorityType = 'oneid';
+    registerModel.authoritySecondaryType = 'public';
+  } else if (cloneData.authority === 'gitee' && cloneData.enterpriseId) {
+    registerModel.authorityType = 'gitee';
+    registerModel.authoritySecondaryType = 'enterprise';
+  } else {
+    registerModel.authorityType = 'gitee';
+    registerModel.authoritySecondaryType = 'personal';
+  }
 
   registerModel.name = cloneData.organization_name;
   registerModel.claVerifyUrl = cloneData.cla_verify_url;
   registerModel.claSignUrl = cloneData.cla_sign_url;
   registerModel.claRequestMethod = cloneData.cla_request_type;
-  registerModel.claPassFlag =  cloneData.cla_pass_flag;
+  registerModel.claPassFlag = cloneData.cla_pass_flag;
   registerModel.enterpriseId = cloneData.enterprise_id;
   registerModel.enterpreiseJoinUrl = cloneData.enterpreise_join_url;
   registerModel.oauthClientId = cloneData.oauth_client_id;
@@ -44,9 +56,12 @@ function cloneRegisterModel(row){
   registerModel.description = cloneData.organization_description;
   registerModel.orgId = cloneData.organization_id;
   registerModel.organizationSvatar = cloneData.organization_avatar;
+  registerModel.oauthLoginUrl = cloneData.oauth_login_url;
+  registerModel.oauthGetTokenUrl = cloneData.oauth_get_token_url;
+  registerModel.oauthGetUserInfoUrl = cloneData.oauth_get_user_info_url;
   fileList.value = [];
-  if(row.organization_avatar){
-    fileList.value.push({id: 'c',status: 'finished',url: row.organization_avatar});
+  if (row.organization_avatar) {
+    fileList.value.push({ id: 'c', status: 'finished', url: row.organization_avatar });
   }
 }
 
@@ -54,10 +69,9 @@ function handleDeleteOrg(row) {
   textDialog('warning', '删除组织', '您确定要删除此组织吗？', () => {
     let deleteFormData = new FormData();
     deleteFormData.append('is_delete', true);
-    organizationInfo(row.organization_id, deleteFormData)
-      .finally(() => {
-        getData();
-      });
+    organizationInfo(row.organization_id, deleteFormData).finally(() => {
+      getData();
+    });
   });
 }
 
@@ -67,7 +81,7 @@ const orgColumns = [
     expandable: (rowData) => rowData.organization_name,
     renderExpand: (rowData) => {
       return h(claAndEnterprise, { info: rowData });
-    },
+    }
   },
   {
     title: '',
@@ -77,19 +91,19 @@ const orgColumns = [
       return h(NAvatar, {
         size: 'small',
         src: row.organization_avatar,
-        style: { background: 'rgba(0,0,0,0)' },
+        style: { background: 'rgba(0,0,0,0)' }
       });
-    },
+    }
   },
   {
     title: '组织名称',
     key: 'organization_name',
-    align: 'center',
+    align: 'center'
   },
   {
     title: '描述',
     key: 'organization_description',
-    align: 'center',
+    align: 'center'
   },
   {
     title: '操作',
@@ -100,7 +114,7 @@ const orgColumns = [
         NSpace,
         {
           justify: 'center',
-          align: 'center',
+          align: 'center'
         },
         [
           renderTooltip(
@@ -134,14 +148,14 @@ const orgColumns = [
               h(NIcon, { size: '20' }, h(Delete))
             ),
             '删除'
-          ),
+          )
         ]
       );
-    },
-  },
+    }
+  }
 ];
 const pagination = {
-  pagesize: 7,
+  pagesize: 7
 };
 
 export { orgs, pagination, orgColumns, getData };

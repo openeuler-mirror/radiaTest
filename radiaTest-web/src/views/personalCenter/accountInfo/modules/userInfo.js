@@ -14,7 +14,7 @@ function editUserPhone () {
     const phoneReg = /^[1]([3-9])[0-9]{9}$/;
     if (phoneReg.test(phone.value)) {
       changeLoadingStatus(true);
-      axios.put(`/v1/users/${storage.getValue('gitee_id')}`, {
+      axios.put(`/v1/users/${storage.getValue('user_id')}`, {
         phone: phone.value
       }).then(res => {
         if (res.error_code === '2000') {

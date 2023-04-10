@@ -95,7 +95,7 @@ function query(page) {
             id: task.id,
             name: task.title,
             type: typeNameTrans(task.type),
-            originator: task.originator.gitee_name,
+            originator: task.originator.user_name,
             deleteTime: formatTime(task.update_time, 'yyyy-MM-dd hh:mm:ss')
           };
         });
@@ -248,8 +248,8 @@ function initCondition() {
     if (responses[1].value?.data) {
       responses[1].value.data?.items?.forEach((item) => {
         const option = {
-          label: item.gitee_name,
-          value: item.gitee_id
+          label: item.user_name,
+          value: item.user_id
         };
         originators.value.push(option);
         executors.value.push(option);

@@ -86,7 +86,7 @@ function handlePageSizeChange(pageSize) {
 function deleteRole(row) {
   axios
     .delete(requestUrl, {
-      user_id: row.gitee_id,
+      user_id: row.user_id,
       role_id: row.role.id,
     })
     .then(() => {
@@ -98,7 +98,7 @@ function deleteRole(row) {
 function selectRole(row, option) {
   axios
     .post(requestUrl, {
-      user_id: row.gitee_id,
+      user_id: row.user_id,
       role_id: Number(option.value),
     })
     .then(() => {
@@ -117,10 +117,10 @@ const usersColumns = [
   },
   {
     title: '用户',
-    key: 'gitee_name',
+    key: 'user_name',
     align: 'center',
     render(row) {
-      return h('span', null, [row.gitee_name]);
+      return h('span', null, [row.user_name]);
     },
   },
   {

@@ -182,14 +182,14 @@ function taskTypeChange(value) {
   if (model.value.type === 'PERSON') {
     personArray.value = [
       {
-        label: storage.getValue('gitee_name'),
-        value: String(storage.getValue('gitee_id'))
+        label: storage.getValue('user_name'),
+        value: String(storage.getValue('user_id'))
       }
     ];
     groups.value = [{ label: '个人', value: '0' }];
     nextTick(() => {
       model.value.group = '0';
-      model.value.executor = String(storage.getValue('gitee_id'));
+      model.value.executor = String(storage.getValue('user_id'));
     });
   } else {
     model.value.group = '';
@@ -215,8 +215,8 @@ function getUserByGroup(value) {
       showLoading.value = false;
       for (const item of res.data.items) {
         personArray.value.push({
-          label: item.gitee_name,
-          value: String(item.gitee_id),
+          label: item.user_name,
+          value: String(item.user_id),
           avatar_url: item.avatar_url
         });
       }
@@ -282,8 +282,8 @@ function handleLoad(option) {
           option.children = [];
           for (const item of res.data.items) {
             option.children.push({
-              label: item.gitee_name,
-              value: String(item.gitee_id),
+              label: item.user_name,
+              value: String(item.user_id),
               avatar_url: item.avatar_url,
               type: 'PERSON'
             });

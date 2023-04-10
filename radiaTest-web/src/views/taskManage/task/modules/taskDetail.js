@@ -183,8 +183,8 @@ const menuOptions = ref([
 const editRole = computed(() => {
   return true;
   // return (
-  //   modalData.value.detail?.originator?.gitee_id ===
-  //   Number(storage.getValue('gitee_id'))
+  //   modalData.value.detail?.originator?.user_id ===
+  //   String(storage.getValue('user_id'))
   // );
 });
 
@@ -838,8 +838,8 @@ function mergeFamilyTask(response) {
       relation: '父任务',
       taskName: item.title,
       taskType: transTaskType(item.type),
-      belongTo: item.belong.gitee_name ? item.belong.gitee_name : item.belong.name,
-      executor: item.executor.gitee_name,
+      belongTo: item.belong.user_name ? item.belong.user_name : item.belong.name,
+      executor: item.executor.user_name,
       startTime: formatTime(item.start_time, 'yyyy-MM-dd hh:mm:ss'),
       endTime: formatTime(item.deadline, 'yyyy-MM-dd hh:mm:ss'),
       status: item.status.name
@@ -852,8 +852,8 @@ function mergeFamilyTask(response) {
       relation: '子任务',
       taskName: item.title,
       taskType: transTaskType(item.type),
-      belongTo: item.belong.gitee_name ? item.belong.gitee_name : item.belong.name,
-      executor: item.executor.gitee_name,
+      belongTo: item.belong.user_name ? item.belong.user_name : item.belong.name,
+      executor: item.executor.user_name,
       startTime: formatTime(item.start_time, 'yyyy-MM-dd hh:mm:ss'),
       endTime: formatTime(item.deadline, 'yyyy-MM-dd hh:mm:ss'),
       status: item.status.name
