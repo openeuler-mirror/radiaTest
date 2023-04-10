@@ -3,6 +3,9 @@
     <div class="strategy-title">{{ currentFeature?.label }}</div>
     <div v-if="currentFeature">
       <n-space>
+        <n-button text @click="handleDeleteBtn" :disabled="!hasStrategy"
+          ><n-icon size="16"><Delete24Regular /></n-icon>删除</n-button
+        >
         <n-button text @click="handleStagingBtn" :disabled="currentFeature.status === 'submitted' || !hasStrategy"
           ><n-icon size="16"><SaveOutline /></n-icon>暂存</n-button
         >
@@ -87,13 +90,15 @@
 <script setup>
 import { ArrowBackCircleOutline, SaveOutline, GitBranchOutline } from '@vicons/ionicons5';
 import { Email } from '@vicons/carbon';
+import { Delete24Regular } from '@vicons/fluent';
 import ApplyTemplateModal from './ApplyTemplateModal.vue';
 import { createTitle } from '@/assets/utils/createTitle';
 import Editor from '@tinymce/tinymce-vue';
 import { NIcon } from 'naive-ui';
 import { getStrategy } from '@/api/get';
 import { createStrategy, strategyCommitStage, strategySubmmit } from '@/api/post';
-import { deleteStrategyCommit } from '@/api/delete';
+import { deleteStrategyCommit, deleteStrategy } from '@/api/delete';
+import { storage } from '@/assets/utils/storageUtils';
 
 const props = defineProps(['currentFeature']);
 const { currentFeature } = toRefs(props);
@@ -123,6 +128,18 @@ const strategyId = ref(null); // 测试策略ID
 // 新增/编辑/删除节点
 const handleContentChange = (data) => {
   kityminderValue.value = data;
+};
+
+// 删除
+const handleDeleteBtn = () => {
+  deleteStrategy(currentFeature.value.info.product_feature_id, {
+    org_id: currentFeature.value.info.org_id,
+    gitee_id: storage.getValue('gitee_id')
+  }).then(() => {
+    hasStrategy.value = false;
+    kityminderValue.value = {};
+    strategyId.value = null;
+  });
 };
 
 // 还原

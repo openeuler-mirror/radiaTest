@@ -23,7 +23,7 @@ const frameOpts = ref([
 ]);
 
 const formValue = ref({
-  frame: undefined,
+  frames: undefined,
   pm_select_mode: undefined,
   product: undefined,
   version: undefined,
@@ -37,9 +37,24 @@ const formValue = ref({
   description: undefined,
   method: undefined,
   pmachine_id: undefined,
-  permission_type: undefined
+  permission_type: undefined,
+  count: 1
 });
 const checkedPm = ref();
+const countMax = ref(10);
+
+const capacityMax = computed(() => {
+  return Math.floor(500 / formValue.value.count);
+});
+
+watch(
+  () => formValue.value.count,
+  () => {
+    if (formValue.value.capacity > capacityMax.value) {
+      formValue.value.capacity = capacityMax.value;
+    }
+  }
+);
 
 const rules = ref({
   method: {
@@ -52,8 +67,9 @@ const rules = ref({
     message: '请选择类型',
     trigger: ['change', 'blur']
   },
-  frame: {
+  frames: {
     required: true,
+    type: 'array',
     message: '架构不可为空',
     trigger: ['blur']
   },
@@ -122,8 +138,9 @@ const validator = (value) => {
 
 const clean = () => {
   checkedPm.value = '';
+  countMax.value = 10;
   formValue.value = {
-    frame: undefined,
+    frames: undefined,
     product: undefined,
     version: undefined,
     milestone_id: undefined,
@@ -137,7 +154,8 @@ const clean = () => {
     threads: 1,
     description: undefined,
     method: undefined,
-    permission_type: undefined
+    permission_type: undefined,
+    count: 1
   };
 };
 const pmData = ref();
@@ -145,20 +163,29 @@ const getProductOptions = () => {
   getProductOpts(productOpts);
 };
 function changeFrame() {
-  getPm({
-    machine_purpose: 'create_vmachine',
-    frame: formValue.value.frame,
-    machine_group_id: window.atob(router.currentRoute.value.params.machineId)
-  }).then((res) => {
-    pmData.value = res.data;
-  });
+  if (formValue.value.frames?.length > 1) {
+    formValue.value.pm_select_mode = 'auto';
+    countMax.value = 5;
+    if (formValue.value.count > 5) {
+      formValue.value.count = 5;
+    }
+  } else if (formValue.value.frames?.length === 1) {
+    countMax.value = 10;
+    getPm({
+      machine_purpose: 'create_vmachine',
+      frame: formValue.value.frames[0],
+      machine_group_id: window.atob(router.currentRoute.value.params.machineId)
+    }).then((res) => {
+      pmData.value = res.data;
+    });
+  }
 }
 
 const activeMethodWatcher = () => {
   watch(
     () => formValue.value.method,
     () => {
-      formValue.value.frame = null;
+      formValue.value.frames = null;
     }
   );
 };
@@ -237,5 +264,7 @@ export default {
   activeMethodWatcher,
   activeProductWatcher,
   activeVersionWatcher,
-  changeFrame
+  changeFrame,
+  countMax,
+  capacityMax
 };

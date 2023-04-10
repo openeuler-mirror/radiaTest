@@ -77,23 +77,27 @@ const getFeatureSet = (
   getAllFeature({
     page_num: pageNum,
     page_size: pageSize
-  }).then((res) => {
-    featureSetTableLoading.value = false;
-    res.data?.items?.forEach((v) => {
-      featureSetTableData.value.push({
-        no: v.no,
-        feature: v.feature,
-        release_to: v.release_to,
-        pkgs: v.pkgs?.join(','),
-        owner: v.owner?.join(','),
-        sig: v.sig?.join(','),
-        url: v.url
+  })
+    .then((res) => {
+      featureSetTableLoading.value = false;
+      res.data?.items?.forEach((v) => {
+        featureSetTableData.value.push({
+          no: v.no,
+          feature: v.feature,
+          release_to: v.release_to,
+          pkgs: v.pkgs?.join(','),
+          owner: v.owner?.join(','),
+          sig: v.sig?.join(','),
+          url: v.url
+        });
       });
+      featureSetTablePagination.value.page = res.data.current_page;
+      featureSetTablePagination.value.pageCount = res.data.pages;
+      featureSetTablePagination.value.itemCount = res.data.total;
+    })
+    .catch(() => {
+      featureSetTableLoading.value = false;
     });
-    featureSetTablePagination.value.page = res.data.current_page;
-    featureSetTablePagination.value.pageCount = res.data.pages;
-    featureSetTablePagination.value.itemCount = res.data.total;
-  });
 };
 
 const featureSetTablePageChange = (page) => {

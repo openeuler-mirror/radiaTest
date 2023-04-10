@@ -4,6 +4,8 @@
       <n-input-number
         v-model:value="model.memory"
         :step="1024"
+        :min="1024"
+        :max="32768"
         @keydown.enter.prevent
         style="width: 100%"
       >
@@ -20,7 +22,7 @@ import memForm from '@/views/vmachine/modules/expandedContent/memForm.js';
 
 export default defineComponent({
   props: {
-    data: Object,
+    data: Object
   },
   setup(props) {
     onMounted(() => {
@@ -44,10 +46,10 @@ export default defineComponent({
             }
             return true;
           },
-          trigger: ['blur'],
-        },
-      },
+          trigger: ['blur']
+        }
+      }
     };
-  },
+  }
 });
 </script>

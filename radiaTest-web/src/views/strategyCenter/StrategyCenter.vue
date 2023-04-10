@@ -264,7 +264,7 @@ import StrategyContent from '@/views/strategyCenter/StrategyContent.vue';
 import FeatureSetDetail from '@/views/strategyCenter/FeatureSetDetail.vue';
 import DesignTemplate from '@/views/strategyCenter/DesignTemplate.vue';
 import { createTitle } from '@/assets/utils/createTitle';
-import { getProductVersionOpts } from '@/assets/utils/getOpts';
+import { getProductVersionOrgOpts } from '@/assets/utils/getOpts';
 import { storage } from '@/assets/utils/storageUtils';
 import { getUserInfo, getAllFeature, getProductFeature } from '@/api/get';
 import { relateProductFeature, createProductFeature } from '@/api/post';
@@ -669,7 +669,7 @@ const relateFeatureOptions = ref([]);
 // 获取特性集
 const getAllFeatureFn = (param) => {
   getAllFeature(param).then((res) => {
-    res.data?.items?.forEach((item) => {
+    res.data?.forEach((item) => {
       relateFeatureOptions.value.push({
         label: item.feature,
         value: item.id
@@ -820,13 +820,13 @@ const submitPullRequestCb = () => {
 onMounted(() => {
   isDesignTemplate.value = false;
   getOrgList();
-  getProductVersionOpts(productList); // 获取产品版本列表
+  getProductVersionOrgOpts(productList); // 获取产品版本列表
 });
 </script>
 
 <style scoped lang="less">
 .spin-box {
-  height: 605px;
+  height: 100%;
 
   :deep(.n-spin-content) {
     height: 100%;

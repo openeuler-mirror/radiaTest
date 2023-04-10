@@ -93,3 +93,8 @@ export function deleteStrategyTemplate(strategyTemplateId) {
 export function deleteStrategyCommit(strategyId) {
   return deleteRequest(`/v1/strategy/${strategyId}/reduct`);
 }
+
+// 删除测试策略
+export function deleteStrategy(productFeatureId, data) {
+  return deleteRequest(`/v1/product-feature/${productFeatureId}/strategy`, data);
+}
