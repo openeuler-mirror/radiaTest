@@ -42,7 +42,7 @@ class RpmCheckHandler(TaskHandlerBase):
             all_cnt += 1
 
         data = []
-        succeeded_rate = None
+        succeeded_rate = "0%"
         for _key in cnt_dict.keys():
             _rate = calculate_rate(cnt_dict.get(_key), all_cnt, 2)
             if _key == "succeeded":
@@ -54,7 +54,7 @@ class RpmCheckHandler(TaskHandlerBase):
                     "rate": _rate
                 }
             )
-        
+
         rpm_key = f"rpmcheck_{build_name}"
         redis_client.hmset(
             rpm_key, 
