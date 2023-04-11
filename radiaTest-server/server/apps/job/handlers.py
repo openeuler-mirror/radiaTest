@@ -5,6 +5,8 @@ from server.model.pmachine import Pmachine
 from server.model.vmachine import Vmachine
 from server.utils.response_util import RET, ssl_cert_verify_error_collect
 from server.utils.requests_util import do_request
+from server.utils.auth_util import generate_messenger_token
+from server.schema.job import PayLoad
 
 
 class JobMessenger:
@@ -41,7 +43,8 @@ class JobMessenger:
     @ssl_cert_verify_error_collect
     def send_job(self, machine_group, api):
         _resp = dict()
-        
+        payload = PayLoad(g.user_id, g.user_login)
+        token = generate_messenger_token(payload)
         _r = do_request(
             method="post",
             url="https://{}:{}{}".format(
@@ -52,7 +55,7 @@ class JobMessenger:
             body=self._body,
             headers={
                 "content-type": "application/json;charset=utf-8",
-                "authorization": request.headers.get("authorization")
+                "authorization": f"JWT {token}"
             },
             obj=_resp,
             verify=current_app.config.get("CA_CERT"),

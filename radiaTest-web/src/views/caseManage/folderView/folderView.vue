@@ -93,6 +93,7 @@
         />
       </template>
     </modal-card>
+    <create-suites />
     <create-drawer :isCase="true" ref="createTaskForm" @submit="createRelationTask" />
     <n-layout has-sider>
       <n-layout-sider
@@ -136,13 +137,17 @@ import Essential from '@/components/testcaseComponents';
 import { ref } from 'vue';
 import testsuiteCreate from '@/components/testsuiteComponents/testsuiteCreate.vue';
 import createDrawer from '@/components/task/createDrawer.vue';
+import { workspace } from '@/assets/config/menu.js';
+import createSuites from './createSuites/CreateSuites';
+
 export default {
   components: {
     ...Common,
     ...Essential,
     createDrawer,
     tree,
-    testsuiteCreate
+    testsuiteCreate,
+    createSuites,
   },
   computed: {
     key() {
@@ -150,7 +155,7 @@ export default {
     }
   },
   mounted() {
-    this.$axios.get('/v1/framework').then((res) => {
+    this.$axios.get(`/v1/ws/${workspace.value}/framework`).then((res) => {
       this.frameworkList = res.data?.map((item) => ({
         label: item.name,
         value: item.id,

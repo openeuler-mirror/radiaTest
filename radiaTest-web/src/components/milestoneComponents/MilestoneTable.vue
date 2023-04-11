@@ -21,12 +21,12 @@
 import { ref, onMounted, onUnmounted, defineComponent } from 'vue';
 import { useStore } from 'vuex';
 import { Socket } from '@/socket';
-
 import settings from '@/assets/config/settings.js';
 import { get, selection } from '@/assets/CRUD/read';
 import { any2stamp } from '@/assets/utils/dateFormatUtils.js';
 import milestoneTable from '@/views/versionManagement/milestone/modules/milestoneTable.js';
 import milestoneTableColumns from '@/views/versionManagement/milestone/modules/milestoneTableColumns.js';
+import { workspace } from '@/assets/config/menu.js';
 
 export default defineComponent({
   setup(props, context) {
@@ -36,7 +36,7 @@ export default defineComponent({
 
     onMounted(() => {
       get.list(
-        '/v2/milestone',
+        `/v2/ws/${workspace.value}/milestone`,
         milestoneTable.totalData,
         milestoneTable.loading,
         milestoneTable.filter.value,
@@ -44,7 +44,7 @@ export default defineComponent({
       );
       milestoneSocket.listen('update', () => {
         get.list(
-          '/v2/milestone',
+          `/v2/ws/${workspace.value}/milestone`,
           milestoneTable.totalData,
           milestoneTable.loading,
           milestoneTable.filter.value,
@@ -75,7 +75,7 @@ export default defineComponent({
       showSelection: () => selection.show(columns),
       offSelection: () => selection.off(columns),
       refreshData: () =>
-        get.refresh('/v2/milestone', milestoneTable.data, milestoneTable.loading, milestoneTable.filter.value)
+        get.refresh(`/v2/ws/${workspace.value}/milestone`, milestoneTable.data, milestoneTable.loading, milestoneTable.filter.value)
     };
   }
 });

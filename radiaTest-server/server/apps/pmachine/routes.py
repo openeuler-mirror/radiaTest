@@ -14,7 +14,7 @@ from server.model.pmachine import MachineGroup
 from server.model.permission import ReScopeRole, Role, Scope
 from server.utils.db import Edit, collect_sql_error, Delete
 from server.utils.auth_util import auth
-from server.utils.response_util import response_collect, RET
+from server.utils.response_util import response_collect, RET, workspace_error_collect
 from server.utils.resource_utils import ResourceManager
 from server.utils.mail_util import Mail
 from server.schema.pmachine import (
@@ -48,9 +48,10 @@ class MachineGroupEvent(Resource):
 
     @auth.login_required
     @response_collect
+    @workspace_error_collect
     @validate()
-    def get(self, query: MachineGroupQuerySchema):
-        return ResourcePoolHandler.get_all(query)
+    def get(self, workspace: str, query: MachineGroupQuerySchema):
+        return ResourcePoolHandler.get_all(query, workspace)
 
 
 class MachineGroupItemEvent(Resource):
@@ -410,9 +411,10 @@ class PmachineEvent(Resource):
 
     @auth.login_required
     @response_collect
+    @workspace_error_collect
     @validate()
-    def get(self, query: PmachineQuerySchema):
-        return PmachineHandler.get_all(query)
+    def get(self, workspace: str, query: PmachineQuerySchema):
+        return PmachineHandler.get_all(query, workspace)
 
 
 class PmachineBmcEvent(Resource):

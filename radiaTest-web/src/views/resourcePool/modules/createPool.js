@@ -93,8 +93,8 @@ function createMachines() {
   createMachineGroup({
     ...createMachinesForm.value,
     permission_type: createMachinesForm.value.permission_type.split('-')[0],
-    creator_id: String(storage.getValue('user_id')),
-    org_id: storage.getValue('orgId'),
+    creator_id: Number(storage.getValue('user_id')),
+    org_id: storage.getValue('loginOrgId'),
     group_id: Number(createMachinesForm.value.permission_type.split('-')[1]),
   }).then(() => {
     createModalRef.value.close();

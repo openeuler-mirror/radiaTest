@@ -30,23 +30,47 @@
       <n-form-item-gi :span="9" label="里程碑" path="milestone_id">
         <n-select v-model:value="formValue.milestone_id" :options="milestoneOpts" placeholder="选择里程碑" filterable />
       </n-form-item-gi>
-      <n-form-item-gi :span="5" label="架构" path="frames" ref="frameRef">
-        <n-select
-          v-model:value="formValue.frames"
-          :options="frameOpts"
-          placeholder="选择架构"
-          @update:value="changeFrame"
-          filterable
-          multiple
-        />
-      </n-form-item-gi>
-      <n-form-item-gi :span="4" label="机器数量" path="count">
-        <n-input-number
-          v-model:value="formValue.count"
-          :validator="validator"
-          :min="1"
-          :max="countMax"
-        />
+      <n-form-item-gi :span="9" label="虚拟机架构及数量" path="frame_number">
+        <n-dynamic-input
+          v-model:value="formValue.frame_number"
+          :max="2"
+          :on-create="createFrameAndNumber"
+          @update:value="changeFrameAndNumber"
+        >
+          <template #create-button-default> 请选择虚拟机架构及数量 </template>
+          <template #default="{ index }">
+            <n-grid :cols="8" :x-gap="20">
+              <n-form-item-gi
+                :span="4"
+                ignore-path-change
+                :show-label="false"
+                :path="`frame_number[${index}].frame`"
+                :rule="frameRule"
+              >
+                <n-select
+                  v-model:value="formValue.frame_number[index].frame"
+                  :options="frameOpts"
+                  @update:value="changeFrameAndNumber"
+                  placeholder="请选择架构"
+                />
+              </n-form-item-gi>
+              <n-form-item-gi
+                :span="4"
+                ignore-path-change
+                :show-label="false"
+                :path="`frame_number[${index}].machine_num`"
+              >
+                <n-input-number
+                  v-model:value="formValue.frame_number[index].machine_num"
+                  :step="1"
+                  :validator="validator"
+                  :min="1"
+                  :max="5"
+                />
+              </n-form-item-gi>
+            </n-grid>
+          </template>
+        </n-dynamic-input>
       </n-form-item-gi>
       <n-form-item-gi :span="6" label="CPU Mode" path="cpu_mode">
         <n-select
@@ -77,13 +101,13 @@
         </n-input-number>
       </n-form-item-gi>
       <n-form-item-gi :span="6" label="Sockets" path="sockets">
-        <n-input-number v-model:value="formValue.sockets" :validator="validator" :min="1" :max="2" />
+        <n-input-number v-model:value="formValue.sockets" :validator="validator" :min="1" :max="4" />
       </n-form-item-gi>
       <n-form-item-gi :span="6" label="Cores" path="cores">
-        <n-input-number v-model:value="formValue.cores" :validator="validator" :min="1" :max="2" />
+        <n-input-number v-model:value="formValue.cores" :validator="validator" :min="1" :max="4" />
       </n-form-item-gi>
       <n-form-item-gi :span="6" label="Threads" path="threads">
-        <n-input-number v-model:value="formValue.threads" :validator="validator" :min="1" :max="2" />
+        <n-input-number v-model:value="formValue.threads" :validator="validator" :min="1" :max="4" />
       </n-form-item-gi>
       <n-form-item-gi :span="6" label="类型" path="permission_type">
         <n-cascader
@@ -103,7 +127,7 @@
           v-model:value="formValue.pm_select_mode"
           :options="[
             { label: '全自动选取', value: 'auto' },
-            { label: '指定', value: 'assign', disabled: formValue.frames?.length > 1 }
+            { label: '指定', value: 'assign', disabled: formValue.frame_number?.length > 1 }
           ]"
           placeholder="机器调度策略"
         />
@@ -115,26 +139,13 @@
         v-if="formValue.pm_select_mode === 'assign'"
       >
         <selectMachine
-          :disabled="!formValue.frames?.length"
+          :disabled="!formValue.frame_number?.length"
           :text="formValue.pmachine_id ? formValue.pmachine_name : '选取物理机'"
           machineType="pm"
           :data="pmData"
           :checkedMachine="checkedPm"
           @checked="handleCheck"
         />
-        <!-- <n-popover :disabled="!formValue.frame">
-          <template #trigger>
-            <n-button text type="info">{{}}</n-button>
-          </template>
-          <n-data-table
-            :data="pmData"
-            :columns="pmcolumns"
-            :row-key="(row) => row.id"
-            :checked-row-keys="checkedPm"
-            @update:checked-row-keys="handleCheck"
-            :pagination="pagination"
-          />
-        </n-popover> -->
       </n-form-item-gi>
     </n-grid>
   </n-form>
@@ -142,7 +153,6 @@
 
 <script>
 import { onMounted, onUnmounted, defineComponent } from 'vue';
-
 import { createAjax } from '@/assets/CRUD/create';
 import createForm from '@/views/vmachine/modules/createForm.js';
 import selectMachine from '@/components/machine/selectMachine.vue';
@@ -177,8 +187,8 @@ export default defineComponent({
           value: {
             ...createForm.formValue.value,
             permission_type: createForm.formValue.value.permission_type.split('-')[0],
-            creator_id: String(storage.getValue('user_id')),
-            org_id: storage.getValue('orgId'),
+            creator_id: Number(storage.getValue('user_id')),
+            org_id: storage.getValue('loginOrgId'),
             group_id: Number(createForm.formValue.value.permission_type.split('-')[1]),
             machine_group_id: window.atob(router.currentRoute.value.params.machineId)
           }

@@ -161,7 +161,7 @@ function getGroup() {
   })
     .then((res) => {
       showLoading.value = false;
-      for (const item of res.data.items) {
+      for (const item of res.data?.items) {
         groups.value.push({
           label: item.name,
           value: String(item.id),
@@ -170,7 +170,7 @@ function getGroup() {
       }
     })
     .catch((err) => {
-      window.$message?.error(err.data.error_msg || '未知错误');
+      window.$message?.error(err.data?.error_msg || '未知错误');
       showLoading.value = false;
     });
 }
@@ -252,7 +252,7 @@ function handleLoad(option) {
   return new Promise((resolve, reject) => {
     if (option.value === 'GROUP') {
       axios
-        .get(`/v1/org/${storage.getValue('orgId')}/groups`, {
+        .get(`/v1/org/${storage.getValue('loginOrgId')}/groups`, {
           page_num: 1,
           page_size: 99999
         })
@@ -274,7 +274,7 @@ function handleLoad(option) {
         });
     } else {
       axios
-        .get(`/v1/org/${storage.getValue('orgId')}/users`, {
+        .get(`/v1/org/${storage.getValue('loginOrgId')}/users`, {
           page_num: 1,
           page_size: 99999
         })

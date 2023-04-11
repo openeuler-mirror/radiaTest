@@ -743,40 +743,37 @@ function handleRenderPrefix({ option }) {
 function handleInheritButtonClick() {
   showInheritModal.value = true;
   inheritOptions.value = [];
-  getUserInfo(storage.getValue('user_id'))
-    .then((res) => {
-      const { data } = res;
-      data.orgs.forEach((item) => {
-        if (item.re_user_org_default) {
-          inheritOptions.value.push({
-            label: item.org_name,
-            key: `org-${item.org_id}`,
-            info: {
-              org_id: item.org_id,
-            },
-            isLeaf: false,
-            type: 'org',
-            disabled: true,
-          });
-        }
-      });
-      getOrgGroup(storage.getValue('orgId'), {
-        page_num: 1,
-        page_size: 99999,
-      })
-        .then((_res) => {
-          for (const item of _res.data.items) {
-            inheritOptions.value.push({
-              label: item.name,
-              key: `group-${item.id}`,
-              isLeaf: false,
-              info: {
-                group_id: item.id,
-              },
-              type: 'group',
-              disabled: true,
-            });
-          }
+  getUserInfo(storage.getValue('user_id')).then((res) => {
+    const { data } = res;
+    data.orgs.forEach((item) => {
+      if (item.re_user_org_default) {
+        inheritOptions.value.push({
+          label: item.org_name,
+          key: `org-${item.org_id}`,
+          info: {
+            org_id: item.org_id
+          },
+          isLeaf: false,
+          type: 'org',
+          disabled: true
+        });
+      }
+    });
+    getOrgGroup(storage.getValue('loginOrgId'), {
+      page_num: 1,
+      page_size: 99999,
+      is_delete: false
+    }).then((_res) => {
+      for (const item of _res.data.items) {
+        inheritOptions.value.push({
+          label: item.name,
+          key: `group-${item.id}`,
+          isLeaf: false,
+          info: {
+            group_id: item.id
+          },
+          type: 'group',
+          disabled: true
         });
     });
 }

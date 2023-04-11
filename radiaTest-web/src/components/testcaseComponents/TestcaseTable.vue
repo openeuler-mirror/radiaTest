@@ -16,12 +16,12 @@
 import { ref, onMounted, onUnmounted, defineComponent } from 'vue';
 import { useStore } from 'vuex';
 import { Socket } from '@/socket';
-
 import settings from '@/assets/config/settings.js';
 import { get } from '@/assets/CRUD/read';
 import { any2stamp } from '@/assets/utils/dateFormatUtils.js';
 import testcaseTable from '@/views/caseManage/testcase/modules/testcaseTable.js';
 import createColumns from '@/views/caseManage/testcase/modules/testcaseTableColumns.js';
+import { workspace } from '@/assets/config/menu.js';
 
 export default defineComponent({
   setup(props, context) {
@@ -29,11 +29,11 @@ export default defineComponent({
     const testcaseSocket = new Socket(`${settings.websocketProtocol}://${settings.serverPath}/case`);
     testcaseSocket.connect();
     onMounted(() => {
-      get.filter('/v1/case', testcaseTable.totalData, testcaseTable.loading, {
+      get.filter(`/v1/ws/${workspace.value}/case`, testcaseTable.totalData, testcaseTable.loading, {
         deleted: false,
       });
       testcaseSocket.listen('update', () => {
-        get.filter('/v1/case', testcaseTable.totalData, testcaseTable.loading, {
+        get.filter(`/v1/ws/${workspace.value}/case`, testcaseTable.totalData, testcaseTable.loading, {
           deleted: false,
         });
       });
@@ -69,7 +69,7 @@ export default defineComponent({
       columns,
       ...testcaseTable,
       refreshData: () =>
-        get.refresh('/v1/case', testcaseTable.data, testcaseTable.loading),
+        get.refresh(`/v1/ws/${workspace.value}/case`, testcaseTable.data, testcaseTable.loading),
       pagination,
     };
   },

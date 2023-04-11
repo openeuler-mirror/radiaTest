@@ -39,17 +39,17 @@ function renderPrefix({ option }) {
       NIcon,
       { color: option.iconColor || '#0e7a0d' },
       {
-        default: () => h(option.icon),
+        default: () => h(option.icon)
       }
     );
   } else if (!option.info?.case_automatic) {
     return h(
       NIcon,
-      { 
-        color: '#505050',
+      {
+        color: '#505050'
       },
       {
-        default: () => h(option.icon),
+        default: () => h(option.icon)
       }
     );
   }
@@ -57,19 +57,20 @@ function renderPrefix({ option }) {
     NTooltip,
     {
       trigger: 'hover',
-      placement: 'left',
+      placement: 'left'
     },
     {
       default: () => '已自动化',
-      trigger: () => h(
-        NIcon,
-        { 
-          color: option.iconColor || '#0e7a0d',
-        },
-        {
-          default: () => h(FileCodeRegular),
-        }
-      ),
+      trigger: () =>
+        h(
+          NIcon,
+          {
+            color: option.iconColor || '#0e7a0d'
+          },
+          {
+            default: () => h(FileCodeRegular)
+          }
+        )
     }
   );
 }
@@ -77,10 +78,10 @@ export default {
   props: {
     data: {
       type: Object,
-      required: true,
+      required: true
     },
     expandKeys: Array,
-    selectKey: String,
+    selectKey: String
   },
   methods: {
     renderLabel({ option }) {
@@ -88,7 +89,7 @@ export default {
         pending: 'default',
         open: 'info',
         accepted: 'success',
-        rejected: 'error',
+        rejected: 'error'
       };
       if (option.type === 'case' && option.info.case_status) {
         return h('div', null, [
@@ -97,39 +98,40 @@ export default {
             NTooltip,
             {
               trigger: 'hover',
-              placement: 'right',
+              placement: 'right'
             },
             {
               default: () => option.info.case_status,
-              trigger: () => h(
-                NTag,
-                {
-                  class: 'commit-icon',
-                  round: true,
-                  size: 'small',
-                  type: status[option.info.case_status],
-                  onClick: (e) => {
-                    e.stopPropagation();
-                    if (option.info.case_status === 'pending') {
-                      textDialog('warning', '提示', '是否提交评审', () => {
-                        modifyCommitStatus(option.info.commit_id, {
-                          status: 'open',
-                        }).then(()=>{
-                          option.info.case_status = 'open';
+              trigger: () =>
+                h(
+                  NTag,
+                  {
+                    class: 'commit-icon',
+                    round: true,
+                    size: 'small',
+                    type: status[option.info.case_status],
+                    onClick: (e) => {
+                      e.stopPropagation();
+                      if (option.info.case_status === 'pending') {
+                        textDialog('warning', '提示', '是否提交评审', () => {
+                          modifyCommitStatus(option.info.commit_id, {
+                            status: 'open'
+                          }).then(() => {
+                            option.info.case_status = 'open';
+                          });
                         });
-                      });
-                    } else if (option.info.case_status === 'open') {
-                      this.$router.push({
-                        name: 'caseReviewDetail',
-                        params:{
-                          commitId: option.info.commit_id
-                        },
-                      });
+                      } else if (option.info.case_status === 'open') {
+                        this.$router.push({
+                          name: 'caseReviewDetail',
+                          params: {
+                            commitId: option.info.commit_id
+                          }
+                        });
+                      }
                     }
                   },
-                },
-                String(option.info.case_status[0]).toUpperCase()
-              ),
+                  String(option.info.case_status[0]).toUpperCase()
+                )
             }
           )
         ]);
@@ -145,7 +147,7 @@ export default {
     handleSelect(key, options) {
       const result = {
         action: options,
-        contextmenu: this.activeItem,
+        contextmenu: this.activeItem
       };
       this.showDropdown = false;
       this.$emit('selectAction', result);
@@ -166,17 +168,12 @@ export default {
         let parentIndex;
         let parentNode;
         for (let i = index; i >= 0; i--) {
-          if (
-            this.getTreeNodeLevel(this.$refs.tree.$el.children[i]) ===
-            level - 1
-          ) {
+          if (this.getTreeNodeLevel(this.$refs.tree.$el.children[i]) === level - 1) {
             parentIndex = i;
             parentNode = this.$refs.tree.$el.children[i];
             let count = 0;
             for (let j = index - 1; j >= i; j--) {
-              this.getTreeNodeLevel(this.$refs.tree.$el.children[j]) === level
-                ? count++
-                : '';
+              this.getTreeNodeLevel(this.$refs.tree.$el.children[j]) === level ? count++ : '';
             }
             result.unshift(count);
             break;
@@ -198,14 +195,12 @@ export default {
     },
     handleContextMenu(e) {
       e.preventDefault();
-      const element = e.path.find((item) => {
+      const element = e.composedPath().find((item) => {
         return item.classList.contains('n-tree-node-wrapper');
       });
-      const index = Array.from(this.$refs.tree.$el.children).findIndex(
-        (item) => {
-          return item === element;
-        }
-      );
+      const index = Array.from(this.$refs.tree.$el.children).findIndex((item) => {
+        return item === element;
+      });
       const subscriptArr = [];
       this.getNodeIndex(element, index, subscriptArr);
       let temp = this.data;
@@ -223,7 +218,7 @@ export default {
         this.x = e.clientX;
         this.y = e.clientY;
       });
-    },
+    }
   },
   setup() {
     const tree = ref(null);
@@ -240,9 +235,9 @@ export default {
       renderPrefix,
       onClickoutside() {
         showDropdown.value = false;
-      },
+      }
     };
-  },
+  }
 };
 </script>
 <style>

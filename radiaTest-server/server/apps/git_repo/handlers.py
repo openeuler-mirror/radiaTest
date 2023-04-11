@@ -15,6 +15,10 @@ class GitRepoHandler:
             filter_params.append(
                 GitRepo.git_url.like(f'%{query.git_url}%')
             )
+        if query.branch:
+            filter_params.append(
+                GitRepo.branch.like(f'%{query.branch}%')
+            )
         if query.sync_rule:
             filter_params.append(
                 GitRepo.sync_rule == query.sync_rule

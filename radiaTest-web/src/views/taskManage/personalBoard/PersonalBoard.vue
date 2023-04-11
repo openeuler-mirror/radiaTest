@@ -1,14 +1,6 @@
 <template>
   <div class="workbench" ref="workbench">
     <div class="workbenchWrap">
-      <n-alert title="系统公告" type="default" closable>
-        <template #icon>
-          <n-icon>
-            <AnnouncementOutlined />
-          </n-icon>
-        </template>
-        <div class="alert">暂无系统公告...</div>
-      </n-alert>
       <grid-layout
         v-model:layout="layout"
         :col-num="12"
@@ -241,13 +233,12 @@
 </template>
 
 <script>
-import { AnnouncementOutlined, DragIndicatorFilled } from '@vicons/material';
+import { DragIndicatorFilled } from '@vicons/material';
 import { Refresh, Search } from '@vicons/tabler';
 import modules from '@/views/dashboard/index';
 
 export default defineComponent({
   components: {
-    AnnouncementOutlined,
     DragIndicatorFilled,
     Refresh,
     Search

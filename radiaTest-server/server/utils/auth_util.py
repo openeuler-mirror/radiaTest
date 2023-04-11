@@ -1,8 +1,13 @@
 import binascii
+from datetime import datetime
+import pytz
+
+import pytz
 from flask import g, current_app
 from flask_httpauth import HTTPTokenAuth
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from itsdangerous.exc import SignatureExpired, BadSignature, BadData
+
 from server import redis_client
 from server.utils.aes_util import FileAES
 from server.utils.redis_util import RedisKey
@@ -10,6 +15,7 @@ from pydantic import BaseModel
 
 auth = HTTPTokenAuth(scheme="JWT")
 serializer = None
+messenger_serializer = None
 
 
 def init(app):
@@ -17,6 +23,12 @@ def init(app):
     serializer = Serializer(
         app.config.get("TOKEN_SECRET_KEY"),
         expires_in=app.config.get("TOKEN_EXPIRES_TIME")
+    )
+
+    global messenger_serializer
+    messenger_serializer = Serializer(
+        app.config.get("TOKEN_SECRET_KEY"),
+        expires_in=app.config.get("MESSENGER_TOKEN_EXPIRES_TIME")
     )
 
 
@@ -29,7 +41,7 @@ def generate_token(user_id, user_login, ex=60 * 60 * 2):
         pre_token = redis_client.get(RedisKey.token(user_id))
         # 删除旧令牌
         redis_client.delete(RedisKey.token(pre_token))
-    # 根据gitee payload序列化生成新令牌
+    # 根据payload序列化生成新令牌
     token_data = dict(
         user_id=user_id,
         user_login=user_login
@@ -60,7 +72,8 @@ def generate_token(user_id, user_login, ex=60 * 60 * 2):
 def verify_token(token):
     data = None
     try:
-        if not redis_client.exists(RedisKey.token(token)):
+        token_info = redis_client.hgetall(RedisKey.messenger_token(token))
+        if not redis_client.exists(RedisKey.token(token)) and not token_info:
             return False
 
         # 令牌payload解密
@@ -68,9 +81,12 @@ def verify_token(token):
         decode_payload = aes.decrypt(token.split('.')[1])
         _token = token.replace(token.split('.')[1], decode_payload)
         # 反序列化，还原为原始信息
-        global serializer
-        data = serializer.loads(_token)
-    
+        if not token_info:
+            global serializer
+            data = serializer.loads(_token)
+        else:
+            global messenger_serializer
+            data = messenger_serializer.loads(_token)
     except SignatureExpired:
         if redis_client.exists(RedisKey.token(token)):
             # 用户签名过期登录不过期
@@ -100,7 +116,8 @@ def verify_token(token):
         current_app.logger.info(f"Uncrypted/Unknown token {token} attempt to do request")
         return False
     finally:
-        if data and data.get("user_login") == redis_client.hget(RedisKey.oauth_user(data.get("user_id")), "user_login"):
+        if (data and data.get("user_login") == redis_client.hget(RedisKey.user(data.get("user_id")), "user_login")) \
+                or (data and data.get("time")):
             try:
                 g.user_id = int(data.get("user_id"))
             except:
@@ -113,3 +130,31 @@ def verify_token(token):
 
 class RefreshTokenSchema(BaseModel):
     refresh_token: str
+
+
+def generate_messenger_token(payload, ex=60 * 60 * 24):
+    now_time = datetime.now(tz=pytz.timezone('Asia/Shanghai')).strftime("%Y-%m-%d %H:%M:%S")
+    token_data = dict(
+        user_id=payload.user_id,
+        user_login=payload.user_login,
+        time= now_time
+    )
+    _token = str(
+        messenger_serializer.dumps(token_data),
+        encoding='utf-8'
+    )
+    # 令牌payload加密
+    aes_payload = FileAES().encrypt(_token.split('.')[1])
+    token = _token.replace(_token.split('.')[1], aes_payload)
+
+    redis_client.hmset(
+        RedisKey.messenger_token(token),
+        mapping={
+            "user_id": payload.user_id,
+            "user_login": payload.user_login,
+            "time": now_time
+        },
+        ex=ex
+    )
+
+    return token

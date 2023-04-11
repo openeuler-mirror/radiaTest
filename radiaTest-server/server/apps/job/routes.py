@@ -1,11 +1,15 @@
-from flask import current_app
+import re
+
 from sqlalchemy import or_, and_
-from flask.json import jsonify, request
+from flask import jsonify, request, g
 from flask_restful import Resource
 from flask_pydantic import validate
 
+from server import redis_client
+from server.utils.redis_util import RedisKey
 from server.model.job import Analyzed, Job, job_family, Logs
 from server.utils.db import Edit, Select, Insert, collect_sql_error
+from server.utils.permission_utils import GetAllByPermission
 from server.schema.job import (
     AnalyzedCreateSchema,
     AnalyzedQueryBase,
@@ -23,7 +27,7 @@ from server.model.testcase import Case, Suite
 from server.model.pmachine import MachineGroup
 from server.utils.auth_util import auth
 from server.utils.page_util import PageUtil
-from server.utils.response_util import RET, response_collect
+from server.utils.response_util import RET, response_collect, workspace_error_collect
 from .handlers import JobMessenger
 
 
@@ -65,9 +69,12 @@ class JobEvent(Resource):
     @auth.login_required
     @response_collect
     @collect_sql_error
+    @workspace_error_collect
     @validate()
-    def get(self, query: JobQuerySchema):
-        filter_params = [
+    def get(self, workspace: str, query: JobQuerySchema):
+        filter_params = GetAllByPermission(Job, workspace).get_filter()
+
+        filter_params.append(
             or_(
                 Job.multiple.is_(True),
                 and_(
@@ -75,7 +82,7 @@ class JobEvent(Resource):
                     Job.multiple.is_(False),
                 )
             )
-        ]
+        )
 
         if query.name:
             filter_params.append(Job.name.like(f"%{query.name}%"))
@@ -114,8 +121,26 @@ class JobEvent(Resource):
     @response_collect
     @collect_sql_error
     @validate()
-    def post(self, body: JobCreateSchema):
+    def post(self, workspace: str, body: JobCreateSchema):
         _body = body.__dict__
+        _permission_body = {
+            "permission_type": "org",
+            "org_id": int(
+                redis_client.hget(
+                    RedisKey.user(g.user_id), 
+                    "current_org_id"
+                )
+            ),
+            "creator_id": g.gitee_id
+        }
+
+        if re.match(r'^group_\d+$', workspace):
+            _permission_body.update({
+                "permission_type": "group",
+                "group_id": int(workspace.split("_")[1])
+            })
+
+        _body.update(_permission_body)
 
         parent = None
         if _body.get("parent_id"):

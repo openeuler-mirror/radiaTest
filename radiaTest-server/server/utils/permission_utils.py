@@ -13,24 +13,20 @@
 # @License : Mulan PSL v2
 #####################################
 
-from asyncio import DatagramTransport
-import json
+import re
 import yaml
-from paramiko import SSHException
-import requests
-from server.utils.response_util import RET
-from flask import jsonify, current_app, g
 from typing import List
 
-from flask import current_app, jsonify
+from flask import current_app, jsonify, g
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
-
 from sqlalchemy import or_, and_
+
 from server import db, redis_client
 from server.model.permission import ReScopeRole, Role, Scope
-from server.utils.db import Insert, Precise, Like
+from server.utils.db import Insert
 from server.utils.redis_util import RedisKey
 from server.model import ReUserGroup
+from server.utils.response_util import RET
 
 
 class PermissionManager:
@@ -358,50 +354,102 @@ class PermissionManager:
 
 
 class GetAllByPermission:
-    def __init__(self, _table) -> None:
-        self._table = _table
-        current_org_id = redis_client.hget(
-            RedisKey.user(g.user_id), "current_org_id")
-        self.filter_params = [
-            or_(
-                self._table.permission_type == "public",
-                and_(
-                    self._table.permission_type == "org",
-                    self._table.org_id == int(current_org_id),
-                ),
-                and_(
-                    self._table.permission_type == "person",
-                    self._table.org_id == int(current_org_id),
-                    self._table.creator_id == g.user_id,
-                ),
-            )
-        ]
 
-        _re_user_groups = ReUserGroup.query.filter_by(
-            user_id=g.user_id, org_id=int(current_org_id)
+    PATTERN = r'^group_\d+$'
+
+    def __init__(self, _table, workspace=None) -> None:
+        self._table = _table
+        self.current_org_id = redis_client.hget(
+            RedisKey.user(g.user_id), 
+            "current_org_id"
+        )
+        self.re_user_groups = ReUserGroup.query.filter_by(
+            user_id=g.user_id, org_id=int(self.current_org_id)
         ).all()
-        if _re_user_groups:
+
+        self.filter_params = self._get_filter_params(workspace)
+
+    def _get_filter_params(self, workspace=None):
+        if not workspace or workspace == "default":
+            return self._default_ws_filter_params
+
+        elif workspace == "org":
+            return self._org_ws_filter_params
+
+        elif not re.match(GetAllByPermission.PATTERN, workspace):
+            raise ValueError(f"{workspace} is not in valid pattern")
+
+        else:
+            self.group_id = int(workspace.split('_')[1])
+            _re_user_group = ReUserGroup.query.filter_by(
+                user_id=g.user_id, 
+                group_id=self.group_id,
+                org_id=int(self.current_org_id),
+            ).first()
+            if not _re_user_group:
+                raise RuntimeError(f"unauthorized access")
+            
+            return self._group_ws_filter_params
+
+    @property
+    def _default_ws_filter_params(self):
+        if self.re_user_groups:
             group_ids = [
-                re_user_group.group_id for re_user_group in _re_user_groups]
-            self.filter_params = [
+                re_user_group.group_id for re_user_group in self.re_user_groups
+            ]
+            return [
                 or_(
                     self._table.permission_type == "public",
                     and_(
                         self._table.permission_type == "org",
-                        self._table.org_id == int(current_org_id),
+                        self._table.org_id == int(self.current_org_id),
                     ),
                     and_(
                         self._table.permission_type == "group",
-                        self._table.org_id == int(current_org_id),
+                        self._table.org_id == int(self.current_org_id),
                         self._table.group_id.in_(group_ids),
                     ),
                     and_(
                         self._table.permission_type == "person",
-                        self._table.org_id == int(current_org_id),
-                        self._table.creator_id == g.user_id,
+                        self._table.org_id == int(self.current_org_id),
+                        self._table.creator_id == int(g.user_id),
                     ),
                 )
             ]
+
+        return [
+            or_(
+                self._table.permission_type == "public",
+                and_(
+                    self._table.permission_type == "org",
+                    self._table.org_id == int(self.current_org_id),
+                ),
+                and_(
+                    self._table.permission_type == "person",
+                    self._table.org_id == int(self.current_org_id),
+                    self._table.creator_id == int(g.user_id),
+                ),
+            )
+        ]
+
+    @property
+    def _org_ws_filter_params(self):
+        return [
+            and_(
+                self._table.permission_type == "org",
+                self._table.org_id == int(self.current_org_id),
+            ),
+        ]
+
+    @property
+    def _group_ws_filter_params(self):
+        return [
+            and_(
+                self._table.permission_type == "group",
+                self._table.org_id == int(self.current_org_id),
+                self._table.group_id == self.group_id,
+            ),
+        ]
 
     def get_filter(self):
         """

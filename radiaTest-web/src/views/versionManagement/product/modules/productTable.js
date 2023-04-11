@@ -1,10 +1,11 @@
 /* eslint-disable no-use-before-define */
 /* eslint-disable max-lines-per-function */
 import { NButton, NIcon, NSpace, NTag, useMessage, NCheckbox } from 'naive-ui';
-import { CancelRound, CheckCircleFilled, CancelFilled } from '@vicons/material';
-import { QuestionCircle16Filled } from '@vicons/fluent';
+import { CancelRound, CheckCircleFilled, CancelFilled, ChecklistFilled } from '@vicons/material';
+import { QuestionCircle16Filled, Delete24Regular, AppsList20Regular } from '@vicons/fluent';
 import { CheckCircle } from '@vicons/fa';
-import { AddAlt } from '@vicons/carbon';
+import { AddAlt, AlignBoxTopLeft } from '@vicons/carbon';
+import { Construct } from '@vicons/ionicons5';
 import {
   getProduct,
   getProductMessage,
@@ -27,7 +28,7 @@ import {
 import { deleteProductVersion } from '@/api/delete';
 import { getCheckItemOpts } from '@/assets/utils/getOpts';
 import _ from 'lodash';
-import { formatTime } from '@/assets/utils/dateFormatUtils.js';
+import { formatTime, any2stamp } from '@/assets/utils/dateFormatUtils.js';
 import textDialog from '@/assets/utils/dialog';
 import {
   detail,
@@ -37,25 +38,11 @@ import {
   showPackage,
   showList
 } from './productDetailDrawer';
+import { renderTooltip } from '@/assets/render/tooltip';
 
 const message = useMessage();
 const tableLoading = ref(false); // 产品版本表格加载状态
 const tableData = ref([]); // 产品版本表格数据
-
-// 操作按钮渲染函数
-function renderBtn(text, action, row, type = 'text') {
-  return h(
-    NButton,
-    {
-      text: type === 'text',
-      onClick: (e) => {
-        e.stopPropagation();
-        action(row);
-      }
-    },
-    text
-  );
-}
 
 // 产品版本表格列
 const columns = [
@@ -208,13 +195,91 @@ const columns = [
       return h(
         NSpace,
         {
-          style: 'justify-content: center'
+          justify: 'center',
+          align: 'center'
         },
         [
-          renderBtn('编辑', editRow, row),
-          renderBtn('统计', statisticsRow, row),
-          renderBtn('删除', deleteRow, row),
-          renderBtn('报告', reportRow, row)
+          renderTooltip(
+            h(
+              NButton,
+              {
+                size: 'medium',
+                type: 'default',
+                circle: true,
+                onClick: (e) => {
+                  e.stopPropagation();
+                  statisticsRow(row);
+                }
+              },
+              h(NIcon, { size: '20' }, h(AppsList20Regular))
+            ),
+            '统计'
+          ),
+          renderTooltip(
+            h(
+              NButton,
+              {
+                size: 'medium',
+                type: 'default',
+                circle: true,
+                onClick: (e) => {
+                  e.stopPropagation();
+                  reportRow(row);
+                }
+              },
+              h(NIcon, { size: '20' }, h(AlignBoxTopLeft))
+            ),
+            '报告'
+          ),
+          renderTooltip(
+            h(
+              NButton,
+              {
+                size: 'medium',
+                type: 'default',
+                circle: true,
+                onClick: (e) => {
+                  e.stopPropagation();
+                  currentProduct.value = row.id.toString();
+                  clickCheckList(row);
+                }
+              },
+              h(NIcon, { size: '20' }, h(ChecklistFilled))
+            ),
+            '质量CheckList'
+          ),
+          renderTooltip(
+            h(
+              NButton,
+              {
+                size: 'medium',
+                type: 'warning',
+                circle: true,
+                onClick: (e) => {
+                  e.stopPropagation();
+                  editRow(row);
+                }
+              },
+              h(NIcon, { size: '20' }, h(Construct))
+            ),
+            '编辑'
+          ),
+          renderTooltip(
+            h(
+              NButton,
+              {
+                size: 'medium',
+                type: 'error',
+                circle: true,
+                onClick: (e) => {
+                  e.stopPropagation();
+                  deleteRow(row);
+                }
+              },
+              h(NIcon, { size: '20' }, h(Delete24Regular))
+            ),
+            '删除'
+          )
         ]
       );
     }
@@ -353,6 +418,13 @@ const editProductId = ref(null); // 当前编辑产品版本ID
 // 编辑
 function editRow(row) {
   editProductId.value = row.id;
+  productVersionModel.value = {
+    name: row.name,
+    version: row.version,
+    description: row.description,
+    start_time: row.start_time ? any2stamp(row.start_time) : null,
+    end_time: row.end_time ? any2stamp(row.end_time) : null
+  };
   showEditProductVersionModal.value = true;
 }
 

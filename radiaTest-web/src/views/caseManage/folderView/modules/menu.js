@@ -25,7 +25,9 @@ import {
   getGroupMilestone,
   getOrgMilestone,
   getBaselineTemplates,
-  getCaseNodeRoot
+  getCaseNodeRoot,
+  getOrphanOrgSuites,
+  getOrphanGroupSuites,
 } from '@/api/get';
 import { addBaseline, casenodeApplyTemplate } from '@/api/post';
 import { updateCaseNodeParent } from '@/api/put';
@@ -44,6 +46,7 @@ import {
 } from 'naive-ui';
 import router from '@/router';
 import { createModalRef, createFormRef, importModalRef } from './createRef';
+import { workspace } from '@/assets/config/menu.js';
 
 function renderIcon(icon) {
   return () =>
@@ -52,6 +55,19 @@ function renderIcon(icon) {
     });
 }
 const suiteInfo = ref();
+
+const createSuitesShow = ref(false);
+const orphanSuitesData = ref([]);
+const createSuitesTargetNode = ref({});
+const orphanSuitesPagination = reactive({
+  page: 1,
+  pageCount: 1,
+  itemCount: 1,
+  pageSize: 10,
+  showSizePicker: true,
+  pageSizes: [5, 10, 20, 50]
+});
+
 const renameAction = {
   label: '重命名',
   key: 'renameCaseNode',
@@ -163,7 +179,7 @@ function getDirectory(node) {
   }
   return new Promise((resolve, reject) => {
     axios
-      .get('/v1/case-node', params)
+      .get(`/v1/ws/${workspace.value}/case-node`, params)
       .then((res) => {
         node.children = [];
         for (const item of res.data) {
@@ -305,12 +321,32 @@ function getRootNodes() {
   });
   actions.unshift(createBaselineAction);
   menuList.value = [];
-  axios
-    .get(`/v1/users/${storage.getValue('user_id')}`)
-    .then((res) => {
-      const { data } = res;  
-      data.orgs.forEach((item) => {
-        if (item.re_user_org_default) {
+  axios.get(`/v1/users/${storage.getValue('user_id')}`).then((res) => {
+    const { data } = res;
+    data.orgs.forEach((item) => {
+      if (item.re_user_org_default) {
+        menuList.value.push({
+          label: item.org_name,
+          key: `org-${item.org_id}`,
+          info: {
+            org_id: item.org_id
+          },
+          actions,
+          iconColor: 'rgba(0, 47, 167, 1)',
+          isLeaf: false,
+          type: 'org',
+          root: true,
+          icon: Organization20Regular
+        });
+      }
+    });
+    axios
+      .get(`/v1/org/${storage.getValue('loginOrgId')}/groups`, {
+        page_num: 1,
+        page_size: 99999
+      })
+      .then((_res) => {
+        for (const item of _res.data.items) {
           menuList.value.push({
             label: item.org_name,
             key: `org-${item.org_id}`,
@@ -1032,6 +1068,36 @@ function newCase(node, caseId, title) {
       window.$message?.error(err.data.error_msg || '未知错误');
     });
 }
+
+function getOrphanSuitesReq() {
+  if (createSuitesTargetNode.value.group_id) {
+    getOrphanGroupSuites(
+      createSuitesTargetNode.value.group_id,
+      {
+        page_num: orphanSuitesPagination.page,
+        page_size: orphanSuitesPagination.pageSize,
+      }
+    )
+      .then((res) => {
+        orphanSuitesData.value = res.data.items;
+        orphanSuitesPagination.pageCount = res.data.pages;
+        orphanSuitesPagination.itemCount = res.data.total;
+        createSuitesShow.value = true;
+      });
+  } else {
+    getOrphanOrgSuites({
+      page_num: orphanSuitesPagination.page,
+      page_size: orphanSuitesPagination.pageSize,
+    })
+      .then((res) => {
+        orphanSuitesData.value = res.data.items;
+        orphanSuitesPagination.pageCount = res.data.pages;
+        orphanSuitesPagination.itemCount = res.data.total;
+        createSuitesShow.value = true;
+      });
+  }
+}
+
 function initDialogViewData() {
   info.value = '';
   inputInfo.value = '';
@@ -1076,7 +1142,8 @@ const actionHandlder = {
   relateSuite: {
     handler(contextmenu) {
       if (contextmenu.info.in_set) {
-        window.$message?.info('该功能开发中....');
+        createSuitesTargetNode.value = contextmenu.info;
+        getOrphanSuitesReq();
       } else {
         initDialogViewData();
         dialogView((node) => relateSuiteCase(node, 'suite'), contextmenu, 'suite');
@@ -1128,7 +1195,7 @@ const actionHandlder = {
       const [key] = contextmenu.key.split('-');
       if (key === 'suite') {
         const id = contextmenu.info.suite_id;
-        axios.get('/v1/suite', { id }).then((res) => {
+        axios.get(`/v1/ws/${workspace.value}/suite`, { id }).then((res) => {
           [suiteInfo.value] = res;
           putModalRef.value.show();
         });
@@ -1157,27 +1224,47 @@ function menuClick({ key, options }) {
   const [{ label, type, suiteId, caseId }] = options;
   if (itemkey === 'org') {
     router.push({
-      path: `/home/tcm/folderview/org-node/${window.btoa(id)}`
+      name: 'orgNode',
+      params: {
+        taskId: window.btoa(id)
+      }
     });
   } else if (itemkey === 'group') {
     router.push({
-      path: `/home/tcm/folderview/term-node/${window.btoa(id)}`
+      name: 'termNode',
+      params: {
+        taskId: window.btoa(id)
+      }
     });
   } else if (itemkey === 'directory' && label === '用例集') {
     router.push({
-      path: `/home/tcm/folderview/caseset-node/${window.btoa(id)}`
+      name: 'casesetNode',
+      params: {
+        taskId: window.btoa(id)
+      }
     });
   } else if (type === 'baseline') {
     router.push({
-      path: `/home/tcm/folderview/baseline-node/${window.btoa(id)}`
+      name: 'baselineNode',
+      params: {
+        taskId: window.btoa(id)
+      }
     });
   } else if (itemkey === 'suite') {
     router.push({
-      path: `/home/tcm/folderview/suite-node/${window.btoa(id)}/${window.btoa(suiteId)}`
+      name: 'suiteNode',
+      params: {
+        taskId: window.btoa(id),
+        suiteId: window.btoa(suiteId)
+      }
     });
   } else if (itemkey === 'case') {
     router.push({
-      path: `/home/tcm/folderview/testcase-node/${window.btoa(id)}/${window.btoa(caseId)}`
+      name: 'testcaseNodes',
+      params: {
+        taskId: window.btoa(id),
+        caseId: window.btoa(caseId)
+      }
     });
   }
 }
@@ -1283,6 +1370,10 @@ export {
   selectOptions,
   menuList,
   expandKeys,
+  createSuitesShow,
+  orphanSuitesData,
+  createSuitesTargetNode,
+  orphanSuitesPagination,
   loadData,
   selectAction,
   menuClick,
@@ -1293,5 +1384,6 @@ export {
   newCase,
   submitCreateCase,
   clearSelectKey,
-  extendSubmit
+  extendSubmit,
+  getOrphanSuitesReq,
 };

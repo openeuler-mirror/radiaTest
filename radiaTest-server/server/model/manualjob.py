@@ -22,13 +22,14 @@ from datetime import datetime
 from sqlalchemy.dialects.mysql import LONGTEXT
 
 from server import db
+from server.model import PermissionBaseModel
 from server.model.base import BaseModel
 from server.model.user import User
 from server.model.milestone import Milestone
 from server.model.testcase import Case
 
 
-class ManualJob(BaseModel, db.Model):
+class ManualJob(BaseModel, db.Model, PermissionBaseModel):
     id = db.Column(db.Integer(), primary_key=True, autoincrement=True)
     name = db.Column(db.String(255), nullable=False, unique=True)
     start_time = db.Column(db.DateTime(), nullable=False, default=datetime.now)
@@ -37,16 +38,19 @@ class ManualJob(BaseModel, db.Model):
     current_step = db.Column(db.Integer(), nullable=False, default=0)
     total_step = db.Column(db.Integer(), nullable=False)
 
-    executor_id = db.Column(db.String(512), db.ForeignKey("user.user_id"))
+    creator_id = db.Column(db.Integer(), db.ForeignKey("user.user_id"))
     milestone_id = db.Column(db.Integer(), db.ForeignKey("milestone.id"))
     case_id = db.Column(db.Integer(), db.ForeignKey("case.id"))
+
+    group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
+    org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
 
     status = db.Column(db.Integer, nullable=False, default=0)  # 0: In progress, 1: Completed.
 
     steps = db.relationship("ManualJobStep", backref="manual_job", cascade="all, delete")
 
     def to_json(self):
-        executor_name = User.query.filter_by(user_id=self.executor_id).first().user_name  # 这里没有用backref
+        executor_name = User.query.filter_by(user_id=self.creator_id).first().user_name  # 这里没有用backref
         milestone_name = Milestone.query.filter_by(id=self.milestone_id).first().name
         _case = Case.query.filter_by(id=self.case_id).first()
         return {
@@ -65,7 +69,8 @@ class ManualJob(BaseModel, db.Model):
             "status": self.status,
             "case_description": _case.description,
             "case_preset": _case.preset,
-            "case_expection": _case.expection
+            "case_expection": _case.expection,
+            "creator_id": self.creator_id
         }
 
 

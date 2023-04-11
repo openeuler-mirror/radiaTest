@@ -21,9 +21,9 @@ from flask_pydantic import validate
 
 from server.model.template import Template
 from server.model.testcase import Case
-from server.utils.db import Insert, Edit, Select, Delete
+from server.utils.db import Edit
 from server.utils.auth_util import auth
-from server.utils.response_util import RET
+from server.utils.response_util import RET, response_collect, workspace_error_collect
 from server.schema.template import TemplateUpdate, TemplateCloneBase, TemplateCreateBase
 from server.utils.permission_utils import GetAllByPermission
 from server.utils.resource_utils import ResourceManager
@@ -60,9 +60,11 @@ class TemplateEvent(Resource):
         return resp
 
     @auth.login_required
-    def get(self):
+    @response_collect
+    @workspace_error_collect
+    def get(self, workspace: str):
         body = request.args.to_dict()
-        return GetAllByPermission(Template).fuzz(body)
+        return GetAllByPermission(Template, workspace).fuzz(body)
 
 
 class TemplateItemEvent(Resource):

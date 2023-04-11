@@ -18,7 +18,7 @@ from flask_restful import Resource
 from flask_pydantic import validate
 
 from server.utils.auth_util import auth
-from server.utils.response_util import response_collect, RET
+from server.utils.response_util import response_collect, RET, workspace_error_collect
 from server.model.milestone import Milestone, TestReport
 from server.utils.db import Select
 from server.schema.milestone import (
@@ -77,9 +77,10 @@ class MilestoneEventV2(Resource):
 
     @auth.login_required()
     @response_collect
+    @workspace_error_collect
     @validate()
-    def get(self, query: MilestoneQuerySchema):
-        filter_params = GetAllByPermission(Milestone).get_filter()
+    def get(self, workspace: str, query: MilestoneQuerySchema):
+        filter_params = GetAllByPermission(Milestone, workspace).get_filter()
         return MilestoneHandler.get_milestone(query, filter_params)
 
 
@@ -131,6 +132,7 @@ class MilestoneItemEventV2(Resource):
 
 class MilestonePreciseEvent(Resource):
     @auth.login_required()
+    @response_collect
     @validate()
     def get(self, query: MilestoneBaseSchema):
         return GetAllByPermission(Milestone).precise(query.__dict__)

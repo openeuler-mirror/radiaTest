@@ -15,7 +15,7 @@ function deleteItems (index) {
 }
 function searchUser () {
   changeLoadingStatus(true);
-  axios.get(`/v1/org/${storage.getValue('orgId')}/users`, {
+  axios.get(`/v1/org/${storage.getValue('loginOrgId')}/users`, {
     page_size: 9999,
     page_num: 1,
     name: addUserInfo.name,

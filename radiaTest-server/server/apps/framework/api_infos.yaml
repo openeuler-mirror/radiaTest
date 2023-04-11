@@ -18,3 +18,6 @@ git_repo:
   - uri: /api/v1/git-repo/{git_repo_id}
     act: put
     alias: 修改GitRepo
+  - uri: /api/v1/git-repo/{git_repo_id}/sync
+    act: get
+    alias: 解析获取指定GitRepo的用例

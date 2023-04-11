@@ -2,6 +2,7 @@ import axios from 'axios';
 // import router from './router/index';
 import { storage } from './assets/utils/storageUtils';
 import router from './router';
+
 //url接口头定义
 const server = axios.create({
   baseURL: '/api',
@@ -73,6 +74,13 @@ server.interceptors.response.use(
       response.headers.authorization && storage.setValue('token', response.headers.authorization);
       return Promise.resolve(response);
     }
+    if (response.data.error_code === '4021') {
+      router.push({
+        name: 'home'
+      });
+      return Promise.reject(response);
+    }
+
     return Promise.reject(response);
   },
   (error) => {

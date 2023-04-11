@@ -1,5 +1,5 @@
 <template>
-  <div v-show="!isDesignTemplate">
+  <div v-show="!isDesignTemplate" style="height: 100%">
     <n-spin :show="showLoading" stroke="rgba(0, 47, 167, 1)" class="spin-box">
       <n-layout has-sider style="height: 100%">
         <n-layout-sider
@@ -13,6 +13,7 @@
             style="height: 550px"
             block-line
             :data="treeData"
+            :default-expanded-keys="defaultExpandedKeys"
             :render-prefix="renderPrefix"
             :render-suffix="renderSuffix"
             :node-props="nodeProps"
@@ -277,6 +278,7 @@ const currentFeature = ref(null); // 当前选中特性
 const showStrategy = ref(false); // 展示特性集或测试策略
 const productList = ref([]); // 产品版本列表
 const orgList = ref([]);
+const defaultExpandedKeys = ref([]);
 const FeatureSetDetailRef = ref(null); // 特性集页面
 
 // 获取组织节点
@@ -285,7 +287,7 @@ const getOrgList = () => {
     const { data } = res;
     data.orgs.forEach((item) => {
       if (item.re_user_org_default) {
-        orgList.value.push({
+        treeData.value.push({
           label: item.org_name,
           key: `org-${item.org_id}`,
           info: {
@@ -294,11 +296,14 @@ const getOrgList = () => {
           isLeaf: false,
           type: 'org',
           root: true,
-          icon: Organization20Regular
+          icon: Organization20Regular,
+          children: createOrgChildren(item)
         });
+        defaultExpandedKeys.value.push(`org-${item.org_id}`);
       }
     });
-    treeData.value = _.cloneDeep(orgList.value);
+    orgList.value = _.cloneDeep(treeData.value);
+    showLoading.value = false;
   });
 };
 
@@ -308,21 +313,21 @@ const getRootNodes = () => {
 };
 
 // 创建组织下级目录
-const createOrgChildren = (node) => {
-  node.children = [];
-  node.children.push({
+const createOrgChildren = (orgItem) => {
+  let childrenArr = [];
+  childrenArr.push({
     label: '特性集',
-    key: `featureSet-${node.info.org_id}`,
+    key: `featureSet-${orgItem.org_id}`,
     isLeaf: true,
     type: 'featureSet',
     root: false,
     icon: Database,
     info: {
-      org_id: node.info.org_id
+      org_id: orgItem.org_id
     }
   });
   productList.value.forEach((item) => {
-    node.children.push({
+    childrenArr.push({
       label: item.label,
       key: `productVersion-${item.value}`,
       isLeaf: false,
@@ -330,20 +335,18 @@ const createOrgChildren = (node) => {
       root: false,
       icon: Milestone,
       info: {
-        org_id: node.info.org_id,
+        org_id: orgItem.org_id,
         productVersionId: item.value
       }
     });
   });
+  return childrenArr;
 };
 
 // 加载树子节点
 const loadTreeData = (node) => {
   return new Promise((resolve, reject) => {
-    if (node.type === 'org') {
-      createOrgChildren(node);
-      resolve();
-    } else if (node.type === 'productVersion') {
+    if (node.type === 'productVersion') {
       node.children = [];
       node.children.push(
         {
@@ -397,7 +400,6 @@ const loadTreeData = (node) => {
     } else if (node.type === 'increase') {
       node.children = [];
       getProductFeature(node.info.productVersionId, { is_new: true }).then((res) => {
-        console.log(2);
         res?.data?.forEach((item) => {
           node.children.push({
             label: item.feature,
@@ -641,7 +643,6 @@ const submitInputFeature = (e) => {
   inputFeatureFormRef.value?.validate((errors) => {
     if (!errors) {
       createProductFeature(inputFeatureFormValue.value).then(() => {
-        getRootNodes();
         cancelInputFeature();
         FeatureSetDetailRef.value.getFeatureSet(1);
       });

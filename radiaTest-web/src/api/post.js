@@ -3,6 +3,7 @@ import { lyla } from 'lyla';
 import { unkonwnErrorMsg } from '@/assets/utils/description';
 import config from '@/assets/config/settings';
 import { storage } from '@/assets/utils/storageUtils';
+import { workspace } from '@/assets/config/menu.js';
 
 function postRequest(url, data) {
   return new Promise((resolve, reject) => {
@@ -13,7 +14,11 @@ function postRequest(url, data) {
       })
       .catch((err) => {
         if (data?.webMessage !== 'manual') {
-          window.$notification?.error({ content: err.data.error_msg || unkonwnErrorMsg });
+          window.$notification?.error({
+            content: err.data.error_msg || unkonwnErrorMsg,
+            duration: 5000,
+            keepAliveOnHover: true
+          });
         }
         reject(err);
       });
@@ -149,7 +154,7 @@ export function casenodeApplyTemplate(caseNodeId, baselineTemplateId) {
 }
 
 export function createManualJob(data) {
-  return postRequest('/v1/manual-job', data);
+  return postRequest(`/v1/ws/${workspace.value}/manual-job`, data);
 }
 
 export function submitManualJob(jobId) {
@@ -199,4 +204,9 @@ export function strategySubmmit(strategyId, data) {
 // 创建issue
 export function createIssues(data) {
   return postRequest('/v1/issues', data);
+}
+
+// 为用例集目录创建新测试套节点
+export function createSuites(caseNodeId, data) {
+  return postRequest(`/v1/case-node/${caseNodeId}/suites`, data);
 }

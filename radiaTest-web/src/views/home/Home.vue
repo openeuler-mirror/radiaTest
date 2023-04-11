@@ -1,42 +1,42 @@
 <template>
   <div class="box-container">
     <div id="header" class="header">
-      <mugen-header @menuClick="handleMenuClick" @menuBlur="handleMenuBlur" />
+      <mugen-header />
     </div>
     <n-layout id="homeBody" has-sider class="body home">
       <router-view></router-view>
     </n-layout>
   </div>
 </template>
-<script>
-import { ref, defineComponent } from 'vue';
+<script setup>
 import { useMessage, useNotification, useDialog } from 'naive-ui';
 import MugenHeader from '@/components/header/Header';
-import modules from './index';
+import { showFunctionMenu, workspace } from '@/assets/config/menu.js';
 
-export default defineComponent({
-  components: {
-    MugenHeader,
-  },
-  setup() {
-    const message = useMessage();
-    const notification = useNotification();
-    const dialog = useDialog();
-    window.$message = message;
-    window.$notification = notification;
-    window.$dialog = dialog;
+const message = useMessage();
+const notification = useNotification();
+const dialog = useDialog();
+window.$message = message;
+window.$notification = notification;
+window.$dialog = dialog;
 
-    const home = ref(null);
+const route = useRoute();
 
-    return {
-      home,
-      ...modules,
-    };
-  },
+watchEffect(() => {
+  if (route.params.workspace) {
+    showFunctionMenu.value = true;
+    if (route.params.workspace !== 'default' && route.params.workspace !== 'release') {
+      workspace.value = window.atob(route.params.workspace);
+    } else {
+      workspace.value = route.params.workspace;
+    }
+  } else {
+    showFunctionMenu.value = false;
+  }
 });
 </script>
 
-<style>
+<style lang="less">
 .box-container {
   display: flex;
   flex-direction: column;
@@ -57,7 +57,7 @@ export default defineComponent({
 .header {
   width: 100%;
   z-index: 5;
-  height: 100px;
+  height: 60px;
   flex-shrink: 0;
   box-shadow: 0 2px 8px 0 rgb(2, 24, 42, 0.1);
   transition: height 1s ease-in-out;

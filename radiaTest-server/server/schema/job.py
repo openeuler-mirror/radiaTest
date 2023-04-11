@@ -1,7 +1,7 @@
 import datetime
 from typing import Optional, List
 import pytz
-
+from dataclasses import dataclass
 from pydantic import BaseModel, HttpUrl, constr, root_validator, validator
 
 from server.schema import Frame, JobDefaultStates, JobSortedBy, MachinePolicy
@@ -10,7 +10,7 @@ from server.utils.db import Precise
 from server.model import Milestone
 
 
-class JobUpdateSchema(TimeBaseSchema):
+class JobUpdateSchema(BaseModel):
     name: Optional[str]
     running_time: Optional[int]
     total: Optional[int]
@@ -24,6 +24,8 @@ class JobUpdateSchema(TimeBaseSchema):
     frame: Optional[Frame]
     milestone_id: Optional[int]
     tid: Optional[str]
+    start_time: Optional[str]
+    end_time: Optional[str] = None
 
 
 class JobCreateSchema(JobUpdateSchema):
@@ -127,3 +129,10 @@ class LogCreateSchema(BaseModel):
     actual_result: int
     mode: int
     section_log: str
+
+
+@dataclass
+class PayLoad:
+    user_id: int
+    user_login: str
+    

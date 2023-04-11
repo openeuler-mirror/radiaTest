@@ -1,12 +1,8 @@
 <template>
   <div class="detail-container">
     <n-breadcrumb>
-      <n-breadcrumb-item @click="clickBreadCrumb">
-        用例评审
-      </n-breadcrumb-item>
-      <n-breadcrumb-item href="#">
-        详情
-      </n-breadcrumb-item>
+      <n-breadcrumb-item @click="clickBreadCrumb"> 用例评审 </n-breadcrumb-item>
+      <n-breadcrumb-item href="#"> 详情 </n-breadcrumb-item>
     </n-breadcrumb>
     <div class="detail-content">
       <div class="left">
@@ -14,7 +10,7 @@
           {{ detailInfo.title }}
         </n-h1>
         <div class="sourceWrap">
-          <n-tag :type="statusTag[detailInfo.status]" style="margin-right:30px">
+          <n-tag :type="statusTag[detailInfo.status]" style="margin-right: 30px">
             {{ detailInfo.status }}
           </n-tag>
           {{ detailInfo.source }}
@@ -24,7 +20,7 @@
             <userInfo :userInfo="detailInfo.creator"> </userInfo>
             <span>
               创建于
-              <span style="margin-left:15px">
+              <span style="margin-left: 15px">
                 {{ formatTime(detailInfo.create_time, 'yyyy-MM-dd hh:mm:ss') }}
               </span>
             </span>
@@ -45,20 +41,18 @@
             <comment @update="getComment" v-for="(item, index) in comments" :key="index" :comment="item" />
             <div id="comment">
               <editor v-model="commentInput" tag-name="div" :init="init" />
-              <n-button type="primary" @click="commentCase">
-                评论
-              </n-button>
+              <n-button type="primary" @click="commentCase"> 评论 </n-button>
             </div>
           </n-tab-pane>
           <n-tab-pane name="case" tab="用例">
             <div v-if="oldContent.machine_type !== newContent.machine_type">
-              机器类型：<span style="color:red">{{ oldContent.machine_type }}</span> ->
-              <span style="color:green">{{ newContent.machine_type }}</span>
+              机器类型：<span style="color: red">{{ oldContent.machine_type }}</span> ->
+              <span style="color: green">{{ newContent.machine_type }}</span>
             </div>
             <div v-if="oldContent.machine_num !== newContent.machine_num">
-              机器数量：<span style="color:red">{{ oldContent.machine_num }}</span>
-              <span style="margin:0 10px">-></span>
-              <span style="color:green">{{ newContent.machine_num }}</span>
+              机器数量：<span style="color: red">{{ oldContent.machine_num }}</span>
+              <span style="margin: 0 10px">-></span>
+              <span style="color: green">{{ newContent.machine_num }}</span>
             </div>
             <diff v-for="(item, index) in content" :key="index" :info="item" />
           </n-tab-pane>
@@ -130,7 +124,7 @@ export default {
     };
 
     const clickBreadCrumb = () => {
-      router.push('/home/tcm/case-review');
+      router.push({ name: 'caseReview' });
     };
 
     return {

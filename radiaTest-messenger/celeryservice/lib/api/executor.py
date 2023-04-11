@@ -28,16 +28,6 @@ class Executor(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def get_case_code(self, *args):
-        """get test case code"""
-        pass
-
-    @abstractmethod
-    def suite2cases_resolver(self, *args):
-        """get test suite details info,such as suite config,test cases and so on"""
-        pass
-
-    @abstractmethod
     def run_all_cases(self, *args):
         """run all testcases"""
         pass

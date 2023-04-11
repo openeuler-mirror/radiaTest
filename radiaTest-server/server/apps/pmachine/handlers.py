@@ -40,17 +40,9 @@ from server.utils.resource_utils import ResourceManager
 class ResourcePoolHandler:     
     @staticmethod
     @collect_sql_error
-    def get_all(query):
-        filter_params = [
-            or_(
-                MachineGroup.org_id == redis_client.hget(RedisKey.user(g.user_id), 'current_org_id'),
-                MachineGroup.permission_type == 'public',
-                and_(
-                    MachineGroup.permission_type == 'person',
-                    MachineGroup.creator_id == g.user_id
-                )
-            )
-        ]
+    def get_all(query, workspace=None):
+        filter_params = GetAllByPermission(MachineGroup, workspace).get_filter()
+
         if query.text:
             filter_params.append(
                 or_(
@@ -70,7 +62,7 @@ class ResourcePoolHandler:
             error_code=RET.OK,
             error_msg="OK",
             data=[machine_group.to_json() for machine_group in machine_groups]
-        )   
+        )
     
     @staticmethod
     @collect_sql_error
@@ -105,8 +97,8 @@ class ResourcePoolHandler:
 
 class PmachineHandler:
     @staticmethod
-    def get_all(query):
-        filter_params = GetAllByPermission(Pmachine).get_filter()
+    def get_all(query, workspace=None):
+        filter_params = GetAllByPermission(Pmachine, workspace).get_filter()
         filter_params.append(Pmachine.machine_group_id == query.machine_group_id)
 
         if query.mac:

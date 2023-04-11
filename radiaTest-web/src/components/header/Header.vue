@@ -2,21 +2,17 @@
   <div class="wrapBox">
     <n-space align="center" class="logo">
       <div class="title" @click="clickLogo">
-        <img src="/rediation.svg" style="height: 50px" />
+        <img src="/rediation.svg" style="height: 30px" />
         <span id="radiaTest">
           <n-gradient-text type="primary">radiaTest</n-gradient-text>
         </span>
       </div>
     </n-space>
-    <div class="myMenu">
-      <header-menu v-if="showMenu" />
+    <div class="myMenu" v-if="showFunctionMenu">
+      <header-menu />
     </div>
-    <div class="menu">
-      <n-button style="top: 20%; height: 50%" @click="handleMenuClick" @blur="handleMenuBlur" v-if="showMenu">
-        <n-icon size="35">
-          <menu-sharp />
-        </n-icon>
-      </n-button>
+    <div class="myMenu" v-else>
+      <HomeMenu></HomeMenu>
     </div>
     <div class="myProfile">
       <profile-menu />
@@ -24,40 +20,17 @@
   </div>
 </template>
 
-<script>
-import { defineComponent, inject } from 'vue';
+<script setup>
 import ProfileMenu from './profileMenu/ProfileMenu.vue';
 import { useRouter } from 'vue-router';
-import { MenuSharp } from '@vicons/ionicons5';
 import HeaderMenu from './Menu.vue';
-import { showWorkbench } from '@/views/dashboard/modules/dashboard.js';
+import { showFunctionMenu } from '@/assets/config/menu.js';
 
-export default defineComponent({
-  components: {
-    HeaderMenu,
-    ProfileMenu,
-    MenuSharp
-  },
-  setup(props, context) {
-    const router = useRouter();
-    const showMenu = inject('showMenu', true);
+const router = useRouter();
 
-    return {
-      router,
-      showMenu,
-      handleMenuClick() {
-        context.emit('menuClick');
-      },
-      handleMenuBlur() {
-        context.emit('menuBlur');
-      },
-      clickLogo() {
-        showWorkbench.value = false;
-        router.push('/home');
-      }
-    };
-  }
-});
+const clickLogo = () => {
+  router.push('/home');
+};
 </script>
 
 <style scoped lang="less">
@@ -78,9 +51,10 @@ export default defineComponent({
   color: rgba(0, 47, 167, 1);
   display: flex;
   align-items: center;
+  margin-right: 20px;
 }
 .title #radiaTest {
-  font-size: 40px;
+  font-size: 30px;
   font-family: 'v-sans';
   width: 100%;
 }
@@ -88,17 +62,14 @@ export default defineComponent({
   font-weight: 800;
 }
 .myMenu {
-  height: 100%;
   min-width: 850px;
+  display: flex;
 }
 .title:hover {
   cursor: pointer;
 }
 .st0 {
   fill: #002fa7;
-}
-.menu {
-  display: none;
 }
 
 .myProfile {
