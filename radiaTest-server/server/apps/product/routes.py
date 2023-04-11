@@ -1,7 +1,23 @@
+# Copyright (c) [2022] Huawei Technologies Co.,Ltd.ALL rights reserved.
+# This program is licensed under Mulan PSL v2.
+# You can use it according to the terms and conditions of the Mulan PSL v2.
+#          http://license.coscl.org.cn/MulanPSL2
+# THIS PROGRAM IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+# EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+# MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+# See the Mulan PSL v2 for more details.
+####################################
+# @Author  :
+# @email   :
+# @Date    :
+# @License : Mulan PSL v2
+#####################################
+
 from flask.json import jsonify
 from flask import request
 from flask_restful import Resource
 from flask_pydantic import validate
+from sqlalchemy import case as sql_case
 
 from server.model import Product, Milestone, TestReport
 from server.utils.auth_util import auth
@@ -71,11 +87,24 @@ class ProductEvent(Resource):
         return ResourceManager("product").add("api_infos.yaml", body.__dict__)
 
     @auth.login_required
+    @response_collect
     @validate()
     def get(self, query: ProductQueryBase):
-        query_filter = GetAllByPermission(Product).fuzz(
+        _g = GetAllByPermission(Product)
+        if query.permission_type is not None:
+            _g.set_filter(Product.permission_type == query.permission_type)
+            ords = [Product.name.asc(), Product.create_time.asc()]
+        else:
+            _ord = sql_case(
+                (Product.permission_type == 'org', 1),
+                (Product.permission_type == 'public', 2),
+                (Product.permission_type == 'group', 3),
+                (Product.permission_type == 'person', 4)
+            )
+            ords = [_ord, Product.name.asc(), Product.create_time.asc()]
+        query_filter = _g.fuzz(
             query.__dict__,
-            [Product.name.asc(), Product.create_time.asc()],
+            ords,
             "query"
         )
         return PageUtil.get_data(query_filter, query)
@@ -101,14 +130,14 @@ class UpdateProductIssueRate(Resource):
     def put(self, product_id):
         from celeryservice.lib.issuerate import UpdateIssueRate
         from server.apps.milestone.handler import IssueStatisticsHandlerV8
-        
+
         product = Product.query.filter_by(id=product_id).first()
         if not product:
             return jsonify(
                 error_code=RET.NO_DATA_ERR,
                 error_msg="product does not exist.",
             )
-     
+
         gitee_id = IssueStatisticsHandlerV8.get_gitee_id(product.org_id)
         if gitee_id:
             UpdateIssueRate.update_product_issue_resolved_rate(
