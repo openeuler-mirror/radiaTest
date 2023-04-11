@@ -23,7 +23,7 @@
               v-model:value="formValue.templateName"
               placeholder="请选择模板"
               :options="templateOptions"
-              clearable
+              filterable
             />
           </n-form-item-gi>
         </n-grid>

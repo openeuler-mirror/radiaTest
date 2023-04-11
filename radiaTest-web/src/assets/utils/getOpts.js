@@ -81,6 +81,26 @@ const getProductVersionOpts = (productOpts, loading) => {
     });
 };
 
+const getProductVersionOrgOpts = (productOpts, loading) => {
+  loading ? (loading.value = true) : 0;
+  productOpts.value = [];
+  axios
+    .get('/v1/product', { paged: false, permission_type: 'org' })
+    .then((res) => {
+      loading ? (loading.value = false) : 0;
+      productOpts.value = res.data?.items?.map((item) => {
+        return {
+          label: `${item.name} ${item.version}`,
+          value: item.id.toString()
+        };
+      });
+    })
+    .catch(() => {
+      loading ? (loading.value = false) : 0;
+      window.$message?.error('无法连接服务器，获取产品选项失败');
+    });
+};
+
 const getCheckItemOpts = (checkItemOpts, loading) => {
   return new Promise((resolve) => {
     loading ? (loading.value = true) : 0;
@@ -173,4 +193,12 @@ const getFrameOpts = (frameOpts, milestoneId, filetype, loading) => {
     });
 };
 
-export { getProductOpts, getProductVersionOpts, getVersionOpts, getMilestoneOpts, getFrameOpts, getCheckItemOpts };
+export {
+  getProductOpts,
+  getProductVersionOpts,
+  getProductVersionOrgOpts,
+  getVersionOpts,
+  getMilestoneOpts,
+  getFrameOpts,
+  getCheckItemOpts
+};
