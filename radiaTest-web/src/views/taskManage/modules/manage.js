@@ -185,14 +185,14 @@ const recycleBinTaskColumns = [
 const menu = ref([
   {
     id: 0,
-    text: '个人概览',
+    text: 'Dashboard',
     name: 'dashboard'
   },
-  {
-    id: 1,
-    text: '需求中心',
-    name: 'require'
-  },
+  // {
+  //   id: 1,
+  //   text: '需求中心',
+  //   name: 'require'
+  // },
   {
     id: 2,
     text: '任务看板',
@@ -272,10 +272,10 @@ function initCondition() {
 }
 
 // 页面切换
-function menuClick(item, index) {
-  menuSelect.value = index;
+function menuClick(item) {
+  menuSelect.value = item.id;
   router.push(`/home/workflow/${item.name}`);
-  index === 2 ? (isTask.value = true) : (isTask.value = false);
+  item.id === 2 ? (isTask.value = true) : (isTask.value = false);
   item.name === 'task' ? (backable.value = false) : (backable.value = true);
 }
 

@@ -20,8 +20,8 @@
       <div class="nav-header">
         <div class="nav-body">
           <ul class="nav-wrapper">
-            <li v-for="(item, index) in menu" :key="index" @click="menuClick(item, index)">
-              <a :class="{ active: menuSelect === index }">{{ item.text }}</a>
+            <li v-for="(item, index) in menu" :key="index" @click="menuClick(item)">
+              <a :class="{ active: menuSelect === item.id }">{{ item.text }}</a>
             </li>
           </ul>
         </div>

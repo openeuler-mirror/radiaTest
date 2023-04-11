@@ -22,8 +22,45 @@ const frameOpts = ref([
   }
 ]);
 
+const frameRule = {
+  trigger: ['blur', 'change'],
+  validator(rule, value) {
+    let count = 0;
+    formValue.value.frame_number.forEach((item) => {
+      if (item.frame === value) {
+        count++;
+      }
+    });
+    if (count > 1) {
+      return new Error('不可选择重复架构');
+    }
+    return true;
+  }
+};
+
+const createFrameAndNumber = () => {
+  return {
+    frame: 'aarch64',
+    machine_num: 1
+  };
+};
+
+const changeFrameAndNumber = () => {
+  if (formValue.value.frame_number?.length > 1) {
+    formValue.value.pm_select_mode = 'auto';
+  } else if (formValue.value.frame_number?.length === 1) {
+    getPm({
+      machine_purpose: 'create_vmachine',
+      frame: formValue.value.frame_number[0].frame,
+      machine_group_id: window.atob(router.currentRoute.value.params.machineId)
+    }).then((res) => {
+      pmData.value = res.data;
+    });
+  }
+};
+
 const formValue = ref({
-  frames: undefined,
+  frame_number: [],
   pm_select_mode: undefined,
   product: undefined,
   version: undefined,
@@ -37,24 +74,9 @@ const formValue = ref({
   description: undefined,
   method: undefined,
   pmachine_id: undefined,
-  permission_type: undefined,
-  count: 1
+  permission_type: undefined
 });
 const checkedPm = ref();
-const countMax = ref(10);
-
-const capacityMax = computed(() => {
-  return Math.floor(500 / formValue.value.count);
-});
-
-watch(
-  () => formValue.value.count,
-  () => {
-    if (formValue.value.capacity > capacityMax.value) {
-      formValue.value.capacity = capacityMax.value;
-    }
-  }
-);
 
 const rules = ref({
   method: {
@@ -67,11 +89,11 @@ const rules = ref({
     message: '请选择类型',
     trigger: ['change', 'blur']
   },
-  frames: {
+  frame_number: {
     required: true,
     type: 'array',
-    message: '架构不可为空',
-    trigger: ['blur']
+    message: '虚拟机架构及数量不可为空',
+    trigger: ['blur', 'change']
   },
   product: {
     required: true,
@@ -89,12 +111,15 @@ const rules = ref({
     trigger: ['blur', 'change']
   },
   capacity: {
-    message: '请填写',
+    message: '单架构磁盘容量不可超过500GiB',
     validator(rule, value) {
-      if (formValue.value.method === 'auto' && !value) {
-        return false;
-      }
-      return true;
+      let flag = true;
+      formValue.value.frame_number.forEach((item) => {
+        if (item.machine_num * value > 500) {
+          flag = false;
+        }
+      });
+      return flag;
     },
     trigger: ['change', 'blur']
   },
@@ -138,9 +163,8 @@ const validator = (value) => {
 
 const clean = () => {
   checkedPm.value = '';
-  countMax.value = 10;
   formValue.value = {
-    frames: undefined,
+    frame_number: [],
     product: undefined,
     version: undefined,
     milestone_id: undefined,
@@ -154,38 +178,19 @@ const clean = () => {
     threads: 1,
     description: undefined,
     method: undefined,
-    permission_type: undefined,
-    count: 1
+    permission_type: undefined
   };
 };
 const pmData = ref();
 const getProductOptions = () => {
   getProductOpts(productOpts);
 };
-function changeFrame() {
-  if (formValue.value.frames?.length > 1) {
-    formValue.value.pm_select_mode = 'auto';
-    countMax.value = 5;
-    if (formValue.value.count > 5) {
-      formValue.value.count = 5;
-    }
-  } else if (formValue.value.frames?.length === 1) {
-    countMax.value = 10;
-    getPm({
-      machine_purpose: 'create_vmachine',
-      frame: formValue.value.frames[0],
-      machine_group_id: window.atob(router.currentRoute.value.params.machineId)
-    }).then((res) => {
-      pmData.value = res.data;
-    });
-  }
-}
 
 const activeMethodWatcher = () => {
   watch(
     () => formValue.value.method,
     () => {
-      formValue.value.frames = null;
+      formValue.value.frame_number = [];
     }
   );
 };
@@ -264,7 +269,7 @@ export default {
   activeMethodWatcher,
   activeProductWatcher,
   activeVersionWatcher,
-  changeFrame,
-  countMax,
-  capacityMax
+  createFrameAndNumber,
+  frameRule,
+  changeFrameAndNumber
 };
