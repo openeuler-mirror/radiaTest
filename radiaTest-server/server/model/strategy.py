@@ -55,7 +55,7 @@ class Strategy(BaseModel, db.Model):
         unique=True
     )
     strategy_commit = db.relationship(
-        "StrategyCommit", backref="strategy"
+        "StrategyCommit", cascade="all, delete", backref="strategy"
     )    
     
 

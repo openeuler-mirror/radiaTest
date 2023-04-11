@@ -119,3 +119,8 @@ class StrategyCaseNodeBodySchema(StrategyBodySchema, SuiteCreate):
 
 class StrategyQuerySchema(PageBaseSchema):
     type: Optional[str] = None
+
+
+class StrategyPermissionBaseSchema(BaseModel):
+    org_id: Optional[int]
+    gitee_id: Optional[int]

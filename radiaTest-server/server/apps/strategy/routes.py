@@ -43,6 +43,7 @@ from server.schema.strategy import (
     StrategyCommitUpdateSchema,
     CommitBodySchema,
     StrategyQuerySchema,
+    StrategyPermissionBaseSchema,
 )
 from server.apps.strategy.handler import (
     FeatureHandler,
@@ -92,8 +93,8 @@ class FeatureSetEvent(Resource):
         _body = body.__dict__
         _body.update({
             "status": "Accepted",
-            "sig": str(body.sig),
-            "owner": str(body.owner),
+            "sig": ",".join(body.sig),
+            "owner": ",".join(body.owner),
         })
         filter_params = [
             Feature.feature == _body.get("feature"),
@@ -112,6 +113,7 @@ class FeatureSetEvent(Resource):
         url="/api/v1/feature", 
         methods=["Get"]
     """
+
     @auth.login_required()
     @response_collect
     @value_error_collect
@@ -564,6 +566,28 @@ class StrategyCommitEvent(Resource):
             error_code=RET.OK,
             error_msg="OK",
             data={"id": strategy_commit_record.id}
+        )
+
+    @auth.login_required()
+    @response_collect
+    @validate()
+    @value_error_collect
+    @collect_sql_error
+    def delete(self, product_feature_id, body: StrategyPermissionBaseSchema):
+        strategy = Strategy.query.filter_by(
+            org_id=body.org_id, creator_id=body.gitee_id, product_feature_id=product_feature_id
+        ).first()
+        if not strategy:
+            return jsonify(
+                error_code=RET.VERIFY_ERR,
+                error_msg="you have no permission delete strategy or strategy has been delete"
+            )
+
+        db.session.delete(strategy)
+        db.session.commit()
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK"
         )
 
 

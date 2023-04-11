@@ -61,7 +61,7 @@ def init_api(api: Api):
     api.add_resource(
         StrategyCommitEvent,
         "/api/v1/product-feature/<int:product_feature_id>/strategy", 
-        methods=["GET", "Post"]
+        methods=["GET", "Post", "Delete"]
     )
     api.add_resource(
         StrategyItemEvent,
