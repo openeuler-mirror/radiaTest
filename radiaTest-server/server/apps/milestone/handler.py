@@ -543,8 +543,9 @@ class IssueStatisticsHandlerV8():
         )
 
     @staticmethod
-    def update_milestone_issue_rate_by_field(milestone_id, field):
-        from celeryservice.lib.issuerate import update_field_issue_rate
+    def update_milestone_issue_rate(milestone_id):
+        from celeryservice.lib.issuerate import UpdateIssueRate
+
         milestone = Milestone.query.filter_by(
             id=milestone_id, is_sync=True).first()
         if not milestone:
@@ -561,12 +562,10 @@ class IssueStatisticsHandlerV8():
                     "gitee_milestone_id": milestone.gitee_milestone_id}
             ).single(IssueSolvedRate, "/issue_solved_rate")
 
-        update_field_issue_rate.delay(
-            "milestone",
+        UpdateIssueRate.update_milestone_issue_resolved_rate(
             g.gitee_id,
-            {"org_id": milestone.org_id, "product_id": milestone.product_id},
-            field,
-            milestone.gitee_milestone_id
+            {"product_id": milestone.product_id, "org_id": milestone.product.org_id},
+            milestone.gitee_milestone_id,
         )
         return jsonify(
             error_code=RET.OK,
