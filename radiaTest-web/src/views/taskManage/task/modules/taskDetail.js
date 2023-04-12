@@ -16,6 +16,7 @@ import 'tinymce/icons/default'; // 引用图标文件
 import 'tinymce/plugins/image'; //图片
 import 'tinymce/plugins/imagetools'; //图片工具
 import 'tinymce/plugins/nonbreaking';
+import { workspace } from '@/assets/config/menu.js';
 
 const showModal = ref(false); // 显示任务详情页
 const showCaseModal = ref(false); // 显示关联测试用例表格
@@ -363,7 +364,7 @@ let tempSuiteId;
 // 获取测试套
 function getCaseSuite() {
   axios
-    .get('/v1/suite')
+    .get(`/v1/ws/${workspace.value}/suite`)
     .then((res) => {
       suiteOptions.value = [];
       if (Array.isArray(res.data)) {

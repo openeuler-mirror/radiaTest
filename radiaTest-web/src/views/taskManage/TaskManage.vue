@@ -21,7 +21,9 @@
         <div class="nav-body">
           <ul class="nav-wrapper">
             <li v-for="(item, index) in menu" :key="index" @click="menuClick(item)">
-              <a :class="{ active: menuSelect === item.id }">{{ item.text }}</a>
+              <template v-if="showMenuItem(item)">
+                <a :class="{ active: menuSelect === item.id }">{{ item.text }}</a>
+              </template>
             </li>
           </ul>
         </div>
@@ -143,6 +145,17 @@ export default defineComponent({
   },
   setup() {
     const route = useRoute();
+
+    const showMenuItem = (item) => {
+      if (item.name !== 'testing') {
+        if (window.atob(route.params?.workspace).search('group') !== -1) {
+          return false;
+        }
+        return true;
+      }
+      return true;
+    };
+
     watch(() => route.path, modules.watchRoute);
     onMounted(() => {
       modules.watchRoute();
@@ -151,6 +164,7 @@ export default defineComponent({
 
     return {
       config,
+      showMenuItem,
       ...modules
     };
   }

@@ -33,6 +33,7 @@ import { NButton, NSpace } from 'naive-ui';
 import { roundRelateMilestonesAxios } from '@/api/put';
 import { useTable } from '@/hooks/useTable';
 import { Search } from '@vicons/tabler';
+import { workspace } from '@/assets/config/menu.js';
 
 const props = defineProps(['ProductId', 'currentRound']);
 const { ProductId, currentRound } = toRefs(props);
@@ -95,7 +96,7 @@ const tableColumns = ref([
                       milestone_id: row.id,
                       isbind: true
                     });
-                    useTable('/v2/milestone', getDataParams.value, resData, tablePagination, tableLoading, true);
+                    useTable(`/v2/ws/${workspace.value}/milestone`, getDataParams.value, resData, tablePagination, tableLoading, true);
                   }
                 },
                 {
@@ -111,7 +112,7 @@ const tableColumns = ref([
                       milestone_id: row.id,
                       isbind: false
                     });
-                    useTable('/v2/milestone', getDataParams.value, resData, tablePagination, tableLoading, true);
+                    useTable(`/v2/ws/${workspace.value}/milestone`, getDataParams.value, resData, tablePagination, tableLoading, true);
                   }
                 },
                 {
@@ -140,7 +141,7 @@ const changeSearchValue = () => {
   tablePagination.value.page = 1;
 };
 
-useTable('/v2/milestone', getDataParams.value, resData, tablePagination, tableLoading);
+useTable(`/v2/ws/${workspace.value}/milestone`, getDataParams.value, resData, tablePagination, tableLoading);
 </script>
 
 <style lang="less">

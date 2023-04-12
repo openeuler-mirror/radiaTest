@@ -161,7 +161,7 @@ function getGroup() {
   })
     .then((res) => {
       showLoading.value = false;
-      for (const item of res.data.items) {
+      for (const item of res.data?.items) {
         groups.value.push({
           label: item.name,
           value: String(item.id),
@@ -170,7 +170,7 @@ function getGroup() {
       }
     })
     .catch((err) => {
-      window.$message?.error(err.data.error_msg || '未知错误');
+      window.$message?.error(err.data?.error_msg || '未知错误');
       showLoading.value = false;
     });
 }

@@ -44,6 +44,7 @@ import versionManagement from '@/views/versionManagement/versionManagement.vue';
 import Product from '@/views/versionManagement/product/product.vue';
 import Milestone from '@/views/versionManagement/milestone/milestone.vue';
 import NotFound from '@/views/resultPage/NotFound.vue';
+import Workspaces from '@/views/home/Workspaces.vue';
 
 const routerHistory = createWebHistory();
 const router = createRouter({
@@ -55,7 +56,7 @@ const router = createRouter({
     },
     {
       path: '/home/',
-      redirect: '/home/workflow',
+      redirect: '/home/workspaces',
       component: Home,
       name: 'home',
       meta: {
@@ -63,9 +64,16 @@ const router = createRouter({
       },
       children: [
         {
-          path: 'workflow/',
+          path: 'workspaces/',
+          component: Workspaces,
+          meta: {
+            title: 'raidaTest测试平台'
+          }
+        },
+        {
+          path: 'ws/:workspace/workbenche',
           component: Dashboard,
-          redirect: '/home/workflow/dashboard',
+          redirect: '/home/ws/:workspace/workbenche/dashboard',
           meta: {
             title: 'raidaTest测试平台'
           },
@@ -102,12 +110,14 @@ const router = createRouter({
             },
             {
               path: 'testing/',
-              redirect: '/home/workflow/testing/automatic',
+              redirect: '/home/ws/:workspace/workbenche/testing/automatic',
               component: TestCenterManagement,
+              name: 'testing',
               children: [
                 {
                   path: 'automatic/',
                   component: Job,
+                  name: 'automatic',
                   meta: {
                     title: '自动化测试'
                   }
@@ -115,6 +125,7 @@ const router = createRouter({
                 {
                   path: 'manual/',
                   component: Manual,
+                  name: 'manual',
                   meta: {
                     title: '手工测试'
                   }
@@ -122,6 +133,7 @@ const router = createRouter({
                 {
                   path: 'gui/',
                   component: Gui,
+                  name: 'gui',
                   meta: {
                     title: 'GUI测试'
                   }
@@ -131,13 +143,14 @@ const router = createRouter({
           ]
         },
         {
-          path: 'version-management/',
-          redirect: '/home/version-management/product',
+          path: 'ws/:workspace/version-management/',
+          redirect: '/home/ws/:workspace/version-management/product',
           component: versionManagement,
           children: [
             {
               path: 'product/',
               component: Product,
+              name: 'vmProduct',
               meta: {
                 title: '产品版本管理'
               }
@@ -145,6 +158,7 @@ const router = createRouter({
             {
               path: 'milestone/',
               component: Milestone,
+              name: 'vmMilestone',
               meta: {
                 title: '里程碑管理'
               }
@@ -152,8 +166,8 @@ const router = createRouter({
           ]
         },
         {
-          path: 'resource-pool/',
-          redirect: '/home/resource-pool/vmachine',
+          path: 'ws/:workspace/resource-pool/',
+          redirect: '/home/ws/:workspace/resource-pool/management',
           component: Blank,
           children: [
             {
@@ -164,37 +178,29 @@ const router = createRouter({
                 {
                   path: 'pmachine/:machineId',
                   component: Pmachine,
-                  name: 'pmachine'
+                  name: 'pmachine',
+                  meta: {
+                    title: '物理机资源池'
+                  }
                 },
                 {
                   path: 'vmachine/:machineId',
                   component: Vmachine,
-                  name: 'vmachine'
+                  name: 'vmachine',
+                  meta: {
+                    title: '虚拟机资源池'
+                  }
                 }
               ],
               meta: {
                 title: '资源池管理'
               }
-            },
-            {
-              path: 'pmachine/',
-              component: Pmachine,
-              meta: {
-                title: '物理机资源池'
-              }
-            },
-            {
-              path: 'vmachine/',
-              component: Vmachine,
-              meta: {
-                title: '虚拟机资源池'
-              }
             }
           ]
         },
         {
-          path: 'tcm/',
-          redirect: '/home/tcm/testcase',
+          path: 'ws/:workspace/tcm/',
+          redirect: '/home/ws/:workspace/tcm/folderview',
           component: CaseManagement,
           meta: {
             title: '用例管理'

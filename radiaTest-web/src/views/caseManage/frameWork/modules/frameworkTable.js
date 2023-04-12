@@ -5,10 +5,12 @@ import { Construct, CheckmarkCircleOutline } from '@vicons/ionicons5';
 import { Delete24Regular as Delete, Prohibited24Regular } from '@vicons/fluent';
 import { isCreate, showForm, changeFramework, frameworkForm, deleteFramework } from './frameWorkAction';
 import axios from '@/axios';
+import { workspace } from '@/assets/config/menu.js';
+
 const frameLoading = ref(false);
 function getRepo(row) {
   axios
-    .get('/v1/git-repo', { framework_id: row.id })
+    .get(`/v1/ws/${workspace.value}/git-repo`, { framework_id: row.id })
     .then((res) => {
       row.expand = true;
       frameLoading.value = false;
@@ -144,7 +146,7 @@ function frameRowProps(row) {
 }
 // let frameworkId ;
 function getFramework() {
-  axios.get('/v1/framework').then((res) => {
+  axios.get(`/v1/ws/${workspace.value}/framework`).then((res) => {
     frameworkData.value = res.data.map((item) => {
       return {
         ...item,

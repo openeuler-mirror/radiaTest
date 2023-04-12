@@ -1,5 +1,7 @@
 import axios from '@/axios';
 import { getRepo, getSuite, getPm, getVm } from '@/api/get';
+import { workspace } from '@/assets/config/menu.js';
+
 export async function createRepoOptions(filter) {
   const data = await getRepo(filter);
   return data.data.map((item) => ({
@@ -17,7 +19,7 @@ export async function createSuiteOptions(filter) {
   }));
 }
 export async function createCaseOptions(filter) {
-  const res = await axios.get('v1/case/preciseget', filter);
+  const res = await axios.get(`v1/ws/${workspace.value}/case/preciseget`, filter);
   return res?.data.map((v) => ({ label: v.name, value: v.id }));
 }
 
@@ -40,7 +42,7 @@ const getProductOpts = (productOpts, loading) => {
   loading ? (loading.value = true) : 0;
   productOpts.value = [];
   axios
-    .get('/v1/product', { paged: false })
+    .get(`/v1/ws/${workspace.value}/product`, { paged: false })
     .then((res) => {
       loading ? (loading.value = false) : 0;
       res.data.items.forEach((item) => {
@@ -65,7 +67,7 @@ const getProductVersionOpts = (productOpts, loading) => {
   loading ? (loading.value = true) : 0;
   productOpts.value = [];
   axios
-    .get('/v1/product', { paged: false })
+    .get(`/v1/ws/${workspace.value}/product`, { paged: false })
     .then((res) => {
       loading ? (loading.value = false) : 0;
       productOpts.value = res.data.items.map((item) => {
@@ -85,7 +87,7 @@ const getProductVersionOrgOpts = (productOpts, loading) => {
   loading ? (loading.value = true) : 0;
   productOpts.value = [];
   axios
-    .get('/v1/product', { paged: false, permission_type: 'org' })
+    .get(`/v1/ws/${workspace.value}/product`, { paged: false, permission_type: 'org' })
     .then((res) => {
       loading ? (loading.value = false) : 0;
       productOpts.value = res.data?.items?.map((item) => {
@@ -128,7 +130,7 @@ const getVersionOpts = (versionOpts, productName, loading) => {
   loading ? (loading.value = true) : 0;
   versionOpts.value = [];
   axios
-    .get('/v1/product/preciseget', { name: productName })
+    .get(`/v1/ws/${workspace.value}/product/preciseget`, { name: productName })
     .then((res) => {
       loading ? (loading.value = false) : 0;
       versionOpts.value = res.data.map((item) => {
