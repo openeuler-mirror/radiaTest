@@ -28,6 +28,7 @@ import { createColumns } from '@/views/vmachine/modules/vmachineTableColumns.js'
 import vmachineTable from '@/views/vmachine/modules/vmachineTable.js';
 import { getVmachine } from '@/api/get';
 import filterValue from '@/views/vmachine/modules/vmachineFilter';
+
 export default defineComponent({
   methods: {
     handlePageChange(page) {

@@ -16,6 +16,7 @@ import subprocess
 from flask import current_app
 
 from server import redis_client
+from server.utils.math_util import calculate_rate
 from celeryservice.lib import TaskHandlerBase
 
 
@@ -40,24 +41,20 @@ class RpmCheckHandler(TaskHandlerBase):
                 })
             all_cnt += 1
 
-        def calculate_rate(part_cnt, all_cnt):
-            rate = None
-            if int(all_cnt) != 0:
-                rate = int(part_cnt) / int(all_cnt)
-            if rate:
-                rate = "%.2f%%" % (rate * 100)
-            return rate
-
         data = []
+        succeeded_rate = "0%"
         for _key in cnt_dict.keys():
+            _rate = calculate_rate(cnt_dict.get(_key), all_cnt, 2)
+            if _key == "succeeded":
+                succeeded_rate = _rate
             data.append(
                 {
                     "status": _key,
                     "cnt": cnt_dict.get(_key),
-                    "rate": calculate_rate(cnt_dict.get(_key), all_cnt)
+                    "rate": _rate
                 }
             )
-        
+
         rpm_key = f"rpmcheck_{build_name}"
         redis_client.hmset(
             rpm_key, 
@@ -70,8 +67,19 @@ class RpmCheckHandler(TaskHandlerBase):
 
         expires_time = int(current_app.config.get("RPMCHECK_RESULT_EXPIRES_TIME"))
         redis_client.expire(rpm_key, expires_time)
+
+        rpm_key_latest = f"rpmcheck_{build_name.split('_')[0]}_latest"
+
+        redis_client.hmset(
+            rpm_key_latest, 
+            {
+                "all_cnt": all_cnt,
+                "succeeded_rate": succeeded_rate,
+                "name": rpm_key,
+            }
+        )
         _rpmchecks = redis_client.keys(
-            f"rpmcheck_{build_name.split('_')[0]}_*"
+            f"rpmcheck_{build_name.split('_')[0]}_2*"
         )
 
         rpmcheck_path = current_app.config.get("RPMCHECK_FILE_PATH")

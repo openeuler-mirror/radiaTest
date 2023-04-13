@@ -18,6 +18,7 @@ const registerModel = reactive({
   claRequestMethod: null,
   claPassFlag: null,
   enterpriseId: null,
+  enterpriseToken: null,
   enterpriseJoinUrl: null,
   urlParams: [],
   bodyParams: [],
@@ -164,6 +165,7 @@ function closeOrgFrom() {
   registerModel.oauthGetTokenUrl = null;
   registerModel.oauthGetUserInfoUrl = null;
   registerModel.enterpriseId = null;
+  registerModel.enterpriseToken = null;
   registerModel.enterpriseJoinUrl = null;
   registerModel.orgId = null;
   registerModel.organizationAvatar = null;
@@ -246,6 +248,7 @@ function submitOrgInfo() {
     formData.append('oauth_get_token_url', registerModel.oauthGetTokenUrl);
     formData.append('oauth_get_user_info_url', registerModel.oauthGetUserInfoUrl);
     formData.append('enterprise_id', registerModel.enterpriseId);
+    formData.append('enterprise_token', registerModel.enterpriseToken);
     formData.append('enterprise_join_url', registerModel.enterpriseJoinUrl);
   }
 

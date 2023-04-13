@@ -1,3 +1,18 @@
+# Copyright (c) [2023] Huawei Technologies Co.,Ltd.ALL rights reserved.
+# This program is licensed under Mulan PSL v2.
+# You can use it according to the terms and conditions of the Mulan PSL v2.
+#          http://license.coscl.org.cn/MulanPSL2
+# THIS PROGRAM IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+# EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+# MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+# See the Mulan PSL v2 for more details.
+####################################
+# @Author  : Ethan-Zhang,凹凸曼打小怪兽
+# @email   : 15710801006@163.com
+# @Date    : 2023/01/29
+# @License : Mulan PSL v2
+#####################################
+
 from datetime import datetime
 from typing import Literal, Optional
 import pytz
@@ -243,10 +258,6 @@ class GiteeIssueQueryV5(BaseModel):
     creator: Optional[str]
     page: int = 1
     per_page: int = 10
-
-
-class IssueQuerySchema(BaseModel):
-    is_live: bool = False
 
 
 class GiteeMilestoneQuerySchema(BaseModel):

@@ -27,30 +27,30 @@ module.exports = {
     ]
   },
   devServer: {
-    host: '0.0.0.0',
+    host: '10.211.55.3',
     port: 8080,
-    https: {
-      key: '/etc/radiaTest/server_ssl/private/cakey.pem',
-      cert: '/etc/radiaTest/server_ssl/cacert.pem'
-    },
+    // https: {
+    //   key: '/etc/radiaTest/server_ssl/private/cakey.pem',
+    //   cert: '/etc/radiaTest/server_ssl/cacert.pem'
+    // },
     open: true,
     hot: false,
     compress: true,
     proxy: {
       '/api': {
-        target: 'http://0.0.0.0:21500/',
+        target: 'http://10.211.55.3:21500/',
         changeOrigin: true,
         secure: false
       },
       '/static': {
-        target: 'http://0.0.0.0:21500/',
+        target: 'http://10.211.55.3:21500/',
         changeOrigin: true,
         secure: false
       },
       '/socket.io': {
-        target: 'http://0.0.0.0:21500/',
+        target: 'http://10.211.55.3:21500/',
         changeOrigin: true,
-        ws: true,
+        // ws: true,
       },
     }
   }

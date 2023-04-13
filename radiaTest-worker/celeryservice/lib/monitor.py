@@ -2,11 +2,13 @@ import re
 import json
 import shlex
 from subprocess import getstatusoutput
+from copy import deepcopy
 import requests
 import time
 
 from celeryservice import celeryconfig
 from celeryservice.lib import TaskHandlerBase, AuthTaskHandler
+from worker.apps.vmachine.handlers import domain_cli
 from worker.utils.bash import rm_vmachine_relate_file
 
 
@@ -164,86 +166,103 @@ class VmStatusMonitor(AuthTaskHandler):
 
 
 class VmachinesStatusMonitor(TaskHandlerBase):
-    @staticmethod
-    def _get_virsh_info():
-        exitcode, output = getstatusoutput(
-            "export LANG=en_US.utf-8 ;virsh list --all | sed -n '$d; 1,2!p'"
-        )
-
-        if exitcode == 0:
-            return output.split("\n")
-
-        return []
-
     def main(self):
-        vmachines = self._get_virsh_info()
-        values_num = len(vmachines)
+        """
+        批量请求更新虚拟机数据(单次小于等于10)
+        """
+        vmachines_info = self._get_virsh_info()
+        values_num = len(vmachines_info)
 
-        domains_run = list()
-        domains_shut_off = list()
+        domains = dict()
         if values_num == 0:
             self.logger.info("no vm in worker, nothing need update status")
             return
         elif values_num >= 10:
             count = 0
             for _ in range(values_num):
-                vmachine = vmachines.pop()
-                count += 1
-                if count % 10 == 0:
+                if count != 0 and count % 10 == 0:
                     try:
-                        _ = self._update_vmachine(domains_run, domains_shut_off)
+                        _ = self._update_vmachine(domains)
                     except RuntimeError as e:
                         self.logger.error(str(e))
                     finally:
                         count = 0
-                        domains_run.clear()
-                        domains_shut_off.clear()
+                        domains.clear()
                         continue
                 else:
-                    domain = re.findall(r'\w+-\w+-\w+-\w+.\w+-\w+', vmachine)
-                    if "running" in vmachine:
-                        domains_run.extend(domain)
-                    else:
-                        domains_shut_off.extend(domain)
+                    vmachine_name, vmachine_info = vmachines_info.popitem()
+                    count += 1
+                    domains.update({
+                        vmachine_name: vmachine_info
+                    })
         else:
-            for vmachine in vmachines:
-                domain = re.findall(r'\w+-\w+-\w+-\w+.\w+-\w+', vmachine)
-                if "running" in vmachine:
-                    domains_run.extend(domain)
-                else:
-                    domains_shut_off.extend(domain)
+            for vmachine_name, vmachine_info in vmachines_info.items():
+                domains.update({
+                    vmachine_name: vmachine_info
+                })
 
-        if len(domains_run) == 0 and len(domains_shut_off) == 0:
+        if not domains:
             pass
         else:
             try:
-                _ = self._update_vmachine(domains_run, domains_shut_off)
+                _ = self._update_vmachine(domains)
             except RuntimeError as e:
                 self.logger.error(str(e))
 
-    def _update_vmachine(self, domains_run, domains_shut_off):
+    def _get_virsh_info(self):
+        """
+        获取虚拟机的状态,vncport
+        :return : Type[dict]
+        """
+        exitcode, output = getstatusoutput(
+            "export LANG=en_US.utf-8 ;virsh list --all | sed -n '$d; 1,2!p'"
+        )
+        vmachines_info = dict()
+        _body = dict()
+        vmachines = output.split("\n")
+        if exitcode == 0 and len(vmachines) != 0:
+            for vmachine in vmachines:
+                _body.clear()
+                vmachine_name = re.findall(r'\w+-\w+-\w+-\w+.\w+-\w+', vmachine)[0]
+                if "running" in vmachine:
+                    vnc_port = int(domain_cli("vncdisplay", vmachine_name)[1].strip("\n").split(":")[-1])
+                    vnc_token = celeryconfig.worker_ip.replace(".", "-") + "-" \
+                                + str(vnc_port + celeryconfig.vnc_start_port)
+                    _body.update({
+                        'vnc_port': vnc_port,
+                        'status': "running",
+                        'vnc_token': vnc_token
+                    })
+                elif "shut off" in vmachine:
+                    _body.update({
+                        'status': "shut off"
+                    })
+                else:
+                    _body.update({
+                        'status': "paused"
+                    })
+                body = deepcopy(_body)
+                vmachines_info.update({
+                    vmachine_name: body
+                })
+
+            self.logger.info("we will sync vmachine info:{}".format(vmachines_info))
+            return vmachines_info
+
+        return {}
+
+    def _update_vmachine(self, domains):
         resp = requests.put(
             "https://{}/api/v1/vmachine/update-status".format(
                 celeryconfig.server_addr,
             ),
-            data=json.dumps(
-                {
-                    "domains_run": {
-                        "domain": domains_run,
-                        "status": "running"
-                    },
-                    "domains_shut_off": {
-                        "domain": domains_shut_off,
-                        "status": "shut off"
-                    }
-                }
-            ),
+            data=json.dumps(domains),
             headers=celeryconfig.headers,
             verify=True if celeryconfig.ca_verify == "True" else \
                 celeryconfig.cacert_path
         )
         if resp.status_code != 200:
-            raise RuntimeError("the worker cannot connect to server")
+            raise RuntimeError("the worker request to server error happened:{}".format(resp.status_code))
 
         try:
             result = json.loads(resp.text).get("error_msg")

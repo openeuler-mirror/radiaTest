@@ -11,8 +11,6 @@
 # @email   :
 # @Date    :
 # @License : Mulan PSL v2
-
-
 #####################################
 
 import datetime
@@ -172,6 +170,7 @@ class UpdateTaskStatusService(object):
                     template.milestone_id = milestone.milestone_id
                     template.permission_type = "person"
                     template.cases = auto_cases
+                    template.git_repo_id = auto_cases[0].suite.git_repo_id
                     template_id = template.add_flush_commit_id()
                     ResourceManager("template").add_permission(
                         "api_infos.yaml",

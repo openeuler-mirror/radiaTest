@@ -3,25 +3,19 @@
     <n-form-item label="Sockets" path="sockets">
       <n-input-number
         :min="1"
-        :max="8"
+        :max="socketsMax"
         v-model:value="model.sockets"
         @keydown.enter.prevent
         style="width: 100%"
       />
     </n-form-item>
     <n-form-item label="Cores" path="cores">
-      <n-input-number
-        :min="1"
-        :max="8"
-        v-model:value="model.cores"
-        @keydown.enter.prevent
-        style="width: 100%"
-      />
+      <n-input-number :min="1" :max="coresMax" v-model:value="model.cores" @keydown.enter.prevent style="width: 100%" />
     </n-form-item>
     <n-form-item label="Threads" path="threads">
       <n-input-number
         :min="1"
-        :max="8"
+        :max="threadsMax"
         v-model:value="model.threads"
         @keydown.enter.prevent
         style="width: 100%"
@@ -37,7 +31,7 @@ import vcpusForm from '@/views/vmachine/modules/expandedContent/vcpusForm.js';
 
 export default defineComponent({
   props: {
-    data: Object,
+    data: Object
   },
   setup(props) {
     onMounted(() => {
@@ -49,8 +43,8 @@ export default defineComponent({
     });
 
     return {
-      ...vcpusForm,
+      ...vcpusForm
     };
-  },
+  }
 });
 </script>

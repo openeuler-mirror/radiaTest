@@ -6,7 +6,19 @@ from flask_pydantic import validate
 
 from server.model.job import Analyzed, Job, job_family, Logs
 from server.utils.db import Edit, Select, Insert, collect_sql_error
-from server.schema.job import AnalyzedCreateSchema, AnalyzedQueryBase, AnalyzedQueryItem, AnalyzedQueryRecords, AnalyzedUpdateItem, JobCreateSchema, JobUpdateSchema, LogCreateSchema, RunSuiteBase, RunTemplateBase, JobQuerySchema
+from server.schema.job import (
+    AnalyzedCreateSchema,
+    AnalyzedQueryBase,
+    AnalyzedQueryItem,
+    AnalyzedQueryRecords,
+    AnalyzedUpdateItem,
+    JobCreateSchema,
+    JobUpdateSchema,
+    LogCreateSchema,
+    RunSuiteBase,
+    RunTemplateBase,
+    JobQuerySchema,
+)
 from server.model.testcase import Case, Suite
 from server.model.pmachine import MachineGroup
 from server.utils.auth_util import auth
@@ -59,7 +71,7 @@ class JobEvent(Resource):
             or_(
                 Job.multiple.is_(True),
                 and_(
-                    Job.is_suite_job == True,
+                    Job.is_suite_job.is_(True),
                     Job.multiple.is_(False),
                 )
             )
@@ -96,22 +108,7 @@ class JobEvent(Resource):
         elif query.sorted_by == "end_time":
             query_filter = query_filter.order_by(Job.end_time.desc(), Job.id.asc())
 
-        def page_func(item):
-            job_dict = item.to_json()
-            return job_dict
-
-        page_dict, e = PageUtil.get_page_dict(
-            query_filter, 
-            query.page_num,
-            query.page_size, 
-            func=page_func
-        )
-        if e:
-            return jsonify(
-                error_code=RET.SERVER_ERR, 
-                error_msg=f'get job page error: {e}'
-            )
-        return jsonify(error_code=RET.OK, error_msg="OK", data=page_dict)
+        return PageUtil.get_data(query_filter, query)
 
     @auth.login_required
     @response_collect

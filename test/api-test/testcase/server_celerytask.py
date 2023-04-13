@@ -10,8 +10,8 @@ import pytz
 sys.path.append(os.path.split(os.path.abspath(os.path.dirname(__file__)))[0])
 
 from lib import logger
-from lib.constant import gitee_id, RET, repo_url, server_url
-from lib.common import UserAuthUnittestTestCase, RestApi, get_val_by_key_val, get_val_by_key_val2
+from lib.constant import RET, server_url
+from lib.common import UserAuthUnittestTestCase, RestApi
 
 
 class TestCelerytask(UserAuthUnittestTestCase):

@@ -55,13 +55,13 @@ export function getTemplateInfo(id, data) {
   return getRequest(`/v1/template/${id}`, data);
 }
 export function getIssue(data) {
-  return getRequest('/v2/milestone/issues', data);
+  return getRequest('/v2/gitee-issues', data);
 }
 export function getRoundIssue(roundId, data) {
   return getRequest(`/v1/round/${roundId}/issues`, data);
 }
 export function getIssueType(data) {
-  return getRequest('/v2/milestone/issue_types', data);
+  return getRequest('/v1/issue-types', data);
 }
 export function getAllOrg(data) {
   return getRequest('/v1/login/org/list', data);
@@ -140,7 +140,7 @@ export function getProductMessage(productId, data) {
   return getRequest(`/v1/qualityboard?product_id=${productId}`, data);
 }
 export function getMilestoneRate(milestoneId, data) {
-  return getRequest(`/v2/milestone/${milestoneId}/issues-statistics?is_live=False`, data);
+  return getRequest(`/v2/milestone/${milestoneId}/issues-statistics`, data);
 }
 export function getMachineGroupDetails(id, data) {
   return getRequest(`/v1/machine-group/${id}`, data);
@@ -149,7 +149,7 @@ export function getCaseCommit(data) {
   return getRequest('/v1/user/case/commit', data);
 }
 export function getIssueDetails(id, data) {
-  return getRequest(`/v2/milestone/issues/${id}`, data);
+  return getRequest(`/v1/gitee-issues/${id}`, data);
 }
 export function getPendingReview(data) {
   return getRequest('/v1/case/commit/status', data);
@@ -217,9 +217,9 @@ export function getPackageListComparationSummaryAxios(qualityboardId, roundId, p
   return getRequestWithoutCatch(`/v1/qualityboard/${qualityboardId}/round/${roundId}/pkg-list`, params);
 }
 
-export function getPackageListComparationDetail(qualityboardId, roundPreId, roundCurId, params) {
+export function getPackageListComparationDetail(qualityboardId, roundCompareeId, roundCurId, params) {
   return getRequestWithoutCatch(
-    `/v1/qualityboard/${qualityboardId}/round/${roundPreId}/with/${roundCurId}/pkg-compare`,
+    `/v1/qualityboard/${qualityboardId}/round/${roundCompareeId}/with/${roundCurId}/pkg-compare`,
     params
   );
 }
@@ -358,4 +358,42 @@ export function getChecklistResult(roundId) {
 
 export function getRpmcheck(qualityBoardId) {
   return getRequest(`/v1/qualityboard/${qualityBoardId}/rpmcheck`);
+}
+
+export function getMilestoneProgress(milestoneId) {
+  return getRequestWithoutCatch(`/v1/milestone/${milestoneId}/task-progress`);
+}
+
+export function getMilestoneProgressCaseNode(milestoneId, caseNode) {
+  return getRequest(`/v1/milestone/${milestoneId}/task-progress/case-node/${caseNode}`);
+}
+
+// 获取特性集特性
+export function getAllFeature(param) {
+  return getRequest('/v1/feature', param);
+}
+
+// 查询特性
+export function getProductFeature(productId, param) {
+  return getRequest(`/v1/product/${productId}/feature`, param);
+}
+
+// 查询测试策略
+export function getStrategy(productFeatureId) {
+  return getRequest(`/v1/product-feature/${productFeatureId}/strategy`);
+}
+
+// 查询测试策略模板
+export function getStrategyTemplate(param) {
+  return getRequest('/v1/strategy-template', param);
+}
+
+// 多版本软件包
+export function getMultiVersionPackageAxios(roundId, param) {
+  return getRequest(`/v1/round/${roundId}/repeat-rpm`, param);
+}
+
+// 查询代码仓
+export function getGiteeProject() {
+  return getRequest('/v1/gitee-project');
 }

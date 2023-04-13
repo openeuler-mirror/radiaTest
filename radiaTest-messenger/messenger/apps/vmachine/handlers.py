@@ -403,7 +403,12 @@ class Control(AuthMessageBody):
     def __init__(self, auth, body) -> None:
         self._vmachine = body.get("vmachine")
         self._pmachine = body.get("pmachine")
-        body.update({"name": self._vmachine.get("name")})
+        body.update(
+            {
+                "name": self._vmachine.get("name"),
+                "vnc_token": self._vmachine.get("vnc_token")
+            }
+        )
         super().__init__(auth, body)
 
     def run(self):
@@ -418,8 +423,6 @@ class Control(AuthMessageBody):
         if output.get("error_code"):
             return output
 
-        self._body.update(output)
-
         if self._body.get("status") in ["start", "reset", "reboot"]:
 
             ip = QueryIp(self._vmachine.get("mac")).query()
@@ -429,6 +432,7 @@ class Control(AuthMessageBody):
             if ip != self._vmachine.ip:
                 self._body.update({"ip": ip})
 
+        self._body.update(output)
         update_body = deepcopy(self._body)
         update_body.pop("id")
 
@@ -820,24 +824,25 @@ class VmachineAsyncResultHandler:
             current_app.logger.error(e)
             pass
 
-        resp = update_request(
-            "/api/v1/vmachine/{}/callback".format(
-                body.get("id")
-            ),
-            {
-                "ip": ip,
-                "name": body.get("name"),
-                "status": body.get("status"),
-                "frame": body.get("frame"),
-                "mac": body.get("mac"),
-                "password": body.get("password"),
-                "user": body.get("user"),
-                "vnc_port": body.get("vnc_port"),
-                "vnc_token": body.get("vnc_token"),
-                "pmachine_id": body.get("pmachine_id"),
-                "spcial_device": body.get("special_device")
-            },
-            auth
-        )
+        finally:
+            resp = update_request(
+                "/api/v1/vmachine/{}/callback".format(
+                    body.get("id")
+                ),
+                {
+                    "ip": ip,
+                    "name": body.get("name"),
+                    "status": body.get("status"),
+                    "frame": body.get("frame"),
+                    "mac": body.get("mac"),
+                    "password": body.get("password"),
+                    "user": body.get("user"),
+                    "vnc_port": body.get("vnc_port"),
+                    "vnc_token": body.get("vnc_token"),
+                    "pmachine_id": body.get("pmachine_id"),
+                    "spcial_device": body.get("special_device")
+                },
+                auth
+            )
 
-        return jsonify(resp)
+            return jsonify(resp)

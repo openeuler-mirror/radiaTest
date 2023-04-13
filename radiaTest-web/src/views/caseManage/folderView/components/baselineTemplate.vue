@@ -2,11 +2,15 @@
   <div class="baselineTemplate">
     <div class="baselineTemplate-left">
       <n-button
-        style="width: 100%;"
+        style="width: 100%"
         size="small"
         type="success"
-        dashed 
-        @click="() => { showCreateModal = true }"
+        dashed
+        @click="
+          () => {
+            showCreateModal = true;
+          }
+        "
       >
         新建模板
       </n-button>
@@ -15,10 +19,10 @@
           <n-icon color="666666" :component="Search" />
         </template>
       </n-input>
-      <div 
-        v-for="(item, index) in templateList" 
-        :key="index" 
-        :class="[{active: checkedItem.id === item.id}, 'templateItem']"
+      <div
+        v-for="(item, index) in templateList"
+        :key="index"
+        :class="[{ active: checkedItem.id === item.id }, 'templateItem']"
         @click="handleTemplateClick(item)"
       >
         <div class="prefix">
@@ -34,16 +38,30 @@
           <n-space>
             <n-tooltip trigger="hover">
               <template #trigger>
-                <n-button text @click="() => { showEditModal = true; }">
-                  <n-icon :size="14" :component="Edit"/>
+                <n-button
+                  text
+                  @click="
+                    () => {
+                      showEditModal = true;
+                    }
+                  "
+                >
+                  <n-icon :size="14" :component="Edit" />
                 </n-button>
               </template>
               编辑
             </n-tooltip>
             <n-tooltip trigger="hover">
               <template #trigger>
-                <n-button text @click="() => { showDeleteModal = true; }">
-                  <n-icon :size="14" :component="Close"/>
+                <n-button
+                  text
+                  @click="
+                    () => {
+                      showDeleteModal = true;
+                    }
+                  "
+                >
+                  <n-icon :size="14" :component="Close" />
                 </n-button>
               </template>
               删除
@@ -61,13 +79,9 @@
           {{ checkedItem.title }}
         </div>
         <n-space>
-          <n-button type="error" ghost @click="handleCleanButtonClick">
-            清空
-          </n-button>
-          <n-button type="primary" ghost @click="handleInheritButtonClick">
-            继承
-          </n-button>
-        </n-space> 
+          <n-button type="error" ghost @click="handleCleanButtonClick"> 清空 </n-button>
+          <n-button type="primary" ghost @click="handleInheritButtonClick"> 继承 </n-button>
+        </n-space>
       </div>
       <vue-kityminder
         ref="termNodeKityminder"
@@ -82,7 +96,7 @@
         @contextmenu="handleContextMenu"
       ></vue-kityminder>
       <n-dropdown
-        style="min-width: 140px;"
+        style="min-width: 140px"
         placement="bottom-start"
         trigger="manual"
         :x="x"
@@ -96,84 +110,38 @@
     <div class="baselineTemplate-empty" v-else>
       <n-empty />
     </div>
-    <n-modal 
-      v-model:show="showCreateModal"
-      preset="card"
-      style="width: 600px;"
-      title="创建新模板"
-      :bordered="false"
-    >
-      <n-form 
-        ref="formRef"
-        inline
-        :model="createForm"
-        :rules="rules"
-      >
+    <n-modal v-model:show="showCreateModal" preset="card" style="width: 600px" title="创建新模板" :bordered="false">
+      <n-form ref="formRef" inline :model="createForm" :rules="rules">
         <n-form-item label="标题" path="title">
-          <n-input
-            style="width: 400px;"
-            clearable
-            v-model:value="createForm.title"
-          />
+          <n-input style="width: 400px" clearable v-model:value="createForm.title" />
         </n-form-item>
         <n-form-item label="是否公开可见" path="openable">
           <n-switch v-model:value="createForm.openable">
-            <template #checked>
-              公开
-            </template>
-            <template #unchecked>
-              私有
-            </template>
+            <template #checked> 公开 </template>
+            <template #unchecked> 私有 </template>
           </n-switch>
         </n-form-item>
       </n-form>
       <n-space>
-        <n-button type="error" @click="onNegativeClick" ghost>
-          取消
-        </n-button>
-        <n-button type="primary" @click="onPositiveClick" ghost>
-          提交
-        </n-button>
+        <n-button type="error" @click="onNegativeClick" ghost> 取消 </n-button>
+        <n-button type="primary" @click="onPositiveClick" ghost> 提交 </n-button>
       </n-space>
     </n-modal>
-    <n-modal 
-      v-model:show="showEditModal"
-      preset="card"
-      style="width: 600px;"
-      title="编辑基线模板"
-      :bordered="false"
-    >
-      <n-form 
-        ref="editFormRef"
-        inline
-        :model="editForm"
-        :rules="editRules"
-      >
+    <n-modal v-model:show="showEditModal" preset="card" style="width: 600px" title="编辑基线模板" :bordered="false">
+      <n-form ref="editFormRef" inline :model="editForm" :rules="editRules">
         <n-form-item label="标题" path="title">
-          <n-input
-            style="width: 400px;"
-            clearable
-            v-model:value="editForm.title"
-          />
+          <n-input style="width: 400px" clearable v-model:value="editForm.title" />
         </n-form-item>
         <n-form-item label="是否公开可见" path="openable">
           <n-switch v-model:value="editForm.openable">
-            <template #checked>
-              公开
-            </template>
-            <template #unchecked>
-              私有
-            </template>
+            <template #checked> 公开 </template>
+            <template #unchecked> 私有 </template>
           </n-switch>
         </n-form-item>
       </n-form>
       <n-space>
-        <n-button type="error" @click="cancelEditCallback" ghost>
-          取消
-        </n-button>
-        <n-button type="primary" @click="submitEditCallback" ghost>
-          提交
-        </n-button>
+        <n-button type="error" @click="cancelEditCallback" ghost> 取消 </n-button>
+        <n-button type="primary" @click="submitEditCallback" ghost> 提交 </n-button>
       </n-space>
     </n-modal>
     <n-modal
@@ -187,30 +155,16 @@
       @positive-click="submitDeleteCallback"
       @negative-click="cancelDeleteCallback"
     />
-    <n-modal 
-      v-model:show="showNodeCreateModal"
-      preset="card"
-      style="width: 600px;"
-      title="新建子节点"
-      :bordered="false"
-    >
-      <n-form 
-        ref="nodeCreateFormRef"
-        :model="nodeCreateForm"
-        :rules="nodeCreateRules"
-      >
+    <n-modal v-model:show="showNodeCreateModal" preset="card" style="width: 600px" title="新建子节点" :bordered="false">
+      <n-form ref="nodeCreateFormRef" :model="nodeCreateForm" :rules="nodeCreateRules">
         <n-form-item path="title">
           <n-switch v-model:value="caseNodeTreeSelect">
-            <template #checked>
-              关联节点
-            </template>
-            <template #unchecked>
-              目录节点
-            </template>
+            <template #checked> 关联节点 </template>
+            <template #unchecked> 目录节点 </template>
           </n-switch>
           <n-input
             :disabled="caseNodeTreeSelect"
-            style="width: 400px; margin-left: 20px;"
+            style="width: 400px; margin-left: 20px"
             clearable
             v-model:value="nodeCreateForm.title"
             placeholder="节点命名"
@@ -226,12 +180,18 @@
         </n-form-item>
       </n-form>
       <n-space>
-        <n-button type="error" @click="() => { showNodeCreateModal = false; }" ghost>
+        <n-button
+          type="error"
+          @click="
+            () => {
+              showNodeCreateModal = false;
+            }
+          "
+          ghost
+        >
           取消
         </n-button>
-        <n-button type="primary" @click="createChildNode" ghost>
-          提交
-        </n-button>
+        <n-button type="primary" @click="createChildNode" ghost> 提交 </n-button>
       </n-space>
     </n-modal>
     <n-modal
@@ -245,32 +205,15 @@
       @positive-click="submitNodeDeleteCallback"
       @negative-click="cancelNodeDeleteCallback"
     />
-    <n-modal 
-      v-model:show="showNodeEditModal"
-      preset="card"
-      style="width: 600px;"
-      title="编辑节点"
-      :bordered="false"
-    >
-      <n-form 
-        ref="nodeEditFormRef"
-        :model="nodeEditForm"
-        :rules="nodeEditRules"
-      >
+    <n-modal v-model:show="showNodeEditModal" preset="card" style="width: 600px" title="编辑节点" :bordered="false">
+      <n-form ref="nodeEditFormRef" :model="nodeEditForm" :rules="nodeEditRules">
         <n-form-item label="标题" path="title">
-          <n-input
-            clearable
-            v-model:value="nodeEditForm.title"
-          />
+          <n-input clearable v-model:value="nodeEditForm.title" />
         </n-form-item>
       </n-form>
       <n-space>
-        <n-button type="error" @click="cancelNodeEditCallback" ghost>
-          取消
-        </n-button>
-        <n-button type="primary" @click="submitNodeEditCallback" ghost>
-          提交
-        </n-button>
+        <n-button type="error" @click="cancelNodeEditCallback" ghost> 取消 </n-button>
+        <n-button type="primary" @click="submitNodeEditCallback" ghost> 提交 </n-button>
       </n-space>
     </n-modal>
     <n-modal
@@ -284,12 +227,7 @@
       @positive-click="submitCleanCallback"
       @negative-click="cancelCleanCallback"
     />
-    <n-modal 
-      v-model:show="showInheritModal"
-      preset="card"
-      style="width: 600px;"
-      :bordered="false"
-    >
+    <n-modal v-model:show="showInheritModal" preset="card" style="width: 600px" :bordered="false">
       <div class="inherit-selector">
         <span>选择将要继承的基线模板</span>
         <n-tree-select
@@ -302,31 +240,15 @@
         />
       </div>
       <div class="inherit-icon-container">
-        <n-icon 
-          :size="24" 
-          :color="inheriteeId ? '#40bb00' : '#c4c4c4'" 
-          :component="AngleDoubleDown" 
-        />
+        <n-icon :size="24" :color="inheriteeId ? '#40bb00' : '#c4c4c4'" :component="AngleDoubleDown" />
       </div>
       <div class="inherit-selector">
         <span>当前基线模板</span>
-        <n-select 
-          :disabled="true"
-          :value="`${checkedItem.title}`"
-        />
+        <n-select :disabled="true" :value="`${checkedItem.title}`" />
       </div>
       <n-space>
-        <n-button type="error" @click="cancelInheritCallback" ghost>
-          取消
-        </n-button>
-        <n-button 
-          :disabled="!inheriteeId"
-          type="primary" 
-          @click="submitInheritCallback" 
-          ghost
-        >
-          提交
-        </n-button>
+        <n-button type="error" @click="cancelInheritCallback" ghost> 取消 </n-button>
+        <n-button :disabled="!inheriteeId" type="primary" @click="submitInheritCallback" ghost> 提交 </n-button>
       </n-space>
     </n-modal>
   </div>
@@ -340,14 +262,14 @@ import { Search, File } from '@vicons/tabler';
 import { Box16Regular, Folder16Regular, Organization20Regular } from '@vicons/fluent';
 import { Milestone } from '@vicons/carbon';
 import { GroupsFilled } from '@vicons/material';
-import { 
-  getBaselineTemplates, 
+import {
+  getBaselineTemplates,
   getBaselineTemplateItem,
   getBaseNode,
   getCaseSetNodes,
   getCaseNode,
   getUserInfo,
-  getOrgGroup,
+  getOrgGroup
 } from '@/api/get';
 import { addBaselineTemplate, addBaseNode, inheritBaselineTemplate } from '@/api/post';
 import { updateBaselineTemplate, updateBaseNode } from '@/api/put';
@@ -363,7 +285,7 @@ const iconType = {
   baseline: Milestone,
   directory: Folder16Regular,
   suite: Box16Regular,
-  case: File,
+  case: File
 };
 
 const options = ref([]);
@@ -377,13 +299,13 @@ const casesetNodeOptions = ref([]);
 const showNodeCreateModal = ref(false);
 const showNodeDeleteModal = ref(false);
 const showNodeEditModal = ref(false);
-const caseNodeTreeSelect = ref(false); 
+const caseNodeTreeSelect = ref(false);
 const nodeCreateForm = ref({
   title: undefined,
-  case_node_id: undefined,
+  case_node_id: undefined
 });
 const nodeEditForm = ref({
-  title: undefined,
+  title: undefined
 });
 
 const searchWords = ref();
@@ -394,11 +316,11 @@ const checkedItem = ref({});
 const showCreateModal = ref(false);
 const createForm = ref({
   title: undefined,
-  openable: false,
+  openable: false
 });
 const editForm = ref({
   title: undefined,
-  openable: false,
+  openable: false
 });
 const showEditModal = ref(false);
 function cancelEditCallback() {
@@ -413,9 +335,9 @@ const toolbar = ref({
   arrangeDown: false,
   text: false,
   template: false,
-  theme:false,
+  theme: false,
   resetLayout: false,
-  removeNode: false,
+  removeNode: false
 });
 
 const showCleanModal = ref(false);
@@ -431,19 +353,18 @@ function handleInheritSelectLoad(option) {
   } else if (option.type === 'group') {
     params.group_id = option.info.group_id;
   }
-  return getBaselineTemplates(params)
-    .then((res) => {
-      const { data } = res;
-      const childrenOptions = data.map(item => {
-        return {
-          label: item.title,
-          key: item.id,
-          isLeaf: true,
-          type: 'template',
-        };
-      });
-      option.children = childrenOptions;
+  return getBaselineTemplates(params).then((res) => {
+    const { data } = res;
+    const childrenOptions = data.map((item) => {
+      return {
+        label: item.title,
+        key: item.id,
+        isLeaf: true,
+        type: 'template'
+      };
     });
+    option.children = childrenOptions;
+  });
 }
 
 function renderHeaderIcon(_type) {
@@ -452,20 +373,20 @@ function renderHeaderIcon(_type) {
     return h(
       NIcon,
       {
-        size: 15,
+        size: 15
       },
       {
-        default: () => h(_icon),
+        default: () => h(_icon)
       }
     );
   }
   return h(
     NIcon,
     {
-      size: 15,
+      size: 15
     },
     {
-      default: () => h(Folder16Regular),
+      default: () => h(Folder16Regular)
     }
   );
 }
@@ -476,18 +397,14 @@ function renderRelativeHeader(node) {
       style: 'padding: 10px;'
     },
     [
-      h(
-        NTag,
-        { size: 'small'},
-        node.type,
-      ),
+      h(NTag, { size: 'small' }, node.type),
       h(
         'div',
         {
           style: {
             display: 'flex',
             alignItems: 'center',
-            marginTop: '5px',
+            marginTop: '5px'
           }
         },
         [
@@ -498,18 +415,18 @@ function renderRelativeHeader(node) {
               style: 'margin-left: 5px;'
             },
             node.title
-          ),
+          )
         ]
       )
     ]
-  );  
+  );
 }
 function renderOptions(node) {
   const _options = [
     {
       key: 'header',
       type: 'render',
-      render: () => renderRelativeHeader(node),
+      render: () => renderRelativeHeader(node)
     },
     {
       key: 'header-divider',
@@ -519,17 +436,17 @@ function renderOptions(node) {
   if (node.type !== 'case') {
     _options.push({
       label: '新增子节点',
-      key: 'addChildNode',
+      key: 'addChildNode'
     });
   }
   if (node.type !== 'baseline') {
     _options.push({
       label: '编辑节点',
-      key: 'editNode',
+      key: 'editNode'
     });
     _options.push({
       label: '删除节点',
-      key: 'removeNode',
+      key: 'removeNode'
     });
   }
   return _options;
@@ -540,20 +457,21 @@ function handleContextMenu(e) {
   if (selectedNode.value) {
     showDropdown.value = false;
     if (selectedNode.value.id) {
-      getBaseNode(selectedNode.value.id)
-        .then((res) => {
-          options.value = renderOptions(res.data);
-          nextTick(() => {
-            showDropdown.value = true;
-            x.value = e.clientX;
-            y.value = e.clientY;
-          });
+      getBaseNode(selectedNode.value.id).then((res) => {
+        options.value = renderOptions(res.data);
+        nextTick(() => {
+          showDropdown.value = true;
+          x.value = e.clientX;
+          y.value = e.clientY;
         });
+      });
     } else if (selectedNode.value.level === 0) {
-      options.value = [{
-        label: '新建根节点',
-        key: 'addRootNode'
-      }];
+      options.value = [
+        {
+          label: '新建根节点',
+          key: 'addRootNode'
+        }
+      ];
       nextTick(() => {
         showDropdown.value = true;
         x.value = e.clientX;
@@ -567,19 +485,18 @@ function onClickoutside() {
 }
 
 function handleCasesetOptionsLoad(option) {
-  return getCaseNode(option.key)
-    .then((res) => {
-      option.children = res.data.children.map((item) => {
-        return {
-          label: item.title,
-          key: item.id,
-          depth: option.depth + 1,
-          isLeaf: item.type === 'case',
-          disabled: item.type !== 'suite' && item.type !== 'case',
-          ...item,
-        };
-      });
+  return getCaseNode(option.key).then((res) => {
+    option.children = res.data.children.map((item) => {
+      return {
+        label: item.title,
+        key: item.id,
+        depth: option.depth + 1,
+        isLeaf: item.type === 'case',
+        disabled: item.type !== 'suite' && item.type !== 'case',
+        ...item
+      };
     });
+  });
 }
 
 function editNodeFunc() {
@@ -597,7 +514,7 @@ function addChildNodeFunc() {
 const selectFunc = {
   editNode: editNodeFunc,
   removeNode: removeNodeFunc,
-  addChildNode: addChildNodeFunc,
+  addChildNode: addChildNodeFunc
 };
 function handleSelect(key) {
   const func = selectFunc[key];
@@ -624,12 +541,11 @@ function getTemplateList() {
   } else if (props.type === 'group') {
     params.group_id = props.nodeId ? props.nodeId : window.atob(router.params.taskId);
   }
-  getBaselineTemplates(params)
-    .then((res) => {
-      templateList.value = res.data;
-      templateDetail.value = undefined;
-      checkedItem.value = {};
-    });
+  getBaselineTemplates(params).then((res) => {
+    templateList.value = res.data;
+    templateDetail.value = undefined;
+    checkedItem.value = {};
+  });
 }
 
 function submitEditCallback() {
@@ -653,32 +569,30 @@ function submitDeleteCallback() {
     });
 }
 function submitNodeEditCallback() {
-  updateBaseNode(selectedNode.value.id, nodeEditForm.value)
-    .then(() => {
-      message.success('编辑成功');
-      nodeEditForm.value.title = undefined;
-      showNodeEditModal.value = false;
-      getBaselineTemplateItem(checkedItem.value.id)
-        .then((res) => {
-          templateDetail.value = res.data;
-        })
-        .catch(() => {
-          templateDetail.value = undefined;
-        });
-    });
+  updateBaseNode(selectedNode.value.id, nodeEditForm.value).then(() => {
+    message.success('编辑成功');
+    nodeEditForm.value.title = undefined;
+    showNodeEditModal.value = false;
+    getBaselineTemplateItem(checkedItem.value.id)
+      .then((res) => {
+        templateDetail.value = res.data;
+      })
+      .catch(() => {
+        templateDetail.value = undefined;
+      });
+  });
 }
 function submitNodeDeleteCallback() {
-  deleteBaseNode(selectedNode.value.id)
-    .then(() => {
-      message.success('删除成功');
-      getBaselineTemplateItem(checkedItem.value.id)
-        .then((res) => {
-          templateDetail.value = res.data;
-        })
-        .catch(() => {
-          templateDetail.value = undefined;
-        });
-    });
+  deleteBaseNode(selectedNode.value.id).then(() => {
+    message.success('删除成功');
+    getBaselineTemplateItem(checkedItem.value.id)
+      .then((res) => {
+        templateDetail.value = res.data;
+      })
+      .catch(() => {
+        templateDetail.value = undefined;
+      });
+  });
 }
 
 function submitCleanCallback() {
@@ -736,7 +650,7 @@ function handleTemplateClick(item) {
 function cleanCreateForm() {
   createForm.value = {
     title: undefined,
-    openable: false,
+    openable: false
   };
 }
 
@@ -748,7 +662,7 @@ function onNegativeClick() {
 function onPositiveClick() {
   let body = {
     ...createForm.value,
-    type: props.type,
+    type: props.type
   };
   if (props.type === 'org') {
     body.org_id = props.nodeId ? props.nodeId : window.atob(router.params.taskId);
@@ -771,19 +685,16 @@ function handleSelectionChange(nodes) {
 }
 
 function createChildNode() {
-  addBaseNode(
-    checkedItem.value.id, 
-    {
-      is_root: false,
-      parent_id: selectedNode.value.id,
-      ...nodeCreateForm.value,
-    }
-  )
+  addBaseNode(checkedItem.value.id, {
+    is_root: false,
+    parent_id: selectedNode.value.id,
+    ...nodeCreateForm.value
+  })
     .then(() => {
       message.success('创建成功');
       nodeCreateForm.value = {
         title: undefined,
-        case_node_id: undefined,
+        case_node_id: undefined
       };
       getBaselineTemplateItem(checkedItem.value.id)
         .then((res) => {
@@ -802,13 +713,13 @@ function handleCleanButtonClick() {
   showCleanModal.value = true;
 }
 
-function handleRenderPrefix({option}) {
+function handleRenderPrefix({ option }) {
   if (option.type === 'org') {
     return h(
       NIcon,
       { color: '#002fa7' },
       {
-        default: () => h(Organization20Regular),
+        default: () => h(Organization20Regular)
       }
     );
   } else if (option.type === 'group') {
@@ -816,7 +727,7 @@ function handleRenderPrefix({option}) {
       NIcon,
       { color: '#002fa7' },
       {
-        default: () => h(GroupsFilled),
+        default: () => h(GroupsFilled)
       }
     );
   }
@@ -824,7 +735,7 @@ function handleRenderPrefix({option}) {
     NIcon,
     { color: '#002fa7' },
     {
-      default: () => h(File),
+      default: () => h(File)
     }
   );
 }
@@ -834,7 +745,7 @@ function handleInheritButtonClick() {
   inheritOptions.value = [];
   getUserInfo(storage.getValue('user_id'))
     .then((res) => {
-      const { data } = res;  
+      const { data } = res;
       data.orgs.forEach((item) => {
         if (item.re_user_org_default) {
           inheritOptions.value.push({
@@ -878,54 +789,64 @@ watch(searchWords, () => {
   getTemplateList();
 });
 
+const setNodeOptions = (array) => {
+  return array.map((item) => ({
+    label: item.title,
+    key: item.id,
+    depth: 1,
+    isLeaf: item.type === 'case',
+    disabled: item.type !== 'suite' && item.type !== 'case',
+    ...item
+  }));
+};
+
 watch(caseNodeTreeSelect, () => {
   if (caseNodeTreeSelect.value) {
-    getCaseSetNodes(props.type, window.atob(router.params.taskId))
-      .then((res) => {
-        casesetNodeOptions.value = res.data.map((item) => {
-          return {
-            label: item.title,
-            key: item.id,
-            depth: 1,
-            isLeaf: item.type === 'case',
-            disabled: item.type !== 'suite' && item.type !== 'case',
-            ...item,
-          };
+    getCaseSetNodes(props.type, window.atob(router.params.taskId)).then((res) => {
+      casesetNodeOptions.value = [];
+      for (const i in res.data) {
+        casesetNodeOptions.value.push({
+          label: i,
+          key: i,
+          disabled: true,
+          isLeaf: false,
+          children: setNodeOptions(res.data[i].children)
         });
-      });
+      }
+    });
   }
 });
 
 watch(showInheritModal, () => {
   if (showInheritModal.value === false) {
-    inheriteeId.value = undefined; 
+    inheriteeId.value = undefined;
   }
 });
 </script>
 
 <style lang="less" scoped>
-.baselineTemplate{
+.baselineTemplate {
   display: flex;
-  border:1px solid #eee;
+  border: 1px solid #eee;
   border-radius: 4px;
-  margin-top:20px;
+  margin-top: 20px;
   justify-content: space-between;
   min-height: 600px;
-  .baselineTemplate-left{
-    width:20%;
-    padding:20px;
+  .baselineTemplate-left {
+    width: 20%;
+    padding: 20px;
     border-right: 1px solid #eee;
-    .title{
+    .title {
       font-size: 16px;
-      color:#000000;
+      color: #000000;
     }
-    .n-input{
-      margin:10px 0;
+    .n-input {
+      margin: 10px 0;
     }
   }
-  .baselineTemplate-right{
-    width:80%;
-    .top{
+  .baselineTemplate-right {
+    width: 80%;
+    .top {
       height: 56px;
       width: calc(100% - 40px);
       display: flex;
@@ -936,85 +857,85 @@ watch(showInheritModal, () => {
       border-bottom: 1px solid #eee;
       padding-left: 20px;
       padding-right: 20px;
-      .txts{
+      .txts {
         display: flex;
         align-items: center;
-        color:#666666;
-        i{
+        color: #666666;
+        i {
           margin-right: 5px;
         }
       }
     }
   }
 }
-.templateItem{
+.templateItem {
   padding: 0 8px;
   height: 40px;
   display: flex;
   align-items: center;
   font-size: 12px;
-  color:#000;
+  color: #000;
   cursor: pointer;
   border-radius: 5px;
   margin-bottom: 10px;
   justify-content: space-between;
   &:hover,
-  &.active{
+  &.active {
     background-color: #d2daf5;
   }
-  .prefix{
+  .prefix {
     display: flex;
     align-items: center;
-    .n-icon{
+    .n-icon {
       color: #666666;
       margin-right: 5px;
     }
-    span{
+    span {
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
   }
-  .suffix{
+  .suffix {
     display: none;
   }
-  &:hover{
-    .suffix{
+  &:hover {
+    .suffix {
       display: block;
     }
   }
 }
-.vue-kityminder{
-  .vue-kityminder-toolbar-left{
-    margin-top:20px;
-    margin-left:20px;
-    top:0 !important;
-    left:0 !important;
-    .vue-kityminder-btn{
-      padding:8px 12px;
-      font-size:14px;
+.vue-kityminder {
+  .vue-kityminder-toolbar-left {
+    margin-top: 20px;
+    margin-left: 20px;
+    top: 0 !important;
+    left: 0 !important;
+    .vue-kityminder-btn {
+      padding: 8px 12px;
+      font-size: 14px;
     }
-    .vue-kityminder-ml{
-      margin-left:8px;
+    .vue-kityminder-ml {
+      margin-left: 8px;
     }
-    .vue-kityminder-control{
+    .vue-kityminder-control {
       padding: 8px;
     }
   }
 }
-.baselineTemplate-empty{
-  width:80%;
+.baselineTemplate-empty {
+  width: 80%;
   display: flex;
   justify-content: center;
   align-items: center;
 }
-.inherit-icon-container{
-  display: flex; 
-  justify-content: center; 
+.inherit-icon-container {
+  display: flex;
+  justify-content: center;
   align-item: center;
   margin-bottom: 20px;
 }
-.inherit-selector{
+.inherit-selector {
   margin-bottom: 20px;
 }
 </style>

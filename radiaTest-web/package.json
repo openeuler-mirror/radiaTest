@@ -16,6 +16,7 @@
     "axios": "^0.21.1",
     "core-js": "^3.8.3",
     "crypto-js": "^4.1.1",
+    "dayjs": "^1.11.7",
     "echarts": "^5.2.1",
     "highlight.js": "^11.2.0",
     "jsencrypt": "^3.2.1",
@@ -60,6 +61,7 @@
     "eslint-plugin-vue": "^7.2.0",
     "less": "^4.1.1",
     "less-loader": "^10.0.1",
+    "mockjs": "^1.1.0",
     "naive-ui": "^2.31.0",
     "sass": "^1.26.5",
     "sass-loader": "^8.0.2",
@@ -85,16 +87,9 @@
       "no-irregular-whitespace": "error",
       "eol-last": "error",
       "semi": "error",
-      "indent": [
-        "error",
-        2,
-        {
-          "SwitchCase": 1
-        }
-      ],
       "max-lines-per-function": [
         "error",
-        100
+        200
       ],
       "quotes": [
         "error",
@@ -174,7 +169,6 @@
       "no-floating-decimal": "error",
       "no-octal": "error",
       "prefer-numeric-literals": "error",
-      "no-mixed-operators": "error",
       "use-isnan": "error",
       "no-compare-neg-zero": "error",
       "no-ex-assign": "error",

@@ -80,13 +80,13 @@ server.interceptors.response.use(
     if (error.response?.status === 401) {
       window.$message?.destroyAll();
       window.$message?.error('请重新登陆');
-      if(isIframe && isIframe === '1') {
+      if (isIframe && isIframe === '1') {
         router.push({
-          name: 'home',
+          name: 'home'
         });
       } else {
         router.push({
-          name: 'login',
+          name: 'login'
         });
       }
       error.response.data = {
@@ -186,7 +186,7 @@ export default {
         .then((res) => {
           loading.value = false;
           warning.value = false;
-          let target = !res.data.length;
+          let target = !res.data.data.length;
           let mesg = '该对象已存在，请重新命名';
           if (checkExist) {
             target = !target;
@@ -202,6 +202,23 @@ export default {
           loading.value = false;
           warning.value = true;
           reject(Error('验证失败，请检查网络连接'));
+        });
+    });
+  },
+
+  downLoad(url, data) {
+    return new Promise((resolve, reject) => {
+      server({
+        method: 'get',
+        url,
+        params: data,
+        responseType: 'blob'
+      })
+        .then((res) => {
+          resolve(res.data);
+        })
+        .catch((err) => {
+          reject(err);
         });
     });
   }

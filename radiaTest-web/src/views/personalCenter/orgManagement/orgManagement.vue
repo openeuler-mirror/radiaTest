@@ -168,18 +168,28 @@
             ></n-input>
           </n-form-item>
           <n-form-item
-            label="Gitee企业仓"
+            label="gitee企业仓ID"
             path="enterpriseId"
             v-if="registerModel.authoritySecondaryType === 'enterprise' && registerModel.authorityType === 'gitee'"
           >
             <n-input
               v-model:value="registerModel.enterpriseId"
-              placeholder="请填写该组织码云企业仓ID"
+              placeholder="请填写该组织gitee企业仓ID"
               :maxlength="50"
             ></n-input>
           </n-form-item>
           <n-form-item
-            label="企业仓加入申请URL"
+            label="gitee企业仓令牌"
+            path="enterpriseToken"
+            v-if="registerModel.authoritySecondaryType === 'enterprise' && registerModel.authorityType === 'gitee'"
+          >
+            <n-input
+              v-model:value="registerModel.enterpriseToken"
+              placeholder="请填写该组织gitee企业仓令牌"
+            ></n-input>
+          </n-form-item>
+          <n-form-item
+            label="gitee企业仓申请链接"
             path="enterpriseJoinUrl"
             v-if="registerModel.authoritySecondaryType === 'enterprise' && registerModel.authorityType === 'gitee'"
           >

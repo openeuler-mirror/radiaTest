@@ -16,6 +16,11 @@ export async function createSuiteOptions(filter) {
     machineType: item.machine_type
   }));
 }
+export async function createCaseOptions(filter) {
+  const res = await axios.get('v1/case/preciseget', filter);
+  return res?.data.map((v) => ({ label: v.name, value: v.id }));
+}
+
 export async function createPmOptions(filter) {
   const data = await getPm(filter);
   return data.data.map((item) => ({
@@ -64,6 +69,26 @@ const getProductVersionOpts = (productOpts, loading) => {
     .then((res) => {
       loading ? (loading.value = false) : 0;
       productOpts.value = res.data.items.map((item) => {
+        return {
+          label: `${item.name} ${item.version}`,
+          value: item.id.toString()
+        };
+      });
+    })
+    .catch(() => {
+      loading ? (loading.value = false) : 0;
+      window.$message?.error('无法连接服务器，获取产品选项失败');
+    });
+};
+
+const getProductVersionOrgOpts = (productOpts, loading) => {
+  loading ? (loading.value = true) : 0;
+  productOpts.value = [];
+  axios
+    .get('/v1/product', { paged: false, permission_type: 'org' })
+    .then((res) => {
+      loading ? (loading.value = false) : 0;
+      productOpts.value = res.data?.items?.map((item) => {
         return {
           label: `${item.name} ${item.version}`,
           value: item.id.toString()
@@ -168,4 +193,12 @@ const getFrameOpts = (frameOpts, milestoneId, filetype, loading) => {
     });
 };
 
-export { getProductOpts, getProductVersionOpts, getVersionOpts, getMilestoneOpts, getFrameOpts, getCheckItemOpts };
+export {
+  getProductOpts,
+  getProductVersionOpts,
+  getProductVersionOrgOpts,
+  getVersionOpts,
+  getMilestoneOpts,
+  getFrameOpts,
+  getCheckItemOpts
+};

@@ -28,10 +28,10 @@
         <div class="nav-footer">
           <div v-show="isTask" class="footer-wrapper">
             <a class="footer-item" v-show="kanban && isTask && !backable" @click="toggleView">
-              <n-icon size="16"> <LayoutKanban /> </n-icon>表格视图
+              <n-icon size="16"> <LayoutKanban /> </n-icon>甘特视图
             </a>
             <a class="footer-item" v-show="!kanban && isTask && !backable" @click="toggleView">
-              <n-icon size="16"> <Table /> </n-icon>看板视图
+              <n-icon size="16"> <Table /> </n-icon>泳道视图
             </a>
             <a class="footer-item" v-show="isTask && backable" @click="menuClick({ name: 'task' }, 0)">
               <n-icon size="16"> <Table /> </n-icon>返回看板
@@ -79,6 +79,14 @@
               </n-popover>
             </a>
           </div>
+          <div class="footer-wrapper" v-show="isDesign">
+            <a class="footer-item" v-show="!isDesignTemplate" @click="isDesignTemplate = true">
+              <n-icon size="16"> <Template /> </n-icon>测试策略模板库
+            </a>
+            <a class="footer-item" v-show="isDesignTemplate" @click="isDesignTemplate = false">
+              <n-icon size="16"> <ArrowBackCircleOutline /> </n-icon>返回测试设计
+            </a>
+          </div>
         </div>
       </div>
     </template>
@@ -113,7 +121,8 @@
 
 <script>
 import { LayoutKanban, Table } from '@vicons/tabler';
-import { BarChart } from '@vicons/ionicons5';
+import { Template } from '@vicons/carbon';
+import { BarChart, ArrowBackCircleOutline } from '@vicons/ionicons5';
 import { QuestionCircle20Regular, Delete48Regular, TextAlignDistributed20Filled } from '@vicons/fluent';
 import { modules } from './modules/index';
 import { useRoute } from 'vue-router';
@@ -128,7 +137,9 @@ export default defineComponent({
     Delete48Regular,
     filterButton,
     TextAlignDistributed20Filled,
-    BarChart
+    BarChart,
+    Template,
+    ArrowBackCircleOutline
   },
   setup() {
     const route = useRoute();

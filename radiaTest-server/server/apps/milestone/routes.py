@@ -1,19 +1,31 @@
-import json
-from flask import request, jsonify, render_template, make_response, current_app
+# Copyright (c) [2022] Huawei Technologies Co.,Ltd.ALL rights reserved.
+# This program is licensed under Mulan PSL v2.
+# You can use it according to the terms and conditions of the Mulan PSL v2.
+#          http://license.coscl.org.cn/MulanPSL2
+# THIS PROGRAM IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+# EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+# MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+# See the Mulan PSL v2 for more details.
+####################################
+# @Author  :
+# @email   :
+# @Date    :
+# @License : Mulan PSL v2
+#####################################
+
+from flask import jsonify, render_template, make_response, current_app
 from flask_restful import Resource
 from flask_pydantic import validate
 
 from server.utils.auth_util import auth
 from server.utils.response_util import response_collect, RET
-from server.model.milestone import Milestone, IssueSolvedRate, TestReport
-from server.utils.db import Edit, Select
+from server.model.milestone import Milestone, TestReport
+from server.utils.db import Select
 from server.schema.milestone import (
-    GiteeIssueQueryV8,
     MilestoneBaseSchema,
     MilestoneCreateSchema,
     MilestoneQuerySchema,
     MilestoneUpdateSchema,
-    IssueQuerySchema,
     GiteeMilestoneQuerySchema,
     SyncMilestoneSchema,
     MilestoneStateEventSchema,
@@ -23,15 +35,13 @@ from server.schema.milestone import (
 )
 from server.utils.permission_utils import GetAllByPermission
 from server import casbin_enforcer
-from .handler import (
+from server.apps.milestone.handler import (
     IssueStatisticsHandlerV8,
     MilestoneOpenApiHandler,
-    IssueOpenApiHandlerV5,
-    IssueOpenApiHandlerV8,
     MilestoneHandler,
     CreateMilestone,
     DeleteMilestone,
-    IssueHandlerV8,
+    GenerateVersionTestReport,
 )
 
 
@@ -97,9 +107,14 @@ class MilestoneItemEventV2(Resource):
             return MilestoneOpenApiHandler(_data).edit(milestone.gitee_milestone_id)
         else:
             _body = body.__dict__
-            _body.update({"id": milestone_id})
-
-            return Edit(Milestone, _body).single(Milestone, "/milestone")
+            for key, value in _body.items():
+                if value is not None:
+                    setattr(milestone, key, value)
+            milestone.add_update(Milestone, "/milestone")
+            return jsonify(
+                error_code=RET.OK,
+                error_msg="OK."
+            )
 
     @auth.login_required()
     @response_collect
@@ -122,39 +137,6 @@ class MilestonePreciseEvent(Resource):
         return GetAllByPermission(Milestone).precise(query.__dict__)
 
 
-class GiteeIssuesV1(Resource):
-    @auth.login_required
-    @response_collect
-    @validate()
-    def get(self):
-        _issues = IssueOpenApiHandlerV5(
-            request.args.get("enterprise"), request.args.get("milestone")
-        )
-
-        return _issues.getAll(request.args)
-
-
-class GiteeIssuesV2(Resource):
-    @auth.login_required()
-    @response_collect
-    @validate()
-    def get(self, query: GiteeIssueQueryV8):
-        milestone = Milestone.query.filter_by(id=query.milestone_id).first()
-        if not milestone or milestone.is_sync is False:
-            return jsonify(
-                error_code=RET.OK,
-                error_msg="OK",
-                data={}
-            )
-        _body = query.__dict__
-        _body.update(
-            {
-                "milestone_id": milestone.gitee_milestone_id,
-            }
-        )
-        return IssueOpenApiHandlerV8().get_all(_body)
-
-
 class GenerateTestReportEvent(Resource):
     @auth.login_required()
     @response_collect
@@ -166,7 +148,7 @@ class GenerateTestReportEvent(Resource):
                 error_code=RET.NO_DATA_ERR,
                 error_msg="milestone {} not exist".format(milestone_id),
             )
-        return IssueHandlerV8().generate_update_test_report(milestone_id, query.uri)
+        return GenerateVersionTestReport().generate_update_test_report(milestone_id, query.uri)
 
 
 class TestReportFileEvent(Resource):
@@ -210,109 +192,31 @@ class TestReportEvent(Resource):
         )
 
 
-class GiteeIssuesItemV2(Resource):
-    @auth.login_required()
-    @response_collect
-    @validate()
-    def get(self, issue_id):
-        return IssueOpenApiHandlerV8().get(issue_id)
-
-
-class GiteeIssuesTypeV2(Resource):
-    @auth.login_required
-    def get(self):
-        return IssueStatisticsHandlerV8.get_issue_type()
-
-
-class GiteeIssuesStateV2(Resource):
-    @auth.login_required
-    def get(self):
-        return IssueStatisticsHandlerV8.get_issue_state()
-
-
 class GiteeIssuesStatisticsByMilestone(Resource):
     @auth.login_required
     @validate()
-    def get(self, milestone_id, query: IssueQuerySchema):
-        if query.is_live:
-            return IssueStatisticsHandlerV8.get_rate_by_milestone(milestone_id)
-        else:
-            return IssueStatisticsHandlerV8.get_rate_by_milestone2(milestone_id)
+    def get(self, milestone_id):
+        return IssueStatisticsHandlerV8.get_rate_by_milestone(milestone_id)
 
 
 class UpdateGiteeIssuesStatistics(Resource):
     @auth.login_required
+    @response_collect
     def get(self):
         return IssueStatisticsHandlerV8.update_issue_rate()
 
 
 class UpdateMilestoneIssueRateByField(Resource):
     @auth.login_required
+    @response_collect
     @validate()
     def put(self, milestone_id, body: IssueRateFieldSchema):
         return IssueStatisticsHandlerV8.update_milestone_issue_rate_by_field(milestone_id, body.field)
 
 
-class UpdateGiteeIssuesTypeState(Resource):
-    @auth.login_required
-    def post(self):
-        from server import redis_client
-        from server.utils.redis_util import RedisKey
-        from server.model.organization import Organization
-        orgs = Organization.query.filter(
-            Organization.enterprise_id is not None).all()
-        for _org in orgs:
-            user_id = IssueStatisticsHandlerV8.get_user_id(_org.id)
-            if user_id:
-                isa = IssueOpenApiHandlerV8(user_id=user_id)
-                _resp = isa.get_issue_types()
-                resp = _resp.get_json()
-                if resp.get("error_code") == RET.OK:
-                    issue_types = json.loads(
-                        resp.get("data")).get("data")
-                    t_issue_types = []
-                    for _type in issue_types:
-                        t_issue_types.append(
-                            {
-                                "id": _type.get("id"),
-                                "title": _type.get("title"),
-                            }
-                        )
-                    redis_client.hmset(
-                        RedisKey.issue_types(_org.enterprise_id),
-                        {"data": t_issue_types}
-                    )
-                else:
-                    return _resp
-                _resp = isa.get_issue_states()
-                resp = _resp.get_json()
-                if resp.get("error_code") == RET.OK:
-                    issue_states = json.loads(
-                        resp.get("data")
-                    ).get("data")
-
-                    t_issue_states = []
-                    for _state in issue_states:
-                        t_issue_states.append(
-                            {
-                                "id": _state.get("id"),
-                                "title": _state.get("title"),
-                            }
-                        )
-                    redis_client.hmset(
-                        RedisKey.issue_states(_org.enterprise_id),
-                        {"data": t_issue_states}
-                    )
-                else:
-                    return _resp
-        return jsonify(
-            error_code=RET.OK,
-            error_msg="OK",
-        )
-
-
 class GiteeMilestoneEventV2(Resource):
     @auth.login_required
+    @response_collect
     @validate()
     def get(self, query: GiteeMilestoneQuerySchema):
         return MilestoneOpenApiHandler().get_milestones(params=query.__dict__)
@@ -333,7 +237,7 @@ class SyncMilestoneItemEventV2(Resource):
 
         milestone.gitee_milestone_id = body.gitee_milestone_id
         milestone.is_sync = True
-        milestone.add_update()
+        milestone.add_update(Milestone, "/milestone")
 
         return jsonify(
             error_code=RET.OK,

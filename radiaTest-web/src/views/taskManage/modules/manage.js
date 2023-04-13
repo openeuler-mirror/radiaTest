@@ -10,7 +10,7 @@ import { getGroup } from '@/api/get';
 const menuSelect = ref(null); // 当前页面索引值
 const isTask = ref(true); // 是否是任务看板页面
 const backable = ref(false); // 是否可以返回任务看板
-const kanban = toRef(store.state.taskManage, 'kanban'); // 看板视图、表格视图切换
+const kanban = toRef(store.state.taskManage, 'kanban'); // 泳道视图、甘特视图切换
 const originators = ref([]); // 创建者
 const executors = ref([]); // 执行者
 const participants = ref([]); // 协助人
@@ -19,6 +19,8 @@ const milestones = ref([]); // 里程碑列表
 const recycleBinTaskTable = ref(null); // 回收站表格名称
 const recycleBinTaskLoading = ref(false); // 回收站表格加载状态
 const showRecycleBinModal = ref(false); // 显示回收站表格
+const isDesign = ref(false); // 是否是测试设计页面
+const isDesignTemplate = ref(false); // 是否是测试设计模板页
 
 // 回收站表格分页
 const recycleBinTaskPagination = ref({
@@ -390,6 +392,7 @@ function filterchange(filterArray) {
 }
 
 const watchRoute = () => {
+  isDesign.value = false;
   if (router.currentRoute.value.path === '/home/workflow/dashboard') {
     menuSelect.value = 0;
     isTask.value = false;
@@ -414,6 +417,11 @@ const watchRoute = () => {
     menuSelect.value = 2;
     isTask.value = true;
     backable.value = true;
+  } else if (router.currentRoute.value.path === '/home/workflow/design') {
+    menuSelect.value = 3;
+    isTask.value = false;
+    backable.value = false;
+    isDesign.value = true;
   }
 };
 
@@ -441,5 +449,7 @@ export {
   showRecycleBin,
   recycleBinTaskPagination,
   recycleBinTablePageChange,
-  filterRule
+  filterRule,
+  isDesign,
+  isDesignTemplate
 };

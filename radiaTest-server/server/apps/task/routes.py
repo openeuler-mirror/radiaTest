@@ -1,16 +1,77 @@
-import json
-from flask import g
+# Copyright (c) [2022] Huawei Technologies Co.,Ltd.ALL rights reserved.
+# This program is licensed under Mulan PSL v2.
+# You can use it according to the terms and conditions of the Mulan PSL v2.
+#          http://license.coscl.org.cn/MulanPSL2
+# THIS PROGRAM IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+# EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+# MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+# See the Mulan PSL v2 for more details.
+####################################
+# @Author  :
+# @email   :
+# @Date    :
+# @License : Mulan PSL v2
+#####################################
+
+from flask import g, jsonify
 from flask_restful import Resource
 from flask_pydantic import validate
 from server import socketio, casbin_enforcer
 from server.utils.auth_util import auth
-from server.utils.response_util import response_collect
-from server.schema.task import *
-from .handlers import HandlerTaskStatus, HandlerTask, HandlerTaskParticipant, HandlerTaskComment, HandlerTaskTag
-from .handlers import HandlerTaskFamily, HandlerTaskCase, HandlerTaskReport
-from .handlers import HandlerTaskMilestone, HandlerTaskStatistics
-from .handlers import HandlerTaskExecute, HandlerCaseTask, HandlerCaseFrame
-from .template_handler import HandlerTemplate, HandlerTemplateType, HandlerTaskDistributeCass
+from server.utils.response_util import response_collect, RET
+from server.schema.base import PageBaseSchema
+from server.schema.task import (
+    AddTaskSchema,
+    AddTaskStatusSchema,
+    UpdateTaskStatusSchema,
+    UpdateTaskStatusOrderSchema,
+    AddTaskSchema,
+    OutAddTaskSchema,
+    QueryTaskSchema,
+    UpdateTaskExecutorSchema,
+    UpdateTaskSchema,
+    UpdateTaskParticipantSchema,
+    AddTaskCommentSchema,
+    DelTaskCommentSchema,
+    AddTaskTagSchema,
+    DelTaskTagSchema,
+    AddFamilyMemberSchema,
+    QueryFamilySchema,
+    DelFamilyMemberSchema,
+    TaskReportContentSchema,
+    QueryTaskCaseSchema,
+    AddTaskCaseSchema,
+    DelTaskCaseSchema,
+    QueryTaskStatisticsSchema,
+    TaskJobResultSchema,
+    TaskCaseResultSchema,
+    DistributeTaskCaseSchema,
+    DistributeTemplateTypeSchema,
+    DistributeTemplate,
+    DeleteTaskList,
+    MilestoneTaskSchema,
+)
+from server.apps.task.handlers import (
+    HandlerTaskStatus,
+    HandlerTask,
+    HandlerTaskParticipant,
+    HandlerTaskComment,
+    HandlerTaskTag,
+    HandlerTaskFamily,
+    HandlerTaskCase,
+    HandlerTaskReport,
+    HandlerTaskProgress,
+    HandlerTaskMilestone,
+    HandlerTaskStatistics,
+    HandlerTaskExecute,
+    HandlerCaseTask,
+    HandlerCaseFrame,
+)
+from server.apps.task.template_handler import (
+    HandlerTemplate,
+    HandlerTemplateType,
+    HandlerTaskDistributeCass
+)
 
 
 class Status(Resource):
@@ -378,3 +439,46 @@ class MileStoneTask(Resource):
     @validate()
     def get(self, milestone_id, query: MilestoneTaskSchema):
         return HandlerTask.get_milestone_tasks(milestone_id, query)
+
+
+class MilestoneTaskProgress(Resource):
+    @auth.login_required()
+    @response_collect
+    def get(self, milestone_id):
+        try:
+            taskprogress = HandlerTaskProgress(milestone_id)
+        except RuntimeError as e:
+            return jsonify(
+                error_code=RET.RUNTIME_ERROR,
+                error_msg=str(e),
+            )
+        return taskprogress.get_task_test_progress()
+
+
+class CaseNodeTaskProgress(Resource):
+    @auth.login_required()
+    @response_collect
+    def get(self, milestone_id, case_node_id):
+        try:
+            taskprogress = HandlerTaskProgress(milestone_id)
+        except RuntimeError as e:
+            return jsonify(
+                error_code=RET.RUNTIME_ERROR,
+                error_msg=str(e),
+            )
+        return taskprogress.get_task_case_node_and_test_progress(case_node_id)
+
+
+class SubTaskProgress(Resource):
+    @auth.login_required()
+    @response_collect
+    def get(self, milestone_id, task_id):
+        try:
+            taskprogress = HandlerTaskProgress(milestone_id)
+        except RuntimeError as e:
+            return jsonify(
+                error_code=RET.RUNTIME_ERROR,
+                error_msg=str(e),
+            )
+        return taskprogress.get_test_progress_by_task(task_id)
+

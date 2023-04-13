@@ -20,6 +20,7 @@ class Organization(db.Model, PermissionBaseModel, BaseModel):
 
     authority = db.Column(db.String(50), nullable=False)
     enterprise_id = db.Column(db.String(50))
+    enterprise_token = db.Column(db.String(512))
     enterprise_join_url = db.Column(db.String(512))
     oauth_login_url = db.Column(db.String(512), nullable=False)
     oauth_get_token_url = db.Column(db.String(512), nullable=False)
@@ -63,6 +64,7 @@ class Organization(db.Model, PermissionBaseModel, BaseModel):
             "avatar_url": self.avatar_url,
             "is_delete": self.is_delete,
             "enterprise_id": self.enterprise_id,
+            "enterprise_token": self.enterprise_token,
             "enterprise_join_url": self.enterprise_join_url,
             "oauth_client_id": self.oauth_client_id,
             "oauth_scope": self.oauth_scope,

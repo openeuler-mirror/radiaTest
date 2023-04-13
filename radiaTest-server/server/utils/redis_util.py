@@ -1,3 +1,18 @@
+# Copyright (c) [2022] Huawei Technologies Co.,Ltd.ALL rights reserved.
+# This program is licensed under Mulan PSL v2.
+# You can use it according to the terms and conditions of the Mulan PSL v2.
+#          http://license.coscl.org.cn/MulanPSL2
+# THIS PROGRAM IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+# EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+# MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+# See the Mulan PSL v2 for more details.
+####################################
+# @Author  :
+# @email   :
+# @Date    :
+# @License : Mulan PSL v2
+#####################################
+
 import redis
 from flask import _app_ctx_stack
 
@@ -88,10 +103,11 @@ class RedisKey(object):
     token = lambda user_id: f"token_{user_id}"
     refresh_token = lambda user_id: f"refresh_token_{user_id}"
     user = lambda user_id: f"user_{user_id}"
+    # TODO 请确认gitee_user这个key是否还有用
     gitee_user = lambda user_id: f"gitee_user_{user_id}"
     organization = lambda organization_id: f"organization_{organization_id}"
     login_org = lambda user_id: f"{user_id}_login_org"
-    access_token = lambda user_id: f"access_token_{user_id}"
     issue_types = lambda enterprise_id: f"issue_types_{enterprise_id}"
     issue_states = lambda enterprise_id: f"issue_states_{enterprise_id}"
     oauth_user = lambda user_id: f"{user_id}"
+    projects = lambda enterprise_id: f"projects_{enterprise_id}"

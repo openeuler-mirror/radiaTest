@@ -19,22 +19,24 @@ from datetime import datetime
 from math import floor
 import os
 import subprocess
+import io
 
-from flask import jsonify, current_app, g
-from sqlalchemy import func, or_
+from flask import jsonify, current_app, g, make_response
+from sqlalchemy import func
 import pytz
+import xlwt
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from server import db, redis_client
-from sqlalchemy import and_
-from server.model.qualityboard import Checklist, QualityBoard, CheckItem, Round
+from server.model.qualityboard import Checklist, CheckItem, Round, SameRpmCompare, RpmCompare
 from server.model.milestone import IssueSolvedRate, Milestone
 from server.model.organization import Organization
 from server.model.product import Product
-from server.utils.db import Edit, Select, collect_sql_error, Insert
+from server.utils.db import Select, collect_sql_error, Insert
 from server.utils.response_util import RET
 from server.utils.page_util import PageUtil
 from server.utils.md_util import MdUtil
-from server.utils.rpm_util import RpmName, RpmNameComparator, RpmNameLoader
+from server.utils.rpm_util import RpmNameComparator, RpmNameLoader
 from celeryservice.tasks import resolve_pkglist_after_resolve_rc_name
 
 
@@ -265,7 +267,7 @@ class CheckItemHandler:
         )
 
 
-class FeatureListResolver:
+class FeatureResolver:
     """parse html format text
     table format as follow
     <table>
@@ -291,7 +293,7 @@ class FeatureListResolver:
         pass
 
 
-class OpenEulerFeatureListResolver(FeatureListResolver):
+class OpenEulerFeatureResolver(FeatureResolver):
     def parse_table(self):
         """parse xpath table element 2 python list
 
@@ -349,15 +351,18 @@ class OpenEulerFeatureListResolver(FeatureListResolver):
         return ""
 
 
-class FeatureListHandler:
-    resolver = FeatureListResolver
+class FeatureHandler:
+    resolver = FeatureResolver
     table_num = 1
     target_index = 0
     colname_dict = {}
 
-    def __init__(self, table, qualityboard_id) -> None:
+    def __init__(self, table, re_table, **kwargs) -> None:
         self.table = table
-        self.qualityboard_id = qualityboard_id
+        self.re_table = re_table
+        if kwargs.get("product_id"):
+            self.product_id = kwargs.get("product_id")
+
 
     @abc.abstractmethod
     def get_md_content(self, product_version) -> str:
@@ -395,8 +400,8 @@ class FeatureListHandler:
         pass
 
 
-class OpenEulerReleasePlanHandler(FeatureListHandler):
-    resolver = OpenEulerFeatureListResolver
+class OpenEulerReleasePlanHandler(FeatureHandler):
+    resolver = OpenEulerFeatureResolver
     table_num = 2
     target_index = 1
     colname_dict = {
@@ -412,17 +417,20 @@ class OpenEulerReleasePlanHandler(FeatureListHandler):
             )
         else:
             exitcode, _ = subprocess.getstatusoutput(
-                "pushd /tmp && git clone https://gitee.com/openeuler/release-management && popd"
+                "pushd /tmp && git clone \
+                    https://gitee.com/openeuler/release-management && popd"
             )
         if exitcode != 0:
             return None
 
         md_content = None
-        with open(f"/tmp/release-management/{product_version}/release-plan.md", 'r') as f:
+        with open(f"/tmp/release-management/{product_version}/release-plan.md", 'r'
+        ) as f:
             md_content = f.read()
 
         return md_content
     
+
     def store(self, socket_namespace=None):       
         for data in self.rows:
             if data.get("status") == "discussion":
@@ -438,48 +446,45 @@ class OpenEulerReleasePlanHandler(FeatureListHandler):
                 no=data.get("no")
             ).first()
             if not _row:
-                Insert(
-                    self.table,
-                    {
-                        "qualityboard_id": self.qualityboard_id,
-                        **data,
+                table_row = self.table(**data)
+                db.session.add(table_row)
+                db.session.flush()
+                feature_id = table_row.id
+
+                re_row = self.re_table(
+                    **{
+                        "feature_id": feature_id,
+                        "is_new": True,
+                        "product_id": self.product_id,
+                        "is_archived": False,                       
                     }
-                ).single(
-                    self.table, socket_namespace
                 )
+                db.session.add(re_row)
+                try:
+                    db.session.commit()
+                except (IntegrityError, SQLAlchemyError) as e:
+                    db.session.rollback()
+                    raise e
             else:
-                Edit(
-                    self.table,
-                    {
-                        "id": _row.id,
-                        **data,
-                    }
-                ).single(
-                    self.table, socket_namespace
-                )
-        
+                for key, value in data.items():
+                    if value is not None:
+                        setattr(_row, key, value)
+                try:
+                    db.session.commit()
+                except (IntegrityError, SQLAlchemyError) as e:
+                    db.session.rollback()
+                    raise e
+
+
     def statistic(self, _is_new: bool):
         result = defaultdict(int)
-
-        _query = db.session.query(func.count(self.table.id))
-        result["developing_count"] = _query.filter_by(
-            qualityboard_id=self.qualityboard_id,
-            is_new=_is_new,
-            status='Developing',
-        ).scalar()
-        result["testing_count"] = _query.filter_by(
-            qualityboard_id=self.qualityboard_id,
-            is_new=_is_new,
-            status="Testing",
-        ).scalar()
-        result["accepted_count"] = _query.filter_by(
-            qualityboard_id=self.qualityboard_id,
-            is_new=_is_new,
-            status="Accepted",
-        ).scalar()
-
-        accepted_count = result["developing_count"] + result["testing_count"] + result["accepted_count"]
-
+        result["developing_count"] = self._stat_status(_is_new, "Developing")
+        result["testing_count"] = self._stat_status(_is_new, "Testing")
+        result["accepted_count"] = self._stat_status(_is_new, "Accepted")
+        
+        accepted_count = result["developing_count"] + \
+            result["testing_count"] + result["accepted_count"]
+         
         result["accepted_rate"] = 100
         if accepted_count != 0:
             result["accepted_rate"] = floor(
@@ -489,8 +494,23 @@ class OpenEulerReleasePlanHandler(FeatureListHandler):
         return result
 
 
-feature_list_handlers = {
-    "default": FeatureListHandler,
+    def _stat_status(self, _is_new, _status):
+        _query = db.session.query(func.count(self.table.id))
+        filter_params = [
+            self.re_table.product_id == self.product_id,
+            self.re_table.is_new == _is_new,
+            self.re_table.feature_id == self.table.id
+        ]
+        _count = _query.filter(
+            *filter_params,
+            self.table.status == _status,
+        ).scalar()
+
+        return _count
+
+
+feature_handlers = {
+    "default": FeatureHandler,
     "openEuler": OpenEulerReleasePlanHandler,
 }
 
@@ -550,62 +570,55 @@ class PackageListHandler:
         _product = _round.product.name + "-" + _round.product.version
         if _round.type == "release":
             _pkgs_repo_url = current_app.config.get(f"{org.name.upper()}_OFFICIAL_REPO_URL")
-            _filename_p = _product
+            _filename_p = f"{_product}-release"
             round_num = None
         else:
             _pkgs_repo_url = current_app.config.get(f"{org.name.upper()}_DAILYBUILD_REPO_URL")
             _filename_p = f"{_product}-round-{_round.round_num}"
             round_num = _round.round_num
-        _dirname = _product
-        _buildname = None
-        if _round.product.built_by_ebs is True:
-            _dirname = f"EBS-{_product}"
-            _buildname = _round.buildname
-        _keys = redis_client.keys(f"resolving_{_filename_p}*")
+
+        if _round.product.built_by_ebs is True and _round.type != "release":
+            _pkgs_repo_url = f"{_pkgs_repo_url}/EBS-{_product}"
+        else:
+            _pkgs_repo_url = f"{_pkgs_repo_url}/{_product}"
+
+        key_val = f"resolving_{_filename_p}_pkglist"
+        _keys = redis_client.keys(key_val)
         if len(_keys) > 0:
             raise RuntimeError(
                 f"LOCKED: the packages of {_round.name} " \
                 f"has been in resolving process, " \
                 "please wait in patient or try again after a half hour"
             )
-        for arch in ["x86_64", "aarch64", "all"]:
-            for sub_path in ["everything", "EPOL/main"]:
-                _filename = f"{_filename_p}-{sub_path.split('/')[0]}-{arch}"
-                if not redis_client.hgetall(f"resolving_{_filename}_pkglist"):
-                    redis_client.hset(
-                        f"resolving_{_filename}_pkglist", "user_id", g.user_id
-                    )
-                    redis_client.hset(
-                        f"resolving_{_filename}_pkglist", 
-                        "resolve_time", 
-                        datetime.now(
-                            tz=pytz.timezone('Asia/Shanghai')
-                        ).strftime("%Y-%m-%d %H:%M:%S")
-                    )
-                    redis_client.expire(f"resolving_{_filename}_pkglist", 1800)
-                    resolve_pkglist_after_resolve_rc_name.delay(
-                        repo_url=_pkgs_repo_url,
-                        repo_path=sub_path,
-                        arch=arch,
-                        product={
-                            "name": _product,
-                            "dirname": _dirname,
-                            "buildname": _buildname,
-                            "round": round_num,
-                        },
-                    )
+        redis_client.hmset(
+            key_val,
+            {
+                "gitee_id": g.gitee_id,
+                "resolve_time": datetime.now(
+                    tz=pytz.timezone('Asia/Shanghai')
+                ).strftime("%Y-%m-%d %H:%M:%S")
+            }
+        )
+        redis_client.expire(key_val, 1800)
+        _path = current_app.config.get("PRODUCT_PKGLIST_PATH")
+        resolve_pkglist_after_resolve_rc_name.delay(
+            repo_url=_pkgs_repo_url,
+            store_path=_path,
+            product=_product,
+            round_num=round_num,
+        )
 
     def compare(self, packages):
         if not self.packages or not packages:
             return None
         
-        rpm_name_dict_comparer = RpmNameLoader.rpmlist2rpmdict(self.packages)
-        rpm_name_dict_comparee = RpmNameLoader.rpmlist2rpmdict(packages)
+        rpm_name_dict_comparer, repeat_rpm_list_comparer = RpmNameLoader.rpmlist2rpmdict(self.packages)
+        rpm_name_dict_comparee, repeat_rpm_list_comparee = RpmNameLoader.rpmlist2rpmdict(packages)
 
         return RpmNameComparator.compare_rpm_dict(
             rpm_name_dict_comparee,
             rpm_name_dict_comparer,
-        )
+        ), repeat_rpm_list_comparer, repeat_rpm_list_comparee
 
     def compare2(self, packages):
         if not self.packages or not packages:
@@ -732,3 +745,130 @@ class RoundHandler:
             error_msg="OK",
         )
 
+
+class CompareRoundHandler:
+    def __init__(self, round_id) -> None:
+        self.round_id = round_id
+
+    @collect_sql_error
+    def excute(self, compare_round_ids):
+        """
+        修改当前round的比对round项
+        @param: compare_round_ids: list, 比对项id列表
+        @return: 异常,返回错误信息;正常,返回{error_code, error_msg, round_data}
+        """
+        round_ = Round.query.filter_by(id=self.round_id).first()
+        if not round_:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="the round does not exist"
+            )
+
+        for compare_round_id in compare_round_ids:
+            if self.round_id == compare_round_id:
+                return jsonify(
+                    error_code=RET.NO_DATA_ERR,
+                    error_msg=f"The id of round and compare round can't be equal."
+                )
+            compare_round = Round.query.filter_by(id=compare_round_id).first()
+            if not compare_round:
+                return jsonify(
+                    error_code=RET.NO_DATA_ERR,
+                    error_msg=f"the round whose id is {compare_round_id} does not exist"
+                )
+        comparee_round_ids_list = list(map(str, compare_round_ids))
+        round_.comparee_round_ids = ",".join(comparee_round_ids_list)
+        round_.add_update()
+
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+            data=round_.to_json(),
+        )
+
+
+class PackagCompareResultExportHandler:
+    def __init__(self, repo_path, round_id=None, rg=None, arches=None) -> None:
+        self.repo_path = repo_path
+        self.round_id = round_id
+        self.rg = rg
+        self.arches = arches
+
+    def get_pkg_compare_result(self):
+        wb = None
+        pkg_results = RpmCompare.query.filter(
+            RpmCompare.round_group_id == self.rg.id,
+            RpmCompare.repo_path == self.repo_path,
+            RpmCompare.arch.in_(self.arches),
+        ).all()
+        if not pkg_results:
+            return wb
+        comparer_round = Round.query.get(self.rg.round_1_id)
+        comparee_round = Round.query.get(self.rg.round_2_id)
+        cnt = 1
+        wb = xlwt.Workbook()
+        ws = wb.add_sheet(f"{self.repo_path}")
+        ws.write(0, 0, comparer_round.name)
+        ws.write(0, 1, comparee_round.name)
+        ws.write(0, 2, "arch")
+        ws.write(0, 3, "compare result")
+        
+        for pkg_result in pkg_results:
+            ws.write(cnt, 0, pkg_result.rpm_comparee)
+            ws.write(cnt, 1, pkg_result.rpm_comparer)
+            ws.write(cnt, 2, pkg_result.arch)
+            ws.write(cnt, 3, pkg_result.compare_result)
+            cnt += 1
+        return wb
+
+    def get_same_pkg_compare_result(self):
+        wb = None
+        pkg_results = SameRpmCompare.query.filter(
+            SameRpmCompare.round_id == self.round_id,
+            SameRpmCompare.repo_path == self.repo_path,
+        ).all()
+        if not pkg_results:
+            return wb
+        wb = xlwt.Workbook()
+        ws = wb.add_sheet(f"{self.repo_path}")
+        ws.write(0, 0, "rpm_arm")
+        ws.write(0, 1, "rpm_x86")
+        ws.write(0, 2, "compare result")
+        cnt = 1
+        for pkg_result in pkg_results:
+            ws.write(cnt, 0, pkg_result.rpm_arm)
+            ws.write(cnt, 1, pkg_result.rpm_x86)
+            ws.write(cnt, 2, pkg_result.compare_result)
+            cnt += 1
+        return wb
+
+    def get_compare_result_file(self, file_path, new_result=False, pkg_type="same"):
+        if os.path.exists(file_path) and not new_result:
+            # 读取保存的文件
+            filedata = open(file_path, 'rb').read()
+        else:
+            wb = None
+            if pkg_type == "same":
+                wb = self.get_same_pkg_compare_result()
+            else:
+                wb = self.get_pkg_compare_result()
+
+            if wb is None:
+                return jsonify(
+                    error_code=RET.NO_DATA_ERR,
+                    error_msg="no compare data.",
+                )
+
+            # 保存比对结果到文件中
+            wb.save(file_path)
+
+            # 保存比对结果到文件流中
+            stream = io.BytesIO()
+            wb.save(stream)
+            filedata = stream.getvalue()
+            stream.close()
+
+        response = make_response(filedata)
+        response.headers["Content-Disposition"] = f'attachment; filename={file_path.split("/")[-1]}'
+        response.headers["Content-Type"] = 'application/x-xlsx'
+        return response

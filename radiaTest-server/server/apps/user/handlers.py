@@ -66,7 +66,7 @@ def send_majun(code):
     _resp = dict()
     
     majun_api = current_app.config.get("MAJUN_API")
-    access_token = current_app.config.get("ACCESS_TOKEN")
+    access_token = current_app.config.get("MAJUN_ACCESS_TOKEN")
     _r = do_request(
         method="get",
         url="https://{}?code={}".format(
@@ -176,7 +176,7 @@ def handler_login(oauth_token, org_id, oauth_user_info_url, authority):
     :return: 元组 (登录是否成功，user_id，[token，refresh_token])
              flask dict
     """
-    # 调用gitee的api获取用户的基本信息
+    # 调用鉴权服务指定的api获取用户的基本信息
     user_flag, oauth_user = LoginApi.User.get_info(
         oauth_user_info_url,
         oauth_token.get("access_token"),
@@ -190,19 +190,13 @@ def handler_login(oauth_token, org_id, oauth_user_info_url, authority):
 
     profile_map = getattr(ProfileMap, authority)
     profile = profile_map(oauth_user)
-    # 先将gitee的token缓存到redis中, 有效期为10min，这段时间主要用来是验证cla签名
+    # 先将token缓存到redis中, 有效期为10min，这段时间主要用来是验证cla签名
     profile["access_token"] = oauth_token.get("access_token")
     profile["refresh_token"] = oauth_token.get("refresh_token")
     redis_client.hmset(
         RedisKey.oauth_user(profile.get("user_id")),
         profile,
         ex=60 * 60 * 2,
-    )
-
-    redis_client.hmset(
-        RedisKey.access_token(profile.get("user_id")),
-        {"org_id": org_id},
-        ex=int(current_app.config.get("LOGIN_EXPIRES_TIME"))
     )
 
     # 从数据库中获取用户信息
@@ -445,7 +439,6 @@ def handler_logout():
     redis_client.delete(RedisKey.user(g.user_id))
     redis_client.delete(RedisKey.token(g.user_id))
     redis_client.delete(RedisKey.token(g.token))
-    redis_client.delete(RedisKey.access_token(g.user_id))
     return jsonify(error_code=RET.OK, error_msg="OK")
 
 

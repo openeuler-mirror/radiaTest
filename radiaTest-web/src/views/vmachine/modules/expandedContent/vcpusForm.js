@@ -1,17 +1,26 @@
 import { ref } from 'vue';
 import axios from '@/axios';
 
-import {
-  handleSuccessSubmit,
-  handleFailureSubmit,
-} from './updateSubmitHandler.js';
+import { handleSuccessSubmit, handleFailureSubmit } from './updateSubmitHandler.js';
 
 const form = ref(null);
 
 const model = ref({
   sockets: undefined,
   cores: undefined,
-  threads: undefined,
+  threads: undefined
+});
+
+const socketsMax = computed(() => {
+  return Math.floor(16 / model.value.cores / model.value.threads);
+});
+
+const coresMax = computed(() => {
+  return Math.floor(16 / model.value.sockets / model.value.threads);
+});
+
+const threadsMax = computed(() => {
+  return Math.floor(16 / model.value.sockets / model.value.cores);
 });
 
 const propsData = ref({
@@ -19,7 +28,7 @@ const propsData = ref({
   name: undefined,
   sockets: undefined,
   cores: undefined,
-  threads: undefined,
+  threads: undefined
 });
 
 const initData = (data) => {
@@ -38,7 +47,7 @@ const onValidSubmit = (context) => {
     .put(`/v1/vmachine/${propsData.value.id}`, {
       sockets: model.value.sockets,
       cores: model.value.cores,
-      threads: model.value.threads,
+      threads: model.value.threads
     })
     .then((res) => {
       if (res.error_code === '2000') {
@@ -47,32 +56,28 @@ const onValidSubmit = (context) => {
             {
               name: 'Sockets',
               curData: propsData.value.sockets,
-              newData: model.value.sockets,
+              newData: model.value.sockets
             },
             {
               name: 'Cores',
               curData: propsData.value.cores,
-              newData: model.value.cores,
+              newData: model.value.cores
             },
             {
               name: 'Threads',
               curData: propsData.value.threads,
-              newData: model.value.threads,
-            },
+              newData: model.value.threads
+            }
           ])
         );
         context.emit('refresh');
       } else {
-        window.$notification?.error(
-          handleFailureSubmit(propsData.value.name, 'CPU配置', res.error_msg)
-        );
+        window.$notification?.error(handleFailureSubmit(propsData.value.name, 'CPU配置', res.error_msg));
       }
     })
     .catch((err) => {
       const mesg = err.data.validation_error.body_params[0].msg;
-      window.$notification?.error(
-        handleFailureSubmit(propsData.value.name, 'CPU配置', mesg)
-      );
+      window.$notification?.error(handleFailureSubmit(propsData.value.name, 'CPU配置', mesg));
     });
 };
 
@@ -81,5 +86,7 @@ export default {
   model,
   initData,
   onValidSubmit,
+  socketsMax,
+  coresMax,
+  threadsMax
 };
-

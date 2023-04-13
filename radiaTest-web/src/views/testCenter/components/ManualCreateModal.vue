@@ -31,19 +31,48 @@
                 <n-form-item-gi :span="24" label="任务名" path="name">
                   <n-input v-model:value="formValue.name" placeholder="请输入任务名" />
                 </n-form-item-gi>
-                <n-form-item-gi :span="24" label="用例" path="case_id">
-                  <n-select
-                    v-model:value="formValue.case_id"
-                    placeholder="请选择用例"
-                    :options="caseOptions"
-                    clearable
-                  />
-                </n-form-item-gi>
                 <n-form-item-gi :span="24" label="里程碑" path="milestone_id">
                   <n-select
                     v-model:value="formValue.milestone_id"
                     placeholder="请选择里程碑"
                     :options="milestoneOptions"
+                    clearable
+                  />
+                </n-form-item-gi>
+                <n-form-item-gi :span="6" label="测试框架" path="framework">
+                  <n-select
+                    :options="frameworkOpts"
+                    v-model:value="formValue.framework"
+                    @update:value="frameworkChange"
+                    placeholder="选择测试框架"
+                  />
+                </n-form-item-gi>
+                <n-form-item-gi :span="9" label="测试脚本代码仓" path="git_repo_id">
+                  <n-select
+                    :options="repoOpts"
+                    v-model:value="formValue.git_repo_id"
+                    @update:value="repoChange"
+                    :disabled="!formValue.framework"
+                    placeholder="选择测试脚本代码仓"
+                  />
+                </n-form-item-gi>
+                <n-form-item-gi :span="9" label="测试套" path="suite">
+                  <n-select
+                    :options="suiteOpts"
+                    v-model:value="formValue.suite"
+                    placeholder="选择测试套"
+                    :disabled="!formValue.git_repo_id"
+                    @update:value="changeSuite"
+                    filterable
+                  />
+                </n-form-item-gi>
+                <n-form-item-gi :span="24" label="用例" path="case_id">
+                  <n-select
+                    v-model:value="formValue.case_id"
+                    placeholder="请选择用例"
+                    :options="caseOptions"
+                    :disabled="!formValue.suite"
+                    filterable
                     clearable
                   />
                 </n-form-item-gi>
@@ -65,8 +94,9 @@ import Vue3DraggableResizable from 'vue3-draggable-resizable';
 import 'vue3-draggable-resizable/dist/Vue3DraggableResizable.css';
 import config from '@/assets/config/dragableResizable.js';
 import { createTitle } from '@/assets/utils/createTitle';
-import { getCasePrecise, getMilestones } from '@/api/get';
+import { getMilestones, getFramework } from '@/api/get';
 import { createManualJob } from '@/api/post';
+import { createRepoOptions, createSuiteOptions, createCaseOptions } from '@/assets/utils/getOpts';
 
 const emit = defineEmits(['updateTable']);
 const props = defineProps({
@@ -86,8 +116,11 @@ const { draggable } = toRefs(config);
 const formRef = ref(null);
 const formValue = ref({
   name: '',
-  case_id: null,
-  milestone_id: null
+  milestone_id: null,
+  framework: null,
+  git_repo_id: null,
+  suite: null,
+  case_id: null
 });
 const rules = ref({
   name: {
@@ -108,15 +141,47 @@ const rules = ref({
     message: '请选择里程碑'
   }
 });
-const caseOptions = ref([]);
 const milestoneOptions = ref([]);
+const repoOpts = ref();
+const frameworkOpts = ref([]);
+const suiteOpts = ref();
+const caseOptions = ref([]);
+
+const getFrameworkFunc = () => {
+  getFramework().then((res) => {
+    frameworkOpts.value = res.data?.map((item) => ({
+      label: item.name,
+      value: String(item.id)
+    }));
+  });
+};
+
+const frameworkChange = async (value) => {
+  repoOpts.value = await createRepoOptions({ framework_id: value });
+};
+
+const repoChange = async (value) => {
+  suiteOpts.value = await createSuiteOptions({
+    git_repo_id: value
+  });
+};
+
+const changeSuite = async (value) => {
+  formValue.value.case_id = null;
+  caseOptions.value = await createCaseOptions({
+    suite_id: value
+  });
+};
 
 const onNegativeClick = () => {
   showModal.value = false;
   formValue.value = {
     name: '',
-    case_id: null,
-    milestone_id: null
+    milestone_id: null,
+    framework: null,
+    git_repo_id: null,
+    suite: null,
+    case_id: null
   };
 };
 const onPositiveClick = () => {
@@ -135,15 +200,7 @@ const onPositiveClick = () => {
 };
 
 const init = () => {
-  getCasePrecise().then((res) => {
-    caseOptions.value = [];
-    res.data.forEach((v) => {
-      caseOptions.value.push({
-        label: v.name,
-        value: v.id
-      });
-    });
-  });
+  getFrameworkFunc();
   getMilestones({ paged: false }).then((res) => {
     milestoneOptions.value = [];
     res.data.items.forEach((v) => {
