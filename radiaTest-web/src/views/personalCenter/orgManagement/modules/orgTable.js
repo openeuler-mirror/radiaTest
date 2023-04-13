@@ -49,7 +49,8 @@ function cloneRegisterModel(row) {
   registerModel.claRequestMethod = cloneData.cla_request_type;
   registerModel.claPassFlag = cloneData.cla_pass_flag;
   registerModel.enterpriseId = cloneData.enterprise_id;
-  registerModel.enterpreiseJoinUrl = cloneData.enterpreise_join_url;
+  registerModel.enterpriseToken = cloneData.enterprise_token;
+  registerModel.enterpriseJoinUrl = cloneData.enterprise_join_url;
   registerModel.oauthClientId = cloneData.oauth_client_id;
   registerModel.oauthClientSecret = cloneData.oauth_client_secret;
   registerModel.oauthClientScope = cloneData.oauth_scope?.split(',');

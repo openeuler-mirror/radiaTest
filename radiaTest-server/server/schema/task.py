@@ -69,6 +69,15 @@ class AddTaskSchema(BaseModel):
     is_manage_task: bool = False
     case_node_id: int = None
 
+    @root_validator
+    def check(cls, values):
+        if (values.get("type") == "VERSION" and not values.get("milestone_id")
+            ) or (
+                values.get("milestone_id") and (not values.get("type") or values.get("type") != "VERSION")
+            ):
+            raise ValueError("when type of task is VERSION, milestone_id must be not None.")
+        return values
+
 
 class OutAddTaskSchema(BaseModel):
     title: str

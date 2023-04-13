@@ -1,4 +1,18 @@
-import abc
+# Copyright (c) [2022] Huawei Technologies Co.,Ltd.ALL rights reserved.
+# This program is licensed under Mulan PSL v2.
+# You can use it according to the terms and conditions of the Mulan PSL v2.
+#          http://license.coscl.org.cn/MulanPSL2
+# THIS PROGRAM IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+# EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+# MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+# See the Mulan PSL v2 for more details.
+####################################
+# @Author  :
+# @email   :
+# @Date    :
+# @License : Mulan PSL v2
+#####################################
+
 from datetime import datetime
 import json
 import os
@@ -6,30 +20,31 @@ import io
 import pytz
 
 from flask.globals import current_app
-import requests
 from flask import g, jsonify
 
 from server import redis_client
-from server.utils.redis_util import RedisKey
-from server.utils.db import collect_sql_error, Insert, Edit, Delete
+from server.utils.db import collect_sql_error, Insert, Edit
 from server.utils.page_util import PageUtil
 from server.utils.response_util import RET
-from server.model.organization import Organization
+from server.utils.math_util import calculate_rate
+from server.utils.open_api_util import BaseOpenApiHandler
 from server.model.milestone import Milestone, IssueSolvedRate, TestReport
 from server.model.mirroring import Repo
 from server.model.template import Template
-from server.model.product import Product
 from server.model.task import TaskMilestone
 from server.schema.milestone import GiteeMilestoneBase, GiteeMilestoneEdit, MilestoneStateEventSchema
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
-from server.utils.permission_utils import PermissionManager, GetAllByPermission
+from server.utils.permission_utils import PermissionManager
 from server.utils.resource_utils import ResourceManager
 from server.utils.md_util import MdUtil
+from server.apps.issue.handler import GiteeV8BaseIssueHandler
 
 
+# TODO 淘汰Insert，Edit和Delte
 class CreateMilestone:
     @staticmethod
     def bind_scope(milestone_id, body, api_info_file):
+        # 按配置为创建的里程碑绑定权限
         cur_file_dir = os.path.abspath(__file__)
         cur_dir = cur_file_dir.replace(cur_file_dir.split("/")[-1], "")
         allow_list, deny_list = PermissionManager().get_api_list(
@@ -63,7 +78,7 @@ class CreateMilestone:
                     Milestone, "/milestone"
                 )
             except (IntegrityError, SQLAlchemyError) as e:
-                raise RuntimeError(str(e))
+                raise RuntimeError(str(e)) from e
             CreateMilestone.bind_scope(milestone_id, body, "api_infos.yaml")
             return jsonify(
                 error_code=RET.OK, error_msg="Request processed successfully."
@@ -84,15 +99,18 @@ class DeleteMilestone:
             return MilestoneOpenApiHandler().delete(milestone_id)
         else:
             _tm = TaskMilestone.query.filter_by(
-                milestone_id=milestone_id).all()
+                milestone_id=milestone_id
+            ).all()
             if _tm:
                 return jsonify(
                     error_code=RET.DATA_EXIST_ERR,
                     error_msg="Delete failed, Some tasks have been associated with this milestone"
                 )
             return ResourceManager("milestone", "v2").del_cascade_single(
-                milestone_id, Template, [
-                    Template.milestone_id == milestone_id], False
+                milestone_id, 
+                Template, 
+                [Template.milestone_id == milestone_id], 
+                False,
             )
 
 
@@ -100,6 +118,7 @@ class MilestoneHandler:
     @staticmethod
     @collect_sql_error
     def get_milestone(query, filter_params = None):
+        # 按筛选条件获取里程碑列表
         if not filter_params:
             filter_params = list()
 
@@ -158,88 +177,6 @@ class MilestoneHandler:
         return jsonify(error_code=RET.OK, error_msg="OK", data=page_dict)
 
 
-class BaseOpenApiHandler:
-    def __init__(self, table=None, namespace=None, user_id=None):
-        self.table = table
-        self.namespace = namespace
-        self.user_id = user_id if user_id else g.user_id
-
-    @abc.abstractmethod
-    def gitee_2_radia(self):
-        pass
-
-    @abc.abstractmethod
-    def radia_2_gitee(self):
-        pass
-
-    @property
-    def access_token(self):
-        return redis_client.hget(RedisKey.user(self.user_id), "gitee_access_token")
-
-    @property
-    def current_org(self):
-        org_id = redis_client.hget(
-            RedisKey.user(self.user_id), "current_org_id")
-        org = Organization.query.filter_by(id=org_id).first()
-        return org
-
-    @collect_sql_error
-    def add_update(self, act, url, data, schema, handler):
-        data.update({"access_token": self.access_token})
-
-        _resp = requests.request(
-            method=act,
-            url=url,
-            data=json.dumps(schema(**data).__dict__),
-            headers=current_app.config.get("HEADERS"),
-        )
-
-        _resp.encoding = _resp.apparent_encoding
-
-        if (_resp.status_code != 200 and act == "PUT") or (
-            _resp.status_code != 201 and act == "POST"
-        ):
-            current_app.logger.error(_resp.text)
-            return jsonify(
-                error_code=RET.BAD_REQ_ERR,
-                error_msg="fail to add_update through gitee v8 openAPI",
-            )
-
-        gitee_milestone = json.loads(_resp.text)
-
-        milestone = self.gitee_2_radia(gitee_milestone)
-
-        _ = handler(self.table, milestone).single(self.table, self.namespace)
-
-        return jsonify(
-            error_code=RET.OK,
-            error_msg="OK",
-        )
-
-    @collect_sql_error
-    def query(self, url, params=None):
-        _params = {
-            "access_token": self.access_token,
-        }
-        if params is not None and isinstance(params, dict):
-            _params.update(params)
-
-        _resp = requests.get(
-            url=url, params=_params, headers=current_app.config.get("HEADERS")
-        )
-
-        _resp.encoding = _resp.apparent_encoding
-
-        if _resp.status_code != 200:
-            current_app.logger.error(_resp.text)
-            return jsonify(
-                error_code=RET.BAD_REQ_ERR,
-                error_msg="fail to get data through gitee openAPI",
-            )
-
-        return jsonify(error_code=RET.OK, error_msg="OK", data=_resp.text)
-
-
 class MilestoneOpenApiHandler(BaseOpenApiHandler):
     def __init__(self, body=None):
         if body is not None:
@@ -249,6 +186,7 @@ class MilestoneOpenApiHandler(BaseOpenApiHandler):
         super().__init__(Milestone, "/milestone")
 
     def gitee_2_radia(self, body):
+        # gitee数据格式转换为radiaTest数据格式
         _body = self.body
         if isinstance(body.get("start_date"), str):
             _body["start_time"] = body.get("start_date")
@@ -269,6 +207,7 @@ class MilestoneOpenApiHandler(BaseOpenApiHandler):
         return _body
 
     def radia_2_gitee(self, body):
+        # radiaTest数据格式转换为gitee数据格式
         if isinstance(body.get("start_time"), str):
             body["start_time"] = body.get("start_time")
 
@@ -279,6 +218,7 @@ class MilestoneOpenApiHandler(BaseOpenApiHandler):
 
     @collect_sql_error
     def create(self):
+        # 调用接口于Gitee企业仓创建里程碑
         _url = "https://api.gitee.com/enterprises/{}/milestones".format(
             self.current_org.enterprise_id
         )
@@ -292,6 +232,7 @@ class MilestoneOpenApiHandler(BaseOpenApiHandler):
         )
 
     def edit(self, milestone_id):
+        # 调用接口于Gitee企业仓编辑里程碑
         _url = "https://api.gitee.com/enterprises/{}/milestones/{}".format(
             self.current_org.enterprise_id,
             milestone_id,
@@ -305,6 +246,7 @@ class MilestoneOpenApiHandler(BaseOpenApiHandler):
         )
 
     def delete(self, milestone_id):
+        # 调用接口于Gitee企业仓删除里程碑
         milestone = Milestone.query.filter_by(id=milestone_id).first()
         if not milestone:
             return jsonify(
@@ -335,6 +277,7 @@ class MilestoneOpenApiHandler(BaseOpenApiHandler):
         )
 
     def edit_state_event(self, milestone_id):
+        # 调用接口于Gitee企业仓编辑里程碑状态
         _url = "https://api.gitee.com/enterprises/{}/milestones/{}".format(
             self.current_org.enterprise_id,
             milestone_id,
@@ -348,6 +291,7 @@ class MilestoneOpenApiHandler(BaseOpenApiHandler):
         )
 
     def get_milestones(self, params):
+        # 调用接口于Gitee企业仓获取里程碑
         _url = "https://api.gitee.com/enterprises/{}/milestones".format(
             self.current_org.enterprise_id,
         )
@@ -358,212 +302,36 @@ class MilestoneOpenApiHandler(BaseOpenApiHandler):
         return _resp
 
 
-class IssueOpenApiHandlerV5:
-    def __init__(self, enterprise, milestone) -> None:
-        self.per_page = 100
-        if current_app.config.get("ISSUES_PER_PAGE"):
-            self.per_page = current_app.config.get("ISSUES_PER_PAGE")
-        self.headers = None
-        if current_app.config.get("HEADERS"):
-            self.headers = current_app.config.get("HEADERS")
-
-        self.url = "https://gitee.com/api/v5/enterprises/{}/issues".format(
-            enterprise,
-        )
-
-        self.access_token = redis_client.hget(
-            RedisKey.user(g.user_id), "gitee_access_token"
-        )
-
-        self.total_count, self.total_page = self._get_summary(
-            enterprise,
-            milestone,
-        )
-
-    def _get_summary(self, enterprise, milestone):
-        _resp = requests.get(
-            url=self.url,
-            params={
-                "access_token": self.access_token,
-                "enterprise": enterprise,
-                "milestone": milestone,
-                "state": "all",
-                "page": 1,
-                "per_page": self.per_page,
-            },
-            headers=self.headers,
-        )
-        _resp.encoding = _resp.apparent_encoding
-
-        if _resp.status_code == 200:
-            return (
-                int(_resp.headers.get("total_count")),
-                int(_resp.headers.get("total_page")),
-            )
-        else:
-            return (0, 0)
-
-    def get_all_list(self, params):
-        _total_data = []
-
-        for page in range(self.total_page):
-            _resp = requests.get(
-                url=self.url,
-                params={
-                    "access_token": self.access_token,
-                    "enterprise": params["enterprise"],
-                    "state": params["state"],
-                    "sort": params["sort"],
-                    "direction": params["direction"],
-                    "page": page + 1,
-                    "per_page": self.per_page,
-                    "milestone": params["milestone"],
-                },
-                headers=self.headers,
-            )
-
-            if _resp.status_code == 200:
-                _total_data += json.loads(_resp.text)
-
-        return _total_data
-
-    def getAll(self, params):
-        total_data = self.get_all_list(params=params)
-        return jsonify(total_data)
-
-
-class IssueOpenApiHandlerV8(BaseOpenApiHandler):
-    def get_all(self, params):
-        _url = "https://api.gitee.com/enterprises/{}/issues".format(
-            self.current_org.enterprise_id,
-        )
-        return self.query(url=_url, params=params)
-
-    def get(self, issue_id):
-        _url = "https://api.gitee.com/enterprises/{}/issues/{}".format(
-            self.current_org.enterprise_id, issue_id
-        )
-        return self.query(url=_url)
-
-    def get_issue_types(self):
-        _url = "https://api.gitee.com/enterprises/{}/issue_types".format(
-            self.current_org.enterprise_id,
-        )
-        return self.query(url=_url)
-
-    def get_issue_states(self):
-        _url = "https://api.gitee.com/enterprises/{}/issue_states".format(
-            self.current_org.enterprise_id,
-        )
-        return self.query(url=_url)
-
-
-class IssueBaseHandlerV8:
-    def __init__(self, user_id=None, org_id=None) -> None:
-        self.issv8 = IssueOpenApiHandlerV8(user_id=user_id)
-        if org_id is None:
-            org_id = redis_client.hget(
-                RedisKey.user(g.user_id), "current_org_id")
-        org = Organization.query.filter_by(id=org_id).first()
-        self.issue_types = redis_client.hget(
-            RedisKey.issue_types(org.enterprise_id), "data")
-        self.issue_types = self.issue_types[1:-1].replace(
-            "\'", "\"").replace("}, {", "}#{").split("#")
-
-        self.issue_states = redis_client.hget(
-            RedisKey.issue_states(org.enterprise_id), "data")
-        self.issue_states = self.issue_states[1:-1].replace(
-            "\'", "\"").replace("}, {", "}#{").split("#")
-
-    def get_bug_issue_type_id(self, title):
-        type_id = None
-        for _type in self.issue_types:
-            _type = json.loads(_type)
-            if _type.get("title") == title:
-                type_id = _type.get("id")
-                break
-        return type_id
-
-    def get_state_ids(self, solved_state):
-        state_ids = ""
-        for _stat in solved_state:
-            for _type in self.issue_states:
-                _type = json.loads(_type)
-                if _type.get("title") == _stat:
-                    state_ids = state_ids + str(_type.get("id")) + ","
-                    break
-        if len(state_ids) > 0:
-            state_ids = state_ids[:-1]
-        return state_ids
-
-    def get_state_ids_inversion(self, inversion_solved_state: set):
-        state_ids = ""
-        for _type in self.issue_states:
-            _type = json.loads(_type)
-            if _type.get("title") not in inversion_solved_state:
-                state_ids = state_ids + str(_type.get("id")) + ","
-        if len(state_ids) > 0:
-            state_ids = state_ids[:-1]
-        return state_ids
-
-    @staticmethod
-    def calculate_rate(solved_cnt, all_cnt):
-        solved_rate = None
-        if int(all_cnt) != 0:
-            solved_rate = int(solved_cnt) / int(all_cnt)
-        if solved_rate is not None:
-            solved_rate = "%.f%%" % (solved_rate * 100)
-        return solved_rate
-
-    def get_issue_cnt_rate(self, param1, param2):
-        solved_cnt, all_cnt, solved_rate = None, None, None
-        all_cnt = self.get_issues_cnt(param1)
-        if all_cnt is not None and int(all_cnt) == 0 and param2 is not None:
-            return 0, 0, "100%"
-        solved_cnt = self.get_issues_cnt(param2)
-
-        if solved_cnt is not None and all_cnt is not None and int(all_cnt) != 0:
-            solved_rate = int(solved_cnt) / int(all_cnt)
-        if solved_rate is not None:
-            solved_rate = "%.f%%" % (solved_rate * 100)
-        return solved_cnt, all_cnt, solved_rate
-
-    def get_issues_cnt(self, param):
-        cnt = None
-        if not param:
-            return cnt
-        resp = self.issv8.get_all(param)
-        resp = resp.get_json()
-        if resp.get("error_code") == RET.OK:
-            cnt = json.loads(resp.get("data")).get("total_count")
-            return int(cnt)
-        return cnt
-
-
-class IssueHandlerV8(IssueBaseHandlerV8):
-    def __init__(self, user_id=None, org_id=None) -> None:
-        super().__init__(user_id, org_id)
+class GenerateVersionTestReport(GiteeV8BaseIssueHandler):
+    def __init__(self, gitee_id=None, org_id=None) -> None:
+        super().__init__(gitee_id, org_id)
         self.bug_issue_type_id = self.get_bug_issue_type_id("缺陷")
 
-    def get_issues(self, gitee_milestone_id, state_ids, uri):
+    def get_issues(self, gitee_milestone_id, state_ids):
+        # 调用接口于Gitee企业仓获取issues
         param = {
             "milestone_id": gitee_milestone_id,
             "issue_state_ids": state_ids,
             "issue_type_id": self.bug_issue_type_id,
         }
-        resp = self.issv8.get_all(param)
+        resp = self.get_all(param)
         resp = resp.get_json()
         _data = None
         if resp.get("error_code") == RET.OK:
             data = json.loads(resp.get("data")).get("data")
             serious_data, main_data, minor_data, not_main_data, no_assign_data = [], [], [], [], []
+            uri = "https://gitee.com"
             for d in data:
                 priority = int(d.get("priority"))
                 tmp_issue = {
                     "id": d.get("id"),
                     "ident": d.get("ident"),
                     "title": d.get("title"),
-                    "url": f"{uri}/{d.get('ident')}?from=project-issue",
+                    "url": "{}/{}" + "/issues/{}?from=project-issue".format(
+                        uri,
+                        d.get('project').get('path_with_namespace'),
+                        d.get('ident')
+                    ),
                     "priority": d.get("priority_human"),
                     "state": d.get("issue_state").get("title")
                 }
@@ -581,19 +349,19 @@ class IssueHandlerV8(IssueBaseHandlerV8):
                 minor_data + not_main_data + no_assign_data
             issue_data_cnt = len(issue_data)
             _data = {
-                "serious_issue_rate": IssueHandlerV8.calculate_rate(len(serious_data), issue_data_cnt),
+                "serious_issue_rate": calculate_rate(len(serious_data), issue_data_cnt),
                 "serious_issue_cnt": len(serious_data),
                 "serious_issue": serious_data,
-                "main_issue_rate": self.calculate_rate(len(main_data), issue_data_cnt),
+                "main_issue_rate": calculate_rate(len(main_data), issue_data_cnt),
                 "main_issue_cnt": len(main_data),
                 "main_issue": main_data,
-                "minor_issue_rate": self.calculate_rate(len(minor_data), issue_data_cnt),
+                "minor_issue_rate": calculate_rate(len(minor_data), issue_data_cnt),
                 "minor_issue_cnt": len(minor_data),
                 "minor_issue": minor_data,
-                "not_main_issue_rate": self.calculate_rate(len(not_main_data), issue_data_cnt),
+                "not_main_issue_rate": calculate_rate(len(not_main_data), issue_data_cnt),
                 "not_main_issue_cnt": len(not_main_data),
                 "not_main_issue": not_main_data,
-                "no_assign_issue_rate": self.calculate_rate(len(no_assign_data), issue_data_cnt),
+                "no_assign_issue_rate": calculate_rate(len(no_assign_data), issue_data_cnt),
                 "no_assign_issue_cnt": len(no_assign_data),
                 "no_assign_issue": no_assign_data,
                 "issue_data": issue_data,
@@ -602,11 +370,12 @@ class IssueHandlerV8(IssueBaseHandlerV8):
         return _data
 
     def generate_update_test_report(self, milestone_id, uri):
+        # 生成update测试报告
         milestone = Milestone.query.filter_by(id=milestone_id).first()
         state_ids = self.get_state_ids_inversion(
             set(["已完成", "已验收", "已取消", "已拒绝", "已修复"])
         )
-        data = self.get_issues(milestone.gitee_milestone_id, state_ids, uri)
+        data = self.get_issues(milestone.gitee_milestone_id, state_ids)
         if data is None:
             return jsonify(
                 error_code=RET.BAD_REQ_ERR,
@@ -745,198 +514,21 @@ class IssueHandlerV8(IssueBaseHandlerV8):
         )
 
 
-class IssueStatisticsHandlerV8(IssueBaseHandlerV8):
-    def __init__(self, user_id=None, org_id=None) -> None:
-        super().__init__(user_id, org_id)
-        self.bug_issue_type_id = self.get_bug_issue_type_id("缺陷")
-
-        self.all_state_ids = self.get_state_ids_inversion(
-            set(["已挂起", "已取消", "已拒绝"])
-        )
-        self.serious_state_ids = self.get_state_ids(
-            set(["已完成", "已验收", "已挂起", "已取消", "已拒绝"])
-        )
-        self.current_resolved_state_ids = self.get_state_ids(
-            set(["已完成", "已验收"])
-        )
-        self.left_state_ids = self.get_state_ids(
-            set(["已挂起"])
-        )
-        self.invalid_state_ids = self.get_state_ids(
-            set(["已取消", "已拒绝"])
-        )
-
+class IssueStatisticsHandlerV8():
+    # TODO 改为从v8token服务获取token
     @staticmethod
-    def get_user_id(org_id):
+    def get_gitee_id(org_id):
         access_token_list = redis_client.keys("access_token*")
-        user_id = None
+        gitee_id = None
         for _token in access_token_list:
             _org_id = redis_client.hget(_token, "org_id")
             if int(_org_id) == int(org_id):
-                user_id = _token.split("_")[-1]
+                gitee_id = _token.split("_")[-1]
                 break
-        return user_id
-
-    @staticmethod
-    def get_issue_type():
-        org_id = redis_client.hget(RedisKey.user(g.user_id), "current_org_id")
-        org = Organization.query.filter(
-            Organization.id == org_id, Organization.enterprise_id is not None).first()
-        if not org:
-            return jsonify(
-                error_code=RET.NO_DATA_ERR,
-                error_msg="this organization has no right",
-            )
-        issue_types = redis_client.hget(
-            RedisKey.issue_types(org.enterprise_id),
-            "data"
-        )
-        issue_types = issue_types[1:-1].replace(
-            "\'", "\"").replace("}, {", "}#{").split("#")
-        _data = list()
-        for _type in issue_types:
-            _data.append(json.loads(_type))
-        return jsonify(
-            error_code=RET.OK,
-            error_msg="OK",
-            data=_data
-        )
-
-    @staticmethod
-    def get_issue_state():
-        org_id = redis_client.hget(RedisKey.user(g.user_id), "current_org_id")
-        org = Organization.query.filter(
-            Organization.id == org_id, Organization.enterprise_id is not None).first()
-        if not org:
-            return jsonify(
-                error_code=RET.NO_DATA_ERR,
-                error_msg="this organization has no right",
-            )
-        issue_states = redis_client.hget(
-            RedisKey.issue_states(org.enterprise_id), "data")
-        issue_states = issue_states[1:-1].replace(
-            "\'", "\"").replace("}, {", "}#{").split("#")
-        _data = list()
-        for _state in issue_states:
-            _data.append(json.loads(_state))
-        return jsonify(
-            error_code=RET.OK,
-            error_msg="OK",
-            data=_data
-        )
-
-    def get_milestone_issue_solved_rate(self, milestone):
-        _, _, serious_resolved_rate = self.get_issue_cnt_rate(
-            {
-                "milestone_id": milestone.gitee_milestone_id,
-                "priority": 4,
-                "issue_state_ids": self.serious_state_ids,
-                "issue_type_id": self.bug_issue_type_id,
-            },
-            {
-                "milestone_id": milestone.gitee_milestone_id,
-                "priority": 4,
-                "issue_type_id": self.bug_issue_type_id,
-            },
-        )
-
-        _, _, main_resolved_rate = self.get_issue_cnt_rate(
-            {
-                "milestone_id": milestone.gitee_milestone_id,
-                "priority": 3,
-                "issue_state_ids": self.serious_state_ids,
-                "issue_type_id": self.bug_issue_type_id,
-            },
-            {
-                "milestone_id": milestone.gitee_milestone_id,
-                "priority": 3,
-                "issue_type_id": self.bug_issue_type_id,
-            },
-        )
-
-        (
-            serious_main_resolved_cnt,
-            serious_main_all_cnt,
-            serious_main_resolved_rate,
-        ) = self.get_issue_cnt_rate(
-            {
-                "milestone_id": milestone.gitee_milestone_id,
-                "priority": "3,4",
-                "issue_state_ids": self.serious_state_ids,
-                "issue_type_id": self.bug_issue_type_id,
-            },
-            {
-                "milestone_id": milestone.gitee_milestone_id,
-                "priority": "3,4",
-                "issue_type_id": self.bug_issue_type_id,
-            },
-        )
-
-        (
-            current_resolved_cnt,
-            current_all_cnt,
-            current_resolved_rate,
-        ) = self.get_issue_cnt_rate(
-            {
-                "milestone_id": milestone.gitee_milestone_id,
-                "issue_state_ids": self.current_resolved_state_ids,
-                "issue_type_id": self.bug_issue_type_id,
-            },
-            {
-                "milestone_id": milestone.gitee_milestone_id,
-                "issue_state_ids": self.all_state_ids,
-                "issue_type_id": self.bug_issue_type_id,
-            },
-        )
-
-        left_issues_cnt = self.get_issues_cnt(
-            {
-                "milestone_id": milestone.gitee_milestone_id,
-                "issue_state_ids": self.left_state_ids,
-                "issue_type_id": self.bug_issue_type_id,
-            }
-        )
-        invalid_issues_cnt = self.get_issues_cnt(
-            {
-                "milestone_id": milestone.gitee_milestone_id,
-                "issue_state_ids": self.invalid_state_ids,
-                "issue_type_id": self.bug_issue_type_id,
-            }
-        )
-
-        return {
-            "serious_resolved_rate": serious_resolved_rate,
-            "main_resolved_rate": main_resolved_rate,
-            "serious_main_resolved_cnt": serious_main_resolved_cnt,
-            "serious_main_all_cnt": serious_main_all_cnt,
-            "serious_main_resolved_rate": serious_main_resolved_rate,
-            "current_resolved_cnt": current_resolved_cnt,
-            "current_all_cnt": current_all_cnt,
-            "current_resolved_rate": current_resolved_rate,
-            "left_issues_cnt": left_issues_cnt,
-            "invalid_issues_cnt": invalid_issues_cnt,
-        }
+        return gitee_id
 
     @staticmethod
     def get_rate_by_milestone(milestone_id):
-        _milestones = Milestone.query.filter_by(
-            is_sync=True, id=milestone_id).first()
-        if not _milestones:
-            return jsonify(
-                error_code=RET.NO_DATA_ERR,
-                error_msg="milestone does not exist.",
-            )
-        rate_data = IssueStatisticsHandlerV8().get_milestone_issue_solved_rate(
-            _milestones
-        )
-        return jsonify(
-            error_code=RET.OK,
-            error_msg="OK",
-            data=rate_data,
-        )
-
-    @staticmethod
-    def get_rate_by_milestone2(milestone_id):
         _milestones = Milestone.query.filter_by(
             is_sync=True, id=milestone_id).first()
         if not _milestones:
@@ -982,7 +574,7 @@ class IssueStatisticsHandlerV8(IssueBaseHandlerV8):
 
         update_field_issue_rate.delay(
             "milestone",
-            g.user_id,
+            g.gitee_id,
             {"org_id": milestone.org_id, "product_id": milestone.product_id},
             field,
             milestone.gitee_milestone_id

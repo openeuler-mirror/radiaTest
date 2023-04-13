@@ -215,8 +215,6 @@ class InstallVmachine(VmachineBaseSchema):
                 }
             )
 
-            self._set_static_vncport()
-
             self.update_vmachine(self._body)
 
         except (RuntimeError, TypeError, KeyError, AttributeError):
@@ -395,8 +393,6 @@ class InstallVmachine(VmachineBaseSchema):
                 }
             )
 
-            self._set_static_vncport()
-
             self.update_vmachine(self._body)
 
             self.logger.info(
@@ -522,8 +518,6 @@ class InstallVmachine(VmachineBaseSchema):
                         .split(":")[-1],
                 }
             )
-
-            self._set_static_vncport()
 
             self.update_vmachine(self._body)
 

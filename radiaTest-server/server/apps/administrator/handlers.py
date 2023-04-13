@@ -16,7 +16,6 @@
 #####################################
 
 from flask import request, g, jsonify, current_app
-from sqlalchemy.orm.session import make_transient
 from server import db
 
 from server import redis_client
@@ -30,7 +29,6 @@ from server.utils.permission_utils import PermissionManager
 from server.utils.read_from_yaml import create_role, get_api, get_default_suffix
 from server.model.administrator import Admin
 from server.model.organization import Organization
-from server.model.group import Group
 from server.model.permission import Role, ReScopeRole, ReUserRole
 from server.schema.organization import UpdateSchema
 
@@ -41,8 +39,8 @@ def handler_login(body):
     admin = Admin.query.filter_by(account=body.account).first()
     if not admin:
         return jsonify(
-            error_code=RET.NO_DATA_ERR,
-            error_msg='admin no find'
+            error_code=RET.VERIFY_ERR,
+            error_msg='Account does not exist or password is incorrect. Please re-enter'
         )
 
     # 防止用户多次登录
@@ -59,7 +57,7 @@ def handler_login(body):
         redis_client.expire(lock_key, ex=1800)
         return jsonify(
             error_code=RET.VERIFY_ERR,
-            error_msg='password error'
+            error_msg='Account does not exist or password is incorrect. Please re-enter'
         )
 
     user_dict = {

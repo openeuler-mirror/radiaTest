@@ -1,9 +1,8 @@
 from typing import List, Optional
 
 from pydantic import BaseModel, constr
-from . import PermissionType
 
-from server.schema.base import UpdateBaseModel, PermissionBase
+from server.schema.base import PermissionBase
 
 
 class TemplateBase(BaseModel):
@@ -14,14 +13,17 @@ class TemplateBase(BaseModel):
     git_repo_id: int = 1
 
 
-class TemplateUpdate(TemplateBase, UpdateBaseModel):
+class TemplateUpdate(TemplateBase):
     name: Optional[constr(max_length=128)]
     milestone_id: Optional[int]
     git_repo_id: Optional[int]
     cases: Optional[List[str]]
+    description: Optional[constr(max_length=255)]
+
 
 class TemplateCloneBase(PermissionBase):
     id: int
+
 
 class TemplateCreateBase(PermissionBase):
     name: constr(max_length=128)

@@ -76,6 +76,7 @@
           </n-form>
         </n-drawer-content>
       </n-drawer>
+      <!-- 泳道视图 -->
       <div v-if="kanban" style="height: 100%">
         <n-scrollbar x-scrollable style="height: 100%">
           <div class="task-board">
@@ -127,14 +128,9 @@
           </div>
         </n-scrollbar>
       </div>
-      <div v-else style="padding: 20px">
-        <n-data-table
-          :columns="columns"
-          children-key="tasks"
-          :row-key="listRowKey"
-          :data="listData"
-          :row-props="rowProps"
-        />
+      <!-- 甘特视图 -->
+      <div v-else style="padding: 20px; height: 100%">
+        <GanttView></GanttView>
       </div>
       <div>
         <n-modal v-model:show="showModal" class="modalBox" @after-leave="leaveModal">
@@ -786,34 +782,37 @@
           </n-card>
         </n-modal>
         <n-modal v-model:show="distributeTaskModal">
-          <n-card style="width: 600px" title="分配任务" :bordered="false" size="huge">
-            <template #header-extra>
-              <div>
-                <n-switch v-model:value="distributeAllCases">
-                  <template #checked>全用例分配</template>
-                  <template #unchecked>仅分配未完成</template>
-                </n-switch>
+          <n-spin :show="showDistributeTaskSpin">
+            <template #description> 正在分配... </template>
+            <n-card style="width: 600px" title="分配任务" :bordered="false" size="huge">
+              <template #header-extra>
+                <div>
+                  <n-switch v-model:value="distributeAllCases">
+                    <template #checked>全用例分配</template>
+                    <template #unchecked>仅分配未完成</template>
+                  </n-switch>
+                </div>
+              </template>
+              <div style="display: flex">
+                <n-select
+                  placeholder="请选择模板"
+                  style="width: 35%"
+                  v-model:value="distributeTaskValue"
+                  :options="distributeTaskOption"
+                />
+                <n-select
+                  placeholder="请选择里程碑"
+                  style="width: 35%; margin-left: 10px"
+                  v-model:value="distributeTaskMilestoneValue"
+                  :options="distributeTaskMilestoneOption"
+                />
+                <div style="width: 30%; display: flex; justify-content: space-evenly">
+                  <n-button type="error" ghost @click="cancelDistributeTask">取消</n-button>
+                  <n-button type="info" ghost @click="distributeTaskBtn(distributeTaskValue)">分配</n-button>
+                </div>
               </div>
-            </template>
-            <div style="display: flex">
-              <n-select
-                placeholder="请选择模板"
-                style="width: 35%"
-                v-model:value="distributeTaskValue"
-                :options="distributeTaskOption"
-              />
-              <n-select
-                placeholder="请选择里程碑"
-                style="width: 35%; margin-left: 10px"
-                v-model:value="distributeTaskMilestoneValue"
-                :options="distributeTaskMilestoneOption"
-              />
-              <div style="width: 30%; display: flex; justify-content: space-evenly">
-                <n-button type="error" ghost @click="cancelDistributeTask">取消</n-button>
-                <n-button type="info" ghost @click="distributeTaskBtn(distributeTaskValue)">分配</n-button>
-              </div>
-            </div>
-          </n-card>
+            </n-card>
+          </n-spin>
         </n-modal>
       </div>
       <div>
@@ -844,6 +843,14 @@
                   :on-load="handleLoad"
                 />
               </n-form-item>
+              <n-form-item label="里程碑" path="milestone">
+                <n-select
+                  v-model:value="modelVersion.milestone"
+                  placeholder="请选择里程碑"
+                  :options="milestoneOptions"
+                  clearable
+                />
+              </n-form-item>
               <n-form-item label="截止日期" path="closingTime">
                 <n-date-picker type="datetime" style="width: 100%" v-model:value="modelVersion.closingTime" />
               </n-form-item>
@@ -863,6 +870,13 @@
             </n-form>
           </n-card>
         </n-modal>
+      </div>
+      <div>
+        <CaseIssueModal
+          :caseIssueModalData="caseIssueModalData"
+          :taskDetailData="modalData"
+          ref="caseIssueModalRef"
+        ></CaseIssueModal>
       </div>
       <!-- 生成报告 -->
       <div>
@@ -907,6 +921,7 @@ import Milepost from '@/components/tm/Milepost.vue';
 import { IosSearch } from '@vicons/ionicons4';
 import { modules } from './modules/index';
 import Editor from '@tinymce/tinymce-vue';
+import CaseIssueModal from './CaseIssueModal.vue';
 
 export default defineComponent({
   components: {
@@ -922,7 +937,8 @@ export default defineComponent({
     IosSearch,
     Edit24Regular,
     PlaylistAddCheckRound,
-    editor: Editor
+    editor: Editor,
+    CaseIssueModal
   },
   setup() {
     const { proxy } = getCurrentInstance();

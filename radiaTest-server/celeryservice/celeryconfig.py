@@ -200,3 +200,6 @@ smtp_server = loads_config_ini("mail", "SMTP_SERVER")
 smtp_port = loads_config_ini("mail", "SMTP_PORT")
 from_addr = loads_config_ini("mail", "FROM_ADDR")
 smtp_passwd = loads_config_ini("mail", "SMTP_PASSWD")
+
+# access_token of radiaTest-bot(make sure gitee v5 api is reachable)
+v5_access_token = loads_config_ini("token", "V5_ACCESS_TOKEN")

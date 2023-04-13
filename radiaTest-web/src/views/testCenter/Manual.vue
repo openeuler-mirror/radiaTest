@@ -340,7 +340,7 @@ const getExecutingTask = () => {
     executingTaskData.value = [];
     executingTaskPagination.value.pageCount = res.data.pages;
     executingTaskNum.value = res.data.total;
-    res.data?.items.forEach((v) => {
+    res.data?.items?.forEach((v) => {
       executingTaskData.value.push({
         id: v.id,
         case_id: v.case_id,
@@ -524,7 +524,7 @@ const getFinishedTask = () => {
     finishedTaskData.value = [];
     finishedTaskPagination.value.pageCount = res.data.pages;
     finishedTaskNum.value = res.data.total;
-    res.data?.items.forEach((v) => {
+    res.data?.items?.forEach((v) => {
       finishedTaskData.value.push({
         id: v.id,
         case_id: v.case_id,

@@ -27,4 +27,4 @@ WORKDIR /data/vnc_tokens
 
 RUN dnf install -y python3-websockify
 
-CMD websockify --token-plugin TokenFile --token-source . $websockify_listen --key ${websockify_key} --cert ${websockify_cert}
+CMD websockify --token-plugin TokenFile --token-source . $websockify_listen --key ${websockify_key} --cert ${websockify_cert} --ssl-version=tlsv1_2

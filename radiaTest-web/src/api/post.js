@@ -60,8 +60,11 @@ export function setOrgUserRole(id, data) {
 export function setGroupRepo(data) {
   return postRequest('/v1/git-repo', data);
 }
-export function setPackageListComparationDetail(qualityboardId, roundPreId, roundCurId, params) {
-  return postRequest(`/v1/qualityboard/${qualityboardId}/round/${roundPreId}/with/${roundCurId}/pkg-compare`, params);
+export function setPackageListComparationDetail(qualityboardId, roundCompareeId, roundCurId, params) {
+  return postRequest(
+    `/v1/qualityboard/${qualityboardId}/round/${roundCompareeId}/with/${roundCurId}/pkg-compare`,
+    params
+  );
 }
 
 export function addCheckListItem(data) {
@@ -151,4 +154,49 @@ export function createManualJob(data) {
 
 export function submitManualJob(jobId) {
   return postRequest(`/v1/manual-job/${jobId}/submit`);
+}
+
+// 录入特性
+export function createProductFeature(data) {
+  return postRequest('/v1/feature', data);
+}
+
+// 继承特性
+export function productInheritFeature(productId) {
+  return postRequest(`/v1/product/${productId}/inherit-feature`);
+}
+
+// 创建策略
+export function createStrategy(productFeatureId, data) {
+  return postRequest(`/v1/product-feature/${productFeatureId}/strategy`, data);
+}
+
+// 创建策略模板
+export function createStrategyTemplate(data) {
+  return postRequest('/v1/strategy-template', data);
+}
+
+// 应用策略模板
+export function applyStrategyTemplate(strategyTemplateId, productFeatureId) {
+  return postRequest(`/v1/strategy-template/${strategyTemplateId}/apply/product-feature/${productFeatureId}`);
+}
+
+// 关联继承特性
+export function relateProductFeature(productId, data) {
+  return postRequest(`/v1/product/${productId}/relate`, data);
+}
+
+// 暂存测试策略
+export function strategyCommitStage(strategyId, data) {
+  return postRequest(`/v1/strategy/${strategyId}/strategy-commit/stage`, data);
+}
+
+// 提交测试策略
+export function strategySubmmit(strategyId, data) {
+  return postRequest(`/v1/strategy/${strategyId}/submmit`, data);
+}
+
+// 创建issue
+export function createIssues(data) {
+  return postRequest('/v1/issues', data);
 }

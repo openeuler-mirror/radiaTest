@@ -1,19 +1,11 @@
 <template>
-  <div style="display: flex; padding-top: 20px;">
+  <div style="display: flex; padding-top: 20px">
     <div style="width: 100%">
       <jobs-card type="execute" id="execute" ref="executeRef" />
       <jobs-card type="wait" id="wait" ref="waitRef" />
       <jobs-card type="finish" id="finish" ref="finishRef" />
     </div>
-    <div
-      style="
-        width: 144px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        flex-shrink: 0;
-      "
-    >
+    <div style="width: 144px; display: flex; flex-direction: column; align-items: center; flex-shrink: 0">
       <n-anchor
         affix
         :trigger-top="24"
@@ -30,22 +22,33 @@
         <template #trigger>
           <div
             ref="createButton"
-            style="
-              position: fixed;
-              height: 100px;
-              bottom: 300px;
-              color: rgba(206, 206, 206, 1);
-            "
+            style="position: fixed; height: 100px; bottom: 400px; color: rgba(206, 206, 206, 1)"
             @mouseenter="handleHover(createButton)"
             @mouseleave="handleLeave(createButton)"
             @click="createModalRef.show()"
           >
             <n-icon :size="80">
-              <package />
+              <Package />
             </n-icon>
           </div>
         </template>
         <span>快速执行单包任务</span>
+      </n-popover>
+      <n-popover trigger="hover">
+        <template #trigger>
+          <div
+            ref="templateButton"
+            style="position: fixed; height: 100px; bottom: 300px; color: rgba(206, 206, 206, 1)"
+            @mouseenter="handleHover(templateButton)"
+            @mouseleave="handleLeave(templateButton)"
+            @click="showTemplateDrawer = true"
+          >
+            <n-icon :size="80">
+              <Template />
+            </n-icon>
+          </div>
+        </template>
+        <span>模板管理</span>
       </n-popover>
       <modal-card
         :init-x="400"
@@ -67,21 +70,25 @@
         </template>
       </modal-card>
     </div>
+    <n-drawer v-model:show="showTemplateDrawer" width="80%" placement="left">
+      <n-drawer-content>
+        <TemplateDrawer></TemplateDrawer>
+      </n-drawer-content>
+    </n-drawer>
   </div>
   <logs-drawer ref="logsDrawer" />
 </template>
 
 <script>
 import { ref, provide, onMounted, onUnmounted, defineComponent } from 'vue';
-
 import ModalCard from '@/components/CRUD/ModalCard.vue';
 import Essential from '@/components/jobComponents';
-import { Package } from '@vicons/tabler';
+import { Package, Template } from '@vicons/tabler';
 import LogsDrawer from '@/components/jobComponents/LogsDrawer.vue';
-
 import { Socket } from '@/socket.js';
 import settings from '@/assets/config/settings.js';
 import job from './modules/job.js';
+import TemplateDrawer from './TemplateDrawer.vue';
 
 export default defineComponent({
   components: {
@@ -89,6 +96,8 @@ export default defineComponent({
     ...Essential,
     Package,
     LogsDrawer,
+    Template,
+    TemplateDrawer
   },
   setup() {
     const jobSocket = new Socket(`${settings.websocketProtocol}://${settings.serverPath}/job`);
@@ -102,13 +111,11 @@ export default defineComponent({
     provide('finish', job.finishData);
 
     onMounted(() => {
-
       jobSocket.listen('update', () => {
         executeRef.value.getData();
         waitRef.value.getData();
         finishRef.value.getData();
-      }
-      );
+      });
     });
 
     onUnmounted(() => {
@@ -122,7 +129,7 @@ export default defineComponent({
       waitRef,
       executeRef
     };
-  },
+  }
 });
 </script>
 

@@ -21,7 +21,7 @@ from flask import g
 from server import db
 from server.model.base import BaseModel, PermissionBaseModel
 from server.model.user import User
-from server.model.framework import Framework
+from server.model.framework import Framework, GitRepo
 from server.model.group import Group
 from server.model.organization import Organization
 from server.model.baselinetemplate import BaselineTemplate
@@ -242,7 +242,8 @@ class Case(BaseModel, PermissionBaseModel, db.Model):
         'TaskManualCase', backref='case', cascade='all, delete')
     
     def to_json(self):
-        _git_repo = self.suite.git_repo
+        _suite = Suite.query.filter_by(id=self.suite_id).first()
+        _git_repo = _suite.git_repo
         git_repo_dict = dict()
 
         if _git_repo is not None:

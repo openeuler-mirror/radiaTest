@@ -116,6 +116,11 @@ class AddChecklistSchema(BaseModel):
                     raise ValueError(
                         "operation must be in ['<', '>', '=', '<=', '>=']"
                     )
+            if values.get("baseline") is not None and values.get("operation") is not None:
+                if values.get("baseline") == "100%" and values.get("operation") == ">":
+                    raise ValueError("operation can't be '>', when baseline is 100%.")
+                if values.get("baseline") in ["0", "0%"] and values.get("operation") == "<":
+                    raise ValueError("operation can't be '<', when baseline is 0 or 0%.")
         return values
 
 
@@ -140,7 +145,7 @@ class UpdateChecklistSchema(CheckBaseline):
         if values.get("baseline") is not None and values.get("operation") is not None:
             if values.get("baseline") == "100%" and values.get("operation") == ">":
                 raise ValueError("operation can't be '>', when baseline is 100%.")
-            if values.get("baseline").startswith("0") and values.get("operation") == "<":
+            if values.get("baseline") in ["0", "0%"] and values.get("operation") == "<":
                 raise ValueError("operation can't be '<', when baseline is 0 or 0%.")
         return values
 
@@ -173,7 +178,7 @@ class QueryCheckItemSchema(PageBaseSchema):
     title: Optional[str]
 
 
-class FeatureListCreateSchema(BaseModel):
+class FeatureCreateSchema(BaseModel):
     no: str
     url: Optional[HttpUrl]
     feature: str
@@ -183,7 +188,7 @@ class FeatureListCreateSchema(BaseModel):
     pkgs: str
 
 
-class FeatureListQuerySchema(BaseModel):
+class FeatureQuerySchema(BaseModel):
     new: bool = True
 
 
@@ -224,6 +229,22 @@ class PackageCompareQuerySchema(SamePackageCompareQuerySchema):
         raise ValueError("the format of arches is not valid")
 
 
+class SamePackageCompareResult(BaseModel):
+    repo_path: Literal["everything", "EPOL"]
+    new_result: bool = False
+
+
+class PackageCompareResult(SamePackageCompareResult):
+    arches: Optional[str]
+
+    @validator("arches")
+    def validate_arches(cls, v):
+        if isinstance(v, str):
+            return json.loads(v)
+
+        raise ValueError("the format of arches is not valid")
+
+
 class QueryQualityResultSchema(BaseModel):
     type: Literal["issue", "AT"]
     obj_type: Literal["product", "round", "milestone"]
@@ -250,6 +271,10 @@ class RoundUpdateSchema(BaseModel):
     buildname: Optional[str]
 
 
+class CompareRoundUpdateSchema(BaseModel):
+    comparee_round_ids: List[int]
+
+
 class RoundIssueQueryV8(BaseModel):
     state: Optional[MilestoneState]
     only_related_me: Optional[str]
@@ -267,3 +292,7 @@ class RoundIssueQueryV8(BaseModel):
     direction: Optional[str]
     page: int = 1
     per_page: int = 10
+
+
+class QueryRepeatRpmSchema(PageBaseSchema):
+    repo_path: Literal["everything", "EPOL"]

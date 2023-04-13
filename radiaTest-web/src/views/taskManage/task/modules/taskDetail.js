@@ -580,12 +580,14 @@ function cancelDistributeTask() {
 
 // 确认分配模板
 function distributeTaskBtn(value) {
+  showDistributeTaskSpin.value = true;
   axios
     .put(`/v1/tasks/${modalData.value.detail.id}/distribute-templates/${value}`, {
       milestone_id: distributeTaskMilestoneValue.value,
       distribute_all_cases: distributeAllCases.value
     })
     .then(() => {
+      showDistributeTaskSpin.value = false;
       getTaskCases();
       initData();
       distributeTaskModal.value = false;
@@ -593,9 +595,15 @@ function distributeTaskBtn(value) {
       distributeTaskOption.value = [];
     })
     .catch((err) => {
+      showDistributeTaskSpin.value = false;
       window.$message?.error(err.data.error_msg || '未知错误');
     });
 }
+
+const showDistributeTaskSpin = ref(false); // 分配模板加载状态
+
+const caseIssueModalData = ref(null); // 关联用例提单弹框数据
+const caseIssueModalRef = ref(null);
 
 // 测试用例显示表格
 const caseViewColumns = [
@@ -724,6 +732,22 @@ const caseViewColumns = [
               }
             },
             rowData.id !== '' ? '分配' : ''
+          ),
+          h(
+            NButton,
+            {
+              type: 'primary',
+              text: true,
+              disabled: !editStatus.value || rowData.status !== 'failed',
+              style: 'margin-right:10px;',
+              onClick: () => {
+                if (editStatus.value) {
+                  caseIssueModalRef.value.showModal = true;
+                  caseIssueModalData.value = rowData;
+                }
+              }
+            },
+            rowData.id !== '' ? '提单' : ''
           ),
           h(
             NButton,
@@ -1654,5 +1678,8 @@ export {
   distributeTaskMilestoneOption,
   getDistributeMilestone,
   distributeAllCases,
-  changeManage
+  changeManage,
+  caseIssueModalData,
+  caseIssueModalRef,
+  showDistributeTaskSpin
 };

@@ -17,7 +17,7 @@ from flask_restful import Api
 
 from .routes import (
     ChecklistResultEvent,
-    FeatureListSummary,
+    FeatureSummary,
     PackageListCompareEvent,
     RoundIssueEvent,
     RoundMilestoneEvent,
@@ -36,7 +36,7 @@ from .routes import (
     DailyBuildDetail,
     WeeklybuildHealthOverview,
     WeeklybuildHealthEvent,
-    FeatureListEvent,
+    FeatureEvent,
     CheckItemEvent,
     CheckItemSingleEvent,
     QualityResultCompare,
@@ -44,8 +44,12 @@ from .routes import (
     RoundEvent,
     RoundIssueRateEvent,
     RoundItemEvent,
+    CompareRoundEvent,
     RpmCheckOverview,
     RpmCheckDetailEvent,
+    PackagCompareResultExportEvent,
+    SamePackagCompareResultExportEvent,
+    RoundRepeatRpmEvent,
 )
 
 
@@ -115,11 +119,11 @@ def init_api(api: Api):
         "/api/v1/weeklybuild/<int:weeklybuild_id>",
     )
     api.add_resource(
-        FeatureListEvent,
+        FeatureEvent,
         "/api/v1/qualityboard/<int:qualityboard_id>/feature-list"
     )
     api.add_resource(
-        FeatureListSummary,
+        FeatureSummary,
         "/api/v1/qualityboard/<int:qualityboard_id>/feature-list/summary"
     )
     api.add_resource(
@@ -133,6 +137,14 @@ def init_api(api: Api):
     api.add_resource(
         SamePackageListCompareEvent,
         "/api/v1/qualityboard/<int:qualityboard_id>/round/<int:round_id>/pkg-compare"
+    )
+    api.add_resource(
+        PackagCompareResultExportEvent,
+        "/api/v1/round/<int:comparee_round_id>/with/<int:comparer_round_id>/pkg-compare-result-export"
+    )
+    api.add_resource(
+        SamePackagCompareResultExportEvent,
+        "/api/v1/round/<int:round_id>/pkg-compare-result-export"
     )
     api.add_resource(
         QualityResultCompare,
@@ -151,6 +163,10 @@ def init_api(api: Api):
         "/api/v1/round/<int:round_id>"
     )
     api.add_resource(
+        CompareRoundEvent,
+        "/api/v1/round/<int:round_id>/compare-round"
+    )
+    api.add_resource(
         RoundMilestoneEvent,
         "/api/v1/round/<int:round_id>/bind-milestone"
     )
@@ -165,4 +181,8 @@ def init_api(api: Api):
     api.add_resource(
         ChecklistResultEvent,
         "/api/v1/round/<int:round_id>/checklist-result",
+    )
+    api.add_resource(
+        RoundRepeatRpmEvent,
+        "/api/v1/round/<int:round_id>/repeat-rpm"
     )

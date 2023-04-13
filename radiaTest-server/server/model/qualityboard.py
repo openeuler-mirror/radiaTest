@@ -33,9 +33,6 @@ class QualityBoard(BaseModel, db.Model):
         db.Integer(), db.ForeignKey("product.id"), nullable=True
     )
 
-    feature_list = db.relationship(
-        'FeatureList', backref="qualityboard", cascade="all, delete"
-    )
 
     def get_round_milestones(self):
         milestones = dict()
@@ -286,11 +283,11 @@ class WeeklyHealth(db.Model, BaseModel):
         }
 
 
-class FeatureList(db.Model, BaseModel):
-    __tablename__ = "feature_list"
+class Feature(db.Model, BaseModel):
+    __tablename__ = "feature"
 
     id = db.Column(db.Integer(), primary_key=True, autoincrement=True)
-    no = db.Column(db.String(50), nullable=False, unique=True)
+    no = db.Column(db.String(50), nullable=False, unique=False)
     url = db.Column(db.String(512))
     status = db.Column(db.String(50))
     feature = db.Column(db.String(512), nullable=False)
@@ -298,10 +295,11 @@ class FeatureList(db.Model, BaseModel):
     owner = db.Column(LONGTEXT())
     release_to = db.Column(db.String(50))
     pkgs = db.Column(LONGTEXT())
-    is_new = db.Column(db.Boolean(), nullable=False, default=True)
-
-    qualityboard_id = db.Column(db.Integer(), db.ForeignKey("qualityboard.id"))
     task_id = db.Column(db.Integer(), db.ForeignKey("task.id"))
+    re_feature_products = db.relationship(
+        'ReProductFeature', backref="feature", cascade="all, delete, delete-orphan"
+    )
+
 
     def to_json(self):
         return {
@@ -315,7 +313,6 @@ class FeatureList(db.Model, BaseModel):
             "release_to": self.release_to,
             "pkgs": None if not self.pkgs else self.pkgs.split(','),
             "task_status": self.task.task_status.name if self.task else None,
-            "is_new": self.is_new,
         }
 
 
@@ -341,6 +338,29 @@ class RpmCompare(db.Model, BaseModel):
             "compare_result": self.compare_result,
             "repo_path": self.repo_path,
             "arch": self.arch,
+        }
+
+
+class RepeatRpm(db.Model, BaseModel):
+    __tablename__ = "repeat_rpm"
+
+    id = db.Column(db.Integer(), primary_key=True, autoincrement=True)
+    repo_path = db.Column(db.String(50), nullable=False)
+    arch = db.Column(db.String(50), nullable=False)
+    rpm_name = db.Column(db.String(128))
+    version = db.Column(db.String(128))
+    release = db.Column(db.String(128))
+    round_id = db.Column(db.Integer())
+
+    def to_json(self):
+        return {
+            "id": self.id,
+            "rpm_name": self.rpm_name,
+            "round_id": self.round_id,
+            "repo_path": self.repo_path,
+            "arch": self.arch,
+            "version": self.version,
+            "release": self.release,
         }
 
 
@@ -381,12 +401,24 @@ class Round(BaseModel, db.Model):
         db.Integer(), nullable=False,
     )
     buildname = db.Column(db.String(128))
+    comparee_round_ids = db.Column(db.String(256), default="")
 
     product_id = db.Column(
         db.Integer(), db.ForeignKey("product.id"),
     )
     milestone = db.relationship('Milestone', backref='round')
     issuesolvedrate = db.relationship('IssueSolvedRate', backref='round')
+
+    def get_comparee_rounds(self):
+        if self.comparee_round_ids:
+            round_list = list(map(int, self.comparee_round_ids.split(",")))
+            rounds = Round.query.filter(Round.id.in_(round_list)).all()
+            return [{
+                "id": round_.id,
+                "name": round_.name,
+            } for round_ in rounds]
+        else:
+            return []
 
     def to_json(self):
         return {
@@ -397,6 +429,7 @@ class Round(BaseModel, db.Model):
             "default_milestone_id": self.default_milestone_id,
             "product_id": self.product_id,
             "buildname": self.buildname,
+            "comparee_round_ids": self.get_comparee_rounds(),
         }
 
 
