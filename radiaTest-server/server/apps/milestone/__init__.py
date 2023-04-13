@@ -21,12 +21,11 @@ from .routes import (
     MilestoneEventV2,
     MilestoneItemEventV2,
     MilestonePreciseEvent,
-    GiteeIssuesStatisticsByMilestone,
     UpdateGiteeIssuesStatistics,
     GiteeMilestoneEventV2,
     SyncMilestoneItemEventV2,
     MilestoneItemStateEventV2,
-    UpdateMilestoneIssueRateByField,
+    MilestoneIssueRateEvent,
     GenerateTestReportEvent,
     TestReportEvent,
     TestReportFileEvent,
@@ -41,11 +40,7 @@ def init_api(api: Api):
     api.add_resource(GroupMilestoneEventV1, "/api/v1/group/<int:group_id>/milestone")
     api.add_resource(MilestonePreciseEvent, "/api/v1/milestone/preciseget")
     api.add_resource(
-        GiteeIssuesStatisticsByMilestone,
-        "/api/v2/milestone/<int:milestone_id>/issues-statistics",
-    )
-    api.add_resource(
-        UpdateMilestoneIssueRateByField,
+        MilestoneIssueRateEvent,
         "/api/v2/milestone/<int:milestone_id>/issue-rate",
     )
     api.add_resource(UpdateGiteeIssuesStatistics, "/api/v2/issues/statistics")

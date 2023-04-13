@@ -33,7 +33,7 @@ from server.model.qualityboard import Checklist, QualityBoard, CheckItem, Round,
 from server.model.milestone import IssueSolvedRate, Milestone
 from server.model.organization import Organization
 from server.model.product import Product
-from server.utils.db import Edit, Select, collect_sql_error, Insert
+from server.utils.db import Select, collect_sql_error, Insert
 from server.utils.response_util import RET
 from server.utils.page_util import PageUtil
 from server.utils.md_util import MdUtil
@@ -717,8 +717,8 @@ class RoundHandler:
         return Select(Round, {"product_id":product_id}).precise()
 
     @staticmethod
-    def update_round_issue_rate_by_field(round_id, field):
-        from celeryservice.lib.issuerate import update_field_issue_rate
+    def update_round_issue_rate(round_id):
+        from celeryservice.lib.issuerate import UpdateIssueRate
         _round = Round.query.filter_by(
             id=round_id).first()
         if not _round:
@@ -734,13 +734,12 @@ class RoundHandler:
                 {"round_id": round_id, "type": "round"}
             ).single()
 
-        update_field_issue_rate.delay(
-            "round",
+        UpdateIssueRate.update_round_issue_resolved_rate(
             g.gitee_id,
-            {"org_id": _round.product.org_id, "product_id": _round.product_id},
-            field,
+            {"product_id": _round.product_id, "org_id": _round.product.org_id},
             round_id
         )
+
         return jsonify(
             error_code=RET.OK,
             error_msg="OK",

@@ -399,12 +399,12 @@ class UpdateIssueRate(TaskHandlerBase):
             if _p.org_id != t_org_id:
                 gitee_id = IssueStatisticsHandlerV8.get_gitee_id(_p.org_id)
             if gitee_id:
-                products = {
+                products_dict = {
                     "org_id": _p.org_id,
                     "product_id": _p.id
                 }
                 UpdateIssueRate.update_product_issue_resolved_rate(
-                    gitee_id=gitee_id, products=products
+                    gitee_id=gitee_id, products=products_dict
                 )
                 
                 rounds = Round.query.filter_by(
@@ -423,7 +423,7 @@ class UpdateIssueRate(TaskHandlerBase):
                             }
                         ).single()
                     UpdateIssueRate.update_round_issue_resolved_rate(
-                        gitee_id=gitee_id, products=products, round_id=_r.id
+                        gitee_id=gitee_id, products=products_dict, round_id=_r.id
                     )
 
                 milestones = Milestone.query.filter(
@@ -445,7 +445,7 @@ class UpdateIssueRate(TaskHandlerBase):
                             }
                         ).single(IssueSolvedRate, "/issue_solved_rate")
                     UpdateIssueRate.update_milestone_issue_resolved_rate(
-                        gitee_id=gitee_id, products=products, gitee_milestone_id=_m.gitee_milestone_id
+                        gitee_id=gitee_id, products=products_dict, gitee_milestone_id=_m.gitee_milestone_id
                     )
             t_org_id = _p.org_id
 
