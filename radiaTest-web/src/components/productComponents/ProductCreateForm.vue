@@ -3,20 +3,15 @@
     <n-form :label-width="40" :model="formValue" :rules="rules" :size="size" label-placement="top" ref="formRef">
       <n-grid :cols="18" :x-gap="24">
         <n-form-item-gi :span="6" label="产品" path="name">
-          <n-auto-complete
+          <n-input
             v-model:value="formValue.name"
-            :options="nameOptions"
-            #="{ handleInput, handleFocus, value }"
-          >
-            <n-input
-              v-model:value="formValue.name"
-              placeholder="输入版本所属产品名称"
-              @input="handleInput"
-              @focus="handleFocus"
-              @keydown.enter.prevent
-              style="width: 100%"
-            />
-          </n-auto-complete>
+            placeholder="输入版本所属产品名称"
+            @input="handleInput"
+            @focus="handleFocus"
+            @keydown.enter.prevent
+            clearable
+            style="width: 100%"
+          />
         </n-form-item-gi>
         <n-form-item-gi :span="6" label="版本" path="version">
           <n-input v-model:value="formValue.version" placeholder="输入待注册版本" @keydown.enter.prevent />
