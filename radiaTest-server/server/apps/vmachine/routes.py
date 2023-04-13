@@ -199,18 +199,34 @@ class VmachineEvent(Resource):
                 id=body.machine_group_id
             ).first()
 
-        resp = VmachineMessenger(_body).send_request(
-            machine_group,
-            "/api/v1/vmachine",
-            "post",
-        )
-        resp_analyse = json.loads(resp.data.decode('UTF-8'))
-        if resp_analyse.get("error_code") == RET.OK and body.method in ["auto", "import"]:
-            redis_client.set(
-                body.name,
-                request.headers.get("authorization"),
-                ex=current_app.config.get("CALLBACK_EXPIRE_TIME")
-            )
+        des = _body.get("description")
+        frame_number = _body.pop("frame_number")
+        for item in frame_number:
+            for num in range(item.get("machine_num")):
+                _body.update({
+                    "description": (des + "_" + str(item.get("frame")) + "_" + str(num + 1)),
+                    "frame": item.get("frame"),
+                    "name": (
+                            time.strftime("%y-%m-%d-")
+                            + str(time.time())
+                            + "-"
+                            + "".join(random.choice(string.ascii_lowercase + string.digits) for _ in range(10))
+                    )
+                })
+
+                resp = VmachineMessenger(_body).send_request(
+                    machine_group,
+                    "/api/v1/vmachine",
+                    "post",
+                )
+                resp_analyse = json.loads(resp.data.decode('UTF-8'))
+                if resp_analyse.get("error_code") == RET.OK and body.method in ["auto", "import"]:
+                    redis_client.set(
+                        body.name,
+                        request.headers.get("authorization"),
+                        ex=current_app.config.get("CALLBACK_EXPIRE_TIME")
+                    )
+
         return resp
 
     @auth.login_required

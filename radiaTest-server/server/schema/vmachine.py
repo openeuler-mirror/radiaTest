@@ -51,7 +51,7 @@ class VmachinePreciseQuerySchema(BaseModel):
 
 
 class VmachineBaseSchema(BaseModel):
-    frame: Frame
+    frame: str = None
     description: constr(min_length=10, max_length=255)
     milestone_id: int
     pmachine_id: int
@@ -88,6 +88,7 @@ class VmachineDataCreateSchema(VmachineBaseSchema, PermissionBase):
 
 
 class VmachineCreateSchema(VmachineBaseSchema, PermissionBase):
+    frame_number: List[dict]
     password: Optional[str]
     machine_group_id: Optional[int]
     pmachine_id: Optional[int]
@@ -95,18 +96,7 @@ class VmachineCreateSchema(VmachineBaseSchema, PermissionBase):
     pm_select_mode: Optional[PmSelectMode] = "auto"
 
     @root_validator
-    def check_name_and_endtime(cls, values):        
-        if not values.get("name"):
-            values["name"] = (
-                time.strftime("%y-%m-%d-")
-                + str(time.time())
-                + "-"
-                + "".join(
-                    random.choice(string.ascii_lowercase + string.digits)
-                    for _ in range(10)
-                )
-            )
-
+    def check_name_and_endtime(cls, values):
         if not values.get("end_time"):
             values["end_time"] = datetime.now(pytz.timezone('Asia/Shanghai')) + \
                 timedelta(days=Config.VM_DEFAULT_DAYS)           
