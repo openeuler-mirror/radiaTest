@@ -716,8 +716,8 @@ class RoundHandler:
         return Select(Round, {"product_id":product_id}).precise()
 
     @staticmethod
-    def update_round_issue_rate_by_field(round_id, field):
-        from celeryservice.lib.issuerate import update_field_issue_rate
+    def update_round_issue_rate(round_id):
+        from celeryservice.lib.issuerate import UpdateIssueRate
         _round = Round.query.filter_by(
             id=round_id).first()
         if not _round:
@@ -733,11 +733,8 @@ class RoundHandler:
                 {"round_id": round_id, "type": "round"}
             ).single()
 
-        update_field_issue_rate.delay(
-            "round",
-            g.user_id,
-            {"org_id": _round.product.org_id, "product_id": _round.product_id},
-            field,
+        UpdateIssueRate.update_round_issue_resolved_rate(
+            {"product_id": _round.product_id, "org_id": _round.product.org_id},
             round_id
         )
         return jsonify(

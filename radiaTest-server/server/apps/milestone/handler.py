@@ -37,6 +37,7 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from server.utils.permission_utils import PermissionManager
 from server.utils.resource_utils import ResourceManager
 from server.utils.md_util import MdUtil
+from server.utils.redis_util import RedisKey
 from server.apps.issue.handler import GiteeV8BaseIssueHandler
 
 
@@ -183,7 +184,8 @@ class MilestoneOpenApiHandler(BaseOpenApiHandler):
             self.type = body.get("type")
             self.product_id = body.get("product_id")
             self.body = self.radia_2_gitee(body)
-        super().__init__(Milestone, "/milestone")
+        org_id = redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')
+        super().__init__(table=Milestone, namespace="/milestone", org_id=org_id)
 
     def gitee_2_radia(self, body):
         # gitee数据格式转换为radiaTest数据格式
@@ -303,8 +305,8 @@ class MilestoneOpenApiHandler(BaseOpenApiHandler):
 
 
 class GenerateVersionTestReport(GiteeV8BaseIssueHandler):
-    def __init__(self, gitee_id=None, org_id=None) -> None:
-        super().__init__(gitee_id, org_id)
+    def __init__(self, org_id=None) -> None:
+        super().__init__(org_id=org_id)
         self.bug_issue_type_id = self.get_bug_issue_type_id("缺陷")
 
     def get_issues(self, gitee_milestone_id, state_ids):
@@ -515,18 +517,6 @@ class GenerateVersionTestReport(GiteeV8BaseIssueHandler):
 
 
 class IssueStatisticsHandlerV8():
-    # TODO 改为从v8token服务获取token
-    @staticmethod
-    def get_gitee_id(org_id):
-        access_token_list = redis_client.keys("access_token*")
-        gitee_id = None
-        for _token in access_token_list:
-            _org_id = redis_client.hget(_token, "org_id")
-            if int(_org_id) == int(org_id):
-                gitee_id = _token.split("_")[-1]
-                break
-        return gitee_id
-
     @staticmethod
     def get_rate_by_milestone(milestone_id):
         _milestones = Milestone.query.filter_by(
@@ -554,8 +544,9 @@ class IssueStatisticsHandlerV8():
         )
 
     @staticmethod
-    def update_milestone_issue_rate_by_field(milestone_id, field):
-        from celeryservice.lib.issuerate import update_field_issue_rate
+    def update_milestone_issue_rate(milestone_id):
+        from celeryservice.lib.issuerate import UpdateIssueRate
+
         milestone = Milestone.query.filter_by(
             id=milestone_id, is_sync=True).first()
         if not milestone:
@@ -572,12 +563,9 @@ class IssueStatisticsHandlerV8():
                     "gitee_milestone_id": milestone.gitee_milestone_id}
             ).single(IssueSolvedRate, "/issue_solved_rate")
 
-        update_field_issue_rate.delay(
-            "milestone",
-            g.gitee_id,
-            {"org_id": milestone.org_id, "product_id": milestone.product_id},
-            field,
-            milestone.gitee_milestone_id
+        UpdateIssueRate.update_milestone_issue_resolved_rate(
+            {"product_id": milestone.product_id, "org_id": milestone.product.org_id},
+            milestone.gitee_milestone_id,
         )
         return jsonify(
             error_code=RET.OK,

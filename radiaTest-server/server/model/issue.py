@@ -23,7 +23,7 @@ class Issue(db.Model, BaseModel):
     title = db.Column(db.String(512), nullable=False)
     description = db.Column(db.Text(), nullable=True)
     priority = db.Column(db.Integer(), nullable=False, default=0)
-    creator_id = db.Column(db.Integer(), db.ForeignKey("user.user_id"))
+    creator_id = db.Column(db.String(512), db.ForeignKey("user.user_id"))
     milestone_id = db.Column(db.Integer(), nullable=False)
     task_id = db.Column(db.Integer(), nullable=True)
     case_id = db.Column(db.Integer(), nullable=True)

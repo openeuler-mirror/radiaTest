@@ -52,7 +52,6 @@ from server.schema.qualityboard import (
     PackageCompareSchema,
     PackageCompareQuerySchema,
     RoundIssueQueryV8,
-    RoundIssueRateSchema,
     RoundToMilestone,
     RoundUpdateSchema,
     CompareRoundUpdateSchema,
@@ -1786,8 +1785,8 @@ class RoundIssueRateEvent(Resource):
     @auth.login_required
     @response_collect
     @validate()
-    def put(self, round_id, body: RoundIssueRateSchema):
-        return RoundHandler.update_round_issue_rate_by_field(round_id, body.field)
+    def put(self, round_id):
+        return RoundHandler.update_round_issue_rate(round_id)
     
     @auth.login_required
     @response_collect

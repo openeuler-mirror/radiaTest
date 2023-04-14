@@ -270,8 +270,3 @@ class SyncMilestoneSchema(BaseModel):
 
 class MilestoneStateEventSchema(BaseModel):
     state_event: Literal["activate", "close"]
-
-
-class IssueRateFieldSchema(BaseModel):
-    field: Literal["serious_resolved_rate", "main_resolved_rate",
-                   "serious_main_resolved_rate", "current_resolved_rate", "left_issues_cnt", "invalid_issues_cnt"]

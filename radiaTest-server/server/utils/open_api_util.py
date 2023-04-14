@@ -28,10 +28,9 @@ from server.model.organization import Organization
 
 
 class BaseOpenApiHandler:
-    def __init__(self, table=None, namespace=None, gitee_id=None, org_id=None):
+    def __init__(self, table=None, namespace=None, org_id=None):
         self.table = table
         self.namespace = namespace
-        self.gitee_id = gitee_id if gitee_id else g.gitee_id
         self.org_id = org_id
 
     @abc.abstractmethod
@@ -48,16 +47,10 @@ class BaseOpenApiHandler:
 
     @property
     def access_token(self):
-        if not self.current_org.enterprise_token:
-            return redis_client.hget(RedisKey.user(self.gitee_id), "gitee_access_token")
-        
         return self.current_org.enterprise_token
 
     @property
     def current_org(self):
-        if not self.org_id:
-            self.org_id = redis_client.hget(
-                RedisKey.user(self.gitee_id), "current_org_id")
         org = Organization.query.filter_by(id=self.org_id).first()
         return org
 

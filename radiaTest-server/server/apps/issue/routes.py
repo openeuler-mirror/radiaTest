@@ -30,7 +30,6 @@ from server.schema.issue import (
 from server.apps.issue.handler import (
     GiteeV8IssueHandler,
     GiteeV8BaseIssueHandler,
-    IssueOpenApiHandlerV5,
 )
 
 
@@ -129,53 +128,52 @@ class UpdateGiteeIssuesTypeState(Resource):
         from server import redis_client
         from server.utils.redis_util import RedisKey
         from server.model.organization import Organization
-        from server.apps.milestone.handler import IssueStatisticsHandlerV8
         orgs = Organization.query.filter(
-            Organization.enterprise_id is not None).all()
+            Organization.enterprise_id is not None,
+            Organization.enterprise_token is not None,
+        ).all()
         for _org in orgs:
-            gitee_id = IssueStatisticsHandlerV8.get_gitee_id(_org.id)
-            if gitee_id:
-                isa = GiteeV8BaseIssueHandler(gitee_id=gitee_id)
-                _resp = isa.get_issue_types()
-                resp = _resp.get_json()
-                if resp.get("error_code") == RET.OK:
-                    issue_types = json.loads(
-                        resp.get("data")).get("data")
-                    t_issue_types = []
-                    for _type in issue_types:
-                        t_issue_types.append(
-                            {
-                                "id": _type.get("id"),
-                                "title": _type.get("title"),
-                            }
-                        )
-                    redis_client.hmset(
-                        RedisKey.issue_types(_org.enterprise_id),
-                        {"data": json.dumps(t_issue_types)}
+            isa = GiteeV8BaseIssueHandler(org_id=_org.id)
+            _resp = isa.get_issue_types()
+            resp = _resp.get_json()
+            if resp.get("error_code") == RET.OK:
+                issue_types = json.loads(
+                    resp.get("data")).get("data")
+                t_issue_types = []
+                for _type in issue_types:
+                    t_issue_types.append(
+                        {
+                            "id": _type.get("id"),
+                            "title": _type.get("title"),
+                        }
                     )
-                else:
-                    return _resp
-                _resp = isa.get_issue_states()
-                resp = _resp.get_json()
-                if resp.get("error_code") == RET.OK:
-                    issue_states = json.loads(
-                        resp.get("data")
-                    ).get("data")
+                redis_client.hmset(
+                    RedisKey.issue_types(_org.enterprise_id),
+                    {"data": json.dumps(t_issue_types)}
+                )
+            else:
+                return _resp
+            _resp = isa.get_issue_states()
+            resp = _resp.get_json()
+            if resp.get("error_code") == RET.OK:
+                issue_states = json.loads(
+                    resp.get("data")
+                ).get("data")
 
-                    t_issue_states = []
-                    for _state in issue_states:
-                        t_issue_states.append(
-                            {
-                                "id": _state.get("id"),
-                                "title": _state.get("title"),
-                            }
-                        )
-                    redis_client.hmset(
-                        RedisKey.issue_states(_org.enterprise_id),
-                        {"data": json.dumps(t_issue_states)}
+                t_issue_states = []
+                for _state in issue_states:
+                    t_issue_states.append(
+                        {
+                            "id": _state.get("id"),
+                            "title": _state.get("title"),
+                        }
                     )
-                else:
-                    return _resp
+                redis_client.hmset(
+                    RedisKey.issue_states(_org.enterprise_id),
+                    {"data": json.dumps(t_issue_states)}
+                )
+            else:
+                return _resp
         return jsonify(
             error_code=RET.OK,
             error_msg="OK",
