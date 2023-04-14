@@ -59,6 +59,7 @@ def init_api(api: Api):
     api.add_resource(
         CaseNodeEvent,
         "/api/v1/case-node",
+        "/api/v1/ws/<str:workspace>/case-node",
         methods=["POST", "GET"]
     )
     api.add_resource(
@@ -105,11 +106,13 @@ def init_api(api: Api):
     api.add_resource(
         PreciseCaseEvent, 
         "/api/v1/case/preciseget", 
+        "/api/v1/ws/<str:workspace>/case/preciseget",
         methods=["GET"]
     )
     api.add_resource(
         PreciseSuiteEvent, 
         "/api/v1/suite/preciseget", 
+        "/api/v1/ws/<str:workspace>/suite/preciseget",
         methods=["GET"]
     )
     api.add_resource(
@@ -117,7 +120,12 @@ def init_api(api: Api):
         "/api/v1/suite/<int:suite_id>", 
         methods=["GET", "PUT", "DELETE"]
     )
-    api.add_resource(SuiteEvent, "/api/v1/suite", methods=["POST", "GET"])
+    api.add_resource(
+        SuiteEvent, 
+        "/api/v1/suite",
+        "/api/v1/ws/<str:workspace>/suite",
+        methods=["POST", "GET"]
+    )
     api.add_resource(CaseEvent, "/api/v1/case", methods=["POST", "GET"])
     api.add_resource(
         CaseItemEvent, 
@@ -127,7 +135,8 @@ def init_api(api: Api):
     api.add_resource(CaseImport, "/api/v1/case/import",  methods=["POST"])
     api.add_resource(
         CaseRecycleBin, 
-        "/api/v1/case/recycle-bin",  
+        "/api/v1/case/recycle-bin",
+        "/api/v1/ws/<str:workspace>/case/recycle-bin",  
         methods=["GET"]
     )
     api.add_resource(

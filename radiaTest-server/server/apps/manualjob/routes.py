@@ -34,7 +34,7 @@ from server.schema.manualjob import (
     ManualJobLogDelete
 )
 from server.utils.auth_util import auth
-from server.utils.response_util import response_collect, RET
+from server.utils.response_util import response_collect, RET, workspace_error_collect
 
 
 def _find_object_by_id(id_value: int, table: db.Model):
@@ -52,8 +52,9 @@ class ManualJobEvent(Resource):
     """
     @auth.login_required()
     @response_collect
+    @workspace_error_collect
     @validate()
-    def post(self, body: ManualJobCreate):
+    def post(self, workspace: str, body: ManualJobCreate):
         """
             在数据库中新增ManualJob数据, 根据其所属的Case的步骤数, 在数据库中新增数个ManualJobStep.
             请求体:
@@ -80,12 +81,13 @@ class ManualJobEvent(Resource):
                 error_code=RET.NO_DATA_ERR,
                 error_msg=f"the case with id {input_case_id} does not exist"
             )
-        return ManualJobHandler.create(_case, body)
+        return ManualJobHandler.create(_case, body, workspace)
 
     @auth.login_required()
     @response_collect
+    @workspace_error_collect
     @validate()
-    def get(self, query: ManualJobQuery):
+    def get(self, workspace: str, query: ManualJobQuery):
         """
             请求行示例: /api/v1/manual-job?status=0&page_num=1&page_size=1
             page_num默认为1, page_size默认为10.
@@ -122,7 +124,7 @@ class ManualJobEvent(Resource):
                 "error_msg": "Request processed successfully."
             }
         """
-        return ManualJobHandler.query(query)
+        return ManualJobHandler.query(query, workspace)
 
 
 class ManualJobSubmitEvent(Resource):

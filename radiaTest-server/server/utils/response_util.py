@@ -96,3 +96,23 @@ def value_error_collect(func):
             )
 
     return wrapper
+
+
+def  workspace_error_collect(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            resp = func(*args, **kwargs)
+            return resp
+        except ValueError as e:
+            return jsonify(
+                error_code=RET.PARMA_ERR,
+                error_msg=str(e),
+            )
+        except RuntimeError as e:
+            return jsonify(
+                error_code=RET.UNAUTHORIZE_ERR,
+                error_msg=str(e),
+            )
+    
+    return wrapper

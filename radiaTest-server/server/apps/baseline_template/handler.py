@@ -76,8 +76,8 @@ class BaselineTemplateHandler:
 
     @staticmethod
     @collect_sql_error
-    def get_all(query):
-        filter_params = GetAllByPermission(BaselineTemplate).get_filter()
+    def get_all(query, workspace=None):
+        filter_params = GetAllByPermission(BaselineTemplate, workspace).get_filter()
         
         for key, value in query.dict().items():
             if not value:

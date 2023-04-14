@@ -31,6 +31,7 @@ def init_api(api: Api):
     api.add_resource(
         BaselineTemplateEvent, 
         "/api/v1/baseline-template", 
+        "/api/v1/ws/<str:workspace>/baseline-template",
         methods=["POST", "GET"]
     )
     api.add_resource(

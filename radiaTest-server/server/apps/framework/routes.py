@@ -20,7 +20,7 @@ from flask_restful import Resource
 from flask_pydantic import validate
 
 from server.utils.auth_util import auth
-from server.utils.response_util import RET
+from server.utils.response_util import RET, workspace_error_collect
 from server.utils.response_util import response_collect
 from server.model.framework import Framework, GitRepo
 from server.model.template import Template
@@ -41,9 +41,10 @@ class FrameworkEvent(Resource):
 
     @auth.login_required()
     @response_collect
+    @workspace_error_collect
     @validate()
-    def get(self, query: FrameworkQuery):
-        filter_params = GetAllByPermission(Framework).get_filter()
+    def get(self, workspace: str, query: FrameworkQuery):
+        filter_params = GetAllByPermission(Framework, workspace).get_filter()
         if query.name:
             filter_params.append(
                 Framework.name.like(f'%{query.name}%')
@@ -135,9 +136,10 @@ class GitRepoEvent(Resource):
 
     @auth.login_required()
     @response_collect
+    @workspace_error_collect
     @validate()
-    def get(self, query: GitRepoQuery):
-        filter_params = GetAllByPermission(GitRepo).get_filter()
+    def get(self, workspace: str, query: GitRepoQuery):
+        filter_params = GetAllByPermission(GitRepo, workspace).get_filter()
         return GitRepoHandler.get_git_repo(query, filter_params)
 
 

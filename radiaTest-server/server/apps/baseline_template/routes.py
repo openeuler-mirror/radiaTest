@@ -22,7 +22,7 @@ from sqlalchemy import or_, and_
 from server import redis_client, casbin_enforcer
 from server.utils.redis_util import RedisKey
 from server.utils.auth_util import auth
-from server.utils.response_util import RET, response_collect
+from server.utils.response_util import RET, response_collect, workspace_error_collect
 from server.utils.permission_utils import GetAllByPermission
 from server.model.baselinetemplate import BaselineTemplate, BaseNode
 from server.utils.db import Insert, Edit, Delete, collect_sql_error
@@ -122,8 +122,9 @@ class BaselineTemplateEvent(Resource):
 
     @auth.login_required()
     @response_collect
+    @workspace_error_collect
     @validate()
-    def get(self, query: BaselineTemplateQuerySchema):
+    def get(self, workspace: str, query: BaselineTemplateQuerySchema):
         """
             API: /api/v1/baseline-template?group_id=1
             返回体:
@@ -142,7 +143,7 @@ class BaselineTemplateEvent(Resource):
             "error_msg": "OK"
             }
         """
-        return BaselineTemplateHandler.get_all(query)
+        return BaselineTemplateHandler.get_all(query, workspace)
 
 
 
