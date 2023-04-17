@@ -14,14 +14,16 @@
 #####################################
 # 手工测试任务(ManualJob)相关接口的handler层
 
+import re
 from copy import deepcopy
-from datetime import datetime
+
 from flask import jsonify, g
-import pytz
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
-from server import db
+from server import db, redis_client
 from server.model import Case, ManualJob, ManualJobStep
+from server.utils.redis_util import RedisKey
+from server.utils.permission_utils import GetAllByPermission
 from server.utils.response_util import RET
 from server.utils.db import collect_sql_error
 from server.utils.page_util import PageUtil
@@ -31,9 +33,28 @@ from server.utils.text_utils import TextItemSplitter, DefaultNumeralRule
 class ManualJobHandler:
     @staticmethod
     @collect_sql_error
-    def create(_case: Case, body):
+    def create(_case: Case, body, workspace=None):
         # 向数据库中插入此条ManualJob记录, manual_job_dict中为部分字段.
         manual_job_dict = deepcopy(body.__dict__)
+
+        _permission_body = {
+            "permission_type": "org",
+            "org_id": int(
+                redis_client.hget(
+                    RedisKey.user(g.gitee_id), 
+                    "current_org_id"
+                )
+            )
+        }
+
+        if re.match(r'^group_\d+$', workspace):
+            _permission_body.update({
+                "permission_type": "group",
+                "group_id": int(workspace.split("_")[1])
+            })
+        
+        manual_job_dict.update(_permission_body)
+
         manual_job_dict["executor_id"] = g.gitee_id
         # 从所属的Case那里计算总步骤数
         if _case.steps is not None and _case.steps != "":
@@ -82,16 +103,19 @@ class ManualJobHandler:
 
     @staticmethod
     @collect_sql_error
-    def query(query):
+    def query(query, workspace=None):
         if query.status != 0 and query.status != 1:
             return jsonify(
                 error_code=RET.PARMA_ERR,
                 error_msg="status of a manual_job can only be 0 or 1"
             )
 
+        filter_params = GetAllByPermission(ManualJob, workspace).get_filter()
+        filter_params.append(ManualJob.status == query.status)
+
         # 分页对象
         page_dict, e = PageUtil.get_page_dict(
-            query_filter=ManualJob.query.filter(ManualJob.status == query.status),
+            query_filter=ManualJob.query.filter(*filter_params),
             page_num=query.page_num,
             page_size=query.page_size,
             func=ManualJob.to_json

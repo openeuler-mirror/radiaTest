@@ -11,8 +11,8 @@ from server.utils.resource_utils import ResourceManager
 
 class VmachineHandler:
     @staticmethod
-    def get_all(query):
-        filter_params = GetAllByPermission(Vmachine).get_filter()
+    def get_all(query, workspace=None):
+        filter_params = GetAllByPermission(Vmachine, workspace).get_filter()
         p_filter_params = [Pmachine.machine_group_id == query.machine_group_id]
         if query.host_ip:
             p_filter_params.append(Pmachine.ip.like(f"%{query.host_ip}%"))

@@ -50,7 +50,7 @@ from server.schema.vmachine import (
 )
 from server.utils.auth_util import auth
 from server.utils.db import Delete, Edit, Insert
-from server.utils.response_util import attribute_error_collect, response_collect, RET
+from server.utils.response_util import attribute_error_collect, response_collect, RET, workspace_error_collect
 from server.model import Vmachine, Vdisk, Vnic
 from server.utils.permission_utils import PermissionManager, GetAllByPermission
 from server.utils.resource_utils import ResourceManager
@@ -128,8 +128,8 @@ class PreciseVmachineEvent(Resource):
     @response_collect
     @attribute_error_collect
     @validate()
-    def get(self, query: VmachinePreciseQuerySchema):
-        return GetAllByPermission(Vmachine).precise(query.__dict__)
+    def get(self, workspace: str, query: VmachinePreciseQuerySchema):
+        return GetAllByPermission(Vmachine, workspace).precise(query.__dict__)
 
 
 class VmachineBatchDelayEvent(Resource):
@@ -231,9 +231,10 @@ class VmachineEvent(Resource):
 
     @auth.login_required
     @response_collect
+    @workspace_error_collect
     @validate()
-    def get(self, query: VmachineQuerySchema):
-        return VmachineHandler.get_all(query)
+    def get(self, workspace: str, query: VmachineQuerySchema):
+        return VmachineHandler.get_all(query, workspace)
 
     @auth.login_required
     @response_collect

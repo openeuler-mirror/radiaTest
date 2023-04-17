@@ -33,7 +33,7 @@ from .routes import (
 
 
 def init_api(api: Api):
-    api.add_resource(MilestoneEventV2, "/api/v2/milestone")
+    api.add_resource(MilestoneEventV2, "/api/v2/milestone", "/api/v2/ws/<str:workspace>/milestone")
     api.add_resource(MilestoneItemEventV2, "/api/v2/milestone/<int:milestone_id>")
     api.add_resource(MilestoneItemStateEventV2, "/api/v2/milestone/<int:milestone_id>/state")
     api.add_resource(OrgMilestoneEventV1, "/api/v1/org/<int:org_id>/milestone")

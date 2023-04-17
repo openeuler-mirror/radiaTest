@@ -22,13 +22,14 @@ from datetime import datetime
 from sqlalchemy.dialects.mysql import LONGTEXT
 
 from server import db
+from server.model import PermissionBaseModel
 from server.model.base import BaseModel
 from server.model.user import User
 from server.model.milestone import Milestone
 from server.model.testcase import Case
 
 
-class ManualJob(BaseModel, db.Model):
+class ManualJob(BaseModel, db.Model, PermissionBaseModel):
     id = db.Column(db.Integer(), primary_key=True, autoincrement=True)
     name = db.Column(db.String(255), nullable=False, unique=True)
     start_time = db.Column(db.DateTime(), nullable=False, default=datetime.now)
@@ -40,6 +41,9 @@ class ManualJob(BaseModel, db.Model):
     executor_id = db.Column(db.Integer(), db.ForeignKey("user.gitee_id"))
     milestone_id = db.Column(db.Integer(), db.ForeignKey("milestone.id"))
     case_id = db.Column(db.Integer(), db.ForeignKey("case.id"))
+
+    group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
+    org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
 
     status = db.Column(db.Integer, nullable=False, default=0)  # 0: In progress, 1: Completed.
 

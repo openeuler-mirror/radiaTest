@@ -22,7 +22,7 @@ from flask_pydantic import validate
 from server import redis_client, casbin_enforcer
 from server.utils.redis_util import RedisKey
 from server.utils.auth_util import auth
-from server.utils.response_util import RET, response_collect
+from server.utils.response_util import RET, response_collect, workspace_error_collect
 from server.utils.permission_utils import GetAllByPermission
 from server.model.organization import Organization
 from server.model.group import Group
@@ -81,9 +81,10 @@ class CaseNodeEvent(Resource):
 
     @auth.login_required()
     @response_collect
+    @workspace_error_collect
     @validate()
-    def get(self, query: CaseNodeQuerySchema):
-        return CaseNodeHandler.get_roots(query)
+    def get(self, workspace: str, query: CaseNodeQuerySchema):
+        return CaseNodeHandler.get_roots(query, workspace)
 
 
 class CaseNodeItemEvent(Resource):
@@ -169,14 +170,15 @@ class SuiteEvent(Resource):
 
     @auth.login_required()
     @response_collect
-    def get(self):
+    @workspace_error_collect
+    def get(self, workspace: str):
         body = dict()
 
         for key, value in request.args.to_dict().items():
             if value:
                 body[key] = value
 
-        return GetAllByPermission(Suite).fuzz(body)
+        return GetAllByPermission(Suite, workspace).fuzz(body)
 
 
 class SuiteItemEvent(Resource):
@@ -264,27 +266,29 @@ class SuiteItemEvent(Resource):
 class PreciseSuiteEvent(Resource):
     @auth.login_required
     @response_collect
-    def get(self):
+    @workspace_error_collect
+    def get(self, workspace: str):
         body = dict()
 
         for key, value in request.args.to_dict().items():
             if value:
                 body[key] = value
 
-        return GetAllByPermission(Suite).precise(body)
+        return GetAllByPermission(Suite, workspace).precise(body)
 
 
 class PreciseCaseEvent(Resource):
     @auth.login_required
     @response_collect
-    def get(self):
+    @workspace_error_collect
+    def get(self, workspace: str):
         body = dict()
 
         for key, value in request.args.to_dict().items():
             if value:
                 body[key] = value
 
-        return GetAllByPermission(Case).precise(body)
+        return GetAllByPermission(Case, workspace).precise(body)
 
 
 class CaseNodeCommitEvent(Resource):
@@ -457,8 +461,9 @@ class TemplateCasesQuery(Resource):
 class CaseRecycleBin(Resource):
     @auth.login_required()
     @response_collect
-    def get(self):
-        return GetAllByPermission(Case).precise({"deleted": 1})
+    @workspace_error_collect
+    def get(self, workspace: str):
+        return GetAllByPermission(Case, workspace).precise({"deleted": 1})
 
 
 class CaseImport(Resource):

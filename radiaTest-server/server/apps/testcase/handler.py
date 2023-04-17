@@ -261,8 +261,8 @@ class CaseNodeHandler:
 
     @staticmethod
     @collect_sql_error
-    def get_roots(query):
-        filter_params = GetAllByPermission(CaseNode).get_filter()
+    def get_roots(query, workspace=None):
+        filter_params = GetAllByPermission(CaseNode, workspace).get_filter()
         filter_params.append(CaseNode.is_root.is_(True))
         for key, value in query.dict().items():
             if not value:

@@ -28,7 +28,7 @@ from server.schema.product import ProductBase, ProductUpdate, ProductQueryBase
 from server.utils.permission_utils import GetAllByPermission
 from server.utils.resource_utils import ResourceManager
 from server import casbin_enforcer
-from server.utils.response_util import RET, response_collect
+from server.utils.response_util import RET, response_collect, workspace_error_collect
 
 
 class ProductEventItem(Resource):
@@ -88,9 +88,10 @@ class ProductEvent(Resource):
 
     @auth.login_required
     @response_collect
+    @workspace_error_collect
     @validate()
-    def get(self, query: ProductQueryBase):
-        _g = GetAllByPermission(Product)
+    def get(self, workspace: str, query: ProductQueryBase):
+        _g = GetAllByPermission(Product, workspace)
         if query.permission_type is not None:
             _g.set_filter(Product.permission_type == query.permission_type)
             ords = [Product.name.asc(), Product.create_time.asc()]
@@ -113,14 +114,15 @@ class ProductEvent(Resource):
 class PreciseProductEvent(Resource):
     @auth.login_required
     @response_collect
-    def get(self):
+    @workspace_error_collect
+    def get(self, workspace: str):
         body = dict()
 
         for key, value in request.args.to_dict().items():
             if value:
                 body[key] = value
 
-        return GetAllByPermission(Product).precise(body)
+        return GetAllByPermission(Product, workspace).precise(body)
 
 
 class UpdateProductIssueRate(Resource):
