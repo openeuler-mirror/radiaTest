@@ -22,16 +22,15 @@ from server.model.milestone import Milestone, IssueSolvedRate
 from server.model.organization import Organization
 from server.model.product import Product
 from server.model.qualityboard import Round
-from server.apps.milestone.handler import IssueStatisticsHandlerV8, GiteeV8BaseIssueHandler
+from server.apps.milestone.handler import GiteeV8BaseIssueHandler
 from celeryservice.lib import TaskHandlerBase
 
 
 class UpdateIssueRateData:
-    def __init__(self, user_id, products):
-        self.user_id = user_id
+    def __init__(self, products):
         self.products = products
-        self.issue_v8 = IssueStatisticsHandlerV8(
-            user_id=user_id, org_id=products.get("org_id")
+        self.issue_v8 = GiteeV8BaseIssueHandler(
+            org_id=products.get("org_id")
         )
         self.bug_issue_type_id = self.issue_v8.get_bug_issue_type_id("缺陷")
 
@@ -233,7 +232,7 @@ class UpdateIssueRateData:
                 setattr(product, key, value)
         product.add_update()
 
-    def update_milestone_issue_resolved_rate(self,  gitee_milestone_id, field: str):
+    def update_milestone_issue_resolved_rate(self, gitee_milestone_id, field: str):
         from server.apps.qualityboard.handlers import QualityResultCompareHandler
         param1 = self.param.get(field).get("all")
         if not param1:
@@ -344,8 +343,8 @@ class UpdateIssueRateData:
 
 
 @celery.task
-def update_field_issue_rate(obj_type: str, user_id, products: dict, field: str, obj_id=None):
-    _uird = UpdateIssueRateData(user_id, products)
+def update_field_issue_rate(obj_type: str, products: dict, field: str, obj_id=None):
+    _uird = UpdateIssueRateData(products)
     if obj_type == "product":
         _uird.update_product_issue_resolved_rate(field)
     elif obj_type == "round":
@@ -356,37 +355,34 @@ def update_field_issue_rate(obj_type: str, user_id, products: dict, field: str, 
 
 class UpdateIssueRate(TaskHandlerBase):
     @staticmethod
-    def update_product_issue_resolved_rate(user_id, products: dict):
+    def update_product_issue_resolved_rate(products: dict):
         fields = ["serious_main_resolved_rate", "current_resolved_rate"]
         for _f in fields:
             update_field_issue_rate.delay(
                 "product",
-                user_id,
                 products,
                 _f
             )
 
     @staticmethod
-    def update_round_issue_resolved_rate(user_id, products: dict, round_id):
+    def update_round_issue_resolved_rate(products: dict, round_id):
         fields = ["serious_resolved_rate", "main_resolved_rate", "serious_main_resolved_rate",
                   "current_resolved_rate", "left_issues_cnt", "invalid_issues_cnt"]
         for _f in fields:
             update_field_issue_rate.delay(
                 "round",
-                user_id,
                 products,
                 _f,
                 round_id,
             )
 
     @staticmethod
-    def update_milestone_issue_resolved_rate(user_id, products: dict, gitee_milestone_id):
+    def update_milestone_issue_resolved_rate(products: dict, gitee_milestone_id):
         fields = ["serious_resolved_rate", "main_resolved_rate", "serious_main_resolved_rate",
                   "current_resolved_rate", "left_issues_cnt", "invalid_issues_cnt"]
         for _f in fields:
             update_field_issue_rate.delay(
                 "milestone",
-                user_id,
                 products,
                 _f,
                 gitee_milestone_id,
@@ -394,60 +390,55 @@ class UpdateIssueRate(TaskHandlerBase):
 
     def main(self):
         products = Product.query.order_by(Product.org_id).all()
-        t_org_id = -1
         for _p in products:
-            if _p.org_id != t_org_id:
-                user_id = IssueStatisticsHandlerV8.get_user_id(_p.org_id)
-            if user_id:
-                products = {
-                    "org_id": _p.org_id,
-                    "product_id": _p.id
-                }
-                UpdateIssueRate.update_product_issue_resolved_rate(
-                    user_id=user_id, products=products
+            products_dict = {
+                "org_id": _p.org_id,
+                "product_id": _p.id
+            }
+            UpdateIssueRate.update_product_issue_resolved_rate(
+                products=products_dict
+            )
+            
+            rounds = Round.query.filter_by(
+                product_id=_p.id
+            ).all()
+            for _r in rounds:
+                issue_rate = IssueSolvedRate.query.filter_by(
+                    round_id=_r.id, type="round"
+                ).first()
+                if not issue_rate:
+                    Insert(
+                        IssueSolvedRate,
+                        {
+                            "round_id": _r.id,
+                            "type": "round",
+                        }
+                    ).single()
+                UpdateIssueRate.update_round_issue_resolved_rate(
+                    products=products_dict, round_id=_r.id
                 )
-                
-                rounds = Round.query.filter_by(
-                    product_id=_p.id
-                ).all()
-                for _r in rounds:
-                    issue_rate = IssueSolvedRate.query.filter_by(
-                        round_id=_r.id, type="round"
-                    ).first()
-                    if not issue_rate:
-                        Insert(
-                            IssueSolvedRate,
-                            {
-                                "round_id": _r.id,
-                                "type": "round",
-                            }
-                        ).single()
-                    UpdateIssueRate.update_round_issue_resolved_rate(
-                        user_id=user_id, products=products, round_id=_r.id
-                    )
 
-                milestones = Milestone.query.filter(
-                    Milestone.is_sync.is_(True),
-                    Milestone.product_id == _p.id,
-                    Milestone.round_id != sqlalchemy.null()
-                ).all()
-                for _m in milestones:
-                    issue_rate = IssueSolvedRate.query.filter_by(
-                        gitee_milestone_id=_m.gitee_milestone_id
-                    ).first()
-                    if not issue_rate:
-                        Insert(
-                            IssueSolvedRate,
-                            {
-                                "milestone_id": _m.id,
-                                "gitee_milestone_id": _m.gitee_milestone_id,
-                                "type": "milestone",
-                            }
-                        ).single(IssueSolvedRate, "/issue_solved_rate")
-                    UpdateIssueRate.update_milestone_issue_resolved_rate(
-                        user_id=user_id, products=products, gitee_milestone_id=_m.gitee_milestone_id
-                    )
-            t_org_id = _p.org_id
+            milestones = Milestone.query.filter(
+                Milestone.is_sync.is_(True),
+                Milestone.product_id == _p.id,
+                Milestone.round_id != sqlalchemy.null()
+            ).all()
+            for _m in milestones:
+                issue_rate = IssueSolvedRate.query.filter_by(
+                    gitee_milestone_id=_m.gitee_milestone_id
+                ).first()
+                if not issue_rate:
+                    Insert(
+                        IssueSolvedRate,
+                        {
+                            "milestone_id": _m.id,
+                            "gitee_milestone_id": _m.gitee_milestone_id,
+                            "type": "milestone",
+                        }
+                    ).single(IssueSolvedRate, "/issue_solved_rate")
+                UpdateIssueRate.update_milestone_issue_resolved_rate(
+                    products=products_dict, gitee_milestone_id=_m.gitee_milestone_id
+                )
 
 
 class UpdateIssueTypeState(TaskHandlerBase):
@@ -455,45 +446,45 @@ class UpdateIssueTypeState(TaskHandlerBase):
         from server import redis_client
         from server.utils.redis_util import RedisKey
         orgs = Organization.query.filter(
-            Organization.enterprise_id is not None).all()
+            Organization.enterprise_id is not None,
+            Organization.enterprise_token is not None,
+        ).all()
         for _org in orgs:
-            user_id = IssueStatisticsHandlerV8.get_user_id(_org.id)
-            if user_id:
-                isa = GiteeV8BaseIssueHandler(user_id=user_id)
-                resp = isa.get_issue_types()
-                resp = resp.get_json()
-                if resp.get("error_code") == RET.OK:
-                    issue_types = json.loads(
-                        resp.get("data")
-                    ).get("data")
-                    t_issue_types = []
-                    for _type in issue_types:
-                        t_issue_types.append(
-                            {
-                                "id": _type.get("id"),
-                                "title": _type.get("title"),
-                            }
-                        )
-                    redis_client.hmset(
-                        RedisKey.issue_types(_org.enterprise_id),
-                        {"data": t_issue_types}
+            isa = GiteeV8BaseIssueHandler(org_id=_org.id)
+            resp = isa.get_issue_types()
+            resp = resp.get_json()
+            if resp.get("error_code") == RET.OK:
+                issue_types = json.loads(
+                    resp.get("data")
+                ).get("data")
+                t_issue_types = []
+                for _type in issue_types:
+                    t_issue_types.append(
+                        {
+                            "id": _type.get("id"),
+                            "title": _type.get("title"),
+                        }
                     )
-                resp = isa.get_issue_states()
-                resp = resp.get_json()
-                if resp.get("error_code") == RET.OK:
-                    issue_states = json.loads(
-                        resp.get("data")
-                    ).get("data")
+                redis_client.hmset(
+                    RedisKey.issue_types(_org.enterprise_id),
+                    {"data": t_issue_types}
+                )
+            resp = isa.get_issue_states()
+            resp = resp.get_json()
+            if resp.get("error_code") == RET.OK:
+                issue_states = json.loads(
+                    resp.get("data")
+                ).get("data")
 
-                    t_issue_states = []
-                    for _state in issue_states:
-                        t_issue_states.append(
-                            {
-                                "id": _state.get("id"),
-                                "title": _state.get("title"),
-                            }
-                        )
-                    redis_client.hmset(
-                        RedisKey.issue_states(_org.enterprise_id),
-                        {"data": t_issue_states}
+                t_issue_states = []
+                for _state in issue_states:
+                    t_issue_states.append(
+                        {
+                            "id": _state.get("id"),
+                            "title": _state.get("title"),
+                        }
                     )
+                redis_client.hmset(
+                    RedisKey.issue_states(_org.enterprise_id),
+                    {"data": t_issue_states}
+                )

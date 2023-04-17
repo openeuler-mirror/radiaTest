@@ -19,7 +19,6 @@ from server.apps.issue.routes import (
     GiteeIssuesType,
     GiteeIssuesState,
     GiteeIssuesItem,
-    GiteeIssuesV5,
     GiteeIssuesV8,
     UpdateGiteeIssuesTypeState,
     IssueEvent,

@@ -29,7 +29,6 @@ from server.schema.milestone import (
     GiteeMilestoneQuerySchema,
     SyncMilestoneSchema,
     MilestoneStateEventSchema,
-    IssueRateFieldSchema,
     GenerateTestReport,
     QueryTestReportFile,
 )
@@ -192,13 +191,6 @@ class TestReportEvent(Resource):
         )
 
 
-class GiteeIssuesStatisticsByMilestone(Resource):
-    @auth.login_required
-    @validate()
-    def get(self, milestone_id):
-        return IssueStatisticsHandlerV8.get_rate_by_milestone(milestone_id)
-
-
 class UpdateGiteeIssuesStatistics(Resource):
     @auth.login_required
     @response_collect
@@ -206,12 +198,18 @@ class UpdateGiteeIssuesStatistics(Resource):
         return IssueStatisticsHandlerV8.update_issue_rate()
 
 
-class UpdateMilestoneIssueRateByField(Resource):
+class MilestoneIssueRateEvent(Resource):
     @auth.login_required
     @response_collect
     @validate()
-    def put(self, milestone_id, body: IssueRateFieldSchema):
-        return IssueStatisticsHandlerV8.update_milestone_issue_rate_by_field(milestone_id, body.field)
+    def put(self, milestone_id):
+        return IssueStatisticsHandlerV8.update_milestone_issue_rate(milestone_id)
+
+    @auth.login_required
+    @response_collect
+    @validate()
+    def get(self, milestone_id):
+        return IssueStatisticsHandlerV8.get_rate_by_milestone(milestone_id)
 
 
 class GiteeMilestoneEventV2(Resource):

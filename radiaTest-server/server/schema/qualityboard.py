@@ -257,11 +257,6 @@ class QueryRound(BaseModel):
     product_id: int
 
 
-class RoundIssueRateSchema(BaseModel):
-    field: Literal["serious_resolved_rate", "main_resolved_rate",
-                   "serious_main_resolved_rate", "current_resolved_rate", "left_issues_cnt"]
-
-
 class RoundToMilestone(BaseModel):
     milestone_id: str
     isbind: bool

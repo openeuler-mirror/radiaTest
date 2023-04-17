@@ -238,7 +238,7 @@ class TaskDistributeTemplate(BaseModel, PermissionBaseModel, db.Model):
     __tablename__ = 'task_distribute_template'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(32), nullable=False, unique=True)
-    creator_id = db.Column(db.Integer, nullable=False)
+    creator_id = db.Column(db.String(512), db.ForeignKey("user.user_id"), nullable=False)
     group_id = db.Column(db.Integer, nullable=False)
     types = db.relationship("DistributeTemplateType", backref="template")
     org_id = db.Column(db.Integer, db.ForeignKey("organization.id"))

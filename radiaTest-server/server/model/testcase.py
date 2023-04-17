@@ -351,7 +351,7 @@ class CaseDetailHistory(BaseModel, PermissionBaseModel, db.Model):
     __tablename__ = "case_detail_history"
 
     id = db.Column(db.Integer(), primary_key=True)
-    creator_id = db.Column(db.Integer(), nullable=False)
+    creator_id = db.Column(db.String(512), db.ForeignKey("user.user_id"), nullable=False)
     title = db.Column(db.String(255), nullable=False)
     machine_num = db.Column(db.Integer())
     machine_type = db.Column(db.String(9))

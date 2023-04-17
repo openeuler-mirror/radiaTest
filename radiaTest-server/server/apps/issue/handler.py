@@ -59,10 +59,12 @@ class IssueV5BaseHandler(IssueOpenApiHandler):
 
 
 class GiteeV8BaseIssueHandler(IssueOpenApiHandler):
-    def __init__(self, body=None, gitee_id=None, org_id=None):
+    def __init__(self, body=None, org_id=None):
         if body is not None:
             self.body = body
-        super().__init__(Issue, "/issue", gitee_id=gitee_id, org_id=org_id)
+        if org_id is None:
+            org_id = redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')
+        super().__init__(Issue, "/issue", org_id=org_id)
 
     @property
     def issue_types(self):
