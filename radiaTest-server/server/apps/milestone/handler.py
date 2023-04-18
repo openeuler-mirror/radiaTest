@@ -184,7 +184,7 @@ class MilestoneOpenApiHandler(BaseOpenApiHandler):
             self.type = body.get("type")
             self.product_id = body.get("product_id")
             self.body = self.radia_2_gitee(body)
-        org_id = redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')
+        org_id = redis_client.hget(RedisKey.user(g.user_id), 'current_org_id')
         super().__init__(table=Milestone, namespace="/milestone", org_id=org_id)
 
     def gitee_2_radia(self, body):

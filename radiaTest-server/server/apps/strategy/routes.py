@@ -543,9 +543,9 @@ class StrategyCommitEvent(Resource):
                 "id": 0
             }}
         )
-        strategy_record.creator_id = g.gitee_id
+        strategy_record.creator_id = g.user_id
         strategy_record.org_id = redis_client.hget(
-            RedisKey.user(g.gitee_id),
+            RedisKey.user(g.user_id),
             "current_org_id"
         )
 
@@ -744,9 +744,9 @@ class StrategyTemplateEvent(Resource):
                 error_code=RET.VERIFY_ERR,
                 error_msg="template name is already exists",
             )
-        creator_id = g.gitee_id
+        creator_id = g.user_id
         org_id = redis_client.hget(
-            RedisKey.user(g.gitee_id),
+            RedisKey.user(g.user_id),
             "current_org_id"
         )
 
@@ -940,9 +940,9 @@ class StrategyTemplateApplyEvent(Resource):
                 "id": 0
             }}
         )
-        strategy_record.creator_id = g.gitee_id
+        strategy_record.creator_id = g.user_id
         strategy_record.org_id = redis_client.hget(
-            RedisKey.user(g.gitee_id),
+            RedisKey.user(g.user_id),
             "current_org_id"
         )
 
@@ -1068,7 +1068,7 @@ class StrategySubmmitEvent(Resource):
         strategy_commit_info = db.session.query(Strategy, StrategyCommit).filter(
             StrategyCommit.strategy_id == strategy_id,
             StrategyCommit.strategy_id == Strategy.id,
-            Strategy.creator_id == g.gitee_id,
+            Strategy.creator_id == g.user_id,
             StrategyCommit.commit_status == "staged"
         ).first()
         if not strategy_commit_info:
@@ -1140,7 +1140,7 @@ class StrategyCommitStageEvent(Resource):
         strategy_commit_info = db.session.query(Strategy, StrategyCommit).filter(
             StrategyCommit.strategy_id == strategy_id,
             StrategyCommit.strategy_id == Strategy.id,
-            Strategy.creator_id == g.gitee_id,
+            Strategy.creator_id == g.user_id,
             StrategyCommit.commit_status == "staged"
         ).first()
 
@@ -1263,7 +1263,7 @@ class StrategyCommitReductEvent(Resource):
         strategy_commit_info = db.session.query(Strategy, StrategyCommit).filter(
             StrategyCommit.strategy_id == strategy_id,
             StrategyCommit.strategy_id == Strategy.id,
-            Strategy.creator_id == g.gitee_id,
+            Strategy.creator_id == g.user_id,
             StrategyCommit.commit_status == "staged"
         ).first()
 
