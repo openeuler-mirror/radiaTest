@@ -21,8 +21,8 @@ from .routes import FrameworkEvent, FrameworkItemEvent, GitRepoEvent, GitRepoIte
 
 
 def init_api(api: Api):
-    api.add_resource(FrameworkEvent, "/api/v1/framework", "/api/v1/ws/<str:workspace>/framework")
+    api.add_resource(FrameworkEvent, "/api/v1/framework", "/api/v1/ws/<string:workspace>/framework")
     api.add_resource(FrameworkItemEvent, "/api/v1/framework/<int:framework_id>")
-    api.add_resource(GitRepoEvent, "/api/v1/git-repo", "/api/v1/ws/<str:workspace>/git-repo")
+    api.add_resource(GitRepoEvent, "/api/v1/git-repo", "/api/v1/ws/<string:workspace>/git-repo")
     api.add_resource(GitRepoScopedEvent, "/api/v1/git-repo/scoped")
     api.add_resource(GitRepoItemEvent, "/api/v1/git-repo/<int:git_repo_id>")

@@ -63,7 +63,7 @@ def init_api(api: Api):
     api.add_resource(
         StatusOrder, "/api/v1/task/status/order", endpoint="task_status_order"
     )
-    api.add_resource(Task, "/api/v1/tasks", "/api/v1/ws/<str:workspace>/tasks", endpoint="task")
+    api.add_resource(Task, "/api/v1/tasks", "/api/v1/ws/<string:workspace>/tasks", endpoint="task")
     api.add_resource(TaskItem, "/api/v1/tasks/<int:task_id>", endpoint="task_item")
     api.add_resource(
         ParticipantItem,
