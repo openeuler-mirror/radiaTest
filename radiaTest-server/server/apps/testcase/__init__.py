@@ -126,7 +126,12 @@ def init_api(api: Api):
         "/api/v1/ws/<str:workspace>/suite",
         methods=["POST", "GET"]
     )
-    api.add_resource(CaseEvent, "/api/v1/case", methods=["POST", "GET"])
+    api.add_resource(
+        CaseEvent, 
+        "/api/v1/case",
+        "/api/v1/ws/<str:workspace>/case",
+        methods=["POST", "GET"],
+    )
     api.add_resource(
         CaseItemEvent, 
         "/api/v1/case/<int:case_id>", 
