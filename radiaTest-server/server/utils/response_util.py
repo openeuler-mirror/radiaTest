@@ -11,7 +11,10 @@ class RET(object):
     PARMA_ERR = "4000"
     VERIFY_ERR = "4001"
     CLA_VERIFY_ERR = "4010"
+    # unauthorized request to api
     UNAUTHORIZE_ERR = "4020"
+    # unauthorized access to workspaces
+    UNAUTHORIZED_ACCESS = "4021"
     BAD_REQ_ERR = "4050"
     SERVER_ERR = "5000"
     DATA_EXIST_ERR = "5001"
@@ -111,7 +114,7 @@ def  workspace_error_collect(func):
             )
         except RuntimeError as e:
             return jsonify(
-                error_code=RET.UNAUTHORIZE_ERR,
+                error_code=RET.UNAUTHORIZED_ACCESS,
                 error_msg=str(e),
             )
     
