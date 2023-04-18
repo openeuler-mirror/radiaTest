@@ -355,13 +355,14 @@ class CaseEvent(Resource):
 
     @auth.login_required()
     @response_collect
-    def get(self):
+    @workspace_error_collect
+    def get(self, workspace: str):
         body = dict()
 
         for key, value in request.args.to_dict().items():
             if value:
                 body[key] = value
-        return GetAllByPermission(Case).precise(body)
+        return GetAllByPermission(Case, workspace).precise(body)
 
 
 
