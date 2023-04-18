@@ -26,7 +26,7 @@ from server.apps.manualjob.routes import (
 
 def init_api(api: Api):
     # 创建、查询手工测试任务(ManualJob).
-    api.add_resource(ManualJobEvent, "/api/v1/ws/<str:workspace>/manual-job", methods=["POST", "GET"])
+    api.add_resource(ManualJobEvent, "/api/v1/ws/<string:workspace>/manual-job", methods=["POST", "GET"])
     # 提交完成执行指定id的手工测试任务.
     api.add_resource(ManualJobSubmitEvent, "/api/v1/manual-job/<int:manual_job_id>/submit", methods=["POST"])
     # 更新、删除指定id的手工测试任务的日志.

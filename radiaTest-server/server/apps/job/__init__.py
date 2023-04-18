@@ -13,7 +13,7 @@ from .routes import PreciseAnalyzedEvent
 
 
 def init_api(api: Api):
-    api.add_resource(JobEvent, "/api/v1/ws/<str:workspace>/job")
+    api.add_resource(JobEvent, "/api/v1/ws/<string:workspace>/job")
     api.add_resource(JobItemEvent, "/api/v1/job/<int:job_id>")
     api.add_resource(JobItemChildren, "/api/v1/job/<int:job_id>/children")
     api.add_resource(AnalyzedEvent, "/api/v1/analyzed")

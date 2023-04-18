@@ -22,6 +22,6 @@ from .routes import TemplateItemEvent, TemplateCloneEvent
 
 
 def init_api(api: Api):
-    api.add_resource(TemplateEvent, "/api/v1/template", "/api/v1/ws/<str:workspace>/template")
+    api.add_resource(TemplateEvent, "/api/v1/template", "/api/v1/ws/<string:workspace>/template")
     api.add_resource(TemplateItemEvent, "/api/v1/template/<int:template_id>")
     api.add_resource(TemplateCloneEvent, "/api/v1/template/clone")
