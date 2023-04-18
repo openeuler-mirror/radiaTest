@@ -88,7 +88,7 @@ class GiteePrHandler():
     @property
     def current_org(self):
         org_id = redis_client.hget(
-            RedisKey.user(g.gitee_id), "current_org_id")
+            RedisKey.user(g.user_id), "current_org_id")
         org = Organization.query.filter_by(id=org_id).first()
         return org
 
@@ -144,7 +144,7 @@ class GiteePrHandler():
 
 class CommitHandler:
     def __init__(self, strategy_id) -> None:
-        user = User.query.filter_by(gitee_id=g.gitee_id).first()
+        user = User.query.filter_by(gitee_id=g.user_id).first()
         self.user_params = {
             "owner": "radiaTest_bot",  # radiaTest机器人公共账户
             "repo": "QA",  # 公共账户仓库

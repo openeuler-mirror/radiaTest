@@ -63,7 +63,7 @@ class GiteeV8BaseIssueHandler(IssueOpenApiHandler):
         if body is not None:
             self.body = body
         if org_id is None:
-            org_id = redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')
+            org_id = redis_client.hget(RedisKey.user(g.user_id), 'current_org_id')
         super().__init__(Issue, "/issue", org_id=org_id)
 
     @property
@@ -132,7 +132,7 @@ class GiteeV8BaseIssueHandler(IssueOpenApiHandler):
                 "gitee_issue_id": body.get("id"),
                 "ident": body.get("ident"),
                 "gitee_issue_url": body.get("issue_url"),
-                "creator_id": g.gitee_id,
+                "creator_id": g.user_id,
             }
         )
         return radia_body
@@ -378,7 +378,7 @@ class GiteeV8IssueHandler:
             title=gitee_issue.get("title"),
             description=gitee_issue.get("description"),
             priority=gitee_issue.get("priority"),
-            creator_id=g.gitee_id,
+            creator_id=g.user_id,
             milstone_id=milestone.milestone_id,
             task_id=body.get("task_id"),
             case_id=body.get("case_id"),
