@@ -28,6 +28,14 @@ class Org(Resource):
         return handler_get_all_org(query)
 
 
+class OrgStatistic(Resource):
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def get(self, org_id: int):
+        return handler_org_statistic(org_id)
+
+
 class User(Resource):
     @auth.login_required()
     @response_collect

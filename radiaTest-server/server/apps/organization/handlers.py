@@ -4,7 +4,7 @@ from sqlalchemy import or_
 from server import redis_client
 from server.model.organization import Organization, ReUserOrganization
 from server.model.user import User
-from server.model.group import ReUserGroup
+from server.model.group import Group, ReUserGroup
 from server.model.permission import Role, ReUserRole
 from server.utils.response_util import RET
 from server.utils.page_util import PageUtil
@@ -157,3 +157,18 @@ def handler_get_all_org(query):
         return jsonify(error_code=RET.SERVER_ERR, error_msg=f'get organization page error {e}')
 
     return jsonify(error_code=RET.OK, error_msg="OK", data=page_dict)
+
+
+@collect_sql_error
+def handler_org_statistic(org_id: int):
+    total_groups = Group.query.filter_by(org_id=org_id, is_delete=False).count()
+    total_users = ReUserOrganization.query.filter_by(organization_id=org_id, is_delete=False).count()
+
+    return jsonify(
+        error_code=RET.OK,
+        error_mesg="OK",
+        data={
+            "total_groups": total_groups,
+            "total_users": total_users,
+        }
+    ) 

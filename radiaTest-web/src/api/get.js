@@ -399,3 +399,8 @@ export function getMultiVersionPackageAxios(roundId, param) {
 export function getGiteeProject() {
   return getRequest('/v1/gitee-project');
 }
+
+// 查询组织用户组与用户总数统计
+export function getOrgStat(orgId) {
+  return getRequest(`/v1/org/${orgId}/statistic`);
+}
