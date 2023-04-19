@@ -1,8 +1,11 @@
 import binascii
+from datetime import datetime
+
 from flask import g, current_app
 from flask_httpauth import HTTPTokenAuth
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from itsdangerous.exc import SignatureExpired, BadSignature, BadData
+
 from server import redis_client
 from server.utils.aes_util import FileAES
 from server.utils.redis_util import RedisKey
@@ -60,7 +63,8 @@ def generate_token(gitee_id, gitee_login, ex=60 * 60 * 2):
 def verify_token(token):
     data = None
     try:
-        if not redis_client.exists(RedisKey.token(token)):
+        token_info = redis_client.hgetall(RedisKey.messenger_token(token))
+        if not redis_client.exists(RedisKey.token(token)) or not token_info:
             return False
 
         # 令牌payload解密
@@ -100,7 +104,8 @@ def verify_token(token):
         current_app.logger.info(f"Uncrypted/Unknown token {token} attempt to do request")
         return False
     finally:
-        if data and data.get("gitee_login") == redis_client.hget(RedisKey.user(data.get("gitee_id")), "gitee_login"):
+        if (data and data.get("gitee_login") == redis_client.hget(RedisKey.user(data.get("gitee_id")), "gitee_login")) \
+                or (data and data.get("time")):
             try:
                 g.gitee_id = int(data.get("gitee_id"))
             except:
@@ -113,3 +118,31 @@ def verify_token(token):
 
 class RefreshTokenSchema(BaseModel):
     refresh_token: str
+
+
+def generate_messenger_token(payload, ex=60 * 60 * 24):
+    now_time = datetime.now(tz=pytz.timezone('Asia/Shanghai')).strftime("%Y-%m-%d %H:%M:%S")
+    token_data = dict(
+        gitee_id=payload.gitee_id,
+        gitee_login=payload.gitee_login,
+        time= now_time
+    )
+    _token = str(
+        serializer.dumps(token_data),
+        encoding='utf-8'
+    )
+    # 令牌payload加密
+    aes_payload = FileAES().encrypt(_token.split('.')[1])
+    token = _token.replace(_token.split('.')[1], aes_payload)
+
+    redis_client.hmset(
+        RedisKey.messenger_token(token),
+        mapping={
+            "gitee_id": payload.gitee_id,
+            "gitee_login": payload.gitee_login,
+            "time": now_time
+        },
+        ex=ex
+    )
+
+    return token
