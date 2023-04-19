@@ -130,7 +130,8 @@ class JobEvent(Resource):
                     RedisKey.user(g.gitee_id), 
                     "current_org_id"
                 )
-            )
+            ),
+            "creator_id": g.gitee_id
         }
 
         if re.match(r'^group_\d+$', workspace):

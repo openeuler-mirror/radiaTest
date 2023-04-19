@@ -49,6 +49,7 @@ class Job(BaseModel, db.Model, PermissionBaseModel):
     is_suite_job = db.Column(db.Boolean(), default=False)
     tid = db.Column(db.String(512))
 
+    creator_id = db.Column(db.Integer(), db.ForeignKey("user.gitee_id"))
     group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
     org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
 
@@ -104,7 +105,7 @@ class Job(BaseModel, db.Model, PermissionBaseModel):
             "master": self.master if not self.multiple else masters,
             "multiple": self.multiple,
             "tid": self.tid,
-            "is_suite_job": self.is_suite_job,
+            "is_suite_job": self.is_suite_job
         }
 
 
