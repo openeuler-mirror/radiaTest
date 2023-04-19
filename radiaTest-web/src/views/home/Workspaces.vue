@@ -12,7 +12,7 @@
     >
       <div class="welcome-warp">
         <H2>Hi，欢迎使用开源测试管理平台radiaTest！</H2>
-        <p>radiaTest提供一站式自动化测试集成、管理、执行、分析、以及跨团队、跨企业质量写作能力。</p>
+        <p>radiaTest提供一站式测试资产管理、测试服务编排调用、以及跨团队版本级测试协作能力。</p>
         <div class="detail-wrap">
           <n-icon color="#429cee">
             <Check></Check>
@@ -35,7 +35,7 @@
           <n-icon color="#429cee">
             <Check></Check>
           </n-icon>
-          <div class="text">多元化测试引擎，满足社区差异化测试能力需求，灵活选用</div>
+          <div class="text">多元化测试服务编排，满足社区差异化测试能力需求，灵活选用</div>
         </div>
         <div class="detail-wrap">
           <n-icon color="#429cee">
@@ -44,13 +44,13 @@
           <div class="text">任务管理管理能力，实现测试活动全流程承载</div>
         </div>
         <div class="image-box">
-          <n-image height="250" width="500" :src="titleImage" preview-disabled />
+          <n-image height="250" width="350" :src="titleImage" preview-disabled />
         </div>
       </div>
       <n-grid :cols="12" x-gap="24" style="margin-top: 20px">
         <n-gi :span="10">
           <div class="workspaces-wrap">
-            <div class="workspaces-title">Workspace</div>
+            <div class="workspaces-title">Workspaces</div>
             <n-collapse :default-expanded-names="['publicWorkspaces', 'groupWorkspaces']" class="workspaces-content">
               <n-collapse-item title="公共workspaces" name="publicWorkspaces">
                 <n-grid :cols="2" x-gap="24">
@@ -85,8 +85,8 @@
               <n-collapse-item title="团队workspaces" name="groupWorkspaces">
                 <n-tabs type="line">
                   <n-tab name="all"> 全部 </n-tab>
-                  <n-tab name="myJoin"> 我加入的 </n-tab>
-                  <n-tab name="myCreate"> 我创建的 </n-tab>
+                  <n-tab name="myJoin" :disabled="true"> 我加入的 </n-tab>
+                  <n-tab name="myCreate" :disabled="true"> 我创建的 </n-tab>
                 </n-tabs>
                 <template #header-extra>
                   <n-input
@@ -146,13 +146,13 @@
             </div>
             <div class="document-content-wrap">
               <div class="document-content">
-                <div class="content-type document-first">升级</div>
-                <div class="content-text">发布记录-V1.2.1(2023.03.02)</div>
+                <div class="content-type document-first">发布</div>
+                <div class="content-text"></div>
               </div>
-              <div class="document-content">
+              <!--<div class="document-content">
                 <div class="content-type">升级</div>
-                <div class="content-text">发布记录-V1.2.0(2023.02.15)</div>
-              </div>
+                <div class="content-text"></div>
+              </div>-->
             </div>
           </div>
           <div class="document-wrap help-document">
@@ -163,31 +163,7 @@
             <div class="document-content-wrap">
               <div class="document-content">
                 <div class="content-type document-first">文档</div>
-                <div class="content-text">架构简介</div>
-              </div>
-              <div class="document-content">
-                <div class="content-type">文档</div>
-                <div class="content-text">安装教程</div>
-              </div>
-              <div class="document-content">
-                <div class="content-type">文档</div>
-                <div class="content-text">基于裸金属/虚拟机节点容器化部署的运维说明</div>
-              </div>
-              <div class="document-content">
-                <div class="content-type">文档</div>
-                <div class="content-text">参与贡献</div>
-              </div>
-              <div class="document-content">
-                <div class="content-type">文档</div>
-                <div class="content-text">Commit规范 & 质量要求</div>
-              </div>
-              <div class="document-content">
-                <div class="content-type">文档</div>
-                <div class="content-text">联系方式</div>
-              </div>
-              <div class="document-content">
-                <div class="content-type">文档</div>
-                <div class="content-text">特技</div>
+                <div class="content-text"></div>
               </div>
             </div>
           </div>
@@ -451,8 +427,9 @@ onMounted(() => {
     background-color: white;
 
     .workspaces-title {
-      font-weight: 500;
+      font-weight: 800;
       font-size: 16px;
+      font-family: 'system-ui';
       color: rgba(0, 0, 0, 0.85);
     }
 
@@ -545,7 +522,7 @@ onMounted(() => {
       .pagination-wrap {
         margin-top: 20px;
         display: flex;
-        justify-content: end;
+        justify-content: flex-end;
       }
     }
   }

@@ -1,7 +1,6 @@
 <template>
   <n-card
     :bordered="false"
-    title="版本管理"
     size="huge"
     content-style="padding:5px 50px"
     :segmented="{
@@ -17,20 +16,17 @@
         "
   >
     <template #header>
-      <n-grid :cols="3">
-        <n-gi class="nav-header">版本管理</n-gi>
-        <n-gi class="nav-body">
-          <ul class="nav-wrapper">
-            <li
-              v-for="(item, index) in menu"
-              :key="index"
-              @click="menuClick(item, index)"
-            >
-              <a :class="{ active: isTabActive(item.name) }">{{ item.text }}</a>
-            </li>
-          </ul>
-        </n-gi>
-      </n-grid>
+      <div class="nav-body">
+        <ul class="nav-wrapper">
+          <li
+            v-for="(item, index) in menu"
+            :key="index"
+            @click="menuClick(item, index)"
+          >
+            <a :class="{ active: isTabActive(item.name) }">{{ item.text }}</a>
+          </li>
+        </ul>
+      </div>
     </template>
     <template #default>
       <router-view></router-view>

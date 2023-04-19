@@ -39,7 +39,7 @@ const isActive = (path) => {
   }
 
   .active {
-    border-bottom: 5px solid rgba(0, 47, 167, 1);
+    border-bottom: 3px solid rgba(0, 47, 167, 1);
   }
 }
 </style>

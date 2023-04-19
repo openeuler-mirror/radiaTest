@@ -364,7 +364,7 @@ class GetAllByPermission:
             "current_org_id"
         )
         self.re_user_groups = ReUserGroup.query.filter_by(
-            gitee_id=g.gitee_id, org_id=int(self.current_org_id)
+            user_gitee_id=g.gitee_id, org_id=int(self.current_org_id)
         ).all()
 
         self.filter_params = self._get_filter_params(workspace)
@@ -382,10 +382,10 @@ class GetAllByPermission:
         else:
             self.group_id = int(workspace.split('_')[1])
             _re_user_group = ReUserGroup.query.filter_by(
-                gitee_id=g.gitee_id, 
+                user_gitee_id=g.gitee_id, 
                 group_id=self.group_id,
                 org_id=int(self.current_org_id),
-            )
+            ).first()
             if not _re_user_group:
                 raise RuntimeError(f"unauthorized access")
             
