@@ -1,8 +1,8 @@
 import { ref, h } from 'vue';
 import { NAvatar } from 'naive-ui';
-
 import axios from '@/axios';
 import { storage } from '@/assets/utils/storageUtils';
+import { workspace } from '@/assets/config/menu.js';
 
 const weekMS = 1000 * 60 * 60 * 24 * 7;
 const timeRange = ref([Date.now() - weekMS, Date.now()]);
@@ -27,7 +27,7 @@ function disablePreviousDate(ts) {
 }
 
 function getMilestone () {
-  axios.get('/v2/milestone').then(res => {
+  axios.get(`/v2/ws/${workspace.value}/milestone`).then(res => {
     milestoneOptions.value = [];
     for (const item of res.data.items) {
       milestoneOptions.value.push({

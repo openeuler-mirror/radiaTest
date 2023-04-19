@@ -30,6 +30,8 @@ import { Construct } from '@vicons/ionicons5';
 import Common from '@/components/CRUD';
 import testsuiteCreate from '@/components/testsuiteComponents/testsuiteCreate.vue';
 import { renderTooltip } from '@/assets/render/tooltip';
+import { workspace } from '@/assets/config/menu.js';
+
 const baseColumns = [
   {
     title: '测试套',
@@ -77,7 +79,7 @@ export default {
   methods: {
     getData() {
       this.loading = true;
-      this.$axios.get('/v1/suite').then((res) => {
+      this.$axios.get(`/v1/ws/${workspace.value}/suite`).then((res) => {
         this.data = res.data;
         this.loading = false;
       });

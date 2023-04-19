@@ -1,6 +1,7 @@
 import { ref } from 'vue';
 import axios from '@/axios';
 import { getGroup } from '@/api/get';
+import { workspace } from '@/assets/config/menu.js';
 
 const size = ref('medium');
 
@@ -37,7 +38,7 @@ const rules = {
 
 const getFrameworkOptions = () => {
   axios
-    .get('/v1/framework')
+    .get(`/v1/ws/${workspace.value}/framework`)
     .then((res) => {
       frameworkOptions.value = res.data?.map((item) => {
         return {

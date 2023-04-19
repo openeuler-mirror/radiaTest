@@ -146,14 +146,14 @@ requirementSocket.connect();
 const rankSocket = new Socket(`${settings.websocketProtocol}://${settings.serverPath}/rank`);
 rankSocket.connect();
 
-const influenceScore = ref(0);
-const accountRank = ref(null);
-const accountName = ref('');
-const avatarUrl = ref(null);
+const influenceScore = ref(0); // 影响力
+const accountRank = ref(null); // 影响力等级
+const accountName = ref(''); // 当前登录账号
+const avatarUrl = ref(null); // 当前账号头像
 
 const loading = ref(false);
-const createModal = ref(null);
-const formRef = ref(null);
+const createModal = ref(null); // 发布新需求弹框
+const formRef = ref(null); // 发布新需求表单
 
 const filterParams = ref({
   status: null,
@@ -169,11 +169,11 @@ const filterParams = ref({
   total_reward: null
 });
 
-const page = ref(1);
-const pageSize = ref(10);
-const pageCount = ref(1);
+const page = ref(1); // 需求表格页码
+const pageSize = ref(10); // 需求表格每页显示数
+const pageCount = ref(1); // 需求表格总数
 
-const rankList = ref([]);
+const rankList = ref([]); // 影响力列表
 
 const filterRule = ref([
   {
@@ -280,7 +280,7 @@ function getRank(asyncFunc) {
   });
 }
 
-const requireListData = ref([]);
+const requireListData = ref([]); // 需求表格数据
 
 function handleRankPageChange() {
   if (rankType.value === 'person') {
@@ -290,6 +290,7 @@ function handleRankPageChange() {
   }
 }
 
+// 获取需求表格数据
 function getRequirementData() {
   getRequireList({
     page_num: page.value,
@@ -302,17 +303,20 @@ function getRequirementData() {
   });
 }
 
+// 需求表格页码变更
 function handlePageChange(_page) {
   page.value = _page;
   getRequirementData();
 }
 
+// 需求表格每页显示数变更
 function handlePageSizeChange(_pageSize) {
   pageSize.value = _pageSize;
   page.value = 1;
   getRequirementData();
 }
 
+// 头像加载失败显示的头像
 function handleFallbackSrc(item) {
   if (item.gitee_name) {
     return createAvatar(item.gitee_name.slice(0, 1));

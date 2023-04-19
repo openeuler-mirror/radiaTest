@@ -63,68 +63,87 @@
           </template>
           回到底部
         </n-tooltip>
+        <n-tooltip trigger="hover" placement="right">
+          <template #trigger>
+            <p class="fix-item" @click="jumpToGitee">
+              <n-icon size="40" color="#fff" style="left: 2px; top: -2px">
+                <svg
+                  width="1rem"
+                  height="1rem"
+                  xmlns="http://www.w3.org/2000/svg"
+                  name="zi_tmGitee"
+                  viewBox="0 0 2000 2000"
+                >
+                  <path
+                    d="M898 1992q183 0 344-69.5t283-191.5q122-122 191.5-283t69.5-344q0-183-69.5-344T1525 477q-122-122-283-191.5T898 216q-184 0-345 69.5T270 477Q148 599 78.5 760T9 1104q0 183 69.5 344T270 1731q122 122 283 191.5t345 69.5zm199-400H448q-17 0-30.5-14t-13.5-30V932q0-89 43.5-163.5T565 649q74-45 166-45h616q17 0 30.5 14t13.5 31v111q0 16-13.5 30t-30.5 14H731q-54 0-93.5 39.5T598 937v422q0 17 14 30.5t30 13.5h416q55 0 94.5-39.5t39.5-93.5v-22q0-17-14-30.5t-31-13.5H842q-17 0-30.5-14t-13.5-31v-111q0-16 13.5-30t30.5-14h505q17 0 30.5 14t13.5 30v250q0 121-86.5 207.5T1097 1592z"
+                  />
+                </svg>
+              </n-icon>
+            </p>
+          </template>
+          代码仓
+        </n-tooltip>
       </div>
     </vue3-draggable-resizable>
   </div>
 </template>
-<script>
+<script setup>
 import { Add, Sunny, MoonSharp } from '@vicons/ionicons5';
 import { UpToTop, DownToBottom } from '@vicons/carbon';
 import { ArrowSwap20Filled } from '@vicons/fluent';
-import { changeTheme } from '@/assets/config/theme';
-import { darkTheme } from 'naive-ui';
+// import { changeTheme } from '@/assets/config/theme';
+// import { darkTheme } from 'naive-ui';
 import Vue3DraggableResizable from 'vue3-draggable-resizable';
 import 'vue3-draggable-resizable/dist/Vue3DraggableResizable.css';
-export default {
-  components: { Add, UpToTop, DownToBottom, ArrowSwap20Filled, Sunny, MoonSharp, Vue3DraggableResizable },
-  data() {
-    return {
-      expand: false,
-      lightTheme: true,
-      dragboxHeight: 150
-    };
-  },
-  methods: {
-    backToTop() {
-      if (this.$route.name === 'resourcePool') {
-        document.querySelector('#resourcePoolRight > div').scrollTop = 0;
-      } else if (this.$route.name === 'folderview') {
-        document.querySelector('#folderviewRight > div').scrollTop = 0;
-      } else {
-        document.querySelector('#homeBody > div').scrollTop = 0;
-      }
-    },
-    swapTheme() {
-      this.lightTheme = !this.lightTheme;
-      if (this.lightTheme) {
-        changeTheme(null);
-      } else {
-        changeTheme(darkTheme);
-      }
-    },
-    handleExpand() {
-      this.expand = !this.expand;
-      this.$refs.expandContainer.style.transition = 'all 1s';
-      if (this.expand) {
-        this.dragboxHeight = 250;
-        this.$refs.expandContainer.style.height = '150px';
-      } else {
-        this.dragboxHeight = 150;
-        this.$refs.expandContainer.style.height = '50px';
-      }
-    },
-    backToBottom() {
-      if (this.$route.name === 'resourcePool') {
-        document.querySelector('#resourcePoolRight > div').scrollTop =
-          document.querySelector('#resourcePoolRight > div').scrollHeight;
-      } else if (this.$route.name === 'folderview') {
-        document.querySelector('#folderviewRight > div').scrollTop =
-          document.querySelector('#folderviewRight > div').scrollHeight;
-      } else {
-        document.querySelector('#homeBody > div').scrollTop = document.querySelector('#homeBody > div').scrollHeight;
-      }
-    }
+
+const route = useRoute();
+const expand = ref(false);
+const lightTheme = ref(true);
+const dragboxHeight = ref(200);
+const expandContainer = ref(null);
+
+const backToTop = () => {
+  if (route.name === 'resourcePool') {
+    document.querySelector('#resourcePoolRight > div').scrollTop = 0;
+  } else if (route.name === 'folderview') {
+    document.querySelector('#folderviewRight > div').scrollTop = 0;
+  } else {
+    document.querySelector('#homeBody > div').scrollTop = 0;
   }
+};
+// const swapTheme = () => {
+//   lightTheme.value = !lightTheme.value;
+//   if (lightTheme.value) {
+//     changeTheme(null);
+//   } else {
+//     changeTheme(darkTheme);
+//   }
+// };
+const handleExpand = () => {
+  expand.value = !expand.value;
+  expandContainer.value.style.transition = 'all 1s';
+  if (expand.value) {
+    dragboxHeight.value = 300;
+    expandContainer.value.style.height = '150px';
+  } else {
+    dragboxHeight.value = 200;
+    expandContainer.value.style.height = '50px';
+  }
+};
+const backToBottom = () => {
+  if (route.name === 'resourcePool') {
+    document.querySelector('#resourcePoolRight > div').scrollTop =
+      document.querySelector('#resourcePoolRight > div').scrollHeight;
+  } else if (route.name === 'folderview') {
+    document.querySelector('#folderviewRight > div').scrollTop =
+      document.querySelector('#folderviewRight > div').scrollHeight;
+  } else {
+    document.querySelector('#homeBody > div').scrollTop = document.querySelector('#homeBody > div').scrollHeight;
+  }
+};
+
+const jumpToGitee = () => {
+  window.open('https://gitee.com/openeuler/radiaTest');
 };
 </script>
 <style lang="less" scoped>

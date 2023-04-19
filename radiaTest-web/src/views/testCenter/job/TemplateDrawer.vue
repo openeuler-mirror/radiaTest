@@ -88,6 +88,7 @@ import { createTitle } from '@/assets/utils/createTitle';
 import ExpandedCardTemplate from '@/components/templateComponents/ExpandedCardTemplate.vue';
 import { Socket } from '@/socket.js';
 import settings from '@/assets/config/settings.js';
+import { workspace } from '@/assets/config/menu.js';
 
 const templateTableLoading = ref(false);
 const templateTableData = ref([]);
@@ -104,7 +105,7 @@ const modalData = ref(null);
 const getTableData = () => {
   return new Promise((resolve) => {
     templateTableLoading.value = true;
-    axios.get('/v1/template').then((res) => {
+    axios.get(`/v1/ws/${workspace.value}/template`).then((res) => {
       templateTableLoading.value = false;
       templateTableData.value = res.data;
       templateList.value = res.data.map((item) => ({

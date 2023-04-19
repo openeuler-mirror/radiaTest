@@ -136,6 +136,8 @@ import Essential from '@/components/testcaseComponents';
 import { ref } from 'vue';
 import testsuiteCreate from '@/components/testsuiteComponents/testsuiteCreate.vue';
 import createDrawer from '@/components/task/createDrawer.vue';
+import { workspace } from '@/assets/config/menu.js';
+
 export default {
   components: {
     ...Common,
@@ -150,7 +152,7 @@ export default {
     }
   },
   mounted() {
-    this.$axios.get('/v1/framework').then((res) => {
+    this.$axios.get(`/v1/ws/${workspace.value}/framework`).then((res) => {
       this.frameworkList = res.data?.map((item) => ({
         label: item.name,
         value: item.id,

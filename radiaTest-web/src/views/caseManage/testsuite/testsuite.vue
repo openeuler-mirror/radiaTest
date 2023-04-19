@@ -43,6 +43,7 @@ import Essential from '@/components/testcaseComponents';
 import testsuiteCreate from '@/components/testsuiteComponents/testsuiteCreate.vue';
 import testsuiteTable from '@/components/testsuiteComponents/testsuiteTable.vue';
 import filterButton from '@/components/filter/filterButton.vue';
+import { workspace } from '@/assets/config/menu.js';
 
 export default defineComponent({
   components: {
@@ -113,7 +114,7 @@ export default defineComponent({
       filterArray.forEach((v) => {
         filterValue.value[v.path] = v.value;
       });
-      proxy.$axios.get('/v1/suite', filterValue.value).then((res) => {
+      proxy.$axios.get(`/v1/ws/${workspace.value}/suite`, filterValue.value).then((res) => {
         tableRef.value.data = res.data;
         tableRef.value.pagination.page = 1;
       });

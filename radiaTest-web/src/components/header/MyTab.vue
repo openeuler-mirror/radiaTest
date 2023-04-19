@@ -18,15 +18,8 @@
         @click="handleClick"
       >
         <div class="table-cell">
-          <n-text>
-            <slot name="text"></slot>
-          </n-text>
-          <n-icon
-            class="arrow"
-            ref="arrow"
-            style="top: 3px; margin-left: 10px"
-            v-show="hasArrow"
-          >
+          <slot name="text"></slot>
+          <n-icon class="arrow" ref="arrow" style="top: 3px; margin-left: 10px" v-show="hasArrow">
             <arrow-up />
           </n-icon>
         </div>
@@ -37,48 +30,34 @@
 </template>
 
 <script>
-import { ref, toRefs, watch, onMounted, defineComponent } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, onMounted, defineComponent } from 'vue';
 import { KeyboardArrowUpSharp as ArrowUp } from '@vicons/material';
 
 export default defineComponent({
   components: {
-    ArrowUp,
+    ArrowUp
   },
   props: {
     hasArrow: {
       type: Boolean,
-      default: true,
+      default: true
     },
     url: {
       type: String,
-      default: '/none',
+      default: '/none'
     },
     disabled: Boolean,
-    id: String,
+    id: String
   },
   setup(props) {
     const popover = ref(null);
     const arrow = ref(null);
     const tab = ref(null);
     const isLeave = ref(true);
-    const { url } = toRefs(props);
-    const router = useRouter();
 
     onMounted(() => {
-      if (router.currentRoute.value.fullPath.startsWith(url.value)) {
-        tab.value.style.borderBottomColor = 'rgba(0, 47, 167, 1)';
-      }
       if (props.disabled) {
         tab.value.style.color = 'grey';
-      }
-    });
-
-    watch(router.currentRoute, () => {
-      if (router.currentRoute.value.fullPath.startsWith(url.value)) {
-        tab.value.style.borderBottomColor = 'rgba(0, 47, 167, 1)';
-      } else {
-        tab.value.style.borderBottomColor = 'white';
       }
     });
 
@@ -86,7 +65,7 @@ export default defineComponent({
       isLeave,
       popover,
       arrow,
-      tab,
+      tab
     };
   },
   methods: {
@@ -120,8 +99,8 @@ export default defineComponent({
     },
     handleClick() {
       this.$emit('click');
-    },
-  },
+    }
+  }
 });
 </script>
 
@@ -129,7 +108,6 @@ export default defineComponent({
 .table-cell {
   display: table-cell;
   vertical-align: bottom;
-  padding-bottom: 11px;
 }
 .tab {
   display: table;

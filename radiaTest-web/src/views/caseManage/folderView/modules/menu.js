@@ -44,6 +44,7 @@ import {
 } from 'naive-ui';
 import router from '@/router';
 import { createModalRef, createFormRef, importModalRef } from './createRef';
+import { workspace } from '@/assets/config/menu.js';
 
 function renderIcon(icon) {
   return () =>
@@ -163,7 +164,7 @@ function getDirectory(node) {
   }
   return new Promise((resolve, reject) => {
     axios
-      .get('/v1/case-node', params)
+      .get(`/v1/ws/${workspace.value}/case-node`, params)
       .then((res) => {
         node.children = [];
         for (const item of res.data) {
@@ -1126,7 +1127,7 @@ const actionHandlder = {
       const [key] = contextmenu.key.split('-');
       if (key === 'suite') {
         const id = contextmenu.info.suite_id;
-        axios.get('/v1/suite', { id }).then((res) => {
+        axios.get(`/v1/ws/${workspace.value}/suite`, { id }).then((res) => {
           [suiteInfo.value] = res;
           putModalRef.value.show();
         });
@@ -1155,27 +1156,47 @@ function menuClick({ key, options }) {
   const [{ label, type, suiteId, caseId }] = options;
   if (itemkey === 'org') {
     router.push({
-      path: `/home/tcm/folderview/org-node/${window.btoa(id)}`
+      name: 'orgNode',
+      params: {
+        taskId: window.btoa(id)
+      }
     });
   } else if (itemkey === 'group') {
     router.push({
-      path: `/home/tcm/folderview/term-node/${window.btoa(id)}`
+      name: 'termNode',
+      params: {
+        taskId: window.btoa(id)
+      }
     });
   } else if (itemkey === 'directory' && label === '用例集') {
     router.push({
-      path: `/home/tcm/folderview/caseset-node/${window.btoa(id)}`
+      name: 'casesetNode',
+      params: {
+        taskId: window.btoa(id)
+      }
     });
   } else if (type === 'baseline') {
     router.push({
-      path: `/home/tcm/folderview/baseline-node/${window.btoa(id)}`
+      name: 'baselineNode',
+      params: {
+        taskId: window.btoa(id)
+      }
     });
   } else if (itemkey === 'suite') {
     router.push({
-      path: `/home/tcm/folderview/suite-node/${window.btoa(id)}/${window.btoa(suiteId)}`
+      name: 'suiteNode',
+      params: {
+        taskId: window.btoa(id),
+        suiteId: window.btoa(suiteId)
+      }
     });
   } else if (itemkey === 'case') {
     router.push({
-      path: `/home/tcm/folderview/testcase-node/${window.btoa(id)}/${window.btoa(caseId)}`
+      name: 'testcaseNodes',
+      params: {
+        taskId: window.btoa(id),
+        suiteId: window.btoa(caseId)
+      }
     });
   }
 }
