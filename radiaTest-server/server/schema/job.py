@@ -1,7 +1,7 @@
 import datetime
 from typing import Optional, List
 import pytz
-
+from dataclasses import dataclass
 from pydantic import BaseModel, HttpUrl, constr, root_validator, validator
 
 from server.schema import Frame, JobDefaultStates, JobSortedBy, MachinePolicy
@@ -10,7 +10,7 @@ from server.utils.db import Precise
 from server.model import Milestone
 
 
-class JobUpdateSchema(TimeBaseSchema):
+class JobUpdateSchema(BaseModel):
     name: Optional[str]
     running_time: Optional[int]
     total: Optional[int]
@@ -24,6 +24,27 @@ class JobUpdateSchema(TimeBaseSchema):
     frame: Optional[Frame]
     milestone_id: Optional[int]
     tid: Optional[str]
+    start_time: Optional[str]
+    end_time: Optional[str]
+
+    @root_validator
+    def check_time_format(cls, values):
+        try:
+            if values.get("start_time"):
+                values["start_time"] = datetime.strptime(
+                    values["start_time"],
+                    "%Y-%m-%d %H:%M:%S"
+                )
+            if values.get("end_time"):
+                values["end_time"] = datetime.strptime(
+                    values["end_time"],
+                    "%Y-%m-%d %H:%M:%S"
+                )
+
+        except:
+            raise ValueError(
+                "the format of start_time/end_time is not valid, the valid type is: %Y-%m-%d %H:%M:%S"
+            )
 
 
 class JobCreateSchema(JobUpdateSchema):
@@ -127,3 +148,10 @@ class LogCreateSchema(BaseModel):
     actual_result: int
     mode: int
     section_log: str
+
+
+@dataclass
+class PayLoad:
+    gitee_id: int
+    gitee_login: str
+    

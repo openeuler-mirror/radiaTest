@@ -219,13 +219,6 @@ class VmachineEvent(Resource):
                     "/api/v1/vmachine",
                     "post",
                 )
-                resp_analyse = json.loads(resp.data.decode('UTF-8'))
-                if resp_analyse.get("error_code") == RET.OK and body.method in ["auto", "import"]:
-                    redis_client.set(
-                        body.name,
-                        request.headers.get("authorization"),
-                        ex=current_app.config.get("CALLBACK_EXPIRE_TIME")
-                    )
 
         return resp
 
@@ -621,7 +614,7 @@ class VmachineStatusEvent(Resource):
 
 
 class VmachineCallBackEvent(Resource):
-    @callback_auth
+    @auth.login_required
     @response_collect
     def put(self, vmachine_id):
         _body = request.get_json()

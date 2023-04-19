@@ -7,6 +7,8 @@ from server.model import Vmachine, Pmachine
 from server.utils.page_util import PageUtil
 from server.utils.permission_utils import GetAllByPermission
 from server.utils.resource_utils import ResourceManager
+from server.utils.auth_util import generate_messenger_token
+from server.schema.job import PayLoad
 
 
 class VmachineHandler:
@@ -67,7 +69,8 @@ class VmachineMessenger:
     def send_request(self, machine_group, api, method, obj=None):
         if obj is None:
             obj = dict()
-
+        payload = PayLoad(g.gitee_id, g.gitee_login)
+        token = generate_messenger_token(payload)
         _r = do_request(
             method=method,
             url="https://{}:{}{}".format(
@@ -78,7 +81,7 @@ class VmachineMessenger:
             body=self._body,
             headers={
                 "content-type": "application/json;charset=utf-8",
-                "authorization": request.headers.get("authorization")
+                "authorization": f"JWT {token}"
             },
             obj=obj,
             verify=current_app.config.get("CA_CERT"),

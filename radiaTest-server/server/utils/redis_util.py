@@ -110,3 +110,4 @@ class RedisKey(object):
     issue_types = lambda enterprise_id: f"issue_types_{enterprise_id}"
     issue_states = lambda enterprise_id: f"issue_states_{enterprise_id}"
     projects = lambda enterprise_id: f"projects_{enterprise_id}"
+    messenger_token = lambda token: f"messenger_token_{token}"
