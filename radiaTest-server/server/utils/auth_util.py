@@ -64,7 +64,7 @@ def verify_token(token):
     data = None
     try:
         token_info = redis_client.hgetall(RedisKey.messenger_token(token))
-        if not redis_client.exists(RedisKey.token(token)) or not token_info:
+        if not redis_client.exists(RedisKey.token(token)) and not token_info:
             return False
 
         # 令牌payload解密

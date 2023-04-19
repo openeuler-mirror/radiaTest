@@ -46,6 +46,20 @@
         <div class="image-box">
           <n-image height="250" width="350" :src="titleImage" preview-disabled />
         </div>
+        <div class="stat-box">
+          <n-statistic label="当前组织已有" tabular-nums>
+            <n-number-animation ref="groupStat" :from="0" :to="totalGroupNum" />
+            <template #suffix>
+              个团队接入
+            </template>
+          </n-statistic>
+          <n-statistic label="当前组织已有" tabular-nums>
+            <n-number-animation ref="userStat" :from="0" :to="totalUserNum" />
+            <template #suffix>
+              位用户注册
+            </template>
+          </n-statistic>
+        </div>
       </div>
       <n-grid :cols="12" x-gap="24" style="margin-top: 20px">
         <n-gi :span="10">
@@ -73,7 +87,7 @@
                         <n-avatar :size="100" :src="orgAvatarSrc"> </n-avatar>
                       </div>
                       <div class="detail-box">
-                        <h3>版本级workspace</h3>
+                        <h3>版本workspace</h3>
                         <p>
                           当前组织下的版本级视图，主要围绕当前待发布版本的测试活动展开，全局展示当前版本迭代阶段与质量状况
                         </p>
@@ -125,7 +139,7 @@
                         <n-tooltip trigger="hover">
                           <template #trigger>
                             <n-icon :size="16">
-                              <Locked />
+                              <Lock />
                             </n-icon>
                           </template>
                           不属于该用户组成员，无法进入此workspace
@@ -267,15 +281,37 @@ import { Radio } from '@vicons/ionicons5';
 import { storage } from '@/assets/utils/storageUtils';
 import { createAvatar } from '@/assets/utils/createImg';
 import { useRouter } from 'vue-router';
-import { getUserAssetRank, getGroupAssetRank, getUserInfo, getAllOrg, getMsgGroup } from '@/api/get';
+import { 
+  getUserAssetRank, 
+  getGroupAssetRank, 
+  getUserInfo, 
+  getAllOrg,
+  getOrgStat, 
+  getMsgGroup, 
+} from '@/api/get';
 import titleImage from '@/assets/images/programming.png';
 import AvatarGroup from '@/components/personalCenter/avatarGroup.vue';
-import { Locked } from '@vicons/carbon';
+import { Lock } from '@vicons/fa';
 
 const router = useRouter();
 
 const orgAvatarSrc = ref(''); // 组织头像
 const groupList = ref([]);
+
+const userStat = ref();
+const groupStat = ref();
+
+const totalGroupNum = ref(0);
+const totalUserNum = ref(0);
+
+const getOrgStatistic = () => {
+  getOrgStat(storage.getValue('orgId')).then((res) => {
+    totalGroupNum.value = res.data.total_groups;
+    groupStat.value?.play();
+    totalUserNum.value = res.data.total_users;
+    userStat.value?.play();
+  });
+};
 
 const clickDefaultWorkspace = () => {
   router.push({ name: 'dashboard', params: { workspace: 'default' } });
@@ -394,6 +430,7 @@ watch(rankType, () => {
 onMounted(() => {
   getOrgInfo();
   getGroupInfo();
+  getOrgStatistic();
   getRank(getUserAssetRank);
   getUserInfo(storage.getValue('gitee_id')).then((res) => {
     accountName.value = res.data.gitee_name;
@@ -431,7 +468,13 @@ onMounted(() => {
     .image-box {
       position: absolute;
       top: 0;
-      right: 200px;
+      right: 300px;
+    }
+
+    .stat-box {
+      position: absolute;
+      top: 50px;
+      right: 50px;
     }
   }
 
