@@ -51,6 +51,7 @@ const clickLogo = () => {
   color: rgba(0, 47, 167, 1);
   display: flex;
   align-items: center;
+  margin-right: 20px;
 }
 .title #radiaTest {
   font-size: 30px;
@@ -61,8 +62,8 @@ const clickLogo = () => {
   font-weight: 800;
 }
 .myMenu {
-  height: 100%;
   min-width: 850px;
+  display: flex;
 }
 .title:hover {
   cursor: pointer;

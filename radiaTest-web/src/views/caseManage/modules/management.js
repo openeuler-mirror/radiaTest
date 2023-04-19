@@ -190,7 +190,7 @@ const isTabActive = (name) => {
   if (name !== 'folderview') {
     return router.currentRoute.value.name === name;
   }
-  return router.currentRoute.value.fullPath.startsWith('/home/tcm/folderview');
+  return router.currentRoute.value.fullPath.includes('/tcm/folderview');
 };
 
 function showRecycleBin() {

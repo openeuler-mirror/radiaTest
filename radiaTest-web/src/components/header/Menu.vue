@@ -3,7 +3,7 @@
     <template #text>
       <div class="tab-wrap">
         <div class="tab-text" :class="{ active: isActive('/workbenche/') }">
-          <n-icon :size="20"> <Dashboard /> </n-icon><n-text class="text">工作台</n-text>
+          <n-icon :size="14"> <Dashboard /> </n-icon><n-text class="text">工作台</n-text>
         </div>
       </div>
     </template>
@@ -12,7 +12,7 @@
     <template #text>
       <div class="tab-wrap">
         <div class="tab-text" :class="{ active: isActive('/resource-pool/') }">
-          <n-icon :size="20"> <StoragePool /> </n-icon><n-text class="text">资源池</n-text>
+          <n-icon :size="14"> <Server /> </n-icon><n-text class="text">资源池</n-text>
         </div>
       </div>
     </template>
@@ -21,7 +21,7 @@
     <template #text>
       <div class="tab-wrap">
         <div class="tab-text" :class="{ active: isActive('/version-management/') }">
-          <n-icon :size="20"> <Versions /> </n-icon><n-text class="text">版本管理</n-text>
+          <n-icon :size="14"> <Versions /> </n-icon><n-text class="text">版本管理</n-text>
         </div>
       </div>
     </template>
@@ -30,7 +30,7 @@
     <template #text>
       <div class="tab-wrap">
         <div class="tab-text" :class="{ active: isActive('/tcm/') }">
-          <n-icon :size="20"> <DocumentBriefcase20Regular /> </n-icon><n-text class="text">用例管理</n-text>
+          <n-icon :size="14"> <Database /> </n-icon><n-text class="text">用例管理</n-text>
         </div>
       </div>
     </template>
@@ -39,9 +39,9 @@
 
 <script setup>
 import { useRouter, useRoute } from 'vue-router';
-import { Dashboard, StoragePool } from '@vicons/carbon';
+import { Dashboard } from '@vicons/carbon';
+import { Server, Database } from '@vicons/fa';
 import { Versions } from '@vicons/tabler';
-import { DocumentBriefcase20Regular } from '@vicons/fluent';
 import MyTab from './MyTab.vue';
 
 const router = useRouter();
@@ -105,7 +105,7 @@ const handlePoolClick = () => {
   }
 
   .active {
-    border-bottom: 5px solid rgba(0, 47, 167, 1);
+    border-bottom: 3px solid rgba(0, 47, 167, 1);
   }
 }
 </style>

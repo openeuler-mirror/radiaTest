@@ -111,17 +111,11 @@ export default defineComponent({
 }
 .tab {
   display: table;
-  height: 100%;
-  box-sizing: border-box;
-  border-bottom-width: 5px;
-  border-bottom-style: solid;
-  border-bottom-color: white;
   position: relative;
   margin-left: 10px;
   margin-right: 10px;
-  width: 120px;
   text-align: center;
-  font-size: 20px;
+  font-size: 14px;
   font-family: v-sans;
   float: left;
 }
