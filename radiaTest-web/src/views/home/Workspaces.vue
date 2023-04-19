@@ -68,7 +68,7 @@
                     </div>
                   </n-gi>
                   <n-gi :span="1">
-                    <div class="publicworkspaces-wrap" @click="clickVersionWorkspace" style="color: grey">
+                    <div class="publicworkspaces-wrap workspace-disabled" @click="clickVersionWorkspace">
                       <div>
                         <n-avatar :size="100" :src="orgAvatarSrc"> </n-avatar>
                       </div>
@@ -121,6 +121,16 @@
                         </div>
                       </div>
                       <span class="description">{{ groupItem.description }}</span>
+                      <div class="lock-icon" v-if="!groupItem.isAllowed">
+                        <n-tooltip trigger="hover">
+                          <template #trigger>
+                            <n-icon :size="16">
+                              <Locked />
+                            </n-icon>
+                          </template>
+                          不属于该用户组成员，无法进入此workspace
+                        </n-tooltip>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -284,6 +294,7 @@ import { useRouter } from 'vue-router';
 import { getUserAssetRank, getGroupAssetRank, getUserInfo, getAllOrg, getMsgGroup } from '@/api/get';
 import titleImage from '@/assets/images/programming.png';
 import AvatarGroup from '@/components/personalCenter/avatarGroup.vue';
+import { Locked } from '@vicons/carbon';
 
 const router = useRouter();
 
@@ -299,7 +310,9 @@ const clickVersionWorkspace = () => {
 };
 
 const clickGroupWorkspace = (groupItem) => {
-  router.push({ name: 'automatic', params: { workspace: window.btoa(groupItem.id) } });
+  if (groupItem.isAllowed) {
+    router.push({ name: 'automatic', params: { workspace: window.btoa(groupItem.id) } });
+  }
 };
 
 const getOrgInfo = () => {
@@ -337,7 +350,8 @@ const getGroupInfo = () => {
           groupName: item.name,
           groupAvatarUrl: item.avatar_url,
           description: item.description,
-          AvatarList: setAvatarList(item.admin_awatar)
+          AvatarList: setAvatarList(item.admin_awatar),
+          isAllowed: item.user_add_group_flag
         });
       });
       groupTotal.value = res.data.pages;
@@ -468,9 +482,18 @@ onMounted(() => {
         box-shadow: rgb(0 0 0 / 15%) 0px 1px 5px 0px;
         border-radius: 4px;
 
+        &:hover {
+          box-shadow: rgb(0 0 0 / 20%) 0px 3px 20px 0px;
+        }
+
         .detail-box {
           margin-left: 20px;
         }
+      }
+
+      .workspace-disabled {
+        color: grey;
+        cursor: not-allowed;
       }
 
       .group-workspaces-wrap {
@@ -498,6 +521,11 @@ onMounted(() => {
             flex-direction: column;
             gap: 8px;
             cursor: pointer;
+            position: relative;
+
+            &:hover {
+              box-shadow: rgb(0 0 0 / 20%) 0px 3px 20px 0px;
+            }
 
             .detail {
               display: inline-flex;
@@ -538,6 +566,12 @@ onMounted(() => {
               text-overflow: ellipsis;
               white-space: nowrap;
             }
+
+            .lock-icon {
+              position: absolute;
+              top: 5px;
+              right: 5px;
+            }
           }
         }
       }
@@ -545,7 +579,7 @@ onMounted(() => {
       .pagination-wrap {
         margin-top: 20px;
         display: flex;
-        justify-content: end;
+        justify-content: flex-end;
       }
     }
   }

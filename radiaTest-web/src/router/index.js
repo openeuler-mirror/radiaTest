@@ -73,7 +73,7 @@ const router = createRouter({
         {
           path: 'ws/:workspace/workbenche',
           component: Dashboard,
-          redirect: '/home/ws/:workspace/workbenche/dashboard',
+          redirect: { name: 'dashboard' },
           meta: {
             title: 'raidaTest测试平台'
           },
@@ -110,7 +110,7 @@ const router = createRouter({
             },
             {
               path: 'testing/',
-              redirect: '/home/ws/:workspace/workbenche/testing/automatic',
+              redirect: { name: 'automatic' },
               component: TestCenterManagement,
               name: 'testing',
               children: [
@@ -144,7 +144,7 @@ const router = createRouter({
         },
         {
           path: 'ws/:workspace/version-management/',
-          redirect: '/home/ws/:workspace/version-management/product',
+          redirect: { name: 'vmProduct' },
           component: versionManagement,
           children: [
             {
@@ -167,7 +167,7 @@ const router = createRouter({
         },
         {
           path: 'ws/:workspace/resource-pool/',
-          redirect: '/home/ws/:workspace/resource-pool/management',
+          redirect: { name: 'resourcePool' },
           component: Blank,
           children: [
             {
@@ -200,7 +200,7 @@ const router = createRouter({
         },
         {
           path: 'ws/:workspace/tcm/',
-          redirect: '/home/ws/:workspace/tcm/folderview',
+          redirect: { name: 'folderview' },
           component: CaseManagement,
           meta: {
             title: '用例管理'
