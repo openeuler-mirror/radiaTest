@@ -55,7 +55,7 @@ class ManualJobHandler:
         
         manual_job_dict.update(_permission_body)
 
-        manual_job_dict["executor_id"] = g.gitee_id
+        manual_job_dict["creator_id"] = g.gitee_id
         # 从所属的Case那里计算总步骤数
         if _case.steps is not None and _case.steps != "":
             text_item_splitter = TextItemSplitter(

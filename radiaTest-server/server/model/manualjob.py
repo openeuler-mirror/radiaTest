@@ -38,7 +38,7 @@ class ManualJob(BaseModel, db.Model, PermissionBaseModel):
     current_step = db.Column(db.Integer(), nullable=False, default=0)
     total_step = db.Column(db.Integer(), nullable=False)
 
-    executor_id = db.Column(db.Integer(), db.ForeignKey("user.gitee_id"))
+    creator_id = db.Column(db.Integer(), db.ForeignKey("user.gitee_id"))
     milestone_id = db.Column(db.Integer(), db.ForeignKey("milestone.id"))
     case_id = db.Column(db.Integer(), db.ForeignKey("case.id"))
 
@@ -69,7 +69,8 @@ class ManualJob(BaseModel, db.Model, PermissionBaseModel):
             "status": self.status,
             "case_description": _case.description,
             "case_preset": _case.preset,
-            "case_expection": _case.expection
+            "case_expection": _case.expection,
+            "creator_id": self.creator_id
         }
 
 
