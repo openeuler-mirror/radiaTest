@@ -200,12 +200,10 @@ class VmachineEvent(Resource):
                 id=body.machine_group_id
             ).first()
 
-        des = _body.get("description")
         frame_number = _body.pop("frame_number")
         for item in frame_number:
             for num in range(item.get("machine_num")):
                 _body.update({
-                    "description": (des + "_" + str(item.get("frame")) + "_" + str(num + 1)),
                     "frame": item.get("frame"),
                     "name": (
                             time.strftime("%y-%m-%d-")
