@@ -196,11 +196,11 @@ const postExecData = () => {
     machine_policy: formValue.value.select_mode,
     strict_mode: formValue.value.strict_mode,
     machine_group_id: formValue.value.machine_group_id,
-    creator_id: formValue.value.git_repo.creator_id,
-    org_id: formValue.value.git_repo.org_id,
     taskmilestone_id: formValue.value.milestone_id,
     permission_type: formValue.value.git_repo.permission_type,
-    group_id: formValue.value.git_repo.group_id
+    creator_id: formValue.value.creator_id,
+    org_id: formValue.value.org_id,
+    group_id: formValue.value.group_id
   })
     .then((res) => {
       if (res.error_code === '2000') {
