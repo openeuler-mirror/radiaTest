@@ -25,26 +25,7 @@ class JobUpdateSchema(BaseModel):
     milestone_id: Optional[int]
     tid: Optional[str]
     start_time: Optional[str]
-    end_time: Optional[str]
-
-    @root_validator
-    def check_time_format(cls, values):
-        try:
-            if values.get("start_time"):
-                values["start_time"] = datetime.strptime(
-                    values["start_time"],
-                    "%Y-%m-%d %H:%M:%S"
-                )
-            if values.get("end_time"):
-                values["end_time"] = datetime.strptime(
-                    values["end_time"],
-                    "%Y-%m-%d %H:%M:%S"
-                )
-
-        except:
-            raise ValueError(
-                "the format of start_time/end_time is not valid, the valid type is: %Y-%m-%d %H:%M:%S"
-            )
+    end_time: Optional[str] = None
 
 
 class JobCreateSchema(JobUpdateSchema):
