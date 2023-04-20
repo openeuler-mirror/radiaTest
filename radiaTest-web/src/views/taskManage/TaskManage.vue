@@ -112,12 +112,6 @@
         <router-view></router-view>
       </n-dialog-provider>
     </template>
-    <template #action>
-      <n-divider />
-      <div style="text-align: center; color: grey; padding-top: 15px; padding-bottom: 0">
-        {{ `${config.name} ${config.version}·${config.license}` }}
-      </div>
-    </template>
   </n-card>
 </template>
 
@@ -128,7 +122,6 @@ import { BarChart, ArrowBackCircleOutline } from '@vicons/ionicons5';
 import { QuestionCircle20Regular, Delete48Regular, TextAlignDistributed20Filled } from '@vicons/fluent';
 import { modules } from './modules/index';
 import { useRoute } from 'vue-router';
-import config from '@/assets/config/settings';
 import filterButton from '@/components/filter/filterButton.vue';
 
 export default defineComponent({
@@ -163,7 +156,6 @@ export default defineComponent({
     });
 
     return {
-      config,
       showMenuItem,
       ...modules
     };

@@ -759,9 +759,10 @@ function handleInheritButtonClick() {
         });
       }
     });
-    getOrgGroup(storage.getValue('orgId'), {
+    getOrgGroup(storage.getValue('loginOrgId'), {
       page_num: 1,
-      page_size: 99999
+      page_size: 99999,
+      is_delete: false
     }).then((_res) => {
       for (const item of _res.data.items) {
         inheritOptions.value.push({

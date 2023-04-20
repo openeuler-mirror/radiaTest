@@ -1,8 +1,8 @@
 <template>
-  <my-tab id="home" :has-arrow="false" @click="handleWorkbencheClick">
+  <my-tab id="home" :has-arrow="false" @click="handleWorkbenchClick">
     <template #text>
       <div class="tab-wrap">
-        <div class="tab-text" :class="{ active: isActive('/workbenche/') }">
+        <div class="tab-text" :class="{ active: isActive('/workbench/') }">
           <n-icon :size="14"> <Dashboard /> </n-icon><n-text class="text">工作台</n-text>
         </div>
       </div>
@@ -80,7 +80,7 @@ const handleTcmClick = () => {
   router.push({ name: 'folderview' });
 };
 
-const handleWorkbencheClick = () => {
+const handleWorkbenchClick = () => {
   router.push({ name: 'dashboard' });
 };
 

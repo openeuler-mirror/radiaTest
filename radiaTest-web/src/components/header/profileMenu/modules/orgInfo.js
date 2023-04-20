@@ -15,7 +15,7 @@ function getOrg() {
     orgOptions.value = data.orgs.map((item) => {
       return {
         label: item.org_name,
-        value: item.org_id,
+        value: item.org_id
       };
     });
     const defaultOrg = data.orgs.find((item) => {
@@ -24,9 +24,9 @@ function getOrg() {
     activeOrg.value = defaultOrg.org_id;
     currentOrg.value = defaultOrg.org_name;
     storage.setValue('role', defaultOrg.re_user_org_role_type);
-    storage.setValue('orgId', defaultOrg.org_id);
+    // storage.setValue('orgId', defaultOrg.org_id);
     storage.setValue('gitee_name', data.gitee_name);
-    storage.setValue('enterpriseId',defaultOrg.org_enterprise);
+    storage.setValue('enterpriseId', defaultOrg.org_enterprise);
     avatarUrl.value = data.avatar_url;
   });
 }

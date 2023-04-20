@@ -252,7 +252,7 @@ function handleLoad(option) {
   return new Promise((resolve, reject) => {
     if (option.value === 'GROUP') {
       axios
-        .get(`/v1/org/${storage.getValue('orgId')}/groups`, {
+        .get(`/v1/org/${storage.getValue('loginOrgId')}/groups`, {
           page_num: 1,
           page_size: 99999
         })
@@ -274,7 +274,7 @@ function handleLoad(option) {
         });
     } else {
       axios
-        .get(`/v1/org/${storage.getValue('orgId')}/users`, {
+        .get(`/v1/org/${storage.getValue('loginOrgId')}/users`, {
           page_num: 1,
           page_size: 99999
         })

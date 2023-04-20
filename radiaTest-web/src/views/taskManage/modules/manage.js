@@ -228,7 +228,7 @@ function getMilestones() {
 function initCondition() {
   const allRequest = [
     axios.get('/v1/task/status'),
-    axios.get(`/v1/org/${storage.getValue('orgId')}/users`, {
+    axios.get(`/v1/org/${storage.getValue('loginOrgId')}/users`, {
       page_num: 1,
       page_size: 9999
     }),
@@ -406,7 +406,7 @@ const watchRoute = () => {
     menuSelect.value = 2;
     isTask.value = true;
     backable.value = false;
-  } else if (router.currentRoute.value.path.search('/workbenche/testing/') !== -1) {
+  } else if (router.currentRoute.value.path.search('/workbench/testing/') !== -1) {
     menuSelect.value = 4;
     isTask.value = false;
     backable.value = false;

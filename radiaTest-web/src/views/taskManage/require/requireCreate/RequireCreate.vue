@@ -242,7 +242,7 @@ function handlePropsButtonClick() {
     } else if (formValue.value.publisher_type === 'organization') {
       const _form = JSON.parse(JSON.stringify(formValue.value));
       _form.publisher_group_id = null;
-      orgPublishRequire(storage.getValue('orgId'), _form)
+      orgPublishRequire(storage.getValue('loginOrgId'), _form)
         .then(() => {
           message.success('需求已成功发布');
           emit('valid');
