@@ -1195,7 +1195,7 @@ function menuClick({ key, options }) {
       name: 'testcaseNodes',
       params: {
         taskId: window.btoa(id),
-        suiteId: window.btoa(caseId)
+        caseId: window.btoa(caseId)
       }
     });
   }
