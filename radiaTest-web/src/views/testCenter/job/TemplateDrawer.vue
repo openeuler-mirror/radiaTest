@@ -351,7 +351,7 @@ const onPositiveCloneClick = () => {
         cloneTemplate({
           permission_type: cloneFormValue.value.permissionType.split('-')[0],
           creator_id: Number(storage.getValue('gitee_id')),
-          org_id: storage.getValue('orgId'),
+          org_id: storage.getValue('loginOrgId'),
           group_id: Number(cloneFormValue.value.permissionType.split('-')[1]),
           id: Number(cloneFormValue.value.cloneTemplateId)
         })

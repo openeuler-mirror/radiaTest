@@ -6,9 +6,6 @@
         padding: '24px',
         backgroundColor: '#f5f5f5'
       }"
-      :style="{
-        height: '100%'
-      }"
     >
       <div class="welcome-warp">
         <H2>Hi，欢迎使用开源测试管理平台radiaTest！</H2>
@@ -49,15 +46,11 @@
         <div class="stat-box">
           <n-statistic label="当前组织已有" tabular-nums>
             <n-number-animation ref="groupStat" :from="0" :to="totalGroupNum" />
-            <template #suffix>
-              个团队接入
-            </template>
+            <template #suffix> 个团队接入 </template>
           </n-statistic>
           <n-statistic label="当前组织已有" tabular-nums>
             <n-number-animation ref="userStat" :from="0" :to="totalUserNum" />
-            <template #suffix>
-              位用户注册
-            </template>
+            <template #suffix> 位用户注册 </template>
           </n-statistic>
         </div>
       </div>
@@ -124,7 +117,7 @@
                           <n-image
                             width="50"
                             :src="groupItem.groupAvatarUrl"
-                            :fallback-src="createAvatar(groupItem.groupName.slice(0, 1))"
+                            :fallback-src="createAvatar(groupItem.groupName.slice(0, 1), 100)"
                           />
                         </div>
                         <div class="name-user">
@@ -273,6 +266,9 @@
         </n-gi>
       </n-grid>
     </n-layout>
+    <div class="page-footer">
+      {{ `${config.name} ${config.version}·${config.license}` }}
+    </div>
   </div>
 </template>
 <script setup>
@@ -281,17 +277,11 @@ import { Radio } from '@vicons/ionicons5';
 import { storage } from '@/assets/utils/storageUtils';
 import { createAvatar } from '@/assets/utils/createImg';
 import { useRouter } from 'vue-router';
-import { 
-  getUserAssetRank, 
-  getGroupAssetRank, 
-  getUserInfo, 
-  getAllOrg,
-  getOrgStat, 
-  getMsgGroup, 
-} from '@/api/get';
+import { getUserAssetRank, getGroupAssetRank, getUserInfo, getAllOrg, getOrgStat, getMsgGroup } from '@/api/get';
 import titleImage from '@/assets/images/programming.png';
 import AvatarGroup from '@/components/personalCenter/avatarGroup.vue';
 import { Lock } from '@vicons/fa';
+import config from '@/assets/config/settings';
 
 const router = useRouter();
 
@@ -305,7 +295,7 @@ const totalGroupNum = ref(0);
 const totalUserNum = ref(0);
 
 const getOrgStatistic = () => {
-  getOrgStat(storage.getValue('orgId')).then((res) => {
+  getOrgStat(storage.getValue('loginOrgId')).then((res) => {
     totalGroupNum.value = res.data.total_groups;
     groupStat.value?.play();
     totalUserNum.value = res.data.total_users;
@@ -328,10 +318,10 @@ const clickGroupWorkspace = (groupItem) => {
 };
 
 const getOrgInfo = () => {
-  getAllOrg({ org_id: storage.getValue('orgId') }).then((res) => {
+  getAllOrg({ org_id: storage.getValue('loginOrgId') }).then((res) => {
     // orgAvatarSrc.value = res.data.avatar_url;
     res.data.forEach((item) => {
-      if (item.org_id === storage.getValue('orgId')) {
+      if (item.org_id === storage.getValue('loginOrgId')) {
         orgAvatarSrc.value = item.org_avatar;
       }
     });
@@ -665,6 +655,15 @@ onMounted(() => {
 
   .help-document {
     margin-top: 10px;
+  }
+
+  .page-footer {
+    color: grey;
+    background-image: linear-gradient(rgb(239, 240, 249) 0%, rgb(232, 233, 244) 99%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 80px;
   }
 }
 

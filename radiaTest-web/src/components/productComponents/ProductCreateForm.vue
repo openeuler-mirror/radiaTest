@@ -83,7 +83,7 @@ export default defineComponent({
             ...createForm.formValue.value,
             permission_type: createForm.formValue.value.permission_type.split('-')[0],
             creator_id: Number(storage.getValue('gitee_id')),
-            org_id: storage.getValue('orgId'),
+            org_id: storage.getValue('loginOrgId'),
             group_id: Number(createForm.formValue.value.permission_type.split('-')[1])
           }
         };

@@ -43,7 +43,7 @@ function getGroup() {
     group.value = [];
   }
   const requests = [];
-  requests.push(axios.get(`/v1/org/${storage.getValue('orgId')}/groups`, { page_size: 99999, page_num: 1, }));
+  requests.push(axios.get(`/v1/org/${storage.getValue('loginOrgId')}/groups`, { page_size: 99999, page_num: 1, }));
   groupOptions.value = [];
   Promise.allSettled(requests).then(responses => {
     responses.forEach(item => {
@@ -65,7 +65,7 @@ function getOwner() {
     owner.value = [];
   }
   const requests = [];
-  requests.push(axios.get(`/v1/org/${storage.getValue('orgId')}/users`, { page_size: 99999, page_num: 1, }));
+  requests.push(axios.get(`/v1/org/${storage.getValue('loginOrgId')}/users`, { page_size: 99999, page_num: 1, }));
   ownerOptions.value = [];
   Promise.allSettled(requests).then(responses => {
     responses.forEach(item => {

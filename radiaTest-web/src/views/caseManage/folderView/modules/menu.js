@@ -326,7 +326,7 @@ function getRootNodes() {
       }
     });
     axios
-      .get(`/v1/org/${storage.getValue('orgId')}/groups`, {
+      .get(`/v1/org/${storage.getValue('loginOrgId')}/groups`, {
         page_num: 1,
         page_size: 99999
       })

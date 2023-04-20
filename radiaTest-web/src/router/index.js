@@ -71,7 +71,7 @@ const router = createRouter({
           }
         },
         {
-          path: 'ws/:workspace/workbenche',
+          path: 'ws/:workspace/workbench',
           component: Dashboard,
           redirect: { name: 'dashboard' },
           meta: {
