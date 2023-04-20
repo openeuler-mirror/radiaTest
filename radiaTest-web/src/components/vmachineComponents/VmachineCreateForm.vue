@@ -100,13 +100,13 @@
         </n-input-number>
       </n-form-item-gi>
       <n-form-item-gi :span="6" label="Sockets" path="sockets">
-        <n-input-number v-model:value="formValue.sockets" :validator="validator" :min="1" :max="2" />
+        <n-input-number v-model:value="formValue.sockets" :validator="validator" :min="1" :max="4" />
       </n-form-item-gi>
       <n-form-item-gi :span="6" label="Cores" path="cores">
-        <n-input-number v-model:value="formValue.cores" :validator="validator" :min="1" :max="2" />
+        <n-input-number v-model:value="formValue.cores" :validator="validator" :min="1" :max="4" />
       </n-form-item-gi>
       <n-form-item-gi :span="6" label="Threads" path="threads">
-        <n-input-number v-model:value="formValue.threads" :validator="validator" :min="1" :max="2" />
+        <n-input-number v-model:value="formValue.threads" :validator="validator" :min="1" :max="4" />
       </n-form-item-gi>
       <n-form-item-gi :span="6" label="类型" path="permission_type">
         <n-cascader

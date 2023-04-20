@@ -414,6 +414,7 @@ function handleFallbackSrc(item) {
 }
 
 watch(rankType, () => {
+  rankPage.value = 1;
   handleRankPageChange();
 });
 

@@ -346,6 +346,7 @@ onMounted(() => {
 });
 
 watch(rankType, () => {
+  rankPage.value = 1;
   handleRankPageChange();
 });
 </script>
