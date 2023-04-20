@@ -132,6 +132,7 @@ class MilestoneItemEventV2(Resource):
 
 class MilestonePreciseEvent(Resource):
     @auth.login_required()
+    @response_collect
     @validate()
     def get(self, query: MilestoneBaseSchema):
         return GetAllByPermission(Milestone).precise(query.__dict__)
