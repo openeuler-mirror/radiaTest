@@ -227,21 +227,26 @@ class SuiteItemEvent(Resource):
 
         if body.name and body.name != suite.name: 
             case_nodes = CaseNode.query.filter(
-                    CaseNode.suite_id==suite_id,
-                    ).all()
+                CaseNode.suite_id==suite_id,
+            ).all()
+
             if not case_nodes:
                 return jsonify(
                     error_code=RET.NO_DATA_ERR,
                     error_msg="the case_node does not exist"
                 )
 
-            return_resp = [CaseNodeHandler.update(
-                case_node.id, body
-            ) for case_node in case_nodes]
+            return_resp = [
+                CaseNodeHandler.update(
+                    case_node.id, body
+                ) for case_node in case_nodes
+            ]
+
             for resp in return_resp:
                 _resp = json.loads(resp.response[0])
                 if _resp.get("error_code") != RET.OK:
                     return _resp
+            
         return jsonify(error_code=RET.OK, error_msg="OK")
 
 
@@ -398,21 +403,26 @@ class CaseItemEvent(Resource):
         
         if body.name and body.name != _case.name: 
             case_nodes = CaseNode.query.filter(
-                    CaseNode.case_id == case_id,
-                    ).all()
+                CaseNode.case_id == case_id,
+            ).all()
+
             if not case_nodes:
                 return jsonify(
                     error_code=RET.NO_DATA_ERR,
                     error_msg="the case_node does not exist"
                 )
 
-            return_resp = [CaseNodeHandler.update(
-                case_node.id, body
-            ) for case_node in case_nodes]
+            return_resp = [
+                CaseNodeHandler.update(
+                    case_node.id, body
+                ) for case_node in case_nodes
+            ]
+
             for resp in return_resp:
                 _resp = json.loads(resp.response[0])
                 if _resp.get("error_code") != RET.OK:
                     return _resp
+        
         return jsonify(error_code=RET.OK, error_msg="OK")
 
 
