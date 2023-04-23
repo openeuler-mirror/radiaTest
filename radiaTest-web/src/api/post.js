@@ -3,6 +3,7 @@ import { lyla } from 'lyla';
 import { unkonwnErrorMsg } from '@/assets/utils/description';
 import config from '@/assets/config/settings';
 import { storage } from '@/assets/utils/storageUtils';
+import { workspace } from '@/assets/config/menu.js';
 
 function postRequest(url, data) {
   return new Promise((resolve, reject) => {
@@ -149,7 +150,7 @@ export function casenodeApplyTemplate(caseNodeId, baselineTemplateId) {
 }
 
 export function createManualJob(data) {
-  return postRequest('/v1/manual-job', data);
+  return postRequest(`/v1/ws/${workspace.value}/manual-job`, data);
 }
 
 export function submitManualJob(jobId) {

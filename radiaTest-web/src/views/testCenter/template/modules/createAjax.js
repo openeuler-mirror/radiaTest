@@ -8,7 +8,7 @@ const createChildren = (arr) => {
   arr.forEach((item) => {
     tempArr.push({
       label: item.case_name,
-      key: item.case_id
+      key: `case-${item.case_id}`
     });
   });
 
@@ -23,7 +23,7 @@ const getData = (options, id) => {
       res.data.forEach((item) => {
         options.value.push({
           label: item.suite_name,
-          key: item.suite_id,
+          key: `suite-${item.suite_id}`,
           children: createChildren(item.case)
         });
       });
