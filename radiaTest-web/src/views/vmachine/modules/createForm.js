@@ -48,7 +48,13 @@ const createFrameAndNumber = () => {
 const changeFrameAndNumber = () => {
   if (formValue.value.frame_number?.length > 1) {
     formValue.value.pm_select_mode = 'auto';
+    checkedPm.value = null;
+    formValue.value.pmachine_id = null;
+    formValue.value.pmachine_name = null;
   } else if (formValue.value.frame_number?.length === 1) {
+    checkedPm.value = null;
+    formValue.value.pmachine_id = null;
+    formValue.value.pmachine_name = null;
     getPm({
       machine_purpose: 'create_vmachine',
       frame: formValue.value.frame_number[0].frame,

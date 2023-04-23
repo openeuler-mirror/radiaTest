@@ -4,7 +4,6 @@ import axios from '@/axios';
 import router from '@/router/index';
 import { storage } from '@/assets/utils/storageUtils';
 import { addRoom } from '@/assets/utils/socketUtils';
-import { getCookieValByKey } from '@/assets/utils/cookieUtils';
 import { urlArgs, openChildWindow } from '@/assets/utils/urlUtils';
 import { changeLoadingStatus } from '@/assets/utils/loading';
 import { getClaOrg } from './org';
@@ -52,7 +51,6 @@ function handleLoginByForm() {
           changeLoadingStatus(false);
           if (res?.data) {
             storage.setValue('token', res.data.token);
-            storage.setValue('refresh_token', res.data.refresh_token);
             storage.setValue('role', 1);
             storage.setValue('account', res.data.account);
             router.push({ name: 'orgManagement' });
@@ -75,7 +73,9 @@ function requireEnterprise(orgid) {
   }
   return false;
 }
-function hanleLogin (orgId) {
+
+// 组织登录按钮
+function hanleLogin(orgId) {
   changeLoadingStatus(true);
   storage.setValue('loginOrgId', Number(orgId));
   storage.setValue('hasEnterprise', requireEnterprise(orgId));
@@ -86,10 +86,13 @@ function hanleLogin (orgId) {
       if (res?.data) {
         const giteeUrl = res.data;
         changeLoadingStatus(false);
-        if(isIframe && isIframe === '1') {
-          window.parent.postMessage({
-            giteeUrl
-          },'*');
+        if (isIframe && isIframe === '1') {
+          window.parent.postMessage(
+            {
+              giteeUrl
+            },
+            '*'
+          );
         } else {
           window.location = giteeUrl;
         }
@@ -109,12 +112,6 @@ function handleIsSuccess() {
   if (urlArgs().isSuccess === 'True') {
     setTimeout(() => {
       registerShow.value = false;
-      const isIframe = storage.getValue('isIframe');
-      if(!isIframe || isIframe !== '1') {
-        storage.setValue('token', getCookieValByKey('token'));
-        storage.setValue('refresh_token', getCookieValByKey('refresh_token'));
-        storage.setValue('gitee_id', getCookieValByKey('gitee_id'));
-      }
       router.push({ name: 'home' }).then(() => {
         addRoom(storage.getValue('token'));
       });
@@ -126,7 +123,9 @@ function handleIsSuccess() {
     getClaOrg();
   }
 }
-function gotoHome () {
+
+// 进入登录页面
+function gotoHome() {
   orgListLoading.value = true;
   getAllOrg().then((res) => {
     orgOpts.value = res.data.map((item) => ({
@@ -141,10 +140,9 @@ function gotoHome () {
       code: urlArgs().code,
       org_id: storage.getValue('loginOrgId')
     }).then((res) => {
-      storage.setValue('token', getCookieValByKey('token'));
-      storage.setValue('refresh_token', getCookieValByKey('refresh_token'));
-      storage.setValue('gitee_id', getCookieValByKey('gitee_id'));
-      window.location = res.data;
+      storage.setValue('token', res.data?.token);
+      storage.setValue('gitee_id', res.data?.gitee_id);
+      window.location = res.data?.url; // login?isSuccess=True
     });
   }
   handleIsSuccess();
