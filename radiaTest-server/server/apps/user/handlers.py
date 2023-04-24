@@ -169,13 +169,15 @@ def handler_login_callback(query):
                 {
                     "error_code": RET.OK,
                     "error_msg": "OK",
-                    "data": f'{current_app.config["GITEE_OAUTH_HOME_URL"]}?isSuccess=True'
+                    "data": {
+                        "url": f'{current_app.config["GITEE_OAUTH_HOME_URL"]}?isSuccess=True',
+                        "gitee_id": result[1],
+                        "token": result[2]
+                    }
                 }
             )
         )
         resp.status = 200
-        resp.set_cookie('token', result[2])
-        resp.set_cookie('gitee_id', str(result[1]))
         return resp
     else:
         return jsonify(
