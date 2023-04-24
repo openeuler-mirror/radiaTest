@@ -14,6 +14,7 @@ from pydantic import BaseModel
 
 auth = HTTPTokenAuth(scheme="JWT")
 serializer = None
+messenger_serializer = None
 
 
 def init(app):
@@ -21,6 +22,12 @@ def init(app):
     serializer = Serializer(
         app.config.get("TOKEN_SECRET_KEY"),
         expires_in=app.config.get("TOKEN_EXPIRES_TIME")
+    )
+
+    global messenger_serializer
+    messenger_serializer = Serializer(
+        app.config.get("MESSENGER_TOKEN_SECRET_KEY"),
+        expires_in=app.config.get("MESSENGER_TOKEN_EXPIRES_TIME")
     )
 
 
@@ -73,9 +80,12 @@ def verify_token(token):
         decode_payload = aes.decrypt(token.split('.')[1])
         _token = token.replace(token.split('.')[1], decode_payload)
         # 反序列化，还原为原始信息
-        global serializer
-        data = serializer.loads(_token)
-    
+        if not token_info:
+            global serializer
+            data = serializer.loads(_token)
+        else:
+            global messenger_serializer
+            data = messenger_serializer.loads(_token)
     except SignatureExpired:
         if redis_client.exists(RedisKey.token(token)):
             # 用户签名过期登录不过期
@@ -129,7 +139,7 @@ def generate_messenger_token(payload, ex=60 * 60 * 24):
         time= now_time
     )
     _token = str(
-        serializer.dumps(token_data),
+        messenger_serializer.dumps(token_data),
         encoding='utf-8'
     )
     # 令牌payload加密
