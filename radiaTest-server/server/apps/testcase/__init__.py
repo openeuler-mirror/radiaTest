@@ -52,6 +52,9 @@ from server.apps.testcase.routes import (
     CaseNodeGetRootEvent,
     CaseNodeMoveToEvent,
     CasefileConvertEvent,
+    OrphanOrgSuitesEvent,
+    OrphanGroupSuitesEvent,
+    CaseNodeSuitesEvent,
 )
 
 
@@ -125,6 +128,21 @@ def init_api(api: Api):
         "/api/v1/suite",
         "/api/v1/ws/<string:workspace>/suite",
         methods=["POST", "GET"]
+    )
+    api.add_resource(
+        OrphanOrgSuitesEvent,
+        "/api/v1/org/orphan-suites",
+        methods=["GET"],
+    )
+    api.add_resource(
+        OrphanGroupSuitesEvent,
+        "/api/v1/group/<int:group_id>/orphan-suites",
+        methods=["GET"],
+    )
+    api.add_resource(
+        CaseNodeSuitesEvent,
+        "/api/v1/case-node/<int:case_node_id>/suites",
+        methods=["POST"],
     )
     api.add_resource(
         CaseEvent, 

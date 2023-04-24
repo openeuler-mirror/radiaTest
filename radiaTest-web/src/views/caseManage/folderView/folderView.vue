@@ -93,6 +93,7 @@
         />
       </template>
     </modal-card>
+    <create-suites />
     <create-drawer :isCase="true" ref="createTaskForm" @submit="createRelationTask" />
     <n-layout has-sider>
       <n-layout-sider
@@ -137,6 +138,7 @@ import { ref } from 'vue';
 import testsuiteCreate from '@/components/testsuiteComponents/testsuiteCreate.vue';
 import createDrawer from '@/components/task/createDrawer.vue';
 import { workspace } from '@/assets/config/menu.js';
+import createSuites from './createSuites/CreateSuites';
 
 export default {
   components: {
@@ -144,7 +146,8 @@ export default {
     ...Essential,
     createDrawer,
     tree,
-    testsuiteCreate
+    testsuiteCreate,
+    createSuites,
   },
   computed: {
     key() {

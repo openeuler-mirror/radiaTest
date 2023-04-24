@@ -1561,3 +1561,55 @@ class SuiteDocumentHandler:
         _id = Insert(SuiteDocument, _body).insert_id(SuiteDocument, "/suite_document")
         return jsonify(error_code=RET.OK, error_msg="OK", data={"id": _id})
 
+
+class OrphanSuitesHandler:
+    def __init__(self, query) -> None:
+        self.current_org_id = redis_client.hget(
+            RedisKey.user(g.gitee_id),
+            "current_org_id",
+        )
+
+        self.filter = [
+            Suite.org_id == int(self.current_org_id),
+            Suite.permission_type == "org",
+            CaseNode.id == sqlalchemy.null(),
+        ]
+
+        self.query = query
+        self._add_params()
+
+    def _add_params(self):
+        _filter_params = []
+        if self.query.name:
+            _filter_params.append(Suite.name.like(f"%{self.query.name}%"))
+        if self.query.owner:
+            _filter_params.append(Suite.owner == self.query.owner)
+        if self.query.git_repo_url:
+            _filter_params.append(Suite.git_repo.git_url == self.query.git_repo_url)
+        if self.query.framework_name:
+            _filter_params.append(Suite.framework.name == self.query.framework_name)
+        self.filter += _filter_params
+
+    def add_filters(self, query_filters: list):
+        self.filter += query_filters
+
+    @collect_sql_error
+    def get_all(self):
+        query_filter = Suite.query.outerjoin(CaseNode).filter(*self.filter).order_by(
+            Suite.name, 
+            Suite.create_time
+        )
+
+        def page_func(item):
+            suite_dict = item.to_json()
+            return suite_dict
+        
+        page_dict, e = PageUtil.get_page_dict(
+            query_filter, 
+            self.query.page_num, 
+            self.query.page_size, 
+            func=page_func
+        )
+        if e:
+            return jsonify(error_code=RET.SERVER_ERR, error_msg=f'get orphan suites page error {e}')
+        return jsonify(error_code=RET.OK, error_msg="OK", data=page_dict)

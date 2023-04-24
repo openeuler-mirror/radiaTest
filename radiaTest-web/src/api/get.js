@@ -406,3 +406,13 @@ export function getGiteeProject() {
 export function getOrgStat(orgId) {
   return getRequest(`/v1/org/${orgId}/statistic`);
 }
+
+// 查询组织游离测试套列表
+export function getOrphanOrgSuites(param) {
+  return getRequest('/v1/org/orphan-suites', param);
+}
+
+// 查询团队游离测试套列表
+export function getOrphanGroupSuites(groupId, param) {
+  return getRequest(`/v1/group/${groupId}/orphan-suites`, param);
+}
