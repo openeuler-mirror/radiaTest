@@ -66,7 +66,6 @@ function perfectInfo() {
       })
       .then((res) => {
         storage.setValue('token', res.data.token);
-        storage.setValue('refresh_token', res.data.refresh_token);
         storage.setValue('gitee_id', giteeId);
         stepList.value[current.value - 1].status = 'finish';
         current.value++;

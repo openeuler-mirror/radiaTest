@@ -24,7 +24,6 @@ function isIframe () {
             }, 'http://192.168.0.114:8084');
           } else {
             storage.setValue('token', res.data.token);
-            storage.setValue('refresh_token', res.data.refresh_token);
             storage.setValue('gitee_id', res.data.gitee_id);
             router.push({ name: 'home' })
               .then(

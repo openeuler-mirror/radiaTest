@@ -50,6 +50,7 @@
                 <n-select
                   v-model:value="formValue.frame_number[index].frame"
                   :options="frameOpts"
+                  @update:value="changeFrameAndNumber"
                   placeholder="请选择架构"
                 />
               </n-form-item-gi>
@@ -152,7 +153,6 @@
 
 <script>
 import { onMounted, onUnmounted, defineComponent } from 'vue';
-
 import { createAjax } from '@/assets/CRUD/create';
 import createForm from '@/views/vmachine/modules/createForm.js';
 import selectMachine from '@/components/machine/selectMachine.vue';
