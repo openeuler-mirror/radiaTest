@@ -121,11 +121,11 @@
             </n-form-item>
           </n-form>
           <n-button
-            type="error"
             block
             round
             :disabled="!loginOrg"
             style="margin-top: 10px"
+            :color="[authorityType === 'gitee' ? '#d03050' : '#002fa7']"
             @click="hanleLogin(loginOrg)"
           >
             <div v-if="authorityType === 'gitee'" class="loginOrgWrap">
@@ -258,6 +258,7 @@ import { useMessage } from 'naive-ui';
 import { User, Lock } from '@vicons/fa';
 import carousel from '@/components/carousel/carousel.vue';
 import { storage } from '@/assets/utils/storageUtils';
+
 export default {
   components: {
     User,
