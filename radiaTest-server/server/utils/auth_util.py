@@ -26,7 +26,7 @@ def init(app):
 
     global messenger_serializer
     messenger_serializer = Serializer(
-        app.config.get("MESSENGER_TOKEN_SECRET_KEY"),
+        app.config.get("TOKEN_SECRET_KEY"),
         expires_in=app.config.get("MESSENGER_TOKEN_EXPIRES_TIME")
     )
 
@@ -72,7 +72,6 @@ def verify_token(token):
     data = None
     try:
         token_info = redis_client.hgetall(RedisKey.messenger_token(token))
-        current_app.logger.info("token_info:{}".format(token_info))
         if not redis_client.exists(RedisKey.token(token)) and not token_info:
             return False
 
@@ -87,7 +86,6 @@ def verify_token(token):
         else:
             global messenger_serializer
             data = messenger_serializer.loads(_token)
-            current_app.logger.info("messenger serializer data:{}".format(data))
     except SignatureExpired:
         if redis_client.exists(RedisKey.token(token)):
             # 用户签名过期登录不过期
