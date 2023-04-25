@@ -9,7 +9,11 @@ function putRequest(url, data, msg) {
         resolve(res);
       })
       .catch((err) => {
-        window.$notification?.error({ content: err.data.error_msg || unkonwnErrorMsg, duration: 2000 });
+        window.$notification?.error({
+          content: err.data.error_msg || unkonwnErrorMsg,
+          duration: 5000,
+          keepAliveOnHover: true
+        });
         reject(err);
       });
   });

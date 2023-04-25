@@ -9,7 +9,11 @@ function deleteRequest(url, data) {
         resolve(res);
       })
       .catch((err) => {
-        window.$notification?.error({ content: err.data.error_msg || unkonwnErrorMsg });
+        window.$notification?.error({
+          content: err.data.error_msg || unkonwnErrorMsg,
+          duration: 5000,
+          keepAliveOnHover: true
+        });
         reject(err);
       });
   });
