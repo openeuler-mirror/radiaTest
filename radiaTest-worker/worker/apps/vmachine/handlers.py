@@ -144,8 +144,7 @@ class OperateVnic(VmachineBaseSchema):
             }
         )
 
-        if exitcode:
-            return jsonify({"error_code": exitcode, "error_msg": output})
+
 
         return self._body
 

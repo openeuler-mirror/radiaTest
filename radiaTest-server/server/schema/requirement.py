@@ -92,7 +92,7 @@ class ProgressFeedbackSchema(BaseModel):
 
     @validator('percentage')
     def validate_type(cls, v):
-        if v < 0 and v > 100:
+        if v < 0 or v > 100:
             raise ValueError("progress persentage should not be lower than 0 or higher than 100")
         return v
 
