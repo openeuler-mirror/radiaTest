@@ -175,6 +175,7 @@ class GiteeV8BaseIssueHandler(IssueOpenApiHandler):
     def issue_states(self):
         _issue_states = redis_client.hget(
             RedisKey.issue_states(self.current_org.enterprise_id), "data")
+        current_app.logger.info("issue_state:{}".format(_issue_states))
         if _issue_states:
             return json.loads(_issue_states)
         else:
