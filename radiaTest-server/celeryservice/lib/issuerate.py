@@ -467,7 +467,7 @@ class UpdateIssueTypeState(TaskHandlerBase):
                     )
                 redis_client.hmset(
                     RedisKey.issue_types(_org.enterprise_id),
-                    {"data": t_issue_types}
+                    {"data": json.dumps(t_issue_types)}
                 )
             resp = isa.get_issue_states()
             resp = resp.get_json()
@@ -486,5 +486,5 @@ class UpdateIssueTypeState(TaskHandlerBase):
                     )
                 redis_client.hmset(
                     RedisKey.issue_states(_org.enterprise_id),
-                    {"data": t_issue_states}
+                    {"data": json.dumps(t_issue_states)}
                 )
