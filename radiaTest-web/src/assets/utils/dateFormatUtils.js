@@ -1,10 +1,10 @@
-const any2standard = (origin) =>
-  new Date(origin)
-    .toLocaleString('zh-CN', { hourCycle: 'h23' })
-    .replace(/\//g, '-');
+// YYYY-MM-DD HH:mm:ss
+const any2standard = (origin) => new Date(origin).toLocaleString('zh-CN', { hourCycle: 'h23' }).replace(/\//g, '-');
 
+// 时间戳
 const any2stamp = (origin) => new Date(origin).getTime();
 
+// 自定义时间格式
 function formatTime(date, formatStr) {
   let formatString = formatStr;
   if (!date) {
@@ -18,13 +18,10 @@ function formatTime(date, formatStr) {
     'm+': time.getMinutes(),
     's+': time.getSeconds(),
     'q+': Math.floor((time.getMonth() + 3) / 3),
-    S: time.getMilliseconds(),
+    S: time.getMilliseconds()
   };
   if (/(y+)/g.test(formatString)) {
-    formatString = formatString.replace(
-      RegExp.$1,
-      `${time.getFullYear()}`.substr(4 - RegExp.$1.length)
-    );
+    formatString = formatString.replace(RegExp.$1, `${time.getFullYear()}`.substr(4 - RegExp.$1.length));
   }
   for (let k in o) {
     if (new RegExp(`(${k})`).test(formatString)) {
@@ -39,24 +36,26 @@ function formatTime(date, formatStr) {
 const timeMenu = {
   us: {
     next: 'ms',
-    step: 1000,
+    step: 1000
   },
   ms: {
     next: 's',
-    step: 1000,
+    step: 1000
   },
   s: {
     next: 'min',
-    step: 60,
+    step: 60
   },
   min: {
     next: 'h',
-    step: 60,
+    step: 60
   },
   h: {
-    next: '',
-  },
+    next: ''
+  }
 };
+
+// 计算时间长度
 function timeProcess(time, unit) {
   const nextUnit = timeMenu[unit.toLowerCase()].next;
   const nextUnitTime = Number(time) / timeMenu[unit.toLowerCase()].step;

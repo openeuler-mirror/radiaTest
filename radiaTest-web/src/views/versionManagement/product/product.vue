@@ -26,23 +26,6 @@
       <div style="display: flex; align-items: center">
         <filterButton :filterRule="filterRule" @filterchange="filterchange" style="display: flex; padding-right: 20px">
         </filterButton>
-        <n-select
-          v-model:value="currentProduct"
-          placeholder="请选择产品"
-          style="width: 200px"
-          :options="productList"
-          :consistent-menu-width="false"
-          filterable
-          clearable
-        />
-        <n-button :disabled="!currentProduct" @click="clickCheckList" style="margin-right: 40px">
-          <template #icon>
-            <n-icon>
-              <ChecklistFilled />
-            </n-icon>
-          </template>
-          质量CheckList
-        </n-button>
         <refresh-button @refresh="refreshTableData"> 刷新产品版本列表 </refresh-button>
       </div>
     </div>
@@ -349,11 +332,21 @@
                         :tab="`对比${packageComparePanel.name}`"
                         :name="packageComparePanel.id"
                       >
-                        <n-tabs animated type="line" v-model:value="packageTabValueFirst" @update:value="changePackageTabFirst">
+                        <n-tabs
+                          animated
+                          type="line"
+                          v-model:value="packageTabValueFirst"
+                          @update:value="changePackageTabFirst"
+                        >
                           <n-tab name="softwarescope"> 软件范围 </n-tab>
                           <n-tab v-if="currentPanel === 'fixed'" name="homonymousIsomerism"> 同名异构 </n-tab>
                         </n-tabs>
-                        <n-tabs animated type="line"  v-model:value="packageTabValueSecond" @update:value="changePackageTabSecond">
+                        <n-tabs
+                          animated
+                          type="line"
+                          v-model:value="packageTabValueSecond"
+                          @update:value="changePackageTabSecond"
+                        >
                           <n-tab name="everything"> everything </n-tab>
                           <n-tab name="EPOL"> EPOL </n-tab>
                         </n-tabs>
@@ -610,7 +603,7 @@ import { Search } from '@vicons/carbon';
 import { modules } from './modules';
 import { ArrowLeft32Filled as ArrowLeft, QuestionCircle16Filled } from '@vicons/fluent';
 import { MdClose } from '@vicons/ionicons4';
-import { DoubleArrowFilled, CancelRound, CheckCircleFilled, ChecklistFilled } from '@vicons/material';
+import { DoubleArrowFilled, CancelRound, CheckCircleFilled } from '@vicons/material';
 import autoSteps from '@/components/autoSteps/autoSteps.vue';
 import MilestoneIssuesCard from '@/components/milestoneComponents/MilestoneIssuesCard.vue';
 import testProgress from '@/components/productDrawer/testProgress.vue';
@@ -636,7 +629,6 @@ export default {
     DoubleArrowFilled,
     CancelRound,
     CheckCircleFilled,
-    ChecklistFilled,
     qualityProtect,
     QuestionCircle16Filled,
     FeatureTable,
