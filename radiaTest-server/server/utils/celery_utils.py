@@ -101,9 +101,19 @@ def make_celery(app_name):
                 'routing_key': 'rc_name',
                 'delivery_mode': 1,
             },
+            'celeryservice.tasks.resolve_pkglist_from_url': {
+                'queue': 'queue_resolve_pkglist_from_url',
+                'routing_key': 'pkglist_from_url',
+                'delivery_mode': 1,
+            },
             'celeryservice.sub_tasks.update_compare_result': {
                 'queue': 'queue_update_compare_result',
                 'routing_key': 'compare_result',
+                'delivery_mode': 1,
+            },
+            'celeryservice.sub_tasks.update_daily_compare_result': {
+                'queue': 'queue_update_daily_compare_result',
+                'routing_key': 'daily_compare_result',
                 'delivery_mode': 1,
             },
             'celeryservice.tasks.async_send_vmachine_release_message': {

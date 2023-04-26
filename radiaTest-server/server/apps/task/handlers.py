@@ -23,7 +23,7 @@ import pytz
 from celery import current_app
 
 from flask import jsonify, g, request, Response
-from sqlalchemy import or_
+from sqlalchemy import or_, and_
 
 from server import db, redis_client
 from server.model.task import TaskStatus, Task, TaskParticipant, TaskComment
@@ -61,6 +61,7 @@ from server.schema.task import (
     TaskJobResultSchema,
     QueryTaskStatisticsSchema,
     OutAddTaskSchema,
+    QueryTaskByTimeSchema,
 )
 from server.schema import Frame
 from server.schema.issue import GiteeIssueQueryV8
@@ -310,7 +311,7 @@ class HandlerTask(object):
 
     @staticmethod
     @collect_sql_error
-    def get_all(gitee_id, query, workspace=None):
+    def get_all(query, workspace=None):
         """获取任务列表"""
         join_params = []
         filter_params = GetAllByPermission(Task, workspace).get_filter()
@@ -364,6 +365,82 @@ class HandlerTask(object):
             query_filter=query_filter,
             query=query,
             func=page_func
+        )
+
+    @staticmethod
+    @collect_sql_error
+    def get_all_gantt_tasks(query: QueryTaskByTimeSchema):
+        """获取任务列表"""
+        current_org_id = redis_client.hget(
+            RedisKey.user(g.gitee_id), 
+            "current_org_id"
+        )
+        return_data = list()
+        if query.type in ["organization", "version", "all"]:
+            filter_param = [
+                Task.is_delete.is_(False),
+                Task.org_id == int(current_org_id),
+                Task.permission_type == "org",
+                or_(
+                    Task.start_time.between(query.task_time[0], query.task_time[1]),
+                    Task.deadline.between(query.task_time[0], query.task_time[1])
+                )
+            ]
+            if query.type in ["organization", "version"]:
+                filter_param.append(
+                    Task.type == query.type.upper()
+                )
+            tasks = Task.query.filter(
+                *filter_param
+            ).all()
+            if tasks:
+                org = Organization.query.filter_by(id=int(current_org_id)).first()
+                return_data.append(
+                    {
+                        "label": org.name,
+                        "type": "org" if query.type == "all" else query.type,
+                        "tasks": [ _task.to_gantt_dict() for _task in tasks ]
+                    }
+                )
+
+        if query.type in ["group", "all"]:
+            filter_params = [
+                ReUserGroup.is_delete.is_(False),
+                ReUserGroup.user_add_group_flag.is_(True),
+                Group.is_delete.is_(False),
+                ReUserGroup.org_id == int(current_org_id),
+                ReUserGroup.user_gitee_id == g.gitee_id
+            ]
+            if query.group_id is not None and query.type == "group":
+                filter_params.append(
+                    ReUserGroup.group_id == query.group_id
+                )
+
+            re_user_groups = ReUserGroup.query.join(Group).filter(*filter_params).all()
+            
+            for re_user_group in re_user_groups:
+                tasks = Task.query.filter(
+                    Task.is_delete.is_(False),
+                    Task.type == "GROUP",
+                    Task.group_id == re_user_group.group_id,
+                    or_(
+                        Task.start_time.between(query.task_time[0], query.task_time[1]),
+                        Task.deadline.between(query.task_time[0], query.task_time[1])
+                    )
+                ).all()
+                if tasks:
+                    return_data.append(
+                        {
+                            "label": re_user_group.group.name,
+                            "type": "group",
+                            "tasks": [ _task.to_gantt_dict() for _task in tasks ]
+                        }
+                    )
+
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+            data=return_data,
         )
 
     @staticmethod
@@ -676,6 +753,20 @@ class HandlerTask(object):
             if result:
                 return result
 
+        return jsonify(error_code=RET.OK, error_msg="OK")
+    
+    @staticmethod
+    @collect_sql_error
+    def update_percentage(task_id, percentage: int):
+        task = Task.query.get(task_id)
+        if not task:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="task does not exist"
+            )
+        task.percentage = percentage
+        task.add_update()
+        db.session.commit()
         return jsonify(error_code=RET.OK, error_msg="OK")
 
     @staticmethod

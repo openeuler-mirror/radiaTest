@@ -91,6 +91,13 @@ class Milestone(BaseModel, PermissionBaseModel, db.Model):
             "org_id": self.org_id
         }
 
+    def to_gantt_dict(self):
+        return {
+            "name": self.name,
+            "start_time": self.convert_time_format(self.start_time),
+            "end_time": self.convert_time_format(self.end_time)
+        }
+
 
 class IssueSolvedRate(BaseModel, db.Model):
     __tablename__ = "issue_solved_rate"

@@ -19,6 +19,9 @@ from .routes import (
     ChecklistResultEvent,
     FeatureSummary,
     PackageListCompareEvent,
+    DailyBuildPackageListCompareEvent,
+    DailyBuildPkgEvent,
+    DailyPackagCompareResultExportEvent,
     RoundIssueEvent,
     RoundMilestoneEvent,
     SamePackageListCompareEvent,
@@ -133,6 +136,18 @@ def init_api(api: Api):
     api.add_resource(
         PackageListCompareEvent,
         "/api/v1/qualityboard/<int:qualityboard_id>/round/<int:comparee_round_id>/with/<int:comparer_round_id>/pkg-compare"
+    )
+    api.add_resource(
+        DailyBuildPackageListCompareEvent,
+        "/api/v1/qualityboard/daily-build/with/round/<int:comparer_round_id>/pkg-compare"
+    )
+    api.add_resource(
+        DailyPackagCompareResultExportEvent,
+        "/api/v1/qualityboard/daily-build/with/round/<int:comparer_round_id>/pkg-compare-result-export"
+    )
+    api.add_resource(
+        DailyBuildPkgEvent,
+        "/api/v1/qualityboard/daily-build"
     )
     api.add_resource(
         SamePackageListCompareEvent,

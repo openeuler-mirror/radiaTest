@@ -25,6 +25,7 @@ from sqlalchemy import func, or_
 
 from server import db, redis_client
 from server.utils.auth_util import auth
+from server.utils.redis_util import RedisKey
 from server.utils.response_util import response_collect, RET
 from server.model import Milestone, Product, Organization
 from server.model.milestone import IssueSolvedRate
@@ -72,10 +73,14 @@ from server.schema.qualityboard import (
     PackageCompareResult,
     SamePackageCompareResult,
     QueryRepeatRpmSchema,
+    DailyBuildPackageCompareSchema,
+    DailyBuildSchema,
+    DailyBuildBaseSchema,
 )
 from server.apps.qualityboard.handlers import (
     ChecklistHandler,
     PackageListHandler,
+    DailyBuildPackageListHandler,
     RoundHandler,
     feature_handlers,
     CheckItemHandler,
@@ -90,7 +95,7 @@ from server.utils.shell import add_escape
 from server.utils.at_utils import OpenqaATStatistic
 from server.utils.page_util import PageUtil, Paginate
 from server.utils.rpm_util import RpmNameLoader
-from celeryservice.sub_tasks import update_compare_result, update_samerpm_compare_result
+from celeryservice.sub_tasks import update_compare_result, update_samerpm_compare_result, update_daily_compare_result
 
 
 class QualityBoardEvent(Resource):
@@ -1568,6 +1573,199 @@ class PackageListCompareEvent(Resource):
             "del_pkgs_num": _del_num, 
             **page_dict
         })
+
+
+class DailyBuildPackageListCompareEvent(Resource):
+    @auth.login_required
+    @response_collect
+    @validate()
+    def post(self, comparer_round_id, body: DailyBuildPackageCompareSchema):
+        try:
+            comparer = PackageListHandler(
+                comparer_round_id,
+                body.repo_path,
+                "all"
+            )
+            org_id = redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')
+            repo_url = redis_client.hget(
+                RedisKey.daily_build(org_id),
+                body.daily_name,
+            )
+            comparee = DailyBuildPackageListHandler(
+                repo_name=body.daily_name,
+                repo_path=body.repo_path,
+                arch="all",
+                repo_url=repo_url
+            )
+        except RuntimeError as e:
+            return jsonify(
+                error_code=RET.RUNTIME_ERROR,
+                error_msg=str(e),
+            )
+        except ValueError as e:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg=str(e),
+            )
+
+        (
+            compare_results,
+            _,
+            repeat_rpm_list_comparee,
+        ) = comparer.compare(comparee.packages)
+
+        comparer_round = Round.query.get(comparer_round_id)
+        _path = current_app.config.get("PRODUCT_PKGLIST_PATH")
+        file_path = f"{_path}/{comparer_round.name}-{body.daily_name}-{body.repo_path}.xls"
+        update_daily_compare_result.delay(
+            body.daily_name,
+            comparer_round.name,
+            compare_results,
+            repeat_rpm_list_comparee,
+            file_path
+        )
+        redis_client.hset(
+            f"daily_build_compare_{comparer_round.name}",
+            f"{body.daily_name}-{body.repo_path}",
+            f"{comparer_round.name}-{body.daily_name}-{body.repo_path}.xls"
+        )
+
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+        )
+
+    @auth.login_required
+    @response_collect
+    @validate()
+    def get(self, comparer_round_id):
+        comparer_round = Round.query.get(comparer_round_id)
+        daily_build_compare_infos = redis_client.hgetall(f"daily_build_compare_{comparer_round.name}")
+        data = list()
+        if daily_build_compare_infos:
+            for daily_name, file_name in daily_build_compare_infos.items():
+                data.append(
+                    {
+                        "daily_name": daily_name,
+                        "file_name": file_name
+                    }
+                )
+
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+            data=data,
+        )
+
+    @auth.login_required
+    @response_collect
+    @validate()
+    def delete(self, comparer_round_id, body: DailyBuildPackageCompareSchema):
+        comparer_round = Round.query.get(comparer_round_id)
+        file_name = redis_client.hget(
+            f"daily_build_compare_{comparer_round.name}",
+            f"{body.daily_name}-{body.repo_path}",
+        )
+        _path = current_app.config.get("PRODUCT_PKGLIST_PATH")
+        _, _ = subprocess.getstatusoutput(
+            f"rm -f {_path}/{file_name}"
+        )
+
+        redis_client.hdel(
+            f"daily_build_compare_{comparer_round.name}",
+            f"{body.daily_name}-{body.repo_path}",
+        )
+
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+        )
+
+
+class DailyBuildPkgEvent(Resource):
+    @auth.login_required
+    @response_collect
+    @validate()
+    def post(self, qualityboard_id, body: DailyBuildSchema):
+        try:
+            DailyBuildPackageListHandler.get_all_packages_file(body.daily_name, body.repo_url)
+        except RuntimeError as e:
+            return jsonify(
+                error_code=RET.OK,
+                error_msg=str(e),
+            )
+        org_id = redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')
+        redis_client.hset(
+            RedisKey.daily_build(org_id),
+            body.daily_name,
+            body.repo_url,
+        )
+
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+        )
+
+    @auth.login_required
+    @response_collect
+    @validate()
+    def get(self):
+        org_id = redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')
+        daily_build_infos = redis_client.hgetall(RedisKey.daily_build(org_id))
+        data = list()
+        if daily_build_infos:
+            for daily_name, repo_url in daily_build_infos.items():
+                data.append(
+                    {
+                        "daily_name": daily_name,
+                        "repo_url": repo_url
+                    }
+                )
+
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+            data=data,
+        )
+
+    @auth.login_required
+    @response_collect
+    @validate()
+    def delete(self, body: DailyBuildBaseSchema):
+        org_id = redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')
+        redis_client.hdel(
+            RedisKey.daily_build(org_id),
+            body.daily_name,
+        )
+        _path = current_app.config.get("PRODUCT_PKGLIST_PATH")
+        _, _ = subprocess.getstatusoutput(
+            f"rm -f {_path}/{body.daily_name}*.pkgs"
+        )
+
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+        )
+
+
+class DailyPackagCompareResultExportEvent(Resource):
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def get(self, comparer_round_id, query: DailyBuildPackageCompareSchema):
+        comparer_round = Round.query.get(comparer_round_id)
+        if not comparer_round:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="round does not exist.",
+            )
+    
+        _path = current_app.config.get("PRODUCT_PKGLIST_PATH")
+        file_path = f"{_path}/{comparer_round.name}-{query.daily_name}-{query.repo_path}.xls"
+        result = PackagCompareResultExportHandler().get_compare_result_file(
+            file_path=file_path
+        )
+        return result
 
 
 class PackagCompareResultExportEvent(Resource):

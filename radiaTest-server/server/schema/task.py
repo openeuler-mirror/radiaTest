@@ -1,10 +1,13 @@
-from pydantic import BaseModel, validator, root_validator, Field
+import json
 from typing import List
-from typing_extensions import Literal
 from enum import Enum
 from datetime import datetime, time
 from dateutil import parser
-from .base import PageBaseSchema, BaseEnum
+
+from pydantic import BaseModel, validator, root_validator, Field
+from typing_extensions import Literal
+
+from server.schema.base import PageBaseSchema, BaseEnum
 from server.schema import Frame
 
 
@@ -54,8 +57,8 @@ class AddTaskSchema(BaseModel):
     group_id: int = None
     executor_type: EnumsTaskExecutorType
     executor_id: int
-    start_time: str = None
-    deadline: str = None
+    start_time: str
+    deadline: str
     is_version_task: bool = False
     parent_id: List[int] = None
     child_id: List[int] = None
@@ -76,6 +79,21 @@ class AddTaskSchema(BaseModel):
                 values.get("milestone_id") and (not values.get("type") or values.get("type") != "VERSION")
             ):
             raise ValueError("when type of task is VERSION, milestone_id must be not None.")
+        try:
+            datetime.strptime(
+                values.get("start_time"), 
+                "%Y-%m-%d"
+            )
+            datetime.strptime(
+                values.get("deadline"),
+                "%Y-%m-%d"
+            )  
+        except:
+            raise ValueError(
+                "the format of time is not valid, the valid type is: %Y-%m-%d"
+            )
+        if values.get("deadline") < values.get("start_time"):
+            raise ValueError("start time must be earlier than deadline.")
         return values
 
 
@@ -85,6 +103,36 @@ class OutAddTaskSchema(BaseModel):
     milestone_id: int
     group_id: int
     frame: Frame
+
+
+class QueryTaskByTimeSchema(BaseModel):
+    task_time: str
+    type: Literal['organization', 'group', 'version', 'all'] = "all"
+    group_id: int = None
+
+    @validator('task_time')
+    def validate(cls, v):
+        if isinstance(v, str):
+            v = json.loads(v)
+            try:
+                v[0] = datetime.strptime(
+                    v[0], 
+                    "%Y-%m-%d"
+                )
+                v[1] = datetime.strptime(
+                    v[1],
+                    "%Y-%m-%d"
+                )  
+            except:
+                raise ValueError(
+                    "the format of time is not valid, the valid type is: %Y-%m-%d"
+                )
+
+            v[0] = v[0].strftime("%Y-%m-%d")
+            v[1] = v[1].strftime("%Y-%m-%d")
+            if v[0] >= v[1]:
+                raise ValueError("the first time must be earlier than second time.")
+        return v
 
 
 class QueryTaskSchema(PageBaseSchema):
@@ -98,6 +146,7 @@ class QueryTaskSchema(PageBaseSchema):
     start_time: str = None
     is_delete: bool = False
     milestone_id: str = None
+    gantt: bool = False
 
     @validator('participant_id')
     def validate_participant_id(cls, v):
@@ -123,7 +172,7 @@ class TaskBaseSchema(BaseModel):
     @validator('deadline')
     def validate(cls, v):
         if v:
-            return v.strftime("%Y-%m-%d %H:%M:%S")
+            return v.strftime("%Y-%m-%d")
 
 
 class TaskInfoSchema(TaskBaseSchema):
@@ -144,20 +193,21 @@ class TaskInfoSchema(TaskBaseSchema):
     is_single_case: bool = False
     accomplish_time: datetime = None
     is_manage_task: bool = False
+    percentage: int = 0
 
     @validator('priority')
     def validate_priority(cls, v):
         return PriorityEnum(v).name
 
     @validator('start_time')
-    def validate_deadline(cls, v):
+    def validate_start_time(cls, v):
         if v:
-            return v.strftime("%Y-%m-%d %H:%M:%S")
+            return v.strftime("%Y-%m-%d")
 
     @validator('accomplish_time')
     def validate_accomplish_time(cls, v):
         if v:
-            return v.strftime("%Y-%m-%d %H:%M:%S")
+            return v.strftime("%Y-%m-%d")
 
 
 class TaskRecycleBinInfo(TaskInfoSchema):
@@ -191,7 +241,6 @@ class UpdateTaskSchema(BaseModel):
     frame: Frame = None
     priority: Literal['GENERAL', 'URGENCY', 'VERY_URGENCY'] = None
     milestone_id: int = None
-    # product_id: int = None
     milestones: List[int] = None
     automatic_finish: bool = None
     is_manage_task: bool = None
@@ -199,6 +248,16 @@ class UpdateTaskSchema(BaseModel):
     @validator('priority')
     def validate(cls, v):
         return PriorityEnum.code(v).value
+
+
+class UpdateTaskPercentageSchema(BaseModel):
+    percentage: int
+
+    @validator('percentage')
+    def validate(cls, v):
+        if v < 0 or v > 100:
+            raise ValueError("task percentage must be between 0 and 100")
+        return v
 
 
 class DelTaskParticipantSchema(BaseModel):
@@ -408,7 +467,6 @@ class DistributeTemplateTypeSchema(object):
                 return None
 
     class Query(PageBaseSchema):
-        # suite: bool = False
         template_id: int = None
         type_id: int = None
 

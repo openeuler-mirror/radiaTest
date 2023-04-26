@@ -31,6 +31,7 @@ from server.schema.milestone import (
     MilestoneStateEventSchema,
     GenerateTestReport,
     QueryTestReportFile,
+    QueryMilestoneByTimeSchema,
 )
 from server.utils.permission_utils import GetAllByPermission
 from server import casbin_enforcer
@@ -82,6 +83,14 @@ class MilestoneEventV2(Resource):
     def get(self, workspace: str, query: MilestoneQuerySchema):
         filter_params = GetAllByPermission(Milestone, workspace).get_filter()
         return MilestoneHandler.get_milestone(query, filter_params)
+
+
+class MilestoneGantt(Resource):
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def get(self, query: QueryMilestoneByTimeSchema):
+        return MilestoneHandler.get_all_gantt_milestones(query=query)
 
 
 class MilestoneItemEventV2(Resource):

@@ -22,6 +22,7 @@ import pytz
 from flask.globals import current_app
 import requests
 from flask import g, jsonify
+from sqlalchemy import or_, and_
 
 from server import redis_client
 from server.utils.redis_util import RedisKey
@@ -37,7 +38,7 @@ from server.model.template import Template
 from server.model.product import Product
 from server.model.task import TaskMilestone
 from server.model.issue import Issue
-from server.schema.milestone import GiteeMilestoneBase, GiteeMilestoneEdit, MilestoneStateEventSchema
+from server.schema.milestone import GiteeMilestoneBase, GiteeMilestoneEdit, MilestoneStateEventSchema, QueryMilestoneByTimeSchema
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from server.utils.permission_utils import PermissionManager, GetAllByPermission
 from server.utils.resource_utils import ResourceManager
@@ -174,6 +175,64 @@ class MilestoneHandler:
             )
 
         return jsonify(error_code=RET.OK, error_msg="OK", data=page_dict)
+
+    @staticmethod
+    @collect_sql_error
+    def get_all_gantt_milestones(query: QueryMilestoneByTimeSchema):
+        """获取里程碑列表"""
+        from server.model.group import Group, ReUserGroup
+        current_org_id = redis_client.hget(
+            RedisKey.user(g.gitee_id), 
+            "current_org_id"
+        )
+        filter_params = [
+            Milestone.permission_type == "org",
+            Milestone.org_id == int(current_org_id),
+            or_(
+                Milestone.start_time.between(query.milestone_time[0], query.milestone_time[1]),
+                Milestone.end_time.between(query.milestone_time[0], query.milestone_time[1])
+            )
+        ]
+
+        re_user_groups = ReUserGroup.query.join(Group).filter(
+            ReUserGroup.is_delete.is_(False),
+            ReUserGroup.user_add_group_flag.is_(True),
+            Group.is_delete.is_(False),
+            ReUserGroup.org_id == int(current_org_id),
+            ReUserGroup.user_gitee_id == g.gitee_id
+        ).all()
+        if re_user_groups:
+            group_ids = [
+                re_user_group.group_id for re_user_group in re_user_groups
+            ]
+            filter_params = [
+                or_(
+                    and_(
+                        Milestone.permission_type == "org",
+                        Milestone.org_id == int(current_org_id),
+                    ),
+                    and_(
+                        Milestone.permission_type == "group",
+                        Milestone.org_id == int(current_org_id),
+                        Milestone.group_id.in_(group_ids),
+                    ),
+                ),
+                or_(
+                    Milestone.start_time.between(query.milestone_time[0], query.milestone_time[1]),
+                    Milestone.end_time.between(query.milestone_time[0], query.milestone_time[1])
+                )
+            ]
+
+        milestones = Milestone.query.filter(
+            *filter_params
+        ).all()
+        return_data = [ milestone.to_gantt_dict() for milestone in milestones ]
+
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+            data=return_data,
+        )
 
 
 class MilestoneOpenApiHandler(BaseOpenApiHandler):

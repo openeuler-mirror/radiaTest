@@ -383,6 +383,54 @@ def resolve_pkglist_after_resolve_rc_name(repo_url, store_path, product, round_n
 
 
 @celery.task
+def resolve_pkglist_from_url(repo_name, repo_url, store_path):
+    if not repo_url or not repo_name or not store_path:
+        logger.error("neither param repo_name, repo_url could be None.")
+        return
+
+    for repo_path in ["everything", "EPOL/main"]:
+        _repo_path = f"{repo_name}-{repo_path.split('/')[0]}"
+        for arch in ["aarch64", "x86_64"]:
+            _url =  f"{repo_url}/{repo_path}/{arch}/Packages/"
+            resp = requests.get(_url)
+            if resp.status_code != 200:
+                logger.error("Could not connect to the url: {}".format(_url))
+                return
+            resp.encoding = 'utf-8'
+            # 写入网页内容到文件中
+            tmp_file_name = f"{store_path}/{_repo_path}-{arch}-html.txt"
+            with open(tmp_file_name, "wb") as f:
+                f.write(resp.content)
+                f.close()
+
+            exitcode, output = subprocess.getstatusoutput(
+                f"cat {tmp_file_name} | " 
+                + "grep 'title=' | awk -F 'title=\"' '{print $2}' | awk -F '\">' '{print $1}' | grep '.rpm' | uniq >" 
+                + f"{store_path}/{_repo_path}-{arch}.pkgs"
+            )
+
+            if exitcode != 0:
+                logger.error(output)
+                return
+
+        exitcode, output = subprocess.getstatusoutput(
+            f"sort {store_path}/{_repo_path}-aarch64.pkgs"
+            + f" {store_path}/{_repo_path}-x86_64.pkgs | uniq >{store_path}/{_repo_path}-all.pkgs"
+        )
+        if exitcode != 0:
+            logger.error(output)
+            return
+    _, _ = subprocess.getstatusoutput(
+        f"rm -f {store_path}/{repo_name}*html.txt"
+    )
+
+    logger.info(f"crawl openeuler's packages list of {repo_name} succeed")
+    lock_key = f"resolving_{repo_name}_pkglist"
+    redis_client.delete(lock_key)
+    logger.info(f"the lock of crawling has been removed")
+
+
+@celery.task
 def async_send_vmachine_release_message():
     VmachineReleaseNotice(logger).main()
 

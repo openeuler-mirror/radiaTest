@@ -203,6 +203,18 @@ class PackageCompareSchema(BaseModel):
     repo_path: Literal["everything", "EPOL"]
 
 
+class DailyBuildBaseSchema(BaseModel):
+    daily_name: str
+
+
+class DailyBuildSchema(DailyBuildBaseSchema):
+    repo_url: str
+
+
+class DailyBuildPackageCompareSchema(DailyBuildBaseSchema):
+    repo_path: Literal["everything", "EPOL"]
+
+
 class SamePackageCompareQuerySchema(PageBaseSchema):
     summary: bool = False
     search: Optional[str]

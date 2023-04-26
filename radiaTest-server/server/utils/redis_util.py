@@ -81,6 +81,9 @@ class RedisClient(object):
     def delete(self, name):
         self.connection.delete(name)
 
+    def hdel(self, name, key):
+        return self.connection.hdel(name, key)
+
     def flush_db(self):
         if self.connection:
             self.connection.flushdb()
@@ -111,3 +114,4 @@ class RedisKey(object):
     issue_states = lambda enterprise_id: f"issue_states_{enterprise_id}"
     projects = lambda enterprise_id: f"projects_{enterprise_id}"
     messenger_token = lambda token: f"messenger_token_{token}"
+    daily_build = lambda enterprise_id: f"daily_build_infos_{enterprise_id}"

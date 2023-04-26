@@ -118,6 +118,41 @@ def update_compare_result(round_group_id: int, results, repo_path):
 
 
 @celery.task
+def update_daily_compare_result(daily_name, comparer_round_name, compare_results, repeat_list, file_path):
+    import xlwt
+
+    cnt = 1
+    wb = xlwt.Workbook()
+    ws = wb.add_sheet("软件范围")
+    ws.write(0, 0, daily_name)
+    ws.write(0, 1, comparer_round_name)
+    ws.write(0, 2, "arch")
+    ws.write(0, 3, "compare result")
+    
+    for result in compare_results:
+        ws.write(cnt, 0, result.get("rpm_list_1"))
+        ws.write(cnt, 1, result.get("rpm_list_2"))
+        ws.write(cnt, 2, result.get("arch"))
+        ws.write(cnt, 3, result.get("compare_result"))
+        cnt += 1
+
+    ws = wb.add_sheet(f"{daily_name}多版本rpm")
+    ws.write(0, 0, "rpm name")
+    ws.write(0, 1, "arch")
+    ws.write(0, 2, "release")
+    ws.write(0, 3, "version")
+    cnt = 1
+    for rpm in repeat_list:
+        ws.write(cnt, 0, rpm.get("rpm_file_name"))
+        ws.write(cnt, 1, rpm.get("arch"))
+        ws.write(cnt, 2, rpm.get("release"))
+        ws.write(cnt, 3, rpm.get("version"))
+        cnt += 1
+
+    wb.save(file_path)
+
+
+@celery.task
 def update_samerpm_compare_result(round_id: int, results, repo_path):
     for result in results:
         rpm_compare = SameRpmCompare.query.filter_by(
