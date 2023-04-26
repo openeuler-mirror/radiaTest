@@ -33,12 +33,6 @@ class GitRepoBase(PermissionBase):
     sync_rule: bool = True
     framework_id: int
 
-    @validator("permission_type")
-    def check_permission_type(cls, v):
-        if v != "group":
-            raise ValueError("gitrepo's permission_type must be group.")
-        return v
-
 
 class GitRepoQuery(BaseModel):
     name: Optional[str]
