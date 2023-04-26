@@ -134,8 +134,10 @@ const codeColumns = [
           // round: true,
           onClick: () => {
             getGitRepoSync(row.id)
+              .then(() => {
+               message.loading('开始同步'); 
+              })
               .catch((err) => {
-                console.log(err);
                 if (err.data?.error_code === '60009') {
                   message.info(err.data.error_msg);
                 } else {
