@@ -47,6 +47,9 @@
       <n-form-item label="代码仓地址" path="git_url">
         <n-input v-model:value="repoForm.git_url" placeholder="仓库地址" />
       </n-form-item>
+      <n-form-item label="分支" path="branch">
+        <n-input v-model:value="repoForm.branch" placeholder="分支"/>
+      </n-form-item>
       <n-form-item label="是否允许同步" path="sync_rule">
         <n-switch v-model:value="repoForm.sync_rule">
           <template #checked> 是 </template>
@@ -100,6 +103,10 @@ const codeColumns = [
   {
     title: '代码仓地址',
     key: 'git_url'
+  },
+  {
+    title: '分支',
+    key: 'branch',
   },
   {
     title: '同步策略',
@@ -157,12 +164,18 @@ const repoRules = {
       return true;
     },
   },
+  branch: {
+    trigger: ['blur'],
+    required: true,
+    message: '分支不可为空',
+  }
 };
 
 const repoForm = ref({
   framework_id: '',
   name: '',
   git_url: '',
+  branch: 'master',
   sync_rule: false,
   is_adapt: false
 });
@@ -186,6 +199,7 @@ function clearRepoForm() {
     framework_id: '',
     name: '',
     git_url: '',
+    branch: 'master',
     sync_rule: false,
     is_adapt: false
   };

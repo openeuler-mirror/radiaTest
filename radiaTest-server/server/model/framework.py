@@ -37,6 +37,7 @@ class GitRepo(db.Model, PermissionBaseModel, BaseModel):
     id = db.Column(db.Integer(), primary_key=True)
     name = db.Column(db.String(64), nullable=False)
     git_url = db.Column(db.String(256), unique=True, nullable=False)
+    branch = db.Column(db.String(64), nullable=False, default="master")
     sync_rule = db.Column(db.Boolean(), nullable=False, default=True)
     creator_id = db.Column(db.Integer(), db.ForeignKey("user.gitee_id"))
     group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
@@ -53,6 +54,7 @@ class GitRepo(db.Model, PermissionBaseModel, BaseModel):
             "id": self.id,
             "name": self.name,
             "git_url": self.git_url,
+            "branch": self.branch,
             "sync_rule": self.sync_rule,
             "framework": self.framework.to_json(),
             "creator_id": self.creator_id,
