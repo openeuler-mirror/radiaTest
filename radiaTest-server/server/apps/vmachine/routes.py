@@ -156,7 +156,7 @@ class VmachineEvent(Resource):
         _milestone = Milestone.query.filter_by(id=body.milestone_id).first()
         _product_id = _milestone.product_id
 
-        update_milestone = None
+        _update_milestone = None
         if _milestone.type == "update":
             _update_milestone = _milestone
 
@@ -176,7 +176,7 @@ class VmachineEvent(Resource):
                 "product": _milestone.product.to_json(),
             }
         )
-        if update_milestone:
+        if _update_milestone:
             _body.update(
                 {
                     "update_milestone": _update_milestone.to_json(),
