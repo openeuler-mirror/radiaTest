@@ -13,7 +13,7 @@
 # @License : Mulan PSL v2
 #####################################
 
-from shlex import shlex
+import shlex
 import subprocess
 
 

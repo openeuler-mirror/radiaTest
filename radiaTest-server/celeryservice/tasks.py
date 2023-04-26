@@ -22,7 +22,6 @@ import json
 import requests
 
 import redis
-from lxml import etree
 from flask_socketio import SocketIO
 from celery import current_app as celery
 from celery.utils.log import get_task_logger
@@ -211,8 +210,15 @@ def async_update_all_issue_rate():
 
 @celery.task(bind=True)
 def load_scripts(self, id, name, url, branch, template_name):
+    lock_key = f"loading_repo#{id}_{url}@{branch}"
+    logger.info(f"begin loading repo #{id} from {url} on {branch}, locked...")
+    redis_client.set(lock_key, True)
+    
     RepoTaskHandler(logger, self).main(id, name, url, branch, template_name)
-
+    
+    logger.info(f"loading repo #{id} from {url} on {branch} succeed")
+    redis_client.delete(lock_key)
+    logger.info(f"the lock of loading repo #{id} from {url} on {branch} has been removed")
 
 @celery.task
 def async_read_git_repo():
@@ -226,24 +232,25 @@ def async_read_git_repo():
             ).all()
 
             for repo in repos:
-                _task = load_scripts.delay(
-                    repo.id,
-                    repo.name,
-                    repo.git_url,
-                    repo.branch,
-                    framework.name,
-                )
+                if not redis_client.get(f"loading_repo#{repo.id}_{repo.git_url}@{repo.branch}"):
+                    _task = load_scripts.delay(
+                        repo.id,
+                        repo.name,
+                        repo.git_url,
+                        repo.branch,
+                        framework.name,
+                    )
 
-                logger.info(f"task id: {_task.task_id}")
+                    logger.info(f"task id: {_task.task_id}")
 
-                celerytask = {
-                    "tid": _task.task_id,
-                    "status": "PENDING",
-                    "object_type": "scripts_load",
-                    "description": f"from {repo.git_url}",
-                }
+                    celerytask = {
+                        "tid": _task.task_id,
+                        "status": "PENDING",
+                        "object_type": "scripts_load",
+                        "description": f"from {repo.git_url} on branch {repo.branch}",
+                    }
 
-                _ = Insert(CeleryTask, celerytask).single(CeleryTask, "/celerytask")
+                    _ = Insert(CeleryTask, celerytask).single(CeleryTask, "/celerytask")
 
 
 @celery.task(bind=True)

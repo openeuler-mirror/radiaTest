@@ -1,7 +1,7 @@
 <template>
   <div class="codehub">
     <div class="search">
-      <n-button type="primary" round @click="showRepoModal"> 注册代码仓 </n-button>
+      <n-button type="primary" @click="showRepoModal"> 注册代码仓 </n-button>
       <n-icon size="20" color="#666666" class="refreshIcon" @click="getCodeData"> <md-refresh /> </n-icon>
       <n-input type="text" size="small" v-model:value="keyword" placeholder="按仓库名称搜索">
         <template #prefix>
@@ -79,12 +79,16 @@
 <script setup>
 import { MdRefresh } from '@vicons/ionicons4';
 import { Search } from '@vicons/ionicons5';
+import { Refresh } from '@vicons/tabler';
 import { storage } from '@/assets/utils/storageUtils';
 import { setGroupRepo } from '@/api/post.js';
-import { getScopedGitRepo, getFramework } from '@/api/get.js';
+import { getScopedGitRepo, getFramework, getGitRepoSync } from '@/api/get.js';
+import { unkonwnErrorMsg } from '@/assets/utils/description';
+import { NButton, NIcon, useMessage } from 'naive-ui';
 
 const props = defineProps({ type: String });
 const router = useRoute();
+const message = useMessage();
 
 const codeTableLoading = ref(false);
 const codePagination = ref(false);
@@ -110,12 +114,43 @@ const codeColumns = [
   },
   {
     title: '同步策略',
-    key: 'syncRule'
+    key: 'syncRule',
+    render: (row) => row.sync_rule?'自动':'手动',
   },
   {
     title: '解析适配',
-    key: 'isAdapt'
+    key: 'isAdapt',
+    render: (row) => row.framework.adaptive?'是':'否',
   },
+  {
+    key: 'operation',
+    render: (row) => {
+      return h(
+        NButton,
+        {
+          strong: true,
+          secondary: true,
+          type: 'info',
+          // round: true,
+          onClick: () => {
+            getGitRepoSync(row.id)
+              .catch((err) => {
+                console.log(err);
+                if (err.data?.error_code === '60009') {
+                  message.info(err.data.error_msg);
+                } else {
+                  message.error(err.data?.error_msg || unkonwnErrorMsg);
+                }
+              });
+          },
+        },
+        {
+          icon: () => h(NIcon, { component: Refresh }),
+          default: () => '重新同步',
+        }
+      );
+    },
+  }
 ];
 
 function getCodeData() {

@@ -7,8 +7,8 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 ####################################
-# @Author  : 
-# @email   : 
+# @Author  : Ethan-Zhang
+# @email   : ethanzhang55@outlook.com
 # @Date    : 
 # @License : Mulan PSL v2
 
@@ -17,18 +17,7 @@
 
 from flask_restful import Api
 
-from .routes import (
-    FrameworkEvent, 
-    FrameworkItemEvent, 
-    GitRepoEvent, 
-    GitRepoItemEvent, 
-    GitRepoScopedEvent,
-)
-
+from .routes import GitRepoItemSyncEvent
 
 def init_api(api: Api):
-    api.add_resource(FrameworkEvent, "/api/v1/framework", "/api/v1/ws/<string:workspace>/framework")
-    api.add_resource(FrameworkItemEvent, "/api/v1/framework/<int:framework_id>")
-    api.add_resource(GitRepoEvent, "/api/v1/git-repo", "/api/v1/ws/<string:workspace>/git-repo")
-    api.add_resource(GitRepoScopedEvent, "/api/v1/git-repo/scoped")
-    api.add_resource(GitRepoItemEvent, "/api/v1/git-repo/<int:git_repo_id>")
+    api.add_resource(GitRepoItemSyncEvent, "/api/v1/git-repo/<int:git_repo_id>/sync")

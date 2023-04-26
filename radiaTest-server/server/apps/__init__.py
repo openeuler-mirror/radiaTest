@@ -42,6 +42,7 @@ from server.apps import (
     manualjob,
     baseline_template,
     strategy,
+    git_repo_sync,
 )
 
 
@@ -65,6 +66,7 @@ def init_api(app: Flask):
     vmachine.init_api(api)
     external.init_api(api)
     framework.init_api(api)
+    git_repo_sync.init_api(api)
     permission.init_api(api)
     celerytask.init_api(api)
     qualityboard.init_api(api)
