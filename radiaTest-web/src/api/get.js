@@ -421,3 +421,13 @@ export function getOrphanGroupSuites(groupId, param) {
 export function getGitRepoSync(repoId) {
   return getRequestWithoutCatch(`/v1/git-repo/${repoId}/sync`);
 }
+
+// 查询任务甘特图数据
+export function getTasksGantt(data) {
+  return getRequest('/v1/tasks/gantt', data);
+}
+
+// 查询甘特图里程碑
+export function getGanttMilestones(data) {
+  return getRequest('/v2/milestone/gantt', data);
+}

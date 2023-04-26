@@ -165,3 +165,8 @@ export function updateStrategyTemplate(strategyTemplateId, data) {
 export function changeProductFeature(featureId, data) {
   return putRequest(`/v1/feature/${featureId}`, data);
 }
+
+// 修改任务完成度
+export function changeTaskPercentage(taskId, data) {
+  return putRequest(`/v1/tasks/${taskId}/percentage`, data);
+}

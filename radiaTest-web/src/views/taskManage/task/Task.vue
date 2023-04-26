@@ -54,8 +54,11 @@
                 v-model:value="model.executor"
               />
             </n-form-item>
+            <n-form-item label="开始日期" path="start_time">
+              <n-date-picker type="date" v-model:value="model.start_time" />
+            </n-form-item>
             <n-form-item label="截止日期" path="closingTime">
-              <n-date-picker type="datetime" v-model:value="model.closingTime" />
+              <n-date-picker type="date" v-model:value="model.closingTime" />
             </n-form-item>
             <n-form-item label="关键词" path="keyword">
               <n-input placeholder="请输入关键词" v-model:value="model.keyword" type="textarea" />
@@ -400,8 +403,23 @@
                               </n-icon>
                               <span class="field-name">开始时间</span>
                             </div>
-                            <div class="field-right" style="cursor: default">
-                              {{ formatTime(modalData.detail.start_time, 'yyyy-MM-dd hh:mm:ss') }}
+                            <div class="field-right">
+                              <div
+                                v-show="!showStartTime && modalData.detail.start_time"
+                                :class="{ editable: editStatus }"
+                                @click="editStatus ? (showStartTime = true) : (showStartTime = false)"
+                              >
+                                {{ formatTime(modalData.detail.start_time, 'yyyy-MM-dd') }}
+                              </div>
+                              <div v-show="showStartTime || !modalData.detail.start_time">
+                                <n-date-picker
+                                  type="date"
+                                  clearable
+                                  :disabled="!editStatus"
+                                  @blur="showStartTime = false"
+                                  @update:value="updateStartTime"
+                                />
+                              </div>
                             </div>
                           </div>
                           <div class="field">
@@ -417,11 +435,11 @@
                                 :class="{ editable: editStatus }"
                                 @click="editStatus ? (showClosingTime = true) : (showClosingTime = false)"
                               >
-                                {{ formatTime(modalData.detail.deadline, 'yyyy-MM-dd hh:mm:ss') }}
+                                {{ formatTime(modalData.detail.deadline, 'yyyy-MM-dd') }}
                               </div>
                               <div v-show="showClosingTime || !modalData.detail.deadline">
                                 <n-date-picker
-                                  type="datetime"
+                                  type="date"
                                   clearable
                                   :disabled="!editStatus"
                                   @blur="showClosingTime = false"
@@ -509,6 +527,24 @@
                                 @update:checked="changeManage"
                                 :checked="modalData.detail.is_manage_task"
                               ></n-checkbox>
+                            </div>
+                          </div>
+                          <div class="field">
+                            <div class="field-left">
+                              <n-icon size="14" class="task-icon">
+                                <CheckSquareOutlined />
+                              </n-icon>
+                              <span class="field-name">完成度</span>
+                            </div>
+                            <div class="field-right">
+                              <span v-show="!editStatus">{{ modalData.detail.percentage }}</span>
+                              <n-input-number
+                                v-show="editStatus"
+                                v-model:value="modalData.detail.percentage"
+                                @blur="setTaskPercentage"
+                                :min="0"
+                                :max="100"
+                              />
                             </div>
                           </div>
                         </div>
@@ -848,11 +884,15 @@
                   v-model:value="modelVersion.milestone"
                   placeholder="请选择里程碑"
                   :options="milestoneOptions"
+                  filterable
                   clearable
                 />
               </n-form-item>
+              <n-form-item label="开始日期" path="start_time">
+                <n-date-picker type="date" v-model:value="modelVersion.start_time" />
+              </n-form-item>
               <n-form-item label="截止日期" path="closingTime">
-                <n-date-picker type="datetime" style="width: 100%" v-model:value="modelVersion.closingTime" />
+                <n-date-picker type="date" v-model:value="modelVersion.closingTime" />
               </n-form-item>
               <n-form-item label="关键词" path="keyword">
                 <n-input placeholder="请输入关键词" v-model:value="modelVersion.keyword" type="textarea" />

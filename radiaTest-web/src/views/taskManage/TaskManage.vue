@@ -261,7 +261,7 @@ export default defineComponent({
   }
 
   .organization {
-    background: #00ec00;
+    background: #4a38e6;
   }
 
   .version {
