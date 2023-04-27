@@ -50,7 +50,7 @@ class ManualJob(BaseModel, db.Model, PermissionBaseModel):
     steps = db.relationship("ManualJobStep", backref="manual_job", cascade="all, delete")
 
     def to_json(self):
-        executor_name = User.query.filter_by(gitee_id=self.executor_id).first().gitee_name  # 这里没有用backref
+        executor_name = User.query.filter_by(gitee_id=self.creator_id).first().gitee_name  # 这里没有用backref
         milestone_name = Milestone.query.filter_by(id=self.milestone_id).first().name
         _case = Case.query.filter_by(id=self.case_id).first()
         return {
