@@ -15,7 +15,7 @@
 
 #####################################
 
-from flask import jsonify
+from flask import jsonify, g
 from flask_restful import Resource
 from flask_pydantic import validate
 
@@ -72,6 +72,7 @@ class GitRepoItemSyncEvent(Resource):
             "status": "PENDING",
             "object_type": "scripts_load",
             "description": f"from {repo.git_url} on branch {repo.branch}",
+            "user_id": g.gitee_id,
         }
 
         _ = Insert(CeleryTask, celerytask).single(CeleryTask, "/celerytask")
