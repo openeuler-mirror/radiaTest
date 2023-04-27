@@ -123,7 +123,11 @@ def handler_org_user_page(org_id):
 @collect_sql_error
 def handler_org_group_page(org_id, query: PageBaseSchema):
 
-    query_filter = ReUserGroup.query.filter_by(is_delete=False, org_id=org_id).order_by(ReUserGroup.create_time)
+    query_filter = ReUserGroup.query.join(Group).filter(
+        ReUserGroup.is_delete == False,
+        Group.is_delete == False,
+        ReUserGroup.org_id == org_id,
+    ).order_by(ReUserGroup.create_time)
 
     def page_func(item):
         return GroupInfoSchema(**item.group.to_dict()).dict()
