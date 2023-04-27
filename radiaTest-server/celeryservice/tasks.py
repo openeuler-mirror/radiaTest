@@ -209,18 +209,18 @@ def async_update_all_issue_rate():
 
 
 @celery.task(bind=True)
-def load_scripts(self, id, name, url, branch, template_name):
-    lock_key = f"loading_repo#{id}_{url}@{branch}"
-    logger.info(f"begin loading repo #{id} from {url} on {branch}, locked...")
+def load_scripts(self, id_, name, url, branch, template_name):
+    lock_key = f"loading_repo#{id_}_{url}@{branch}"
+    logger.info(f"begin loading repo #{id_} from {url} on {branch}, locked...")
     redis_client.set(lock_key, 1)
     
     try:
-        RepoTaskHandler(logger, self).main(id, name, url, branch, template_name)
-        logger.info(f"loading repo #{id} from {url} on {branch} succeed")
+        RepoTaskHandler(logger, self).main(id_, name, url, branch, template_name)
+        logger.info(f"loading repo #{id_} from {url} on {branch} succeed")
     
     finally:
         redis_client.delete(lock_key)
-        logger.info(f"the lock of loading repo #{id} from {url} on {branch} has been removed")
+        logger.info(f"the lock of loading repo #{id_} from {url} on {branch} has been removed")
 
 @celery.task
 def async_read_git_repo():
