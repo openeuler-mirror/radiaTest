@@ -371,12 +371,15 @@ class CaseNodeHandler:
 
         if current_org_id != case_node.org_id:
             return jsonify(error_code=RET.VERIFY_ERR, error_msg="No right to delete")
-        if case_node.type == "baseline":
-            baseline = Baseline.query.filter_by(id=case_node.baseline_id).first()
-            db.session.delete(baseline)
-        else:
-            db.session.delete(case_node)
 
+        # 解决级联删除未生效问题
+        _baseline_id = case_node.baseline_id
+        db.session.delete(case_node)
+        
+        if case_node.type == "baseline" and _baseline_id:
+            baseline = Baseline.query.filter_by(id=_baseline_id).first()
+            db.session.delete(baseline)
+            
         try:
             db.session.commit()
         except (IntegrityError, SQLAlchemyError) as e:
