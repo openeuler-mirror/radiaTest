@@ -15,10 +15,12 @@
 # 用例管理(Testcase)相关接口的route层
 
 import json
+
 from celeryservice.tasks import resolve_testcase_file
 from flask import request, g, jsonify, Response, send_file
 from flask_restful import Resource
 from flask_pydantic import validate
+
 from server import redis_client, casbin_enforcer
 from server.utils.redis_util import RedisKey
 from server.utils.auth_util import auth
@@ -35,7 +37,9 @@ from server.schema.testcase import (
     CaseNodeBodySchema,
     CaseNodeQuerySchema,
     CaseNodeItemQuerySchema,
+    CaseNodeSuitesCreateSchema,
     CaseNodeUpdateSchema,
+    OrphanSuitesQuerySchema,
     SuiteCreate,
     CaseCreate,
     CaseCreateBody,
@@ -62,6 +66,7 @@ from server.apps.testcase.handler import (
     CaseImportHandler,
     CaseNodeHandler,
     CaseHandler,
+    OrphanSuitesHandler,
     TemplateCasesHandler,
     HandlerCaseReview,
     HandlerCommitComment,
@@ -179,6 +184,87 @@ class SuiteEvent(Resource):
                 body[key] = value
 
         return GetAllByPermission(Suite, workspace).fuzz(body)
+
+
+class OrphanOrgSuitesEvent(Resource):
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def get(self, query: OrphanSuitesQuerySchema):
+        handler = OrphanSuitesHandler(query)
+        handler.add_filters([
+            Suite.permission_type == "org",
+        ])
+        return handler.get_all()
+
+
+class OrphanGroupSuitesEvent(Resource):
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def get(self, group_id: int, query: OrphanSuitesQuerySchema):
+        handler = OrphanSuitesHandler(query)
+        handler.add_filters([
+            Suite.group_id == group_id,
+            Suite.permission_type == "group",
+        ])
+        return handler.get_all()
+
+class CaseNodeSuitesEvent(Resource):
+    @auth.login_required()
+    @response_collect
+    @collect_sql_error
+    @validate()
+    def post(self, case_node_id, body: CaseNodeSuitesCreateSchema):
+        case_node = CaseNode.query.filter_by(id=case_node_id).first()
+        if not case_node or not case_node.in_set:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_mesg=f"case node #{case_node_id} does not exist/not valid",
+            )
+        
+        for suite_id in body.suites:
+            suite = Suite.query.filter_by(id=suite_id).first()
+            if suite:
+                suite_case_node = Insert(
+                    CaseNode,
+                    {
+                        "permission_type": body.permission_type,
+                        "org_id": body.org_id,
+                        "group_id": body.group_id,
+                        "title": suite.name,
+                        "type": "suite",
+                        "is_root": 0,
+                        "in_set": 1,
+                        "suite_id": suite.id,
+                    } 
+                ).insert_obj()
+
+                for testcase in suite.case:
+                    testcase_node = Insert(
+                        CaseNode,
+                        {
+                            "permission_type": body.permission_type,
+                            "org_id": body.org_id,
+                            "group_id": body.group_id,
+                            "title": testcase.name,
+                            "type": "case",
+                            "is_root": 0,
+                            "in_set": 1,
+                            "case_id": testcase.id,
+                            "suite_id": suite.id,
+                        } 
+                    ).insert_obj()
+                    suite_case_node.children.append(testcase_node)
+                    suite_case_node.add_update()
+
+                case_node.children.append(suite_case_node)
+                case_node.add_update()
+
+        return jsonify(
+            error_code=RET.OK,
+            error_mesg="OK",
+        )
 
 
 class SuiteItemEvent(Resource):

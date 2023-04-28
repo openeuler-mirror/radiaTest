@@ -25,7 +25,9 @@ import {
   getGroupMilestone,
   getOrgMilestone,
   getBaselineTemplates,
-  getCaseNodeRoot
+  getCaseNodeRoot,
+  getOrphanOrgSuites,
+  getOrphanGroupSuites,
 } from '@/api/get';
 import { addBaseline, casenodeApplyTemplate } from '@/api/post';
 import { updateCaseNodeParent } from '@/api/put';
@@ -53,6 +55,19 @@ function renderIcon(icon) {
     });
 }
 const suiteInfo = ref();
+
+const createSuitesShow = ref(false);
+const orphanSuitesData = ref([]);
+const createSuitesTargetNode = ref({});
+const orphanSuitesPagination = reactive({
+  page: 1,
+  pageCount: 1,
+  itemCount: 1,
+  pageSize: 10,
+  showSizePicker: true,
+  pageSizes: [5, 10, 20, 50]
+});
+
 const renameAction = {
   label: '重命名',
   key: 'renameCaseNode',
@@ -1031,6 +1046,36 @@ function newCase(node, caseId, title) {
       window.$message?.error(err.data.error_msg || '未知错误');
     });
 }
+
+function getOrphanSuitesReq() {
+  if (createSuitesTargetNode.value.group_id) {
+    getOrphanGroupSuites(
+      createSuitesTargetNode.value.group_id,
+      {
+        page_num: orphanSuitesPagination.page,
+        page_size: orphanSuitesPagination.pageSize,
+      }
+    )
+      .then((res) => {
+        orphanSuitesData.value = res.data.items;
+        orphanSuitesPagination.pageCount = res.data.pages;
+        orphanSuitesPagination.itemCount = res.data.total;
+        createSuitesShow.value = true;
+      });
+  } else {
+    getOrphanOrgSuites({
+      page_num: orphanSuitesPagination.page,
+      page_size: orphanSuitesPagination.pageSize,
+    })
+      .then((res) => {
+        orphanSuitesData.value = res.data.items;
+        orphanSuitesPagination.pageCount = res.data.pages;
+        orphanSuitesPagination.itemCount = res.data.total;
+        createSuitesShow.value = true;
+      });
+  }
+}
+
 function initDialogViewData() {
   info.value = '';
   inputInfo.value = '';
@@ -1075,7 +1120,8 @@ const actionHandlder = {
   relateSuite: {
     handler(contextmenu) {
       if (contextmenu.info.in_set) {
-        window.$message?.info('该功能开发中....');
+        createSuitesTargetNode.value = contextmenu.info;
+        getOrphanSuitesReq();
       } else {
         initDialogViewData();
         dialogView((node) => relateSuiteCase(node, 'suite'), contextmenu, 'suite');
@@ -1302,6 +1348,10 @@ export {
   selectOptions,
   menuList,
   expandKeys,
+  createSuitesShow,
+  orphanSuitesData,
+  createSuitesTargetNode,
+  orphanSuitesPagination,
   loadData,
   selectAction,
   menuClick,
@@ -1312,5 +1362,6 @@ export {
   newCase,
   submitCreateCase,
   clearSelectKey,
-  extendSubmit
+  extendSubmit,
+  getOrphanSuitesReq,
 };

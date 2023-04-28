@@ -205,3 +205,8 @@ export function strategySubmmit(strategyId, data) {
 export function createIssues(data) {
   return postRequest('/v1/issues', data);
 }
+
+// 为用例集目录创建新测试套节点
+export function createSuites(caseNodeId, data) {
+  return postRequest(`/v1/case-node/${caseNodeId}/suites`, data);
+}
