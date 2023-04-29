@@ -17,10 +17,7 @@
 
 import re
 import os
-import json
 import shlex
-import subprocess
-from copy import deepcopy
 
 
 class Mugen:
@@ -50,106 +47,6 @@ class Mugen:
                     break
 
         return script_code
-
-    @staticmethod
-    def suite2cases_resolver(git_repo_id, oet_path):
-        exitcode, output = subprocess.getstatusoutput(
-            'cd {}/suite2cases && \
-            export SUITE=(*.json) && \
-            echo "${{SUITE[@]%.*}}"'.format(
-                shlex.quote(oet_path)
-            )
-        )
-        if exitcode:
-            return None
-        else:
-            suites_arr = output.strip().split()
-
-            suite2cases = []
-            for suite in suites_arr:
-                origin_data = {}
-                with open(
-                    "{}/suite2cases/{}.json".format(
-                        oet_path,
-                        suite,
-                    ),
-                    "r",
-                ) as f:
-                    f_str = f.read()
-
-                    old_keys = [
-                        "machine num",
-                        "machine type",
-                        "add network interface",
-                        "add disk",
-                    ]
-                    new_keys = [
-                        "machine_num",
-                        "machine_type",
-                        "add_network_interface",
-                        "add_disk",
-                    ]
-                    for i in range(4):
-                        f_str = f_str.replace(old_keys[i], new_keys[i])
-                    try:
-                        origin_data = json.loads(f_str)
-                    except:
-                        continue
-
-                suite_data = {
-                    "name": suite,
-                    "git_repo_id": git_repo_id,
-                }
-                suite_data.update(deepcopy(origin_data))
-
-                if suite_data.get("add_disk") is not None:
-                    suite_data["add_disk"] = ",".join(
-                        [str(x) for x in suite_data["add_disk"]]
-                    )
-
-                suite_data.pop("cases")
-                _raw_path = suite_data.pop("path")
-                _suite_path = None
-
-                result = re.search(r'^(\$OET_PATH\/)(.+)$', _raw_path)
-                if result is not None:
-                    _suite_path = '{}/{}'.format(
-                        oet_path,
-                        result[2]
-                    )
-                    if _suite_path[-1] == '/':
-                        _suite_path = _suite_path[:-1]
-
-                cases_data = []
-                for case in origin_data["cases"]:
-                    case_data = {
-                        "suite": suite,
-                        "automatic": True,
-                        "usabled": True,
-                    }
-                    if _suite_path:
-                        case_data["code"] = Mugen.get_case_code(
-                            _suite_path,
-                            case,
-                        )
-
-                    case_data.update(case)
-
-                    if case_data.get("add_disk") is not None:
-                        case_data["add_disk"] = ",".join(
-                            [str(x) for x in case_data["add_disk"]]
-                        )
-
-                    cases_data.append(case_data)
-
-                suite2cases.append(
-                    (
-                        suite_data,
-                        cases_data,
-                    )
-                )
-
-            return suite2cases
 
     @staticmethod
     def deploy_init_cmd(path):
