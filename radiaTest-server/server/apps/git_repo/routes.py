@@ -19,7 +19,6 @@ from flask import jsonify, g
 from flask_restful import Resource
 from flask_pydantic import validate
 
-from celeryservice.tasks import load_scripts
 from server import casbin_enforcer, redis_client
 from server.utils.response_util import RET, workspace_error_collect
 from server.utils.auth_util import auth
@@ -142,12 +141,12 @@ class GitRepoItemSyncEvent(Resource):
                 error_msg=f"locked: repo#{repo.id} from {repo.git_url}@{repo.branch} has been loading"
             )
 
+        from celeryservice.tasks import load_scripts
         _task = load_scripts.delay(
             repo.id,
             repo.name,
             repo.git_url,
             repo.branch,
-            repo.framework.name,
         )
         celerytask = {
             "tid": _task.task_id,
