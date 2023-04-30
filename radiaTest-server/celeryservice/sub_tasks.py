@@ -20,7 +20,7 @@ from celery.utils.log import get_task_logger
 from server.utils.db import Insert, Edit, collect_sql_error
 from server.model.testcase import Suite, Case
 from server.model.framework import GitRepo
-from server.schema.testcase import SuiteBase, SuiteUpdate, CaseUpdateSchemaWithSuiteId, CaseBaseSchemaWithSuiteId
+from server.schema.testcase import SuiteBase, SuiteUpdate, CaseBaseSchemaWithSuiteId
 from server.model.qualityboard import SameRpmCompare, RpmCompare
 
 
