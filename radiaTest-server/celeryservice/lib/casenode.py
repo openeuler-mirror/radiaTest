@@ -75,6 +75,7 @@ class CaseNodeCreator(TaskHandlerBase):
                 return None
 
             parent_node.children.append(testsuite_node)
+            parent_node.add_update()
             
             self.logger.info(f"suite {suite.name} has been added under node {parent_node.title}")
             self.next_period()
