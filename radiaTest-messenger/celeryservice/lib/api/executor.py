@@ -28,12 +28,6 @@ class Executor(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def get_case_code(self, *args):
-        """get test case code"""
-        pass
-
-
-    @abstractmethod
     def run_all_cases(self, *args):
         """run all testcases"""
         pass

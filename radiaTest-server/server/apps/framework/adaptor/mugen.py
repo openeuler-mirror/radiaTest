@@ -16,7 +16,6 @@
 #####################################
 
 import re
-import os
 import shlex
 
 
@@ -31,22 +30,6 @@ class Mugen:
         shlex.quote(str(machine.port)),
         shlex.quote(machine.user),
     )
-
-    @staticmethod
-    def get_case_code(path, case):
-        if not path or not case.get("name"):
-            return None
-
-        script_code = None
-
-        for ext in ['.py', '.sh']:
-            _filepath = path + '/' + case.get("name") + ext
-            if os.path.isfile(_filepath):
-                with open(_filepath, 'r') as script:
-                    script_code = script.read()
-                    break
-
-        return script_code
 
     @staticmethod
     def deploy_init_cmd(path):

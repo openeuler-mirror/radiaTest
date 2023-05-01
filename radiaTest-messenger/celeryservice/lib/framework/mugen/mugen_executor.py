@@ -101,24 +101,6 @@ class MugenExecutor(Executor):
         )
 
     @staticmethod
-    def get_case_code(path, case):
-        if not path or not case.get("name"):
-            raise FileNotFoundError("not found path {} or not found case {}"
-                                    .format(path,case))
-
-        script_code = None
-
-        for ext in ['.py', '.sh']:
-            _filepath = path + '/' + case.get("name") + ext
-            if os.path.isfile(_filepath):
-                with open(_filepath, 'r') as script:
-                    script_code = script.read()
-                    break
-
-        return script_code
-
-
-    @staticmethod
     def run_all_cases(path):
         return "cd %s/mugen && bash mugen.sh -a -x" % (path)
 
