@@ -13,16 +13,17 @@ class RepoTaskHandler(TaskHandlerBase):
         self.promise = promise
         super().__init__(logger)
 
-    def _git_clone(self, url, oet_path):
-        exitcode, output = subprocess.getstatusoutput(
-            "git clone {}.git {}".format(
+    def _git_clone(self, url, branch, oet_path):
+        exitcode, _ = subprocess.getstatusoutput(
+            "git clone -b {} {}.git {}".format(
                 url,
+                shlex.quote(branch),
                 shlex.quote(oet_path),
             )
         )
         return False if exitcode else True
 
-    def main(self, id, name, url, framework_name):
+    def main(self, id, name, url, branch, framework_name):
         self.promise.update_state(
             state="DOWNLOADING",
             meta={
@@ -36,7 +37,7 @@ class RepoTaskHandler(TaskHandlerBase):
         if os.path.isdir(oet_path):
             shutil.rmtree(oet_path)
 
-        self._git_clone(url, oet_path)
+        self._git_clone(url, branch, oet_path)
 
         self.next_period()
         self.promise.update_state(

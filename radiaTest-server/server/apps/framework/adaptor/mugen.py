@@ -52,7 +52,7 @@ class Mugen:
         return script_code
 
     @staticmethod
-    def mugen_suite2cases_resolver(git_repo_id, oet_path):
+    def suite2cases_resolver(git_repo_id, oet_path):
         exitcode, output = subprocess.getstatusoutput(
             'cd {}/suite2cases && \
             export SUITE=(*.json) && \

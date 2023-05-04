@@ -210,8 +210,8 @@ def async_update_all_issue_rate():
 
 
 @celery.task(bind=True)
-def load_scripts(self, id, name, url, template_name):
-    RepoTaskHandler(logger, self).main(id, name, url, template_name)
+def load_scripts(self, id, name, url, branch, template_name):
+    RepoTaskHandler(logger, self).main(id, name, url, branch, template_name)
 
 
 @celery.task
@@ -230,6 +230,7 @@ def async_read_git_repo():
                     repo.id,
                     repo.name,
                     repo.git_url,
+                    repo.branch,
                     framework.name,
                 )
 
