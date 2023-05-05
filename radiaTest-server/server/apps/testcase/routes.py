@@ -220,7 +220,7 @@ class CaseNodeSuitesEvent(Resource):
         if not case_node or not case_node.in_set:
             return jsonify(
                 error_code=RET.NO_DATA_ERR,
-                error_mesg=f"case node #{case_node_id} does not exist/not valid",
+                error_msg=f"case node #{case_node_id} does not exist/not valid",
             )
         
         for suite_id in body.suites:
@@ -263,7 +263,7 @@ class CaseNodeSuitesEvent(Resource):
 
         return jsonify(
             error_code=RET.OK,
-            error_mesg="OK",
+            error_msg="OK",
         )
 
 

@@ -166,7 +166,7 @@ def handler_org_statistic(org_id: int):
 
     return jsonify(
         error_code=RET.OK,
-        error_mesg="OK",
+        error_msg="OK",
         data={
             "total_groups": total_groups,
             "total_users": total_users,

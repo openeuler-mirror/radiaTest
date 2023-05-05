@@ -416,3 +416,8 @@ export function getOrphanOrgSuites(param) {
 export function getOrphanGroupSuites(groupId, param) {
   return getRequest(`/v1/group/${groupId}/orphan-suites`, param);
 }
+
+// 手动触发测试代码仓解析
+export function getGitRepoSync(repoId) {
+  return getRequestWithoutCatch(`/v1/git-repo/${repoId}/sync`);
+}
