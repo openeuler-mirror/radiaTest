@@ -15,9 +15,9 @@ class RepoTaskHandler(TaskHandlerBase):
 
     def _git_clone(self, url, branch, oet_path):
         exitcode, output = subprocess.getstatusoutput(
-            "git clone -b {} {}.git {}".format(
-                url,
+            "git config http.version HTTP/1.1 & git clone -b {} {} {}".format(
                 shlex.quote(branch),
+                shlex.quote(url),
                 shlex.quote(oet_path),
             )
         )
