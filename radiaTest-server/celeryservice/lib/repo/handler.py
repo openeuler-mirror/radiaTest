@@ -2,6 +2,7 @@ import os
 import shutil
 import shlex
 import subprocess
+from time import sleep
 
 from celeryservice.sub_tasks import update_suite
 from celeryservice.lib import TaskHandlerBase
@@ -9,6 +10,9 @@ from .suite2cases_resolver import Resolver
 
 
 class RepoTaskHandler(TaskHandlerBase):
+    RETRY_LIMIT = 300
+    RETRY_INTERVAL = 1
+
     def __init__(self, logger, promise):
         self.promise = promise
         super().__init__(logger)
@@ -38,7 +42,20 @@ class RepoTaskHandler(TaskHandlerBase):
         if os.path.isdir(oet_path):
             shutil.rmtree(oet_path)
 
-        self._git_clone(url, branch, oet_path)
+        count = RepoTaskHandler.RETRY_LIMIT
+
+        while count > 0:
+            download_finish = self._git_clone(url, branch, oet_path)
+            if download_finish:
+                break
+
+            count -= 1
+            sleep(RepoTaskHandler.RETRY_INTERVAL)
+
+        if count == 0:
+            raise RuntimeError(
+                f"download exceed retry limitation, git clone {url}@{branch} failed"
+            )
 
         self.next_period()
         self.promise.update_state(

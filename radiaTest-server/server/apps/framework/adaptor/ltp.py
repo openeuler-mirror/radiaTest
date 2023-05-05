@@ -31,14 +31,14 @@ class Ltp:
             [tuple]: [(测试套名，[测试用例名])]
         """
         exitcode, output = subprocess.getstatusoutput(
-            "cd {}/runtest && export SUITE=(*) | sed 's/Makefile//g'".format(
+            "cd {}/runtest && ls | grep -v Makefile".format(
                 shlex.quote(oet_path)
             )
         )
         if exitcode:
             return None
         else:
-            suites_arr = output.strip().split()
+            suites_arr = output.strip().split('\n')
 
             suite2cases = []
             for suite in suites_arr:
@@ -65,12 +65,19 @@ class Ltp:
                         if case_line.startswith('#'):
                             continue
 
+                        _case_words = case_line.strip().split()
+                        if len(_case_words) < 2:
+                            continue
+
+                        case_name = _case_words[0]
+                        case_command = ' '.join(_case_words[1:])
+
                         case_data = {
                             "suite": suite,
                             "automatic": True,
                             "usabled": False,
-                            "name": case_line.split(' ', 1)[0],
-                            "code": case_line.split(' ', 1)[1],
+                            "name": case_name,
+                            "code": case_command,
                             "machine_num": 1,
                             "machine_type": "physical",
                         }
