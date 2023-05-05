@@ -10,8 +10,8 @@ from .suite2cases_resolver import Resolver
 
 
 class RepoTaskHandler(TaskHandlerBase):
-    RETRY_LIMIT = 30
-    SLEEP_INTERVAL = 10
+    RETRY_LIMIT = 300
+    SLEEP_INTERVAL = 1
 
     def __init__(self, logger, promise):
         self.promise = promise

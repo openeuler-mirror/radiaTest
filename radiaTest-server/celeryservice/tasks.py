@@ -214,11 +214,13 @@ def load_scripts(self, id, name, url, branch, template_name):
     logger.info(f"begin loading repo #{id} from {url} on {branch}, locked...")
     redis_client.set(lock_key, 1)
     
-    RepoTaskHandler(logger, self).main(id, name, url, branch, template_name)
+    try:
+        RepoTaskHandler(logger, self).main(id, name, url, branch, template_name)
+        logger.info(f"loading repo #{id} from {url} on {branch} succeed")
     
-    logger.info(f"loading repo #{id} from {url} on {branch} succeed")
-    redis_client.delete(lock_key)
-    logger.info(f"the lock of loading repo #{id} from {url} on {branch} has been removed")
+    finally:
+        redis_client.delete(lock_key)
+        logger.info(f"the lock of loading repo #{id} from {url} on {branch} has been removed")
 
 @celery.task
 def async_read_git_repo():
