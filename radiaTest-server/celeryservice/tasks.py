@@ -212,7 +212,7 @@ def async_update_all_issue_rate():
 def load_scripts(self, id, name, url, branch, template_name):
     lock_key = f"loading_repo#{id}_{url}@{branch}"
     logger.info(f"begin loading repo #{id} from {url} on {branch}, locked...")
-    redis_client.set(lock_key, True)
+    redis_client.set(lock_key, 1)
     
     RepoTaskHandler(logger, self).main(id, name, url, branch, template_name)
     
