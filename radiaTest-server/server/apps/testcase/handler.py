@@ -1307,6 +1307,8 @@ class ResourceItemHandler:
 
     def get_case(self):
         cases_filter = self._get_table_filter(Case)
+        cases_filter.append(CaseNode.type == 'case')
+
         if self.case_node_type == 'baseline':
             cases_filter.append(CaseNode.baseline_id == self.baseline_id)
         else:
@@ -1340,6 +1342,8 @@ class ResourceItemHandler:
 
     def get_suite(self):
         suites_filter = self._get_table_filter(Suite)
+        suites_filter.append(CaseNode.type == 'suite')
+
         if self.case_node_type == 'baseline':
             suites_filter.append(CaseNode.baseline_id == self.baseline_id)
         else:
