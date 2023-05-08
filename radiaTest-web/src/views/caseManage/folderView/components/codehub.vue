@@ -119,8 +119,8 @@ const codeColumns = [
   },
   {
     title: '解析适配',
-    key: 'isAdapt',
-    render: (row) => row.framework.adaptive?'是':'否',
+    key: 'adaptive',
+    render: (row) => row.adaptive?'是':'否',
   },
   {
     key: 'operation',
