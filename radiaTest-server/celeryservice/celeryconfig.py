@@ -185,6 +185,11 @@ task_queues = (
         "queue_check_pmachine_lifecycle",
         exchange=Exchange("server_exchange", type="direct"),
         routing_key="pmachine_lifecycle",
+    ),
+    Queue(
+        "queue_update_case_node",
+        exchange=Exchange("server_exchage", type="direct"),
+        routing_key="update_case_node",
     )
 )
 

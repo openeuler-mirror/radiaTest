@@ -120,6 +120,16 @@ def make_celery(app_name):
                 'routing_key': 'pmachine_lifecycle',
                 'delivery_mode': 1,
             },
+            'celeryservice.tasks.async_create_testsuite_node': {
+                'queue': 'queue_update_case_node',
+                'routing_key': 'update_case_node',
+                'delivery_mode': 1,
+            },
+            'celeryservice.tasks.async_create_testcase_node': {
+                'queue': 'queue_update_case_node',
+                'routing_key': 'update_case_node',
+                'delivery_mode': 1,
+            },
         }
     )
 

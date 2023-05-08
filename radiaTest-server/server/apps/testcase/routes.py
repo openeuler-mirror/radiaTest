@@ -28,6 +28,7 @@ from server.utils.response_util import RET, response_collect, workspace_error_co
 from server.utils.permission_utils import GetAllByPermission
 from server.model.organization import Organization
 from server.model.group import Group
+from server.model.celerytask import CeleryTask
 from server.model.testcase import Suite, Case, CaseNode, SuiteDocument, Baseline
 from server.model.milestone import Milestone
 from server.utils.db import Insert, Edit, Delete, collect_sql_error
@@ -223,43 +224,25 @@ class CaseNodeSuitesEvent(Resource):
                 error_msg=f"case node #{case_node_id} does not exist/not valid",
             )
         
+        from celeryservice.tasks import async_create_testsuite_node
         for suite_id in body.suites:
-            suite = Suite.query.filter_by(id=suite_id).first()
-            if suite:
-                suite_case_node = Insert(
-                    CaseNode,
-                    {
-                        "permission_type": body.permission_type,
-                        "org_id": body.org_id,
-                        "group_id": body.group_id,
-                        "title": suite.name,
-                        "type": "suite",
-                        "is_root": 0,
-                        "in_set": 1,
-                        "suite_id": suite.id,
-                    } 
-                ).insert_obj()
+            _task = async_create_testsuite_node.delay(
+                case_node.id,
+                suite_id,
+                body.permission_type,
+                body.org_id,
+                body.group_id,
+                g.gitee_id,
+            )
+            celerytask = {
+                "tid": _task.task_id,
+                "status": "PENDING",
+                "object_type": "create_testsuite_node",
+                "description": f"create case node related to suite#{suite_id} under {case_node.title}",
+                "user_id": g.gitee_id,
+            }
 
-                for testcase in suite.case:
-                    testcase_node = Insert(
-                        CaseNode,
-                        {
-                            "permission_type": body.permission_type,
-                            "org_id": body.org_id,
-                            "group_id": body.group_id,
-                            "title": testcase.name,
-                            "type": "case",
-                            "is_root": 0,
-                            "in_set": 1,
-                            "case_id": testcase.id,
-                            "suite_id": suite.id,
-                        } 
-                    ).insert_obj()
-                    suite_case_node.children.append(testcase_node)
-                    suite_case_node.add_update()
-
-                case_node.children.append(suite_case_node)
-                case_node.add_update()
+            _ = Insert(CeleryTask, celerytask).single(CeleryTask, "/celerytask")
 
         return jsonify(
             error_code=RET.OK,
