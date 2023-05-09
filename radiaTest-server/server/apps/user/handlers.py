@@ -183,12 +183,14 @@ def handler_login_callback(query):
         return jsonify(
             error_code=RET.OK,
             error_msg="OK",
-            data='{}?isSuccess=False&gitee_id={}&org_id={}&require_cla={}'.format(
+            data={
+                "url": '{}?isSuccess=False&gitee_id={}&org_id={}&require_cla={}'.format(
                 current_app.config["GITEE_OAUTH_HOME_URL"],
                 result[1],
                 org.id,
-                org.cla_verify_url is not None,
-            )
+                org.cla_verify_url is not None
+                )
+            }
         )
 
 
