@@ -75,9 +75,6 @@ def setup_periodic_tasks(sender, **kwargs):
         name="check_vmachine_lifecycle",
     )
     sender.add_periodic_task(
-        crontab(minute="*/60"), async_read_git_repo.s(), name="read_git_repo"
-    )
-    sender.add_periodic_task(
         crontab(minute="*/30"), async_update_all_issue_rate.s(), name="update_all_issue_rate"
     )
     sender.add_periodic_task(
