@@ -540,7 +540,7 @@ function newDectoryContent() {
 
 function getCurMilestones(node, query) {
   milestoneLoading.value = true;
-  let params = { paged: true };
+  let params = { paged: false };
   if (query) {
     params.name = query;
   }
