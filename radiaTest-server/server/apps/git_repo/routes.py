@@ -129,7 +129,7 @@ class GitRepoItemSyncEvent(Resource):
                 error_msg=f"repo #{git_repo_id} does not exist or not allow to resolve"
             )
         
-        if not repo.framework.adaptive:
+        if not repo.adaptive:
             return jsonify(
                 error_code=RET.BAD_REQ_ERR,
                 error_msg=f"{repo.framework.name} is not adapted, the testcase repo could not be resolved"
