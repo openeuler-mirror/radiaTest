@@ -158,24 +158,21 @@ class GitRepoAdaptor:
 
         for filename in os.listdir(dir):
             _file_path = os.path.join(dir, filename)
-            
-            _case_name, _case_ext = os.path.splitext(filename)
-            if not _case_name or not _case_ext:
-                continue
 
-            if (
-                os.path.isfile(_file_path) 
-                and _case_ext in self.CASES_FILETYPES
-                and _case_name not in self.NOT_CASES
-            ):
-                case = self.default_case_dict
-                case.update({
-                    "suite": f"{prefix}{suite}",
-                    "name": f"{prefix}{os.path.splitext(filename)[0]}",                                                                                                                                                                                                                                                                                                                                                                                                                               
-                })
-                cases.append(case)
+            if (os.path.isfile(_file_path)): 
+                _case_name, _case_ext = os.path.splitext(filename)
+                if not _case_name or not _case_ext:
+                    continue
 
-            if os.path.isdir(_file_path):
+                if (_case_ext in self.CASES_FILETYPES and _case_name not in self.NOT_CASES):
+                    case = self.default_case_dict
+                    case.update({
+                        "suite": f"{prefix}{suite}",
+                        "name": f"{prefix}{os.path.splitext(filename)[0]}",                                                                                                                                                                                                                                                                                                                                                                                                                               
+                    })
+                    cases.append(case)
+
+            elif os.path.isdir(_file_path):
                 cases += self._get_cases(suite, _file_path, prefix)
         
         return cases
