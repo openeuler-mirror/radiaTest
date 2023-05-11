@@ -102,3 +102,13 @@ export function deleteStrategyCommit(strategyId) {
 export function deleteStrategy(productFeatureId, data) {
   return deleteRequest(`/v1/product-feature/${productFeatureId}/strategy`, data);
 }
+
+// 删除每日构建
+export function deleteDailyBuild(data) {
+  return deleteRequest('/v1/qualityboard/daily-build', data);
+}
+
+// 删除每日构建对比
+export function deleteDailyBuildCompare(roundId, data) {
+  return deleteRequest(`/v1/qualityboard/daily-build/with/round/${roundId}/pkg-compare`, data);
+}

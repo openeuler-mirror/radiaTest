@@ -18,7 +18,7 @@ from celery import current_app as celery
 from celery.utils.log import get_task_logger
 
 from server.utils.db import Insert, Edit, collect_sql_error
-from server.model.testcase import Suite, Case
+from server.model.testcase import Suite, Case, CaseNode
 from server.model.framework import GitRepo
 from server.schema.testcase import SuiteBase, SuiteUpdate, CaseBaseSchemaWithSuiteId
 from server.model.qualityboard import SameRpmCompare, RpmCompare
@@ -118,6 +118,41 @@ def update_compare_result(round_group_id: int, results, repo_path):
 
 
 @celery.task
+def update_daily_compare_result(daily_name, comparer_round_name, compare_results, repeat_list, file_path):
+    import xlwt
+
+    cnt = 1
+    wb = xlwt.Workbook()
+    ws = wb.add_sheet("软件范围")
+    ws.write(0, 0, daily_name)
+    ws.write(0, 1, comparer_round_name)
+    ws.write(0, 2, "arch")
+    ws.write(0, 3, "compare result")
+    
+    for result in compare_results:
+        ws.write(cnt, 0, result.get("rpm_list_1"))
+        ws.write(cnt, 1, result.get("rpm_list_2"))
+        ws.write(cnt, 2, result.get("arch"))
+        ws.write(cnt, 3, result.get("compare_result"))
+        cnt += 1
+
+    ws = wb.add_sheet(f"{daily_name}多版本rpm")
+    ws.write(0, 0, "rpm name")
+    ws.write(0, 1, "arch")
+    ws.write(0, 2, "release")
+    ws.write(0, 3, "version")
+    cnt = 1
+    for rpm in repeat_list:
+        ws.write(cnt, 0, rpm.get("rpm_file_name"))
+        ws.write(cnt, 1, rpm.get("arch"))
+        ws.write(cnt, 2, rpm.get("release"))
+        ws.write(cnt, 3, rpm.get("version"))
+        cnt += 1
+
+    wb.save(file_path)
+
+
+@celery.task
 def update_samerpm_compare_result(round_id: int, results, repo_path):
     for result in results:
         rpm_compare = SameRpmCompare.query.filter_by(
@@ -145,3 +180,54 @@ def update_samerpm_compare_result(round_id: int, results, repo_path):
                     "compare_result": result.get("compare_result"),
                 }
             ).single()
+
+
+@celery.task
+@collect_sql_error
+def create_case_node_multi_select(body):
+    from server import db
+
+    def insert_case_node(body, parent):
+        casenode = CaseNode.query.filter(
+            CaseNode.title == body.get("title"),
+            CaseNode.parent.contains(parent)
+        ).first()
+        if not casenode:
+            _casenode = CaseNode(
+                title=body.get("title"),
+                type=body.get("type"),
+                is_root=False,
+                in_set=body.get("in_set"),
+                group_id=body.get("group_id"),
+                org_id=body.get("org_id"),
+                creator_id=body.get("creator_id"),
+                case_id=body.get("case_id") if body.get("case_id") else None,
+                suite_id=body.get("suite_id") if body.get("suite_id") else None,
+                baseline_id=body.get("baseline_id") if body.get("baseline_id") else None,
+                permission_type=body.get("permission_type")
+            )
+            db.session.add(_casenode)
+            db.session.commit()
+            _casenode.parent.append(parent)
+            _casenode.add_update()
+
+    parent = CaseNode.query.filter_by(id=body.get("parent_id")).first()
+    if body.get("type") == "case":
+        case_ids = body.get("case_ids")[:]
+        body.pop("case_ids")
+        for _id in case_ids:
+            _case = Case.query.get(_id)
+            if _case:
+                body["case_id"] = _id
+                body["title"] = _case.name
+                insert_case_node(body, parent)
+    elif body.get("type") == "suite":
+        suite_ids = body.get("suite_ids")[:]
+        body.pop("suite_ids")
+        for _id in suite_ids:
+            _suite = Suite.query.get(_id)
+            if _suite:
+                body["suite_id"] = _id
+                body["title"] = _suite.name
+                insert_case_node(body, parent)
+        

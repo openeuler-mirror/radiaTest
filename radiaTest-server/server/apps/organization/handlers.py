@@ -95,9 +95,9 @@ def handler_org_user_page(org_id):
 
     # 获取组织下的所有用户
     filter_params = [
-        ReUserOrganization.is_delete == False,
+        ReUserOrganization.is_delete.is_(False),
         ReUserOrganization.organization_id == org_id,
-        Organization.is_delete == False
+        Organization.is_delete.is_(False)
     ]
     if group_id:
         re_u_g = ReUserGroup.query.filter_by(is_delete=False, group_id=group_id).all()
@@ -122,12 +122,17 @@ def handler_org_user_page(org_id):
 
 @collect_sql_error
 def handler_org_group_page(org_id, query: PageBaseSchema):
+    filter_params = [
+        ReUserGroup.is_delete.is_(False),
+        ReUserGroup.user_add_group_flag.is_(True),
+        Group.is_delete.is_(False),
+        ReUserGroup.org_id == org_id
+    ]
 
-    query_filter = ReUserGroup.query.join(Group).filter(
-        ReUserGroup.is_delete == False,
-        Group.is_delete == False,
-        ReUserGroup.org_id == org_id,
-    ).order_by(ReUserGroup.create_time)
+    query_filter = ReUserGroup.query.join(Group).filter(*filter_params).order_by(
+        ReUserGroup.create_time.desc(),
+        ReUserGroup.id.asc()
+    )
 
     def page_func(item):
         return GroupInfoSchema(**item.group.to_dict()).dict()

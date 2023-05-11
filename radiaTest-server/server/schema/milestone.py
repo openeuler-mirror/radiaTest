@@ -13,11 +13,12 @@
 # @License : Mulan PSL v2
 #####################################
 
+import json
 from datetime import datetime
 from typing import Literal, Optional
 import pytz
 
-from pydantic import BaseModel, Field, constr, root_validator
+from pydantic import BaseModel, Field, constr, root_validator, validator
 from sqlalchemy import func
 from server import db
 
@@ -199,6 +200,34 @@ class MilestoneCreateSchema(MilestoneBaseSchema, PermissionBase):
             raise ValueError("The milestone  %s has existed." %
                              values.get("name"))
         return values
+
+
+class QueryMilestoneByTimeSchema(BaseModel):
+    milestone_time: str
+
+    @validator('milestone_time')
+    def validate(cls, v):
+        if isinstance(v, str):
+            v = json.loads(v)
+            try:
+                v[0] = datetime.strptime(
+                    v[0], 
+                    "%Y-%m-%d"
+                )
+                v[1] = datetime.strptime(
+                    v[1],
+                    "%Y-%m-%d"
+                )  
+            except:
+                raise ValueError(
+                    "the format of time is not valid, the valid type is: %Y-%m-%d"
+                )
+
+            v[0] = v[0].strftime("%Y-%m-%d")
+            v[1] = v[1].strftime("%Y-%m-%d")
+            if v[0] >= v[1]:
+                raise ValueError("the first time must be earlier than second time.")
+        return v
 
 
 class GiteeTimeBaseModel(BaseModel):

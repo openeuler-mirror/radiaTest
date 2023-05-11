@@ -19,14 +19,18 @@ import re
 import datetime
 
 from flask import current_app, jsonify, request, g
+import redis
 
 from server.model.product import Product
 from server.model.milestone import Milestone
 from server.model.testcase import Suite, CaseNode
+from server.model.job import AtJob
 from server.utils.db import Insert, Precise
 from server.utils.resource_utils import ResourceManager
 from server.utils.response_util import ssl_cert_verify_error_collect, RET
 from server.utils.requests_util import do_request
+from server.utils.auth_util import generate_messenger_token
+from server.schema.job import PayLoad
 
 
 class UpdateTaskForm:
@@ -176,13 +180,14 @@ class AtMessenger:
     def __init__(self, body):
         self._body = body
         self._body.update({
-            "user_id": g.user_id,
+            "user_id": 1,
         })
 
     @ssl_cert_verify_error_collect
     def send_request(self, machine_group, api):
         _resp = dict()
-
+        payload = PayLoad(1, "at")
+        token = generate_messenger_token(payload)
         _r = do_request(
             method="post",
             url="https://{}:{}{}".format(
@@ -206,3 +211,101 @@ class AtMessenger:
             )
 
         return jsonify(_resp)
+
+
+class AtHandler:
+    def __init__(self, buildname_x86=None, buildname_aarch64=None):
+        self.buildname_x86 = buildname_x86
+        self.buildname_aarch64 = buildname_aarch64
+
+    def get_result(self):
+        build_list = list()
+        at_result = dict()
+
+        if self.buildname_x86:
+            build_list.append(self.buildname_x86)
+        if self.buildname_aarch64:
+            build_list.append(self.buildname_aarch64)
+        at_jobs = AtJob.query.filter(AtJob.build_name.in_(build_list)).all()
+
+        if len(at_jobs) == 0:
+            at_result.update({
+                "result": "no triggered",
+                "openqa_url": "",
+                "rate": 0
+            })
+            return True, at_result
+        else:
+            scrapyspider_pool = redis.ConnectionPool.from_url(
+                current_app.config.get("SCRAPYSPIDER_BACKEND"),
+                decode_responses=True
+            )
+            scrapyspider_redis_client = redis.StrictRedis(
+                connection_pool=scrapyspider_pool
+            )
+
+            total_job_num = 0
+            job_success_num = 0
+            job_fail_num = 0
+
+            for job in at_jobs:
+                if "x86_64" in job.build_name:
+                    arch = "x86_64"
+                elif "aarch64" in job.build_name:
+                    arch = "aarch64"
+                else:
+                    return False, "unkown arch"
+
+                if not job.at_job_name:
+                    continue
+
+                at_job_name = job.at_job_name.split(",")
+                total_job_num += len(at_job_name)
+
+                for job_name in at_job_name:
+                    result = scrapyspider_redis_client.hget(job_name, "{}_res_status".format(arch))
+                    result = result if not result else result.split(":")[1]
+                    if not result:
+                        continue
+                    elif "failed" in result:
+                        job_fail_num += 1
+                    else:
+                        job_success_num += 1
+
+            release_path_item = build_list[0].split("dailybuild")[1].replace("//", "").split("/")
+            version = release_path_item[0].replace("openEuler-", "")
+            build = release_path_item[1].replace("openeuler", "")
+            openqa_url = "{}/tests/overview?distri=openeuler&version={}&build={}".format(
+                current_app.config.get("OPENQA_URL"),
+                version,
+                build
+            )
+            job_done_num = job_success_num + job_fail_num
+
+            if total_job_num == 0:
+                at_result.update({
+                    "result": "in process",
+                    "openqa_url": "",
+                    "rate": 0
+                })
+                return True, at_result
+            elif total_job_num != job_done_num:
+                at_result.update({
+                    "result": "in process",
+                    "openqa_url": openqa_url,
+                    "rate": round(job_done_num / total_job_num, 2)
+                })
+                return True, at_result
+            else:
+                if job_fail_num != 0:
+                    result = "failed"
+                else:
+                    result = "passed"
+
+            at_result.update({
+                "result": result,
+                "openqa_url": openqa_url,
+                "rate": 1
+            })
+
+            return True, at_result

@@ -117,3 +117,19 @@ pxe_pkey = loads_config_ini("pxe", "PRIVATE_KEY")
 
 # dhcp config
 dhcp_ip = loads_config_ini("dhcp", "DHCP_IP")
+
+#at config
+iso_local_path = loads_config_ini("at", "ISO_LOCAL_PATH")
+iso_web_addr = loads_config_ini("at", "ISO_WEB_ADDR")
+source_iso_addr = loads_config_ini("at", "SOURCE_ISO_ADDR")
+mugen_path_docker = loads_config_ini("at", "MUGEN_PATH_DOCKER")
+mugen_path_stra = loads_config_ini("at", "MUGEN_PATH_STRA")
+at_iso_dir = loads_config_ini("at", "AT_ISO_DIR")
+at_qcow2_dir = loads_config_ini("at", "AT_QCOW2_DIR")
+api_key = loads_config_ini("at", "API_KEY")
+api_secret = loads_config_ini("at", "API_SECRET")
+at_post_url = loads_config_ini("at", "AT_POST_URL")
+at_get_url = loads_config_ini("at", "AT_GET_URL")
+waiting_time = 60
+openqa_port = loads_config_ini("at", "OPENQA_PORT")
+local_hdd = loads_config_ini("at", "LOCAL_HDD")

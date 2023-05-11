@@ -17,6 +17,7 @@ import 'tinymce/plugins/image'; //图片
 import 'tinymce/plugins/imagetools'; //图片工具
 import 'tinymce/plugins/nonbreaking';
 import { workspace } from '@/assets/config/menu.js';
+import { changeTaskPercentage } from '@/api/put.js';
 
 const showModal = ref(false); // 显示任务详情页
 const showCaseModal = ref(false); // 显示关联测试用例表格
@@ -29,6 +30,7 @@ const showPopoverExecutors = ref(false); // 执行团队显示责任人
 const showPopoverHelper = ref(false); // 显示协助人选择框
 const showMilepost = ref(false); // 显示里程碑选择菜单
 const showClosingTime = ref(false); // 截止时间选项显示/编辑切换
+const showStartTime = ref(false); // 截止时间选项显示/编辑切换
 const showContentInput = ref(false); // 内容选项显示/编辑切换
 const showFooterContent = ref('comment'); // 任务详情底部显示内容，默认：评论
 const contentInputRef = ref(null); // 内容选项文本框
@@ -591,6 +593,9 @@ function distributeTaskBtn(value) {
       showDistributeTaskSpin.value = false;
       getTaskCases();
       initData();
+      familyTaskOperator({ not_in: false }).then((response) => {
+        modalData.value.relationTask = mergeFamilyTask(response);
+      });
       distributeTaskModal.value = false;
       distributeTaskValue.value = null;
       distributeTaskOption.value = [];
@@ -865,8 +870,8 @@ function mergeFamilyTask(response) {
       taskType: transTaskType(item.type),
       belongTo: item.belong.user_name ? item.belong.user_name : item.belong.name,
       executor: item.executor.user_name,
-      startTime: formatTime(item.start_time, 'yyyy-MM-dd hh:mm:ss'),
-      endTime: formatTime(item.deadline, 'yyyy-MM-dd hh:mm:ss'),
+      startTime: formatTime(item.start_time, 'yyyy-MM-dd'),
+      endTime: formatTime(item.deadline, 'yyyy-MM-dd'),
       status: item.status.name
     };
   });
@@ -879,8 +884,8 @@ function mergeFamilyTask(response) {
       taskType: transTaskType(item.type),
       belongTo: item.belong.user_name ? item.belong.user_name : item.belong.name,
       executor: item.executor.user_name,
-      startTime: formatTime(item.start_time, 'yyyy-MM-dd hh:mm:ss'),
-      endTime: formatTime(item.deadline, 'yyyy-MM-dd hh:mm:ss'),
+      startTime: formatTime(item.start_time, 'yyyy-MM-dd'),
+      endTime: formatTime(item.deadline, 'yyyy-MM-dd'),
       status: item.status.name
     };
   });
@@ -1447,10 +1452,17 @@ function getMileposts(groupValue) {
   showMilepost.value = false;
 }
 
+// 设置开始时间
+function updateStartTime(value) {
+  editTask(modalData.value.detail.id, {
+    start_time: formatTime(value, 'yyyy-MM-dd')
+  });
+}
+
 // 设置截止时间
 function updateClosingTime(value) {
   editTask(modalData.value.detail.id, {
-    deadline: formatTime(value, 'yyyy-MM-dd hh:mm:ss')
+    deadline: formatTime(value, 'yyyy-MM-dd')
   });
 }
 
@@ -1551,7 +1563,13 @@ function getFrame() {
   });
 }
 
+// 设置任务完成度
+const setTaskPercentage = () => {
+  changeTaskPercentage(modalData.value.detail.id, { percentage: modalData.value.detail.percentage });
+};
+
 export {
+  setTaskPercentage,
   getFrame,
   autocompleteArray,
   autocompleteChange,
@@ -1569,6 +1587,7 @@ export {
   showPopoverHelper,
   showMilepost,
   showClosingTime,
+  showStartTime,
   showContentInput,
   showFooterContent,
   contentInputRef,
@@ -1644,6 +1663,7 @@ export {
   getHelper,
   getMilepost,
   getMileposts,
+  updateStartTime,
   updateClosingTime,
   showContent,
   toggleContent,

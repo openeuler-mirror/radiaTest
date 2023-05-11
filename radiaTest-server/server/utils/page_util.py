@@ -112,7 +112,7 @@ class Paginate(object):
         self._page = page_num
         self._per_page = page_size
         self._total = total
-        if self._page > self.pages:
+        if self._page > self.pages and self.pages != 0:
             raise RuntimeError("page_num out of range.")
         if page_size == 0:
             raise RuntimeError("page_size can't be zero.")
@@ -184,7 +184,9 @@ class Paginate(object):
                 "pages": page.pages,
                 "current_page": page.page,
                 "total": page.total,
-                "items": [] if data is None else data
+                "items": [] if data is None else data[
+                    (page.page - 1) * page_size:page.page * page_size
+                ]
             }
             return page_dict, None
         except Exception as e:

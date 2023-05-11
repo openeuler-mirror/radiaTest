@@ -101,9 +101,19 @@ def make_celery(app_name):
                 'routing_key': 'rc_name',
                 'delivery_mode': 1,
             },
+            'celeryservice.tasks.resolve_pkglist_from_url': {
+                'queue': 'queue_resolve_pkglist_from_url',
+                'routing_key': 'pkglist_from_url',
+                'delivery_mode': 1,
+            },
             'celeryservice.sub_tasks.update_compare_result': {
                 'queue': 'queue_update_compare_result',
                 'routing_key': 'compare_result',
+                'delivery_mode': 1,
+            },
+            'celeryservice.sub_tasks.update_daily_compare_result': {
+                'queue': 'queue_update_daily_compare_result',
+                'routing_key': 'daily_compare_result',
                 'delivery_mode': 1,
             },
             'celeryservice.tasks.async_send_vmachine_release_message': {
@@ -113,6 +123,11 @@ def make_celery(app_name):
             'celeryservice.sub_tasks.update_samerpm_compare_result': {
                 'queue': 'queue_update_samerpm_compare_result',
                 'routing_key': 'samerpm_compare_result',
+                'delivery_mode': 1,
+            },
+            'celeryservice.sub_tasks.create_case_node_multi_select': {
+                'queue': 'queue_create_case_node_multi_select',
+                'routing_key': 'create_case_node',
                 'delivery_mode': 1,
             },
             'celeryservice.tasks.async_check_pmachine_lifecycle': {

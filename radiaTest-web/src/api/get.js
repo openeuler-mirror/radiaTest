@@ -421,3 +421,28 @@ export function getOrphanGroupSuites(groupId, param) {
 export function getGitRepoSync(repoId) {
   return getRequestWithoutCatch(`/v1/git-repo/${repoId}/sync`);
 }
+
+// 查询任务甘特图数据
+export function getTasksGantt(data) {
+  return getRequest('/v1/tasks/gantt', data);
+}
+
+// 查询甘特图里程碑
+export function getGanttMilestones(data) {
+  return getRequest('/v2/milestone/gantt', data);
+}
+
+// 根据测试套查测试用例
+export function getCasesBySuite(data) {
+  return getRequest('/v1/case-set-node', data);
+}
+
+// 查询每日构建
+export function getDailyBuild(data) {
+  return getRequest('/v1/qualityboard/daily-build', data);
+}
+
+// 查询每日构建比对结果
+export function getDailyBuildCompare(roundId, data) {
+  return getRequest(`/v1/qualityboard/daily-build/with/round/${roundId}/pkg-compare`, data);
+}

@@ -6,7 +6,7 @@ import { storage } from '@/assets/utils/storageUtils';
 import { showLoading, detailTask, getDetailTask } from './taskDetail.js';
 import { personArray, initData } from './kanbanAndTable.js';
 import { NAvatar } from 'naive-ui';
-import { getGroup as getGroups } from '@/api/get.js';
+import { getGroup as getGroups, getAllMilestone } from '@/api/get.js';
 
 const showVersionTaskModal = ref(false); // 显示创建版本任务窗口
 const groups = ref([]); // 执行团队选项数组
@@ -21,6 +21,7 @@ const model = ref({
   type: null,
   group: null,
   executor: null,
+  start_time: null,
   closingTime: null,
   orgTask: '',
   taskType: '',
@@ -37,6 +38,7 @@ const modelVersion = ref({
   group: null,
   orgTask: '',
   executor: null,
+  start_time: null,
   closingTime: null,
   milestone: null,
   keyword: null,
@@ -63,6 +65,18 @@ const rulesVersion = ref({
     type: 'number',
     required: true,
     message: '里程碑必选',
+    trigger: ['blur', 'change']
+  },
+  start_time: {
+    type: 'number',
+    required: true,
+    message: '开始日期必填',
+    trigger: ['blur', 'change']
+  },
+  closingTime: {
+    type: 'number',
+    required: true,
+    message: '截止日期必填',
     trigger: ['blur', 'change']
   }
 });
@@ -124,6 +138,18 @@ const rules = ref({
     required: true,
     message: '执行者必填',
     trigger: ['blur', 'change']
+  },
+  start_time: {
+    type: 'number',
+    required: true,
+    message: '开始日期必填',
+    trigger: ['blur', 'change']
+  },
+  closingTime: {
+    type: 'number',
+    required: true,
+    message: '截止日期必填',
+    trigger: ['blur', 'change']
   }
 });
 
@@ -134,6 +160,7 @@ function createBaseTask(element) {
     type: null,
     group: null,
     executor: null,
+    start_time: null,
     closingTime: null,
     orgTask: '',
     taskType: '',
@@ -235,6 +262,7 @@ function cancelCreateTask() {
     type: null,
     group: null,
     executor: null,
+    start_time: null,
     closingTime: null,
     orgTask: '',
     taskType: ''
@@ -312,6 +340,7 @@ function createVersionTask() {
     group: null,
     orgTask: '',
     executor: null,
+    start_time: null,
     closingTime: null,
     milestone: null,
     keyword: null,
@@ -323,7 +352,7 @@ function createVersionTask() {
   };
   store.commit('taskManage/toggleNewTaskDrawer');
   showVersionTaskModal.value = true;
-  axios.get('v2/milestone', { paged: false }).then((res) => {
+  getAllMilestone({ paged: false }).then((res) => {
     milestoneOptions.value = [];
     res.data?.items?.forEach((v) => {
       milestoneOptions.value.push({
@@ -350,7 +379,8 @@ function createVersionTaskBtn() {
           parent_id: modelVersion.value.fatherTask,
           child_id: modelVersion.value.childTask,
           executor_id: Number(modelVersion.value.orgTask),
-          deadline: formatTime(new Date(modelVersion.value.closingTime), 'yyyy-MM-dd hh:mm:ss'),
+          start_time: formatTime(new Date(modelVersion.value.start_time), 'yyyy-MM-dd'),
+          deadline: formatTime(new Date(modelVersion.value.closingTime), 'yyyy-MM-dd'),
           keywords: modelVersion.value.keyword,
           abstract: modelVersion.value.abstract,
           abbreviation: modelVersion.value.abbreviation,
@@ -395,7 +425,8 @@ function createTask(e, versionTask = false) {
           child_id: model.value.childTask,
           group_id: model.value.type === 'GROUP' ? Number(model.value.group) : null,
           executor_id: model.value.type === 'ORGANIZATION' ? Number(model.value.orgTask) : Number(model.value.executor),
-          deadline: formatTime(new Date(model.value.closingTime), 'yyyy-MM-dd hh:mm:ss'),
+          start_time: formatTime(new Date(model.value.start_time), 'yyyy-MM-dd'),
+          deadline: formatTime(new Date(model.value.closingTime), 'yyyy-MM-dd'),
           keywords: model.value.keyword,
           abstract: model.value.abstract,
           abbreviation: model.value.abbreviation

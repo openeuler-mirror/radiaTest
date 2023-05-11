@@ -70,6 +70,7 @@ from server.utils.sheet import Excel
 from server.utils.permission_utils import GetAllByPermission
 from server.utils.md_util import MdUtil
 from celeryservice.tasks import resolve_testcase_file, resolve_testcase_set
+from celeryservice.sub_tasks import create_case_node_multi_select
 
 
 class CaseImportHandler:
@@ -232,6 +233,44 @@ class CaseNodeHandler:
 
     @staticmethod
     @collect_sql_error
+    def get_case_set_node(query):
+        org_id = redis_client.hget(RedisKey.user(g.gitee_id), "current_org_id")
+        filter_param = [
+            CaseNode.type == "suite",
+            CaseNode.in_set.is_(True),
+            CaseNode.org_id == org_id
+        ]
+        if query.title:
+            filter_param.append(
+                CaseNode.title == query.title,
+            )
+        elif query.suite_id:
+            filter_param.append(
+                CaseNode.suite_id == query.suite_id,
+            )
+            
+        case_node = CaseNode.query.filter(*filter_param).first()
+        if not case_node:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR, 
+                error_msg="case node does not exist."
+            )
+        return_data = CaseNodeBaseSchema(**case_node.__dict__).dict()
+        children = CaseNode.query.filter(
+            CaseNode.in_set.is_(True),
+            CaseNode.org_id == org_id,
+            CaseNode.parent.contains(case_node),
+        ).all()
+        return_data["children"] = [child.to_json() for child in children]
+
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+            data=return_data
+        )
+
+    @staticmethod
+    @collect_sql_error
     def get_case_result(case_id, root_case_node_id):
         case_result = None
         case = Case.query.get(case_id)
@@ -315,27 +354,30 @@ class CaseNodeHandler:
         if root_case_node.type == "baseline":
             _body.update({"baseline_id": root_case_node.baseline_id})
 
-        for child in parent.children:
-            if _body["title"] == child.title:
-                return jsonify(
-                    error_code=RET.OK,
-                    error_msg="Title {} is already exist".format(
-                        _body["title"]
-                    ),
-                    data=child.id
-                )
-        
-        case_node = CaseNode.query.filter_by(
-            id=Insert(
-                CaseNode,
-                _body,
-            ).insert_id()
-        ).first()
+        if _body.get("multiselect"):
+            create_case_node_multi_select.delay(_body)
+        else:
+            for child in parent.children:
+                if _body["title"] == child.title:
+                    return jsonify(
+                        error_code=RET.OK,
+                        error_msg="Title {} is already exist".format(
+                            _body["title"]
+                        ),
+                        data=child.id
+                    )
+            
+            case_node = CaseNode.query.filter_by(
+                id=Insert(
+                    CaseNode,
+                    _body,
+                ).insert_id()
+            ).first()
 
-        case_node.parent.append(parent)
-        case_node.add_update()
+            case_node.parent.append(parent)
+            case_node.add_update()
 
-        return jsonify(error_code=RET.OK, error_msg="OK", data=case_node.id)
+        return jsonify(error_code=RET.OK, error_msg="OK")
 
     @staticmethod
     @collect_sql_error

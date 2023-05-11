@@ -73,7 +73,7 @@ class BaseNodeBodySchema(BaseModel):
     parent_id: Optional[int]
     is_root: bool = True
     type: Optional[CaseNodeType] = "directory"
-    case_node_id :Optional[int]
+    case_node_ids :Optional[List[int]]
 
     @root_validator
     def validate_all(cls, values):        
