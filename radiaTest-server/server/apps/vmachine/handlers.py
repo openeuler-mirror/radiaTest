@@ -7,12 +7,14 @@ from server.model import Vmachine, Pmachine
 from server.utils.page_util import PageUtil
 from server.utils.permission_utils import GetAllByPermission
 from server.utils.resource_utils import ResourceManager
+from server.utils.auth_util import generate_messenger_token
+from server.schema.job import PayLoad
 
 
 class VmachineHandler:
     @staticmethod
-    def get_all(query):
-        filter_params = GetAllByPermission(Vmachine).get_filter()
+    def get_all(query, workspace=None):
+        filter_params = GetAllByPermission(Vmachine, workspace).get_filter()
         p_filter_params = [Pmachine.machine_group_id == query.machine_group_id]
         if query.host_ip:
             p_filter_params.append(Pmachine.ip.like(f"%{query.host_ip}%"))
@@ -67,7 +69,8 @@ class VmachineMessenger:
     def send_request(self, machine_group, api, method, obj=None):
         if obj is None:
             obj = dict()
-
+        payload = PayLoad(g.user_id, g.user_login)
+        token = generate_messenger_token(payload)
         _r = do_request(
             method=method,
             url="https://{}:{}{}".format(
@@ -78,7 +81,7 @@ class VmachineMessenger:
             body=self._body,
             headers={
                 "content-type": "application/json;charset=utf-8",
-                "authorization": request.headers.get("authorization")
+                "authorization": f"JWT {token}"
             },
             obj=obj,
             verify=current_app.config.get("CA_CERT"),

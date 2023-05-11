@@ -52,6 +52,9 @@ from server.apps.testcase.routes import (
     CaseNodeGetRootEvent,
     CaseNodeMoveToEvent,
     CasefileConvertEvent,
+    OrphanOrgSuitesEvent,
+    OrphanGroupSuitesEvent,
+    CaseNodeSuitesEvent,
 )
 
 
@@ -59,6 +62,7 @@ def init_api(api: Api):
     api.add_resource(
         CaseNodeEvent,
         "/api/v1/case-node",
+        "/api/v1/ws/<string:workspace>/case-node",
         methods=["POST", "GET"]
     )
     api.add_resource(
@@ -105,11 +109,13 @@ def init_api(api: Api):
     api.add_resource(
         PreciseCaseEvent, 
         "/api/v1/case/preciseget", 
+        "/api/v1/ws/<string:workspace>/case/preciseget",
         methods=["GET"]
     )
     api.add_resource(
         PreciseSuiteEvent, 
         "/api/v1/suite/preciseget", 
+        "/api/v1/ws/<string:workspace>/suite/preciseget",
         methods=["GET"]
     )
     api.add_resource(
@@ -117,8 +123,33 @@ def init_api(api: Api):
         "/api/v1/suite/<int:suite_id>", 
         methods=["GET", "PUT", "DELETE"]
     )
-    api.add_resource(SuiteEvent, "/api/v1/suite", methods=["POST", "GET"])
-    api.add_resource(CaseEvent, "/api/v1/case", methods=["POST", "GET"])
+    api.add_resource(
+        SuiteEvent, 
+        "/api/v1/suite",
+        "/api/v1/ws/<string:workspace>/suite",
+        methods=["POST", "GET"]
+    )
+    api.add_resource(
+        OrphanOrgSuitesEvent,
+        "/api/v1/org/orphan-suites",
+        methods=["GET"],
+    )
+    api.add_resource(
+        OrphanGroupSuitesEvent,
+        "/api/v1/group/<int:group_id>/orphan-suites",
+        methods=["GET"],
+    )
+    api.add_resource(
+        CaseNodeSuitesEvent,
+        "/api/v1/case-node/<int:case_node_id>/suites",
+        methods=["POST"],
+    )
+    api.add_resource(
+        CaseEvent, 
+        "/api/v1/case",
+        "/api/v1/ws/<string:workspace>/case",
+        methods=["POST", "GET"],
+    )
     api.add_resource(
         CaseItemEvent, 
         "/api/v1/case/<int:case_id>", 
@@ -127,7 +158,8 @@ def init_api(api: Api):
     api.add_resource(CaseImport, "/api/v1/case/import",  methods=["POST"])
     api.add_resource(
         CaseRecycleBin, 
-        "/api/v1/case/recycle-bin",  
+        "/api/v1/case/recycle-bin",
+        "/api/v1/ws/<string:workspace>/case/recycle-bin",  
         methods=["GET"]
     )
     api.add_resource(

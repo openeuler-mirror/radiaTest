@@ -41,33 +41,35 @@ from . import (
     baseline_template,
     issue,
     strategy,
+    git_repo,
 )
 
 
 def init_api(app: Flask):
     app.register_blueprint(oauth)       # 注册登陆鉴权相关接口蓝图
     api = Api(app)
-    administrator.init_api(api)         # 注册管理员相关接口URL
-    user.init_api(api)                  # 注册用户相关接口URL
-    group.init_api(api)                 # 注册用户组相关接口URL
-    organization.init_api(api)          # 注册组织相关接口URL
-    message.init_api(api)               # 注册消息通知相关接口URL
-    task.init_api(api)                  # 注册任务相关接口URL
-    job.init_api(api)                   # 注册测试执行相关接口URL
-    milestone.init_api(api)             # 注册里程碑相关接口URL
-    issue.init_api(api)                 # 注册问题单相关接口URL
-    mirroring.init_api(api)             # 注册镜像信息相关接口URL
-    pmachine.init_api(api)              # 注册物理机相关接口URL
-    product.init_api(api)               # 注册产品版本相关接口URL
-    template.init_api(api)              # 注册测试模板相关接口URL
-    testcase.init_api(api)              # 注册测试用例相关接口URL
-    vmachine.init_api(api)              # 注册虚拟机相关接口URL
-    external.init_api(api)              # 注册外部接口URL
-    framework.init_api(api)             # 注册测试框架相关接口URL
-    permission.init_api(api)            # 注册权限相关接口URL
-    celerytask.init_api(api)            # 注册内部并发框架调用相关接口URL
-    qualityboard.init_api(api)          # 注册质量看板相关接口URL
-    requirement.init_api(api)           # 注册需求中心相关接口URL
-    manualjob.init_api(api)             # 注册手工用例执行相关接口URL
-    baseline_template.init_api(api)     # 注册基线相关接口URL
-    strategy.init_api(api)              # 注册测试策略相关接口URL
+    administrator.init_api(api)
+    user.init_api(api)
+    group.init_api(api)
+    organization.init_api(api)
+    message.init_api(api)
+    task.init_api(api)
+    job.init_api(api)
+    milestone.init_api(api)
+    issue.init_api(api)
+    mirroring.init_api(api)
+    pmachine.init_api(api)
+    product.init_api(api)
+    template.init_api(api)
+    testcase.init_api(api)
+    vmachine.init_api(api)
+    external.init_api(api)
+    framework.init_api(api)
+    git_repo.init_api(api)
+    permission.init_api(api)
+    celerytask.init_api(api)
+    qualityboard.init_api(api)
+    requirement.init_api(api)
+    manualjob.init_api(api)  # 手工测试任务(ManualJob)相关接口
+    baseline_template.init_api(api)
+    strategy.init_api(api)

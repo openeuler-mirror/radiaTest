@@ -21,13 +21,13 @@
 import { ref, defineComponent } from 'vue';
 import { useStore } from 'vuex';
 import { Socket } from '@/socket';
-
 import settings from '@/assets/config/settings.js';
 import { get, selection } from '@/assets/CRUD/read';
 import { createColumns } from '@/views/vmachine/modules/vmachineTableColumns.js';
 import vmachineTable from '@/views/vmachine/modules/vmachineTable.js';
 import { getVmachine } from '@/api/get';
 import filterValue from '@/views/vmachine/modules/vmachineFilter';
+import { workspace } from '@/assets/config/menu.js';
 
 export default defineComponent({
   methods: {
@@ -96,7 +96,7 @@ export default defineComponent({
       offSelection: () => selection.off(columns),
       refreshData: () =>
         get.refresh(
-          '/v1/vmachine',
+          `/v1/ws/${workspace.value}/machine`,
           vmachineTable.totalData,
           vmachineTable.loading
         ),

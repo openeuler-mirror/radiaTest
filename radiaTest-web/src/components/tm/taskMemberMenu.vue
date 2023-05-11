@@ -123,7 +123,7 @@ export default {
     },
     getOrgUser() {
       return new Promise((resolve, reject) => {
-        const id = this.$storage.getValue('orgId');
+        const id = this.$storage.getValue('loginOrgId');
         this.$axios
           .get(`/v1/org/${id}/users`, {
             page_size: 99999,

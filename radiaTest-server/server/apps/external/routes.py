@@ -27,6 +27,7 @@ from flask import current_app, jsonify, request, make_response, send_file, rende
 from flask_restful import Resource
 from flask_pydantic import validate
 
+from server import casbin_enforcer
 from server.utils.auth_util import auth
 from server.schema.external import (
     LoginOrgListSchema,
@@ -161,6 +162,7 @@ class VmachineExist(Resource):
 
 class CaCert(Resource):
     @auth.login_required()
+    @response_collect
     def get(self):
         return send_file(
             current_app.config.get("CA_CERT"),
@@ -237,15 +239,24 @@ class CaCert(Resource):
         else:
             return send_file(certs_path, as_attachment=True)
 
-    # @auth.login_required()
-    # @casbin_enforcer.enforcer()
+    @auth.login_required()
+    @response_collect
+    @casbin_enforcer.enforcer
     @validate()
     def delete(self, body: DeleteCertifiSchema):
+        
+        _cert_file = "{0}/certs/{1}.crt".format(
+            current_app.config.get("CA_DIR"),
+            body.ip,
+        )
+        _openssl_cfg = "{0}/openssl.cnf".format(
+            current_app.config.get("CA_DIR"),
+        )
 
         exitcode, output = getstatusoutput(
-            "openssl ca -revoke {0}/certs/{1}.crt -config {0}/openssl.cnf".format(
-                current_app.config.get("CA_DIR"),
-                body.ip,
+            "openssl ca -revoke {0} -config {1}".format(
+                shlex.quote(_cert_file),
+                shlex.quote(_openssl_cfg),
             )
         )
 

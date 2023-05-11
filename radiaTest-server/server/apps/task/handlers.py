@@ -310,10 +310,10 @@ class HandlerTask(object):
 
     @staticmethod
     @collect_sql_error
-    def get_all(user_id, query):
+    def get_all(user_id, query, workspace=None):
         """获取任务列表"""
         join_params = []
-        filter_params = GetAllByPermission(Task).get_filter()
+        filter_params = GetAllByPermission(Task, workspace).get_filter()
         for key, value in query.dict().items():
             if not value and key != "is_delete":
                 continue

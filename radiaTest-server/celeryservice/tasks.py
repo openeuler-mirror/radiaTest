@@ -22,7 +22,6 @@ import json
 import requests
 
 import redis
-from lxml import etree
 from flask_socketio import SocketIO
 from celery import current_app as celery
 from celery.utils.log import get_task_logger
@@ -30,7 +29,8 @@ from celery.signals import task_postrun
 from celery.schedules import crontab
 
 from server import redis_client
-from server.model.framework import Framework, GitRepo
+from server.model.framework import GitRepo
+from server.model.testcase import Suite
 from server.model.celerytask import CeleryTask
 from server.utils.db import Insert
 from server.utils.shell import add_escape
@@ -43,6 +43,7 @@ from celeryservice.lib.testcase import TestcaseHandler
 from celeryservice.lib.dailybuild import DailyBuildHandler
 from celeryservice.lib.message import VmachineReleaseNotice
 from celeryservice.lib.rpmcheck import RpmCheckHandler
+from celeryservice.lib.casenode import CaseNodeCreator
 
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -72,9 +73,6 @@ def setup_periodic_tasks(sender, **kwargs):
         crontab(minute="*/30"),
         async_check_vmachine_lifecycle.s(),
         name="check_vmachine_lifecycle",
-    )
-    sender.add_periodic_task(
-        crontab(minute="*/60"), async_read_git_repo.s(), name="read_git_repo"
     )
     sender.add_periodic_task(
         crontab(minute="*/30"), async_update_all_issue_rate.s(), name="update_all_issue_rate"
@@ -210,39 +208,44 @@ def async_update_all_issue_rate():
 
 
 @celery.task(bind=True)
-def load_scripts(self, id, name, url, template_name):
-    RepoTaskHandler(logger, self).main(id, name, url, template_name)
-
+def load_scripts(self, id_, name, url, branch):
+    lock_key = f"loading_repo#{id_}_{url}@{branch}"
+    logger.info(f"begin loading repo #{id_} from {url} on {branch}, locked...")
+    redis_client.set(lock_key, 1)
+    
+    try:
+        RepoTaskHandler(logger, self).main(id_, name, url, branch)
+        logger.info(f"loading repo #{id_} from {url} on {branch} succeed")
+    
+    finally:
+        redis_client.delete(lock_key)
+        logger.info(f"the lock of loading repo #{id_} from {url} on {branch} has been removed")
 
 @celery.task
 def async_read_git_repo():
-    frameworks = Framework.query.filter_by(adaptive=True).all()
+    repos = GitRepo.query.filter_by(adaptive=True).all()
 
-    for framework in frameworks:
-        if framework.adaptive is True:
-            repos = GitRepo.query.filter_by(
-                framework_id=framework.id,
-                sync_rule=True,
-            ).all()
+    for repo in repos:
+        if not repo.adaptive or redis_client.get(f"loading_repo#{repo.id}_{repo.git_url}@{repo.branch}"):
+            continue
 
-            for repo in repos:
-                _task = load_scripts.delay(
-                    repo.id,
-                    repo.name,
-                    repo.git_url,
-                    framework.name,
-                )
+        _task = load_scripts.delay(
+            repo.id,
+            repo.name,
+            repo.git_url,
+            repo.branch,
+        )
 
-                logger.info(f"task id: {_task.task_id}")
+        logger.info(f"task id: {_task.task_id}")
 
-                celerytask = {
-                    "tid": _task.task_id,
-                    "status": "PENDING",
-                    "object_type": "scripts_load",
-                    "description": f"from {repo.git_url}",
-                }
+        celerytask = {
+            "tid": _task.task_id,
+            "status": "PENDING",
+            "object_type": "scripts_load",
+            "description": f"from {repo.git_url} on branch {repo.branch}",
+        }
 
-                _ = Insert(CeleryTask, celerytask).single(CeleryTask, "/celerytask")
+        _ = Insert(CeleryTask, celerytask).single(CeleryTask, "/celerytask")
 
 
 @celery.task(bind=True)
@@ -387,3 +390,66 @@ def async_send_vmachine_release_message():
 @celery.task
 def async_check_pmachine_lifecycle():
     LifecycleMonitor(logger).check_pmachine_lifecycle()
+
+
+@celery.task(bind=True)
+def async_create_testsuite_node(
+    self,
+    parent_id: int, # 被创建suite类型节点的父节点 
+    suite_id: int, # 被创建suite类型节点关联的用例ID
+    permission_type: str = 'public', # 被创建suite类型节点的权限类型 
+    org_id: int = None, # 被创建suite类型节点的所属组织
+    group_id: int = None, # 被创建suite类型节点的所属团队
+    user_id: str = None, # 创建异步任务的当前用户id
+):
+    testsuite_node_id = CaseNodeCreator(logger, self).create_suite_node(
+        parent_id,
+        suite_id,
+        permission_type,
+        org_id,
+        group_id,
+        user_id,
+    )
+    if not testsuite_node_id:
+        return
+
+    suite = Suite.query.filter_by(id=suite_id).first()
+    # 分发创建对应测试套下用例节点子任务
+    for testcase in suite.case:
+        _task = async_create_testcase_node.delay(
+            testsuite_node_id,
+            testcase.name,
+            testcase.id,
+            permission_type,
+            org_id,
+            group_id
+        )
+        celerytask = {
+            "tid": _task.task_id,
+            "status": "PENDING",
+            "object_type": "create_testcase_node",
+            "description": f"create case node related to case#{testcase.id} under {suite.name}",
+            "user_id": user_id,
+        }
+
+        _ = Insert(CeleryTask, celerytask).single(CeleryTask, "/celerytask")
+
+
+@celery.task(bind=True)
+def async_create_testcase_node(
+    self,
+    parent_id: int, # 被创建case类型节点的父节点 
+    case_name: str, # 被创建case类型节点关联的用例名 
+    case_id: int, # 被创建case类型节点关联的用例ID
+    permission_type: str = 'public', # 被创建case类型节点的权限类型 
+    org_id: int = None, # 被创建case类型节点的所属组织
+    group_id: int = None, # 被创建case类型节点的所属团队 
+):
+    CaseNodeCreator(logger, self).create_case_node(
+        parent_id,
+        case_name,
+        case_id,
+        permission_type,
+        org_id,
+        group_id,
+    )

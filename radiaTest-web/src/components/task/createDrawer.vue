@@ -120,6 +120,8 @@ import {
 import { formatTime } from '@/assets/utils/dateFormatUtils';
 import { storage } from '@/assets/utils/storageUtils';
 import { getGroup } from '@/api/get';
+import { workspace } from '@/assets/config/menu.js';
+
 export default {
   props:{
     isCase:{
@@ -223,7 +225,7 @@ export default {
     },
     getMilestone() {
       this.$axios
-        .get('/v2/milestone')
+        .get(`/v2/ws/${workspace.value}/milestone`)
         .then((res) => {
           this.milestones =
             res.data?.items?.map((item) => ({

@@ -1,4 +1,4 @@
-import { ref, computed } from 'vue';
+import { ref } from 'vue';
 import { getGroup } from '@/api/get';
 
 const size = ref('medium');
@@ -23,37 +23,6 @@ const clean = () => {
     description: null
   };
 };
-
-const defaultOptions = [
-  {
-    label: 'openEuler',
-    value: 'openEuler'
-  },
-  {
-    label: 'EulerOS',
-    value: 'EulerOS'
-  },
-  {
-    label: 'SUSE Euler',
-    value: 'SUSE Euler'
-  },
-  {
-    label: 'KylinSec',
-    value: 'KylinSec'
-  },
-  {
-    label: 'UOS',
-    value: 'UOS'
-  }
-];
-
-const nameOptions = computed(() => [
-  {
-    label: formValue.value.name,
-    value: formValue.value.name
-  },
-  ...defaultOptions
-]);
 
 const rules = ref({
   name: {
@@ -103,7 +72,6 @@ export default {
   typeOptions,
   handleLoad,
   formRef,
-  nameOptions,
   formValue,
   clean
 };

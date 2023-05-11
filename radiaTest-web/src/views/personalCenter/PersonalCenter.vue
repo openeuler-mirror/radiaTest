@@ -31,13 +31,7 @@
         <div ref="container" class="home">
           <div
             v-if="!showHeader"
-            style="
-              display: flex;
-              padding-right: 20px;
-              justify-content: flex-end;
-              height: 50px;
-              line-height: 50px;
-            "
+            style="display: flex; padding-right: 20px; justify-content: flex-end; height: 50px; line-height: 50px"
           >
             <n-button text type="primary" @click="logout">
               <template #icon>
@@ -55,7 +49,7 @@
   </div>
 </template>
 <script>
-import { ref, defineComponent, provide, getCurrentInstance } from 'vue';
+import { ref, defineComponent, getCurrentInstance } from 'vue';
 import { useNotification, useDialog, useMessage } from 'naive-ui';
 import { Exit } from '@vicons/ionicons5';
 
@@ -65,11 +59,12 @@ import { storage } from '@/assets/utils/storageUtils';
 
 export default defineComponent({
   components: {
-    MugenHeader, Exit
+    MugenHeader,
+    Exit
   },
   watch: {
     $route(newUrl) {
-      this.menuOptions.forEach(item => {
+      this.menuOptions.forEach((item) => {
         if (newUrl.name && newUrl.name.indexOf(item.key) !== -1) {
           this.menuValue = item.key;
         }
@@ -87,19 +82,17 @@ export default defineComponent({
 
     modules.initRoleOptions(storage?.getValue('role') || 0);
     const menuValue = ref(proxy.$root.$route.name);
-    modules.menuOptions.value.forEach(item => {
+    modules.menuOptions.value.forEach((item) => {
       if (proxy.$root.$route.path.indexOf(item.key) !== -1) {
         menuValue.value = item.key;
       }
     });
 
-    provide('showMenu', true);
-
     return {
       menuValue,
-      ...modules,
+      ...modules
     };
-  },
+  }
 });
 </script>
 <style scoped>
@@ -111,7 +104,7 @@ export default defineComponent({
 .header {
   width: 100%;
   z-index: 5;
-  height: 100px;
+  height: 60px;
   flex-shrink: 0;
   box-shadow: 0 2px 8px 0 rgb(2, 24, 42, 0.1);
   transition: height 1s ease-in-out;

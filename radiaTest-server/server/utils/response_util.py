@@ -11,7 +11,10 @@ class RET(object):
     PARMA_ERR = "4000"
     VERIFY_ERR = "4001"
     CLA_VERIFY_ERR = "4010"
+    # unauthorized request to api
     UNAUTHORIZE_ERR = "4020"
+    # unauthorized access to workspaces
+    UNAUTHORIZED_ACCESS = "4021"
     BAD_REQ_ERR = "4050"
     SERVER_ERR = "5000"
     DATA_EXIST_ERR = "5001"
@@ -95,4 +98,24 @@ def value_error_collect(func):
                 error_msg=str(e)
             )
 
+    return wrapper
+
+
+def  workspace_error_collect(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            resp = func(*args, **kwargs)
+            return resp
+        except ValueError as e:
+            return jsonify(
+                error_code=RET.PARMA_ERR,
+                error_msg=str(e),
+            )
+        except RuntimeError as e:
+            return jsonify(
+                error_code=RET.UNAUTHORIZED_ACCESS,
+                error_msg=str(e),
+            )
+    
     return wrapper

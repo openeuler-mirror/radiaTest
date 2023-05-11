@@ -144,24 +144,28 @@ def handler_login_callback(query):
                 {
                     "error_code": RET.OK,
                     "error_msg": "OK",
-                    "data": f'{current_app.config["OAUTH_HOME_URL"]}?isSuccess=True'
+                    "data": {
+                        "url": f'{current_app.config["OAUTH_HOME_URL"]}?isSuccess=True',
+                        "user_id": result[1],
+                        "token": result[2]
+                    }
                 }
             )
         )
         resp.status = 200
-        resp.set_cookie('token', result[2])
-        resp.set_cookie('user_id', str(result[1]))
         return resp
     else:
         return jsonify(
             error_code=RET.OK,
             error_msg="OK",
-            data='{}?isSuccess=False&user_id={}&org_id={}&require_cla={}'.format(
+            data={
+                "url": '{}?isSuccess=False&user_id={}&org_id={}&require_cla={}'.format(
                 current_app.config["OAUTH_HOME_URL"],
                 result[1],
                 org.id,
-                org.cla_verify_url is not None,
-            )
+                org.cla_verify_url is not None
+                )
+            }
         )
 
 
@@ -250,7 +254,7 @@ def handler_login(oauth_token, org_id, oauth_user_info_url, authority):
 
 @collect_sql_error
 def handler_register(user_id, body):
-    # 从redis中获取之前的gitee用户信息
+    # 从redis中获取之前的用户信息
     oauth_user = redis_client.hgetall(RedisKey.oauth_user(user_id))
     if not oauth_user:
         return jsonify(

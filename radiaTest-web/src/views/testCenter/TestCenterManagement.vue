@@ -38,11 +38,11 @@ const router = useRouter();
 const tabValue = ref('');
 
 const changeView = (name) => {
-  router.push(`/home/workflow/testing/${name}`);
+  router.push({ name });
 };
 
 onMounted(() => {
-  tabValue.value = router.currentRoute.value.fullPath.split('/')[4];
+  tabValue.value = router.currentRoute.value.name;
 });
 </script>
 

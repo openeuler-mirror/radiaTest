@@ -88,6 +88,7 @@ import { createTitle } from '@/assets/utils/createTitle';
 import ExpandedCardTemplate from '@/components/templateComponents/ExpandedCardTemplate.vue';
 import { Socket } from '@/socket.js';
 import settings from '@/assets/config/settings.js';
+import { workspace } from '@/assets/config/menu.js';
 
 const templateTableLoading = ref(false);
 const templateTableData = ref([]);
@@ -104,7 +105,7 @@ const modalData = ref(null);
 const getTableData = () => {
   return new Promise((resolve) => {
     templateTableLoading.value = true;
-    axios.get('/v1/template').then((res) => {
+    axios.get(`/v1/ws/${workspace.value}/template`).then((res) => {
       templateTableLoading.value = false;
       templateTableData.value = res.data;
       templateList.value = res.data.map((item) => ({
@@ -350,7 +351,7 @@ const onPositiveCloneClick = () => {
         cloneTemplate({
           permission_type: cloneFormValue.value.permissionType.split('-')[0],
           creator_id: Number(storage.getValue('user_id')),
-          org_id: storage.getValue('orgId'),
+          org_id: storage.getValue('loginOrgId'),
           group_id: Number(cloneFormValue.value.permissionType.split('-')[1]),
           id: Number(cloneFormValue.value.cloneTemplateId)
         })

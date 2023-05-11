@@ -1,5 +1,7 @@
 import axios from '@/axios';
 import { unkonwnErrorMsg } from '@/assets/utils/description';
+import { workspace } from '@/assets/config/menu.js';
+
 function getRequest(url, data) {
   return new Promise((resolve, reject) => {
     axios
@@ -9,7 +11,9 @@ function getRequest(url, data) {
       })
       .catch((err) => {
         window.$notification?.error({
-          content: err.data.error_msg || unkonwnErrorMsg
+          content: err.data.error_msg || unkonwnErrorMsg,
+          duration: 5000,
+          keepAliveOnHover: true
         });
         reject(err);
       });
@@ -28,10 +32,10 @@ function getRequestWithoutCatch(url, data) {
   });
 }
 export function getRepo(data) {
-  return getRequest('/v1/git-repo', data);
+  return getRequest(`/v1/ws/${workspace.value}/git-repo`, data);
 }
 export function getSuite(data) {
-  return getRequest('/v1/suite', data);
+  return getRequest(`/v1/ws/${workspace.value}/suite`, data);
 }
 export function getPm(data) {
   return getRequest('/v1/accessable-machines', {
@@ -49,7 +53,7 @@ export function getChildrenJob(id, data) {
   return getRequest(`/v1/job/${id}/children`, data);
 }
 export function getJob(data) {
-  return getRequest('/v1/job', data);
+  return getRequest(`/v1/ws/${workspace.value}/job`, data);
 }
 export function getTemplateInfo(id, data) {
   return getRequest(`/v1/template/${id}`, data);
@@ -79,7 +83,7 @@ export function getCaseReview(data) {
   return getRequest('/v1/case/commit/query', data);
 }
 export function getMachineGroup(data) {
-  return getRequest('/v1/machine-group', data);
+  return getRequest(`/v1/ws/${workspace.value}/machine-group`, data);
 }
 export function getRootCert(data) {
   return new Promise((resolve, reject) => {
@@ -98,7 +102,7 @@ export function getCommitHistory(caseId, data) {
   return getRequest(`/v1/commit/history/${caseId}`, data);
 }
 export function getPmachine(data) {
-  return getRequest('/v1/pmachine', data);
+  return getRequest(`/v1/ws/${workspace.value}/pmachine`, data);
 }
 export function getPmachineBmc(pmachineId, data) {
   return getRequest(`/v1/pmachine/${pmachineId}/bmc`, data);
@@ -107,7 +111,7 @@ export function getPmachineSsh(pmachineId, data) {
   return getRequest(`/v1/pmachine/${pmachineId}/ssh`, data);
 }
 export function getVmachine(data) {
-  return getRequest('/v1/vmachine', data);
+  return getRequest(`/v1/ws/${workspace.value}/vmachine`, data);
 }
 export function getVmachineSsh(vmachineId, data) {
   return getRequest(`/v1/vmachine/${vmachineId}/ssh`, data);
@@ -122,7 +126,7 @@ export function getCaseDetail(id, data) {
   return getRequest(`/v1/case/${id}`, data);
 }
 export function getCasePrecise(data) {
-  return getRequest('/v1/case', data);
+  return getRequest(`/v1/ws/${workspace.value}/case`, data);
 }
 export function getExtendRole(data) {
   return getRequest('/v1/role/default', data);
@@ -134,7 +138,7 @@ export function getMilestone(productId, data) {
   return getRequest(`/v1/milestone/preciseget?product_id=${productId}`, data);
 }
 export function getAllMilestone(data) {
-  return getRequest('v2/milestone', data);
+  return getRequest(`v2/ws/${workspace.value}/milestone`, data);
 }
 export function getProductMessage(productId, data) {
   return getRequest(`/v1/qualityboard?product_id=${productId}`, data);
@@ -164,7 +168,7 @@ export function getOrgGroup(id, data) {
   return getRequest(`/v1/org/${id}/groups`, data);
 }
 export function getProduct(data) {
-  return getRequest('/v1/product', data);
+  return getRequest(`/v1/ws/${workspace.value}/product`, data);
 }
 export function getCaseNodeTask(id, data) {
   return getRequest(`/v1/case-node/${id}/task`, data);
@@ -277,7 +281,7 @@ export function getRequireAttributors(id, params) {
 }
 
 export function getMilestones(data) {
-  return getRequest('/v2/milestone', data);
+  return getRequest(`/v2/ws/${workspace.value}/milestone`, data);
 }
 
 export function getRoundIssueRate(roundId) {
@@ -297,7 +301,7 @@ export function getCaseNodeResource(id, data) {
 }
 
 export function getBaselineTemplates(data) {
-  return getRequest('/v1/baseline-template', data);
+  return getRequest(`/v1/ws/${workspace.value}/baseline-template`, data);
 }
 
 export function getBaselineTemplateItem(id, data) {
@@ -309,7 +313,7 @@ export function getScopedGitRepo(data) {
 }
 
 export function getFramework(data) {
-  return getRequest('/v1/framework', data);
+  return getRequest(`/v1/ws/${workspace.value}/framework`, data);
 }
 
 export function getSuiteDocuments(suiteId, data) {
@@ -345,7 +349,7 @@ export function getSuiteItem(suiteId) {
 }
 
 export function getManualJob(data) {
-  return getRequest('/v1/manual-job', data);
+  return getRequest(`/v1/ws/${workspace.value}/manual-job`, data);
 }
 
 export function getManualJobLog(jobId, stepId) {
@@ -396,4 +400,24 @@ export function getMultiVersionPackageAxios(roundId, param) {
 // 查询代码仓
 export function getGiteeProject() {
   return getRequest('/v1/gitee-project');
+}
+
+// 查询组织用户组与用户总数统计
+export function getOrgStat(orgId) {
+  return getRequest(`/v1/org/${orgId}/statistic`);
+}
+
+// 查询组织游离测试套列表
+export function getOrphanOrgSuites(param) {
+  return getRequest('/v1/org/orphan-suites', param);
+}
+
+// 查询团队游离测试套列表
+export function getOrphanGroupSuites(groupId, param) {
+  return getRequest(`/v1/group/${groupId}/orphan-suites`, param);
+}
+
+// 手动触发测试代码仓解析
+export function getGitRepoSync(repoId) {
+  return getRequestWithoutCatch(`/v1/git-repo/${repoId}/sync`);
 }

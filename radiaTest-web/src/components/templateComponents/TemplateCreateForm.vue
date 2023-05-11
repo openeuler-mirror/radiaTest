@@ -212,7 +212,7 @@ const onPositiveClick = () => {
         postData.milestone_id = formValue.value.milestone_id;
         postData.description = formValue.value.description;
         postData.git_repo_id = formValue.value.git_repo_id;
-        postData.cases = formValue.value.cases;
+        postData.cases = createAjax.exchangeCases(formValue.value.cases);
         await updateTemplateDrawer(postData, modalData.value.id);
       } else {
         await createAjax.postForm(formValue);

@@ -29,19 +29,15 @@ class FrameworkQuery(BaseModel):
 class GitRepoBase(PermissionBase):
     name: str
     git_url: HttpUrl
+    branch: str
     sync_rule: bool = True
     framework_id: int
-
-    @validator("permission_type")
-    def check_permission_type(cls, v):
-        if v != "group":
-            raise ValueError("gitrepo's permission_type must be group.")
-        return v
 
 
 class GitRepoQuery(BaseModel):
     name: Optional[str]
     git_url: Optional[HttpUrl]
+    branch: Optional[str]
     sync_rule: Optional[bool]
     framework_id: Optional[int]
 

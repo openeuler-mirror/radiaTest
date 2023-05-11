@@ -10,6 +10,7 @@ import { createRepoOptions } from '@/assets/utils/getOpts';
 import { getVm, getPm,getMachineGroup } from '@/api/get';
 import { NPopover } from 'naive-ui';
 import { unkonwnErrorMsg } from '@/assets/utils/description';
+import { workspace } from '@/assets/config/menu.js';
 
 const formRef = ref(null);
 const vmOptions = ref([]);
@@ -110,7 +111,7 @@ const clean = () => {
   totalMachineCount.value = 0;
 };
 function getFramework() {
-  axios.get('/v1/framework').then((res) => {
+  axios.get(`/v1/ws/${workspace.value}/framework`).then((res) => {
     frameworkOpts.value = res.data?.map((item) => ({
       label: item.name,
       value: String(item.id),

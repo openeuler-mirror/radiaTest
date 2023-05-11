@@ -215,8 +215,8 @@ export default defineComponent({
           value: {
             ...formValue.value,
             permission_type: createForm.basicFormValue.value.permission_type.split('-')[0],
-            creator_id: String(storage.getValue('user_id')),
-            org_id: storage.getValue('orgId'),
+            creator_id: Number(storage.getValue('user_id')),
+            org_id: storage.getValue('loginOrgId'),
             group_id: Number(createForm.basicFormValue.value.permission_type.split('-')[1]),
             machine_group_id:window.atob(router.currentRoute.value.params.machineId)
           }

@@ -76,8 +76,8 @@ class BaselineTemplateHandler:
 
     @staticmethod
     @collect_sql_error
-    def get_all(query):
-        filter_params = GetAllByPermission(BaselineTemplate).get_filter()
+    def get_all(query, workspace=None):
+        filter_params = GetAllByPermission(BaselineTemplate, workspace).get_filter()
         
         for key, value in query.dict().items():
             if not value:
@@ -638,16 +638,14 @@ class BaselineTemplateApplyHandler:
             )
         
         casenode = CaseNode.query.filter_by(id=case_node_id).first()
-        baseline = Baseline.query.filter(
-            Baseline.case_nodes.contains(casenode)
-        ).first()
-        if not baseline:
+
+        if not casenode.baseline:
             return jsonify(
                 error_code=RET.VERIFY_ERR,
                 error_msg="The baseline is not exist."
             )
         
-        baseline_id = baseline.id
+        baseline_id = casenode.baseline.id
         resp = BaselineTemplateApplyHandler.check_org_group(
             baseline_id, baseline_template_id
         )
@@ -674,7 +672,7 @@ class BaselineTemplateApplyHandler:
         map_node = dict()
         for base_node in base_nodes:
             _casenode, _case_node_old = BaselineTemplateApplyHandler.apply_select_casenode(
-                baseline, base_node
+                casenode.baseline, base_node
             )
             flag = BaselineTemplateApplyHandler.check_base_node_not_exist(
                 base_node, _casenode, res_old_casenode
@@ -682,7 +680,7 @@ class BaselineTemplateApplyHandler:
 
             if flag:
                 resp = BaselineTemplateApplyHandler.create_new_casenode(
-                    base_node, baseline, _casenode, res_node, nodes
+                    base_node, casenode.baseline, _casenode, res_node, nodes
                 )
 
                 if type(resp) == tuple:

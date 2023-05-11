@@ -57,6 +57,7 @@ declare module '@vue/runtime-core' {
     GanttView: typeof import('./src/components/tm/GanttView.vue')['default']
     Header: typeof import('./src/components/header/Header.vue')['default']
     HomeButton: typeof import('./src/components/public/HomeButton.vue')['default']
+    HomeMenu: typeof import('./src/components/header/HomeMenu.vue')['default']
     ImageCreateForm: typeof import('./src/components/milestoneComponents/milestoneImageForm/ImageCreateForm.vue')['default']
     ImageUpdateForm: typeof import('./src/components/milestoneComponents/milestoneImageForm/ImageUpdateForm.vue')['default']
     InstallButton: typeof import('./src/components/pmachineComponents/changeState/InstallButton.vue')['default']

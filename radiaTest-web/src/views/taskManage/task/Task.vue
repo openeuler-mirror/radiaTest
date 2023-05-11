@@ -922,6 +922,7 @@ import { IosSearch } from '@vicons/ionicons4';
 import { modules } from './modules/index';
 import Editor from '@tinymce/tinymce-vue';
 import CaseIssueModal from './CaseIssueModal.vue';
+import { workspace } from '@/assets/config/menu.js';
 
 export default defineComponent({
   components: {
@@ -966,7 +967,7 @@ export default defineComponent({
         temp.milestone_id = temp.milestone_id.join(',');
       }
       const allRequest = modules.listData.value.map((item) => {
-        return proxy.$axios.get('/v1/tasks', {
+        return proxy.$axios.get(`/v1/ws/${workspace.value}/tasks`, {
           ...temp,
           status_id: item.id
         });

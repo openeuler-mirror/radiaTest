@@ -368,3 +368,14 @@ class ResourceQuerySchema(BaseModel):
 
 class CaseSetQuerySchema(BaseModel):
     commit_type: CommitType = 'week'
+
+
+class CaseNodeSuitesCreateSchema(PermissionBase):
+    suites: List[int]
+
+
+class OrphanSuitesQuerySchema(PageBaseSchema):
+    name: Optional[str]
+    owner: Optional[str]
+    framework_name: Optional[str]
+    git_repo_url: Optional[str]

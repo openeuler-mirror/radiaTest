@@ -63,4 +63,7 @@ class Template(BaseModel, PermissionBaseModel, db.Model):
             "create_time": self.create_time.strftime("%Y-%m-%d %H:%M:%S"),
             "update_time": self.update_time.strftime("%Y-%m-%d %H:%M:%S"),
             "template_type": self.permission_type,
+            "creator_id": self.creator_id,
+            "group_id": self.group_id,
+            "org_id": self.org_id
         }

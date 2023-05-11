@@ -6,6 +6,7 @@ import { storage } from '@/assets/utils/storageUtils';
 import { NButton } from 'naive-ui';
 import { editTask } from '../task/modules/taskDetail.js';
 import { getGroup } from '@/api/get';
+import { workspace } from '@/assets/config/menu.js';
 
 const menuSelect = ref(null); // 当前页面索引值
 const isTask = ref(true); // 是否是任务看板页面
@@ -185,14 +186,14 @@ const recycleBinTaskColumns = [
 const menu = ref([
   {
     id: 0,
-    text: '个人概览',
+    text: 'Dashboard',
     name: 'dashboard'
   },
-  {
-    id: 1,
-    text: '需求中心',
-    name: 'require'
-  },
+  // {
+  //   id: 1,
+  //   text: '需求中心',
+  //   name: 'require'
+  // },
   {
     id: 2,
     text: '任务看板',
@@ -212,7 +213,7 @@ const menu = ref([
 
 //获取里程碑列表
 function getMilestones() {
-  axios.get('/v2/milestone', { page_num: 1, page_size: 999999 }).then((response) => {
+  axios.get(`/v2/ws/${workspace.value}/milestone`, { page_num: 1, page_size: 999999 }).then((response) => {
     if (response?.data) {
       milestones.value =
         response.data?.items?.map((item) => ({
@@ -227,7 +228,7 @@ function getMilestones() {
 function initCondition() {
   const allRequest = [
     axios.get('/v1/task/status'),
-    axios.get(`/v1/org/${storage.getValue('orgId')}/users`, {
+    axios.get(`/v1/org/${storage.getValue('loginOrgId')}/users`, {
       page_num: 1,
       page_size: 9999
     }),
@@ -272,10 +273,10 @@ function initCondition() {
 }
 
 // 页面切换
-function menuClick(item, index) {
-  menuSelect.value = index;
-  router.push(`/home/workflow/${item.name}`);
-  index === 2 ? (isTask.value = true) : (isTask.value = false);
+function menuClick(item) {
+  menuSelect.value = item.id;
+  router.push({ name: item.name });
+  item.id === 2 ? (isTask.value = true) : (isTask.value = false);
   item.name === 'task' ? (backable.value = false) : (backable.value = true);
 }
 
@@ -393,31 +394,31 @@ function filterchange(filterArray) {
 
 const watchRoute = () => {
   isDesign.value = false;
-  if (router.currentRoute.value.path === '/home/workflow/dashboard') {
+  if (router.currentRoute.value.name === 'dashboard') {
     menuSelect.value = 0;
     isTask.value = false;
     backable.value = false;
-  } else if (router.currentRoute.value.path === '/home/workflow/require') {
+  } else if (router.currentRoute.value.name === 'require') {
     menuSelect.value = 1;
     isTask.value = false;
     backable.value = false;
-  } else if (router.currentRoute.value.path === '/home/workflow/task') {
+  } else if (router.currentRoute.value.name === 'task') {
     menuSelect.value = 2;
     isTask.value = true;
     backable.value = false;
-  } else if (router.currentRoute.value.path.startsWith('/home/workflow/testing')) {
+  } else if (router.currentRoute.value.path.search('/workbench/testing/') !== -1) {
     menuSelect.value = 4;
     isTask.value = false;
     backable.value = false;
-  } else if (router.currentRoute.value.path === '/home/workflow/report') {
+  } else if (router.currentRoute.value.name === 'report') {
     menuSelect.value = 2;
     isTask.value = true;
     backable.value = true;
-  } else if (router.currentRoute.value.path === '/home/workflow/distribution') {
+  } else if (router.currentRoute.value.name === 'distribution') {
     menuSelect.value = 2;
     isTask.value = true;
     backable.value = true;
-  } else if (router.currentRoute.value.path === '/home/workflow/design') {
+  } else if (router.currentRoute.value.name === 'design') {
     menuSelect.value = 3;
     isTask.value = false;
     backable.value = false;

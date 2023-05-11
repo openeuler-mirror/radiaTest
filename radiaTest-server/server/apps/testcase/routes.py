@@ -15,17 +15,20 @@
 # 用例管理(Testcase)相关接口的route层
 
 import json
+
 from celeryservice.tasks import resolve_testcase_file
 from flask import request, g, jsonify, Response, send_file
 from flask_restful import Resource
 from flask_pydantic import validate
+
 from server import redis_client, casbin_enforcer
 from server.utils.redis_util import RedisKey
 from server.utils.auth_util import auth
-from server.utils.response_util import RET, response_collect
+from server.utils.response_util import RET, response_collect, workspace_error_collect
 from server.utils.permission_utils import GetAllByPermission
 from server.model.organization import Organization
 from server.model.group import Group
+from server.model.celerytask import CeleryTask
 from server.model.testcase import Suite, Case, CaseNode, SuiteDocument, Baseline
 from server.model.milestone import Milestone
 from server.utils.db import Insert, Edit, Delete, collect_sql_error
@@ -35,7 +38,9 @@ from server.schema.testcase import (
     CaseNodeBodySchema,
     CaseNodeQuerySchema,
     CaseNodeItemQuerySchema,
+    CaseNodeSuitesCreateSchema,
     CaseNodeUpdateSchema,
+    OrphanSuitesQuerySchema,
     SuiteCreate,
     CaseCreate,
     CaseCreateBody,
@@ -62,6 +67,7 @@ from server.apps.testcase.handler import (
     CaseImportHandler,
     CaseNodeHandler,
     CaseHandler,
+    OrphanSuitesHandler,
     TemplateCasesHandler,
     HandlerCaseReview,
     HandlerCommitComment,
@@ -81,9 +87,10 @@ class CaseNodeEvent(Resource):
 
     @auth.login_required()
     @response_collect
+    @workspace_error_collect
     @validate()
-    def get(self, query: CaseNodeQuerySchema):
-        return CaseNodeHandler.get_roots(query)
+    def get(self, workspace: str, query: CaseNodeQuerySchema):
+        return CaseNodeHandler.get_roots(query, workspace)
 
 
 class CaseNodeItemEvent(Resource):
@@ -169,14 +176,78 @@ class SuiteEvent(Resource):
 
     @auth.login_required()
     @response_collect
-    def get(self):
+    @workspace_error_collect
+    def get(self, workspace: str):
         body = dict()
 
         for key, value in request.args.to_dict().items():
             if value:
                 body[key] = value
 
-        return GetAllByPermission(Suite).fuzz(body)
+        return GetAllByPermission(Suite, workspace).fuzz(body)
+
+
+class OrphanOrgSuitesEvent(Resource):
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def get(self, query: OrphanSuitesQuerySchema):
+        handler = OrphanSuitesHandler(query)
+        handler.add_filters([
+            Suite.permission_type == "org",
+        ])
+        return handler.get_all()
+
+
+class OrphanGroupSuitesEvent(Resource):
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def get(self, group_id: int, query: OrphanSuitesQuerySchema):
+        handler = OrphanSuitesHandler(query)
+        handler.add_filters([
+            Suite.group_id == group_id,
+            Suite.permission_type == "group",
+        ])
+        return handler.get_all()
+
+class CaseNodeSuitesEvent(Resource):
+    @auth.login_required()
+    @response_collect
+    @collect_sql_error
+    @validate()
+    def post(self, case_node_id, body: CaseNodeSuitesCreateSchema):
+        case_node = CaseNode.query.filter_by(id=case_node_id).first()
+        if not case_node or not case_node.in_set:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg=f"case node #{case_node_id} does not exist/not valid",
+            )
+        
+        from celeryservice.tasks import async_create_testsuite_node
+        for suite_id in body.suites:
+            _task = async_create_testsuite_node.delay(
+                case_node.id,
+                suite_id,
+                body.permission_type,
+                body.org_id,
+                body.group_id,
+                g.gitee_id,
+            )
+            celerytask = {
+                "tid": _task.task_id,
+                "status": "PENDING",
+                "object_type": "create_testsuite_node",
+                "description": f"create case node related to suite#{suite_id} under {case_node.title}",
+                "user_id": g.gitee_id,
+            }
+
+            _ = Insert(CeleryTask, celerytask).single(CeleryTask, "/celerytask")
+
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+        )
 
 
 class SuiteItemEvent(Resource):
@@ -225,21 +296,26 @@ class SuiteItemEvent(Resource):
 
         if body.name and body.name != suite.name: 
             case_nodes = CaseNode.query.filter(
-                    CaseNode.suite_id==suite_id,
-                    ).all()
+                CaseNode.suite_id==suite_id,
+            ).all()
+
             if not case_nodes:
                 return jsonify(
                     error_code=RET.NO_DATA_ERR,
                     error_msg="the case_node does not exist"
                 )
 
-            return_resp = [CaseNodeHandler.update(
-                case_node.id, body
-            ) for case_node in case_nodes]
+            return_resp = [
+                CaseNodeHandler.update(
+                    case_node.id, body
+                ) for case_node in case_nodes
+            ]
+
             for resp in return_resp:
                 _resp = json.loads(resp.response[0])
                 if _resp.get("error_code") != RET.OK:
                     return _resp
+            
         return jsonify(error_code=RET.OK, error_msg="OK")
 
 
@@ -264,27 +340,29 @@ class SuiteItemEvent(Resource):
 class PreciseSuiteEvent(Resource):
     @auth.login_required
     @response_collect
-    def get(self):
+    @workspace_error_collect
+    def get(self, workspace: str):
         body = dict()
 
         for key, value in request.args.to_dict().items():
             if value:
                 body[key] = value
 
-        return GetAllByPermission(Suite).precise(body)
+        return GetAllByPermission(Suite, workspace).precise(body)
 
 
 class PreciseCaseEvent(Resource):
     @auth.login_required
     @response_collect
-    def get(self):
+    @workspace_error_collect
+    def get(self, workspace: str):
         body = dict()
 
         for key, value in request.args.to_dict().items():
             if value:
                 body[key] = value
 
-        return GetAllByPermission(Case).precise(body)
+        return GetAllByPermission(Case, workspace).precise(body)
 
 
 class CaseNodeCommitEvent(Resource):
@@ -351,13 +429,14 @@ class CaseEvent(Resource):
 
     @auth.login_required()
     @response_collect
-    def get(self):
+    @workspace_error_collect
+    def get(self, workspace: str):
         body = dict()
 
         for key, value in request.args.to_dict().items():
             if value:
                 body[key] = value
-        return GetAllByPermission(Case).precise(body)
+        return GetAllByPermission(Case, workspace).precise(body)
 
 
 
@@ -393,21 +472,26 @@ class CaseItemEvent(Resource):
         
         if body.name and body.name != _case.name: 
             case_nodes = CaseNode.query.filter(
-                    CaseNode.case_id == case_id,
-                    ).all()
+                CaseNode.case_id == case_id,
+            ).all()
+
             if not case_nodes:
                 return jsonify(
                     error_code=RET.NO_DATA_ERR,
                     error_msg="the case_node does not exist"
                 )
 
-            return_resp = [CaseNodeHandler.update(
-                case_node.id, body
-            ) for case_node in case_nodes]
+            return_resp = [
+                CaseNodeHandler.update(
+                    case_node.id, body
+                ) for case_node in case_nodes
+            ]
+
             for resp in return_resp:
                 _resp = json.loads(resp.response[0])
                 if _resp.get("error_code") != RET.OK:
                     return _resp
+        
         return jsonify(error_code=RET.OK, error_msg="OK")
 
 
@@ -457,8 +541,9 @@ class TemplateCasesQuery(Resource):
 class CaseRecycleBin(Resource):
     @auth.login_required()
     @response_collect
-    def get(self):
-        return GetAllByPermission(Case).precise({"deleted": 1})
+    @workspace_error_collect
+    def get(self, workspace: str):
+        return GetAllByPermission(Case, workspace).precise({"deleted": 1})
 
 
 class CaseImport(Resource):

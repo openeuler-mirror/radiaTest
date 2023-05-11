@@ -9,14 +9,6 @@ import { formatTime } from '@/assets/utils/dateFormatUtils.js';
 import { getCaseCommit } from '@/api/get';
 import userInfo from '@/components/user/userInfo.vue';
 
-const vmachineClick = (router) => {
-  router.push('/home/resource-pool/vmachine');
-};
-const handleGiteeClick = () => {
-  window.open('https://gitee.com/openeuler/radiaTest');
-};
-
-const showWorkbench = ref(false); // 显示工作台
 const workbench = ref(null); // 工作台DOM
 
 const layout = ref([
@@ -224,7 +216,7 @@ function myTasksRowProps(rowData) {
   return {
     style: 'cursor: pointer;',
     onClick: () => {
-      myRouter.push('/home/workflow/task');
+      myRouter.push({ name: 'task' });
       initDataKanban(() => {
         getDetail(rowData);
       });
@@ -498,23 +490,6 @@ function resizedEvent(i, newH, newW, newHPx) {
   }
 }
 
-function debounce(func, delay) {
-  let timeout;
-  return (...args) => {
-    if (args[0].deltaY > 0) {
-      showWorkbench.value = true;
-    }
-    clearTimeout(timeout);
-    timeout = setTimeout(() => {
-      if (args[0].deltaY > 0) {
-        func.apply(this, args);
-      }
-    }, delay);
-  };
-}
-// 滚轮下滚
-const handleWheelDown = debounce(initData, 1000);
-
 export {
   tasksloading,
   handleTasksPageChange,
@@ -523,13 +498,9 @@ export {
   machineSearch,
   machineSearchValue,
   getMachineData,
-  vmachineClick,
-  handleGiteeClick,
-  showWorkbench,
   workbench,
   layout,
   personalDataOverview,
-  handleWheelDown,
   personalRefresh,
   personalRefreshClick,
   machineRefresh,

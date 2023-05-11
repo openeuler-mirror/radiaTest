@@ -37,6 +37,7 @@ class PermissionBase(BaseModel):
 
 
 class VmachineCreateSchema(PermissionBase):
+    frame_number: List[dict]
     frame: Frame
     description: constr(min_length=10, max_length=255)
     milestone_id: int

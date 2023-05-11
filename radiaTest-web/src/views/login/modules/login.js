@@ -4,7 +4,6 @@ import axios from '@/axios';
 import router from '@/router/index';
 import { storage } from '@/assets/utils/storageUtils';
 import { addRoom } from '@/assets/utils/socketUtils';
-import { getCookieValByKey } from '@/assets/utils/cookieUtils';
 import { urlArgs, openChildWindow } from '@/assets/utils/urlUtils';
 import { changeLoadingStatus } from '@/assets/utils/loading';
 import { getClaOrg } from './org';
@@ -52,7 +51,6 @@ function handleLoginByForm() {
           changeLoadingStatus(false);
           if (res?.data) {
             storage.setValue('token', res.data.token);
-            storage.setValue('refresh_token', res.data.refresh_token);
             storage.setValue('role', 1);
             storage.setValue('account', res.data.account);
             router.push({ name: 'orgManagement' });
@@ -75,6 +73,8 @@ function requireEnterprise(orgid) {
   }
   return false;
 }
+
+// 组织登录按钮
 function hanleLogin(orgId) {
   changeLoadingStatus(true);
   storage.setValue('loginOrgId', Number(orgId));
@@ -112,12 +112,6 @@ function handleIsSuccess() {
   if (urlArgs().isSuccess === 'True') {
     setTimeout(() => {
       registerShow.value = false;
-      const isIframe = storage.getValue('isIframe');
-      if (!isIframe || isIframe !== '1') {
-        storage.setValue('token', getCookieValByKey('token'));
-        storage.setValue('refresh_token', getCookieValByKey('refresh_token'));
-        storage.setValue('user_id', getCookieValByKey('user_id'));
-      }
       router.push({ name: 'home' }).then(() => {
         addRoom(storage.getValue('token'));
       });
@@ -129,6 +123,8 @@ function handleIsSuccess() {
     getClaOrg();
   }
 }
+
+// 进入登录页面
 function gotoHome() {
   orgListLoading.value = true;
   getAllOrg().then((res) => {
@@ -143,16 +139,11 @@ function gotoHome() {
     loginByCode({
       code: urlArgs().code,
       org_id: storage.getValue('loginOrgId')
-    })
-      .then((res) => {
-        storage.setValue('token', getCookieValByKey('token'));
-        storage.setValue('refresh_token', getCookieValByKey('refresh_token'));
-        storage.setValue('user_id', getCookieValByKey('user_id'));
-        window.location = res.data;
-      })
-      .catch((err) => {
-        window.$message?.error(err?.data?.error_msg || '未知错误');
-      });
+    }).then((res) => {
+      storage.setValue('token', res.data?.token);
+      storage.setValue('user_id', res.data?.user_id);
+      window.location = res.data?.url; // login?isSuccess=True
+    });
   }
   handleIsSuccess();
 }

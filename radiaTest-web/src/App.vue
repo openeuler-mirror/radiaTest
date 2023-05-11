@@ -9,7 +9,7 @@
   >
     <n-dialog-provider>
       <n-loading-bar-provider>
-        <n-notification-provider>
+        <n-notification-provider :max="3">
           <n-message-provider>
             <router-view v-slot="{ Component }" :class="[routerClass]">
               <transition :name="transitionName">
@@ -114,8 +114,8 @@ export default {
   mounted() {
     window.addEventListener('beforeunload', () => {
       if (this.$route.path.startsWith('/home/tcm/folderview')) {
-        sessionStorage.setItem('refresh', 1); 
-      } 
+        sessionStorage.setItem('refresh', 1);
+      }
     });
     window.addEventListener('load', () => {
       if (this.$route.name !== 'login' && this.$route.path) {

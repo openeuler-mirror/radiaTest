@@ -13,9 +13,10 @@
 # @License : Mulan PSL v2
 #####################################
 import os
-import json
+import time
 import string
 import random
+import time
 
 from flask import current_app, request
 from flask.json import jsonify
@@ -50,7 +51,7 @@ from server.schema.vmachine import (
 )
 from server.utils.auth_util import auth
 from server.utils.db import Delete, Edit, Insert
-from server.utils.response_util import attribute_error_collect, response_collect, RET
+from server.utils.response_util import attribute_error_collect, response_collect, RET, workspace_error_collect
 from server.model import Vmachine, Vdisk, Vnic
 from server.utils.permission_utils import PermissionManager, GetAllByPermission
 from server.utils.resource_utils import ResourceManager
@@ -128,8 +129,8 @@ class PreciseVmachineEvent(Resource):
     @response_collect
     @attribute_error_collect
     @validate()
-    def get(self, query: VmachinePreciseQuerySchema):
-        return GetAllByPermission(Vmachine).precise(query.__dict__)
+    def get(self, workspace: str, query: VmachinePreciseQuerySchema):
+        return GetAllByPermission(Vmachine, workspace).precise(query.__dict__)
 
 
 class VmachineBatchDelayEvent(Resource):
@@ -199,25 +200,33 @@ class VmachineEvent(Resource):
                 id=body.machine_group_id
             ).first()
 
-        resp = VmachineMessenger(_body).send_request(
-            machine_group,
-            "/api/v1/vmachine",
-            "post",
-        )
-        resp_analyse = json.loads(resp.data.decode('UTF-8'))
-        if resp_analyse.get("error_code") == RET.OK and body.method in ["auto", "import"]:
-            redis_client.set(
-                body.name,
-                request.headers.get("authorization"),
-                ex=current_app.config.get("CALLBACK_EXPIRE_TIME")
-            )
+        frame_number = _body.pop("frame_number")
+        for item in frame_number:
+            for num in range(item.get("machine_num")):
+                _body.update({
+                    "frame": item.get("frame"),
+                    "name": (
+                            time.strftime("%y-%m-%d-")
+                            + str(time.time())
+                            + "-"
+                            + "".join(random.choice(string.ascii_lowercase + string.digits) for _ in range(10))
+                    )
+                })
+
+                resp = VmachineMessenger(_body).send_request(
+                    machine_group,
+                    "/api/v1/vmachine",
+                    "post",
+                )
+
         return resp
 
     @auth.login_required
     @response_collect
+    @workspace_error_collect
     @validate()
-    def get(self, query: VmachineQuerySchema):
-        return VmachineHandler.get_all(query)
+    def get(self, workspace: str, query: VmachineQuerySchema):
+        return VmachineHandler.get_all(query, workspace)
 
     @auth.login_required
     @response_collect
@@ -604,7 +613,7 @@ class VmachineStatusEvent(Resource):
 
 
 class VmachineCallBackEvent(Resource):
-    @callback_auth
+    @auth.login_required
     @response_collect
     def put(self, vmachine_id):
         _body = request.get_json()

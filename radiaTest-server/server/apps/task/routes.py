@@ -18,7 +18,7 @@ from flask_restful import Resource
 from flask_pydantic import validate
 from server import socketio, casbin_enforcer
 from server.utils.auth_util import auth
-from server.utils.response_util import response_collect, RET
+from server.utils.response_util import response_collect, RET, workspace_error_collect
 from server.schema.base import PageBaseSchema
 from server.schema.task import (
     AddTaskSchema,
@@ -115,9 +115,10 @@ class StatusOrder(Resource):
 class Task(Resource):
     @auth.login_required()
     @response_collect
+    @workspace_error_collect
     @validate()
-    def get(self, query: QueryTaskSchema):
-        return HandlerTask.get_all(g.user_id, query)
+    def get(self, workspace: str, query: QueryTaskSchema):
+        return HandlerTask.get_all(g.user_id, query, workspace)
 
     @auth.login_required()
     @response_collect

@@ -8,7 +8,7 @@ const createChildren = (arr) => {
   arr.forEach((item) => {
     tempArr.push({
       label: item.case_name,
-      key: item.case_id
+      key: `case-${item.case_id}`
     });
   });
 
@@ -23,7 +23,7 @@ const getData = (options, id) => {
       res.data.forEach((item) => {
         options.value.push({
           label: item.suite_name,
-          key: item.suite_id,
+          key: `suite-${item.suite_id}`,
           children: createChildren(item.case)
         });
       });
@@ -33,16 +33,22 @@ const getData = (options, id) => {
     });
 };
 
+const exchangeCases = (cases) => {
+  return cases?.map((item) => {
+    return item.replace('case-', '');
+  });
+};
+
 const postForm = (formValue) => {
   const postData = ref({
     name: formValue.value.name,
     milestone_id: formValue.value.milestone_id,
     description: formValue.value.description,
     git_repo_id: formValue.value.git_repo_id,
-    cases: formValue.value.cases,
+    cases: exchangeCases(formValue.value.cases),
     permission_type: formValue.value.permission_type.split('-')[0],
-    creator_id: String(storage.getValue('user_id')),
-    org_id: storage.getValue('orgId'),
+    creator_id: Number(storage.getValue('user_id')),
+    org_id: storage.getValue('loginOrgId'),
     group_id: Number(formValue.value.permission_type.split('-')[1])
   });
   createAjax.postForm('/v1/template', postData);
@@ -50,5 +56,6 @@ const postForm = (formValue) => {
 
 export default {
   getData,
-  postForm
+  postForm,
+  exchangeCases
 };

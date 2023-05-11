@@ -54,9 +54,6 @@ class CaseNode(BaseModel, PermissionBaseModel, db.Model):
     baseline_id = db.Column(db.Integer(), db.ForeignKey("baseline.id"))
 
     milestone_id = db.Column(db.Integer(), db.ForeignKey("milestone.id"))
-    base_nodes = db.relationship(
-        "BaseNode", backref="case_node", cascade="all, delete, delete-orphan"
-    )
 
     children = db.relationship(
         "CaseNode",
@@ -120,7 +117,7 @@ class Baseline(PermissionBaseModel, BaseModel, db.Model):
     suite_document = db.relationship(
         "SuiteDocument", backref="baseline", cascade="all, delete, delete-orphan"
     )
-    case_nodes = db.relationship(
+    case_node = db.relationship(
         "CaseNode", backref="baseline", cascade="all, delete, delete-orphan"
     )
 

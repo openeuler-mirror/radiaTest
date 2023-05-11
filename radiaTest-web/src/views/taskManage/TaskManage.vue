@@ -20,8 +20,10 @@
       <div class="nav-header">
         <div class="nav-body">
           <ul class="nav-wrapper">
-            <li v-for="(item, index) in menu" :key="index" @click="menuClick(item, index)">
-              <a :class="{ active: menuSelect === index }">{{ item.text }}</a>
+            <li v-for="(item, index) in menu" :key="index" @click="menuClick(item)">
+              <template v-if="showMenuItem(item)">
+                <a :class="{ active: menuSelect === item.id }">{{ item.text }}</a>
+              </template>
             </li>
           </ul>
         </div>
@@ -110,12 +112,6 @@
         <router-view></router-view>
       </n-dialog-provider>
     </template>
-    <template #action>
-      <n-divider />
-      <div style="text-align: center; color: grey; padding-top: 15px; padding-bottom: 0">
-        {{ `${config.name} ${config.version}·${config.license}` }}
-      </div>
-    </template>
   </n-card>
 </template>
 
@@ -126,7 +122,6 @@ import { BarChart, ArrowBackCircleOutline } from '@vicons/ionicons5';
 import { QuestionCircle20Regular, Delete48Regular, TextAlignDistributed20Filled } from '@vicons/fluent';
 import { modules } from './modules/index';
 import { useRoute } from 'vue-router';
-import config from '@/assets/config/settings';
 import filterButton from '@/components/filter/filterButton.vue';
 
 export default defineComponent({
@@ -143,6 +138,17 @@ export default defineComponent({
   },
   setup() {
     const route = useRoute();
+
+    const showMenuItem = (item) => {
+      if (item.name !== 'testing') {
+        if (window.atob(route.params?.workspace).search('group') !== -1) {
+          return false;
+        }
+        return true;
+      }
+      return true;
+    };
+
     watch(() => route.path, modules.watchRoute);
     onMounted(() => {
       modules.watchRoute();
@@ -150,7 +156,7 @@ export default defineComponent({
     });
 
     return {
-      config,
+      showMenuItem,
       ...modules
     };
   }
