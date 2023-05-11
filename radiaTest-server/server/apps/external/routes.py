@@ -409,8 +409,13 @@ class AtEvent(Resource):
         resp = messenger.send_request(machine_group, "/api/v1/openeuler/at")
         resp = json.loads(resp.data.decode('UTF-8'))
         if resp.get("error_code") == RET.OK:
-            _id = Insert(AtJob, {"build_name": body.get("release_url")}).insert_id(AtJob, "/at")
-            redis_client.set(body.get("release_url"), _id, ex=current_app.config.get("STORE_AT_MAX_TIME"))
+            at_job = AtJob.query.filter_by(build_name=body.get("release_url")).first()
+            _id = int()
+            if not at_job:
+                _id = at_job.id
+            else:
+                _id = Insert(AtJob, {"build_name": body.get("release_url")}).insert_id(AtJob, "/at")
+        redis_client.set(body.get("release_url"), _id, ex=current_app.config.get("STORE_AT_MAX_TIME"))
         return {
             "error_code": resp.get("error_code"),
             "error_msg": resp.get("error_msg")
