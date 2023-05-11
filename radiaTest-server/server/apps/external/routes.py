@@ -14,12 +14,12 @@
 
 
 #####################################
-from urllib import request as urllib_request, error
 from datetime import datetime, timedelta
 import os
 import re
 import shlex
 from subprocess import getstatusoutput
+import json
 import pytz
 
 import yaml
@@ -50,7 +50,9 @@ from celeryservice.tasks import resolve_dailybuild_detail, resolve_rpmcheck_deta
 from server.model.pmachine import Pmachine, MachineGroup
 from server.model.milestone import Milestone
 from server.utils.response_util import response_collect
-from server.apps.external.handler import UpdateRepo, UpdateTaskHandler, UpdateTaskForm, AtMessenger
+from server.apps.external.handler import UpdateRepo, UpdateTaskHandler, UpdateTaskForm, AtMessenger, AtHandler
+from server.model.job import AtJob
+from server import redis_client
 
 
 class UpdateTaskEvent(Resource):
@@ -382,27 +384,18 @@ class RpmCheckEvent(Resource):
 
 
 class AtEvent(Resource):
-    @auth.login_required
-    @response_collect
     @validate()
     def post(self):
         body = request.get_json()
-        try:
-            urllib_request.urlopen(body.get("release_url"))
-        except error.HTTPError:
-            return jsonify(
-                error_code=RET.NET_CONECT_ERR,
-                error_msg="the release url is unreachable {}".format(body.get("release_url"))
-            )
 
         pmachine_info = Pmachine.query.filter_by(
             description=current_app.config.get("OPENQA_SERVER"), state="occupied"
         ).first()
         if not pmachine_info:
-            return jsonify(
-                error_code=RET.NO_DATA_ERR,
-                error_msg="the openqa server machine does not exist"
-            )
+            return {
+                "error_code": RET.NO_DATA_ERR,
+                "error_msg": "the openqa server machine does not exist"
+            }
 
         machine_group = MachineGroup.query.filter_by(id=pmachine_info.machine_group_id).first()
         body.update({
@@ -413,7 +406,46 @@ class AtEvent(Resource):
         })
         messenger = AtMessenger(body)
 
-        return messenger.send_request(machine_group, "/api/v1/openeuler/at")
+        resp = messenger.send_request(machine_group, "/api/v1/openeuler/at")
+        resp = json.loads(resp.data.decode('UTF-8'))
+        if resp.get("error_code") == RET.OK:
+            _id = Insert(AtJob, {"build_name": body.get("release_url")}).insert_id(AtJob, "/at")
+            redis_client.set(body.get("release_url"), _id, ex=current_app.config.get("STORE_AT_MAX_TIME"))
+        return {
+            "error_code": resp.get("error_code"),
+            "error_msg": resp.get("error_msg")
+        }
+
+    def get(self):
+        buildname_x86 = request.values.get("release_url_x86_64")
+        buildname_aarch64 = request.values.get("release_url_aarch64")
+
+        at = AtHandler(buildname_x86, buildname_aarch64)
+        result = at.get_result()
+        if result[0]:
+            return {
+                "error_code": RET.OK,
+                "error_msg": "OK",
+                "data": result[1]
+            }
+        else:
+            return {
+                "error_code": RET.PARMA_ERR,
+                "error_msg": "unknown arch"
+            }
+
+    def put(self):
+        body = request.get_json()
+        _id = redis_client.get(body.get("build_name"))
+        if not _id:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="we couldn't decide update which at job info",
+            )
+        body.update({
+            "id": _id
+        })
+        return Edit(AtJob, body).single(AtJob, "/at")
 
 
 class GetTestReportFileEvent(Resource):
