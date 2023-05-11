@@ -272,7 +272,7 @@ class AtHandler:
                     else:
                         job_success_num += 1
 
-            release_path_item = self.buildname_x86.split("dailybuild")[1].replace("//", "").split("/")
+            release_path_item = build_list[0].split("dailybuild")[1].replace("//", "").split("/")
             version = release_path_item[0].replace("openEuler-", "")
             build = release_path_item[1].replace("openeuler", "")
             openqa_url = "{}/tests/overview?distri=openeuler&version={}&build={}".format(
