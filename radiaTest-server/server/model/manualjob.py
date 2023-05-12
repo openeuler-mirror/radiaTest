@@ -38,7 +38,7 @@ class ManualJob(BaseModel, db.Model, PermissionBaseModel):
     current_step = db.Column(db.Integer(), nullable=False, default=0)
     total_step = db.Column(db.Integer(), nullable=False)
 
-    creator_id = db.Column(db.Integer(), db.ForeignKey("user.user_id"))
+    creator_id = db.Column(db.String(512), db.ForeignKey("user.user_id"))
     milestone_id = db.Column(db.Integer(), db.ForeignKey("milestone.id"))
     case_id = db.Column(db.Integer(), db.ForeignKey("case.id"))
 

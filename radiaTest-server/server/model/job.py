@@ -49,7 +49,7 @@ class Job(BaseModel, db.Model, PermissionBaseModel):
     is_suite_job = db.Column(db.Boolean(), default=False)
     tid = db.Column(db.String(512))
 
-    creator_id = db.Column(db.Integer(), db.ForeignKey("user.gitee_id"))
+    creator_id = db.Column(db.String(512), db.ForeignKey("user.user_id"))
     group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
     org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
 
