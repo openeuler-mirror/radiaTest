@@ -118,50 +118,25 @@
               <n-space>
                 <n-radio value="personal"> 个人应用 </n-radio>
                 <n-radio value="enterprise"> 企业应用 </n-radio>
-                <n-radio value="public"> 公共应用 </n-radio>
               </n-space>
             </n-radio-group>
           </n-form-item>
-          <n-form-item
-            label="oauth_login_url"
-            path="oauthLoginUrl"
-            v-if="registerModel.authoritySecondaryType !== 'public' || registerModel.authorityType === 'oneid'"
-          >
+          <n-form-item label="oauth_login_url" path="oauthLoginUrl">
             <n-input v-model:value="registerModel.oauthLoginUrl" placeholder="请填写oauth_login_url"></n-input>
           </n-form-item>
-          <n-form-item
-            label="oauth_client_id"
-            path="oauthClientId"
-            v-if="registerModel.authoritySecondaryType !== 'public' || registerModel.authorityType === 'oneid'"
-          >
+          <n-form-item label="oauth_client_id" path="oauthClientId">
             <n-input v-model:value="registerModel.oauthClientId" placeholder="请填写oauth_client_id"></n-input>
           </n-form-item>
-          <n-form-item
-            label="oauth_client_secret"
-            path="oauthClientSecret"
-            v-if="registerModel.authoritySecondaryType !== 'public' || registerModel.authorityType === 'oneid'"
-          >
+          <n-form-item label="oauth_client_secret" path="oauthClientSecret">
             <n-input v-model:value="registerModel.oauthClientSecret" placeholder="请填写oauth_client_secret"></n-input>
           </n-form-item>
-          <n-form-item
-            label="oauth_scope"
-            path="oauthClientScope"
-            v-if="registerModel.authoritySecondaryType !== 'public' || registerModel.authorityType === 'oneid'"
-          >
+          <n-form-item label="oauth_scope" path="oauthClientScope">
             <n-dynamic-tags v-model:value="registerModel.oauthClientScope" />
           </n-form-item>
-          <n-form-item
-            label="oauth_get_token_url"
-            path="oauthGetTokenUrl"
-            v-if="registerModel.authoritySecondaryType !== 'public' || registerModel.authorityType === 'oneid'"
-          >
+          <n-form-item label="oauth_get_token_url" path="oauthGetTokenUrl">
             <n-input v-model:value="registerModel.oauthGetTokenUrl" placeholder="请填写oauth_get_token_url"></n-input>
           </n-form-item>
-          <n-form-item
-            label="oauth_get_user_info_url"
-            path="oauthGetUserInfoUrl"
-            v-if="registerModel.authoritySecondaryType !== 'public' || registerModel.authorityType === 'oneid'"
-          >
+          <n-form-item label="oauth_get_user_info_url" path="oauthGetUserInfoUrl">
             <n-input
               v-model:value="registerModel.oauthGetUserInfoUrl"
               placeholder="请填写oauth_get_user_info_url"

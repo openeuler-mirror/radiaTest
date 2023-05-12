@@ -29,7 +29,7 @@ const registerModel = reactive({
   orgId: null,
   organizationAvatar: null,
   authorityType: 'gitee',
-  authoritySecondaryType: 'public',
+  authoritySecondaryType: 'personal',
   oauthLoginUrl: null,
   oauthGetTokenUrl: null,
   oauthGetUserInfoUrl: null
@@ -147,6 +147,7 @@ function changeAuthoritySecondaryTypeGroup(value) {
 // 关闭表单
 function closeOrgFrom() {
   showRegisterOrgWindow.value = false;
+  requireCla.value = false;
   fileList.value = [];
   registerModel.name = null;
   registerModel.description = null;
@@ -157,7 +158,7 @@ function closeOrgFrom() {
   registerModel.urlParams = [];
   registerModel.bodyParams = [];
   registerModel.authorityType = 'gitee';
-  registerModel.authoritySecondaryType = 'public';
+  registerModel.authoritySecondaryType = 'personal';
   registerModel.oauthLoginUrl = null;
   registerModel.oauthClientId = null;
   registerModel.oauthClientSecret = null;
@@ -221,9 +222,7 @@ function submitOrgInfo() {
   formData.append('cla_verify_body', JSON.stringify(claVerifyBody));
   formData.append('description', registerModel.description);
 
-  if (registerModel.authorityType === 'gitee' && registerModel.authoritySecondaryType === 'public') {
-    formData.append('authority', 'default');
-  } else if (registerModel.authorityType === 'oneid') {
+  if (registerModel.authorityType === 'oneid') {
     formData.append('authority', 'oneid');
     formData.append('oauth_login_url', registerModel.oauthLoginUrl);
     formData.append('oauth_client_id', registerModel.oauthClientId);

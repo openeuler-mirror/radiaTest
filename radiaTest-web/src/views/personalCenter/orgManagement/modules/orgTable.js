@@ -21,7 +21,7 @@ function cloneRegisterModel(row) {
     registerModel.urlParams.push({ key, value: row.cla_verify_params[key] });
   }
   for (const key in row.cla_verify_body) {
-    registerModel.bodyParams.push({ key, value: row.cla_verify_params[key] });
+    registerModel.bodyParams.push({ key, value: row.cla_verify_body[key] });
   }
   const cloneData = JSON.parse(JSON.stringify(row));
   Object.keys(cloneData).forEach((key) => {
@@ -29,13 +29,9 @@ function cloneRegisterModel(row) {
       cloneData[key] = undefined;
     }
   });
-  if (cloneData.authority === 'default') {
-    registerModel.authorityType = 'gitee';
-    registerModel.authoritySecondaryType = 'public';
-  } else if (cloneData.authority === 'oneid') {
+  if (cloneData.authority === 'oneid') {
     registerModel.authorityType = 'oneid';
-    registerModel.authoritySecondaryType = 'public';
-  } else if (cloneData.authority === 'gitee' && cloneData.enterpriseId) {
+  } else if (cloneData.authority === 'gitee' && cloneData.enterprise_id) {
     registerModel.authorityType = 'gitee';
     registerModel.authoritySecondaryType = 'enterprise';
   } else {

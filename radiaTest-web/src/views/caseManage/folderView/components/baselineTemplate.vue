@@ -775,7 +775,9 @@ function handleInheritButtonClick() {
           type: 'group',
           disabled: true
         });
+      }
     });
+  });
 }
 
 onMounted(() => {
