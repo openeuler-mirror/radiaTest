@@ -162,6 +162,12 @@ task_queues = (
         routing_key="rc_name",
     ),
     Queue(
+        "queue_resolve_pkglist_from_url",
+        exchange=Exchange("server_exchange", type="direct"),
+        routing_key="pkglist_from_url",
+    ),
+    
+    Queue(
         "queue_resolve_openeuler_pkglist",
         exchange=Exchange("server_exchange", type="direct"),
         routing_key="pkglist",
@@ -170,6 +176,11 @@ task_queues = (
         "queue_update_compare_result",
         exchange=Exchange("compare_result", type="direct"),
         routing_key="compare_result",
+    ),
+    Queue(
+        "queue_update_daily_compare_result",
+        exchange=Exchange("daily_compare_result", type="direct"),
+        routing_key="daily_compare_result",
     ),
     Queue(
         "queue_send_vmachine_release_message",

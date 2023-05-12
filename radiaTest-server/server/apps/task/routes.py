@@ -50,6 +50,8 @@ from server.schema.task import (
     DistributeTemplate,
     DeleteTaskList,
     MilestoneTaskSchema,
+    UpdateTaskPercentageSchema,
+    QueryTaskByTimeSchema,
 )
 from server.apps.task.handlers import (
     HandlerTaskStatus,
@@ -118,7 +120,7 @@ class Task(Resource):
     @workspace_error_collect
     @validate()
     def get(self, workspace: str, query: QueryTaskSchema):
-        return HandlerTask.get_all(g.gitee_id, query, workspace)
+        return HandlerTask.get_all(query, workspace)
 
     @auth.login_required()
     @response_collect
@@ -146,6 +148,23 @@ class TaskItem(Resource):
     @casbin_enforcer.enforcer
     def put(self, task_id, body: UpdateTaskSchema):
         return HandlerTask.update(task_id, body)
+
+
+class TaskGantt(Resource):
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def get(self, query: QueryTaskByTimeSchema):
+        return HandlerTask.get_all_gantt_tasks(query)
+
+
+class TaskPercentage(Resource):
+    @auth.login_required()
+    @response_collect
+    @validate()
+    @casbin_enforcer.enforcer
+    def put(self, task_id, body: UpdateTaskPercentageSchema):
+        return HandlerTask.update_percentage(task_id, body.percentage)
 
 
 class ParticipantItem(Resource):

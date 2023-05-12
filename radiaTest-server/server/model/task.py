@@ -2,10 +2,10 @@ import pandas as pd
 
 from server import db
 from server.model.base import BaseModel, PermissionBaseModel
-from .group import Group
-from .job import Analyzed
-from .testcase import Suite
-from .user import User
+from server.model.group import Group
+from server.model.job import Analyzed
+from server.model.testcase import Suite
+from server.model.user import User
 
 re_task_tag = db.Table('re_task_tag',
                        db.Column('task_id', db.Integer, db.ForeignKey('task.id'), primary_key=True),
@@ -102,7 +102,7 @@ class TaskMilestone(db.Model, BaseModel):
                         case_result = case_result_se.to_list()[0]
                 case_json['result'] = case_result
                 manual_cases.append(case_json)
-        # return auto_cases, manual_cases
+
         return {
             'id': self.id,
             'task_id': self.task_id,
@@ -155,6 +155,7 @@ class Task(db.Model, PermissionBaseModel, BaseModel):
     automatic_finish = db.Column(db.Boolean, default=False, nullable=False)  # 子任务完成，任务是否自动完成
     is_manage_task = db.Column(db.Boolean, default=False, nullable=False)  # 是否管理型任务
     test_strategy = db.Column(db.Boolean, default=False, nullable=False)  # 测试策略任务
+    percentage = db.Column(db.Integer, default=0, nullable=False)  # 测试任务进度
     status_id = db.Column(db.Integer, db.ForeignKey("task_status.id"), nullable=True)  # 任务分类表关联
     case_node_id = db.Column(db.Integer, db.ForeignKey("case_node.id"), nullable=True)
 
@@ -181,6 +182,23 @@ class Task(db.Model, PermissionBaseModel, BaseModel):
             return True
         else:
             return False
+
+    def to_gantt_dict(self):
+        user = User.query.get(self.executor_id)
+        _url = None
+        if user:
+            _url = user.avatar_url
+        return {
+            "id": self.id,
+            "name": self.title,
+            "description": self.abstract,
+            "start_time":self.convert_time_format(self.start_time),
+            "end_time": self.convert_time_format(self.deadline),
+            "percentage": self.percentage,
+            "type": self.type,
+            "heightLine": 1,
+            "url": _url,
+        }
 
 
 class TaskComment(BaseModel, PermissionBaseModel, db.Model):
@@ -226,7 +244,6 @@ class TaskTag(BaseModel, db.Model):
 class TaskReportContent(BaseModel, db.Model):
     __tablename__ = "task_report_content"
     task_id = db.Column(db.Integer, db.ForeignKey("task.id"), primary_key=True)
-    # model_id = db.Column(db.Integer, db.ForeignKey("task_report_model.id"), primary_key=True)
     title = db.Column(db.String(50), nullable=False)
     content = db.Column(db.Text, nullable=False)
     creator_id = db.Column(db.Integer(), db.ForeignKey("user.gitee_id"))

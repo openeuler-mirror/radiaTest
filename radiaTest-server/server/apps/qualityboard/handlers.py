@@ -38,7 +38,7 @@ from server.utils.response_util import RET
 from server.utils.page_util import PageUtil
 from server.utils.md_util import MdUtil
 from server.utils.rpm_util import RpmName, RpmNameComparator, RpmNameLoader
-from celeryservice.tasks import resolve_pkglist_after_resolve_rc_name
+from celeryservice.tasks import resolve_pkglist_after_resolve_rc_name, resolve_pkglist_from_url
 
 
 class ChecklistHandler:
@@ -634,6 +634,54 @@ class PackageListHandler:
         )
 
 
+class DailyBuildPackageListHandler(PackageListHandler):
+    def __init__(self, repo_name, repo_path, arch, repo_url) -> None:
+        self.repo_name = repo_name
+        self.repo_path = f"{repo_name}-{repo_path}-{arch}"
+        self.repo_url = repo_url
+        self.packages = self.get_packages() 
+
+    def get_packages(self):
+        _path = current_app.config.get("PRODUCT_PKGLIST_PATH")
+
+        try:
+            return RpmNameLoader.load_rpmlist_from_file(
+                f"{_path}/{self.repo_path}.pkgs",
+            )
+        except FileNotFoundError as e:
+            raise ValueError(
+                f"resolve packages of {self.repo_name} failed, " \
+                f"please refetch data manually or check whether it exists in {self.repo_url}"
+            ) from e
+
+    @staticmethod
+    def get_all_packages_file(repo_name, repo_url):
+        key_val = f"resolving_{repo_name}_pkglist"
+        _keys = redis_client.keys(key_val)
+        if len(_keys) > 0:
+            raise RuntimeError(
+                f"LOCKED: the packages of {repo_name} " \
+                f"has been in resolving process, " \
+                "please wait in patient or try again after a half hour"
+            )
+        redis_client.hmset(
+            key_val,
+            {
+                "gitee_id": g.gitee_id,
+                "resolve_time": datetime.now(
+                    tz=pytz.timezone('Asia/Shanghai')
+                ).strftime("%Y-%m-%d %H:%M:%S")
+            }
+        )
+        redis_client.expire(key_val, 1800)
+        _path = current_app.config.get("PRODUCT_PKGLIST_PATH")
+        resolve_pkglist_from_url.delay(
+            repo_name=repo_name,
+            repo_url=repo_url,
+            store_path=_path,
+        )
+
+
 class RoundHandler:
     @staticmethod
     def add_round(product_id, milestone_id):
@@ -788,7 +836,7 @@ class CompareRoundHandler:
 
 
 class PackagCompareResultExportHandler:
-    def __init__(self, repo_path, round_id=None, rg=None, arches=None) -> None:
+    def __init__(self, repo_path=None, round_id=None, rg=None, arches=None) -> None:
         self.repo_path = repo_path
         self.round_id = round_id
         self.rg = rg
