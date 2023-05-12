@@ -2,10 +2,12 @@
   <div
     class="ganttitem-container"
     :style="{
-      left: positionLeft + 'px',
+      background: bgColor,
+      left: currentPosition + 'px',
       top: positionTop + 'px',
-      width: itemWidth + 'px'
+      width: currentWidth + 'px'
     }"
+    @click="jumpToDetail"
   >
     <div class="item-wrap">
       <div class="bar" :style="{ width: barWidth + 'px' }"></div>
@@ -15,7 +17,9 @@
             <ArrowBigLeft />
           </n-icon>
         </div>
-        <div class="item-image"></div>
+        <div class="item-image">
+          <n-avatar :size="34" round :src="options.url" />
+        </div>
         <div class="item-text">
           <div class="item-label">{{ options.name }}</div>
           <div class="item-description">{{ options.description }}</div>
@@ -33,6 +37,7 @@
 <script setup>
 import dayjs from 'dayjs';
 import { ArrowBigLeft, ArrowBigRight } from '@vicons/tabler';
+import { getDetail } from '@/views/taskManage/task/modules/taskDetail.js';
 
 const props = defineProps([
   'options',
@@ -41,9 +46,10 @@ const props = defineProps([
   'totalMonths',
   'zoomValue',
   'startDateCalendar',
-  'endDateCalendar'
+  'endDateCalendar',
+  'scrollLeft'
 ]);
-const { options, monthRangeValue, totalDays, totalMonths, zoomValue, startDateCalendar, endDateCalendar } =
+const { options, monthRangeValue, totalDays, totalMonths, zoomValue, startDateCalendar, endDateCalendar, scrollLeft } =
   toRefs(props);
 const positionLeft = ref(0); // 左偏移
 const positionTop = ref(0); // 上偏移
@@ -54,6 +60,7 @@ const showRightArror = ref(false); // 显示右箭头
 const startDate = dayjs(options.value.start_time); // 任务开始日期
 const endDate = dayjs(options.value.end_time); // 任务结束日期
 
+// 按月显示
 // eslint-disable-next-line complexity
 const initMonth = () => {
   let startMonth = startDate.diff(startDateCalendar.value, 'month'); // 任务开始位置
@@ -92,13 +99,14 @@ const initMonth = () => {
     positionLeft.value = (startMonth + startDatePosition) * 80;
   }
   positionTop.value = (options.value.heightLine - 1) * 72 + 11;
-  barWidth.value = itemWidth.value * options.value.percentage;
+  barWidth.value = itemWidth.value * (options.value.percentage / 100);
 };
 
+// 按日显示
 // eslint-disable-next-line complexity
 const initDay = () => {
-  let startDay = startDate.diff(startDateCalendar.value, 'day'); // 任务开始位置
-  let endDay = endDate.diff(startDateCalendar.value, 'day'); // 任务结束位置
+  let startDay = startDate.diff(startDateCalendar.value, 'day'); // 任务开始相对偏移天数
+  let endDay = endDate.diff(startDateCalendar.value, 'day'); // 任务结束相对偏移天数
 
   if (
     (startDate.isBefore(startDateCalendar.value) && endDate.isBefore(startDateCalendar.value)) ||
@@ -129,10 +137,58 @@ const initDay = () => {
 
   positionLeft.value = startDay * 80 + 6;
   positionTop.value = (options.value.heightLine - 1) * 72 + 11;
-  barWidth.value = itemWidth.value * options.value.percentage;
+  barWidth.value = itemWidth.value * (options.value.percentage / 100);
 };
 
-watch([zoomValue, monthRangeValue, startDateCalendar], () => {
+const currentWidth = computed(() => {
+  if (scrollLeft.value > positionLeft.value) {
+    let width = itemWidth.value - scrollLeft.value + positionLeft.value - 1;
+    return width > 0 ? width : 0;
+  }
+  return itemWidth.value;
+});
+const currentPosition = computed(() => {
+  if (scrollLeft.value > positionLeft.value) {
+    return scrollLeft.value;
+  }
+  return positionLeft.value;
+});
+
+const bgColor = computed(() => {
+  let color = '';
+  switch (options.value.type) {
+    case 'PERSON':
+      color = '#3da8f5';
+      break;
+    case 'GROUP':
+      color = '#ff8040';
+      break;
+    case 'ORGANIZATION':
+      color = '#4a38e6';
+      break;
+    case 'VERSION':
+      color = '#8000ff';
+      break;
+    default:
+      break;
+  }
+  return color;
+});
+
+const jumpToDetail = () => {
+  getDetail(options.value);
+};
+
+// 监听heightLine变化
+watch([zoomValue, monthRangeValue, options], () => {
+  if (zoomValue.value === 'day') {
+    initDay();
+  } else {
+    initMonth();
+  }
+});
+
+onMounted(() => {
   if (zoomValue.value === 'day') {
     initDay();
   } else {
@@ -145,9 +201,9 @@ watch([zoomValue, monthRangeValue, startDateCalendar], () => {
 .ganttitem-container {
   position: absolute;
   height: 50px;
-  background: rgb(231, 76, 60);
   border-radius: 4px;
-  z-index: 2;
+  z-index: 3;
+  cursor: pointer;
 
   .item-wrap {
     position: relative;
@@ -161,38 +217,36 @@ watch([zoomValue, monthRangeValue, startDateCalendar], () => {
         135deg,
         transparent,
         transparent 10px,
-        rgba(255, 255, 255, 0.15) 10px,
-        rgba(255, 255, 255, 0.15) 20px
+        rgba(255, 255, 255, 0.55) 10px,
+        rgba(255, 255, 255, 0.55) 20px
       );
     }
 
     .items-row-item-label {
       display: flex;
       height: 50px;
-      padding: 4px 4px;
+      align-items: center;
 
       .item-icon {
         align-items: center;
         display: flex;
+        overflow: hidden;
       }
 
       .item-image {
-        // flex-shrink: 0;
-        background: url('~@/assets/images/face.jpg');
-        border-radius: 100%;
-        width: 34px;
-        height: 34px;
-        vertical-align: middle;
-        background-size: 100%;
-        margin: 4px 1px 0px 0px;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
       }
 
       .item-text {
         margin: 4px;
+        height: 100%;
         width: calc(100% - 60px);
 
         .item-label {
-          line-height: 1em;
+          height: 30px;
+          line-height: 40px;
           color: #fff;
           font-weight: 400;
           overflow: hidden;
@@ -201,10 +255,10 @@ watch([zoomValue, monthRangeValue, startDateCalendar], () => {
         }
 
         .item-description {
+          height: 20px;
           font-size: 11px;
-          margin-top: 5px;
           color: #fffffff0;
-          line-height: 1em;
+          line-height: 20px;
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;

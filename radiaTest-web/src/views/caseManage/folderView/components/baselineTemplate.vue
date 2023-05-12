@@ -775,8 +775,7 @@ function handleInheritButtonClick() {
     });
     getOrgGroup(storage.getValue('loginOrgId'), {
       page_num: 1,
-      page_size: 99999,
-      is_delete: false
+      page_size: 99999
     }).then((_res) => {
       for (const item of _res.data.items) {
         inheritOptions.value.push({
@@ -943,7 +942,7 @@ watch(showInheritModal, () => {
 .inherit-icon-container {
   display: flex;
   justify-content: center;
-  align-item: center;
+  align-items: center;
   margin-bottom: 20px;
 }
 .inherit-selector {
