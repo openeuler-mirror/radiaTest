@@ -156,28 +156,29 @@
       @negative-click="cancelDeleteCallback"
     />
     <n-modal v-model:show="showNodeCreateModal" preset="card" style="width: 600px" title="新建子节点" :bordered="false">
-      <n-radio-group v-model:value="nodeCreateForm.type" style="margin-bottom: 20px;">
+      <n-radio-group v-model:value="nodeCreateForm.type" style="margin-bottom: 20px">
         <n-space>
           <n-radio value="directory">目录</n-radio>
           <n-radio value="suite">测试套</n-radio>
-          <n-radio value="case">测试用例</n-radio>
+          <n-radio value="case" v-if="selectedNode.type === 'suite'">测试用例</n-radio>
         </n-space>
       </n-radio-group>
       <n-form ref="nodeCreateFormRef" :model="nodeCreateForm" :rules="nodeCreateRules">
         <n-form-item path="title" label="目录命名" v-if="nodeCreateForm.type === 'directory'">
           <n-input
             v-if="nodeCreateForm.type == 'directory'"
-            style="width: 400px;"
+            style="width: 400px"
             clearable
             v-model:value="nodeCreateForm.title"
           />
         </n-form-item>
-        <n-form-item 
-          v-if="nodeCreateForm.type !== 'directory'"   
-          :label="`关联${nodeCreateForm.type==='suite'?'测试套':'测试用例'}`" 
+        <n-form-item
+          v-if="nodeCreateForm.type !== 'directory'"
+          :label="`关联${nodeCreateForm.type === 'suite' ? '测试套' : '测试用例'}`"
           path="case_node_ids"
         >
           <n-tree-select
+            v-if="nodeCreateForm.type === 'suite'"
             v-model:value="nodeCreateForm.case_node_ids"
             :options="casesetNodeOptions"
             :show-path="true"
@@ -188,7 +189,16 @@
             :allow-checking-not-loaded="true"
             max-tag-count="responsive"
             clearable
-            :placeholder="`请确保选后清单中含有${nodeCreateForm.type==='suite'?'测试套':'测试用例'}`"
+            :placeholder="`请确保选后清单中含有${nodeCreateForm.type === 'suite' ? '测试套' : '测试用例'}`"
+          />
+          <n-select
+            v-else
+            v-model:value="nodeCreateForm.case_node_ids"
+            :options="suiteCaseOptions"
+            multiple
+            show-checkmark
+            filterable
+            clearable
           />
         </n-form-item>
       </n-form>
@@ -316,7 +326,7 @@ const showNodeEditModal = ref(false);
 const nodeCreateForm = ref({
   title: undefined,
   case_node_ids: undefined,
-  type: 'directory',
+  type: 'directory'
 });
 const nodeEditForm = ref({
   title: undefined
@@ -466,13 +476,18 @@ function renderOptions(node) {
   return _options;
 }
 
+const currentCaseNodeId = ref(null);
+const suiteCaseOptions = ref([]);
+
 function handleContextMenu(e) {
   e.preventDefault();
   if (selectedNode.value) {
     showDropdown.value = false;
     if (selectedNode.value.id) {
       getBaseNode(selectedNode.value.id).then((res) => {
+        selectedNode.value.type = res.data.type;
         options.value = renderOptions(res.data);
+        currentCaseNodeId.value = res.data.case_node_id;
         nextTick(() => {
           showDropdown.value = true;
           x.value = e.clientX;
@@ -708,7 +723,7 @@ function createChildNode() {
       nodeCreateForm.value = {
         title: undefined,
         case_node_ids: undefined,
-        type: 'directory',
+        type: 'directory'
       };
       getBaselineTemplateItem(checkedItem.value.id)
         .then((res) => {
@@ -811,21 +826,33 @@ const setNodeOptions = (array) => {
   }));
 };
 
-watch(() => nodeCreateForm.value.type, () => {
-  if (nodeCreateForm.value.type !== 'directory') {
-    getCaseSetNodes(props.type, window.atob(router.params.taskId)).then((res) => {
-      casesetNodeOptions.value = [];
-      for (const i in res.data) {
-        casesetNodeOptions.value.push({
-          label: res.data[i].name,
-          key: res.data[i].name,
-          isLeaf: false,
-          children: setNodeOptions(res.data[i].children)
+watch(
+  () => nodeCreateForm.value.type,
+  () => {
+    if (nodeCreateForm.value.type === 'suite') {
+      getCaseSetNodes(props.type, window.atob(router.params.taskId)).then((res) => {
+        casesetNodeOptions.value = [];
+        for (const i in res.data) {
+          casesetNodeOptions.value.push({
+            label: res.data[i].name,
+            key: res.data[i].name,
+            isLeaf: false,
+            children: setNodeOptions(res.data[i].children)
+          });
+        }
+      });
+    } else if (nodeCreateForm.value.type === 'case') {
+      getCaseNode(currentCaseNodeId.value).then((res) => {
+        suiteCaseOptions.value = res.data.children.map((item) => {
+          return {
+            label: item.title,
+            value: item.id
+          };
         });
-      }
-    });
+      });
+    }
   }
-});
+);
 
 watch(showInheritModal, () => {
   if (showInheritModal.value === false) {

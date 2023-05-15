@@ -431,3 +431,8 @@ export function getTasksGantt(data) {
 export function getGanttMilestones(data) {
   return getRequest('/v2/milestone/gantt', data);
 }
+
+// 根据测试套查测试用例
+export function getCasesBySuite(data) {
+  return getRequest('/v1/case-set-node', data);
+}
