@@ -193,6 +193,11 @@ task_queues = (
         routing_key="samerpm_compare_result",
     ),
     Queue(
+        "queue_create_case_node_multi_select",
+        exchange=Exchange("server_exchange", type="direct"),
+        routing_key="create_case_node",
+    ),
+    Queue(
         "queue_check_pmachine_lifecycle",
         exchange=Exchange("server_exchange", type="direct"),
         routing_key="pmachine_lifecycle",

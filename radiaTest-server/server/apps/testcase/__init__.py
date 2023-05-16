@@ -55,6 +55,7 @@ from server.apps.testcase.routes import (
     OrphanOrgSuitesEvent,
     OrphanGroupSuitesEvent,
     CaseNodeSuitesEvent,
+    QueryCaseSetNodeEvent,
 )
 
 
@@ -64,6 +65,11 @@ def init_api(api: Api):
         "/api/v1/case-node",
         "/api/v1/ws/<string:workspace>/case-node",
         methods=["POST", "GET"]
+    )
+    api.add_resource(
+        QueryCaseSetNodeEvent,
+        "/api/v1/case-set-node",
+        methods=["GET"]
     )
     api.add_resource(
         CaseNodeItemEvent,
