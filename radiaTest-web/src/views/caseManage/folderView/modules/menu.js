@@ -28,6 +28,7 @@ import {
   getCaseNodeRoot,
   getOrphanOrgSuites,
   getOrphanGroupSuites,
+  getCasesBySuite
 } from '@/api/get';
 import { addBaseline, casenodeApplyTemplate } from '@/api/post';
 import { updateCaseNodeParent } from '@/api/put';
@@ -191,7 +192,7 @@ function getDirectory(node) {
             actions.unshift(createChildrenAction);
           } else {
             actions.unshift(renameAction);
-            actions.unshift(relateTestcaseAction);
+            actions.unshift(relateSuiteAction);
             actions.unshift(createChildrenDirectoryAction);
             actions.unshift(applyBaselineTemplate);
           }
@@ -376,16 +377,7 @@ const infoRules = {
     return true;
   }
 };
-const inputInfoRules = {
-  required: true,
-  trigger: ['input', 'blur'],
-  validator() {
-    if (inputInfo.value === '') {
-      return new Error('必填项');
-    }
-    return true;
-  }
-};
+
 const milestoneId = ref();
 const milestoneLoading = ref(false);
 const milestoneOptions = ref([]);
@@ -475,7 +467,7 @@ function handleNormalDialogConfirm(confirmFn, node, d, contentType) {
       confirmFn(node);
       d.destroy();
     }
-  } else if (inputInfoRules.validator() === true && infoRules.validator() === true) {
+  } else if (infoRules.validator() === true) {
     confirmFn(node);
     d.destroy();
   } else {
@@ -721,6 +713,7 @@ function moveCaseNodeContent(node) {
   return form;
 }
 
+// 关联测试套/关联测试用例下拉框选择项
 const setNodeOptions = (array, relateType) => {
   return array.map((item) => {
     let newKey = `${item.type}-${item.id}`;
@@ -729,6 +722,7 @@ const setNodeOptions = (array, relateType) => {
     } else if (item.type === 'case') {
       newKey = `case-${item.case_id}`;
     }
+
     return {
       label: item.title,
       info: item,
@@ -743,90 +737,121 @@ const setNodeOptions = (array, relateType) => {
   });
 };
 
+const caseOptions = ref([]); // 关联测试用例选项
+
+// 关联测试套/关联测试用例弹框
 function relateSuiteCaseContent(node, relateType) {
   const titleDict = {
     suite: '测试套',
     case: '测试用例'
   };
-  const form = h('div', null, [
-    h(
-      NFormItem,
-      {
-        label: '新增子节点名称:',
-        rule: inputInfoRules
-      },
-      h(NInput, {
-        value: inputInfo.value,
-        onUpdateValue: (value) => {
-          inputInfo.value = value;
-        }
-      })
-    ),
-    h(
-      NFormItem,
-      {
-        label: `关联${titleDict[relateType]}:`,
-        rule: infoRules
-      },
-      h(NTreeSelect, {
-        keyField: 'relationKey',
-        value: info.value,
-        onUpdateValue: (value) => {
-          info.value = value;
+  let form;
+  if (relateType === 'case') {
+    form = h('div', null, [
+      h(
+        NFormItem,
+        {
+          label: `关联${titleDict[relateType]}:`,
+          rule: infoRules
         },
-        renderPrefix: ({ option }) => {
-          return h(
-            NIcon,
-            {
-              color: option.iconColor
-            },
-            {
-              default: () => h(option.icon)
-            }
-          );
-        },
-        onFocus: () => {
-          let id = '';
-          let type = '';
-          if (node.info.group_id) {
-            id = node.info.group_id;
-            type = 'group';
-          } else if (node.info.org_id) {
-            id = node.info.org_id;
-            type = 'org';
-          }
-          moveLoading.value = true;
-          getCaseSetNodes(type, id).then((res) => {
-            moveOptions.value = [];
-            for (const i in res.data) {
-              moveOptions.value.push({
-                label: i,
-                relationKey: i,
-                disabled: true,
-                isLeaf: false,
-                children: setNodeOptions(res.data[i].children, relateType)
+        h(NSelect, {
+          value: info.value,
+          multiple: true,
+          clearable: true,
+          filterable: true,
+          options: caseOptions.value,
+          loading: moveLoading.value,
+          onUpdateValue: (value) => {
+            info.value = value;
+          },
+          onFocus: () => {
+            moveLoading.value = true;
+            caseOptions.value = [];
+            getCasesBySuite({ suite_id: node.info.suite_id }).then((res) => {
+              caseOptions.value = res.data.children.map((item) => {
+                return {
+                  label: item.title,
+                  value: `${item.type}-${item.case_id}`
+                };
               });
-            }
-            moveLoading.value = false;
-          });
-        },
-        showPath: true,
-        loading: moveLoading.value,
-        options: moveOptions.value,
-        remote: true,
-        filterable: true,
-        onLoad: (option) => {
-          moveLoading.value = true;
-          return new Promise((resolve) => {
-            getCaseNode(option, relateType).then(() => {
               moveLoading.value = false;
-              resolve();
             });
-          });
-        }
-      })
-    )
-  ]);
+          }
+        })
+      )
+    ]);
+  } else {
+    form = h('div', null, [
+      h(
+        NFormItem,
+        {
+          label: `关联${titleDict[relateType]}:`,
+          rule: infoRules
+        },
+        h(NTreeSelect, {
+          keyField: 'relationKey',
+          value: info.value,
+          multiple: true,
+          checkable: true,
+          onUpdateValue: (value) => {
+            info.value = value;
+          },
+          renderPrefix: ({ option }) => {
+            return h(
+              NIcon,
+              {
+                color: option.iconColor
+              },
+              {
+                default: () => h(option.icon)
+              }
+            );
+          },
+          onFocus: () => {
+            let id = '';
+            let type = '';
+            if (node.info.group_id) {
+              id = node.info.group_id;
+              type = 'group';
+            } else if (node.info.org_id) {
+              id = node.info.org_id;
+              type = 'org';
+            }
+            moveLoading.value = true;
+            getCaseSetNodes(type, id).then((res) => {
+              moveOptions.value = [];
+              for (const i in res.data) {
+                moveOptions.value.push({
+                  label: i,
+                  relationKey: i,
+                  disabled: true,
+                  isLeaf: false,
+                  children: setNodeOptions(res.data[i].children, relateType)
+                });
+              }
+              moveLoading.value = false;
+            });
+          },
+          showPath: true,
+          cascade: true,
+          checkStrategy: 'child',
+          loading: moveLoading.value,
+          options: moveOptions.value,
+          remote: true,
+          filterable: true,
+          onLoad: (option) => {
+            moveLoading.value = true;
+            return new Promise((resolve) => {
+              getCaseNode(option, relateType).then(() => {
+                moveLoading.value = false;
+                resolve();
+              });
+            });
+          }
+        })
+      )
+    ]);
+  }
   return form;
 }
 
@@ -977,23 +1002,28 @@ function moveCaseNode(node) {
     getCaseNode(node.parent);
   });
 }
+
+// 关联测试套/关联测试用例
 function relateSuiteCase(node, nodeType) {
   let data = {
-    title: inputInfo.value,
     type: nodeType,
     group_id: node.info.group_id,
     org_id: node.info.org_id,
-    parent_id: node.info.id
+    parent_id: node.info.id,
+    multiselect: true
   };
+  let idArray = info.value.map((item) => {
+    return Number(item.split('-').at(-1));
+  });
   if (nodeType === 'suite') {
-    data.suite_id = info.value.split('-').at(-1);
+    data.suite_ids = idArray;
   } else {
-    data.case_id = info.value.split('-').at(-1);
+    data.case_ids = idArray;
   }
   axios
     .post('/v1/case-node', data)
     .then(() => {
-      window.$message.success('创建成功');
+      window.$message.success('创建中……如未显示请手动刷新目录');
       getCaseNode(node);
     })
     .catch((err) => {
@@ -1050,30 +1080,25 @@ function newCase(node, caseId, title) {
 
 function getOrphanSuitesReq() {
   if (createSuitesTargetNode.value.group_id) {
-    getOrphanGroupSuites(
-      createSuitesTargetNode.value.group_id,
-      {
-        page_num: orphanSuitesPagination.page,
-        page_size: orphanSuitesPagination.pageSize,
-      }
-    )
-      .then((res) => {
-        orphanSuitesData.value = res.data.items;
-        orphanSuitesPagination.pageCount = res.data.pages;
-        orphanSuitesPagination.itemCount = res.data.total;
-        createSuitesShow.value = true;
-      });
+    getOrphanGroupSuites(createSuitesTargetNode.value.group_id, {
+      page_num: orphanSuitesPagination.page,
+      page_size: orphanSuitesPagination.pageSize
+    }).then((res) => {
+      orphanSuitesData.value = res.data.items;
+      orphanSuitesPagination.pageCount = res.data.pages;
+      orphanSuitesPagination.itemCount = res.data.total;
+      createSuitesShow.value = true;
+    });
   } else {
     getOrphanOrgSuites({
       page_num: orphanSuitesPagination.page,
-      page_size: orphanSuitesPagination.pageSize,
-    })
-      .then((res) => {
-        orphanSuitesData.value = res.data.items;
-        orphanSuitesPagination.pageCount = res.data.pages;
-        orphanSuitesPagination.itemCount = res.data.total;
-        createSuitesShow.value = true;
-      });
+      page_size: orphanSuitesPagination.pageSize
+    }).then((res) => {
+      orphanSuitesData.value = res.data.items;
+      orphanSuitesPagination.pageCount = res.data.pages;
+      orphanSuitesPagination.itemCount = res.data.total;
+      createSuitesShow.value = true;
+    });
   }
 }
 
@@ -1268,7 +1293,6 @@ function getNode(caseNodeId) {
     }
     let index = 0;
     selectKey.value = `${res.data.type}-${treePath[treePath.length - 1]}`;
-    console.log(selectKey.value);
     treePath.reduce((pre, current, currentIndex) => {
       return new Promise((resolve) => {
         if (currentIndex === 1) {
@@ -1364,5 +1388,5 @@ export {
   submitCreateCase,
   clearSelectKey,
   extendSubmit,
-  getOrphanSuitesReq,
+  getOrphanSuitesReq
 };

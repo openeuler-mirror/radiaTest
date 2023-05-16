@@ -16,6 +16,18 @@
         <n-select v-model:value="zoomValue" :options="zoomOptions" @update:value="changeZoom" />
       </div>
     </n-gi>
+    <n-gi>
+      <div class="menuItem">
+        <div class="itemTitle">任务类型</div>
+        <n-select v-model:value="taskType" :options="taskTypeOptions" @update:value="changeTaskType" />
+      </div>
+    </n-gi>
+    <n-gi>
+      <div class="menuItem" v-show="taskType === 'group'">
+        <div class="itemTitle">团队名称</div>
+        <n-select v-model:value="groupValue" :options="groupOptions" @update:value="changeGroup" />
+      </div>
+    </n-gi>
   </n-grid>
   <div id="gstc" class="gstc" v-if="dataList.length">
     <div class="gstc-list">
@@ -121,7 +133,7 @@
 <script setup>
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
-import { getTasksGantt, getGanttMilestones } from '@/api/get.js';
+import { getTasksGantt, getGanttMilestones, getGroup } from '@/api/get.js';
 import { showModal } from '@/views/taskManage/task/modules/taskDetail.js';
 
 dayjs.extend(customParseFormat); // 拓展支持的自定义时间格式
@@ -162,6 +174,39 @@ const zoomOptions = [
 ];
 const scrollLeft = ref(0);
 
+const taskType = ref('all');
+const taskTypeOptions = [
+  {
+    label: '全部任务',
+    value: 'all'
+  },
+  {
+    label: '版本任务',
+    value: 'version'
+  },
+  {
+    label: '组织任务',
+    value: 'organization'
+  },
+  {
+    label: '团队任务',
+    value: 'group'
+  }
+];
+const changeTaskType = (typeValue) => {
+  if (typeValue !== 'group') {
+    groupValue.value = null;
+  }
+  getData();
+};
+
+const groupValue = ref(null);
+const groupOptions = ref([]);
+const changeGroup = () => {
+  getData();
+};
+
+// 计算月份数量、月份数组、年份数组、总天数、总月数、日历开始日期、日历结束日期
 const initDate = (dateArray) => {
   showSpin.value = true;
   monthNum.value = dayjs(dateArray[1]).diff(dateArray[0], 'month') + 1;
@@ -298,7 +343,8 @@ const taskTime = computed(() => {
 const getData = () => {
   dataList.value = [];
   milestonesList.value = [];
-  getTasksGantt({ task_time: JSON.stringify(taskTime.value) })
+  showSpin.value = true;
+  getTasksGantt({ task_time: JSON.stringify(taskTime.value), type: taskType.value, group_id: groupValue.value })
     .then((res) => {
       dataList.value = res.data;
       calcHeightLine();
@@ -311,6 +357,21 @@ const getData = () => {
       milestonesList.value.push({
         name: item.name,
         startTime: item.start_time
+      });
+    });
+  });
+};
+
+const getGroupOptions = () => {
+  groupOptions.value = [];
+  getGroup({
+    page_num: 1,
+    page_size: 999999
+  }).then((res) => {
+    res.data?.items.forEach((item) => {
+      groupOptions.value.push({
+        label: item.name,
+        value: item.id
       });
     });
   });
@@ -331,6 +392,7 @@ watch(showModal, () => {
 
 onMounted(() => {
   initDate(monthRangeValue.value);
+  getGroupOptions();
 });
 </script>
 
