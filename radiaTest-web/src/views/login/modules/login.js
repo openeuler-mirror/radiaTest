@@ -79,23 +79,13 @@ function hanleLogin(orgId) {
   changeLoadingStatus(true);
   storage.setValue('loginOrgId', Number(orgId));
   storage.setValue('hasEnterprise', requireEnterprise(orgId));
-  const isIframe = storage.getValue('isIframe');
   axios
     .get('/v1/oauth/login', { org_id: Number(orgId) })
     .then((res) => {
       if (res?.data) {
         const giteeUrl = res.data;
         changeLoadingStatus(false);
-        if (isIframe && isIframe === '1') {
-          window.parent.postMessage(
-            {
-              giteeUrl
-            },
-            '*'
-          );
-        } else {
-          window.location = giteeUrl;
-        }
+        window.location = giteeUrl;
       } else {
         changeLoadingStatus(false);
         throw new Error(res.error_msg);

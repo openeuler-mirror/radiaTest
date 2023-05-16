@@ -17,13 +17,10 @@ export default defineComponent({
   },
   methods: {},
   setup() {
-    modules.iframeLogin();
+    modules.initData();
     return {
       ...modules
     };
-  },
-  beforeUnmount() {
-    window.removeEventListener('message', modules.getIframeMessage(), false);
   }
 });
 </script>

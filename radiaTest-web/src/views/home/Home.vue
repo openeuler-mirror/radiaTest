@@ -12,6 +12,7 @@
 import { useMessage, useNotification, useDialog } from 'naive-ui';
 import MugenHeader from '@/components/header/Header';
 import { showFunctionMenu, workspace } from '@/assets/config/menu.js';
+import { iframeLogin }  from '../dashboard/modules/iframeLogin.js';
 
 const message = useMessage();
 const notification = useNotification();
@@ -33,6 +34,10 @@ watchEffect(() => {
   } else {
     showFunctionMenu.value = false;
   }
+});
+
+onMounted(() => {
+  iframeLogin();
 });
 </script>
 
