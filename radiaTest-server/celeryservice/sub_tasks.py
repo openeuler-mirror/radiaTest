@@ -18,7 +18,7 @@ from celery import current_app as celery
 from celery.utils.log import get_task_logger
 
 from server.utils.db import Insert, Edit, collect_sql_error
-from server.model.testcase import Suite, Case
+from server.model.testcase import Suite, Case, CaseNode
 from server.model.framework import GitRepo
 from server.schema.testcase import SuiteBase, SuiteUpdate, CaseBaseSchemaWithSuiteId
 from server.model.qualityboard import SameRpmCompare, RpmCompare
@@ -180,3 +180,49 @@ def update_samerpm_compare_result(round_id: int, results, repo_path):
                     "compare_result": result.get("compare_result"),
                 }
             ).single()
+
+
+@celery.task
+@collect_sql_error
+def create_case_node_multi_select(body):
+    from server import db
+
+    def insert_case_node(body):
+        _casenode = CaseNode(
+            title=body.get("title"),
+            type=body.get("type"),
+            is_root=False,
+            in_set=body.get("in_set"),
+            group_id=body.get("group_id"),
+            org_id=body.get("org_id"),
+            creator_id=body.get("creator_id"),
+            case_id=body.get("case_id") if body.get("case_id") else None,
+            suite_id=body.get("suite_id") if body.get("suite_id") else None,
+            baseline_id=body.get("baseline_id") if body.get("baseline_id") else None,
+            permission_type=body.get("permission_type")
+        )
+        db.session.add(_casenode)
+        db.session.commit()
+        parent = CaseNode.query.filter_by(id=body.get("parent_id")).first()
+        _casenode.parent.append(parent)
+        _casenode.add_update()
+
+    if body.get("type") == "case":
+        case_ids = body.get("case_ids")[:]
+        body.pop("case_ids")
+        for _id in case_ids:
+            _case = Case.query.get(_id)
+            if _case:
+                body["case_id"] = _id
+                body["title"] = _case.name
+                insert_case_node(body)
+    elif body.get("type") == "suite":
+        suite_ids = body.get("suite_ids")[:]
+        body.pop("suite_ids")
+        for _id in suite_ids:
+            _suite = Suite.query.get(_id)
+            if _suite:
+                body["suite_id"] = _id
+                body["title"] = _suite.name
+                insert_case_node(body)
+        

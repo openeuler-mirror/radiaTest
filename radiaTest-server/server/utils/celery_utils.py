@@ -125,6 +125,11 @@ def make_celery(app_name):
                 'routing_key': 'samerpm_compare_result',
                 'delivery_mode': 1,
             },
+            'celeryservice.sub_tasks.create_case_node_multi_select': {
+                'queue': 'queue_create_case_node_multi_select',
+                'routing_key': 'create_case_node',
+                'delivery_mode': 1,
+            },
             'celeryservice.tasks.async_check_pmachine_lifecycle': {
                 'queue': 'queue_check_pmachine_lifecycle',
                 'routing_key': 'pmachine_lifecycle',
