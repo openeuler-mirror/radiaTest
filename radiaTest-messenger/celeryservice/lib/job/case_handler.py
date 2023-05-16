@@ -17,10 +17,10 @@ from celeryservice.lib.adapter.executor_adapter import ExecutorAdaptor
 from messenger.utils.pssh import ConnectionApi
 from messenger.utils.requests_util import create_request, do_request, query_request, update_request
 from messenger.utils.response_util import RET
-from messenger.apps.vmachine.handlers import DeleteVmachine, DeviceManager, RequestWorkerParam, MachineInfoParam
+from messenger.apps.vmachine.handlers import DeleteVmachine
 from messenger.apps.pmachine.handlers import AutoInstall
-from messenger.schema.vmachine import VmachineBaseSchema, VmachineCreateSchema, VnicBaseSchema, VdiskBaseSchema
-from messenger.schema.job import JobCreateSchema, JobUpdateSchema
+from messenger.schema.vmachine import VmachineCreateSchema, MessengerVdiskBaseSchema, MessengerVnicBaseSchema
+from messenger.schema.job import JobCreateSchema
 from celeryservice.lib.framework import FrameworkDict
 
 
@@ -66,7 +66,7 @@ class RunCaseHandler(TaskAuthHandler):
             self._body.pop("id")
 
             child = create_request(
-                "/api/v1/job",
+                "/api/v1/ws/default/job",
                 {
                     "parent_id": parent.get("id"),
                     **JobCreateSchema(**self._body).dict()
@@ -88,7 +88,6 @@ class RunCaseHandler(TaskAuthHandler):
             "running_time": self.running_time,
             **kwargs,
         })
-
         update_body = deepcopy(self._body)
         _job_id = update_body.pop("id")
 
@@ -137,7 +136,6 @@ class RunCaseHandler(TaskAuthHandler):
             None,
             self.user.get("auth")
         )
-
         if not _milestone:
             raise RuntimeError("cannot get milestone data")
 
@@ -168,7 +166,6 @@ class RunCaseHandler(TaskAuthHandler):
             },
             self.user.get("auth"),
         )
-
         if qcow2_mirror:
             self._body.update({"method": "import"})
         elif iso_mirror:
@@ -178,12 +175,20 @@ class RunCaseHandler(TaskAuthHandler):
 
     def install_vmachine(self, quantity):
         self.vm_install_method()
-
         self._body.update({"description": "used for CI job:%s" % self._name})
-
+        current_app.logger.info("install vmachine body:{},quantity:{}".format(self._body, quantity))
         for num in range(quantity):
-            self._body.update({"name": self._name + "-" + str(num + 1)})
-
+            frame_number = list()
+            item = dict()
+            item.update({
+                "frame": self._body.get("frame"),
+                "machine_num": 1
+            })
+            frame_number.append(item)
+            self._body.update({
+                "name": self._name + "-" + str(num + 1),
+                "frame_number": frame_number
+            })
             _data = VmachineCreateSchema(**self._body).dict()
             _data.pop("end_time")
 
@@ -191,7 +196,7 @@ class RunCaseHandler(TaskAuthHandler):
                 "/api/v1/vmachine",
                 _data,
                 self.user.get("auth")
-            ) 
+            )
 
             self._new_vmachines["id"].append(resp_data.get("id"))
 
@@ -199,7 +204,7 @@ class RunCaseHandler(TaskAuthHandler):
         while times < 30:
             num = 0
             vmachines = query_request(
-                "/api/v1/vmachine/preciseget",
+                "/api/v1/ws/default/vmachine/preciseget",
                 {
                     "description": self._body.get("description")
                 },
@@ -221,30 +226,61 @@ class RunCaseHandler(TaskAuthHandler):
         )
 
     def increase_vnic(self, machines, quantity):
+        times = 0
         for machine in machines:
-            for _ in range(quantity):
-                request_worker_param = RequestWorkerParam(
-                    self.user.get("auth"),
-                    VnicBaseSchema(**{"vmachine_id": machine.id}).dict(),
-                    "virtual/machine/vnic"
+            while times < 30:
+                num = 0
+                vnic_data = MessengerVnicBaseSchema(
+                    **{"vmachine_id": machine.get("id")}
+                ).dict()
+                create_request(
+                    "/api/v1/vnic",
+                    vnic_data,
+                    self.user.get("auth")
                 )
-                machine_info_param = MachineInfoParam()
-
-                DeviceManager(request_worker_param, machine_info_param).add("vnic")
+                times += 1
+                time.sleep(5)
+                vnics = query_request(
+                    "/api/v1/vnic",
+                    {
+                        "vmachine_id": machine.get("id")
+                    },
+                    self.user.get("auth")
+                )
+                for vnic in vnics:
+                    if vnic.get("mac") is not None:
+                        num += 1
+                if num == quantity:
+                    break
 
     def increase_vdisk(self, machines, capacities):
         for machine in machines:
             for capacity in capacities:
-                request_worker_param = RequestWorkerParam(
-                    self.user.get("auth"),
-                    VdiskBaseSchema(
-                        **{"vmachine_id": machine.id, "capacity": capacity}
-                    ).dict(),
-                    "virtual/machine/vdisk"
-                )
-                machine_info_param = MachineInfoParam()
-
-                DeviceManager(request_worker_param, machine_info_param).add("vdisk")
+                num = 0
+                times = 0
+                while times < 30:
+                    vdisk_data = MessengerVdiskBaseSchema(
+                        **{"vmachine_id": machine.get("id"), "capacity": capacity}
+                    ).dict()
+                    create_request(
+                        "/api/v1/vdisk",
+                        vdisk_data,
+                        self.user.get("auth")
+                    )
+                    times += 1
+                    time.sleep(5)
+                    vdisks = query_request(
+                        "/api/v1/vdisk",
+                        {
+                            "vmachine_id": machine.get("id")
+                        },
+                        self.user.get("auth")
+                    )
+                    if vdisks[num].get("capacity") == capacity:
+                        num += 1
+                        break
+                if num == len(capacities):
+                    break
 
     def get_pmachine(self, quantity, pmachine_pool):
         if self._body.get("machine_policy") == "auto":
@@ -341,13 +377,13 @@ class RunCaseHandler(TaskAuthHandler):
             add_disk = env_params.get("add_disk")
 
             self._name = (
-                self._root_name
-                + '_m'
-                + str(machine_num if machine_num else 0)
-                + '_n'
-                + str(add_network if add_network else 0)
-                + '_d'
-                + str(add_disk if add_disk else 0)
+                    self._root_name
+                    + '_m'
+                    + str(machine_num if machine_num else 0)
+                    + '_n'
+                    + str(add_network if add_network else 0)
+                    + '_d'
+                    + str(add_disk if add_disk else 0)
             )
 
             self._body.update({
@@ -365,6 +401,7 @@ class RunCaseHandler(TaskAuthHandler):
                     self.increase_vnic(new_machines, add_network)
 
                 if add_disk:
+                    current_app.logger.info(f"new_machines:{new_machines},add_disk:{add_disk}")
                     self.increase_vdisk(new_machines, add_disk.split(","))
 
             elif machine_type == "physical":
@@ -384,7 +421,7 @@ class RunCaseHandler(TaskAuthHandler):
             ssh = self.connect_master(machines)
 
             self._update_job(status="DEPLOYING")
-            
+
             git_repo = query_request(
                 "/api/v1/git-repo/{}".format(
                     self._body.get("git_repo_id")
@@ -432,7 +469,7 @@ class RunCaseHandler(TaskAuthHandler):
                 _start_time = datetime.datetime.now(tz=pytz.timezone('Asia/Shanghai'))
 
                 testsuite = query_request(
-                    "/api/v1/suite/preciseget",
+                    "/api/v1/ws/default/suite/preciseget",
                     {
                         "name": suite_cases[0]
                     },
@@ -440,7 +477,7 @@ class RunCaseHandler(TaskAuthHandler):
                 )
 
                 testcase = query_request(
-                    "/api/v1/case/preciseget",
+                    "/api/v1/ws/default/case/preciseget",
                     {
                         "name": suite_cases[1]
                     },
@@ -513,10 +550,8 @@ class RunCaseHandler(TaskAuthHandler):
             )
 
         except (RuntimeError, ValueError) as e:
-            current_app.logger.error(e)
             self.is_blocked = True
-
-            self.logger.error(str(e))
+            self.logger.error("case job failed reason:{}".format(str(e)))
 
             self._update_job(
                 result="fail",
@@ -541,7 +576,7 @@ class RunCaseHandler(TaskAuthHandler):
                         "end_time": datetime.datetime.now(
                             tz=pytz.timezone('Asia/Shanghai')
                         )
-                        + datetime.timedelta(
+                                    + datetime.timedelta(
                             days=current_app.config.get("RUN_JOB_VM_EXPIRED")
                         )
                     }
@@ -580,7 +615,7 @@ class RunCaseHandler(TaskAuthHandler):
             if not self.is_blocked:
                 self._update_job(
                     status="DONE",
-                    end_time=datetime.datetime.now(tz=pytz.timezone('Asia/Shanghai'))
+                    end_time=datetime.datetime.now(tz=pytz.timezone('Asia/Shanghai')).strftime("%Y-%m-%d %H:%M:%S")
                 )
 
             return {
