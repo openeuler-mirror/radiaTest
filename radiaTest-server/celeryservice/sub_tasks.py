@@ -187,26 +187,31 @@ def update_samerpm_compare_result(round_id: int, results, repo_path):
 def create_case_node_multi_select(body):
     from server import db
 
-    def insert_case_node(body):
-        _casenode = CaseNode(
-            title=body.get("title"),
-            type=body.get("type"),
-            is_root=False,
-            in_set=body.get("in_set"),
-            group_id=body.get("group_id"),
-            org_id=body.get("org_id"),
-            creator_id=body.get("creator_id"),
-            case_id=body.get("case_id") if body.get("case_id") else None,
-            suite_id=body.get("suite_id") if body.get("suite_id") else None,
-            baseline_id=body.get("baseline_id") if body.get("baseline_id") else None,
-            permission_type=body.get("permission_type")
-        )
-        db.session.add(_casenode)
-        db.session.commit()
-        parent = CaseNode.query.filter_by(id=body.get("parent_id")).first()
-        _casenode.parent.append(parent)
-        _casenode.add_update()
+    def insert_case_node(body, parent):
+        casenode = CaseNode.query.filter(
+            CaseNode.title == body.get("title"),
+            CaseNode.parent.contains(parent)
+        ).first()
+        if not casenode:
+            _casenode = CaseNode(
+                title=body.get("title"),
+                type=body.get("type"),
+                is_root=False,
+                in_set=body.get("in_set"),
+                group_id=body.get("group_id"),
+                org_id=body.get("org_id"),
+                creator_id=body.get("creator_id"),
+                case_id=body.get("case_id") if body.get("case_id") else None,
+                suite_id=body.get("suite_id") if body.get("suite_id") else None,
+                baseline_id=body.get("baseline_id") if body.get("baseline_id") else None,
+                permission_type=body.get("permission_type")
+            )
+            db.session.add(_casenode)
+            db.session.commit()
+            _casenode.parent.append(parent)
+            _casenode.add_update()
 
+    parent = CaseNode.query.filter_by(id=body.get("parent_id")).first()
     if body.get("type") == "case":
         case_ids = body.get("case_ids")[:]
         body.pop("case_ids")
@@ -215,7 +220,7 @@ def create_case_node_multi_select(body):
             if _case:
                 body["case_id"] = _id
                 body["title"] = _case.name
-                insert_case_node(body)
+                insert_case_node(body, parent)
     elif body.get("type") == "suite":
         suite_ids = body.get("suite_ids")[:]
         body.pop("suite_ids")
@@ -224,5 +229,5 @@ def create_case_node_multi_select(body):
             if _suite:
                 body["suite_id"] = _id
                 body["title"] = _suite.name
-                insert_case_node(body)
+                insert_case_node(body, parent)
         
