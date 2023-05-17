@@ -83,7 +83,7 @@ class LogResolverAdapter:
         analyzed = analyzed[0]
 
         case = query_request(
-            "/api/v1/case/preciseget",
+            "/api/v1/ws/default/case/preciseget",
             {
                 "id": case_id
             },
@@ -130,7 +130,6 @@ class LogResolverAdapter:
                     self._auth
                 )
                 logs.append(log.get("id"))
-
             update_request(
                 "/api/v1/analyzed/{}".format(
                     analyzed.get("id")

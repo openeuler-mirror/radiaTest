@@ -1,5 +1,6 @@
 from copy import deepcopy
 from datetime import datetime
+
 from celery import current_app as celery
 from celery.utils.log import get_task_logger
 
@@ -56,8 +57,9 @@ def _callback_task_job_result(job_id, auth, taskmilestone_id, status):
                 "Error in calling back to TaskMilestones => " + str(e)
             )
 
+
 @celery.task(bind=True)
-def job_result_callback(self, results, auth, job_id=None, taskmilestone_id=None):
+def job_result_callback(self, results, auth, parent_id, job_id=None, taskmilestone_id=None):
     try:
         job = query_request(
             "/api/v1/job/{}".format(
@@ -81,8 +83,9 @@ def job_result_callback(self, results, auth, job_id=None, taskmilestone_id=None)
                     )
                 )
 
-            job["success_cases"] += result.get("success_cases")
-            job["fail_cases"] += result.get("fail_cases")
+            if parent_id != job_id:
+                job["success_cases"] += result.get("success_cases")
+                job["fail_cases"] += result.get("fail_cases")
             job["running_time"] = max(
                 job["running_time"], 
                 result.get("running_time")

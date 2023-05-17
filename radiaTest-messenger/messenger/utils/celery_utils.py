@@ -36,6 +36,11 @@ def make_celery(app_name):
                 'routing_key': 'check_alive',
                 'delivery_mode': 1,
             },
+            'celeryservice.tasks.run_at': {
+                'queue': 'queue_run_at',
+                'routing_key': 'run_at',
+                'delivery_mode': 1,
+            },
         }
     )
 

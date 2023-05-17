@@ -139,3 +139,15 @@ class DeviceDeleteSchema(VmachineItemSchema):
 
 class DeviceBaseSchema(VmachineItemSchema):
     device: List[dict]
+
+
+class MessengerVdiskBaseSchema(BaseModel):
+    vmachine_id: int
+    bus: Optional[DiskBus] = "virtio"
+    capacity: Optional[conint(ge=1, le=Config.VM_MAX_CAPACITY)] = 1
+    cache: Optional[DiskCache] = "default"
+    volume: Optional[str] = None
+
+
+class MessengerVnicBaseSchema(BaseModel):
+    vmachine_id: int

@@ -7,7 +7,7 @@ from celery import current_app as celery
 from celery.utils.log import get_task_logger
 
 from celeryservice import celeryconfig
-from celeryservice.lib.job.handler import RunSuite, RunTemplate
+from celeryservice.lib.job.handler import RunSuite, RunTemplate, RunAt
 from messenger.utils.pssh import ConnectionApi
 from messenger.utils.requests_util import do_request
 from messenger.utils.response_util import RET
@@ -108,3 +108,8 @@ def run_suite(self, body, user):
 @celery.task(bind=True)
 def run_template(self, body, user):
     RunTemplate(body, self, user, logger).run()
+
+
+@celery.task(bind=True)
+def run_at(self, body, user):
+    RunAt(body, self, user, logger).run()
