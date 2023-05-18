@@ -13,7 +13,7 @@
 # @License : Mulan PSL v2
 #####################################
 
-from flask import request, jsonify, render_template, make_response, current_app
+from flask import request, jsonify, render_template, make_response, current_app, g
 from flask_restful import Resource
 from flask_pydantic import validate
 
@@ -104,6 +104,11 @@ class MilestoneItemEventV2(Resource):
             return jsonify(
                 error_code=RET.NO_DATA_ERR,
                 error_msg="milestone {} not exist".format(milestone_id),
+            )
+        if int(g.gitee_id) != int(milestone.creator_id):
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="you have no right to change the milestone {}".format(milestone.name),
             )
 
         if milestone.is_sync is True:
