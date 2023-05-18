@@ -2003,7 +2003,7 @@ class HandlerTaskProgress(object):
         ).first()
         if not task:
             raise RuntimeError("no version task.")
-        if task and not task.children:
+        if task and not task.children.filter(Task.is_delete.is_(False)).all():
             raise RuntimeError("task not assigned.")
         self.task = task
 
