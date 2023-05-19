@@ -76,6 +76,8 @@ from server.schema.qualityboard import (
     DailyBuildPackageCompareSchema,
     DailyBuildSchema,
     DailyBuildBaseSchema,
+    DailyBuildPackageCompareQuerySchema,
+    DailyBuildPackageCompareResultSchema,
 )
 from server.apps.qualityboard.handlers import (
     ChecklistHandler,
@@ -1239,7 +1241,7 @@ class PackageListEvent(Resource):
                 PackageListHandler.get_all_packages_file(round_id)
             except RuntimeError as e:
                 return jsonify(
-                    error_code=RET.OK,
+                    error_code=RET.RUNTIME_ERROR,
                     error_msg=str(e),
                 )
 
@@ -1257,7 +1259,7 @@ class PackageListEvent(Resource):
             )
         except RuntimeError as e:
             return jsonify(
-                error_code=RET.OK,
+                error_code=RET.RUNTIME_ERROR,
                 error_msg=str(e),
             )
         except ValueError as e:
@@ -1591,6 +1593,11 @@ class DailyBuildPackageListCompareEvent(Resource):
                 RedisKey.daily_build(org_id),
                 body.daily_name,
             )
+            if repo_url is None:
+                return jsonify(
+                    error_code=RET.NO_DATA_ERR,
+                    error_msg=f"daily build {body.daily_name} doesn't exist.",
+                )
             comparee = DailyBuildPackageListHandler(
                 repo_name=body.daily_name,
                 repo_path=body.repo_path,
@@ -1638,34 +1645,55 @@ class DailyBuildPackageListCompareEvent(Resource):
     @auth.login_required
     @response_collect
     @validate()
-    def get(self, comparer_round_id):
+    def get(self, comparer_round_id, query: DailyBuildPackageCompareQuerySchema):
         comparer_round = Round.query.get(comparer_round_id)
         daily_build_compare_infos = redis_client.hgetall(f"daily_build_compare_{comparer_round.name}")
         data = list()
         if daily_build_compare_infos:
             for daily_name, file_name in daily_build_compare_infos.items():
-                data.append(
-                    {
-                        "daily_name": daily_name,
-                        "file_name": file_name
-                    }
+                if daily_name.endswith(query.repo_path):
+                    data.append(
+                        {
+                            "daily_name": daily_name,
+                            "file_name": file_name
+                        }
+                    )
+
+        if query.paged:
+            content, e = Paginate.get_page_dict(
+                total=len(data),
+                data=data,
+                page_num=query.page_num,
+                page_size=query.page_size
+            )
+            if e:
+                return jsonify(
+                    error_code=RET.SERVER_ERR,
+                    error_msg=f"get page error: {e}"
                 )
+        else:
+            content = data[:]
 
         return jsonify(
             error_code=RET.OK,
             error_msg="OK",
-            data=data,
+            data=content,
         )
 
     @auth.login_required
     @response_collect
     @validate()
-    def delete(self, comparer_round_id, body: DailyBuildPackageCompareSchema):
+    def delete(self, comparer_round_id, body: DailyBuildPackageCompareResultSchema):
         comparer_round = Round.query.get(comparer_round_id)
         file_name = redis_client.hget(
             f"daily_build_compare_{comparer_round.name}",
-            f"{body.daily_name}-{body.repo_path}",
+            body.compare_name,
         )
+        if file_name is None:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg=f"compre result {body.compare_name} has been deleted",
+            )
         _path = current_app.config.get("PRODUCT_PKGLIST_PATH")
         _, _ = subprocess.getstatusoutput(
             f"rm -f {_path}/{file_name}"
@@ -1673,7 +1701,7 @@ class DailyBuildPackageListCompareEvent(Resource):
 
         redis_client.hdel(
             f"daily_build_compare_{comparer_round.name}",
-            f"{body.daily_name}-{body.repo_path}",
+            body.compare_name,
         )
 
         return jsonify(
@@ -1686,12 +1714,12 @@ class DailyBuildPkgEvent(Resource):
     @auth.login_required
     @response_collect
     @validate()
-    def post(self, qualityboard_id, body: DailyBuildSchema):
+    def post(self, body: DailyBuildSchema):
         try:
             DailyBuildPackageListHandler.get_all_packages_file(body.daily_name, body.repo_url)
         except RuntimeError as e:
             return jsonify(
-                error_code=RET.OK,
+                error_code=RET.RUNTIME_ERROR,
                 error_msg=str(e),
             )
         org_id = redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')
@@ -1709,7 +1737,7 @@ class DailyBuildPkgEvent(Resource):
     @auth.login_required
     @response_collect
     @validate()
-    def get(self):
+    def get(self, query: PageBaseSchema):
         org_id = redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')
         daily_build_infos = redis_client.hgetall(RedisKey.daily_build(org_id))
         data = list()
@@ -1721,11 +1749,26 @@ class DailyBuildPkgEvent(Resource):
                         "repo_url": repo_url
                     }
                 )
+        
+        if query.paged:
+            content, e = Paginate.get_page_dict(
+                total=len(data),
+                data=data,
+                page_num=query.page_num,
+                page_size=query.page_size
+            )
+            if e:
+                return jsonify(
+                    error_code=RET.SERVER_ERR,
+                    error_msg=f"get page error: {e}"
+                )
+        else:
+            content = data[:]
 
         return jsonify(
             error_code=RET.OK,
             error_msg="OK",
-            data=data,
+            data=content,
         )
 
     @auth.login_required
@@ -1752,7 +1795,7 @@ class DailyPackagCompareResultExportEvent(Resource):
     @auth.login_required()
     @response_collect
     @validate()
-    def get(self, comparer_round_id, query: DailyBuildPackageCompareSchema):
+    def get(self, comparer_round_id, query: DailyBuildPackageCompareResultSchema):
         comparer_round = Round.query.get(comparer_round_id)
         if not comparer_round:
             return jsonify(
@@ -1761,7 +1804,7 @@ class DailyPackagCompareResultExportEvent(Resource):
             )
     
         _path = current_app.config.get("PRODUCT_PKGLIST_PATH")
-        file_path = f"{_path}/{comparer_round.name}-{query.daily_name}-{query.repo_path}.xls"
+        file_path = f"{_path}/{comparer_round.name}-{query.compare_name}.xls"
         result = PackagCompareResultExportHandler().get_compare_result_file(
             file_path=file_path
         )
