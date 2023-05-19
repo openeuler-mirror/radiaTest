@@ -474,7 +474,15 @@ function cardClick() {
 
 const activeTab = ref('testProgress'); // 质量看板下方激活模板
 
+// 每日构建弹框
+const createDailyBuildRef = ref(null);
+const showDailyBuildModal = () => {
+  createDailyBuildRef.value.showModal = true;
+};
+
 export {
+  createDailyBuildRef,
+  showDailyBuildModal,
   showPackage,
   requestCard,
   newPackage,

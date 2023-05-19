@@ -436,3 +436,13 @@ export function getGanttMilestones(data) {
 export function getCasesBySuite(data) {
   return getRequest('/v1/case-set-node', data);
 }
+
+// 查询每日构建
+export function getDailyBuild(data) {
+  return getRequest('/v1/qualityboard/daily-build', data);
+}
+
+// 查询每日构建比对结果
+export function getDailyBuildCompare(roundId, data) {
+  return getRequest(`/v1/qualityboard/daily-build/with/round/${roundId}/pkg-compare`, data);
+}

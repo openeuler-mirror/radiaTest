@@ -270,8 +270,20 @@
                   </n-icon>
                 </template>
                 <template #header-extra v-else>
+                  <n-popover>
+                    <template #trigger>
+                      <n-button circle quaternary @click="showDailyBuildModal">
+                        <template #icon>
+                          <n-icon :size="18">
+                            <BuildCircleOutlined />
+                          </n-icon>
+                        </template>
+                      </n-button>
+                    </template>
+                    创建每日构建
+                  </n-popover>
                   <refresh-button
-                    :size="24"
+                    :size="18"
                     @refresh="
                       getPackageListComparationSummary(dashboardId, {
                         refresh: true,
@@ -593,6 +605,7 @@
         </n-form>
       </n-card>
     </n-modal>
+    <CreateDailyBuild ref="createDailyBuildRef"></CreateDailyBuild>
   </div>
 </template>
 <script>
@@ -603,7 +616,7 @@ import { Search } from '@vicons/carbon';
 import { modules } from './modules';
 import { ArrowLeft32Filled as ArrowLeft, QuestionCircle16Filled } from '@vicons/fluent';
 import { MdClose } from '@vicons/ionicons4';
-import { DoubleArrowFilled, CancelRound, CheckCircleFilled } from '@vicons/material';
+import { DoubleArrowFilled, CancelRound, CheckCircleFilled, BuildCircleOutlined } from '@vicons/material';
 import autoSteps from '@/components/autoSteps/autoSteps.vue';
 import MilestoneIssuesCard from '@/components/milestoneComponents/MilestoneIssuesCard.vue';
 import testProgress from '@/components/productDrawer/testProgress.vue';
@@ -633,7 +646,8 @@ export default {
     QuestionCircle16Filled,
     FeatureTable,
     PackageTable,
-    echart
+    echart,
+    BuildCircleOutlined
   },
   setup() {
     const additionFeatureOption = reactive(JSON.parse(JSON.stringify(modules.featureOption)));

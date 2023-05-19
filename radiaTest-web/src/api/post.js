@@ -210,3 +210,13 @@ export function createIssues(data) {
 export function createSuites(caseNodeId, data) {
   return postRequest(`/v1/case-node/${caseNodeId}/suites`, data);
 }
+
+// 新增每日构建
+export function createDailyBuild(data) {
+  return postRequest('/v1/qualityboard/daily-build', data);
+}
+
+// 新增每日构建对比
+export function createDailyBuildCompare(roundId, data) {
+  return postRequest(`/v1/qualityboard/daily-build/with/round/${roundId}/pkg-compare`, data);
+}
