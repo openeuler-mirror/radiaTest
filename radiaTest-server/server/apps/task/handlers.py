@@ -2053,46 +2053,45 @@ class HandlerTaskProgress(object):
         :param: task_case_infos: dict, store all task-related case test information
         :param: test_stat_info: dict, store task-related case test statistics information
         """
-        if task.type != "VERSION":
-            task_ids.append(task.id)
-            tm = TaskMilestone.query.filter(
-                TaskMilestone.task_id == task.id,
-            ).first()
-            query_filter = [
-                Analyzed.job_id == tm.job_id,
-            ]
+        task_ids.append(task.id)
+        tm = TaskMilestone.query.filter(
+            TaskMilestone.task_id == task.id,
+        ).first()
+        query_filter = [
+            Analyzed.job_id == tm.job_id,
+        ]
 
-            for auto_case in tm.cases:
-                query_filter.append(Analyzed.case_id == auto_case.id)
-                case_analyze = Analyzed.query.filter(*query_filter).first()
-                task_case_infos.update({
-                    str(auto_case.id): {
-                        "result": case_analyze.result if case_analyze else "pending",
-                        "task_id": task.id,
-                        "type": "auto",
-                    }
-                })
-                task_case_infos[str(auto_case.id)].update(all_case_infos.get(str(auto_case.id)))
-                result = task_case_infos[str(auto_case.id)]["result"]
-                if test_stat_info.get(result):
-                    test_stat_info.update({result: test_stat_info.get(result) + 1})
-                else:
-                    test_stat_info.update({result: 1})
+        for auto_case in tm.cases:
+            query_filter.append(Analyzed.case_id == auto_case.id)
+            case_analyze = Analyzed.query.filter(*query_filter).first()
+            task_case_infos.update({
+                str(auto_case.id): {
+                    "result": case_analyze.result if case_analyze else "pending",
+                    "task_id": task.id,
+                    "type": "auto",
+                }
+            })
+            task_case_infos[str(auto_case.id)].update(all_case_infos.get(str(auto_case.id)))
+            result = task_case_infos[str(auto_case.id)]["result"]
+            if test_stat_info.get(result):
+                test_stat_info.update({result: test_stat_info.get(result) + 1})
+            else:
+                test_stat_info.update({result: 1})
 
-            for manual_case in tm.manual_cases:
-                task_case_infos.update({
-                    str(manual_case.case_id): {
-                        "result": manual_case.case_result,
-                        "task_id": task.id,
-                        "type": "manual",
-                    }
-                })
-                task_case_infos[str(manual_case.case_id)].update(all_case_infos.get(str(manual_case.case_id)))
-                result = task_case_infos[str(manual_case.case_id)]["result"]
-                if test_stat_info.get(result):
-                    test_stat_info.update({result: test_stat_info.get(result) + 1})
-                else:
-                    test_stat_info.update({result: 1})
+        for manual_case in tm.manual_cases:
+            task_case_infos.update({
+                str(manual_case.case_id): {
+                    "result": manual_case.case_result,
+                    "task_id": task.id,
+                    "type": "manual",
+                }
+            })
+            task_case_infos[str(manual_case.case_id)].update(all_case_infos.get(str(manual_case.case_id)))
+            result = task_case_infos[str(manual_case.case_id)]["result"]
+            if test_stat_info.get(result):
+                test_stat_info.update({result: test_stat_info.get(result) + 1})
+            else:
+                test_stat_info.update({result: 1})
 
         for sub_task in task.children.filter(Task.is_delete.is_(False)).all():
             HandlerTaskProgress.get_test_infos_by_task(
