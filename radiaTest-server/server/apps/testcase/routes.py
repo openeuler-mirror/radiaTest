@@ -470,7 +470,7 @@ class CaseItemEvent(Resource):
 
         Edit(Case, _body).single(Case, "/case")
         
-        if body.name and body.name != _case.name: 
+        if body.name: 
             case_nodes = CaseNode.query.filter(
                 CaseNode.case_id == case_id,
             ).all()
@@ -481,16 +481,10 @@ class CaseItemEvent(Resource):
                     error_msg="the case_node does not exist"
                 )
 
-            return_resp = [
-                CaseNodeHandler.update(
-                    case_node.id, body
-                ) for case_node in case_nodes
-            ]
-
-            for resp in return_resp:
-                _resp = json.loads(resp.response[0])
-                if _resp.get("error_code") != RET.OK:
-                    return _resp
+            for case_node in case_nodes:
+                if case_node.title != body.name:
+                    case_node.title = body.name
+                    case_node.add_update()
         
         return jsonify(error_code=RET.OK, error_msg="OK")
 
