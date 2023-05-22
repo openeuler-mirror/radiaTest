@@ -19,7 +19,7 @@ const initSuiteOptions = () => {
       suiteOptions.value = res.data.map((item) => {
         return {
           label: item.name,
-          value: item.name,
+          value: item.name
         };
       });
     })
@@ -36,7 +36,7 @@ const usageOptions = computed(() => {
     {
       label: `${diskUsage.value} GiB`,
       value: `${diskUsage.value} GiB`
-    },
+    }
   ];
 });
 
@@ -48,22 +48,22 @@ const infoRules = ref({
   name: {
     required: true,
     message: '用例名不可为空',
-    trigger: ['blur'],
+    trigger: ['blur']
   },
   suite: {
     required: true,
     message: '所属测试套不可为空',
-    trigger: ['blur'],
+    trigger: ['blur']
   },
   owner: {
     required: true,
     message: '责任人不可为空',
-    trigger: ['blur'],
+    trigger: ['blur']
   },
   add_disk: {
     trigger: ['change', 'blur'],
-    validator (rule, value) {
-      if (value && !value.every(item => item.match(/^[0-9]* GiB$/))) {
+    validator(rule, value) {
+      if (value && !value.every((item) => item.match(/^[0-9]* GiB$/))) {
         return new Error('存在非法格式的磁盘');
       }
       return true;
@@ -74,10 +74,8 @@ const infoRules = ref({
 const initData = (data) => {
   infoFormValue.value = data;
   data.add_disk
-    ? infoFormValue.value.add_disk = data.add_disk.split(',').map(
-      item => `${item} GiB`
-    )
-    : infoFormValue.value.add_disk = [];
+    ? (infoFormValue.value.add_disk = data.add_disk.split(',').map((item) => `${item} GiB`))
+    : (infoFormValue.value.add_disk = []);
 };
 
 export default {
@@ -90,5 +88,5 @@ export default {
   clean,
   initSuiteOptions,
   usageOptions,
-  initData,
+  initData
 };
