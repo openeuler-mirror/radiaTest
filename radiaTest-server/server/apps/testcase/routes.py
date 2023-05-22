@@ -62,6 +62,7 @@ from server.schema.testcase import (
     CaseNodeRelateSchema,
     ResourceQuerySchema,
     CaseSetQuerySchema,
+    CaseSetNodeQueryBySuiteSchema,
 )
 from server.apps.testcase.handler import (
     CaseImportHandler,
@@ -91,6 +92,14 @@ class CaseNodeEvent(Resource):
     @validate()
     def get(self, workspace: str, query: CaseNodeQuerySchema):
         return CaseNodeHandler.get_roots(query, workspace)
+
+
+class QueryCaseSetNodeEvent(Resource):
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def get(self, query: CaseSetNodeQueryBySuiteSchema):
+        return CaseNodeHandler.get_case_set_node(query)
 
 
 class CaseNodeItemEvent(Resource):

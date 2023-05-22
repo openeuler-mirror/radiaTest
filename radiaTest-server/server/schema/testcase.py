@@ -35,13 +35,15 @@ class PermissionBaseSchema(BaseModel):
     org_id: int
 
 
-
 class CaseNodeBodySchema(BaseModel):
-    title: str
+    title: Optional[str]
     type: CaseNodeType
     parent_id: Optional[int]
     group_id: Optional[int]
     org_id: Optional[int]
+    suite_ids: List[int] = None
+    case_ids: List[int] = None
+    multiselect: bool = False
     suite_id: Optional[int]
     case_id: Optional[int]
     baseline_id: Optional[int]
@@ -50,7 +52,6 @@ class CaseNodeBodySchema(BaseModel):
     permission_type: PermissionType = "group"
     milestone_id: Optional[int]
 
-    @root_validator
     def validate_suite(cls, values):
         if values["parent_id"]:
             values["is_root"] = False
@@ -68,20 +69,34 @@ class CaseNodeBodySchema(BaseModel):
             raise ValueError("title is not valid for this type of node")
 
         if values["type"] == 'suite':
-            if not values["suite_id"]:
-                raise ValueError("The case-node should relate to one suite")
+            if not values["parent_id"]:
+                raise ValueError("suite must have a parent case-node")
 
-            suite = Suite.query.filter_by(id=values["suite_id"]).first()
-            if not suite:
-                raise ValueError("The suite to be related is not exist")
+            if values["multi_select"]:
+                if not values["suite_ids"]:
+                    raise ValueError("The case-node should relate to suite")
+            else:
+                if not values["suite_id"]:
+                    raise ValueError("The case-node should relate to one suite")
+
+                suite = Suite.query.filter_by(id=values["suite_id"]).first()
+                if not suite:
+                    raise ValueError("The suite to be related is not exist")
 
         elif values["type"] == 'case':
-            if not values["case_id"]:
-                raise ValueError("The case-node should relate to one case")
+            if not values["parent_id"]:
+                raise ValueError("case must have a parent case-node")
+    
+            if values["multi_select"]:
+                if not values["case_ids"]:
+                    raise ValueError("The case-node should relate to case")
+            else:
+                if not values["case_id"]:
+                    raise ValueError("The case-node should relate to one case")
 
-            case = Case.query.filter_by(id=values["case_id"]).first()
-            if not case:
-                raise ValueError("The case to be related is not exist")
+                case = Case.query.filter_by(id=values["case_id"]).first()
+                if not case:
+                    raise ValueError("The case to be related is not exist")
 
         return values
 
@@ -105,6 +120,16 @@ class CaseNodeQuerySchema(BaseModel):
 
 class CaseNodeItemQuerySchema(BaseModel):
     title: Optional[str]
+
+
+class CaseSetNodeQueryBySuiteSchema(BaseModel):
+    title: Optional[str]
+    suite_id: Optional[int]
+
+    def validate_suite(cls, values):
+        if not values["title"] and values["suite_id"]:
+            raise ValueError("suite name or suite_id must be set")
+        return values
 
 
 class CaseNodeUpdateSchema(BaseModel):

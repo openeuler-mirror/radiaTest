@@ -15,18 +15,18 @@
 # 基线模板(Baseline_template)相关接口的route层
 
 import json
-from flask import request, g, jsonify, current_app, Response
+
+from flask import g, jsonify
 from flask_restful import Resource
 from flask_pydantic import validate
-from sqlalchemy import or_, and_
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
+
 from server import redis_client, casbin_enforcer
 from server.utils.redis_util import RedisKey
 from server.utils.auth_util import auth
 from server.utils.response_util import RET, response_collect, workspace_error_collect
-from server.utils.permission_utils import GetAllByPermission
 from server.model.baselinetemplate import BaselineTemplate, BaseNode
-from server.utils.db import Insert, Edit, Delete, collect_sql_error
-from server.schema.base import PageBaseSchema
+from server.utils.db import Edit, collect_sql_error
 from server.schema.baselinetemplate import (
     BaselineTemplateBodySchema,
     BaselineTemplateQuerySchema,
@@ -37,8 +37,8 @@ from server.schema.baselinetemplate import (
 )
 from server.apps.baseline_template.handler import (
     BaseNodeHandler,
-    BaselineTemplateHandler,
     BaselineTemplateApplyHandler,
+    BaselineTemplateHandler,
 )
 from server.utils.resource_utils import ResourceManager
 
@@ -334,15 +334,17 @@ class BaseNodeEvent(Resource):
             在数据库中新增BaseNode数据.
             请求体:
             {
-            "is_root": bool,
-            "parent_id": int,
-            "title": str
+                "is_root": bool,
+                "parent_id": int,
+                "title": str,
+                "type": str,
+                "case_node_ids": List[int],
             }
             返回体:
             {
-            "data": int,
-            "error_code": "2000",
-            "error_msg": "OK"
+                "data": int,
+                "error_code": "2000",
+                "error_msg": "OK"
             }
         """
         return BaseNodeHandler.post(baseline_template_id, body)
@@ -507,7 +509,25 @@ class BaselineTemplateApplyItemEvent(Resource):
             "error_msg": "OK"
             }  
         """  
-        return BaselineTemplateApplyHandler.apply(
-            case_node_id, 
-            baseline_template_id
+        try:
+            handler = BaselineTemplateApplyHandler(case_node_id, baseline_template_id)
+            handler.check_valid()
+            handler.apply()
+        
+        except ValueError as e:
+            return jsonify(
+                error_code=RET.VERIFY_ERR,
+                error_msg=str(e),
+            )
+        
+        except (SQLAlchemyError, IntegrityError) as e:
+            return jsonify(
+                error_code=RET.DB_ERR,
+                error_msg=str(e)
+            )
+        
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+            data=handler.applied_list,
         )

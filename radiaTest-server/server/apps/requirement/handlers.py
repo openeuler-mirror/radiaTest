@@ -439,9 +439,9 @@ class RequirementItemHandler:
         _ = Insert(RequirementAcceptor, _acceptor_body).insert_id()
 
         _now = datetime.now(tz=pytz.timezone("Asia/Shanghai"))
-        _now_str = _now.strftime('%Y%m%d%H%M%S')
+        _now_str = _now.strftime('%Y-%m-%d')
         task_title = f"{self.requirement.title}_{_now_str}"
-        deadline = (_now + timedelta(days=self.requirement.period)).strftime('%Y%m%d')
+        deadline = (_now + timedelta(days=self.requirement.period)).strftime('%Y-%m-%d')
         addtaskschema = AddTaskSchema(
             title=task_title,
             creator_id=g.user_id,

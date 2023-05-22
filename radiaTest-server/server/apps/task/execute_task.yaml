@@ -8,6 +8,9 @@ task:
   - alias: 获取任务协助者信息
     uri: /api/v1/tasks/{task_id}/participants
     act: get
+  - alias: 修改任务进度
+    uri: /api/v1/tasks/{task_id}/percentage
+    act: put
   - alias: 获取任务评论
     uri: /api/v1/tasks/{task_id}/comment
     act: get

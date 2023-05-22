@@ -55,6 +55,8 @@ class CaseNode(BaseModel, PermissionBaseModel, db.Model):
 
     milestone_id = db.Column(db.Integer(), db.ForeignKey("milestone.id"))
 
+    base_nodes = db.relationship("BaseNode", backref="case_node", cascade="all, delete")
+
     children = db.relationship(
         "CaseNode",
         secondary=case_node_family,

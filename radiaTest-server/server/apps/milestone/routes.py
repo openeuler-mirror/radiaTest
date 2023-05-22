@@ -13,7 +13,7 @@
 # @License : Mulan PSL v2
 #####################################
 
-from flask import jsonify, render_template, make_response, current_app
+from flask import jsonify, render_template, make_response, current_app, g
 from flask_restful import Resource
 from flask_pydantic import validate
 
@@ -31,6 +31,7 @@ from server.schema.milestone import (
     MilestoneStateEventSchema,
     GenerateTestReport,
     QueryTestReportFile,
+    QueryMilestoneByTimeSchema,
 )
 from server.utils.permission_utils import GetAllByPermission
 from server import casbin_enforcer
@@ -84,6 +85,14 @@ class MilestoneEventV2(Resource):
         return MilestoneHandler.get_milestone(query, filter_params)
 
 
+class MilestoneGantt(Resource):
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def get(self, query: QueryMilestoneByTimeSchema):
+        return MilestoneHandler.get_all_gantt_milestones(query=query)
+
+
 class MilestoneItemEventV2(Resource):
     @auth.login_required()
     @response_collect
@@ -95,6 +104,11 @@ class MilestoneItemEventV2(Resource):
             return jsonify(
                 error_code=RET.NO_DATA_ERR,
                 error_msg="milestone {} not exist".format(milestone_id),
+            )
+        if int(g.gitee_id) != int(milestone.creator_id):
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="you have no right to change the milestone {}".format(milestone.name),
             )
 
         if milestone.is_sync is True:

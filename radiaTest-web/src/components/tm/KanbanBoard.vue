@@ -199,7 +199,7 @@ export default {
           bgColor = '#ff8040';
           break;
         case 'ORGANIZATION':
-          bgColor = '#00ec00';
+          bgColor = '#4a38e6';
           break;
         case 'VERSION':
           bgColor = '#8000ff';

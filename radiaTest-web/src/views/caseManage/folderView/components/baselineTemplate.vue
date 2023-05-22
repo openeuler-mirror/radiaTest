@@ -156,26 +156,49 @@
       @negative-click="cancelDeleteCallback"
     />
     <n-modal v-model:show="showNodeCreateModal" preset="card" style="width: 600px" title="新建子节点" :bordered="false">
+      <n-radio-group v-model:value="nodeCreateForm.type" style="margin-bottom: 20px">
+        <n-space>
+          <n-radio value="directory">目录</n-radio>
+          <n-radio value="suite">测试套</n-radio>
+          <n-radio value="case" v-if="selectedNode.type === 'suite'">测试用例</n-radio>
+        </n-space>
+      </n-radio-group>
       <n-form ref="nodeCreateFormRef" :model="nodeCreateForm" :rules="nodeCreateRules">
-        <n-form-item path="title">
-          <n-switch v-model:value="caseNodeTreeSelect">
-            <template #checked> 关联节点 </template>
-            <template #unchecked> 目录节点 </template>
-          </n-switch>
+        <n-form-item path="title" label="目录命名" v-if="nodeCreateForm.type === 'directory'">
           <n-input
-            :disabled="caseNodeTreeSelect"
-            style="width: 400px; margin-left: 20px"
+            v-if="nodeCreateForm.type == 'directory'"
+            style="width: 400px"
             clearable
             v-model:value="nodeCreateForm.title"
-            placeholder="节点命名"
           />
         </n-form-item>
-        <n-form-item v-if="caseNodeTreeSelect" label="关联测试套/用例" path="case_node_id">
+        <n-form-item
+          v-if="nodeCreateForm.type !== 'directory'"
+          :label="`关联${nodeCreateForm.type === 'suite' ? '测试套' : '测试用例'}`"
+          path="case_node_ids"
+        >
           <n-tree-select
-            v-model:value="nodeCreateForm.case_node_id"
+            v-if="nodeCreateForm.type === 'suite'"
+            v-model:value="nodeCreateForm.case_node_ids"
             :options="casesetNodeOptions"
             :show-path="true"
             :on-load="handleCasesetOptionsLoad"
+            multiple
+            cascade
+            checkable
+            :allow-checking-not-loaded="true"
+            max-tag-count="responsive"
+            clearable
+            :placeholder="`请确保选后清单中含有${nodeCreateForm.type === 'suite' ? '测试套' : '测试用例'}`"
+          />
+          <n-select
+            v-else
+            v-model:value="nodeCreateForm.case_node_ids"
+            :options="suiteCaseOptions"
+            multiple
+            show-checkmark
+            filterable
+            clearable
           />
         </n-form-item>
       </n-form>
@@ -299,10 +322,11 @@ const casesetNodeOptions = ref([]);
 const showNodeCreateModal = ref(false);
 const showNodeDeleteModal = ref(false);
 const showNodeEditModal = ref(false);
-const caseNodeTreeSelect = ref(false);
+
 const nodeCreateForm = ref({
   title: undefined,
-  case_node_id: undefined
+  case_node_ids: undefined,
+  type: 'directory'
 });
 const nodeEditForm = ref({
   title: undefined
@@ -452,13 +476,18 @@ function renderOptions(node) {
   return _options;
 }
 
+const currentCaseNodeId = ref(null);
+const suiteCaseOptions = ref([]);
+
 function handleContextMenu(e) {
   e.preventDefault();
   if (selectedNode.value) {
     showDropdown.value = false;
     if (selectedNode.value.id) {
       getBaseNode(selectedNode.value.id).then((res) => {
+        selectedNode.value.type = res.data.type;
         options.value = renderOptions(res.data);
+        currentCaseNodeId.value = res.data.case_node_id;
         nextTick(() => {
           showDropdown.value = true;
           x.value = e.clientX;
@@ -491,8 +520,7 @@ function handleCasesetOptionsLoad(option) {
         label: item.title,
         key: item.id,
         depth: option.depth + 1,
-        isLeaf: item.type === 'case',
-        disabled: item.type !== 'suite' && item.type !== 'case',
+        isLeaf: item.type === nodeCreateForm.value.type,
         ...item
       };
     });
@@ -694,7 +722,8 @@ function createChildNode() {
       message.success('创建成功');
       nodeCreateForm.value = {
         title: undefined,
-        case_node_id: undefined
+        case_node_ids: undefined,
+        type: 'directory'
       };
       getBaselineTemplateItem(checkedItem.value.id)
         .then((res) => {
@@ -761,8 +790,7 @@ function handleInheritButtonClick() {
     });
     getOrgGroup(storage.getValue('loginOrgId'), {
       page_num: 1,
-      page_size: 99999,
-      is_delete: false
+      page_size: 99999
     }).then((_res) => {
       for (const item of _res.data.items) {
         inheritOptions.value.push({
@@ -793,28 +821,38 @@ const setNodeOptions = (array) => {
     label: item.title,
     key: item.id,
     depth: 1,
-    isLeaf: item.type === 'case',
-    disabled: item.type !== 'suite' && item.type !== 'case',
+    isLeaf: item.type === nodeCreateForm.value.type,
     ...item
   }));
 };
 
-watch(caseNodeTreeSelect, () => {
-  if (caseNodeTreeSelect.value) {
-    getCaseSetNodes(props.type, window.atob(router.params.taskId)).then((res) => {
-      casesetNodeOptions.value = [];
-      for (const i in res.data) {
-        casesetNodeOptions.value.push({
-          label: i,
-          key: i,
-          disabled: true,
-          isLeaf: false,
-          children: setNodeOptions(res.data[i].children)
+watch(
+  () => nodeCreateForm.value.type,
+  () => {
+    if (nodeCreateForm.value.type === 'suite') {
+      getCaseSetNodes(props.type, window.atob(router.params.taskId)).then((res) => {
+        casesetNodeOptions.value = [];
+        for (const i in res.data) {
+          casesetNodeOptions.value.push({
+            label: res.data[i].name,
+            key: res.data[i].name,
+            isLeaf: false,
+            children: setNodeOptions(res.data[i].children)
+          });
+        }
+      });
+    } else if (nodeCreateForm.value.type === 'case') {
+      getCaseNode(currentCaseNodeId.value).then((res) => {
+        suiteCaseOptions.value = res.data.children.map((item) => {
+          return {
+            label: item.title,
+            value: item.id
+          };
         });
-      }
-    });
+      });
+    }
   }
-});
+);
 
 watch(showInheritModal, () => {
   if (showInheritModal.value === false) {
@@ -931,7 +969,7 @@ watch(showInheritModal, () => {
 .inherit-icon-container {
   display: flex;
   justify-content: center;
-  align-item: center;
+  align-items: center;
   margin-bottom: 20px;
 }
 .inherit-selector {

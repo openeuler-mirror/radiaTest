@@ -78,3 +78,4 @@ Werkzeug==2.0.2
 wget==3.2
 xlrd==2.0.1
 zipp==3.6.0
+pyyaml==6.0

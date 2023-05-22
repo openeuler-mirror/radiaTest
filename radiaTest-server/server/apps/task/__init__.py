@@ -34,6 +34,8 @@ from .routes import (
     TaskMilestones,
     CasesResult,
     ExecutorItem,
+    TaskPercentage,
+    TaskGantt,
 )
 from .routes import (
     TaskMilestonesCases,
@@ -80,6 +82,14 @@ def init_api(api: Api):
     )
     api.add_resource(
         Comment, "/api/v1/tasks/<int:task_id>/comment", endpoint="task_comment"
+    )
+    api.add_resource(
+        TaskPercentage,
+        "/api/v1/tasks/<int:task_id>/percentage"
+    )
+    api.add_resource(
+        TaskGantt,
+        "/api/v1/tasks/gantt"
     )
     api.add_resource(
         RecycleBin, "/api/v1/tasks/recycle-bin", endpoint="task_recycle_bin"

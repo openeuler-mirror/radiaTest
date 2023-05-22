@@ -57,6 +57,18 @@
           </template>
           多版本软件包
         </n-popover>
+        <n-popover>
+          <template #trigger>
+            <n-button style="height: auto" circle quaternary @click="showDailyBuildCompareModal">
+              <template #icon>
+                <n-icon>
+                  <DailyBuildCompareIcon />
+                </n-icon>
+              </template>
+            </n-button>
+          </template>
+          与每日构建比对
+        </n-popover>
         <refresh-button
           :size="18"
           @refresh="
@@ -101,12 +113,14 @@
     />
   </div>
   <MultiVersionPackage ref="multiVersionPackageRef" :roundCurId="roundCurId"></MultiVersionPackage>
+  <DailyBuildCompare ref="dailyBuildCompareRef" :roundCurId="roundCurId"></DailyBuildCompare>
 </template>
 
 <script setup>
 import RefreshButton from '@/components/CRUD/RefreshButton';
 import { CompareArrowsFilled as Compare } from '@vicons/material';
 import { FileExport, Package } from '@vicons/tabler';
+import { Compare as DailyBuildCompareIcon } from '@vicons/carbon';
 import {
   oldPackage,
   newPackage,
@@ -384,6 +398,11 @@ const exportPackageComparationFn = () => {
 const multiVersionPackageRef = ref(null);
 const showMultiVersionPackage = () => {
   multiVersionPackageRef.value.showModal = true;
+};
+
+const dailyBuildCompareRef = ref(null);
+const showDailyBuildCompareModal = () => {
+  dailyBuildCompareRef.value.showModal = true;
 };
 
 watch(

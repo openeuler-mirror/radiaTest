@@ -145,6 +145,8 @@ class Config(object):
 
     OPENQA_SERVER = "openQA-server"
 
+    STORE_AT_MAX_TIME = 172800
+
 
 class TestingConfig(Config):
     TESTING = True

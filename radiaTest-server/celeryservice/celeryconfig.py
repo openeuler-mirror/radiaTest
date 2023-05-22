@@ -162,6 +162,12 @@ task_queues = (
         routing_key="rc_name",
     ),
     Queue(
+        "queue_resolve_pkglist_from_url",
+        exchange=Exchange("server_exchange", type="direct"),
+        routing_key="pkglist_from_url",
+    ),
+    
+    Queue(
         "queue_resolve_openeuler_pkglist",
         exchange=Exchange("server_exchange", type="direct"),
         routing_key="pkglist",
@@ -172,6 +178,11 @@ task_queues = (
         routing_key="compare_result",
     ),
     Queue(
+        "queue_update_daily_compare_result",
+        exchange=Exchange("daily_compare_result", type="direct"),
+        routing_key="daily_compare_result",
+    ),
+    Queue(
         "queue_send_vmachine_release_message",
         exchange=Exchange("server_exchange", type="direct"),
         routing_key="send_vmachine_release_message",
@@ -180,6 +191,11 @@ task_queues = (
         "queue_update_samerpm_compare_result",
         exchange=Exchange("server_exchange", type="direct"),
         routing_key="samerpm_compare_result",
+    ),
+    Queue(
+        "queue_create_case_node_multi_select",
+        exchange=Exchange("server_exchange", type="direct"),
+        routing_key="create_case_node",
     ),
     Queue(
         "queue_check_pmachine_lifecycle",
