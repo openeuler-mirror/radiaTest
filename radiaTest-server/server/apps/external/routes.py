@@ -408,9 +408,9 @@ class AtEvent(Resource):
 
         resp = messenger.send_request(machine_group, "/api/v1/openeuler/at")
         resp = json.loads(resp.data.decode('UTF-8'))
+        _id = int(0)
         if resp.get("error_code") == RET.OK:
             at_job = AtJob.query.filter_by(build_name=body.get("release_url")).first()
-            _id = int()
             if not at_job:
                 _id = at_job.id
             else:
