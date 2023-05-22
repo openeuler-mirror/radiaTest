@@ -1228,6 +1228,7 @@ const actionHandlder = {
       } else if (key === 'case') {
         const id = contextmenu.info.case_id;
         getCaseDetail(id).then((res) => {
+          res.data.name = contextmenu.label;
           store.commit('rowData/set', res.data);
           updateModalRef.value.show();
         });
@@ -1235,6 +1236,8 @@ const actionHandlder = {
     }
   }
 };
+
+// 点击右键菜单
 function selectAction({ contextmenu, action }) {
   actionHandlder[action.key].handler(contextmenu);
 }
