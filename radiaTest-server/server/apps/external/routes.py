@@ -411,7 +411,7 @@ class AtEvent(Resource):
         _id = int(0)
         if resp.get("error_code") == RET.OK:
             at_job = AtJob.query.filter_by(build_name=body.get("release_url")).first()
-            if not at_job:
+            if at_job:
                 _id = at_job.id
             else:
                 _id = Insert(AtJob, {"build_name": body.get("release_url")}).insert_id(AtJob, "/at")
