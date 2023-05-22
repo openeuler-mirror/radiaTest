@@ -9,7 +9,7 @@
       }"
       style="width: 1200px"
     >
-      <n-tabs animated type="line" v-model:value="repoPath" @update:value="changeReoppath">
+      <n-tabs animated type="line" v-model:value="repoPath" @update:value="changeRepoPath">
         <n-tab name="everything"> everything </n-tab>
         <n-tab name="EPOL"> EPOL </n-tab>
       </n-tabs>
@@ -93,7 +93,7 @@ const multiVersionPackagePageSizeChange = (pageSize) => {
   getMultiVersionPackage(roundCurId.value, repoPath.value);
 };
 
-const changeReoppath = (value) => {
+const changeRepoPath = (value) => {
   repoPath.value = value;
   multiVersionPackagePagination.value.page = 1;
   getMultiVersionPackage(roundCurId.value, repoPath.value);
