@@ -16,7 +16,7 @@ const createChildren = (arr) => {
 };
 
 const getData = (options, id) => {
-  axios
+  return axios
     .get(`/v1/template/cases/${id}`)
     .then((res) => {
       options.value = [];
