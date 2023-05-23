@@ -116,7 +116,7 @@ def verify_token(token):
         current_app.logger.info(f"Uncrypted/Unknown token {token} attempt to do request")
         return False
     finally:
-        if (data and data.get("user_login") == redis_client.hget(RedisKey.user(data.get("user_id")), "user_login")) \
+        if (data and data.get("user_login") == redis_client.hget(RedisKey.oauth_user(data.get("user_id")), "user_login")) \
                 or (data and data.get("time")):
             try:
                 g.user_id = int(data.get("user_id"))
