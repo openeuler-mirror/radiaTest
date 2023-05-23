@@ -18,7 +18,7 @@
 import re
 import datetime
 
-from flask import current_app, jsonify, request, g
+from flask import current_app, jsonify, request
 import redis
 
 from server.model.product import Product
@@ -31,6 +31,8 @@ from server.utils.response_util import ssl_cert_verify_error_collect, RET
 from server.utils.requests_util import do_request
 from server.utils.auth_util import generate_messenger_token
 from server.schema.job import PayLoad
+from server.apps.user.handlers import handler_login
+from server.model.organization import Organization
 
 
 class UpdateTaskForm:
@@ -309,3 +311,40 @@ class AtHandler:
             })
 
             return True, at_result
+
+
+class MajunLoginHandler:
+    def __init__(self, type, org_id, access_token):
+        authority_map = {
+            "openeuler": {"authority": "oneid", "get_user_info_url": "https://omapi.osinfra.cn/oneid/oidc/user"},
+            "gitee": {"authority": "gitee", "get_user_info_url": "https://gitee.com/api/v5/user"},
+        }
+        self._type = type
+        self._org_id = org_id
+        self._authorty = authority_map.get(self._type)
+        self._oauth_token = {"access_token": access_token, "refresh_token": ""}
+
+    def login(self):
+        org = Organization.query.filter_by(id=self._org_id, is_delete=0).first()
+        if not org:
+            return False, "the orgnization is not exists"
+
+        result = handler_login(
+            self._oauth_token,
+            self._org_id,
+            self._authorty.get("get_user_info_url"),
+            self._authorty.get("authority")
+        )
+
+        if not isinstance(result, tuple) or not isinstance(result[0], bool):
+            return False, "get user info error"
+
+        if result[0]:
+            return result[0], result[1], result[2], f'{current_app.config["OAUTH_HOME_URL"]}?isSuccess=True'
+        else:
+            return True, result[1], "", '{}?isSuccess=False&user_id={}&org_id={}&require_cla={}'.format(
+                current_app.config["OAUTH_HOME_URL"],
+                result[1],
+                org.id,
+                org.cla_verify_url is not None,
+            )
