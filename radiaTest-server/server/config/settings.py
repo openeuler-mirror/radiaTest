@@ -100,7 +100,7 @@ class Config(object):
 
     # openEuler-QA团队配置
     # openEuler-QA团队名
-    OE_QA_GROUP_NAME = "openEuler测试组"
+    OE_QA_GROUP_NAME = "Kunpeng"
 
     # openEuler-QA update版本测试默认时长(days)
     OE_QA_UPDATE_TASK_PERIOD = 5

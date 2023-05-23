@@ -50,7 +50,14 @@ from celeryservice.tasks import resolve_dailybuild_detail, resolve_rpmcheck_deta
 from server.model.pmachine import Pmachine, MachineGroup
 from server.model.milestone import Milestone
 from server.utils.response_util import response_collect
-from server.apps.external.handler import UpdateRepo, UpdateTaskHandler, UpdateTaskForm, AtMessenger, AtHandler
+from server.apps.external.handler import (
+    UpdateRepo,
+    UpdateTaskHandler,
+    UpdateTaskForm,
+    AtMessenger,
+    AtHandler,
+    MajunLoginHandler,
+)
 from server.model.job import AtJob
 from server import redis_client
 
@@ -489,3 +496,32 @@ class GetTestReportFileEvent(Resource):
             resp = make_response(render_template(_test_report.html_file))
         current_app.template_folder = tmp_folder
         return resp
+
+
+class MajunCheckTokenEvent(Resource):
+    @auth.login_required()
+    def post(self):
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="success"
+        )
+
+
+class MajunLoginEvent(Resource):
+    def get(self):
+        majun = MajunLoginHandler(
+            request.values.get("type"), request.values.get("org_id"), request.values.get("access_token")
+        )
+        result = majun.login()
+
+        if result[0]:
+            return jsonify(
+                error_code=RET.OK,
+                error_msg="success",
+                data={"user_id": result[1], "token": result[2], "url": result[3]}
+            )
+        else:
+            return jsonify(
+                error_code=RET.RUNTIME_ERROR,
+                error_msg=result[1],
+            )
