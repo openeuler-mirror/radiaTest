@@ -349,43 +349,21 @@ function getRootNodes() {
       .then((_res) => {
         for (const item of _res.data.items) {
           menuList.value.push({
-            label: item.org_name,
-            key: `org-${item.org_id}`,
-            info: {
-              org_id: item.org_id,
-            },
-            actions,
-            iconColor: 'rgba(0, 47, 167, 1)',
+            label: item.name,
+            key: `group-${item.id}`,
             isLeaf: false,
-            type: 'org',
             root: true,
-            icon: Organization20Regular,
+            info: {
+              group_id: item.id
+            },
+            type: 'group',
+            iconColor: 'rgba(0, 47, 167, 1)',
+            icon: GroupsFilled,
+            actions
           });
         }
       });
-      axios
-        .get(`/v1/org/${storage.getValue('orgId')}/groups`, {
-          page_num: 1,
-          page_size: 99999,
-        })
-        .then((_res) => {
-          for (const item of _res.data.items) {
-            menuList.value.push({
-              label: item.name,
-              key: `group-${item.id}`,
-              isLeaf: false,
-              root: true,
-              info: {
-                group_id: item.id
-              },
-              type: 'group',
-              iconColor: 'rgba(0, 47, 167, 1)',
-              icon: GroupsFilled,
-              actions
-            });
-          }
-        });
-    });
+  });
 }
 const info = ref('');
 const inputInfo = ref('');
@@ -554,7 +532,7 @@ function newDectoryContent() {
 
 function getCurMilestones(node, query) {
   milestoneLoading.value = true;
-  let params = { paged: false };
+  let params = { paged: true };
   if (query) {
     params.name = query;
   }
