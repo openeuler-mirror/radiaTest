@@ -412,7 +412,7 @@ class GetAllByPermission:
                     and_(
                         self._table.permission_type == "person",
                         self._table.org_id == int(self.current_org_id),
-                        self._table.creator_id == int(g.user_id),
+                        self._table.creator_id == g.user_id,
                     ),
                 )
             ]
@@ -427,7 +427,7 @@ class GetAllByPermission:
                 and_(
                     self._table.permission_type == "person",
                     self._table.org_id == int(self.current_org_id),
-                    self._table.creator_id == int(g.user_id),
+                    self._table.creator_id == g.user_id,
                 ),
             )
         ]
