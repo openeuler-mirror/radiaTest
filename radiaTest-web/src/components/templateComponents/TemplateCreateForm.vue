@@ -71,6 +71,7 @@
                 clearable
                 check-strategy="child"
                 :options="options"
+                :loading="casesSelectLoading"
                 v-model:value="formValue.cases"
               />
             </n-form-item-gi>
@@ -197,8 +198,12 @@ watch(
 );
 
 const options = ref([]); // 测试用例
+const casesSelectLoading = ref(false);
 function changeRepo(value) {
-  createAjax.getData(options, value);
+  casesSelectLoading.value = true;
+  createAjax.getData(options, value).then(() => {
+    casesSelectLoading.value = false;
+  });
 }
 
 const onPositiveClick = () => {
@@ -230,8 +235,13 @@ onMounted(() => {
   getProductOptions();
   if (isEditTemplate.value) {
     formValue.value.name = modalData.value.name;
-    formValue.value.description = modalData.value.description;
     formValue.value.permission_type = modalData.value.template_type;
+    formValue.value.description = modalData.value.description;
+    formValue.value.git_repo_id = String(modalData.value.git_repo.id);
+    changeRepo(formValue.value.git_repo_id);
+    formValue.value.cases = modalData.value.cases.map((item) => {
+      return `case-${item.id}`;
+    });
   }
 });
 
