@@ -27,7 +27,6 @@ from server.schema.base import PermissionBase, UpdateBaseModel, PageBaseSchema
 from server.schema import MachineType, PermissionType, CaseNodeType, CommitType
 
 
-
 class PermissionBaseSchema(BaseModel):
     creator_id: int
     permission_type: PermissionType
@@ -73,7 +72,7 @@ class CaseNodeBodySchema(BaseModel):
             if not values["parent_id"]:
                 raise ValueError("suite must have a parent case-node")
 
-            if values["multi_select"]:
+            if values["multiselect"]:
                 if not values["suite_ids"]:
                     raise ValueError("The case-node should relate to suite")
             else:
