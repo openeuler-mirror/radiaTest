@@ -753,8 +753,7 @@ const setNodeOptions = (array, relateType) => {
       isLeaf: item.type === relateType,
       type: item.type,
       iconColor: 'rgba(0, 47, 167, 1)',
-      icon: iconType[item.type],
-      disabled: item.type !== relateType
+      icon: iconType[item.type]
     };
   });
 };
@@ -776,11 +775,15 @@ function relateSuiteCaseContent(node, relateType) {
           label: `关联${titleDict[relateType]}:`,
           rule: infoRules
         },
-        h(NSelect, {
+        h(NTreeSelect, {
           value: info.value,
           multiple: true,
+          checkable: true,
           clearable: true,
           filterable: true,
+          cascade: true,
+          checkStrategy: 'child',
+          maxTagCount: 5,
           options: caseOptions.value,
           loading: moveLoading.value,
           onUpdateValue: (value) => {
@@ -788,12 +791,12 @@ function relateSuiteCaseContent(node, relateType) {
           },
           onFocus: () => {
             moveLoading.value = true;
-            caseOptions.value = [];
+            caseOptions.value = [{ label: '全选', key: 'allSelected', children: [] }];
             getCasesBySuite({ suite_id: node.info.suite_id }).then((res) => {
-              caseOptions.value = res.data.children.map((item) => {
+              caseOptions.value[0].children = res.data.children.map((item) => {
                 return {
                   label: item.title,
-                  value: `${item.type}-${item.case_id}`
+                  key: `${item.type}-${item.case_id}`
                 };
               });
               moveLoading.value = false;
@@ -945,6 +948,7 @@ function dialogView(confirmFn, node, contentType = 'directory') {
   const d = window.$dialog?.info({
     title: node.label,
     showIcon: false,
+    style: { width: '800px' },
     content: () => {
       switch (contentType) {
         case 'directory':
