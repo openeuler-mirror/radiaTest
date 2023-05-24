@@ -52,6 +52,7 @@ class CaseNodeBodySchema(BaseModel):
     permission_type: PermissionType = "group"
     milestone_id: Optional[int]
 
+    @root_validator
     def validate_suite(cls, values):
         if values["parent_id"]:
             values["is_root"] = False
