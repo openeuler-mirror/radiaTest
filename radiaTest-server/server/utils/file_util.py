@@ -209,3 +209,12 @@ class MarkdownImportFile(ImportFile):
             "markdown",
         ]
         self.filename, self.filetype = self._validate_filetype()
+
+
+class JsonImportFile(ImportFile):
+    def __init__(self, file) -> None:
+        super().__init__(file)
+        self.valid_types = [
+            "json"
+        ]
+        self.filename, self.filetype = self._validate_filetype()

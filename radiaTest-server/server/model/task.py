@@ -280,6 +280,7 @@ class DistributeTemplateType(BaseModel, PermissionBaseModel, db.Model):
     executor_id = db.Column(db.Integer, db.ForeignKey("user.gitee_id"), nullable=False)
     suites = db.Column(db.Text, nullable=True)
     helpers = db.Column(db.Text, nullable=True)
+    suite_source = db.Column(db.Enum("org", "group"), nullable=False)
     group_id = db.Column(db.Integer, db.ForeignKey("group.id"))
     org_id = db.Column(db.Integer, db.ForeignKey("organization.id"))
     template_id = db.Column(db.Integer, db.ForeignKey("task_distribute_template.id"))
@@ -300,6 +301,7 @@ class DistributeTemplateType(BaseModel, PermissionBaseModel, db.Model):
             'executor': User.query.get(self.executor_id).to_dict(),
             'suites': suites,
             'helpers': helpers,
+            "suite_source": self.suite_source,
             'create_time': self.create_time.strftime("%Y-%m-%d %H:%M:%S")
             # 'template': self.template.to_json()
         }
