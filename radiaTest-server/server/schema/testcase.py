@@ -87,7 +87,7 @@ class CaseNodeBodySchema(BaseModel):
             if not values["parent_id"]:
                 raise ValueError("case must have a parent case-node")
     
-            if values["multi_select"]:
+            if values["multiselect"]:
                 if not values["case_ids"]:
                     raise ValueError("The case-node should relate to case")
             else:
