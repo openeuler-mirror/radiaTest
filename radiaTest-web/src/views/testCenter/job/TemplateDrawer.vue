@@ -122,11 +122,7 @@ const templateTableColumns = [
     type: 'expand',
     renderExpand: (rowData) =>
       h(ExpandedCardTemplate, {
-        data: rowData.cases.map((item) => {
-          return {
-            name: item.name
-          };
-        })
+        data: rowData.suite_cases
       })
   },
   {

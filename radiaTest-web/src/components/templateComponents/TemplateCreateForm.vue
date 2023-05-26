@@ -55,25 +55,22 @@
                 :options="gitRepoOpts"
                 v-model:value="formValue.git_repo_id"
                 placeholder="选择模板绑定的测试脚本代码仓"
-                @update:value="changeRepo"
                 filterable
               />
             </n-form-item-gi>
             <n-form-item-gi :span="16" label="模板描述" path="description">
               <n-input v-model:value="formValue.description" />
             </n-form-item-gi>
-            <n-form-item-gi :span="24" label="绑定测试用例" path="cases">
-              <n-tree-select
-                multiple
-                filterable
-                cascade
-                checkable
-                clearable
-                check-strategy="child"
-                :options="options"
-                :loading="casesSelectLoading"
-                v-model:value="formValue.cases"
-              />
+            <n-form-item-gi :span="24" label="绑定测试用例" path="file">
+              <n-upload
+                v-model:file-list="formValue.file"
+                :max="1"
+                :default-upload="false"
+                accept=".json,.xls,.xlsx"
+                :trigger-style="{ width: '84px' }"
+              >
+                <n-button>上传文件</n-button>
+              </n-upload>
             </n-form-item-gi>
           </n-grid>
         </n-form>
@@ -107,7 +104,7 @@ const formValue = ref({
   description: undefined,
   git_repo_id: undefined,
   permission_type: undefined,
-  cases: undefined
+  file: undefined
 });
 const rules = {
   name: {
@@ -145,11 +142,15 @@ const rules = {
     message: '请选择代码仓',
     trigger: ['blur']
   },
-  cases: {
-    type: 'array',
+  file: {
     required: true,
-    message: '请选择测试用例',
-    trigger: ['blur']
+    message: '请上传测试用例',
+    validator(rule, value) {
+      if (value?.length) {
+        return true;
+      }
+      return false;
+    }
   }
 };
 
@@ -162,7 +163,7 @@ const clean = () => {
     description: undefined,
     git_repo_id: undefined,
     permission_type: undefined,
-    cases: undefined
+    file: undefined
   };
 };
 
@@ -197,28 +198,19 @@ watch(
   }
 );
 
-const options = ref([]); // 测试用例
-const casesSelectLoading = ref(false);
-function changeRepo(value) {
-  casesSelectLoading.value = true;
-  createAjax.getData(options, value).then(() => {
-    casesSelectLoading.value = false;
-  });
-}
-
 const onPositiveClick = () => {
   formRef.value.validate(async (error) => {
     if (error) {
       window.$message?.error('请检查输入合法性');
     } else {
       if (isEditTemplate.value) {
-        let postData = {};
-        postData.name = formValue.value.name;
-        postData.milestone_id = formValue.value.milestone_id;
-        postData.description = formValue.value.description;
-        postData.git_repo_id = formValue.value.git_repo_id;
-        postData.cases = createAjax.exchangeCases(formValue.value.cases);
-        await updateTemplateDrawer(postData, modalData.value.id);
+        const formData = new FormData();
+        formData.append('name', formValue.value.name);
+        formData.append('milestone_id', formValue.value.milestone_id);
+        formData.append('description', formValue.value.description);
+        formData.append('git_repo_id', formValue.value.git_repo_id);
+        formData.append('file', formValue.value.file[0]?.file);
+        await updateTemplateDrawer(formData, modalData.value.id);
       } else {
         await createAjax.postForm(formValue);
       }
@@ -238,10 +230,6 @@ onMounted(() => {
     formValue.value.permission_type = modalData.value.template_type;
     formValue.value.description = modalData.value.description;
     formValue.value.git_repo_id = String(modalData.value.git_repo.id);
-    changeRepo(formValue.value.git_repo_id);
-    formValue.value.cases = modalData.value.cases.map((item) => {
-      return `case-${item.id}`;
-    });
   }
 });
 
