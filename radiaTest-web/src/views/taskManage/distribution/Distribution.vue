@@ -1,18 +1,13 @@
 <template>
   <div class="container">
-    <n-drawer
-      v-model:show="showNewTemplateDrawer"
-      :maskClosable="false"
-      width="324px"
-      placement="right"
-    >
+    <n-drawer v-model:show="showNewTemplateDrawer" :maskClosable="false" width="600px" placement="right">
       <n-drawer-content :title="drawerTitle">
         <n-form
           :model="drawerModel"
           :rules="drawerRules"
           ref="templateFormRef"
           label-placement="left"
-          :label-width="80"
+          :label-width="100"
           size="medium"
           :style="{}"
         >
@@ -23,11 +18,7 @@
               :disabled="drawerTypeJudge()"
             />
           </n-form-item>
-          <n-form-item
-            label="团队名称"
-            path="groupName"
-            v-if="drawerType !== 'editTemplateName'"
-          >
+          <n-form-item label="团队名称" path="groupName" v-if="drawerType !== 'editTemplateName'">
             <n-select
               v-model:value="drawerModel.groupName"
               placeholder="请选择团队"
@@ -38,44 +29,38 @@
               :disabled="drawerTypeJudge()"
             />
           </n-form-item>
-          <n-form-item
-            label="模板类型"
-            path="templateType"
-            v-if="drawerTypeJudge()"
-          >
-            <n-input
-              placeholder="请输入模板类型"
-              v-model:value="drawerModel.templateType"
-            />
+          <n-form-item label="模板类型" path="templateType" v-if="drawerTypeJudge()">
+            <n-input placeholder="请输入模板类型" v-model:value="drawerModel.templateType" />
           </n-form-item>
-          <div v-if="drawerTypeJudge()" style="margin-left:80px;">
-            <n-checkbox
-              v-model:checked="suitesAllCheckValue"
-              @update:checked="handleCheckedChange"
-              >全选</n-checkbox
+          <n-form-item label="测试套来源" path="suiteSource" v-if="drawerTypeJudge()">
+            <n-radio-group
+              v-model:value="drawerModel.suiteSource"
+              default-value="org"
+              name="suiteSource"
+              @update:value="changeSuiteSource"
             >
-          </div>
-          <n-form-item
-            label="测试套"
-            path="suiteNames"
-            v-if="drawerTypeJudge()"
-          >
-            <n-select
+              <n-space>
+                <n-radio value="org"> 当前组织 </n-radio>
+                <n-radio value="group"> 当前团队 </n-radio>
+              </n-space>
+            </n-radio-group>
+          </n-form-item>
+          <n-form-item label="测试套" path="suiteNames" v-if="drawerTypeJudge()">
+            <n-tree-select
               v-model:value="drawerModel.suiteNames"
-              :loading="suiteSelectLoading"
+              :options="suiteOptions"
+              :show-path="true"
+              :on-load="suiteOptionsLoad"
+              :loading="suiteLoading"
               multiple
-              filterable
-              placeholder="请选择测试套"
-              :options="suiteNamesOptions"
+              cascade
+              checkable
               clearable
-              remote
-              :max-tag-count="10"
-              @search="handleSuiteNamesSearch"
-              @update:value="handleSuiteNames"
-              @clear="suiteNamesClear"
+              check-strategy="child"
+              :max-tag-count="5"
+              placeholder="请选择测试套"
             />
           </n-form-item>
-
           <n-form-item label="责任人" path="executor" v-if="drawerTypeJudge()">
             <n-select
               placeholder="请选择责任人"
@@ -104,19 +89,8 @@
             />
           </n-form-item>
           <div class="createButtonBox">
-            <n-button
-              class="btn"
-              type="error"
-              ghost
-              @click="cancelCreateTemplate"
-              >取消</n-button
-            >
-            <n-button
-              class="btn"
-              type="info"
-              ghost
-              @click="createTemplate"
-              v-show="drawerType === 'newTemplate'"
+            <n-button class="btn" type="error" ghost @click="cancelCreateTemplate">取消</n-button>
+            <n-button class="btn" type="info" ghost @click="createTemplate" v-show="drawerType === 'newTemplate'"
               >创建模板</n-button
             >
             <n-button
@@ -148,13 +122,7 @@
       </n-drawer-content>
     </n-drawer>
     <div class="addTemplateWrap">
-      <n-button
-        @click="showAddTemplateBtn"
-        size="large"
-        type="info"
-        strong
-        round
-      >
+      <n-button @click="showAddTemplateBtn" size="large" type="info" strong round>
         <template #icon>
           <file-plus />
         </template>
@@ -182,13 +150,13 @@ import { FilePlus } from '@vicons/tabler';
 
 export default {
   components: {
-    FilePlus,
+    FilePlus
   },
   setup() {
     modules.init();
 
     return modules;
-  },
+  }
 };
 </script>
 

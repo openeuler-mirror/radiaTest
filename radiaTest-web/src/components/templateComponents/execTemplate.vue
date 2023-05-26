@@ -132,7 +132,7 @@
               <div class="list-label">里程碑:</div>
               <div class="list-value">{{ formValue?.milestone }}</div>
             </div>
-            <ExpandedCardTemplate :data="formValue?.cases?.map((item) => ({ name: item.name }))" />
+            <ExpandedCardTemplate :data="formValue?.suite_cases" />
           </div>
         </div>
       </n-card>
@@ -229,8 +229,9 @@ const pmOpt = ref();
 const vmOpt = ref();
 
 const renderExecute = (row) => {
+  formValue.value = { ...row, ...defaultProp };
   getTemplateInfo(row.id).then((res) => {
-    formValue.value = { ...res.data, ...row, ...defaultProp };
+    formValue.value = { ...res.data, ...formValue.value };
   });
   getMachineGroupOptions();
 };
