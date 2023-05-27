@@ -829,24 +829,26 @@
                   </n-switch>
                 </div>
               </template>
-              <div style="display: flex">
-                <n-select
-                  placeholder="请选择模板"
-                  style="width: 35%"
-                  v-model:value="distributeTaskValue"
-                  :options="distributeTaskOption"
-                />
-                <n-select
-                  placeholder="请选择里程碑"
-                  style="width: 35%; margin-left: 10px"
-                  v-model:value="distributeTaskMilestoneValue"
-                  :options="distributeTaskMilestoneOption"
-                />
-                <div style="width: 30%; display: flex; justify-content: space-evenly">
-                  <n-button type="error" ghost @click="cancelDistributeTask">取消</n-button>
-                  <n-button type="info" ghost @click="distributeTaskBtn(distributeTaskValue)">分配</n-button>
-                </div>
-              </div>
+              <n-form :label-width="80">
+                <n-form-item label="模板">
+                  <n-select
+                    placeholder="请选择模板"
+                    v-model:value="distributeTaskValue"
+                    :options="distributeTaskOption"
+                  />
+                </n-form-item>
+                <n-form-item label="里程碑">
+                  <n-select
+                    placeholder="请选择里程碑"
+                    v-model:value="distributeTaskMilestoneValue"
+                    :options="distributeTaskMilestoneOption"
+                  />
+                </n-form-item>
+              </n-form>
+              <n-space>
+                <n-button type="error" ghost @click="cancelDistributeTask">取消</n-button>
+                <n-button type="info" ghost @click="distributeTaskBtn(distributeTaskValue)">分配</n-button>
+              </n-space>
             </n-card>
           </n-spin>
         </n-modal>
