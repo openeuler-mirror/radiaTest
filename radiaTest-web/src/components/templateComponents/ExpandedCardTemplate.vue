@@ -1,31 +1,39 @@
 <template>
   <n-card hoverable>
-    <n-data-table
-      :columns="columns"
-      :data="data"
-      size="small"
-      :max-height="250"
-      virtual-scroll
-    />
+    <n-tree block-line :data="treeData" virtual-scroll style="height: 320px" />
   </n-card>
 </template>
 
-<script>
-import { defineComponent } from 'vue';
+<script setup>
+const props = defineProps(['data']);
+const { data } = toRefs(props);
+const treeData = ref([]);
 
-export default defineComponent({
-  props: {
-    data: Array,
-  },
-  setup() {
+const getChildren = (arr) => {
+  return arr?.map((item) => {
     return {
-      columns: [
-        {
-          title: '测试用例',
-          key: 'name',
-        },
-      ],
+      label: item.name,
+      key: `case-${item.id}`
     };
-  },
+  });
+};
+
+const init = () => {
+  treeData.value = [];
+  for (let item in data.value) {
+    treeData.value?.push({
+      label: item,
+      key: `suite-${item}`,
+      children: getChildren(data.value[item].cases)
+    });
+  }
+};
+
+watch(data, () => {
+  init();
+});
+
+onMounted(() => {
+  init();
 });
 </script>

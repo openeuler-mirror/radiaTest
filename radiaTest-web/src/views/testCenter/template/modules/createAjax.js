@@ -1,7 +1,6 @@
-import { ref } from 'vue';
-import { createAjax } from '@/assets/CRUD/create';
 import axios from '@/axios';
 import { storage } from '@/assets/utils/storageUtils';
+import { createTemplate } from '@/api/post.js';
 
 const createChildren = (arr) => {
   let tempArr = [];
@@ -40,18 +39,20 @@ const exchangeCases = (cases) => {
 };
 
 const postForm = (formValue) => {
-  const postData = ref({
-    name: formValue.value.name,
-    milestone_id: formValue.value.milestone_id,
-    description: formValue.value.description,
-    git_repo_id: formValue.value.git_repo_id,
-    cases: exchangeCases(formValue.value.cases),
-    permission_type: formValue.value.permission_type.split('-')[0],
-    creator_id: Number(storage.getValue('user_id')),
-    org_id: storage.getValue('loginOrgId'),
-    group_id: Number(formValue.value.permission_type.split('-')[1])
-  });
-  createAjax.postForm('/v1/template', postData);
+  const formData = new FormData();
+  formData.append('name', formValue.value.name);
+  formData.append('milestone_id', formValue.value.milestone_id);
+  formData.append('description', formValue.value.description);
+  formData.append('git_repo_id', formValue.value.git_repo_id);
+  formData.append('file', formValue.value.file[0]?.file);
+  formData.append('permission_type', formValue.value.permission_type.split('-')[0]);
+  formData.append('creator_id', Number(storage.getValue('user_id')));
+  formData.append('org_id', storage.getValue('loginOrgId'));
+  if (formValue.value.permission_type.includes('group')) {
+    formData.append('group_id', Number(formValue.value.permission_type.split('-')[1]));
+  }
+
+  return createTemplate(formData);
 };
 
 export default {

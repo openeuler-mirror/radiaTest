@@ -93,7 +93,7 @@ function handleSubmitSuites() {
       permission_type: 'org',
       org_id: storage.getValue('loginOrgId'),
       suites: checkedSuites.value,
-      creator_id: storage.getValue('gitee_id'),
+      creator_id: storage.getValue('user_id'),
     }
   )
     .then(() => {

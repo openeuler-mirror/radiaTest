@@ -2,8 +2,8 @@ import { NButton } from 'naive-ui';
 import { ref, h, reactive } from 'vue';
 import axios from '@/axios';
 import { formatTime } from '@/assets/utils/dateFormatUtils.js';
-import { getGroup } from '@/api/get';
-// import { storage } from '@/assets/utils/storageUtils';
+import { getGroup, getCaseSetNodes, getCaseNode } from '@/api/get';
+import { storage } from '@/assets/utils/storageUtils';
 
 const showNewTemplateDrawer = ref(false);
 const distributionTableData = ref([]);
@@ -15,25 +15,25 @@ const drawerRules = ref({
   templateName: {
     required: true,
     message: '模板名称必填',
-    trigger: ['blur', 'input'],
+    trigger: ['blur', 'input']
   },
   groupName: {
     type: 'number',
     required: true,
     message: '请选择团队',
-    trigger: ['blur', 'change'],
+    trigger: ['blur', 'change']
   },
   templateType: {
     required: true,
     message: '模板类型必填',
-    trigger: ['blur', 'input'],
+    trigger: ['blur', 'input']
   },
   executor: {
     type: 'number',
     required: true,
     message: '请选择责任人',
-    trigger: ['blur', 'change'],
-  },
+    trigger: ['blur', 'change']
+  }
 });
 const drawerModel = ref({
   templateName: null,
@@ -42,6 +42,7 @@ const drawerModel = ref({
   suiteNames: [],
   executor: null,
   helpers: [],
+  suiteSource: 'org'
 });
 
 const groupNameOptions = ref([]);
@@ -52,7 +53,7 @@ function getGroupAxios() {
   groupSelectLoading.value = true;
   getGroup({
     page_num: 1,
-    page_size: 99999999,
+    page_size: 99999999
   })
     .then((res) => {
       groupSelectLoading.value = false;
@@ -60,7 +61,7 @@ function getGroupAxios() {
         res.data.items.forEach((item) => {
           groupNameOptions.value.push({
             label: item.name,
-            value: item.id,
+            value: item.id
           });
         });
       }
@@ -87,7 +88,7 @@ function getUserAxios() {
     .get(`/v1/groups/${drawerModel.value.groupName}/users`, {
       page_num: 1,
       page_size: 99999999,
-      is_admin: true,
+      is_admin: true
     })
     .then((res) => {
       userSelectLoading.value = false;
@@ -95,7 +96,7 @@ function getUserAxios() {
         res.data.items.forEach((item) => {
           helpersOptions.value.push({
             label: item.user_name,
-            value: item.user_id,
+            value: item.user_id
           });
         });
         helpersTemp = helpersOptions.value;
@@ -107,70 +108,6 @@ function getUserAxios() {
       userSelectLoading.value = false;
       window.$message?.error(err.data.error_msg || '未知错误');
     });
-}
-
-const suiteNamesOptions = ref([]);
-let suitesTemp = [];
-const suiteSelectLoading = ref(false);
-const suitesAllCheckValue = ref(false);
-
-function handleCheckedChange(checked) {
-  if (checked) {
-    drawerModel.value.suiteNames = suiteNamesOptions.value.map((v) => {
-      return v.value;
-    });
-  } else {
-    drawerModel.value.suiteNames = [];
-  }
-}
-
-function getSuitesAxios() {
-  suiteSelectLoading.value = true;
-  suiteNamesOptions.value = [];
-  suitesTemp = [];
-  axios
-    .get('/v1/tasks/distribute-templates/suites', {
-      page_num: 1,
-      page_size: 99999999,
-    })
-    .then((res) => {
-      suiteSelectLoading.value = false;
-      if (res.data.items) {
-        res.data.items.forEach((item) => {
-          suiteNamesOptions.value.push({
-            label: item.name,
-            value: item.id,
-          });
-        });
-        suitesTemp = suiteNamesOptions.value;
-      }
-    })
-    .catch((err) => {
-      suiteSelectLoading.value = false;
-      window.$message?.error(err.data.error_msg || '未知错误');
-    });
-}
-
-function handleSuiteNamesSearch(query) {
-  if (!query.length) {
-    suiteNamesOptions.value = suitesTemp;
-    return;
-  }
-  suiteNamesOptions.value = suitesTemp.filter(
-    (item) => ~item.label.indexOf(query)
-  );
-}
-
-function handleSuiteNames(value) {
-  if (value.length === suiteNamesOptions.value.length) {
-    suitesAllCheckValue.value = true;
-  } else {
-    suitesAllCheckValue.value = false;
-  }
-}
-
-function suiteNamesClear() {
-  suitesAllCheckValue.value = false;
 }
 
 function handleChangeGroup(value) {
@@ -185,14 +122,14 @@ function handleChangeGroup(value) {
     .get(`/v1/groups/${value}/users`, {
       page_num: 1,
       page_size: 99999999,
-      is_admin: true,
+      is_admin: true
     })
     .then((res) => {
       if (res.data.items) {
         res.data.items.forEach((item) => {
           helpersOptions.value.push({
             label: item.user_name,
-            value: item.user_id,
+            value: item.user_id
           });
         });
         helpersTemp = helpersOptions.value;
@@ -210,9 +147,7 @@ function handleHelpersSearch(query) {
     helpersOptions.value = helpersTemp;
     return;
   }
-  helpersOptions.value = helpersTemp.filter(
-    (item) => ~item.label.indexOf(query)
-  );
+  helpersOptions.value = helpersTemp.filter((item) => ~item.label.indexOf(query));
 }
 
 function handleExecutorSearch(query) {
@@ -220,9 +155,7 @@ function handleExecutorSearch(query) {
     executorOptions.value = executorTemp;
     return;
   }
-  executorOptions.value = executorTemp.filter(
-    (item) => ~item.label.indexOf(query)
-  );
+  executorOptions.value = executorTemp.filter((item) => ~item.label.indexOf(query));
 }
 
 function handleChangeExecutor(v) {
@@ -233,14 +166,14 @@ function handleChangeExecutor(v) {
       except_list: v,
       page_num: 1,
       page_size: 99999999,
-      is_admin: true,
+      is_admin: true
     })
     .then((res) => {
       if (res.data.items) {
         res.data.items.forEach((item) => {
           helpersOptions.value.push({
             label: item.user_name,
-            value: item.user_id,
+            value: item.user_id
           });
         });
         helpersTemp = helpersOptions.value;
@@ -259,14 +192,14 @@ function handleChangeHelper(v) {
       except_list: v.join(','),
       page_num: 1,
       page_size: 99999999,
-      is_admin: true,
+      is_admin: true
     })
     .then((res) => {
       if (res.data.items) {
         res.data.items.forEach((item) => {
           executorOptions.value.push({
             label: item.user_name,
-            value: item.user_id,
+            value: item.user_id
           });
         });
         executorTemp = helpersOptions.value;
@@ -299,10 +232,7 @@ function drawerShowCb(type) {
 }
 
 function drawerTypeJudge() {
-  return (
-    drawerType.value === 'newTemplateType' ||
-    drawerType.value === 'editTemplateType'
-  );
+  return drawerType.value === 'newTemplateType' || drawerType.value === 'editTemplateType';
 }
 
 const distributionLoading = ref(false);
@@ -323,7 +253,7 @@ function getTemplateTableRowsData(items) {
       templateNameID: item.id,
       templateName: item.name,
       groupID: item.group.id,
-      group: item.group.name,
+      group: item.group.name
     });
     if (item.types) {
       distributionTableData.value[i].children = [];
@@ -342,6 +272,7 @@ function getTemplateTableRowsData(items) {
           executor: type.executor.user_name,
           helper: helpers,
           creatingTime: formatTime(type.create_time, 'yyyy-MM-dd hh:mm:ss'),
+          suite_source: type.suite_source
         });
         if (type.suites) {
           distributionTableData.value[i].children[j].children = [];
@@ -356,7 +287,7 @@ function getTemplateTableRowsData(items) {
               creator: type.creator.user_name,
               executor: type.executor.user_name,
               helper: helpers,
-              creatingTime: formatTime(type.create_time, 'yyyy-MM-dd hh:mm:ss'),
+              creatingTime: formatTime(type.create_time, 'yyyy-MM-dd hh:mm:ss')
             });
           });
         }
@@ -371,7 +302,7 @@ function getTemplateTableData() {
   axios
     .get('v1/tasks/distribute-templates', {
       page_num: templatePagination.page,
-      page_size: templatePagination.pageSize,
+      page_size: templatePagination.pageSize
     })
     .then((res) => {
       distributionLoading.value = false;
@@ -439,7 +370,7 @@ function warning(title, content, confirmCb, cancelCb) {
             if (confirmCb) {
               confirmCb();
             }
-          },
+          }
         },
         '确定'
       );
@@ -453,12 +384,12 @@ function warning(title, content, confirmCb, cancelCb) {
             if (cancelCb) {
               cancelCb();
             }
-          },
+          }
         },
         '取消'
       );
       return [cancelmBtn, confirmBtn];
-    },
+    }
   });
 }
 
@@ -468,15 +399,8 @@ function getTemplateType(value) {
   drawerModel.value.executor = null;
   drawerModel.value.helpers = [];
   axios
-    .get(
-      `v1/tasks/distribute-templates/suites?page_num=1&page_size=99999999&type_id=${value}`
-    )
+    .get(`v1/tasks/distribute-templates/suites?page_num=1&page_size=99999999&type_id=${value}`)
     .then((res) => {
-      if (res.data.suites) {
-        res.data.suites.forEach((item) => {
-          drawerModel.value.suiteNames.push(item.id);
-        });
-      }
       drawerModel.value.executor = res.data.executor.user_id;
       if (res.data.helpers) {
         res.data.helpers.forEach((item) => {
@@ -486,12 +410,102 @@ function getTemplateType(value) {
       handleChangeExecutor(drawerModel.value.executor);
       handleChangeHelper(drawerModel.value.helpers);
       getGroupAxios();
-      getSuitesAxios();
     })
     .catch((err) => {
       window.$message?.error(err.data.error_msg || '未知错误');
     });
 }
+
+const suiteLoading = ref(false);
+const suiteOptions = ref([]);
+
+const suiteOptionsLoad = (option) => {
+  suiteLoading.value = true;
+  option.children = [];
+  return new Promise((resolve, reject) => {
+    getCaseNode(option.info?.id)
+      .then((res) => {
+        suiteLoading.value = false;
+        for (const item of res.data.children) {
+          let newKey = `${item.type}-${item.id}`;
+          if (item.type === 'suite') {
+            newKey = item.suite_id;
+          }
+          option.children.push({
+            label: item.title,
+            info: item,
+            key: newKey,
+            isLeaf: item.type === 'suite',
+            type: item.type,
+            parent: option,
+            suiteId: item.suite_id,
+            caseId: item.case_id
+          });
+        }
+        resolve(option.children);
+      })
+      .catch((err) => {
+        suiteLoading.value = false;
+        reject(err);
+      });
+  });
+};
+
+const setNodeOptions = (array) => {
+  return array.map((item) => {
+    let newKey = `${item.type}-${item.id}`;
+    if (item.type === 'suite') {
+      newKey = item.suite_id;
+    }
+
+    return {
+      label: item.title,
+      info: item,
+      key: newKey,
+      isLeaf: item.type === 'suite',
+      type: item.type
+    };
+  });
+};
+
+const getCaseSetNodesAxios = (type, id) => {
+  suiteLoading.value = true;
+  getCaseSetNodes(type, id).then((res) => {
+    suiteOptions.value = [];
+    suiteLoading.value = false;
+    if (type === 'org') {
+      for (const i in res.data) {
+        suiteOptions.value.push({
+          label: i,
+          key: i,
+          disabled: true,
+          isLeaf: false,
+          children: setNodeOptions(res.data[i].children)
+        });
+      }
+    } else {
+      for (const i in res.data) {
+        if (i === 'group') {
+          suiteOptions.value.push({
+            label: i,
+            key: i,
+            disabled: true,
+            isLeaf: false,
+            children: setNodeOptions(res.data[i].children)
+          });
+        }
+      }
+    }
+  });
+};
+
+const changeSuiteSource = (value) => {
+  if (value === 'org') {
+    getCaseSetNodesAxios('org', storage.getValue('loginOrgId'));
+  } else {
+    getCaseSetNodesAxios('group', drawerModel.value.groupName);
+  }
+};
 
 // 新增类型
 function operateMenuAdd(rowData) {
@@ -509,11 +523,11 @@ function operateMenuAdd(rowData) {
         drawerShowCb(drawerType.value);
         getUserAxios();
         getGroupAxios();
-        getSuitesAxios();
-      },
+        getCaseSetNodesAxios('org', storage.getValue('loginOrgId'));
+      }
     },
     {
-      default: () => '新增',
+      default: () => '新增'
     }
   );
 }
@@ -537,14 +551,20 @@ function operateMenuEdit(rowData) {
           drawerModel.value.groupName = rowData.groupID;
           drawerModel.value.templateTypeID = rowData.templateTypeID;
           drawerModel.value.templateType = rowData.templateType;
+          drawerModel.value.suiteSource = rowData.suite_source;
           drawerType.value = 'editTemplateType';
+          if (drawerModel.value.suiteSource === 'org') {
+            getCaseSetNodesAxios('org', storage.getValue('loginOrgId'));
+          } else {
+            getCaseSetNodesAxios('group', drawerModel.value.groupName);
+          }
           drawerShowCb(drawerType.value);
           getTemplateType(rowData.templateTypeID);
         }
-      },
+      }
     },
     {
-      default: () => '修改',
+      default: () => '修改'
     }
   );
 }
@@ -559,18 +579,14 @@ function operateMenuDelete(rowData) {
       style: 'margin-left:10px;',
       onClick: () => {
         if (rowData.level === 'templateName') {
-          warning('删除模板', '您确定要删除此模板吗？', () =>
-            deleteTemplateName(rowData.templateNameID)
-          );
+          warning('删除模板', '您确定要删除此模板吗？', () => deleteTemplateName(rowData.templateNameID));
         } else if (rowData.level === 'templateType') {
-          warning('删除模板类型', '您确定要删除此模板类型吗？', () =>
-            deleteTemplateType(rowData.templateTypeID)
-          );
+          warning('删除模板类型', '您确定要删除此模板类型吗？', () => deleteTemplateType(rowData.templateTypeID));
         }
-      },
+      }
     },
     {
-      default: () => '删除',
+      default: () => '删除'
     }
   );
 }
@@ -579,42 +595,42 @@ const distributionColumns = [
   {
     title: '模板名称',
     key: 'templateName',
-    align: 'left',
+    align: 'left'
   },
   {
     title: '团队',
     key: 'group',
-    align: 'center',
+    align: 'center'
   },
   {
     title: '模板类型',
     key: 'templateType',
-    align: 'center',
+    align: 'center'
   },
   {
     title: '测试套',
     key: 'suiteName',
-    align: 'center',
+    align: 'center'
   },
   {
     title: '创建人',
     key: 'creator',
-    align: 'center',
+    align: 'center'
   },
   {
     title: '责任人',
     key: 'executor',
-    align: 'center',
+    align: 'center'
   },
   {
     title: '协助人',
     key: 'helper',
-    align: 'center',
+    align: 'center'
   },
   {
     title: '创建日期',
     key: 'creatingTime',
-    align: 'center',
+    align: 'center'
   },
   {
     title: '操作',
@@ -622,17 +638,13 @@ const distributionColumns = [
     align: 'center',
     render(rowData) {
       if (rowData.level === 'templateName') {
-        return [
-          operateMenuAdd(rowData),
-          operateMenuEdit(rowData),
-          operateMenuDelete(rowData),
-        ];
+        return [operateMenuAdd(rowData), operateMenuEdit(rowData), operateMenuDelete(rowData)];
       } else if (rowData.level !== 'suiteName') {
         return [operateMenuEdit(rowData), operateMenuDelete(rowData)];
       }
       return null;
-    },
-  },
+    }
+  }
 ];
 
 // 点击“创建模板”按钮
@@ -650,7 +662,6 @@ function cancelCreateTemplate() {
   executorOptions.value = [];
   helpersTemp = [];
   executorTemp = [];
-  suitesAllCheckValue.value = false;
 }
 
 // “创建模板”按钮
@@ -662,7 +673,7 @@ function createTemplate() {
       axios
         .post('/v1/tasks/distribute-templates', {
           name: drawerModel.value.templateName,
-          group_id: drawerModel.value.groupName,
+          group_id: drawerModel.value.groupName
         })
         .then(() => {
           getTemplateTableData();
@@ -683,15 +694,13 @@ function createTemplateType() {
       window.$message?.error('请填写相关信息');
     } else {
       axios
-        .post(
-          `/v1/tasks/distribute-templates/${drawerModel.value.templateNameID}/types`,
-          {
-            name: drawerModel.value.templateType,
-            executor_id: drawerModel.value.executor,
-            suites: drawerModel.value.suiteNames,
-            helpers: drawerModel.value.helpers,
-          }
-        )
+        .post(`/v1/tasks/distribute-templates/${drawerModel.value.templateNameID}/types`, {
+          name: drawerModel.value.templateType,
+          executor_id: drawerModel.value.executor,
+          suites: drawerModel.value.suiteNames,
+          helpers: drawerModel.value.helpers,
+          suite_source: drawerModel.value.suiteSource
+        })
         .then(() => {
           getTemplateTableData();
           showNewTemplateDrawer.value = false;
@@ -711,12 +720,9 @@ function editTemplateNameCb() {
       window.$message?.error('请填写相关信息');
     } else {
       axios
-        .put(
-          `/v1/tasks/distribute-templates/${drawerModel.value.templateNameID}`,
-          {
-            name: drawerModel.value.templateName,
-          }
-        )
+        .put(`/v1/tasks/distribute-templates/${drawerModel.value.templateNameID}`, {
+          name: drawerModel.value.templateName
+        })
         .then(() => {
           getTemplateTableData();
           showNewTemplateDrawer.value = false;
@@ -736,15 +742,13 @@ function editTemplateTypeCb() {
       window.$message?.error('请填写相关信息');
     } else {
       axios
-        .put(
-          `/v1/tasks/distribute-templates/types/${drawerModel.value.templateTypeID}`,
-          {
-            name: drawerModel.value.templateType,
-            executor_id: drawerModel.value.executor,
-            suites: drawerModel.value.suiteNames,
-            helpers: drawerModel.value.helpers,
-          }
-        )
+        .put(`/v1/tasks/distribute-templates/types/${drawerModel.value.templateTypeID}`, {
+          name: drawerModel.value.templateType,
+          executor_id: drawerModel.value.executor,
+          suites: drawerModel.value.suiteNames,
+          helpers: drawerModel.value.helpers,
+          suite_source: drawerModel.value.suiteSource
+        })
         .then(() => {
           getTemplateTableData();
           showNewTemplateDrawer.value = false;
@@ -775,8 +779,6 @@ export {
   init,
   templatePagination,
   getTemplateTableData,
-  suiteNamesOptions,
-  handleSuiteNamesSearch,
   helpersOptions,
   handleHelpersSearch,
   handleExecutorSearch,
@@ -795,9 +797,8 @@ export {
   drawerTypeJudge,
   groupSelectLoading,
   userSelectLoading,
-  suiteSelectLoading,
-  suitesAllCheckValue,
-  handleCheckedChange,
-  handleSuiteNames,
-  suiteNamesClear,
+  suiteOptions,
+  suiteOptionsLoad,
+  suiteLoading,
+  changeSuiteSource
 };

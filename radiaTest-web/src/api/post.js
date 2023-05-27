@@ -220,3 +220,8 @@ export function createDailyBuild(data) {
 export function createDailyBuildCompare(roundId, data) {
   return postRequest(`/v1/qualityboard/daily-build/with/round/${roundId}/pkg-compare`, data);
 }
+
+// 测试执行创建模板
+export function createTemplate(data) {
+  return postRequest('/v1/template', data);
+}
