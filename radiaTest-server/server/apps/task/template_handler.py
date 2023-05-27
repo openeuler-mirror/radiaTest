@@ -82,6 +82,7 @@ class HandlerTemplate:
                 dtt.group_id = template.group_id
                 dtt.permission_type = template.permission_type
                 dtt.suites = ",".join(item.suites)
+                dtt.suite_source = item.suite_source
                 dtt.helpers = ",".join(item.helpers) if item.helpers else ""
                 template.types.append(dtt)
         template.add_update()
@@ -179,6 +180,7 @@ class HandlerTemplateType:
         dtt.permission_type = template.permission_type
         dtt.suites = ",".join(body.suites)
         dtt.helpers = ",".join(body.helpers)
+        dtt.suite_source = body.suite_source
         dtt_id = dtt.add_flush_commit_id()
         template.types.append(dtt)
         template.add_update()

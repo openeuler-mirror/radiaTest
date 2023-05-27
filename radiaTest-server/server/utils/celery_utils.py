@@ -81,6 +81,11 @@ def make_celery(app_name):
                 'routing_key': 'set',
                 'delivery_mode': 1,
             },
+            'celeryservice.tasks.resolve_template_testcase': {
+                'queue': 'queue_template_testcase',
+                'routing_key': 'file',
+                'delivery_mode': 1,
+            },
             'celeryservice.tasks.resolve_dailybuild_detail': {
                 'queue': 'queue_resolve_dailybuild',
                 'routing_key': 'set',
