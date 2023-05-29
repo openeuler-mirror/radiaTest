@@ -176,7 +176,7 @@ class TaskBaseSchema(BaseModel):
 
 
 class TaskInfoSchema(TaskBaseSchema):
-    creator_id: int = None
+    creator_id: str = None
     start_time: datetime = None
     content: str = None
     executor_type: EnumsTaskExecutorType = None
