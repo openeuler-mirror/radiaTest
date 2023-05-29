@@ -155,7 +155,7 @@ class PmachineBaseSchema(BaseModel):
     ip: Optional[str]
     user: Optional[constr(max_length=32)]
     port: Optional[int]
-    password: Optional(str)
+    password: Optional[str]
     end_time: Optional[datetime]
     start_time: Optional[datetime]
     listen: Optional[int]
@@ -208,9 +208,9 @@ class PmachineBaseSchema(BaseModel):
                 raise ValueError(
                     "As a CI host, ip、user、port、password must be provided."
                 )
-            if len(values["password"]) <= 6:
+            if len(values["password"]) < 6 or len(values["password"] > 256):
                 raise ValueError(
-                    "As a CI host, password length should not be shorter than 6 characters"
+                    "As a CI host, password length should be in range [6, 256]"
                 )
         return values
 
