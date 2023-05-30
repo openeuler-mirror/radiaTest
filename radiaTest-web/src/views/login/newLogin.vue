@@ -125,7 +125,7 @@
             round
             :disabled="!loginOrg"
             style="margin-top: 10px"
-            :color="[authorityType === 'gitee' ? '#d03050' : '#002fa7']"
+            :color="authorityType === 'gitee' ? '#d03050' : '#002fa7'"
             @click="hanleLogin(loginOrg)"
           >
             <div v-if="authorityType === 'gitee'" class="loginOrgWrap">
