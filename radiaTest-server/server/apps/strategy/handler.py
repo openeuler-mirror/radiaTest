@@ -144,7 +144,7 @@ class GiteePrHandler():
 
 class CommitHandler:
     def __init__(self, strategy_id) -> None:
-        user = User.query.filter_by(gitee_id=g.user_id).first()
+        user = User.query.filter_by(user_id=g.user_id).first()
         self.user_params = {
             "owner": "radiaTest_bot",  # radiaTest机器人公共账户
             "repo": "QA",  # 公共账户仓库

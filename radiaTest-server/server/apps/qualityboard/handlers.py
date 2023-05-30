@@ -593,7 +593,7 @@ class PackageListHandler:
         redis_client.hmset(
             key_val,
             {
-                "gitee_id": g.user_id,
+                "user_id": g.user_id,
                 "resolve_time": datetime.now(
                     tz=pytz.timezone('Asia/Shanghai')
                 ).strftime("%Y-%m-%d %H:%M:%S")
@@ -666,7 +666,7 @@ class DailyBuildPackageListHandler(PackageListHandler):
         redis_client.hmset(
             key_val,
             {
-                "gitee_id": g.user_id,
+                "user_id": g.user_id,
                 "resolve_time": datetime.now(
                     tz=pytz.timezone('Asia/Shanghai')
                 ).strftime("%Y-%m-%d %H:%M:%S")

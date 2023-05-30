@@ -201,7 +201,7 @@ class MilestoneHandler:
             ReUserGroup.user_add_group_flag.is_(True),
             Group.is_delete.is_(False),
             ReUserGroup.org_id == int(current_org_id),
-            ReUserGroup.user_gitee_id == g.user_id
+            ReUserGroup.user_id == g.user_id
         ).all()
         if re_user_groups:
             group_ids = [

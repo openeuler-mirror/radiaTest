@@ -409,7 +409,7 @@ class HandlerTask(object):
                 ReUserGroup.user_add_group_flag.is_(True),
                 Group.is_delete.is_(False),
                 ReUserGroup.org_id == int(current_org_id),
-                ReUserGroup.user_gitee_id == g.user_id
+                ReUserGroup.user_id == g.user_id
             ]
             if query.group_id is not None and query.type == "group":
                 filter_params.append(

@@ -575,7 +575,7 @@ class StrategyCommitEvent(Resource):
     @collect_sql_error
     def delete(self, product_feature_id, body: StrategyPermissionBaseSchema):
         strategy = Strategy.query.filter_by(
-            org_id=body.org_id, creator_id=body.gitee_id, product_feature_id=product_feature_id
+            org_id=body.org_id, creator_id=body.user_id, product_feature_id=product_feature_id
         ).first()
         if not strategy:
             return jsonify(
