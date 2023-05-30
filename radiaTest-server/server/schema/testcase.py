@@ -29,7 +29,7 @@ from server.schema import MachineType, PermissionType, CaseNodeType, CommitType
 
 
 class PermissionBaseSchema(BaseModel):
-    creator_id: int
+    creator_id: str
     permission_type: PermissionType
     group_id: Optional[int] = None
     org_id: int
@@ -295,7 +295,7 @@ class CaseUpdateSchemaWithSuiteId(SuiteBase, UpdateBaseModel, PermissionBaseSche
 
 class AddCaseCommitSchema(BaseModel):
     title: str
-    creator_id: int = None
+    creator_id: str = None
     description: str = None  # 提交commit时的description
     case_description: str = None  # case本身的description
     case_detail_id: int# = None

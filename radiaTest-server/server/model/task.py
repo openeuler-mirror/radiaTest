@@ -138,7 +138,7 @@ class Task(db.Model, PermissionBaseModel, BaseModel):
     type = db.Column(db.Enum("ORGANIZATION", "GROUP", "PERSON", "VERSION"), default="PERSON")
     start_time = db.Column(db.DateTime(), nullable=True)
     content = db.Column(db.Text, nullable=True)
-    executor_id = db.Column(db.Integer, nullable=False)
+    executor_id = db.Column(db.String(512), nullable=False)
     executor_type = db.Column(db.Enum("GROUP", "PERSON"), default="PERSON")
     is_delete = db.Column(db.Boolean, default=False, nullable=False)
     priority = db.Column(db.Integer, nullable=False, default=1)
