@@ -234,7 +234,7 @@ class CaseNodeHandler:
     @staticmethod
     @collect_sql_error
     def get_case_set_node(query):
-        org_id = redis_client.hget(RedisKey.user(g.gitee_id), "current_org_id")
+        org_id = redis_client.hget(RedisKey.user(g.user_id), "current_org_id")
         filter_param = [
             CaseNode.type == "suite",
             CaseNode.in_set.is_(True),
@@ -1611,7 +1611,7 @@ class SuiteDocumentHandler:
 class OrphanSuitesHandler:
     def __init__(self, query) -> None:
         self.current_org_id = redis_client.hget(
-            RedisKey.user(g.gitee_id),
+            RedisKey.user(g.user_id),
             "current_org_id",
         )
 

@@ -1588,7 +1588,7 @@ class DailyBuildPackageListCompareEvent(Resource):
                 body.repo_path,
                 "all"
             )
-            org_id = redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')
+            org_id = redis_client.hget(RedisKey.user(g.user_id), 'current_org_id')
             repo_url = redis_client.hget(
                 RedisKey.daily_build(org_id),
                 body.daily_name,
@@ -1722,7 +1722,7 @@ class DailyBuildPkgEvent(Resource):
                 error_code=RET.RUNTIME_ERROR,
                 error_msg=str(e),
             )
-        org_id = redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')
+        org_id = redis_client.hget(RedisKey.user(g.user_id), 'current_org_id')
         redis_client.hset(
             RedisKey.daily_build(org_id),
             body.daily_name,
@@ -1738,7 +1738,7 @@ class DailyBuildPkgEvent(Resource):
     @response_collect
     @validate()
     def get(self, query: PageBaseSchema):
-        org_id = redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')
+        org_id = redis_client.hget(RedisKey.user(g.user_id), 'current_org_id')
         daily_build_infos = redis_client.hgetall(RedisKey.daily_build(org_id))
         data = list()
         if daily_build_infos:
@@ -1775,7 +1775,7 @@ class DailyBuildPkgEvent(Resource):
     @response_collect
     @validate()
     def delete(self, body: DailyBuildBaseSchema):
-        org_id = redis_client.hget(RedisKey.user(g.gitee_id), 'current_org_id')
+        org_id = redis_client.hget(RedisKey.user(g.user_id), 'current_org_id')
         redis_client.hdel(
             RedisKey.daily_build(org_id),
             body.daily_name,

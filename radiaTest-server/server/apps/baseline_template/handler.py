@@ -521,7 +521,7 @@ class BaselineTemplateApplyHandler:
             org_id=to_casenode.org_id,
             permission_type=to_casenode.permission_type,
             baseline_id=to_casenode.baseline_id,
-            creator_id=g.gitee_id,
+            creator_id=g.user_id,
             suite_id=from_basenode.case_node.suite_id if from_basenode.case_node else None,
             case_id=from_basenode.case_node.case_id if from_basenode.case_node else None,
         )

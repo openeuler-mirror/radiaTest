@@ -105,7 +105,7 @@ class MilestoneItemEventV2(Resource):
                 error_code=RET.NO_DATA_ERR,
                 error_msg="milestone {} not exist".format(milestone_id),
             )
-        if int(g.gitee_id) != int(milestone.creator_id):
+        if g.user_id != milestone.creator_id:
             return jsonify(
                 error_code=RET.NO_DATA_ERR,
                 error_msg="you have no right to change the milestone {}".format(milestone.name),

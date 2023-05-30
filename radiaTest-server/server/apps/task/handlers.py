@@ -372,7 +372,7 @@ class HandlerTask(object):
     def get_all_gantt_tasks(query: QueryTaskByTimeSchema):
         """获取任务列表"""
         current_org_id = redis_client.hget(
-            RedisKey.user(g.gitee_id), 
+            RedisKey.user(g.user_id), 
             "current_org_id"
         )
         return_data = list()
@@ -409,7 +409,7 @@ class HandlerTask(object):
                 ReUserGroup.user_add_group_flag.is_(True),
                 Group.is_delete.is_(False),
                 ReUserGroup.org_id == int(current_org_id),
-                ReUserGroup.user_gitee_id == g.gitee_id
+                ReUserGroup.user_gitee_id == g.user_id
             ]
             if query.group_id is not None and query.type == "group":
                 filter_params.append(
