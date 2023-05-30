@@ -241,14 +241,14 @@ class CaseNodeSuitesEvent(Resource):
                 body.permission_type,
                 body.org_id,
                 body.group_id,
-                g.gitee_id,
+                g.user_id,
             )
             celerytask = {
                 "tid": _task.task_id,
                 "status": "PENDING",
                 "object_type": "create_testsuite_node",
                 "description": f"create case node related to suite#{suite_id} under {case_node.title}",
-                "user_id": g.gitee_id,
+                "user_id": g.user_id,
             }
 
             _ = Insert(CeleryTask, celerytask).single(CeleryTask, "/celerytask")

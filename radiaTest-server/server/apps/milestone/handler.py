@@ -184,7 +184,7 @@ class MilestoneHandler:
         """获取里程碑列表"""
         from server.model.group import Group, ReUserGroup
         current_org_id = redis_client.hget(
-            RedisKey.user(g.gitee_id), 
+            RedisKey.user(g.user_id), 
             "current_org_id"
         )
         filter_params = [
@@ -201,7 +201,7 @@ class MilestoneHandler:
             ReUserGroup.user_add_group_flag.is_(True),
             Group.is_delete.is_(False),
             ReUserGroup.org_id == int(current_org_id),
-            ReUserGroup.user_gitee_id == g.gitee_id
+            ReUserGroup.user_gitee_id == g.user_id
         ).all()
         if re_user_groups:
             group_ids = [

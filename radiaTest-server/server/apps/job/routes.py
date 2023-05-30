@@ -131,7 +131,7 @@ class JobEvent(Resource):
                     "current_org_id"
                 )
             ),
-            "creator_id": g.gitee_id
+            "creator_id": g.user_id
         }
 
         if re.match(r'^group_\d+$', workspace):
