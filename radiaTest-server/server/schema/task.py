@@ -138,8 +138,8 @@ class QueryTaskByTimeSchema(BaseModel):
 class QueryTaskSchema(PageBaseSchema):
     title: str = None
     type: EnumsTaskType = None
-    executor_id: int = None
-    creator_id: int = None
+    executor_id: str = None
+    creator_id: str = None
     participant_id: str = None
     status_id: int = None
     deadline: str = None
