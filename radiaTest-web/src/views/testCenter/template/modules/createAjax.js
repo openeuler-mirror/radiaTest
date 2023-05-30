@@ -46,7 +46,7 @@ const postForm = (formValue) => {
   formData.append('git_repo_id', formValue.value.git_repo_id);
   formData.append('file', formValue.value.file[0]?.file);
   formData.append('permission_type', formValue.value.permission_type.split('-')[0]);
-  formData.append('creator_id', Number(storage.getValue('user_id')));
+  formData.append('creator_id', storage.getValue('user_id'));
   formData.append('org_id', storage.getValue('loginOrgId'));
   if (formValue.value.permission_type.includes('group')) {
     formData.append('group_id', Number(formValue.value.permission_type.split('-')[1]));
