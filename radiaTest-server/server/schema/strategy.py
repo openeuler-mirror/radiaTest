@@ -123,4 +123,4 @@ class StrategyQuerySchema(PageBaseSchema):
 
 class StrategyPermissionBaseSchema(BaseModel):
     org_id: Optional[int]
-    gitee_id: Optional[int]
+    user_id: Optional[str]
