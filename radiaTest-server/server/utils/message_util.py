@@ -57,8 +57,12 @@ class MessageManager:
         if not _instance:
             raise RuntimeError("the data does not exsit")
         cur_org_id = redis_client.hget(RedisKey.user(g.user_id), "current_org_id")
-
-        role = Role.query.filter_by(name="admin").first()
+        if _instance.permission_type == "org":
+            role = Role.query.filter_by(name="admin", org_id=cur_org_id).first()
+        elif _instance.permission_type == "group":
+            role = Role.query.filter_by(name="admin", org_id=cur_org_id, group_id=_instance.group_id).first()
+        else:
+            raise RuntimeError("unknown permission type.")
 
         if not role:
             raise RuntimeError("the role does not exist.")
@@ -75,14 +79,11 @@ class MessageManager:
 
     @staticmethod
     def send_scrpt_msg(to_user_id, msg_leve: MsgLevel, _api, permission_type, org_id):
-        from server import redis_client
-        from server.utils.redis_util import RedisKey
-
         _message = dict(
             data=json.dumps(
                 dict(
                     permission_type=permission_type,
-                    info=f'<b>{redis_client.hget(RedisKey.user(g.user_id), "user_name")}</b>请求{_api.get("alias")}<b>{_api["id"]}</b>。',
+                    info=f'<b>{g.user_login}</b>请求{_api.get("alias")}<b>{_api["id"]}</b>。',
                     script=_api["cur_uri"],
                     method=_api.get("act"),
                     _alias=_api.get("alias"),
