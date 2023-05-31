@@ -445,12 +445,14 @@ class DistributeTemplateTypeSchema(object):
         executor_id: int
         suites: List[str] = []
         helpers: List[str] = []
+        suite_source: Literal["org", "group"] = "org"
 
     class Update(BaseModel):
         name: str = Field(None, max_length=32)
         executor_id: int = None
         suites: List[str] = []
         helpers: List[str] = []
+        suite_source: Literal["org", "group"] = "org"
 
         @validator('suites')
         def v_suites(cls, v):

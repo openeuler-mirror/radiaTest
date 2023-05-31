@@ -428,7 +428,7 @@ class DistributeCaseByTemplate(Resource):
     @validate()
     @casbin_enforcer.enforcer
     def put(self, task_id, template_id, body: DistributeTemplate.Distribute):
-        return HandlerTaskDistributeCass().distribute(task_id, template_id, body)
+        return HandlerTaskDistributeCass().distribute(task_id, template_id, body.__dict__)
 
 
 class TaskList(Resource):

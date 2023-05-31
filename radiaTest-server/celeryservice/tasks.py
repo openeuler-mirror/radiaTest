@@ -44,6 +44,8 @@ from celeryservice.lib.dailybuild import DailyBuildHandler
 from celeryservice.lib.message import VmachineReleaseNotice
 from celeryservice.lib.rpmcheck import RpmCheckHandler
 from celeryservice.lib.casenode import CaseNodeCreator
+from celeryservice.lib.template import TemplateCaseHandler
+from celeryservice.lib.task import TaskdistributeHandler
 
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -261,6 +263,24 @@ def resolve_testcase_set(self, zip_filepath, unzip_filepath, user):
     TestcaseHandler(user, logger, self).resolve_case_set(
         zip_filepath,
         unzip_filepath,
+    )
+
+
+@celery.task(bind=True)
+def resolve_template_testcase(self, filetype, filepath, body):
+    TemplateCaseHandler(logger, self).import_cases_to_template(
+        filetype=filetype,
+        filepath=filepath,
+        body=body,
+    )
+
+
+@celery.task
+def resolve_distribute_template(task_id, template_id, body):
+    TaskdistributeHandler(logger).distribute(
+        task_id=task_id,
+        template_id=template_id,
+        body=body,
     )
 
 

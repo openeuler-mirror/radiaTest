@@ -50,6 +50,20 @@ class Template(BaseModel, PermissionBaseModel, db.Model):
         elif self.permission_type == "public":
             owner = "public"
 
+        suite_cases = dict()
+        for case in self.cases:
+            if suite_cases.get(case.suite.name):
+                suite_cases.get(case.suite.name).get("cases").append(case.to_json())
+            else:
+                suite_cases.update(
+                    {
+                        case.suite.name: {
+                            "suite": case.suite.name,
+                            "cases": [case.to_json()],
+                        }
+                    }
+                )
+
         return {
             "id": self.id,
             "name": self.name,
@@ -58,6 +72,7 @@ class Template(BaseModel, PermissionBaseModel, db.Model):
             "milestone_id": self.milestone_id,
             "git_repo": self.git_repo.to_json() if self.git_repo_id else {},
             "cases": [case.to_json() for case in self.cases],
+            "suite_cases": suite_cases,
             "author": author,
             "owner": owner,
             "create_time": self.create_time.strftime("%Y-%m-%d %H:%M:%S"),
