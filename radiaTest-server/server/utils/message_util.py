@@ -58,35 +58,20 @@ class MessageManager:
             raise RuntimeError("the data does not exsit")
         cur_org_id = redis_client.hget(RedisKey.user(g.user_id), "current_org_id")
 
-        re_user_org = Precise(
-            ReUserOrganization,
-            {"user_id": _instance.creator_id, "org_id": cur_org_id},
-        ).first()
-        if not re_user_org:
-            current_app.logger.info("the creater user does not exsit in current org")
-
-        with open("server/config/role_init.yaml", "r", encoding="utf-8") as f:
-            role_infos = yaml.safe_load(f.read())
-        role = Precise(
-            Role,
-            {
-                "name": role_infos.get(_instance.permission_type).get("administrator"),
-                "type": _instance.permission_type,
-            },
-        ).first()
+        role = Role.query.filter_by(name="admin").first()
 
         if not role:
             raise RuntimeError("the role does not exist.")
 
-        re_role_user = Precise(
-            ReUserRole,
-            {"role_id": role.id},
-        ).first()
+        re_role_user = ReUserRole.query.filter_by(role_id=role.id).all()
+
         if not re_role_user:
             raise RuntimeError("the user with this role does not exist.")
-        MessageManager.send_scrpt_msg(
-            re_role_user.user_id, MsgLevel.user.value, _api, _instance.permission_type, cur_org_id
-        )
+        
+        for item in re_role_user:
+            MessageManager.send_scrpt_msg(
+                item.user_id, MsgLevel.user.value, _api, _instance.permission_type, cur_org_id
+            )
 
     @staticmethod
     def send_scrpt_msg(to_user_id, msg_leve: MsgLevel, _api, permission_type, org_id):

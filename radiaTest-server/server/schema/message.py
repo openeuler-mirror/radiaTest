@@ -9,8 +9,8 @@ class MessageModel(BaseModel):
     id: Optional[int]
     data: str
     level: int
-    from_id: int
-    to_id: int
+    from_id: str
+    to_id: str
     is_delete: bool
     has_read: bool
     type: int
@@ -22,6 +22,7 @@ class MessageModel(BaseModel):
             return json.loads(v)
         except:
             return None
+
 
 class MessageCallBack(BaseModel):
     msg_id: int
