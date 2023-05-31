@@ -9,7 +9,7 @@
 ####################################
 # @Author  : 
 # @email   : 
-# @Date    : 
+# @Date    : 2023-05-24
 # @License : Mulan PSL v2
 #####################################
 
@@ -24,40 +24,56 @@ from server.model.testcase import Case
 from server.utils.db import Edit
 from server.utils.auth_util import auth
 from server.utils.response_util import RET, response_collect, workspace_error_collect
-from server.schema.template import TemplateUpdate, TemplateCloneBase, TemplateCreateBase
+from server.schema.template import TemplateUpdate, TemplateCloneBase, TemplateCreateByimportFile
 from server.utils.permission_utils import GetAllByPermission
 from server.utils.resource_utils import ResourceManager
 from server import casbin_enforcer
+from server.apps.template.handler import TemplateCaseImportHandler
 
 
 class TemplateEvent(Resource):
-    @auth.login_required
-    @validate()
-    def post(self, body: TemplateCreateBase):
+    @auth.login_required()
+    @response_collect
+    def post(self):
+        _form = dict()
+        for key, value in request.form.items():
+            if value:
+                _form[key] = value
+
+        body = TemplateCreateByimportFile(**_form)
         template = Template.query.filter_by(name=body.name).first()
         if template:
             return jsonify(error_code=RET.DATA_EXIST_ERR, error_msg="the template exists")
+
+        if not request.files.get("file"):
+            return jsonify(
+                error_code=RET.PARMA_ERR, 
+                error_msg="The file being uploaded is not exist"
+            )
+        _filetype = request.files.get("file").filename.split(".")[-1]
+        if _filetype not in ["xls", "csv", "xlsx", "json"]:
+            return jsonify(
+                error_code=RET.PARMA_ERR, 
+                error_msg=f"Filetype of {_filetype} not supported"
+            )
+
+        try:
+            import_handler = TemplateCaseImportHandler(request.files.get("file"))
+        except RuntimeError as e:
+            return jsonify(
+                error_code=RET.RUNTIME_ERROR,
+                error_msg=str(e),
+            )
+
         _body = body.__dict__
-
-        cases = []
-        for case_id in _body.get("cases"):
-            case = Case.query.filter_by(id=case_id).first()
-            if not case:
-                continue
-
-            cases.append(case)
-
-        _body.pop("cases")
-        resp = ResourceManager("template").add("api_infos.yaml", _body)
-
-        template = Template.query.filter_by(name=_body.get("name")).first()
-
-        for case in cases:
-            template.cases.append(case)
-
-        template.add_update(Template, "/template")
-
-        return resp
+        _ = ResourceManager("template").add("api_infos.yaml", _body)
+        import_handler.import_case(
+            {
+                "name": body.name,
+                "git_repo_id": body.git_repo_id
+            }
+        )
+        return jsonify(error_code=RET.OK, error_msg="OK")
 
     @auth.login_required
     @response_collect
@@ -71,32 +87,53 @@ class TemplateItemEvent(Resource):
     @auth.login_required
     @validate()
     @casbin_enforcer.enforcer
-    def put(self, template_id, body: TemplateUpdate):
-        template = Template.query.filter_by(name=body.name).first()
-        if template and template.id != template_id:
-            return jsonify(error_code=RET.DATA_EXIST_ERR, error_msg="the template name exists")
-        _body = body.__dict__
-        _body.update({"id": template_id})
-        cases = []
-        for case_id in _body.get("cases"):
-            case = Case.query.filter_by(id=int(case_id)).first()
-            if not case:
-                continue
-            cases.append(case)
+    def put(self, template_id):
+        template = Template.query.filter_by(id=template_id).first()
+        if not template:
+            return jsonify(error_code=RET.DATA_EXIST_ERR, error_msg="the template doesn't exist")
 
-        _body.pop("cases")
-        resp = Edit(Template, _body).single(Template, '/template')
-        template = Template.query.filter_by(name=_body.get("name")).first()
+        if request.form.get("name"):
+            _template = Template.query.filter_by(name=request.form.get("name")).first()
+            if _template and _template.id != template_id:
+                return jsonify(error_code=RET.DATA_EXIST_ERR, error_msg="the template name exists")
+        
+        _form = dict()
+        for key, value in request.form.items():
+            if value:
+                _form[key] = value
+                setattr(template, key, value)
+        template.add_update()
 
-        for case in template.cases:
-            template.cases.remove(case)
-            template.add_update(Template, "/template")
+        if request.files.get("file"):
+            _filetype = request.files.get("file").filename.split(".")[-1]
+            if _filetype not in ["xls", "csv", "xlsx", "json"]:
+                return jsonify(
+                    error_code=RET.PARMA_ERR, 
+                    error_msg=f"Filetype of {_filetype} not supported"
+                )
 
-        for case in cases:
-            template.cases.append(case)
-            template.add_update(Template, "/template")
+            try:
+                import_handler = TemplateCaseImportHandler(request.files.get("file"))
+            except RuntimeError as e:
+                return jsonify(
+                    error_code=RET.RUNTIME_ERROR,
+                    error_msg=str(e),
+                )
 
-        return resp
+            for case in template.cases:
+                template.cases.remove(case)
+                template.add_update()
+            #循环删除，会遗留一个，单独删除遗留的一个
+            template.cases.remove(template.cases[0])
+            template.add_update()
+
+            import_handler.import_case(
+                {
+                    "name": template.name,
+                    "git_repo_id": template.git_repo_id
+                }
+            )
+        return jsonify(error_code=RET.OK, error_msg="OK")
 
     @auth.login_required
     @casbin_enforcer.enforcer
