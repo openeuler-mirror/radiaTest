@@ -215,6 +215,10 @@ class PmachineReleaseEvent(Resource):
 
             _resp = json.loads(_resp.data.decode('UTF-8'))
             if _resp.get("error_code") != RET.OK:
+                current_app.logger.error(
+                    f"release pmachine {pmachine.id} failed, "
+                    f"messenger return {_resp} when resetting password"
+                )
                 return jsonify(
                     error_code=RET.BAD_REQ_ERR,
                     error_msg="Modify ssh password error, can't released."
