@@ -132,7 +132,7 @@ class PmachineSshPassword:
         random_password = "".join(
             [secrets.choice(string.ascii_letters) for _ in range(3)]
             + [secrets.choice(string.digits) for _ in range(3)]
-            + [secrets.choice(current_app.config.get("RANDOM_PASSWORD_CHARACTER")) for _ in range(2)]
+            + ["\\" + secrets.choice(current_app.config.get("RANDOM_PASSWORD_CHARACTER")) for _ in range(2)]
         )
 
         new_password = random_password
@@ -164,7 +164,7 @@ class PmachineSshPassword:
         _resp = update_request(
             "/api/v1/pmachine/{}".format(self._body.get("id")),
             {
-                "password": new_password
+                "password": new_password.replace("\\", "")
             },
             self._body.get("auth")
         )
@@ -177,7 +177,7 @@ class PmachineSshPassword:
             return jsonify(
                 error_code=RET.OK,
                 error_msg="pmachine {} change password to {} success".format(self._body.get("ip"), new_password),
-                data=[self._body.get("ip"), new_password]
+                data=[self._body.get("ip"), new_password.replace("\\", "")]
             )
 
 

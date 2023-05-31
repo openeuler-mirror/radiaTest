@@ -72,7 +72,7 @@ class Config(object):
     RUN_JOB_VM_EXPIRED = 1
 
     # 随机密码元素
-    RANDOM_PASSWORD_CHARACTER = "!@#$"
+    RANDOM_PASSWORD_CHARACTER = "!@#$%^"
 
     # 实体机最大使用内存比率
     PMACHINE_MAX_MEM_USAGE_RATIO = 0.8
