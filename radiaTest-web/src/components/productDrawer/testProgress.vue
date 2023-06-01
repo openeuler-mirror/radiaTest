@@ -4,11 +4,6 @@
       <collapseList :treeList="treeList" v-if="treeList.length > 0" />
       <n-empty v-else style="height: 60%; justify-content: center" description="暂无测试进展" />
     </div>
-    <!-- <div style="height: 100%; width: 24%; padding-left: 10px">
-      <n-anchor offset-target="#container" show-rail>
-        <n-anchor-link v-for="item in treeList" :title="item.title" :href="`#${item.title}`" :key="item.id" />
-      </n-anchor>
-    </div> -->
   </div>
 </template>
 
@@ -32,14 +27,15 @@ const exchangeProgress = (progress) => {
 };
 
 const getTreeList = () => {
+  treeList.value = [];
   getMilestoneProgress(defaultMilestoneId.value)
     .then((res) => {
-      treeList.value = [];
       treeList.value.push({
         title: res.data.title,
         progress: exchangeProgress(res.data.test_progress),
         id: res.data.id,
-        type: res.data.type
+        type: res.data.type,
+        is_root: true
       });
     })
     .catch(() => {

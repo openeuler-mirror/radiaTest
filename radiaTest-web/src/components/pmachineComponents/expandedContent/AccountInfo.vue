@@ -1,33 +1,31 @@
 <template>
   <span>
-      <span class="account">{{ props.title }}</span>
-      <span class="account">用户名/密码:</span>
-      <span class="account">{{ accountInfo[props.title] }}</span>  
+    <span class="account">{{ props.title }}</span>
+    <span class="account">用户名/密码:</span>
+    <span class="account">{{ accountInfo[props.title] }}</span>
   </span>
-  <n-button 
+  <n-button
     class="account"
-    v-if="!isShow[props.title]" 
-    type="success" 
+    v-if="!isShow[props.title]"
+    type="success"
     text
     @click="handleShowClick(props.machineId, props.title)"
   >
     显示
   </n-button>
-  <n-button 
-    class="account" 
-    v-if="isShow[props.title]" 
-    type="info" 
-    text
-    @click="handleHideClick(props.title)"
-  >
+  <n-button class="account" v-if="isShow[props.title]" type="info" text @click="handleHideClick(props.title)">
     隐藏
   </n-button>
-  <n-button 
+  <n-button
     v-if="isShow[props.title]"
-    class="account" 
-    type="primary" 
+    class="account"
+    type="primary"
     text
-    @click="() => { showModal = true; }"
+    @click="
+      () => {
+        showModal = true;
+      }
+    "
   >
     修改
   </n-button>
@@ -41,17 +39,9 @@
       @negative-click="cancelCallback"
       @close="cancelCallback"
     >
-      <n-form 
-        :label-width="80" 
-        :model="formValue" 
-        ref="formRef"
-        :rules="rules"
-      >
+      <n-form :label-width="80" :model="formValue" ref="formRef" :rules="rules">
         <n-form-item label="用户名" path="user">
-          <n-input 
-            :value="formValue.user" 
-            :disabled="true"
-          />
+          <n-input :value="formValue.user" :disabled="true" />
         </n-form-item>
         <n-form-item label="密码" path="password">
           <n-input
@@ -81,17 +71,17 @@ import { modifyPmachineBmc, modifyPmachineSsh } from '@/api/put';
 
 const props = defineProps({
   title: String,
-  machineId: Number,
+  machineId: Number
 });
 
 const showModal = ref(false);
 const isShow = ref({
   SSH: false,
-  BMC: false,
+  BMC: false
 });
 const accountInfo = ref({
   SSH: '***** / *****',
-  BMC: '***** / *****',
+  BMC: '***** / *****'
 });
 const formValue = ref({});
 const formRef = ref();
@@ -124,7 +114,7 @@ function handleModifyClick(machineId, target) {
   formRef.value.validate((errors) => {
     if (!errors) {
       if (target === 'BMC') {
-        modifyPmachineBmc(props.machineId, { password: formValue.value.password }).finally(() => {
+        modifyPmachineBmc(props.machineId, { bmc_password: formValue.value.password }).finally(() => {
           handleHideClick(target);
           showModal.value = false;
         });
@@ -137,7 +127,7 @@ function handleModifyClick(machineId, target) {
     } else {
       window.$message?.error('填写信息不符合要求');
     }
-  });    
+  });
 }
 
 function submitCallback() {
@@ -169,12 +159,12 @@ const rules = {
   password: {
     trigger: ['blur', 'change'],
     required: true,
-    validator: (rule, value) => passwordValidator(rule, value),
+    validator: (rule, value) => passwordValidator(rule, value)
   },
   rePassword: {
     trigger: ['blur', 'change'],
     required: true,
-    validator: (rule, value) => rePasswordValidator(rule, value, formValue.value.password),
+    validator: (rule, value) => rePasswordValidator(rule, value, formValue.value.password)
   }
 };
 

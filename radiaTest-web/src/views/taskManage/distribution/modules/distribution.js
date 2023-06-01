@@ -476,7 +476,7 @@ const getCaseSetNodesAxios = (type, id) => {
     if (type === 'org') {
       for (const i in res.data) {
         suiteOptions.value.push({
-          label: i,
+          label: res.data[i].name,
           key: i,
           disabled: true,
           isLeaf: false,
@@ -487,7 +487,7 @@ const getCaseSetNodesAxios = (type, id) => {
       for (const i in res.data) {
         if (i === 'group') {
           suiteOptions.value.push({
-            label: i,
+            label: res.data[i].name,
             key: i,
             disabled: true,
             isLeaf: false,

@@ -825,7 +825,7 @@ function relateSuiteCaseContent(node, relateType) {
               moveOptions.value = [];
               for (const i in res.data) {
                 moveOptions.value.push({
-                  label: i,
+                  label: res.data[i].name,
                   relationKey: i,
                   disabled: true,
                   isLeaf: false,
@@ -994,11 +994,16 @@ function newBaseline(node) {
   });
 }
 function applyTemplate(node) {
-  casenodeApplyTemplate(node.info.id, templateId.value).then((res) => {
-    const length = res.data?.length;
-    window.$message?.info(`${node.info.title}已成功增量应用该模板, 新建${length}个节点`);
-    getCaseNode(node);
-  });
+  changeLoadingStatus(true);
+  casenodeApplyTemplate(node.info.id, templateId.value)
+    .then((res) => {
+      const length = res.data?.length;
+      window.$message?.info(`${node.info.title}已成功增量应用该模板, 新建${length}个节点`);
+      getCaseNode(node);
+    })
+    .finally(() => {
+      changeLoadingStatus(false);
+    });
 }
 function moveCaseNode(node) {
   updateCaseNodeParent(node.info.id, nextParentId.value.split('-').at(-1)).then(() => {
@@ -1035,9 +1040,11 @@ function relateSuiteCase(node, nodeType) {
     });
 }
 function deleteCaseNode(node) {
+  changeLoadingStatus(true);
   axios
     .delete(`/v1/case-node/${node.info.id}`)
     .then(() => {
+      changeLoadingStatus(false);
       const index = node.parent.children.findIndex((item) => item.info.id === node.info.id);
       node.parent.children.splice(index, 1);
       if (
@@ -1048,6 +1055,7 @@ function deleteCaseNode(node) {
       }
     })
     .catch((err) => {
+      changeLoadingStatus(false);
       window.$message.error(err.data.error_msg || '未知错误');
     });
 }
