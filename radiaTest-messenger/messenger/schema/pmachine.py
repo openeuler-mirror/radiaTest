@@ -112,3 +112,13 @@ class PmachineEventSchema(PmachineBaseSchema):
                 )
             conn.close()
         return values
+
+
+class PmachineInfoSchema(BaseModel):
+    ip: str
+    port: int
+    user: str
+    password: str
+    bmc_ip: str
+    bmc_user: str
+    bmc_password: str
