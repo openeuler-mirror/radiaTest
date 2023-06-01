@@ -380,7 +380,6 @@ class PmachineReleaseEvent(Resource):
         
         return jsonify(error_code=RET.OK, error_msg="OK")
 
-        
 
 class PmachineEvent(Resource):
     @auth.login_required
@@ -457,17 +456,36 @@ class PmachineBmcEvent(Resource):
         _body = body.__dict__
         _body.update(
             {
-                "id": pmachine_id,
                 "bmc_ip": pmachine.bmc_ip,
                 "bmc_user": pmachine.bmc_user,
-                "port": pmachine.port,
                 "old_bmc_password": pmachine.bmc_password,
+                "bmc_password": body.bmc_password
             }
         )
-        return PmachineMessenger(_body).send_request(
+        _resp = PmachineMessenger(_body).send_request(
             pmachine.machine_group,
             "/api/v1/pmachine/bmc",
         )
+        _resp = json.loads(_resp.data.decode('UTF-8'))
+        if _resp.get("error_code") != RET.OK:
+            resp_msg = _resp.get("error_msg")
+            return jsonify(
+                error_code=RET.BAD_REQ_ERR,
+                error_msg=f"Modify bmc password error, can't update db data.the reason is:{resp_msg}"
+            )
+        else:
+            pmachine.bmc_password = body.bmc_password
+            pmachine.add_update()
+            mail = Mail()
+            mail.send_text_mail(
+                current_app.config.get("ADMIN_MAIL_ADDR"),
+                subject="【radiaTest平台】{}-bmc密码变更通知".format(pmachine.bmc_ip),
+                text="{} new bmc password:{}".format(pmachine.bmc_ip, body.bmc_password)
+            )
+            return jsonify(
+                error_code=RET.OK,
+                error_msg="Modify bmc password success"
+            )
 
 
 class PmachineSshEvent(Resource):

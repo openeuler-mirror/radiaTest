@@ -78,11 +78,7 @@ class PmachineSshSchema(BaseModel):
     random_flag: Optional[bool] = False
 
 
-class PmachineBmcSchema(PmachineBaseSchema):
-    mac: Optional[constr(max_length=17)]
-    frame: Optional[Frame]
-    id: str
-    port: int
+class PmachineBmcSchema(BaseModel):
     bmc_ip: str
     old_bmc_password: constr(min_length=6, max_length=256)
     bmc_user: constr(max_length=32)

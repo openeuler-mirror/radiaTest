@@ -302,7 +302,6 @@ class PmachineSshSchema(BaseModel):
 
 
 class PmachineBmcSchema(BaseModel):
-    bmc_user: Optional[constr(max_length=32)]
     bmc_password: constr(min_length=6, max_length=256)
 
 

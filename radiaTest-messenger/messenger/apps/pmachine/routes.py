@@ -76,7 +76,4 @@ class PmachineBmcItem(Resource):
     @validate()
     def put(self, body: PmachineBmcSchema):
         _body = body.__dict__
-        _body.update({
-            "auth": request.headers.get("authorization")
-        })
         return PmachineBmcPassword(_body).reset_bmc_password()

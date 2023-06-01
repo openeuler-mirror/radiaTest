@@ -19,8 +19,8 @@ import json
 import datetime
 import pytz
 
-from flask import g, current_app, jsonify, request
-from sqlalchemy import or_, and_
+from flask import g, current_app, jsonify
+from sqlalchemy import or_
 
 from server import redis_client
 from server.model.pmachine import Pmachine, MachineGroup
@@ -35,6 +35,8 @@ from server.utils.response_util import RET
 from server.utils.page_util import PageUtil
 from server.utils.permission_utils import GetAllByPermission
 from server.utils.resource_utils import ResourceManager
+from server.utils.auth_util import generate_messenger_token
+from server.schema.job import PayLoad
 
 
 class ResourcePoolHandler:     
@@ -223,7 +225,8 @@ class PmachineMessenger:
     @ssl_cert_verify_error_collect
     def send_request(self, machine_group, api):
         _resp = dict()
-        
+        payload = PayLoad(g.user_id, g.user_login)
+        token = generate_messenger_token(payload)
         _r = do_request(
             method="put",
             url="https://{}:{}{}".format(
@@ -234,7 +237,7 @@ class PmachineMessenger:
             body=self._body,
             headers={
                 "content-type": "application/json;charset=utf-8",
-                "authorization": request.headers.get("authorization")
+                "authorization": f"JWT {token}"
             },
             obj=_resp,
             verify=current_app.config.get("CA_CERT"),
