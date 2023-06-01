@@ -186,48 +186,35 @@ class PmachineBmcPassword:
         self._body = body
 
     def reset_bmc_password(self):
-        ssh = ConnectionApi(
-            ip=self._body.get("ip"),
-            port=self._body.get("port"),
-            user=self._body.get("bmc_user"),
-            passwd=self._body.get("old_bmc_password"),
-        )
-        conn = ssh.conn()
-        if not conn:
-            return jsonify(
-                {
-                    "error_code": RET.VERIFY_ERR,
-                    "error_msg": "Failed to connect to physical machine.",
-                }
-            )
-
-        exitcode, output = ShellCmdApi(
+        exitcode, output = getstatusoutput(
             get_bmc_user_id(
+                self._body.get("bmc_ip"),
                 self._body.get("bmc_user"),
-            ), ssh
-        ).exec()
+                self._body.get("old_bmc_password")
+            )
+        )
 
-        if exitcode:
+        if exitcode != 0:
             return jsonify(
-                error_code=exitcode,
-                error_msg=output)
+                error_code=RET.BASH_ERROR,
+                error_msg="bmc user is not exsists")
 
-        exitcode, output = ShellCmdApi(
+        exitcode, output = getstatusoutput(
             reset_bmc_user_passwd(
+                self._body.get("bmc_ip"),
+                self._body.get("bmc_user"),
+                self._body.get("old_bmc_password"),
                 output,
                 self._body.get("bmc_password"),
-            ), ssh
-        ).exec()
+            )
+        )
 
-        if exitcode:
+        if exitcode != 0:
             return jsonify(
-                error_code=exitcode,
-                error_msg=output)
+                error_code=RET.BASH_ERROR,
+                error_msg="bmc password change failed")
 
-        return update_request(
-            "/api/v1/pmachine/{}".format(self._body.get("id")),
-            {
-                "bmc_password": self._body.get("bmc_password"),
-            },
-            self._body.get("auth")
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="bmc password change success"
         )

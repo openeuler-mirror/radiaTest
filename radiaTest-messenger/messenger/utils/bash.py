@@ -73,15 +73,23 @@ def pmachine_reset_password(user, new_password):
 
 
 # 查询物理机Administrator用户id
-def get_bmc_user_id(bmc_user):
-    return ("ipmitool user list 1 | grep -i {}" .format(quote(bmc_user))
-    + " |awk '{print $1}' | shuf -n 1")
+def get_bmc_user_id(bmc_ip, bmc_user, old_bmc_password):
+    return "ipmitool -I lanplus -H {} -U {} -P {} user list 1 | grep -i {} | awk '{print $1}'| shuf -n 1".format(
+        quote(bmc_ip),
+        quote(bmc_user),
+        quote(old_bmc_password),
+        quote(bmc_user)
+    )
 
 
 # 修改物理机Administrator用户bmc密码
-def reset_bmc_user_passwd(bmc_id, bmc_password):
-    return "ipmitool user set password {} {}".format(
-        quote(bmc_id), quote(bmc_password)
+def reset_bmc_user_passwd(bmc_ip, bmc_user, old_bmc_password, bmc_user_id, bmc_password):
+    return "ipmitool -I lanplus -H {} -U {} -P {} user set password {} {}".format(
+        quote(bmc_ip),
+        quote(bmc_user),
+        quote(old_bmc_password),
+        quote(bmc_user_id),
+        quote(bmc_password)
     )
 
 # 查询ip地址

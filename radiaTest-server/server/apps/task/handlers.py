@@ -300,7 +300,7 @@ class HandlerTask(object):
                 _data=_data,
             )
         else:
-            if int(task.creator_id) != int(executor_id):
+            if task.creator_id != executor_id:
                 pm.bind_scope_user(
                     scope_datas_allow=scope_data_allow,
                     scope_datas_deny=scope_data_deny,
