@@ -41,7 +41,7 @@ import { getDetail } from '@/views/taskManage/task/modules/taskDetail.js';
 
 const props = defineProps([
   'options',
-  'monthRangeValue',
+  'dateRange',
   'totalDays',
   'totalMonths',
   'zoomValue',
@@ -49,7 +49,7 @@ const props = defineProps([
   'endDateCalendar',
   'scrollLeft'
 ]);
-const { options, monthRangeValue, totalDays, totalMonths, zoomValue, startDateCalendar, endDateCalendar, scrollLeft } =
+const { options, dateRange, totalDays, totalMonths, zoomValue, startDateCalendar, endDateCalendar, scrollLeft } =
   toRefs(props);
 const positionLeft = ref(0); // 左偏移
 const positionTop = ref(0); // 上偏移
@@ -180,7 +180,7 @@ const jumpToDetail = () => {
 };
 
 // 监听heightLine变化
-watch([zoomValue, monthRangeValue, options], () => {
+watch([zoomValue, dateRange, options], () => {
   if (zoomValue.value === 'day') {
     initDay();
   } else {

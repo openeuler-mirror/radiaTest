@@ -2,12 +2,8 @@
   <n-grid x-gap="12" :cols="4" class="head-menu">
     <n-gi>
       <div class="menuItem">
-        <div class="itemTitle">月份范围</div>
-        <n-date-picker
-          v-model:formattedValue="monthRangeValue"
-          type="monthrange"
-          @update:formatted-value="updateMonthRange"
-        />
+        <div class="itemTitle">日期范围</div>
+        <n-date-picker v-model:formattedValue="dateRange" type="daterange" @update:formatted-value="updateDateRange" />
       </div>
     </n-gi>
     <n-gi>
@@ -103,7 +99,7 @@
               v-for="(v2, i2) in v.tasks"
               :key="i2"
               :options="v2"
-              :monthRangeValue="monthRangeValue"
+              :dateRange="dateRange"
               :totalDays="totalDays"
               :totalMonths="totalMonths"
               :zoomValue="zoomValue"
@@ -138,8 +134,7 @@ import { showModal } from '@/views/taskManage/task/modules/taskDetail.js';
 
 dayjs.extend(customParseFormat); // 拓展支持的自定义时间格式
 
-const currentMonth = dayjs().format('YYYY-MM'); // 默认范围为当前月
-const monthRangeValue = ref([currentMonth, currentMonth]); // 月份范围
+const dateRange = ref([dayjs().startOf('month').format('YYYY-MM-DD'), dayjs().endOf('month').format('YYYY-MM-DD')]); // 时间范围
 const monthNum = ref(1); // 月份数量
 const monthArray = ref([]); // 月份数组
 const yearArray = ref([]); // 年份数组
@@ -235,15 +230,15 @@ const initDate = (dateArray) => {
 };
 
 // 月份范围变更回调
-const updateMonthRange = (formattedValue) => {
-  monthRangeValue.value = formattedValue;
-  initDate(monthRangeValue.value);
+const updateDateRange = (formattedValue) => {
+  dateRange.value = formattedValue;
+  initDate(dateRange.value);
 };
 
 // 显示模式变更回调
 const changeZoom = (value) => {
   zoomValue.value = value;
-  initDate(monthRangeValue.value);
+  initDate(dateRange.value);
 };
 
 // 按日显示日历一级标题
@@ -333,18 +328,11 @@ const calcMilestoneLeft = (data) => {
 
 const milestonesList = ref([]);
 
-const taskTime = computed(() => {
-  return [
-    dayjs(monthArray.value[0]).format('YYYY-MM-DD'),
-    dayjs(monthArray.value.at(-1)).endOf('month').format('YYYY-MM-DD')
-  ];
-});
-
 const getData = () => {
   dataList.value = [];
   milestonesList.value = [];
   showSpin.value = true;
-  getTasksGantt({ task_time: JSON.stringify(taskTime.value), type: taskType.value, group_id: groupValue.value })
+  getTasksGantt({ task_time: JSON.stringify(dateRange.value), type: taskType.value, group_id: groupValue.value })
     .then((res) => {
       dataList.value = res.data;
       calcHeightLine();
@@ -352,7 +340,7 @@ const getData = () => {
     .catch(() => {
       showSpin.value = false;
     });
-  getGanttMilestones({ milestone_time: JSON.stringify(taskTime.value) }).then((res) => {
+  getGanttMilestones({ milestone_time: JSON.stringify(dateRange.value) }).then((res) => {
     res.data?.forEach((item) => {
       milestonesList.value.push({
         name: item.name,
@@ -386,12 +374,12 @@ const showSpin = ref(false);
 // 任务详情页关闭回调
 watch(showModal, () => {
   if (!showModal.value) {
-    initDate(monthRangeValue.value);
+    initDate(dateRange.value);
   }
 });
 
 onMounted(() => {
-  initDate(monthRangeValue.value);
+  initDate(dateRange.value);
   getGroupOptions();
 });
 </script>

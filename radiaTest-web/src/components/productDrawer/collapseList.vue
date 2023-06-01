@@ -1,5 +1,5 @@
 <template>
-  <n-collapse @item-header-click="itemHeaderClick">
+  <n-collapse @item-header-click="itemHeaderClick" :expanded-names="expandedNamesArray">
     <n-collapse-item v-for="item in treeList" :key="item.id" :title="item.title" :name="item.id">
       <collapseList
         v-if="childrenList[item.id] && childrenList[item.id][0]?.type !== 'case'"
@@ -69,6 +69,17 @@ const itemHeaderClick = ({ name, expanded }) => {
     });
   }
 };
+
+const expandedNamesArray = ref([]);
+
+onMounted(() => {
+  treeList.value.forEach((item) => {
+    if (item.is_root) {
+      expandedNamesArray.value.push(item.id);
+      itemHeaderClick({ name: item.id, expanded: true });
+    }
+  });
+});
 </script>
 
 <style lang="less" scoped>

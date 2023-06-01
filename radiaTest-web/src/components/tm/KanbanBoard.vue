@@ -66,7 +66,7 @@
                           {{ element.title }}
                         </n-ellipsis>
                       </div>
-                      <img class="avatar" :src="element.creator?.avatar_url || element.originator?.avatar_url" />
+                      <img class="avatar" :src="element.executor?.avatar_url || element.originator?.avatar_url" />
                     </div>
                     <div class="task-info-wrapper" v-show="element?.tasks?.length">
                       <div class="task-infos">

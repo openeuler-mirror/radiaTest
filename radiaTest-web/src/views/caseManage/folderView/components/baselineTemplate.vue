@@ -83,18 +83,14 @@
           <n-button type="primary" ghost @click="handleInheritButtonClick"> 继承 </n-button>
         </n-space>
       </div>
-      <vue-kityminder
-        ref="termNodeKityminder"
-        theme="fresh-blue"
-        template="right"
-        :value="templateDetail"
-        @content-change="handleContentChange"
-        @node-change="handleNodeChange"
-        @node-remove="handleNodeRemove"
-        @selection-change="handleSelectionChange"
-        :toolbar-status="toolbar"
-        @contextmenu="handleContextMenu"
-      ></vue-kityminder>
+      <n-tree
+        block-line
+        :data="baselineTreeData"
+        :default-expand-all="true"
+        :node-props="baselineTreeNodeProps"
+        :render-prefix="renderBaselineTreePrefix"
+        class="baseline-tree-wrap"
+      />
       <n-dropdown
         style="min-width: 140px"
         placement="bottom-start"
@@ -156,66 +152,72 @@
       @negative-click="cancelDeleteCallback"
     />
     <n-modal v-model:show="showNodeCreateModal" preset="card" style="width: 600px" title="新建子节点" :bordered="false">
-      <n-radio-group v-model:value="nodeCreateForm.type" style="margin-bottom: 20px">
+      <n-spin :show="createChildNodeLoading">
+        <template #description> 创建中... </template>
+        <n-radio-group v-model:value="nodeCreateForm.type" style="margin-bottom: 20px">
+          <n-space>
+            <n-radio value="directory">目录</n-radio>
+            <n-radio value="suite">测试套</n-radio>
+            <n-radio value="case" v-if="selectedNode.type === 'suite'">测试用例</n-radio>
+          </n-space>
+        </n-radio-group>
+        <n-form ref="nodeCreateFormRef" :model="nodeCreateForm" :rules="nodeCreateRules">
+          <n-form-item path="title" label="目录命名" v-if="nodeCreateForm.type === 'directory'">
+            <n-input
+              v-if="nodeCreateForm.type == 'directory'"
+              style="width: 400px"
+              clearable
+              v-model:value="nodeCreateForm.title"
+            />
+          </n-form-item>
+          <n-form-item
+            v-if="nodeCreateForm.type !== 'directory'"
+            :label="`关联${nodeCreateForm.type === 'suite' ? '测试套' : '测试用例'}`"
+            path="case_node_ids"
+          >
+            <n-tree-select
+              v-if="nodeCreateForm.type === 'suite'"
+              v-model:value="nodeCreateForm.case_node_ids"
+              :options="casesetNodeOptions"
+              :show-path="true"
+              :on-load="handleCasesetOptionsLoad"
+              multiple
+              cascade
+              checkable
+              max-tag-count="responsive"
+              clearable
+              :placeholder="`请确保选后清单中含有${nodeCreateForm.type === 'suite' ? '测试套' : '测试用例'}`"
+            />
+            <n-tree-select
+              v-else
+              v-model:value="nodeCreateForm.case_node_ids"
+              :options="suiteCaseOptions"
+              :loading="suiteCaseLoading"
+              multiple
+              cascade
+              checkable
+              filterable
+              clearable
+              :max-tag-count="5"
+              check-strategy="child"
+            />
+          </n-form-item>
+        </n-form>
         <n-space>
-          <n-radio value="directory">目录</n-radio>
-          <n-radio value="suite">测试套</n-radio>
-          <n-radio value="case" v-if="selectedNode.type === 'suite'">测试用例</n-radio>
+          <n-button
+            type="error"
+            @click="
+              () => {
+                showNodeCreateModal = false;
+              }
+            "
+            ghost
+          >
+            取消
+          </n-button>
+          <n-button type="primary" @click="createChildNode" ghost> 提交 </n-button>
         </n-space>
-      </n-radio-group>
-      <n-form ref="nodeCreateFormRef" :model="nodeCreateForm" :rules="nodeCreateRules">
-        <n-form-item path="title" label="目录命名" v-if="nodeCreateForm.type === 'directory'">
-          <n-input
-            v-if="nodeCreateForm.type == 'directory'"
-            style="width: 400px"
-            clearable
-            v-model:value="nodeCreateForm.title"
-          />
-        </n-form-item>
-        <n-form-item
-          v-if="nodeCreateForm.type !== 'directory'"
-          :label="`关联${nodeCreateForm.type === 'suite' ? '测试套' : '测试用例'}`"
-          path="case_node_ids"
-        >
-          <n-tree-select
-            v-if="nodeCreateForm.type === 'suite'"
-            v-model:value="nodeCreateForm.case_node_ids"
-            :options="casesetNodeOptions"
-            :show-path="true"
-            :on-load="handleCasesetOptionsLoad"
-            multiple
-            cascade
-            checkable
-            :allow-checking-not-loaded="true"
-            max-tag-count="responsive"
-            clearable
-            :placeholder="`请确保选后清单中含有${nodeCreateForm.type === 'suite' ? '测试套' : '测试用例'}`"
-          />
-          <n-select
-            v-else
-            v-model:value="nodeCreateForm.case_node_ids"
-            :options="suiteCaseOptions"
-            multiple
-            show-checkmark
-            filterable
-            clearable
-          />
-        </n-form-item>
-      </n-form>
-      <n-space>
-        <n-button
-          type="error"
-          @click="
-            () => {
-              showNodeCreateModal = false;
-            }
-          "
-          ghost
-        >
-          取消
-        </n-button>
-        <n-button type="primary" @click="createChildNode" ghost> 提交 </n-button>
-      </n-space>
+      </n-spin>
     </n-modal>
     <n-modal
       v-model:show="showNodeDeleteModal"
@@ -352,18 +354,6 @@ function cancelEditCallback() {
 }
 const showDeleteModal = ref(false);
 
-const toolbar = ref({
-  appendSiblingNode: false,
-  appendChildNode: false,
-  arrangeUp: false,
-  arrangeDown: false,
-  text: false,
-  template: false,
-  theme: false,
-  resetLayout: false,
-  removeNode: false
-});
-
 const showCleanModal = ref(false);
 const showInheritModal = ref(false);
 
@@ -414,6 +404,7 @@ function renderHeaderIcon(_type) {
     }
   );
 }
+
 function renderRelativeHeader(node) {
   return h(
     'div',
@@ -445,6 +436,7 @@ function renderRelativeHeader(node) {
     ]
   );
 }
+
 function renderOptions(node) {
   const _options = [
     {
@@ -479,11 +471,41 @@ function renderOptions(node) {
 const currentCaseNodeId = ref(null);
 const suiteCaseOptions = ref([]);
 
-function handleContextMenu(e) {
-  e.preventDefault();
-  if (selectedNode.value) {
-    showDropdown.value = false;
-    if (selectedNode.value.id) {
+// 基线模板树前缀图标
+const renderBaselineTreePrefix = ({ option }) => {
+  return renderHeaderIcon(option.info.type);
+};
+
+const setChildrenData = (arr) => {
+  return arr.map((item) => {
+    return {
+      label: item?.data.text,
+      key: item?.data.id,
+      children: item?.children.length ? setChildrenData(item.children) : [],
+      info: item
+    };
+  });
+};
+
+// 基线模板树数据
+const baselineTreeData = computed(() => {
+  return [
+    {
+      label: templateDetail.value?.data.text,
+      key: templateDetail.value?.data.id,
+      children: setChildrenData(templateDetail.value?.children),
+      info: templateDetail.value
+    }
+  ];
+});
+
+// 点击基线模板树节点
+const baselineTreeNodeProps = ({ option }) => {
+  return {
+    onClick() {},
+    onContextmenu(e) {
+      e.preventDefault();
+      selectedNode.value = option.info.data;
       getBaseNode(selectedNode.value.id).then((res) => {
         selectedNode.value.type = res.data.type;
         options.value = renderOptions(res.data);
@@ -494,21 +516,10 @@ function handleContextMenu(e) {
           y.value = e.clientY;
         });
       });
-    } else if (selectedNode.value.level === 0) {
-      options.value = [
-        {
-          label: '新建根节点',
-          key: 'addRootNode'
-        }
-      ];
-      nextTick(() => {
-        showDropdown.value = true;
-        x.value = e.clientX;
-        y.value = e.clientY;
-      });
     }
-  }
-}
+  };
+};
+
 function onClickoutside() {
   showDropdown.value = false;
 }
@@ -538,6 +549,11 @@ function removeNodeFunc() {
 function addChildNodeFunc() {
   showNodeCreateModal.value = true;
   showDropdown.value = false;
+  nodeCreateForm.value = {
+    title: null,
+    case_node_ids: null,
+    type: 'directory'
+  };
 }
 const selectFunc = {
   editNode: editNodeFunc,
@@ -596,6 +612,8 @@ function submitDeleteCallback() {
       showDeleteModal.value = false;
     });
 }
+
+// 编辑节点
 function submitNodeEditCallback() {
   updateBaseNode(selectedNode.value.id, nodeEditForm.value).then(() => {
     message.success('编辑成功');
@@ -610,6 +628,8 @@ function submitNodeEditCallback() {
       });
   });
 }
+
+// 删除节点
 function submitNodeDeleteCallback() {
   deleteBaseNode(selectedNode.value.id).then(() => {
     message.success('删除成功');
@@ -623,6 +643,7 @@ function submitNodeDeleteCallback() {
   });
 }
 
+// 清空基线模板
 function submitCleanCallback() {
   cleanBaselineTemplate(checkedItem.value.id)
     .then(() => {
@@ -642,6 +663,7 @@ function cancelCleanCallback() {
   showCleanModal.value = false;
 }
 
+// 继承基线模板
 function submitInheritCallback() {
   inheritBaselineTemplate(checkedItem.value.id, inheriteeId.value)
     .then(() => {
@@ -661,6 +683,7 @@ function cancelInheritCallback() {
   showInheritModal.value = false;
 }
 
+// 点击基线模板
 function handleTemplateClick(item) {
   selectedNode.value = null;
   checkedItem.value = item;
@@ -708,11 +731,10 @@ function onPositiveClick() {
     });
 }
 
-function handleSelectionChange(nodes) {
-  selectedNode.value = nodes;
-}
+const createChildNodeLoading = ref(false);
 
 function createChildNode() {
+  createChildNodeLoading.value = true;
   addBaseNode(checkedItem.value.id, {
     is_root: false,
     parent_id: selectedNode.value.id,
@@ -734,6 +756,7 @@ function createChildNode() {
         });
     })
     .finally(() => {
+      createChildNodeLoading.value = false;
       showNodeCreateModal.value = false;
     });
 }
@@ -816,6 +839,7 @@ watch(searchWords, () => {
   getTemplateList();
 });
 
+const suiteCaseLoading = ref(false);
 const setNodeOptions = (array) => {
   return array.map((item) => ({
     label: item.title,
@@ -842,11 +866,14 @@ watch(
         }
       });
     } else if (nodeCreateForm.value.type === 'case') {
+      suiteCaseLoading.value = true;
       getCaseNode(currentCaseNodeId.value).then((res) => {
-        suiteCaseOptions.value = res.data.children.map((item) => {
+        suiteCaseLoading.value = false;
+        suiteCaseOptions.value = [{ label: '全选', key: 'allSelected', children: [] }];
+        suiteCaseOptions.value[0].children = res.data.children.map((item) => {
           return {
             label: item.title,
-            value: item.id
+            key: item.id
           };
         });
       });
@@ -902,6 +929,10 @@ watch(showInheritModal, () => {
           margin-right: 5px;
         }
       }
+    }
+
+    .baseline-tree-wrap {
+      padding: 20px;
     }
   }
 }

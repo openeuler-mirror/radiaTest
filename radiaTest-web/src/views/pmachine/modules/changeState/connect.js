@@ -40,8 +40,8 @@ class ConnectState {
         'p',
         {
           style: {
-            height: '20px',
-          },
+            height: '20px'
+          }
         },
         '请设置worker服务监听的端口号'
       );
@@ -53,7 +53,7 @@ class ConnectState {
       return h(NInput, {
         placeholder: 'worker监听端口',
         defaultValue: this.formValue.value.listen,
-        onUpdateValue: (value) => this.updateListen(value),
+        onUpdateValue: (value) => this.updateListen(value)
       });
     }
     return null;
@@ -91,11 +91,11 @@ class ConnectState {
                   return second < now.getSeconds();
                 }
                 return false;
-              },
+              }
             };
           }
           return false;
-        },
+        }
       });
     }
     return null;
@@ -109,8 +109,8 @@ class ConnectState {
         'p',
         {
           style: {
-            height: '20px',
-          },
+            height: '20px'
+          }
         },
         '请选择释放时间(默认1天)'
       );
@@ -125,21 +125,21 @@ const handleSendRequest = (dOccupy, connect) => {
     return axios.put(`/v1/pmachine/${connect.formValue.value.id}/occupy`, {
       description: connect.formValue.value.description,
       occupier: storage.getValue('user_name'),
-      user: connect.formValue.value.user,
+      user: connect.formValue.value.user
     });
   } else if (connect.formValue.value.description !== 'as the host of ci') {
     return axios.put(`/v1/pmachine/${connect.formValue.value.id}/occupy`, {
       description: connect.formValue.value.description,
       end_time: any2standard(connect.datetime.value),
       occupier: storage.getValue('user_name'),
-      user: connect.formValue.value.user,
+      user: connect.formValue.value.user
     });
   }
   return axios.put(`/v1/pmachine/${connect.formValue.value.id}/occupy`, {
     description: connect.formValue.value.description,
     listen: connect.formValue.value.listen,
     occupier: storage.getValue('user_name'),
-    user: connect.formValue.value.user,
+    user: connect.formValue.value.user
   });
 };
 
@@ -158,6 +158,8 @@ const handleOccupy = async (dOccupy, connect) => {
           window.$message?.error(err.message);
         } else if (err.data.validation_error) {
           window.$message?.error(err.data.validation_error.body_params[0].msg);
+        } else if (err?.data?.error_msg) {
+          window.$message?.error(err.data.error_msg);
         } else {
           window.$message?.error('发生未知错误，请联系管理员进行处理');
         }
@@ -198,9 +200,9 @@ const handlePositiveClick = (dOccupy, connect) => {
     return new Promise();
   }
   if (
-    connect.formValue.value.description !== 'as the host of ci' 
-    && connect.formValue.value.defaultValue !== 'used for ci'
-    && !connect.datetime.value
+    connect.formValue.value.description !== 'as the host of ci' &&
+    connect.formValue.value.defaultValue !== 'used for ci' &&
+    !connect.datetime.value
   ) {
     window.$message?.error('此用途释放时间不可为空');
     return new Promise();
@@ -216,8 +218,8 @@ const renderOccupy = (connect) => {
       {
         style: {
           fontSize: '18px',
-          fontWeight: '500',
-        },
+          fontWeight: '500'
+        }
       },
       `MAC地址:  ${connect.formValue.value.mac}`
     ),
@@ -225,8 +227,8 @@ const renderOccupy = (connect) => {
       'p',
       {
         style: {
-          height: '20px',
-        },
+          height: '20px'
+        }
       },
       '使用说明'
     ),
@@ -235,14 +237,14 @@ const renderOccupy = (connect) => {
       onUpdateValue: connect.updateDescription,
       options: getDesOptions(connect.formValue),
       inputProps: {
-        focus: false,
+        focus: false
       },
-      placeholder: '请输入使用说明',
+      placeholder: '请输入使用说明'
     }),
     connect.listenText(),
     connect.listenElement(),
     connect.datePickerText(),
-    connect.datePickerElement(),
+    connect.datePickerElement()
   ]);
 };
 
@@ -254,7 +256,7 @@ const handleConnectClick = (data, type) => {
       content: () => renderOccupy(connect),
       negativeText: '取消',
       positiveText: '确认',
-      onPositiveClick: () => handlePositiveClick(dOccupy, connect),
+      onPositiveClick: () => handlePositiveClick(dOccupy, connect)
     });
   } else {
     const dRelease = window.$dialog?.info({
@@ -265,7 +267,7 @@ const handleConnectClick = (data, type) => {
       onPositiveClick: () => {
         dRelease.loading = true;
         return handleRelease(dRelease, connect);
-      },
+      }
     });
   }
 };
