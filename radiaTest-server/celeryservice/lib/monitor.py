@@ -1,13 +1,21 @@
+import json
 import datetime
 import pytz
-from celeryservice import celeryconfig
+
 import sqlalchemy
+from flask import jsonify
+
+from celeryservice import celeryconfig
 from server.utils.requests_util import do_request
 from server.utils.response_util import RET
 from server import db
 from server.model.vmachine import Vmachine
 from server.model.pmachine import Pmachine
 from celeryservice.lib import TaskHandlerBase
+from server.utils.response_util import ssl_cert_verify_error_collect
+from server.model.message import Message, MsgType, MsgLevel
+from server.utils.db import Insert
+from server.model.permission import Role, ReUserRole
 
 
 class LifecycleMonitor(TaskHandlerBase):
@@ -34,7 +42,6 @@ class LifecycleMonitor(TaskHandlerBase):
             Pmachine.end_time.isnot(None),
         ]
         pmachines = Pmachine.query.filter(*filter_params).all()
-
         for pmachine in pmachines:
             end_time = pmachine.end_time
 
@@ -46,12 +53,104 @@ class LifecycleMonitor(TaskHandlerBase):
                     )
                 )
 
-                pmachine.state = "idle"
-                pmachine.end_time = sqlalchemy.null()
-                pmachine.description = ""
-                pmachine.occupier = ""
-                pmachine.add_update(Pmachine, "/pmachine")
+                body = dict()
+                body.update({
+                    "ip": pmachine.ip,
+                    "port": pmachine.port,
+                    "user": pmachine.user,
+                    "password": pmachine.password,
+                    "bmc_ip": pmachine.bmc_ip,
+                    "bmc_user": pmachine.bmc_user,
+                    "bmc_password": pmachine.bmc_password
+                })
+                _resp = CeleryMonitorMessenger(body).send_request(
+                    pmachine.machine_group, "/api/v1/pmachine/auto-release-check"
+                )
+                _resp = json.loads(_resp.data.decode('UTF-8'))
+                if _resp.get("error_code") != RET.OK:
+                    check_res = _resp.get("error_msg")
+
+                    if pmachine.permission_type in ["org", "person"]:
+                        role = Role.query.filter_by(name="admin", org_id=pmachine.org_id).first()
+                    elif pmachine.permission_type == "group":
+                        role = Role.query.filter_by(
+                            name="admin", org_id=pmachine.org_id, group_id=pmachine.group_id
+                        ).first()
+                    else:
+                        continue
+
+                    re_role_user = ReUserRole.query.filter_by(role_id=role.id).all()
+
+                    for item in re_role_user:
+                        Insert(
+                            Message,
+                            {
+                                "data": json.dumps(
+                                    {
+                                        'info': check_res
+                                    }
+                                ),
+                                "level": MsgLevel.system.value,
+                                "from_id": 1,
+                                "to_id": item.user_id,
+                                "type": MsgType.text.value,
+                                "org_id": pmachine.org_id
+                            }
+                        ).single()
+                    Insert(
+                        Message,
+                        {
+                            "data": json.dumps(
+                                {
+                                    'info': check_res
+                                }
+                            ),
+                            "level": MsgLevel.system.value,
+                            "from_id": 1,
+                            "to_id": pmachine.occupier,
+                            "type": MsgType.text.value,
+                            "org_id": pmachine.org_id
+                        }
+                    ).single()
+                else:
+                    pmachine.state = "idle"
+                    pmachine.end_time = sqlalchemy.null()
+                    pmachine.description = ""
+                    pmachine.occupier = ""
+                    pmachine.add_update(Pmachine, "/pmachine")
 
     def main(self):
         self.check_pmachine_lifecycle()
         self.check_vmachine_lifecycle()
+
+
+class CeleryMonitorMessenger:
+    def __init__(self, body):
+        self._body = body
+
+    @ssl_cert_verify_error_collect
+    def send_request(self, machine_group, api):
+        _resp = dict()
+
+        _r = do_request(
+            method="post",
+            url="https://{}:{}{}".format(
+                machine_group.messenger_ip,
+                machine_group.messenger_listen,
+                api
+            ),
+            body=self._body,
+            headers={
+                "content-type": "application/json;charset=utf-8",
+            },
+            obj=_resp,
+            verify=celeryconfig.cacert_path,
+        )
+
+        if _r != 0:
+            return jsonify(
+                error_code=RET.RUNTIME_ERROR,
+                error_msg="could not reach messenger of this machine group"
+            )
+
+        return jsonify(_resp)

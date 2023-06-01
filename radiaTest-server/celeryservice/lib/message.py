@@ -48,7 +48,7 @@ class VmachineReleaseNotice(TaskHandlerBase):
             )
             try:
                 for vmachine in v_machines:
-                    if vmachine.ip:
+                    if vmachine.mac and vmachine.org_id:
                         user_vmachines.setdefault(
                             '%s_%s' % (str(vmachine.creator_id), str(vmachine.org_id)), []
                         ).append(vmachine.name)

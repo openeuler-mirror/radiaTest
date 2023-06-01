@@ -7,6 +7,7 @@ from messenger.apps.pmachine.handlers import (
     OnOff, 
     PmachineSshPassword,
     PmachineBmcPassword,
+    PmachineInfo,
 )
 from messenger.schema.pmachine import (
     PmachineInstallSchema,
@@ -15,6 +16,7 @@ from messenger.schema.pmachine import (
     PmachineEventSchema,
     PmachineSshSchema,
     PmachineBmcSchema,
+    PmachineInfoSchema,
 )
 
 
@@ -77,3 +79,10 @@ class PmachineBmcItem(Resource):
     def put(self, body: PmachineBmcSchema):
         _body = body.__dict__
         return PmachineBmcPassword(_body).reset_bmc_password()
+
+
+class AutoReleaseCheckPmachineEvent(Resource):
+    @validate()
+    def post(self, body: PmachineInfoSchema):
+        _body = body.__dict__
+        return PmachineInfo(_body).check()
