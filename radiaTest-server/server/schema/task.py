@@ -56,7 +56,7 @@ class AddTaskSchema(BaseModel):
     status_id: int
     group_id: int = None
     executor_type: EnumsTaskExecutorType
-    executor_id: int
+    executor_id: str
     start_time: str
     deadline: str
     is_version_task: bool = False
