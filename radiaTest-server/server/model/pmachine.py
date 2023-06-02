@@ -89,6 +89,7 @@ class Pmachine(ServiceModel, PermissionBaseModel, db.Model):
     filename = db.Column(LONGTEXT())
     status = db.Column(db.String(9))
     occupier = db.Column(db.String(64), nullable=True)
+    occupier_id = db.Column(db.String(512), nullable=True)
     locked = db.Column(db.Boolean(), default=False)
 
     machine_group_id = db.Column(db.Integer(), db.ForeignKey("machine_group.id"))

@@ -21,6 +21,7 @@ import pytz
 
 from flask import g, current_app, jsonify
 from sqlalchemy import or_
+import sqlalchemy
 
 from server import redis_client
 from server.model.pmachine import Pmachine, MachineGroup
@@ -29,7 +30,7 @@ from server.model.message import Message, MsgType, MsgLevel
 from server.model.permission import Scope, Role, ReScopeRole
 from server.utils.response_util import ssl_cert_verify_error_collect
 from server.utils.redis_util import RedisKey
-from server.utils.db import Insert, Edit, collect_sql_error
+from server.utils.db import Insert, Edit, collect_sql_error, Delete
 from server.utils.requests_util import do_request
 from server.utils.response_util import RET
 from server.utils.page_util import PageUtil
@@ -37,6 +38,9 @@ from server.utils.permission_utils import GetAllByPermission
 from server.utils.resource_utils import ResourceManager
 from server.utils.auth_util import generate_messenger_token
 from server.schema.job import PayLoad
+from server.model.user import User
+from server.utils.mail_util import Mail
+from server.model.vmachine import Vmachine
 
 
 class ResourcePoolHandler:     
@@ -141,6 +145,9 @@ class PmachineHandler:
 
 
 class PmachineOccupyReleaseHandler:
+    def __init__(self):
+        self.scopes_list = ['occupy', 'release', 'power', 'install', 'ssh', 'data']
+
     @staticmethod
     def check_scope_exist(act, uri, eft):
         scope = Scope.query.filter_by(act=act, uri=uri, eft=eft).first()
@@ -148,8 +155,7 @@ class PmachineOccupyReleaseHandler:
             return False, None
         return True, scope
 
-    @staticmethod
-    def occupy_with_bind_scopes(pmachine_id, body):
+    def occupy_with_bind_scopes(self, pmachine_id, body):
         pmachine = Pmachine.query.filter_by(id=pmachine_id).first()
         if not pmachine:
             return jsonify(
@@ -169,16 +175,15 @@ class PmachineOccupyReleaseHandler:
             )
 
         # 若当前请求用户非创建者，则进行临时赋权
-        if g.user_id != pmachine.creator_id:
-            role = Role.query.filter_by(type='person', name=g.user_id).first()
+        if body.occupier_id != pmachine.creator_id:
+            role = Role.query.filter_by(type='person', name=body.occupier_id).first()
             if not role:
                 return jsonify(
                     error_code=RET.NO_DATA_ERR,
                     error_msg="The role policy info is invalid."
                 )
 
-            scopes_list = ['occupy', 'release', 'power', 'install', 'ssh', 'data']
-            for sub_uri in scopes_list:
+            for sub_uri in self.scopes_list:
                 _uri = '/api/v1/pmachine/{}'.format(pmachine.id)
                 if sub_uri != 'data':
                     _uri += f'/{sub_uri}'
@@ -213,6 +218,116 @@ class PmachineOccupyReleaseHandler:
         })
 
         return Edit(Pmachine, _body).single(Pmachine, "/pmachine")
+
+    def release_with_release_scopes(self, pmachine):
+        if pmachine.state == "idle":
+            return jsonify(
+                error_code=RET.VERIFY_ERR,
+                error_msg="Pmachine state has not been modified. Please check."
+            )
+        if pmachine.state == "occupied" and pmachine.description \
+                == current_app.config.get("CI_HOST"):
+            vmachine = Vmachine.query.filter_by(pmachine_id=pmachine.id).first()
+            if vmachine:
+                return jsonify(
+                    error_code=RET.NO_DATA_ERR,
+                    error_msg="Pmachine has vmmachine, can't released."
+                )
+
+        # 修改随机密码
+        _body = {
+            "id": pmachine.id,
+            "ip": pmachine.ip,
+            "user": pmachine.user,
+            "port": pmachine.port,
+            "old_password": pmachine.password,
+            "random_flag": True,
+        }
+
+        if pmachine.description in [current_app.config.get("CI_HOST"),
+                                    current_app.config.get("CI_PURPOSE")]:
+            _body.update(
+                {
+                    "random_flag": False
+                }
+            )
+
+        if _body.get("random_flag"):
+            _resp = PmachineMessenger(_body).send_request(
+                pmachine.machine_group,
+                "/api/v1/pmachine/ssh",
+            )
+
+            _resp = json.loads(_resp.data.decode('UTF-8'))
+            if _resp.get("error_code") != RET.OK:
+                current_app.logger.error(
+                    f"release pmachine {pmachine.id} failed, "
+                    f"messenger return {_resp} when resetting password"
+                )
+                return jsonify(
+                    error_code=RET.BAD_REQ_ERR,
+                    error_msg="Modify ssh password error, can't released."
+                )
+            else:
+                messenger_res = _resp.get("error_msg")
+                current_app.logger.info("messenger response info:{}".format(messenger_res))
+                pmachine_passwd = _resp.get("data")
+                if isinstance(pmachine_passwd, list):
+                    mail = Mail()
+                    mail.send_text_mail(
+                        current_app.config.get("ADMIN_MAIL_ADDR"),
+                        subject="【radiaTest平台】{}-密码变更通知".format(pmachine_passwd[0]),
+                        text="{} new password:{}".format(pmachine_passwd[0], pmachine_passwd[1])
+                    )
+                else:
+                    return jsonify(
+                        error_code=RET.BAD_REQ_ERR,
+                        error_msg="messenger response is not correct"
+                    )
+        if pmachine.state == "occupied":
+            _body = {
+                "description": sqlalchemy.null(),
+                "occupier": sqlalchemy.null(),
+                "occupier_id": sqlalchemy.null(),
+                "start_time": sqlalchemy.null(),
+                "end_time": sqlalchemy.null(),
+                "state": "idle",
+                "listen": sqlalchemy.null(),
+            }
+
+        resp = Edit(Pmachine, _body).single(Pmachine, "/pmachine")
+        _resp = json.loads(resp.response[0])
+        if _resp.get("error_code") != RET.OK:
+            return _resp
+
+            # 删除权利
+        if pmachine.occupier_id != pmachine.creator_id:
+            role = Role.query.filter_by(type='person', name=pmachine.occupier_id).first()
+            if not role:
+                return jsonify(
+                    error_code=RET.NO_DATA_ERR,
+                    error_msg="The role policy info is invalid."
+                )
+
+            for sub_uri in self.scopes_list:
+                _uri = '/api/v1/pmachine/{}'.format(pmachine.id)
+                if sub_uri != 'data':
+                    _uri += f'/{sub_uri}'
+
+                exist, scope = PmachineOccupyReleaseHandler.check_scope_exist(
+                    act='put',
+                    uri=_uri,
+                    eft='allow'
+                )
+                if not exist:
+                    continue
+
+                re_scope_role = ReScopeRole.query.filter_by(scope_id=scope.id, role_id=role.id).all()
+
+                for item in re_scope_role:
+                    Delete(ReScopeRole, {"id": item.id}).single()
+
+        return jsonify(error_code=RET.OK, error_msg="OK")
 
 
 class PmachineMessenger:

@@ -59,7 +59,7 @@ class QueryGroupUserSchema(PageBaseSchema):
     @validator('except_list')
     def v_except_list(cls, v):
         if v:
-            return [int(item) for item in v.split(',')]
+            return [item for item in v.split(',')]
         else:
             return None
 

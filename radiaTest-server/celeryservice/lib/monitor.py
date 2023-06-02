@@ -2,7 +2,6 @@ import json
 import datetime
 import pytz
 
-import sqlalchemy
 from flask import jsonify
 
 from celeryservice import celeryconfig
@@ -16,6 +15,7 @@ from server.utils.response_util import ssl_cert_verify_error_collect
 from server.model.message import Message, MsgType, MsgLevel
 from server.utils.db import Insert
 from server.model.permission import Role, ReUserRole
+from server.apps.pmachine.handlers import PmachineOccupyReleaseHandler
 
 
 class LifecycleMonitor(TaskHandlerBase):
@@ -42,46 +42,62 @@ class LifecycleMonitor(TaskHandlerBase):
             Pmachine.end_time.isnot(None),
         ]
         pmachines = Pmachine.query.filter(*filter_params).all()
+        pmachine_handler = PmachineOccupyReleaseHandler()
         for pmachine in pmachines:
             end_time = pmachine.end_time
-
-            if datetime.datetime.now(tz=pytz.timezone("Asia/Shanghai")) > \
-                    end_time.astimezone(pytz.timezone('Asia/Shanghai')):
-                self.logger.info(
-                    "pmachine {} is going to be released, with end_time {}".format(
-                        pmachine.id, pmachine.end_time
+            try:
+                if datetime.datetime.now(tz=pytz.timezone("Asia/Shanghai")) > \
+                        end_time.astimezone(pytz.timezone('Asia/Shanghai')):
+                    self.logger.info(
+                        "pmachine {} is going to be released, with end_time {}".format(
+                            pmachine.id, pmachine.end_time
+                        )
                     )
-                )
 
-                body = dict()
-                body.update({
-                    "ip": pmachine.ip,
-                    "port": pmachine.port,
-                    "user": pmachine.user,
-                    "password": pmachine.password,
-                    "bmc_ip": pmachine.bmc_ip,
-                    "bmc_user": pmachine.bmc_user,
-                    "bmc_password": pmachine.bmc_password
-                })
-                _resp = CeleryMonitorMessenger(body).send_request(
-                    pmachine.machine_group, "/api/v1/pmachine/auto-release-check"
-                )
-                _resp = json.loads(_resp.data.decode('UTF-8'))
-                if _resp.get("error_code") != RET.OK:
-                    check_res = _resp.get("error_msg")
+                    body = dict()
+                    body.update({
+                        "ip": pmachine.ip,
+                        "port": pmachine.port,
+                        "user": pmachine.user,
+                        "password": pmachine.password,
+                        "bmc_ip": pmachine.bmc_ip,
+                        "bmc_user": pmachine.bmc_user,
+                        "bmc_password": pmachine.bmc_password
+                    })
+                    _resp = CeleryMonitorMessenger(body).send_request(
+                        pmachine.machine_group, "/api/v1/pmachine/auto-release-check"
+                    )
+                    _resp = json.loads(_resp.data.decode('UTF-8'))
+                    if _resp.get("error_code") != RET.OK:
+                        check_res = _resp.get("error_msg")
 
-                    if pmachine.permission_type in ["org", "person"]:
-                        role = Role.query.filter_by(name="admin", org_id=pmachine.org_id).first()
-                    elif pmachine.permission_type == "group":
-                        role = Role.query.filter_by(
-                            name="admin", org_id=pmachine.org_id, group_id=pmachine.group_id
-                        ).first()
-                    else:
-                        continue
+                        if pmachine.permission_type in ["org", "person"]:
+                            role = Role.query.filter_by(name="admin", org_id=pmachine.org_id).first()
+                        elif pmachine.permission_type == "group":
+                            role = Role.query.filter_by(
+                                name="admin", org_id=pmachine.org_id, group_id=pmachine.group_id
+                            ).first()
+                        else:
+                            continue
 
-                    re_role_user = ReUserRole.query.filter_by(role_id=role.id).all()
+                        re_role_user = ReUserRole.query.filter_by(role_id=role.id).all()
 
-                    for item in re_role_user:
+                        for item in re_role_user:
+                            Insert(
+                                Message,
+                                {
+                                    "data": json.dumps(
+                                        {
+                                            'info': check_res
+                                        }
+                                    ),
+                                    "level": MsgLevel.system.value,
+                                    "from_id": 1,
+                                    "to_id": item.user_id,
+                                    "type": MsgType.text.value,
+                                    "org_id": pmachine.org_id
+                                }
+                            ).single()
                         Insert(
                             Message,
                             {
@@ -92,32 +108,16 @@ class LifecycleMonitor(TaskHandlerBase):
                                 ),
                                 "level": MsgLevel.system.value,
                                 "from_id": 1,
-                                "to_id": item.user_id,
+                                "to_id": pmachine.occupier,
                                 "type": MsgType.text.value,
                                 "org_id": pmachine.org_id
                             }
                         ).single()
-                    Insert(
-                        Message,
-                        {
-                            "data": json.dumps(
-                                {
-                                    'info': check_res
-                                }
-                            ),
-                            "level": MsgLevel.system.value,
-                            "from_id": 1,
-                            "to_id": pmachine.occupier,
-                            "type": MsgType.text.value,
-                            "org_id": pmachine.org_id
-                        }
-                    ).single()
-                else:
-                    pmachine.state = "idle"
-                    pmachine.end_time = sqlalchemy.null()
-                    pmachine.description = ""
-                    pmachine.occupier = ""
-                    pmachine.add_update(Pmachine, "/pmachine")
+                    else:
+                        pmachine_handler.release_with_release_scopes(pmachine)
+            except Exception as e:
+                self.logger.info("pmachine release error:{}".format(e))
+                continue
 
     def main(self):
         self.check_pmachine_lifecycle()
