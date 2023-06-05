@@ -29,7 +29,6 @@ const drawerRules = ref({
     trigger: ['blur', 'input']
   },
   executor: {
-    type: 'number',
     required: true,
     message: '请选择责任人',
     trigger: ['blur', 'change']
