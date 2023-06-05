@@ -7,4 +7,4 @@ class AtSchema(BaseModel):
     port: int
     password: str
     ip: str
-    user_id: int
+    user_id: str

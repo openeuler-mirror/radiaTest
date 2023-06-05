@@ -286,7 +286,7 @@ def handler_add_user(group_id, body):
         add_list.append(dict(
             user_add_group_flag=False,
             role_type=0,
-            user_id=int(user_id),
+            user_id=user_id,
             group_id=int(group_id),
             org_id=org_id
         ))

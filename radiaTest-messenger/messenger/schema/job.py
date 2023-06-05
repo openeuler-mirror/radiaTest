@@ -7,8 +7,8 @@ from messenger.schema import Frame, MachinePolicy, PermissionType
 
 
 class AuthBaseModel(BaseModel):
-    user_id: Optional[int]
-    creator_id: int
+    user_id: Optional[str]
+    creator_id: str
     permission_type: PermissionType
     group_id: Optional[int] = None
     org_id: int
@@ -77,7 +77,7 @@ class JobUpdateSchema(AuthBaseModel):
 
 
 class RunJobBase(AuthBaseModel):
-    user_id: int
+    user_id: str
     frame: Frame
     pmachine_list: List[dict]
     vmachine_list: List[dict]

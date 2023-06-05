@@ -109,7 +109,7 @@ class PackageCompletionSchema(BaseModel):
 
 
 class PackageTaskCreateSchema(BaseModel):
-    executor_id: int
+    executor_id: str
 
 
 class UserRewardSchema(BaseModel):

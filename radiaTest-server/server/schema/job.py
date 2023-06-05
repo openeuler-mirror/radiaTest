@@ -133,6 +133,6 @@ class LogCreateSchema(BaseModel):
 
 @dataclass
 class PayLoad:
-    user_id: int
+    user_id: str
     user_login: str
     
