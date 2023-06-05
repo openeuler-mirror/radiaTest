@@ -83,6 +83,6 @@ class PmachineBmcItem(Resource):
 
 class AutoReleaseCheckPmachineEvent(Resource):
     @validate()
-    def post(self, body: PmachineInfoSchema):
+    def get(self, body: PmachineInfoSchema):
         _body = body.__dict__
         return PmachineInfo(_body).check()
