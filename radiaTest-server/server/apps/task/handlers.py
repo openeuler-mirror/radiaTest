@@ -517,7 +517,7 @@ class HandlerTask(object):
         pm = PermissionManager()
         if old_executor_type == EnumsTaskExecutorType.GROUP.value:
             if body.executor_type == EnumsTaskExecutorType.GROUP.value:
-                if int(old_executor_id) != int(body.executor_id):
+                if old_executor_id != body.executor_id:
                     role = Role.query.filter_by(
                         name="admin", type="group", group_id=task.group_id
                     ).first()
@@ -566,7 +566,7 @@ class HandlerTask(object):
                 )
                 task.executor_id = body.executor_id
                 task.executor_type = body.executor_type
-                if int(task.creator_id) != int(task.executor_id):
+                if task.creator_id != task.executor_id:
                     pm.bind_scope_user(
                         scope_datas_allow=scope_data_allow,
                         scope_datas_deny=scope_data_deny,
@@ -588,7 +588,7 @@ class HandlerTask(object):
                         error_code=RET.NO_DATA_ERR, error_msg="group is not exists"
                     )
 
-                if int(task.creator_id) != int(old_executor_id):
+                if task.creator_id != old_executor_id:
                     role = Role.query.filter_by(name=old_executor_id).first()
                     PermissionManager.unbind_scope_role(
                         scope_data_allow,
@@ -610,20 +610,20 @@ class HandlerTask(object):
                     _data=_data,
                 )
             else:
-                if int(body.executor_id) != int(old_executor_id):
+                if body.executor_id != old_executor_id:
                     task.executor_id = body.executor_id
                     scope_data_allow, scope_data_deny = pm.get_api_list(
                         "task", os.path.join(base_dir, "execute_task.yaml"), task.id
                     )
 
-                    if int(task.creator_id) != int(old_executor_id):
+                    if task.creator_id != old_executor_id:
                         role = Role.query.filter_by(name=old_executor_id).first()
                         PermissionManager.unbind_scope_role(
                             scope_data_allow,
                             False,
                             role.id,
                         )
-                    if int(task.creator_id) != int(body.executor_id):
+                    if task.creator_id != body.executor_id:
                         pm.bind_scope_user(
                             scope_datas_allow=scope_data_allow,
                             scope_datas_deny=scope_data_deny,
@@ -944,7 +944,7 @@ class HandlerTaskParticipant(object):
 
         for item in body.participants:
             if (
-                int(executor_to_participant_id) == int(item.participant_id)
+                str(executor_to_participant_id) == str(item.participant_id)
                 and executor_to_participant_type == item.type
             ):
                 return jsonify(
@@ -993,7 +993,7 @@ class HandlerTaskParticipant(object):
                     return jsonify(
                         error_code=RET.NO_DATA_ERR, error_msg="user is not exists"
                     )
-                if int(task.creator_id) != int(apc.participant_id):
+                if task.creator_id != apc.participant_id:
                     pm.bind_scope_user(
                         scope_datas_allow=scope_data_allow,
                         scope_datas_deny=scope_data_deny,
@@ -1007,7 +1007,7 @@ class HandlerTaskParticipant(object):
         for dpc in del_pc:
             # del permission code
             if dpc.type == EnumsTaskExecutorType.PERSON.value:
-                if int(task.creator_id) == int(dpc.participant_id):
+                if task.creator_id == dpc.participant_id:
                     continue
                 role = Role.query.filter_by(name=str(dpc.participant_id)).first()
             else:
