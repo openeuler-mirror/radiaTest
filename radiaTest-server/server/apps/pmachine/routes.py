@@ -3,16 +3,14 @@
 # @Date:   2022-04-12 14:05:57
 import json
 
-from flask import jsonify, current_app, g
+from flask import jsonify, current_app
 from flask_restful import Resource
-import sqlalchemy
 from flask_pydantic import validate
 
 from server import casbin_enforcer
 from server.model import Pmachine, IMirroring, Vmachine
 from server.model.pmachine import MachineGroup
-from server.model.permission import ReScopeRole, Role, Scope
-from server.utils.db import Edit, collect_sql_error, Delete
+from server.utils.db import Edit, collect_sql_error
 from server.utils.auth_util import auth
 from server.utils.response_util import response_collect, RET, workspace_error_collect
 from server.utils.resource_utils import ResourceManager
@@ -157,10 +155,8 @@ class PmachineOccupyEvent(Resource):
     @validate()
     @casbin_enforcer.enforcer
     def put(self, pmachine_id, body: PmachineOccupySchema):
-        return PmachineOccupyReleaseHandler.occupy_with_bind_scopes(
-            pmachine_id, 
-            body
-        )
+        pmachine_handler = PmachineOccupyReleaseHandler()
+        return pmachine_handler.occupy_with_bind_scopes(pmachine_id, body)
 
 
 class PmachineReleaseEvent(Resource):
@@ -175,210 +171,8 @@ class PmachineReleaseEvent(Resource):
                 error_code=RET.NO_DATA_ERR,
                 error_msg="The pmachine does not exist. Please check."
             )
-        if pmachine.state == "idle":
-            return jsonify(
-                error_code=RET.VERIFY_ERR,
-                error_msg="Pmachine state has not been modified. Please check."
-            )
-        if pmachine.state == "occupied" and pmachine.description \
-                == current_app.config.get("CI_HOST"):
-            vmachine = Vmachine.query.filter_by(pmachine_id=pmachine.id).first()
-            if vmachine:
-                return jsonify(
-                    error_code=RET.NO_DATA_ERR,
-                    error_msg="Pmachine has vmmachine, can't released."
-                )
-
-        # 修改随机密码
-        _body = {
-            "id": pmachine.id,
-            "ip": pmachine.ip,
-            "user": pmachine.user,
-            "port": pmachine.port,
-            "old_password": pmachine.password,
-            "random_flag": True,
-        }
-
-        if pmachine.description in [current_app.config.get("CI_HOST"),
-                                    current_app.config.get("CI_PURPOSE")]:
-            _body.update(
-                {
-                    "random_flag": False
-                }
-            )
-
-        if _body.get("random_flag"):
-            _resp = PmachineMessenger(_body).send_request(
-                pmachine.machine_group,
-                "/api/v1/pmachine/ssh",
-            )
-
-            _resp = json.loads(_resp.data.decode('UTF-8'))
-            if _resp.get("error_code") != RET.OK:
-                current_app.logger.error(
-                    f"release pmachine {pmachine.id} failed, "
-                    f"messenger return {_resp} when resetting password"
-                )
-                return jsonify(
-                    error_code=RET.BAD_REQ_ERR,
-                    error_msg="Modify ssh password error, can't released."
-                )
-            else:
-                messenger_res = _resp.get("error_msg")
-                current_app.logger.info("messenger response info:{}".format(messenger_res))
-                pmachine_passwd = _resp.get("data")
-                if isinstance(pmachine_passwd, list):
-                    mail = Mail()
-                    mail.send_text_mail(
-                        current_app.config.get("ADMIN_MAIL_ADDR"),
-                        subject="【radiaTest平台】{}-密码变更通知".format(pmachine_passwd[0]),
-                        text="{} new password:{}".format(pmachine_passwd[0], pmachine_passwd[1])
-                    )
-                else:
-                    return jsonify(
-                        error_code=RET.BAD_REQ_ERR,
-                        error_msg="messenger response is not correct"
-                    )
-        if pmachine.state == "occupied":
-            _body = {
-                "description": sqlalchemy.null(),
-                "occupier": sqlalchemy.null(),
-                "start_time": sqlalchemy.null(),
-                "end_time": sqlalchemy.null(),
-                "state": "idle",
-                "listen": sqlalchemy.null(),
-            }
-
-        _body.update({"id": pmachine_id})
-        resp = Edit(Pmachine, _body).single(Pmachine, "/pmachine")
-        _resp = json.loads(resp.response[0])
-        if _resp.get("error_code") != RET.OK:
-            return _resp 
-
-        # 删除权利
-        if g.user_id != pmachine.creator_id:
-            role = Role.query.filter_by(type='person', name=g.user_id).first()
-            if not role:
-                return jsonify(
-                    error_code=RET.NO_DATA_ERR,
-                    error_msg="The role policy info is invalid."
-                )
-
-            scope_occupy = Scope.query.filter_by(
-                act='put',
-                uri='/api/v1/pmachine/{}/occupy'.format(pmachine_id),
-                eft='allow'
-            ).first()
-            if not scope_occupy:
-                return jsonify(
-                    error_code=RET.NO_DATA_ERR,
-                    error_msg="The scope_occupy policy info is invalid."
-                )
-            _occupy = ReScopeRole.query.filter_by(scope_id=scope_occupy.id, role_id=role.id).all()
-            if not _occupy:
-                return jsonify(
-                    error_code=RET.NO_DATA_ERR,
-                    error_msg="The _occupy policy info is invalid."
-                )
-
-            scope_release = Scope.query.filter_by(
-                act='put',
-                uri='/api/v1/pmachine/{}/release'.format(pmachine_id),
-                eft='allow'
-            ).first()
-            if not scope_release:
-                return jsonify(
-                    error_code=RET.NO_DATA_ERR,
-                    error_msg="The scope_release policy info is invalid."
-                )
-            _release = ReScopeRole.query.filter_by(scope_id=scope_release.id, role_id=role.id).all()
-            if not _release:
-                return jsonify(
-                    error_code=RET.NO_DATA_ERR,
-                    error_msg="The _release policy info is invalid."
-                )
-
-            scope_install = Scope.query.filter_by(
-                act='put',
-                uri='/api/v1/pmachine/{}/install'.format(pmachine_id),
-                eft='allow'
-            ).first()
-            if not scope_install:
-                return jsonify(
-                    error_code=RET.NO_DATA_ERR,
-                    error_msg="The scope_install policy info is invalid."
-                )
-            _install = ReScopeRole.query.filter_by(scope_id=scope_install.id, role_id=role.id).all()
-            if not _install:
-                return jsonify(
-                    error_code=RET.NO_DATA_ERR,
-                    error_msg="The _install policy info is invalid."
-                )
-
-            scope_power = Scope.query.filter_by(
-                act='put',
-                uri='/api/v1/pmachine/{}/power'.format(pmachine_id),
-                eft='allow'
-            ).first()
-            if not scope_power:
-                return jsonify(
-                    error_code=RET.NO_DATA_ERR,
-                    error_msg="The scope_power policy info is invalid."
-                )
-            _power = ReScopeRole.query.filter_by(scope_id=scope_power.id, role_id=role.id).all()
-            if not _power:
-                return jsonify(
-                    error_code=RET.NO_DATA_ERR,
-                    error_msg="The _power policy info is invalid."
-                )
-
-            scope_update = Scope.query.filter_by(
-                act='put',
-                uri='/api/v1/pmachine/{}'.format(pmachine_id),
-                eft='allow'
-            ).first()
-            if not scope_update:
-                return jsonify(
-                    error_code=RET.NO_DATA_ERR,
-                    error_msg="The scope_update policy info is invalid."
-                )
-            _update = ReScopeRole.query.filter_by(scope_id=scope_update.id, role_id=role.id).all()
-            if not _update:
-                return jsonify(
-                    error_code=RET.NO_DATA_ERR,
-                    error_msg="The _update policy info is invalid."
-                )
-
-            scope_ssh = Scope.query.filter_by(
-                act='put',
-                uri='/api/v1/pmachine/{}/ssh'.format(pmachine_id),
-                eft='allow'
-            ).first()
-            if not scope_ssh:
-                return jsonify(
-                    error_code=RET.NO_DATA_ERR,
-                    error_msg="The scope_ssh policy info is invalid."
-                )
-            _ssh = ReScopeRole.query.filter_by(scope_id=scope_ssh.id, role_id=role.id).all()
-            if not _ssh:
-                return jsonify(
-                    error_code=RET.NO_DATA_ERR,
-                    error_msg="The _ssh policy info is invalid."
-                )
-            for occ in _occupy:
-                Delete(ReScopeRole, {"id": occ.id}).single()
-            for rea in _release:
-                Delete(ReScopeRole, {"id": rea.id}).single()
-            for ins in _install:
-                Delete(ReScopeRole, {"id": ins.id}).single()
-            for powe in _power:
-                Delete(ReScopeRole, {"id": powe.id}).single()
-            for upd in _update:
-                Delete(ReScopeRole, {"id": upd.id}).single()
-            for ssh in _ssh:
-                Delete(ReScopeRole, {"id": ssh.id}).single()
-        
-        return jsonify(error_code=RET.OK, error_msg="OK")
+        pmachine_handler = PmachineOccupyReleaseHandler()
+        return pmachine_handler.release_with_release_scopes(pmachine)
 
 
 class PmachineEvent(Resource):

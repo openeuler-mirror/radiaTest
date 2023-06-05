@@ -256,6 +256,7 @@ class PmachineDelaySchema(BaseModel):
 class PmachineOccupySchema(BaseModel):
     description: str
     occupier: str
+    occupier_id: str
     listen: Optional[int]
     start_time: Optional[datetime]
     end_time: Optional[str]
