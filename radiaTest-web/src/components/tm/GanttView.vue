@@ -356,7 +356,7 @@ const getGroupOptions = () => {
     page_num: 1,
     page_size: 999999
   }).then((res) => {
-    res.data?.items.forEach((item) => {
+    res.data?.items?.forEach((item) => {
       groupOptions.value.push({
         label: item.name,
         value: item.id
