@@ -1,11 +1,11 @@
 import json
 import datetime
+import requests
 import pytz
 
 from flask import jsonify
 
 from celeryservice import celeryconfig
-from server.utils.requests_util import do_request
 from server.utils.response_util import RET
 from server import db
 from server.model.vmachine import Vmachine
@@ -67,7 +67,6 @@ class LifecycleMonitor(TaskHandlerBase):
                     _resp = CeleryMonitorMessenger(body).send_request(
                         pmachine.machine_group, "/api/v1/pmachine/auto-release-check"
                     )
-                    _resp = json.loads(_resp.data.decode('UTF-8'))
                     if _resp.get("error_code") != RET.OK:
                         check_res = _resp.get("error_msg")
 
@@ -130,27 +129,26 @@ class CeleryMonitorMessenger:
 
     @ssl_cert_verify_error_collect
     def send_request(self, machine_group, api):
-        _resp = dict()
-
-        _r = do_request(
-            method="post",
-            url="https://{}:{}{}".format(
+        resp = requests.get(
+            "https://{}:{}{}".format(
                 machine_group.messenger_ip,
                 machine_group.messenger_listen,
                 api
             ),
-            body=self._body,
+            params=self._body,
             headers={
                 "content-type": "application/json;charset=utf-8",
             },
-            obj=_resp,
-            verify=celeryconfig.cacert_path,
+            verify=celeryconfig.cacert_path
         )
-
-        if _r != 0:
+        if resp.status_code != 200:
             return jsonify(
                 error_code=RET.RUNTIME_ERROR,
                 error_msg="could not reach messenger of this machine group"
             )
 
-        return jsonify(_resp)
+        try:
+            result = json.loads(resp.text)
+        except AttributeError:
+            result = resp.json()
+        return result
