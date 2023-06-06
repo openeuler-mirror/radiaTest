@@ -226,7 +226,7 @@ class ParticipantSchema(BaseModel):
 
 class UpdateTaskExecutorSchema(BaseModel):
     executor_type: EnumsTaskExecutorType
-    executor_id: int
+    executor_id: str
 
 
 class UpdateTaskSchema(BaseModel):
@@ -442,14 +442,14 @@ class DistributeTaskCaseSchema(BaseModel):
 class DistributeTemplateTypeSchema(object):
     class Add(BaseModel):
         name: str = Field(..., max_length=32)
-        executor_id: int
+        executor_id: str
         suites: List[str] = []
         helpers: List[str] = []
         suite_source: Literal["org", "group"] = "org"
 
     class Update(BaseModel):
         name: str = Field(None, max_length=32)
-        executor_id: int = None
+        executor_id: str = None
         suites: List[str] = []
         helpers: List[str] = []
         suite_source: Literal["org", "group"] = "org"
