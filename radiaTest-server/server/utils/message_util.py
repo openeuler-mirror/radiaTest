@@ -71,7 +71,10 @@ class MessageManager:
 
         if not re_role_user:
             raise RuntimeError("the user with this role does not exist.")
-        
+
+        _api.update({
+            "ip": _instance.ip
+        })
         for item in re_role_user:
             MessageManager.send_scrpt_msg(
                 item.user_id, MsgLevel.user.value, _api, _instance.permission_type, cur_org_id
@@ -83,7 +86,7 @@ class MessageManager:
             data=json.dumps(
                 dict(
                     permission_type=permission_type,
-                    info=f'<b>{g.user_login}</b>请求{_api.get("alias")}<b>{_api["id"]}</b>。',
+                    info=f'<b>{g.user_login}</b>请求{_api.get("alias")}<b>{_api["ip"]}</b>。',
                     script=_api["cur_uri"],
                     method=_api.get("act"),
                     _alias=_api.get("alias"),
