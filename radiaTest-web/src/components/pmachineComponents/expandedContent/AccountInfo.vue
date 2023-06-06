@@ -29,7 +29,7 @@
   >
     修改
   </n-button>
-  <n-modal v-model:show="showModal">
+  <n-modal v-model:show="showModal" :mask-closable="false">
     <n-dialog
       type="info"
       :title="`修改${props.title}信息`"
@@ -42,6 +42,9 @@
       <n-form :label-width="80" :model="formValue" ref="formRef" :rules="rules">
         <n-form-item label="用户名" path="user">
           <n-input :value="formValue.user" :disabled="true" />
+        </n-form-item>
+        <n-form-item label="旧密码" path="oldPassword">
+          <n-input :value="formValue.oldPassword" :disabled="true" />
         </n-form-item>
         <n-form-item label="密码" path="password">
           <n-input
@@ -88,7 +91,7 @@ const formRef = ref();
 
 function handleHideClick(target) {
   isShow.value[target] = false;
-  formValue.value[target] = {};
+  formValue.value = {};
   accountInfo.value[target] = '***** / *****';
 }
 
@@ -97,14 +100,14 @@ function handleShowClick(machineId, target) {
     getPmachineBmc(props.machineId).then((res) => {
       accountInfo.value[target] = `${res.data.bmc_user} / ${res.data.bmc_password}`;
       formValue.value.user = res.data.bmc_user;
-      formValue.value.password = res.data.bmc_password;
+      formValue.value.oldPassword = res.data.bmc_password;
       isShow.value[target] = true;
     });
   } else if (target === 'SSH') {
     getPmachineSsh(props.machineId).then((res) => {
       accountInfo.value[target] = `${res.data.user} / ${res.data.password}`;
       formValue.value.user = res.data.user;
-      formValue.value.password = res.data.password;
+      formValue.value.oldPassword = res.data.password;
       isShow.value[target] = true;
     });
   }
@@ -132,17 +135,20 @@ function handleModifyClick(machineId, target) {
 
 function submitCallback() {
   handleModifyClick(props.machineId, props.title);
-  showModal.value = false;
 }
 function cancelCallback() {
   showModal.value = false;
+  formValue.value.password = null;
+  formValue.value.rePassword = null;
 }
 
-const passwordValidator = (rule, value) => {
+const passwordValidator = (rule, value, oldPassword) => {
   if (!value) {
     return new Error('密码不可为空');
   } else if (value.length < 8) {
     return new Error('密码不可小于8位');
+  } else if (value === oldPassword) {
+    return new Error('新密码不可与旧密码相同');
   }
   return true;
 };
@@ -159,7 +165,7 @@ const rules = {
   password: {
     trigger: ['blur', 'change'],
     required: true,
-    validator: (rule, value) => passwordValidator(rule, value)
+    validator: (rule, value) => passwordValidator(rule, value, formValue.value.oldPassword)
   },
   rePassword: {
     trigger: ['blur', 'change'],
