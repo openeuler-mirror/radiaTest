@@ -41,6 +41,16 @@ def make_celery(app_name):
                 'routing_key': 'update_all_issue_rate',
                 'delivery_mode': 1,
             },
+            'celeryservice.tasks.async_update_all_task_progress': {
+                'queue': 'queue_update_all_task_progress',
+                'routing_key': 'update_all_task_progress',
+                'delivery_mode': 1,
+            },
+            'celeryservice.tasks.update_task_progress': {
+                'queue': 'queue_update_task_progress',
+                'routing_key': 'update_task_progress',
+                'delivery_mode': 1,
+            },
             'celeryservice.lib.issuerate.update_field_issue_rate': {
                 'queue': 'queue_update_field_issue_rate',
                 'routing_key': 'update_field_issue_rate',

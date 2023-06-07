@@ -353,6 +353,8 @@ class CaseNodeHandler:
 
         if root_case_node.type == "baseline":
             _body.update({"baseline_id": root_case_node.baseline_id})
+            if _body.get("type") == "case":
+                _body["case_result"] = "pending"
 
         if _body.get("multiselect"):
             create_case_node_multi_select.delay(_body)
@@ -366,7 +368,7 @@ class CaseNodeHandler:
                         ),
                         data=child.id
                     )
-            
+
             case_node = CaseNode.query.filter_by(
                 id=Insert(
                     CaseNode,

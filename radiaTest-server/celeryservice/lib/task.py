@@ -14,6 +14,9 @@
 #####################################
 
 import time
+import json
+from datetime import datetime
+import pytz
 import os
 import pandas as pd
 from server import db
@@ -25,7 +28,8 @@ from server.model.task import (
     TaskMilestone,
     TaskManualCase,
 )
-from server.model.testcase import Case
+from server import redis_client, db
+from server.model.testcase import Case, CaseNode
 from server.utils.db import collect_sql_error
 from server.utils.permission_utils import PermissionManager
 from server.apps.task.services import judge_task_automatic
@@ -75,6 +79,17 @@ class TaskdistributeHandler(TaskHandlerBase):
                 )
         if len(template_cases) == 0:
             return
+        task_key = f"DISTRIBUTE_TEMPLATE_{template_id}_TASK_{task_id}"
+        redis_client.hmset(
+            task_key,
+            {
+                "user_id": body.get("creator_id"),
+                "resolve_time": datetime.now(
+                    tz=pytz.timezone('Asia/Shanghai')
+                ).strftime("%Y-%m-%d %H:%M:%S")
+            }
+        )
+        redis_client.expire(task_key, 1800)
         template_cases_df = pd.DataFrame(
             template_cases, columns=["suite_id", "executor_id", "helpers", "type_name"]
         )
@@ -105,6 +120,7 @@ class TaskdistributeHandler(TaskHandlerBase):
                     scope_datas_deny=scope_data_deny,
                     _data=_data,
                 )
+        redis_client.delete(task_key)
 
     def child_task(self, title, group_id, executor_id, creator_id):
         child_task = Task()
@@ -201,3 +217,133 @@ class TaskdistributeHandler(TaskHandlerBase):
         ]
         db.session.commit()
         judge_task_automatic(task_milestone)
+
+
+class VersionTaskProgressHandler(TaskHandlerBase):
+    def __init__(self, logger, promise):
+        self.promise = promise
+        super().__init__(logger)
+
+    def update_version_task_progress(self, task_id):
+        task = Task.query.get(task_id)
+        if task:
+            self.logger.info(f"start statistics task {task.title} test progress")
+            HandlerUpdateTaskProgress(task=task).update_task_progress()
+            self.logger.info(f"end statistics task {task.title} test progress")
+
+
+class AllVersionTaskProgressHandler(TaskHandlerBase):
+    def update_all_version_task_progress(self):
+        tasks = Task.query.filter(
+            Task.type == "VERSION",
+            Task.is_delete.is_(False),
+            Task.case_node_id.isnot(None),
+            Task.percentage != 100,
+        ).all()
+        for task in tasks:
+            self.logger.info(f"start statistics task {task.title} test progress")
+            HandlerUpdateTaskProgress(task=task).update_task_progress()
+            self.logger.info(f"end statistics task {task.title} test progress")
+
+
+class HandlerUpdateTaskProgress(object):
+    def __init__(self, task) -> None:
+        self.milestone_id = task.milestones[0].milestone_id
+        self.all_node_ids = list()
+        self.all_task_case_node_infos = dict()
+        self.task_ids = list()
+        self.all_task_test_static_info = dict()
+        self.task = task
+        self.task_key = f"MILESTONE_{self.milestone_id}_TASK_{self.task.id}_TEST_INFO"
+
+    def update_task_progress(self):
+        task_key = f"UPDATE_MILESTONE_{self.milestone_id}_TASK_{self.task.id}_TEST_PROGRESS"
+        _key = redis_client.keys(task_key)
+        if _key:
+            return
+        redis_client.hmset(
+            task_key,
+            {
+                "resolve_time": datetime.now(
+                    tz=pytz.timezone('Asia/Shanghai')
+                ).strftime("%Y-%m-%d %H:%M:%S")
+            }
+        )
+        redis_client.expire(task_key, 1800)
+        HandlerUpdateTaskProgress.get_all_tasks(self.task, self.task_ids)
+        self.get_task_case_node()
+        self.save_test_info_to_redis()
+        redis_client.delete(task_key)
+
+    def save_test_info_to_redis(self):
+        redis_client.hmset(
+            self.task_key, 
+            {
+                "milestone_id": self.milestone_id,
+                "task_id": self.task.id,
+                "all_task_ids": self.task_ids,
+                "all_node_ids": self.all_node_ids,
+                "all_task_case_node_infos": json.dumps(self.all_task_case_node_infos),
+                "all_task_test_static_info": json.dumps(self.all_task_test_static_info),
+            }
+        )
+
+    @staticmethod
+    def get_case_node(case_node, case_node_infos: dict, all_node_ids: list, test_stat_info: dict, source: str=""):
+        """
+        :description: Get all child case_nodes under the case_node
+        :param: case_node_infos: dict, store all child case_node whose type is case under the case_node
+        :param: all_node_ids: list, store all child case_node ids under the case_node
+        :param: source: str, a temporary variable
+        """
+        if case_node.type == "case":
+            tmp_source = source + "," + str(case_node.id)
+            [all_node_ids.append(_id) for _id in  list(map(int, tmp_source[1:].split(","))) if _id not in all_node_ids]
+            result = case_node.case_result
+            case_node_infos.update(
+                {
+                    str(case_node.case_id): {
+                        "case_node_id": case_node.id,
+                        "source": tmp_source[1:],
+                        "result": result,
+                    }
+                }
+            )
+            
+            if test_stat_info.get(result):
+                test_stat_info.update({result: test_stat_info.get(result) + 1})
+            else:
+                test_stat_info.update({result: 1})
+        else:
+            tmp_source = source + "," + str(case_node.id)
+            if not case_node.children.all():
+                return
+            for case_node_tmp in case_node.children.all():
+                HandlerUpdateTaskProgress.get_case_node(
+                    case_node_tmp, case_node_infos, all_node_ids, test_stat_info, tmp_source
+                )
+
+    @collect_sql_error
+    def get_task_case_node(self):
+        """
+        :description: Get all child case_nodes under the version task
+        :return: 
+            case_node_infos: dict, store all child case_node whose type is case under the case_node
+            all_node_ids: list, store all child case_node ids under the case_node
+        """
+        case_node = CaseNode.query.filter_by(id=self.task.case_node_id).first()
+        HandlerUpdateTaskProgress.get_case_node(
+            case_node, self.all_task_case_node_infos, self.all_node_ids, self.all_task_test_static_info
+        )
+
+    @staticmethod
+    def get_all_tasks(task, task_ids):
+        """
+        获取所有测试任务
+        """
+        task_ids.append(task.id)
+        for sub_task in task.children.filter(Task.is_delete.is_(False)).all():
+            HandlerUpdateTaskProgress.get_all_tasks(
+                sub_task,
+                task_ids
+            )

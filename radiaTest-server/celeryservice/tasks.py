@@ -45,7 +45,7 @@ from celeryservice.lib.message import VmachineReleaseNotice
 from celeryservice.lib.rpmcheck import RpmCheckHandler
 from celeryservice.lib.casenode import CaseNodeCreator
 from celeryservice.lib.template import TemplateCaseHandler
-from celeryservice.lib.task import TaskdistributeHandler
+from celeryservice.lib.task import TaskdistributeHandler, VersionTaskProgressHandler, AllVersionTaskProgressHandler
 
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -94,6 +94,11 @@ def setup_periodic_tasks(sender, **kwargs):
         crontab(minute="*/5"),
         async_check_pmachine_lifecycle.s(),
         name="check_pmachine_lifecycle",
+    )
+    sender.add_periodic_task(
+        crontab(minute="*/60"),
+        async_update_all_task_progress.s(),
+        name="update_all_task_progress",
     )
 
 
@@ -197,6 +202,16 @@ def async_update_celerytask_status():
     db.session.commit()
 
     socketio.emit("update", namespace="/celerytask", broadcast=True)
+
+
+@celery.task
+def async_update_all_task_progress():
+    AllVersionTaskProgressHandler(logger).update_all_version_task_progress()
+
+
+@celery.task(bind=True)
+def update_task_progress(self, task_id):
+    VersionTaskProgressHandler(logger, self).update_version_task_progress(task_id)
 
 
 @celery.task

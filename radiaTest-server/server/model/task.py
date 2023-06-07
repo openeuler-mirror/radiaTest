@@ -184,7 +184,7 @@ class Task(db.Model, PermissionBaseModel, BaseModel):
             return False
 
     def to_gantt_dict(self):
-        user = User.query.get(self.executor_id)
+        user = User.query.filter_by(user_id=self.executor_id).first()
         _url = None
         if user:
             _url = user.avatar_url

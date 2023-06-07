@@ -33,7 +33,7 @@ from server.model.job import Job, Analyzed
 from server.model.user import User
 from server.model.organization import Organization
 from server.model.milestone import Milestone
-from server.model.testcase import Case, CaseNode
+from server.model.testcase import Case, CaseNode, Baseline
 from server.model.permission import Role
 from server.schema.task import (
     UpdateTaskExecutorSchema,
@@ -1601,6 +1601,15 @@ class HandlerTaskMilestone(object):
         manual_case = TaskManualCase.query.filter_by(
             task_milestone_id=taskmilestone_id, case_id=case_id
         ).first()
+
+        case_node = CaseNode.query.join(Baseline).filter(
+            Baseline.milestone_id == task_milestone.milestone_id,
+            CaseNode.baseline_id == Baseline.id,
+            CaseNode.case_id == case_id,
+        ).first()
+        case_node.case_result = body.result
+        case_node.add_update()
+
         if not manual_case:
             manual_case = TaskManualCase(
                 task_milestone_id=taskmilestone_id,
@@ -1932,42 +1941,27 @@ class HandlerTaskProgress(object):
         self.all_node_ids = list()
         self.all_task_case_node_infos = dict()
         self.task_ids = list()
-        self.all_task_test_case_infos = dict()
         self.all_task_test_static_info = dict()
         self.task = None
-        try:
-            self.get_version_task()
-        except RuntimeError as e:
-            raise RuntimeError(str(e)) from e
+
+        task = Task.query.join(TaskMilestone).filter(
+            Task.id == TaskMilestone.task_id,
+            TaskMilestone.milestone_id == self.milestone_id,
+            Task.type == "VERSION",
+            Task.is_delete.is_(False),
+            Task.case_node_id.isnot(None),
+        ).first()
+        if not task:
+            raise RuntimeError("no version task.")
+        self.task = task
         self.task_key = f"MILESTONE_{self.milestone_id}_TASK_{self.task.id}_TEST_INFO"
         _key = redis_client.keys(self.task_key)
-        if not _key:
-            self.get_task_case_node()
-            HandlerTaskProgress.get_test_infos_by_task(
-                self.task,
-                self.all_task_case_node_infos,
-                self.task_ids,
-                self.all_task_test_case_infos,
-                self.all_task_test_static_info
-            )
-            self.save_test_info_to_redis()
-        else:
+        if _key:
             self.get_test_info_from_redis()
-
-    def save_test_info_to_redis(self):
-        redis_client.hmset(
-            self.task_key, 
-            {
-                "milestone_id": self.milestone_id,
-                "task_id": self.task.id,
-                "all_task_ids": self.task_ids,
-                "all_node_ids": self.all_node_ids,
-                "all_task_case_node_infos": json.dumps(self.all_task_case_node_infos),
-                "all_task_test_case_infos": json.dumps(self.all_task_test_case_infos),
-                "all_task_test_static_info": json.dumps(self.all_task_test_static_info),
-            }
-        )
-        redis_client.expire(self.task_key, 60 * 30)
+        else:
+            from celeryservice.tasks import update_task_progress
+            update_task_progress.delay(task.id)
+            raise RuntimeError("task progress is being counted, please wait for some time.")
 
     def get_test_info_from_redis(self):
         task_id = redis_client.hget(
@@ -1982,160 +1976,20 @@ class HandlerTaskProgress(object):
         all_task_case_node_infos = redis_client.hget(
             self.task_key, "all_task_case_node_infos")
         self.all_task_case_node_infos.update(json.loads(all_task_case_node_infos))
-        all_task_test_case_infos = redis_client.hget(
-            self.task_key, "all_task_test_case_infos")
-        self.all_task_test_case_infos.update(json.loads(all_task_test_case_infos))
         all_task_test_static_info = redis_client.hget(
             self.task_key, "all_task_test_static_info")
         self.all_task_test_static_info.update(json.loads(all_task_test_static_info))
 
-    def get_version_task(self):
-        """
-        :description: Get the version task associated with the milestone
-        """
-        #一个里程碑可以创建多个版本任务，这块没有做限制
-        task = Task.query.join(TaskMilestone).filter(
-            Task.id == TaskMilestone.task_id,
-            TaskMilestone.milestone_id == self.milestone_id,
-            Task.type == "VERSION",
-            Task.is_delete.is_(False),
-            Task.case_node_id.isnot(None),
-        ).first()
-        if not task:
-            raise RuntimeError("no version task.")
-        self.task = task
-
-    @staticmethod
-    def get_case_node(case_node, case_node_infos: dict, all_node_ids: list, source: str=""):
-        """
-        :description: Get all child case_nodes under the case_node
-        :param: case_node_infos: dict, store all child case_node whose type is case under the case_node
-        :param: all_node_ids: list, store all child case_node ids under the case_node
-        :param: source: str, a temporary variable
-        """
-        if case_node.type == "case":
-            tmp_source = source + "," + str(case_node.id)
-            [all_node_ids.append(_id) for _id in  list(map(int, tmp_source[1:].split(","))) if _id not in all_node_ids]
-            case_node_infos.update(
-                {
-                    str(case_node.case_id): {
-                        "case_node_id": case_node.id,
-                        "source": tmp_source[1:],
-                    }
-                }
-            )
-        else:
-            tmp_source = source + "," + str(case_node.id)
-            if not case_node.children.all():
-                return
-            for case_node_tmp in case_node.children.all():
-                HandlerTaskProgress.get_case_node(case_node_tmp, case_node_infos, all_node_ids, tmp_source)
-
-    @collect_sql_error
-    def get_task_case_node(self):
-        """
-        :description: Get all child case_nodes under the version task
-        :return: 
-            case_node_infos: dict, store all child case_node whose type is case under the case_node
-            all_node_ids: list, store all child case_node ids under the case_node
-        """
-        case_node = CaseNode.query.filter_by(id=self.task.case_node_id).first()
-        HandlerTaskProgress.get_case_node(case_node, self.all_task_case_node_infos, self.all_node_ids)
-
-    @staticmethod
-    def get_test_infos_by_task(task, all_case_infos: dict, task_ids: list, task_case_infos: dict, test_stat_info: dict):
-        """
-        :description: Get task-related test infoinformation
-        :param: all_case_infos: dict, all task-related case information
-        :param: task_ids: list, store all child task ids under the task
-        :param: task_case_infos: dict, store all task-related case test information
-        :param: test_stat_info: dict, store task-related case test statistics information
-        """
-        task_ids.append(task.id)
-        tm = TaskMilestone.query.filter(
-            TaskMilestone.task_id == task.id,
-        ).first()
-        query_filter = [
-            Analyzed.job_id == tm.job_id,
-        ]
-
-        for auto_case in tm.cases:
-            query_filter.append(Analyzed.case_id == auto_case.id)
-            case_analyze = Analyzed.query.filter(*query_filter).first()
-            task_case_infos.update({
-                str(auto_case.id): {
-                    "result": case_analyze.result if case_analyze else "pending",
-                    "task_id": task.id,
-                    "type": "auto",
-                }
-            })
-            task_case_infos[str(auto_case.id)].update(all_case_infos.get(str(auto_case.id)))
-            result = task_case_infos[str(auto_case.id)]["result"]
-            if test_stat_info.get(result):
-                test_stat_info.update({result: test_stat_info.get(result) + 1})
-            else:
-                test_stat_info.update({result: 1})
-
-        for manual_case in tm.manual_cases:
-            task_case_infos.update({
-                str(manual_case.case_id): {
-                    "result": manual_case.case_result,
-                    "task_id": task.id,
-                    "type": "manual",
-                }
-            })
-            task_case_infos[str(manual_case.case_id)].update(all_case_infos.get(str(manual_case.case_id)))
-            result = task_case_infos[str(manual_case.case_id)]["result"]
-            if test_stat_info.get(result):
-                test_stat_info.update({result: test_stat_info.get(result) + 1})
-            else:
-                test_stat_info.update({result: 1})
-
-        for sub_task in task.children.filter(Task.is_delete.is_(False)).all():
-            HandlerTaskProgress.get_test_infos_by_task(
-                sub_task,
-                all_case_infos,
-                task_ids,
-                task_case_infos,
-                test_stat_info
-            )
-
-    def get_latest_test_infos(self):
-        """
-        获取版本任务最新统计测试进展
-        """
-        tm = TaskMilestone.query.filter(
-            TaskMilestone.task_id == self.task.id,
-        ).first()
-        query_filter = [
-            Analyzed.job_id == tm.job_id,
-        ]
-        test_stat_info = dict()
-        for case_id in self.all_task_test_case_infos.keys():
-            _type = self.all_task_test_case_infos.get(case_id).get("type")
-            if _type == "auto":
-                query_filter.append(Analyzed.case_id == int(case_id))
-                case_analyze = Analyzed.query.filter(*query_filter).first()
-                self.all_task_test_case_infos.get(case_id).update(
-                    {"result": case_analyze.result if case_analyze else "pending"}
-                )
-            else:
-                munual_case = TaskManualCase.query.filter_by(id=int(case_id)).first()
-                self.all_task_test_case_infos.get(case_id).update(
-                    {"result": munual_case.case_result if munual_case else "unknown"}
-                )
-            result = self.all_task_test_case_infos.get(case_id).get("result")
-            if test_stat_info.get(result):
-                test_stat_info.update({result: test_stat_info.get(result) + 1})
-            else:
-                test_stat_info.update({result: 1})
-        self.all_task_test_static_info = test_stat_info
-        self.save_test_info_to_redis()
-
     def get_task_test_progress(self):
+        """
+        获取版本任务测试进展
+        """
         return self.get_task_case_node_and_test_progress(self.task.case_node_id, False)
     
     def get_milestone_test_progress(self):
+        """
+        获取里程碑测试进展
+        """
         test_stat_info = HandlerTaskProgress.statistic(self.all_task_test_static_info)
         return test_stat_info.get("test_progress")
 
@@ -2144,14 +1998,14 @@ class HandlerTaskProgress(object):
         根据case_node_id统计测试进展
         """
         test_static_info = dict()
-        for case_id in self.all_task_test_case_infos.keys():
-            case_node_path = self.all_task_test_case_infos.get(case_id).get("source")
+        for case_id in self.all_task_case_node_infos.keys():
+            case_node_path = self.all_task_case_node_infos.get(case_id).get("source")
             if (
                 case_node_path.startswith(str(case_node_id) + ",") 
             ) or (
                 case_node_path.find("," + str(case_node_id) + ",") > -1
             ):
-                result = self.all_task_test_case_infos.get(case_id).get("result")
+                result = self.all_task_case_node_infos.get(case_id).get("result")
                 if test_static_info.get(result):
                     test_static_info.update({result: test_static_info.get(result) + 1})
                 else:
@@ -2167,11 +2021,15 @@ class HandlerTaskProgress(object):
                 error_code=RET.DB_DATA_ERR,
                 error_msg="this task does not belong to the current milestone.",
             )
+        task_milestone = TaskMilestone.query.filter_by(task_id=task_id).first()
+        case_list = [item.id for item in task_milestone.cases]
+        for item in task_milestone.manual_cases:
+            case_list.append(item.case_id)
+
         test_static_info = dict()
-        for case_id in self.all_task_test_case_infos.keys():
-            tmp_task_id = self.all_task_test_case_infos.get(case_id).get("task_id")
-            if int(task_id) == int(tmp_task_id):
-                result = self.all_task_test_case_infos.get(case_id).get("result")
+        for case_id in case_list:
+            if self.all_task_case_node_infos.get(case_id):
+                result = self.all_task_case_node_infos.get(case_id).get("result")
                 if test_static_info.get(result):
                     test_static_info.update({result: test_static_info.get(result) + 1})
                 else:
@@ -2243,8 +2101,8 @@ class HandlerTaskProgress(object):
             for child in children:
                 if child.id in self.all_node_ids:
                     child_dict = child.to_json()
-                    if child.type == 'case' and str(child.case_id) in self.all_task_test_case_infos.keys():
-                        case_result = self.all_task_test_case_infos.get(str(child.case_id)).get("result")
+                    if child.type == 'case' and str(child.case_id) in self.all_task_case_node_infos.keys():
+                        case_result = self.all_task_case_node_infos.get(str(child.case_id)).get("result")
                         child_dict["result"] = case_result
                     elif  child.type != 'case':
                         test_progress = self.get_test_progress_by_case_node(child.id)
@@ -2270,7 +2128,7 @@ class HandlerTaskProgress(object):
 
         return_data["source"] = source
         if case_node.type == 'case':
-            case_result = self.all_task_test_case_infos.get(str(case_node.case_id)).get("result")
+            case_result = self.all_task_case_node_infos.get(str(case_node.case_id)).get("result")
             return_data["result"] = case_result
         else:
             test_progress = self.get_test_progress_by_case_node(case_node_id)

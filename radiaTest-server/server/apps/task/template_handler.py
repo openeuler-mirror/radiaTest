@@ -237,6 +237,13 @@ class HandlerTaskDistributeCass:
                 error_code=RET.PARMA_ERR,
                 error_msg="task group not match template group",
             )
+        task_key = f"DISTRIBUTE_TEMPLATE_{template_id}_TASK_{task_id}"
+        _key = redis_client.keys(task_key)
+        if _key:
+            return jsonify(
+                error_code=RET.RUNTIME_ERROR,
+                error_msg="Assigning tasks according to template, please wait several minutes.",
+            )
         body.update(
             {
                 "base_dir": base_dir,

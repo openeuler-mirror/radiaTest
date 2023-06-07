@@ -502,7 +502,7 @@ class RunCaseHandler(TaskAuthHandler):
 
                     _result = "success"
                     if exitcode:
-                        _result = "fail"
+                        _result = "failed"
                         fail += 1
                     else:
                         success += 1

@@ -23,8 +23,9 @@ from server.schema.job import (
     RunTemplateBase,
     JobQuerySchema,
 )
-from server.model.testcase import Case, Suite
+from server.model.testcase import Case, Baseline, CaseNode
 from server.model.pmachine import MachineGroup
+from server.model.task import TaskMilestone
 from server.utils.auth_util import auth
 from server.utils.page_util import PageUtil
 from server.utils.response_util import RET, response_collect, workspace_error_collect
@@ -231,6 +232,15 @@ class AnalyzedEvent(Resource):
     @response_collect
     @validate()
     def post(self, body: AnalyzedCreateSchema):
+        case_node = CaseNode.query.join(TaskMilestone).join(Baseline).filter(
+            TaskMilestone.job_id == body.job_id,
+            Baseline.milestone_id == TaskMilestone.milestone_id,
+            CaseNode.baseline_id == Baseline.id,
+            CaseNode.case_id == body.case_id,
+        ).first()
+        case_node.case_result = body.result
+        case_node.add_update()
+
         return Insert(Analyzed, body.__dict__).single(Analyzed, "/analyzed")
 
 
