@@ -204,10 +204,11 @@ const changeGroup = () => {
 // 计算月份数量、月份数组、年份数组、总天数、总月数、日历开始日期、日历结束日期
 const initDate = (dateArray) => {
   showSpin.value = true;
-  monthNum.value = dayjs(dateArray[1]).diff(dateArray[0], 'month') + 1;
+  scrollLeft.value = 0;
+  monthNum.value = dayjs(dateArray[1]).startOf('month').diff(dayjs(dateArray[0]).startOf('month'), 'month') + 1;
   monthArray.value = [];
   yearArray.value = [];
-  totalDays.value = 0;
+  totalDays.value = dayjs(dateArray[1]).diff(dateArray[0], 'day') + 1;
   totalMonths.value = 0;
   for (let i = 0; i < monthNum.value; i++) {
     let month = dayjs(dateArray[0]).month() + i;
@@ -216,12 +217,11 @@ const initDate = (dateArray) => {
       yearArray.value.push(year);
     }
     monthArray.value.push(dayjs(dateArray[0]).month(month).format('YYYY-MM'));
-    totalDays.value = totalDays.value + dayjs(dateArray[0]).month(month).daysInMonth();
     totalMonths.value = yearArray.value.length * 12;
   }
   if (zoomValue.value === 'day') {
-    startDateCalendar.value = dayjs(monthArray.value[0]).format('YYYY-MM-DD'); // 日历开始日期
-    endDateCalendar.value = dayjs(monthArray.value.at(-1)).endOf('month').format('YYYY-MM-DD'); // 日历结束日期
+    startDateCalendar.value = dateArray[0]; // 日历开始日期
+    endDateCalendar.value = dateArray[1]; // 日历结束日期
   } else {
     startDateCalendar.value = dayjs(yearArray.value[0], 'YYYY年').startOf('year').format('YYYY-MM-DD'); // 日历开始日期
     endDateCalendar.value = dayjs(yearArray.value.at(-1), 'YYYY年').endOf('year').format('YYYY-MM-DD'); // 日历结束日期
@@ -248,6 +248,24 @@ const getLevel0 = (date) => {
 
 // 按日显示日历每月天数
 const getDays = (date) => {
+  if (dayjs(date).isSame(startDateCalendar.value, 'month') && dayjs(date).isSame(endDateCalendar.value, 'month')) {
+    let length = dayjs(endDateCalendar.value).diff(dayjs(startDateCalendar.value), 'day') + 1;
+    let arr = [];
+    for (let i = 0; i < length; i++) {
+      arr.push(dayjs(startDateCalendar.value).date() + i);
+    }
+    return arr;
+  } else if (dayjs(date).isSame(endDateCalendar.value, 'month')) {
+    let length = dayjs(endDateCalendar.value).diff(dayjs(endDateCalendar.value).startOf('month'), 'day') + 1;
+    return length;
+  } else if (dayjs(date).isSame(startDateCalendar.value, 'month')) {
+    let length = dayjs(startDateCalendar.value).endOf('month').diff(dayjs(startDateCalendar.value), 'day') + 1;
+    let arr = [];
+    for (let i = 0; i < length; i++) {
+      arr.push(dayjs(startDateCalendar.value).date() + i);
+    }
+    return arr;
+  }
   return dayjs(date).daysInMonth();
 };
 
