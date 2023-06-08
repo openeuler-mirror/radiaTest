@@ -51,6 +51,7 @@ class CaseNode(BaseModel, PermissionBaseModel, db.Model):
     suite_id = db.Column(db.Integer(), db.ForeignKey("suite.id"))
 
     case_id = db.Column(db.Integer(), db.ForeignKey("case.id"))
+    case_result = db.Column(db.Enum('success', 'failed', 'running', "pending"), nullable=True)
     baseline_id = db.Column(db.Integer(), db.ForeignKey("baseline.id"))
 
     milestone_id = db.Column(db.Integer(), db.ForeignKey("milestone.id"))
@@ -77,6 +78,7 @@ class CaseNode(BaseModel, PermissionBaseModel, db.Model):
             "org_id": self.org_id,
             "suite_id": self.suite_id,
             "case_id": self.case_id,
+            "case_result": self.case_result,
             "baseline_id": self.baseline_id,
             "is_root": self.is_root,
         }

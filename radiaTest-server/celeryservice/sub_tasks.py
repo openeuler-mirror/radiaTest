@@ -220,6 +220,9 @@ def create_case_node_multi_select(body):
             if _case:
                 body["case_id"] = _id
                 body["title"] = _case.name
+                #版本基线下的case类型的case_result设为“pending”
+                if body.get("baseline_id"):
+                    body["case_result"] = "pending"
                 insert_case_node(body, parent)
     elif body.get("type") == "suite":
         suite_ids = body.get("suite_ids")[:]
@@ -230,4 +233,3 @@ def create_case_node_multi_select(body):
                 body["suite_id"] = _id
                 body["title"] = _suite.name
                 insert_case_node(body, parent)
-        
