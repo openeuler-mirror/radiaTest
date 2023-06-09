@@ -56,6 +56,7 @@ declare module '@vue/runtime-core' {
     FilterButton: typeof import('./src/components/filter/filterButton.vue')['default']
     FixNavgation: typeof import('./src/components/fixNavigation/fixNavgation.vue')['default']
     GanttItem: typeof import('./src/components/tm/GanttItem.vue')['default']
+    GanttMilestone: typeof import('./src/components/tm/GanttMilestone.vue')['default']
     GanttView: typeof import('./src/components/tm/GanttView.vue')['default']
     Header: typeof import('./src/components/header/Header.vue')['default']
     HomeButton: typeof import('./src/components/public/HomeButton.vue')['default']
