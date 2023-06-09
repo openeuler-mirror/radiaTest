@@ -286,6 +286,7 @@ class PmachineOccupyReleaseHandler:
                     )
         if pmachine.state == "occupied":
             _body = {
+                "id": pmachine.id,
                 "description": sqlalchemy.null(),
                 "occupier": sqlalchemy.null(),
                 "occupier_id": sqlalchemy.null(),
