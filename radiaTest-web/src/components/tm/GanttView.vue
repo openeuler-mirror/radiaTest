@@ -76,16 +76,13 @@
           </div>
         </div>
         <div class="gstc-chart-timeline">
-          <div
+          <GanttMilestone
             v-for="(v, i) in milestonesList"
             :key="i"
-            class="milestone-wrap"
-            :style="{
-              left: calcMilestoneLeft(v) + 'px'
-            }"
-          >
-            <div class="milestone-content">{{ v.name }}</div>
-          </div>
+            :milestoneData="v"
+            :zoomValue="zoomValue"
+            :startDateCalendar="startDateCalendar"
+          ></GanttMilestone>
           <div
             class="gstc-chart-timeline-row"
             v-for="(v, i) in dataList"
@@ -333,17 +330,6 @@ const getRowHeight = (tasks) => {
   return heightNum * 72;
 };
 
-// 计算里程碑偏移量
-const calcMilestoneLeft = (data) => {
-  let startDay = -999;
-  if (zoomValue.value === 'day' && !dayjs(data.startTime).isBefore(startDateCalendar.value)) {
-    startDay = dayjs(data.startTime).diff(startDateCalendar.value, 'day');
-  } else if (zoomValue.value === 'month' && !dayjs(data.startTime).isBefore(startDateCalendar.value)) {
-    startDay = dayjs(data.startTime).diff(startDateCalendar.value, 'month');
-  }
-  return startDay * 80;
-};
-
 const milestonesList = ref([]);
 
 const getData = () => {
@@ -359,12 +345,48 @@ const getData = () => {
       showSpin.value = false;
     });
   getGanttMilestones({ milestone_time: JSON.stringify(dateRange.value) }).then((res) => {
-    res.data?.forEach((item) => {
-      milestonesList.value.push({
-        name: item.name,
-        startTime: item.start_time
+    let tempObj = {};
+    if (zoomValue.value === 'day') {
+      res.data?.forEach((item) => {
+        if (!tempObj[item.start_time]) {
+          tempObj[item.start_time] = [
+            {
+              name: item.name,
+              startTime: item.start_time,
+              height: 0
+            }
+          ];
+        } else {
+          tempObj[item.start_time].push({
+            name: item.name,
+            startTime: item.start_time,
+            height: tempObj[item.start_time].length * 20
+          });
+        }
       });
-    });
+    } else if (zoomValue.value === 'month') {
+      res.data?.forEach((item) => {
+        if (!tempObj[dayjs(item.start_time).format('YYYY-MM')]) {
+          tempObj[dayjs(item.start_time).format('YYYY-MM')] = [
+            {
+              name: item.name,
+              startTime: item.start_time,
+              height: 0
+            }
+          ];
+        } else {
+          tempObj[dayjs(item.start_time).format('YYYY-MM')].push({
+            name: item.name,
+            startTime: item.start_time,
+            height: tempObj[dayjs(item.start_time).format('YYYY-MM')].length * 20
+          });
+        }
+      });
+    }
+
+    for (let i in tempObj) {
+      milestonesList.value = [...tempObj[i], ...milestonesList.value];
+    }
   });
 };
 
@@ -469,6 +491,7 @@ onMounted(() => {
   }
 
   .gstc-chart {
+    overflow: hidden;
     .gstc-chart-calendar {
       background: #f9fafb;
       color: #747a81;
@@ -525,34 +548,6 @@ onMounted(() => {
             border-right: 1px solid #a9aeafbf;
             border-bottom: 1px solid #a9aeafbf;
           }
-        }
-      }
-
-      .milestone-wrap {
-        box-sizing: border-box;
-        position: absolute;
-        height: calc(100% + 10px);
-        color: #fff;
-        font-size: 10px;
-        top: -10px;
-        border-left: 1px solid rgb(14, 172, 81);
-        z-index: 2;
-        opacity: 0.5;
-
-        &:hover {
-          opacity: 1;
-          z-index: 999;
-        }
-        .milestone-content {
-          pointer-events: all;
-          padding: 1px 4px;
-          border-radius: 4px;
-          border-bottom-left-radius: 0px;
-          border-top-left-radius: 0px;
-          background: rgb(14, 172, 81);
-          cursor: default;
-          position: absolute;
-          white-space: nowrap;
         }
       }
     }
