@@ -243,7 +243,7 @@ class PmachineOccupyReleaseHandler:
             "old_password": pmachine.password,
             "random_flag": True,
         }
-
+        occupier_id = pmachine.occupier_id
         if pmachine.description in [current_app.config.get("CI_HOST"),
                                     current_app.config.get("CI_PURPOSE")]:
             _body.update(
@@ -302,8 +302,9 @@ class PmachineOccupyReleaseHandler:
             return _resp
 
             # 删除权利
-        if pmachine.occupier_id != pmachine.creator_id:
-            role = Role.query.filter_by(type='person', name=pmachine.occupier_id).first()
+        current_app.logger.info("occuper_id is {}".format(occupier_id))
+        if occupier_id != pmachine.creator_id:
+            role = Role.query.filter_by(type='person', name=occupier_id).first()
             if not role:
                 return jsonify(
                     error_code=RET.NO_DATA_ERR,
