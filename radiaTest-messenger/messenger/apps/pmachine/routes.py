@@ -3,8 +3,8 @@ from flask_restful import Resource
 from flask_pydantic import validate
 from messenger.utils.response_util import RET
 from messenger.apps.pmachine.handlers import (
-    AutoInstall, 
-    OnOff, 
+    AutoInstall,
+    OnOff,
     PmachineSshPassword,
     PmachineBmcPassword,
     PmachineInfo,
@@ -45,9 +45,9 @@ class CheckBmcInfo(Resource):
     def put(self, body: PmachineBaseSchema):
         return jsonify(
             data={
-            "status": body.status
+                "status": body.status
             },
-            error_code=RET.OK, 
+            error_code=RET.OK,
             error_msg="succeed in check bmc info."
         )
 
@@ -57,7 +57,7 @@ class CheckPmachineInfo(Resource):
     def put(self, body: PmachineEventSchema):
         return jsonify(
             data={
-            "status": body.status
+                "status": body.status
             },
             error_code=RET.OK,
             error_msg="succeed in check bmc info and pmachine info."
