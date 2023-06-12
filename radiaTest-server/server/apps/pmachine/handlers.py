@@ -43,7 +43,7 @@ from server.utils.mail_util import Mail
 from server.model.vmachine import Vmachine
 
 
-class ResourcePoolHandler:     
+class ResourcePoolHandler:
     @staticmethod
     @collect_sql_error
     def get_all(query, workspace=None):
@@ -56,12 +56,12 @@ class ResourcePoolHandler:
                     MachineGroup.ip.like(f"%{query.text}%")
                 )
             )
-        
+
         if query.network_type:
             filter_params.append(
                 MachineGroup.network_type == query.network_type
             )
-        
+
         machine_groups = MachineGroup.query.filter(*filter_params).all()
 
         return jsonify(
@@ -69,7 +69,7 @@ class ResourcePoolHandler:
             error_msg="OK",
             data=[machine_group.to_json() for machine_group in machine_groups]
         )
-    
+
     @staticmethod
     @collect_sql_error
     def get(machine_group_id):
@@ -98,7 +98,7 @@ class ResourcePoolHandler:
                 Pmachine.machine_group_id == machine_group_id
             ],
             False
-            )
+        )
 
 
 class PmachineHandler:
@@ -121,24 +121,24 @@ class PmachineHandler:
             filter_params.append(
                 Pmachine.description.like(f"%{query.description}%")
             )
-        
+
         if query.state:
             filter_params.append(Pmachine.state == query.state)
-        
+
         query_filter = Pmachine.query.filter(*filter_params)
 
         def page_func(item):
             return item.to_public_json()
 
         page_dict, e = PageUtil.get_page_dict(
-            query_filter, 
-            query.page_num, 
-            query.page_size, 
+            query_filter,
+            query.page_num,
+            query.page_size,
             func=page_func
         )
         if e:
             return jsonify(
-                error_code=RET.SERVER_ERR, 
+                error_code=RET.SERVER_ERR,
                 error_msg=f'get group page error {e}'
             )
         return jsonify(error_code=RET.OK, error_msg="OK", data=page_dict)
@@ -150,10 +150,10 @@ class PmachineOccupyReleaseHandler:
 
     @staticmethod
     def check_scope_exist(act, uri, eft):
-        scope = Scope.query.filter_by(act=act, uri=uri, eft=eft).first()
-        if not scope:
+        scopes = Scope.query.filter(Scope.act.in_(act), Scope.uri == uri, Scope.eft == eft).all()
+        if len(scopes) != len(act):
             return False, None
-        return True, scope
+        return True, scopes
 
     def occupy_with_bind_scopes(self, pmachine_id, body):
         pmachine = Pmachine.query.filter_by(id=pmachine_id).first()
@@ -187,24 +187,30 @@ class PmachineOccupyReleaseHandler:
                 _uri = '/api/v1/pmachine/{}'.format(pmachine.id)
                 if sub_uri != 'data':
                     _uri += f'/{sub_uri}'
-                
-                exist, scope = PmachineOccupyReleaseHandler.check_scope_exist(
-                    act='put',
+
+                if sub_uri == "ssh":
+                    act = ["put", "get"]
+                else:
+                    act = ["put"]
+
+                exist, scopes = PmachineOccupyReleaseHandler.check_scope_exist(
+                    act=act,
                     uri=_uri,
                     eft='allow'
                 )
                 if not exist:
                     return jsonify(
                         error_code=RET.NO_DATA_ERR,
-                        error_msg=f"policy put_{_uri}_allow does not exist"
+                        error_msg=f"policy {_uri}_allow does not exist"
                     )
-                
-                bind_body = {
-                    "role_id": role.id,
-                    "scope_id": scope.id,
-                }
-                Insert(ReScopeRole, bind_body).single()
-            
+
+                for scope in scopes:
+                    bind_body = {
+                        "role_id": role.id,
+                        "scope_id": scope.id,
+                    }
+                    Insert(ReScopeRole, bind_body).single()
+
         _body = body.__dict__
         end_time = _body.get("end_time")
         if end_time:
@@ -302,7 +308,7 @@ class PmachineOccupyReleaseHandler:
             return _resp
 
             # 删除权利
-        current_app.logger.info("occuper_id is {}".format(occupier_id))
+        current_app.logger.info("occupier_id is {}".format(occupier_id))
         if occupier_id != pmachine.creator_id:
             role = Role.query.filter_by(type='person', name=occupier_id).first()
             if not role:
@@ -316,18 +322,24 @@ class PmachineOccupyReleaseHandler:
                 if sub_uri != 'data':
                     _uri += f'/{sub_uri}'
 
-                exist, scope = PmachineOccupyReleaseHandler.check_scope_exist(
-                    act='put',
+                if sub_uri == "ssh":
+                    act = ["put", "get"]
+                else:
+                    act = ["put"]
+
+                exist, scopes = PmachineOccupyReleaseHandler.check_scope_exist(
+                    act=act,
                     uri=_uri,
                     eft='allow'
                 )
                 if not exist:
                     continue
 
-                re_scope_role = ReScopeRole.query.filter_by(scope_id=scope.id, role_id=role.id).all()
+                for scope in scopes:
+                    re_scope_role = ReScopeRole.query.filter_by(scope_id=scope.id, role_id=role.id).all()
 
-                for item in re_scope_role:
-                    Delete(ReScopeRole, {"id": item.id}).single()
+                    for item in re_scope_role:
+                        Delete(ReScopeRole, {"id": item.id}).single()
 
         return jsonify(error_code=RET.OK, error_msg="OK")
 
@@ -377,21 +389,21 @@ class StateHandler:
 
     def __init__(self, machine_id, to_state):
         self.pmachine = Pmachine.query.filter_by(id=machine_id).first()
-        self.to_state = to_state    
-    
+        self.to_state = to_state
+
     def change_state(self):
         if not self.pmachine:
             return jsonify(
-                error_code=RET.NO_DATA_ERR, 
+                error_code=RET.NO_DATA_ERR,
                 error_msg="The pmachine is not exist"
             )
-        
+
         if self.pmachine.state == self.to_state:
             return jsonify(
                 error_code=RET.PARMA_ERR,
                 error_msg="The pamachine has been {}".format(self.to_state)
             )
-        
+
         # 暂时请求通知统一发送于openEuler-QA的创建者
         org_id = redis_client.hget(RedisKey.user(g.user_id), 'current_org_id')
         filter_params = [
@@ -401,7 +413,7 @@ class StateHandler:
             ReUserGroup.org_id == org_id,
             ReUserGroup.role_type == 1,
         ]
-        re = ReUserGroup.query.join(Group).filter(*filter_params).first() 
+        re = ReUserGroup.query.join(Group).filter(*filter_params).first()
 
         if not re:
             return jsonify(error_code=RET.NO_DATA_ERR, error_msg="The group which machine belongs to is not exist")
