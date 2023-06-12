@@ -644,6 +644,15 @@ class HandlerTask(object):
                 error_code=RET.SERVER_ERR,
                 error_msg="task has accomplished, not allowed edit !",
             )
+        if body.is_delete is True:
+            task.is_delete = body.is_delete
+            for sub_task in task.children:
+                sub_task.is_delete = body.is_delete
+                sub_task.add_update()
+            task.add_update()
+            db.session.commit()
+            return jsonify(error_code=RET.OK, error_msg="OK")
+            
         for key, value in body.dict().items():
             if key in ["milestones", "frame", "status_id", "status_name"]:
                 continue

@@ -97,29 +97,11 @@ class TaskdistributeHandler(TaskHandlerBase):
             task_cases_df, template_cases_df, on="suite_id"
         ).reset_index(drop=True)
         if not merge_df.empty:
-            _origin = [_ for _ in self.parent_task.children]
             for item in merge_df["type_name"].drop_duplicates().tolist():
                 temp_df = merge_df[merge_df.type_name == item]
                 temp_df = temp_df.reset_index(drop=True)
                 self.create_child_task(temp_df, template.group_id, body)
 
-            _after = [_ for _ in self.parent_task.children]
-            pm = PermissionManager(creator_id=body.get("creator_id"), org_id=task.org_id)
-            for _task in list(set(_after) - set(_origin)):
-                _data = {
-                    "permission_type": _task.permission_type,
-                    "org_id": _task.org_id,
-                    "group_id": _task.group_id,
-                }
-                scope_data_allow, scope_data_deny = pm.get_api_list(
-                    "task", os.path.join(body.get("base_dir"), "task.yaml"), _task.id
-                )
-
-                pm.generate(
-                    scope_datas_allow=scope_data_allow,
-                    scope_datas_deny=scope_data_deny,
-                    _data=_data,
-                )
         redis_client.delete(task_key)
 
     def child_task(self, title, group_id, executor_id, creator_id):
@@ -185,9 +167,26 @@ class TaskdistributeHandler(TaskHandlerBase):
     def create_child_task(self, df: pd.DataFrame, group_id, body):
         milestone_id = body.get("milestone_id")
         base_dir = body.get("base_dir")
-        title = (
+        key_title = (
             f'T{self.parent_task.id}_TM{df.loc[0, "type_name"]}'
-            f'_M{milestone_id}_S{time.strftime("%Y%m%d%H%M%S")}'
+            f'_M{milestone_id}'
+        )
+        #加上键值锁，避免异步任务重复创建任务
+        task_key = f"CREATE_TASK_{key_title}"
+        if redis_client.keys(task_key):
+            return
+        redis_client.hmset(
+            task_key,
+            {
+                "user_id": body.get("creator_id"),
+                "create_time": datetime.now(
+                    tz=pytz.timezone('Asia/Shanghai')
+                ).strftime("%Y-%m-%d %H:%M:%S")
+            }
+        )
+        redis_client.expire(task_key, 1200)
+        title = (
+            f'{key_title}_S{time.strftime("%Y%m%d%H%M%S")}'
         )
         child_task = self.child_task(title, group_id, df.loc[0, "executor_id"], body.get("creator_id"))
         self.add_helpers(child_task, df.loc[0, "helpers"])
@@ -203,6 +202,22 @@ class TaskdistributeHandler(TaskHandlerBase):
         self.parent_task.add_update()
         # 父任务删除测试用例
         self.delete_task_cases(self.task_milestone, df["case_id"].tolist())
+        pm = PermissionManager(creator_id=body.get("creator_id"), org_id=child_task.org_id)
+        _data = {
+            "permission_type": child_task.permission_type,
+            "org_id": child_task.org_id,
+            "group_id": child_task.group_id,
+        }
+        scope_data_allow, scope_data_deny = pm.get_api_list(
+            "task", os.path.join(body.get("base_dir"), "task.yaml"), child_task.id
+        )
+
+        pm.generate(
+            scope_datas_allow=scope_data_allow,
+            scope_datas_deny=scope_data_deny,
+            _data=_data,
+        )
+        redis_client.delete(task_key)
 
     @staticmethod
     def delete_task_cases(task_milestone: TaskMilestone, cases: list):
