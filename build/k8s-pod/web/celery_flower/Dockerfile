@@ -22,4 +22,4 @@ ENV AMQP_PASSWD 1234
 ENV AMQP_HOST localhost
 ENV AMQP_PORT 5672
 
-CMD celery flower --address=0.0.0.0 --port=${LISTEN} --broker=${AMQP_USER}:${AMQP_PASSWD}//adiaTest:@${AMQP_HOST}:${AMQP_PORT}
+CMD celery flower --address=0.0.0.0 --port=${LISTEN} --broker=amqp://${AMQP_USER}:${AMQP_PASSWD}@${AMQP_HOST}:${AMQP_PORT}/radiaTest
