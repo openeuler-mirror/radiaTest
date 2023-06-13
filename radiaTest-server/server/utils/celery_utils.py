@@ -91,6 +91,11 @@ def make_celery(app_name):
                 'routing_key': 'distribute_template',
                 'delivery_mode': 1,
             },
+            'celeryservice.tasks.resolve_base_node': {
+                'queue': 'queue_resolve_base_node',
+                'routing_key': 'base_node',
+                'delivery_mode': 1,
+            },
             'celeryservice.tasks.resolve_testcase_set': {
                 'queue': 'queue_set_resolution',
                 'routing_key': 'set',

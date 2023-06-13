@@ -21,12 +21,12 @@ from flask_restful import Resource
 from flask_pydantic import validate
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 
-from server import redis_client, casbin_enforcer
+from server import redis_client, db
 from server.utils.redis_util import RedisKey
 from server.utils.auth_util import auth
 from server.utils.response_util import RET, response_collect, workspace_error_collect
 from server.model.baselinetemplate import BaselineTemplate, BaseNode
-from server.utils.db import Edit, collect_sql_error
+from server.utils.db import collect_sql_error
 from server.schema.baselinetemplate import (
     BaselineTemplateBodySchema,
     BaselineTemplateQuerySchema,
@@ -40,7 +40,7 @@ from server.apps.baseline_template.handler import (
     BaselineTemplateApplyHandler,
     BaselineTemplateHandler,
 )
-from server.utils.resource_utils import ResourceManager
+from server.utils.permission_utils import GetAllByPermission
 
 
 class BaselineTemplateEvent(Resource):
@@ -87,36 +87,36 @@ class BaselineTemplateEvent(Resource):
                 'current_org_id'
             )
             
-        _body = {
-            "title": body.title,
-            "type": body.type,
-            "permission_type": body.type,
-            "openable": body.openable,
-            "creator_id": g.user_id,
-            "org_id": org_id,
-            "group_id": body.group_id,
-        }
+        baseline_template = BaselineTemplate(
+            title=body.title,
+            type=body.type,
+            permission_type=body.type,
+            openable=body.openable,
+            creator_id=g.user_id,
+            org_id=org_id,
+            group_id=body.group_id,
+        )
+        db.session.add(baseline_template)
+        db.session.commit()
 
-        _resp = ResourceManager("baseline_template").add("api_infos.yaml", _body)
-        resp_dict = json.loads(_resp.response[0])
-        new_baseline_template_id = resp_dict.get("data").get("id")
-        new_baseline_template = BaselineTemplate.query.filter_by(id=new_baseline_template_id).first()
+        new_baseline_template = BaselineTemplate.query.filter_by(title=body.title).first()
 
-        _base_node_body = {
-            "title": body.title,
-            "creator_id": g.user_id,
-            "openable": new_baseline_template.openable,
-            "group_id": new_baseline_template.group_id,
-            "org_id": new_baseline_template.org_id,
-            "permission_type": new_baseline_template.permission_type,
-            "baseline_template_id": new_baseline_template_id,
-            "type": "baseline",
-            "is_root": True,
-        }
+        _base_node = BaseNode(
+            title=body.title,
+            creator_id=g.user_id,
+            group_id=new_baseline_template.group_id,
+            org_id=new_baseline_template.org_id,
+            permission_type=new_baseline_template.permission_type,
+            baseline_template_id=new_baseline_template.id,
+            type="baseline",
+            is_root=True,
+        )
+        db.session.add(_base_node)
+        db.session.commit()
 
-        return ResourceManager("base_node").add_v2(
-            "baseline_template/api_infos.yaml",
-            _base_node_body,
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK."
         )
 
 
@@ -185,7 +185,6 @@ class BaselineTemplateItemEvent(Resource):
     """
     @auth.login_required()
     @response_collect
-    @casbin_enforcer.enforcer
     @collect_sql_error
     @validate()
     def put(self, baseline_template_id, body: BaselineTemplateUpdateSchema):
@@ -198,14 +197,10 @@ class BaselineTemplateItemEvent(Resource):
             }
             返回体:
             {
-                "data": {
-                    "id": int
-                },
                 "error_code": "2000",
                 "error_msg": "Request processed successfully."
             }
         """
-        _body = body.__dict__
         baseline_template = BaselineTemplate.query.filter_by(
             id=baseline_template_id
         ).first()
@@ -214,10 +209,21 @@ class BaselineTemplateItemEvent(Resource):
                 error_code=RET.NO_DATA_ERR,
                 error_msg="The baseline_template is not exist."
             )
-
-        _body.update({"id": baseline_template_id})
-        Edit(BaselineTemplate, _body).single(BaselineTemplate, "/baseline_template")
-
+        if body.title:
+            baseline_template_title = BaselineTemplate.query.filter_by(
+                title=body.title
+            ).first()
+            if baseline_template_title and baseline_template_title.id != baseline_template_id:
+                return jsonify(
+                    error_code=RET.DATA_EXIST_ERR,
+                    error_msg=f"The baseline template {body.title} has existed."
+                )
+            baseline_template.title = body.title
+        if body.openable is not None:
+            baseline_template.openable = body.openable
+        baseline_template.add_update(BaselineTemplate, "/baseline_template")
+            
+  
         _base_node = BaseNode.query.filter_by(
             baseline_template_id=baseline_template_id,
             is_root=True,
@@ -231,7 +237,6 @@ class BaselineTemplateItemEvent(Resource):
 
     @auth.login_required()
     @response_collect
-    @casbin_enforcer.enforcer
     @validate()
     def delete(self, baseline_template_id):
         """
@@ -245,7 +250,22 @@ class BaselineTemplateItemEvent(Resource):
             "error_msg": "Request processed successfully."
             }
         """
-        return ResourceManager("baseline_template").del_single(baseline_template_id)
+
+        baseline_template = BaselineTemplate.query.filter_by(
+            id=baseline_template_id
+        ).first()
+        if not baseline_template:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="The baseline_template does not exist."
+            )
+        db.session.delete(baseline_template)
+        db.session.commit()
+
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK."
+        )
 
 
     @auth.login_required()
@@ -276,48 +296,29 @@ class BaselineTemplateItemEvent(Resource):
             "error_msg": "OK"
             }
         """
-        baseline_template = BaselineTemplate.query.filter_by(
-            id=baseline_template_id
+        filter_params = GetAllByPermission(BaselineTemplate).get_filter()
+        filter_params.append(BaselineTemplate.id == baseline_template_id)
+        baseline_template = BaselineTemplate.query.filter(
+            *filter_params
         ).first()
         if not baseline_template:
             return jsonify(
                 error_code=RET.NO_DATA_ERR,
-                error_msg="The baseline_template is not exist."
+                error_msg="The baseline template does not exist."
             )
-        if baseline_template.openable:
-            return BaselineTemplatePrivateItemEvent.get(baseline_template_id)
+   
+        if baseline_template.creator_id != g.user_id and baseline_template.openable is False:
+            return jsonify(
+                error_code=RET.DB_DATA_ERR,
+                error_msg="have no right.",
+            )
         else:
-            return BaselineTemplatePrivateItemEvent.get_priavicy(baseline_template_id)
-
-
-
-class BaselineTemplatePrivateItemEvent():
-    """
-        选择使用casbin方法:是否使用casbin查询指定基线模板
-    """
-    @auth.login_required()
-    @response_collect
-    @validate()
-    def get(baseline_template_id):
-        """
-            选择使用casbin方法:不带casbin查询指定基线模板
-        """
-        return_data = BaselineTemplateHandler().get(baseline_template_id)
-        
-        return jsonify(error_code=RET.OK, error_msg="OK", data=return_data)
-
-
-    @auth.login_required()
-    @response_collect
-    @casbin_enforcer.enforcer
-    @validate()
-    def get_priavicy(baseline_template_id):
-        """
-            私有方法:带casbin查询指定基线模板
-        """
-        return_data = BaselineTemplateHandler().get(baseline_template_id)
-        return jsonify(error_code=RET.OK, error_msg="OK", data=return_data)
-
+            return_data = BaselineTemplateHandler().get(baseline_template_id)
+            return jsonify(
+                error_code=RET.OK,
+                error_msg="OK.",
+                data=return_data
+            )           
 
 
 class BaseNodeEvent(Resource):
@@ -403,9 +404,7 @@ class BaseNodeItemEvent(Resource):
         """
         return BaseNodeHandler.get(base_node_id)
 
-
     @auth.login_required()
-    @casbin_enforcer.enforcer
     @response_collect
     def delete(self, base_node_id):
         """
@@ -420,10 +419,8 @@ class BaseNodeItemEvent(Resource):
         """
         return BaseNodeHandler.delete(base_node_id)
 
-
     @auth.login_required()
     @response_collect
-    @casbin_enforcer.enforcer
     @validate()
     def put(self, base_node_id, body: BaseNodeUpdateSchema):
         """
@@ -438,17 +435,25 @@ class BaseNodeItemEvent(Resource):
             "error_msg": "Request processed successfully."
             }
         """
-        _body = body.__dict__
-        _body.update({
-            "id": base_node_id
-        })
         base_node = BaseNode.query.filter_by(id=base_node_id).first()
         if base_node.case_node_id:
             return jsonify(
                 error_code=RET.VERIFY_ERR, 
                 error_msg="Associated node cannot be modified."
             )
-        return Edit(BaseNode, _body).single(BaseNode, "/base_node")
+        if base_node.parent:
+            for node in base_node.parent.children:
+                if node.title == body.title:
+                    return jsonify(
+                        error_code=RET.DATA_EXIST_ERR, 
+                        error_msg=f"{body.title} has existed."
+                    )
+        base_node.title = body.title
+        base_node.add_update(BaseNode, "/base_node")
+        return jsonify(
+            error_code=RET.OK, 
+            error_msg="OK."
+        )
 
 
 class BaselineTemplateCleanItemEvent(Resource):
@@ -459,7 +464,7 @@ class BaselineTemplateCleanItemEvent(Resource):
     """
     @auth.login_required()
     @response_collect
-    @casbin_enforcer.enforcer
+    @collect_sql_error
     @validate()
     def delete(self, baseline_template_id):
         """
@@ -472,18 +477,17 @@ class BaselineTemplateCleanItemEvent(Resource):
             "error_msg": "Request processed successfully."
             }
         """
-        base_node_list = list()
+        root_base_node = BaseNode.query.filter(
+            BaseNode.baseline_template_id == baseline_template_id,
+            BaseNode.is_root.is_(True)
+        ).first()
+        if not root_base_node:
+            return jsonify(error_code=RET.NO_DATA_ERR, error_msg="Base node doesn't existed.")
         
-        base_nodes = BaseNode.query.filter_by(
-            baseline_template_id=baseline_template_id,
-            is_root=0
-        ).all()
-        if not base_nodes:
-            return jsonify(error_code=RET.OK, error_msg="OK")
-        
-        [base_node_list.append(base_node.id) for base_node in base_nodes]
-        return ResourceManager("base_node").del_batch(base_node_list)
-        
+        for base_node in root_base_node.children:
+            db.session.delete(base_node)
+        db.session.commit()
+        return jsonify(error_code=RET.OK, error_msg="OK.")
 
 
 class BaselineTemplateApplyItemEvent(Resource):

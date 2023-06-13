@@ -172,6 +172,11 @@ task_queues = (
         routing_key="distribute_template",
     ),
     Queue(
+        "queue_resolve_base_node",
+        exchange=Exchange("server_exchange", type="direct"),
+        routing_key="base_node",
+    ),
+    Queue(
         "queue_resolve_openeuler_pkglist",
         exchange=Exchange("server_exchange", type="direct"),
         routing_key="pkglist",

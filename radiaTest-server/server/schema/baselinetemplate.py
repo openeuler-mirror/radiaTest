@@ -69,23 +69,16 @@ class BaselineTemplateBodySchema(BaselineTemplateBaseSchema):
 
 
 class BaseNodeBodySchema(BaseModel):
-    title: str = None
-    parent_id: Optional[int]
-    is_root: bool = True
-    type: Optional[CaseNodeType] = "directory"
-    case_node_ids :Optional[List[int]]
+    title: Optional[str]
+    parent_id: int
+    type: CaseNodeType = "directory"
+    case_node_ids :Optional[List[int]] = []
 
     @root_validator
-    def validate_all(cls, values):        
-        if values["parent_id"]:
-            values["is_root"] = False
-            if values.get("type") == "baseline":
-                raise ValueError("type of root node should be baseline")
-        elif values.get("is_root"):
-            if values.get("type") != "baseline":
-                raise ValueError("type of root node shoule be baseline")
+    def validate_query(cls, values):
+        if values.get("type") == "directory" and values.get("title") is None :
+            raise ValueError("when type is directory, title can't be None")
         return values
-
 
 
 class BaselineTemplateBodySchema(BaseModel):
@@ -132,13 +125,6 @@ class BaselineTemplateItemQuerySchema(BaseModel):
     openable: bool = True
 
 
-
-class BaselineTemplateUpdateSchema(BaseModel):
-    title: Optional[str]
-    openable: bool = True
-
-
-
 class BaselineTemplateCreateSchema(BaseModel):
     title: str = None
     type: BaselineTemplateType = "group"
@@ -149,13 +135,12 @@ class BaselineTemplateCreateSchema(BaseModel):
 
 
 class BaselineTemplateUpdateSchema(BaseModel):
-    title: Optional[str] = None
-    openable: bool = None
+    title: Optional[str]
+    openable: Optional[bool]
 
 
 class BaseNodeUpdateSchema(BaseModel):
-    title: str = None
-
+    title: str
 
 
 class BaseNodeQuerySchema(BaseModel):
