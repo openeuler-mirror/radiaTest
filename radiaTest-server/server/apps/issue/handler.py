@@ -241,7 +241,6 @@ class GiteeV8BaseIssueHandler(IssueOpenApiHandler):
     def get_bug_issue_type_id(self, title):
         type_id = None
         for _type in self.issue_types:
-            _type = json.loads(_type)
             if _type.get("title") == title:
                 type_id = _type.get("id")
                 break
@@ -251,7 +250,6 @@ class GiteeV8BaseIssueHandler(IssueOpenApiHandler):
         state_ids = ""
         for _stat in solved_state:
             for _type in self.issue_states:
-                _type = json.loads(_type)
                 if _type.get("title") == _stat:
                     state_ids = state_ids + str(_type.get("id")) + ","
                     break
@@ -262,7 +260,6 @@ class GiteeV8BaseIssueHandler(IssueOpenApiHandler):
     def get_state_ids_inversion(self, inversion_solved_state: set):
         state_ids = ""
         for _type in self.issue_states:
-            _type = json.loads(_type)
             if _type.get("title") not in inversion_solved_state:
                 state_ids = state_ids + str(_type.get("id")) + ","
         if len(state_ids) > 0:

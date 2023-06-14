@@ -483,6 +483,7 @@ class DistributeTemplate(object):
         name: str = None
         group_id: int = None
         type_name: str = None
+        simple: bool = False
 
     class Update(BaseModel):
         group_id: int = None

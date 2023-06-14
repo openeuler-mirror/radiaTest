@@ -17,6 +17,7 @@
 from celery import current_app as celery
 from celery.utils.log import get_task_logger
 
+from server import redis_client
 from server.utils.db import Insert, Edit, collect_sql_error
 from server.model.testcase import Suite, Case, CaseNode
 from server.model.framework import GitRepo
@@ -116,6 +117,9 @@ def update_compare_result(round_group_id: int, results, repo_path):
                 }
             ).single()
 
+    compare_key = f"ROUND_GROUP_{round_group_id}_PKG_COMPARE"
+    redis_client.delete(compare_key)
+
 
 @celery.task
 def update_daily_compare_result(daily_name, comparer_round_name, compare_results, repeat_list, file_path):
@@ -151,6 +155,9 @@ def update_daily_compare_result(daily_name, comparer_round_name, compare_results
 
     wb.save(file_path)
 
+    compare_key = f"DAILYBUILD_{daily_name}_ROUND_{comparer_round_name}_PKG_COMPARE"
+    redis_client.delete(compare_key)
+
 
 @celery.task
 def update_samerpm_compare_result(round_id: int, results, repo_path):
@@ -180,6 +187,9 @@ def update_samerpm_compare_result(round_id: int, results, repo_path):
                     "compare_result": result.get("compare_result"),
                 }
             ).single()
+
+    compare_key = f"SAME_ROUND_{round_id}_PKG_COMPARE"
+    redis_client.delete(compare_key)
 
 
 @celery.task

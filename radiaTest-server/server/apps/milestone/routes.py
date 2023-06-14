@@ -207,13 +207,6 @@ class TestReportEvent(Resource):
         )
 
 
-class UpdateGiteeIssuesStatistics(Resource):
-    @auth.login_required
-    @response_collect
-    def get(self):
-        return IssueStatisticsHandlerV8.update_issue_rate()
-
-
 class MilestoneIssueRateEvent(Resource):
     @auth.login_required
     @response_collect

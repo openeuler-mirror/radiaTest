@@ -33,7 +33,12 @@ from server.model.milestone import Milestone, IssueSolvedRate, TestReport
 from server.model.mirroring import Repo
 from server.model.template import Template
 from server.model.task import TaskMilestone
-from server.schema.milestone import GiteeMilestoneBase, GiteeMilestoneEdit, MilestoneStateEventSchema, QueryMilestoneByTimeSchema
+from server.schema.milestone import (
+    GiteeMilestoneBase,
+    GiteeMilestoneEdit,
+    MilestoneStateEventSchema,
+    QueryMilestoneByTimeSchema
+)
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from server.utils.permission_utils import PermissionManager
 from server.utils.resource_utils import ResourceManager
@@ -592,15 +597,6 @@ class IssueStatisticsHandlerV8():
             data = isr.to_json()
         return jsonify(error_code=RET.OK, error_msg="OK", data=data)
 
-    @staticmethod
-    def update_issue_rate():
-        from celeryservice.lib.issuerate import UpdateIssueRate
-        from celeryservice.tasks import logger
-        UpdateIssueRate(logger).main()
-        return jsonify(
-            error_code=RET.OK,
-            error_msg="OK",
-        )
 
     @staticmethod
     def update_milestone_issue_rate(milestone_id):

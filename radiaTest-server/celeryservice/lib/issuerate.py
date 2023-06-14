@@ -388,19 +388,26 @@ class UpdateIssueRate(TaskHandlerBase):
                 gitee_milestone_id,
             )
 
-    def main(self):
-        products = Product.query.order_by(Product.org_id).all()
-        for _p in products:
+    @staticmethod
+    def main(product_id=None):
+        filter_param = [ Product.is_forced_check.is_(True) ]
+        if product_id is None:
+            filter_param.append(Product.id == product_id) 
+
+        products = Product.query.filter(
+            *filter_param
+        ).all()
+        for product in products:
             products_dict = {
-                "org_id": _p.org_id,
-                "product_id": _p.id
+                "org_id": product.org_id,
+                "product_id": product.id
             }
             UpdateIssueRate.update_product_issue_resolved_rate(
                 products=products_dict
             )
             
             rounds = Round.query.filter_by(
-                product_id=_p.id
+                product_id=product.id
             ).all()
             for _r in rounds:
                 issue_rate = IssueSolvedRate.query.filter_by(
@@ -420,7 +427,7 @@ class UpdateIssueRate(TaskHandlerBase):
 
             milestones = Milestone.query.filter(
                 Milestone.is_sync.is_(True),
-                Milestone.product_id == _p.id,
+                Milestone.product_id == product.id,
                 Milestone.round_id != sqlalchemy.null()
             ).all()
             for _m in milestones:

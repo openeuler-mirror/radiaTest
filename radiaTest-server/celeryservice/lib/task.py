@@ -314,7 +314,7 @@ class HandlerUpdateTaskProgress(object):
         if case_node.type == "case":
             tmp_source = source + "," + str(case_node.id)
             [all_node_ids.append(_id) for _id in  list(map(int, tmp_source[1:].split(","))) if _id not in all_node_ids]
-            result = case_node.case_result
+            result = case_node.case_result if case_node.case_result else "pending"
             case_node_infos.update(
                 {
                     str(case_node.case_id): {
