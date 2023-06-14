@@ -15,21 +15,20 @@
 # 基线模板(Baseline_template)相关接口的handler层
 
 from copy import deepcopy
-import json
 
 from flask import jsonify, g, current_app
 import sqlalchemy
+from sqlalchemy import or_
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from server import db, redis_client
 from server.utils.redis_util import RedisKey
 from server.utils.response_util import RET
 from server.utils.db import Insert, collect_sql_error
 from server.utils.permission_utils import GetAllByPermission
-from server.model.testcase import CaseNode, Baseline
+from server.model.testcase import CaseNode
 from server.model.baselinetemplate import BaselineTemplate, BaseNode
 from server.utils.permission_utils import GetAllByPermission
-from server.utils.resource_utils import ResourceManager
-
 
 
 class BaselineTemplateHandler:
@@ -91,7 +90,12 @@ class BaselineTemplateHandler:
             elif key == 'org_id':
                 filter_params.append(BaselineTemplate.org_id == value)
                 filter_params.append(BaselineTemplate.permission_type == 'org')
-            
+        filter_params.append(
+            or_(
+                BaselineTemplate.creator_id == g.user_id,
+                BaselineTemplate.openable.is_(True)
+            )
+        ) 
         baselinetemps = BaselineTemplate.query.filter(*filter_params).all()
         
         return_data = [baseline_template.to_json() for baseline_template in baselinetemps]
@@ -143,34 +147,18 @@ class BaselineTemplateHandler:
     @staticmethod
     @collect_sql_error
     def create_new_base_node(baseline_template, base_node, casenode, res_node, nodes):
-        node_body = base_node.to_json()
-        if base_node.is_root:
-                node_body.update({
-                    "is_root": True
-                })                         
-        node_body.pop("id")
-        node_body.update({
-            "baseline_template_id": baseline_template.id,
-            "permission_type": base_node.permission_type,
-            "type": base_node.type,
-            "creator_id": g.user_id,
-            "case_node_id": casenode.id if casenode is not None else None,
-            "org_id": redis_client.hget(RedisKey.user(g.user_id), 'current_org_id')
-        })
-        if node_body["type"] == "group":
-            node_body.update({
-                "group_id": base_node.group_id
-        })
-
-        resp = ResourceManager("base_node").add_v2(
-            "baseline_template/api_infos.yaml",
-            node_body
+        new_base_node = BaseNode(
+            baseline_template_id=baseline_template.id,
+            permission_type=base_node.permission_type,
+            type=base_node.type,
+            title=base_node.title,
+            creator_id=g.user_id,
+            case_node_id=casenode.id if casenode is not None else None,
+            org_id=redis_client.hget(RedisKey.user(g.user_id), 'current_org_id'),
+            group_id=base_node.group_id if base_node.type == "group" else None,
+            is_root=base_node.is_root
         )
-        _resp = json.loads(resp.response[0])
-        if _resp.get("error_code") != RET.OK:
-            return _resp
-        _id = _resp.get("data").get("id")
-        
+        _id = new_base_node.add_flush_commit_id()
         for key, value in res_node.items():
             if base_node in value:
                 parent = BaseNode.query.filter_by(id=key).first()
@@ -370,63 +358,63 @@ class BaseNodeHandler:
         if not baseline_template:
             return jsonify(
                 error_code=RET.NO_DATA_ERR, 
-                error_msg="baseline_template does not exists"
+                error_msg="baseline_template does not exist"
             )
+
+        parent = BaseNode.query.filter_by(id=body.parent_id).first()
+        if not parent:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR, 
+                error_msg="parent node does not exist"
+            )
+        if body.title is not None:
+            for child in parent.children:
+                if body.title == child.title:
+                    return jsonify(
+                        error_code=RET.DATA_EXIST_ERR,
+                        error_msg=f"Title {body.title}  has already existed."
+                    )
+
+        if body.type == "directory":
+            base_node = BaseNode(
+                creator_id=g.user_id,
+                group_id=baseline_template.group_id,
+                org_id=baseline_template.org_id,
+                baseline_template_id=baseline_template.id,
+                permission_type=baseline_template.permission_type,
+                type=body.type,
+                title=body.title,
+                is_root=False
+            )
+            db.session.add(base_node)
+            db.session.commit()
+            base_node.parent.append(parent)
+            base_node.add_update()
+            return jsonify(error_code=RET.OK, error_msg="OK")
 
         base_body = body.__dict__
-        base_body.update({
-            "creator_id": g.user_id,
-            "group_id": baseline_template.group_id,
-            "org_id": baseline_template.org_id,
-            "baseline_template_id": baseline_template.id,
-            "permission_type": baseline_template.permission_type,
-        })
-
-        parent = None
-        if body.parent_id:
-            parent = BaseNode.query.filter_by(id=body.parent_id).first()
-            if not parent:
-                return jsonify(
-                    error_code=RET.NO_DATA_ERR, 
-                    error_msg="parent node does not exists"
-                )
-
+        
         _case_node_ids = base_body.pop("case_node_ids")
-        for case_node_id in _case_node_ids:
-            case_node = CaseNode.query.filter(
-                CaseNode.id == case_node_id,
-                CaseNode.type == body.type,
-            ).first()
-            if not case_node:
-                current_app.logger.warn(
-                    f"case node #{case_node_id} dose not exist,"
-                    f"base node relates failed"
-                )
-                continue
+        #去重
+        for child in parent.children:
+            if child.case_node_id in _case_node_ids:
+                _case_node_ids.remove(child.case_node_id)
 
-            base_node_body = deepcopy(base_body)
-            base_node_body.update({
-                "title": case_node.title,
-                "case_node_id": case_node.id,
+        if len(_case_node_ids) > 0:
+            base_body.update({
+                "creator_id": g.user_id,
+                "group_id": baseline_template.group_id,
+                "org_id": baseline_template.org_id,
+                "baseline_template_id": baseline_template.id,
+                "permission_type": baseline_template.permission_type,
+                "case_node_ids": _case_node_ids,
             })
- 
-            resp = ResourceManager("base_node").add_v2(
-                "baseline_template/api_infos.yaml",
-                base_node_body,
+            from celeryservice.tasks import resolve_base_node
+            resolve_base_node.delay(
+                body=base_body
             )
 
-            _resp = json.loads(resp.response[0])
-            if _resp.get("error_code") != RET.OK:
-                current_app.logger.warn(_resp.get("error_msg"))
-                continue
-            
-            base_node_id = _resp.get("data").get("id")
-            child = BaseNode.query.filter_by(id=base_node_id).first()
-            if parent:
-                child.parent.append(parent)
-                child.add_update()
-
-        return jsonify(error_code=RET.OK, error_msg="OK", data=base_node_id)
+        return jsonify(error_code=RET.OK, error_msg="OK")
 
 
     @staticmethod
@@ -438,8 +426,25 @@ class BaseNodeHandler:
                 error_code=RET.NO_DATA_ERR,
                 error_msg="The base_node does not exist."
             )
+        current_org_id = int(
+            redis_client.hget(RedisKey.user(g.user_id), 'current_org_id')
+        )
+        if current_org_id != base_node.org_id:
+            return jsonify(error_code=RET.VERIFY_ERR, error_msg="No right to delete")
+        
+        _baseline_id = base_node.baseline_template_id
+        db.session.delete(base_node)
+        if base_node.type == "baseline" and _baseline_id:
+            baseline_template = BaselineTemplate.query.get(id=_baseline_id)
+            db.session.delete(baseline_template)
 
-        return ResourceManager("base_node").del_single(base_node_id)
+        try:
+            db.session.commit()
+        except (IntegrityError, SQLAlchemyError) as e:
+            db.session.rollback()
+            raise e
+
+        return jsonify(error_code=RET.OK, error_msg="OK")
 
 
 class BaselineTemplateApplyHandler:

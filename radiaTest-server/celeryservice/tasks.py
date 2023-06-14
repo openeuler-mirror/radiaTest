@@ -46,6 +46,7 @@ from celeryservice.lib.rpmcheck import RpmCheckHandler
 from celeryservice.lib.casenode import CaseNodeCreator
 from celeryservice.lib.template import TemplateCaseHandler
 from celeryservice.lib.task import TaskdistributeHandler, VersionTaskProgressHandler, AllVersionTaskProgressHandler
+from celeryservice.lib.baseline_template import ResolveBaseNodeHandler
 
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -295,6 +296,13 @@ def resolve_distribute_template(task_id, template_id, body):
     TaskdistributeHandler(logger).distribute(
         task_id=task_id,
         template_id=template_id,
+        body=body,
+    )
+
+
+@celery.task
+def resolve_base_node(body):
+    ResolveBaseNodeHandler(logger).create_base_node(
         body=body,
     )
 
