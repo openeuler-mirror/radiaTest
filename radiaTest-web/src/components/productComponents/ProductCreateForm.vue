@@ -52,6 +52,12 @@
             <template #unchecked> 否 </template>
           </n-switch>
         </n-form-item-gi>
+        <n-form-item-gi :span="6" label="是否ebs构建">
+          <n-switch v-model:value="formValue.built_by_ebs">
+            <template #checked> 是 </template>
+            <template #unchecked> 否 </template>
+          </n-switch>
+        </n-form-item-gi>
         <n-form-item-gi :span="18" label="描述" path="description">
           <n-input v-model:value="formValue.description" placeholder="产品版本的描述文本" @keydown.enter.prevent />
         </n-form-item-gi>
