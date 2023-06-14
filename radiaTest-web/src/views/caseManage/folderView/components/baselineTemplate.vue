@@ -70,42 +70,44 @@
         </div>
       </div>
     </div>
-    <div class="baselineTemplate-right" v-if="templateDetail">
-      <div class="top">
-        <div class="txts">
-          <n-icon size="16" color="#666666">
-            <Cubes />
-          </n-icon>
-          {{ checkedItem.title }}
+    <n-spin class="baselineTemplate-right" :show="showBaselineTemplateSpin">
+      <div v-if="templateDetail">
+        <div class="top">
+          <div class="txts">
+            <n-icon size="16" color="#666666">
+              <Cubes />
+            </n-icon>
+            {{ checkedItem.title }}
+          </div>
+          <n-space>
+            <n-button type="error" ghost @click="handleCleanButtonClick"> 清空 </n-button>
+            <n-button type="primary" ghost @click="handleInheritButtonClick"> 继承 </n-button>
+          </n-space>
         </div>
-        <n-space>
-          <n-button type="error" ghost @click="handleCleanButtonClick"> 清空 </n-button>
-          <n-button type="primary" ghost @click="handleInheritButtonClick"> 继承 </n-button>
-        </n-space>
+        <n-tree
+          block-line
+          :data="baselineTreeData"
+          :default-expand-all="true"
+          :node-props="baselineTreeNodeProps"
+          :render-prefix="renderBaselineTreePrefix"
+          class="baseline-tree-wrap"
+        />
+        <n-dropdown
+          style="min-width: 140px"
+          placement="bottom-start"
+          trigger="manual"
+          :x="x"
+          :y="y"
+          :options="options"
+          :show="showDropdown"
+          :on-clickoutside="onClickoutside"
+          @select="handleSelect"
+        />
       </div>
-      <n-tree
-        block-line
-        :data="baselineTreeData"
-        :default-expand-all="true"
-        :node-props="baselineTreeNodeProps"
-        :render-prefix="renderBaselineTreePrefix"
-        class="baseline-tree-wrap"
-      />
-      <n-dropdown
-        style="min-width: 140px"
-        placement="bottom-start"
-        trigger="manual"
-        :x="x"
-        :y="y"
-        :options="options"
-        :show="showDropdown"
-        :on-clickoutside="onClickoutside"
-        @select="handleSelect"
-      />
-    </div>
-    <div class="baselineTemplate-empty" v-else>
-      <n-empty />
-    </div>
+      <div class="baselineTemplate-empty" v-else>
+        <n-empty />
+      </div>
+    </n-spin>
     <n-modal v-model:show="showCreateModal" preset="card" style="width: 600px" title="创建新模板" :bordered="false">
       <n-form ref="formRef" inline :model="createForm" :rules="rules">
         <n-form-item label="标题" path="title">
@@ -151,13 +153,13 @@
       @positive-click="submitDeleteCallback"
       @negative-click="cancelDeleteCallback"
     />
-    <n-modal v-model:show="showNodeCreateModal" preset="card" style="width: 600px" title="新建子节点" :bordered="false">
+    <n-modal v-model:show="showNodeCreateModal" preset="card" style="width: 600px" title="新增子节点" :bordered="false">
       <n-spin :show="createChildNodeLoading">
         <template #description> 创建中... </template>
         <n-radio-group v-model:value="nodeCreateForm.type" style="margin-bottom: 20px">
           <n-space>
-            <n-radio value="directory">目录</n-radio>
-            <n-radio value="suite">测试套</n-radio>
+            <n-radio value="directory" v-if="selectedNode.type !== 'suite'">目录</n-radio>
+            <n-radio value="suite" v-if="selectedNode.type !== 'suite'">测试套</n-radio>
             <n-radio value="case" v-if="selectedNode.type === 'suite'">测试用例</n-radio>
           </n-space>
         </n-radio-group>
@@ -449,17 +451,34 @@ function renderOptions(node) {
       type: 'divider'
     }
   ];
-  if (node.type !== 'case') {
+  if (node.type === 'baseline') {
     _options.push({
       label: '新增子节点',
       key: 'addChildNode'
     });
-  }
-  if (node.type !== 'baseline') {
+  } else if (node.type === 'directory') {
+    _options.push({
+      label: '新增子节点',
+      key: 'addChildNode'
+    });
     _options.push({
       label: '编辑节点',
       key: 'editNode'
     });
+    _options.push({
+      label: '删除节点',
+      key: 'removeNode'
+    });
+  } else if (node.type === 'suite') {
+    _options.push({
+      label: '新增子节点',
+      key: 'addChildNode'
+    });
+    _options.push({
+      label: '删除节点',
+      key: 'removeNode'
+    });
+  } else {
     _options.push({
       label: '删除节点',
       key: 'removeNode'
@@ -477,7 +496,7 @@ const renderBaselineTreePrefix = ({ option }) => {
 };
 
 const setChildrenData = (arr) => {
-  return arr.map((item) => {
+  return arr?.map((item) => {
     return {
       label: item?.data.text,
       key: item?.data.id,
@@ -552,7 +571,7 @@ function addChildNodeFunc() {
   nodeCreateForm.value = {
     title: null,
     case_node_ids: null,
-    type: 'directory'
+    type: selectedNode.value.type === 'suite' ? 'case' : 'directory'
   };
 }
 const selectFunc = {
@@ -632,7 +651,6 @@ function submitNodeEditCallback() {
 // 删除节点
 function submitNodeDeleteCallback() {
   deleteBaseNode(selectedNode.value.id).then(() => {
-    message.success('删除成功');
     getBaselineTemplateItem(checkedItem.value.id)
       .then((res) => {
         templateDetail.value = res.data;
@@ -683,18 +701,24 @@ function cancelInheritCallback() {
   showInheritModal.value = false;
 }
 
+const showBaselineTemplateSpin = ref(false);
+
 // 点击基线模板
 function handleTemplateClick(item) {
   selectedNode.value = null;
   checkedItem.value = item;
   editForm.value.title = item.title;
   editForm.value.openable = item.openable;
+  templateDetail.value = null;
+  showBaselineTemplateSpin.value = true;
   getBaselineTemplateItem(item.id)
     .then((res) => {
       templateDetail.value = res.data;
+      showBaselineTemplateSpin.value = false;
     })
     .catch(() => {
       templateDetail.value = undefined;
+      showBaselineTemplateSpin.value = false;
     });
 }
 
@@ -741,7 +765,7 @@ function createChildNode() {
     ...nodeCreateForm.value
   })
     .then(() => {
-      message.success('创建成功');
+      message.success('创建中……如未更新请稍后刷新页面');
       nodeCreateForm.value = {
         title: undefined,
         case_node_ids: undefined,
@@ -934,6 +958,13 @@ watch(showInheritModal, () => {
     .baseline-tree-wrap {
       padding: 20px;
     }
+
+    .baselineTemplate-empty {
+      min-height: 600px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
   }
 }
 .templateItem {
@@ -991,12 +1022,7 @@ watch(showInheritModal, () => {
     }
   }
 }
-.baselineTemplate-empty {
-  width: 80%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
+
 .inherit-icon-container {
   display: flex;
   justify-content: center;

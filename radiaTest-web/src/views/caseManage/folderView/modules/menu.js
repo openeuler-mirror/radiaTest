@@ -1032,7 +1032,7 @@ function relateSuiteCase(node, nodeType) {
   axios
     .post('/v1/case-node', data)
     .then(() => {
-      window.$message.success('创建中……如未显示请手动刷新目录');
+      window.$message.success('创建中……如未更新请手动刷新目录');
       getCaseNode(node);
     })
     .catch((err) => {
