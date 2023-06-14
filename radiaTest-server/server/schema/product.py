@@ -28,6 +28,8 @@ class ProductBase(PermissionBase, TimeBaseSchema):
     description: Optional[constr(max_length=255)]
     version_type: Literal["LTS", "LTS-SPx", "INNOVATION"]
     is_forced_check: Optional[bool]
+    #当前先允许ebs构建
+    built_by_ebs: Optional[bool]
 
     @root_validator
     def check_duplicate(cls, values):
