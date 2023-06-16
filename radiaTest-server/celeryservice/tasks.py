@@ -78,7 +78,7 @@ def setup_periodic_tasks(sender, **kwargs):
         name="check_vmachine_lifecycle",
     )
     sender.add_periodic_task(
-        crontab(minute="*/30"), async_update_all_issue_rate.s(), name="update_all_issue_rate"
+        crontab(minute=0, hour=0), async_update_all_issue_rate.s(), name="update_all_issue_rate"
     )
     sender.add_periodic_task(
         crontab(minute=0, hour=0, day_of_month="15,30"), async_update_issue_type_state.s(), name="update_issue_type_state"
@@ -222,7 +222,7 @@ def async_check_vmachine_lifecycle():
 
 @celery.task
 def async_update_all_issue_rate():
-    UpdateIssueRate(logger).main()
+    UpdateIssueRate.main()
 
 
 @celery.task(bind=True)

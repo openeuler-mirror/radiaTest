@@ -271,6 +271,13 @@ class TaskDistributeTemplate(BaseModel, PermissionBaseModel, db.Model):
             'create_time': self.create_time.strftime("%Y-%m-%d %H:%M:%S")
         }
 
+    def to_simple_json(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'create_time': self.create_time.strftime("%Y-%m-%d %H:%M:%S")
+        }
+
 
 class DistributeTemplateType(BaseModel, PermissionBaseModel, db.Model):
     __tablename__ = 'distribute_template_type'

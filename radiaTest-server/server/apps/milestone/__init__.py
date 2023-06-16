@@ -21,7 +21,6 @@ from .routes import (
     MilestoneEventV2,
     MilestoneItemEventV2,
     MilestonePreciseEvent,
-    UpdateGiteeIssuesStatistics,
     GiteeMilestoneEventV2,
     SyncMilestoneItemEventV2,
     MilestoneItemStateEventV2,
@@ -44,7 +43,6 @@ def init_api(api: Api):
         MilestoneIssueRateEvent,
         "/api/v2/milestone/<int:milestone_id>/issue-rate",
     )
-    api.add_resource(UpdateGiteeIssuesStatistics, "/api/v2/issues/statistics")
     api.add_resource(GiteeMilestoneEventV2, "/api/v2/gitee-milestone")
     api.add_resource(SyncMilestoneItemEventV2, "/api/v2/milestone/<int:milestone_id>/sync")
     api.add_resource(GenerateTestReportEvent, "/api/v2/milestone/<int:milestone_id>/generate-test-report")

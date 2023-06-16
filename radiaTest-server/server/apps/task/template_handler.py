@@ -52,9 +52,14 @@ class HandlerTemplate:
         else:
             query_filter = TaskDistributeTemplate.query.filter(*filter_params)
 
+        def page_func(item):
+            data_dict = item.to_simple_json()
+            return data_dict
+
         return PageUtil.get_data(
             query_filter=query_filter,
             query=query,
+            func= page_func if query.simple else None
         )
 
     @staticmethod

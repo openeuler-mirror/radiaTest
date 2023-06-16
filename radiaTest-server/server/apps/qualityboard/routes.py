@@ -1299,6 +1299,13 @@ class SamePackageListCompareEvent(Resource):
     @response_collect
     @validate()
     def post(self, qualityboard_id, round_id, body: PackageCompareSchema):
+        compare_key = f"SAME_ROUND_{round_id}_PKG_COMPARE"
+        if redis_client.keys(compare_key):
+            return jsonify(
+                error_code=RET.RUNTIME_ERROR,
+                error_msg=f"same pkg compare of round {round_id} is in progress,"
+                " please be patient and wait."
+            )
         try:
             comparer = PackageListHandler(
                 round_id,
@@ -1320,6 +1327,9 @@ class SamePackageListCompareEvent(Resource):
                 error_code=RET.NO_DATA_ERR,
                 error_msg=str(e),
             )
+
+        #设置锁，避免在比对未完成前，重复触发比对， 比对完成后删除锁
+        redis_client.set(compare_key, 1, 2400)
 
         compare_results = comparer.compare2(comparee.packages)
         update_samerpm_compare_result.delay(round_id, compare_results, body.repo_path)
@@ -1409,6 +1419,30 @@ class PackageListCompareEvent(Resource):
     @response_collect
     @validate()
     def post(self, qualityboard_id, comparee_round_id, comparer_round_id, body: PackageCompareSchema):
+        round_group = RoundGroup.query.filter_by(
+            round_1_id=comparee_round_id,
+            round_2_id=comparer_round_id,
+        ).first()
+        round_group_id = None
+        if not round_group:
+            round_group_id = Insert(
+                RoundGroup,
+                {
+                    "round_1_id": comparee_round_id,
+                    "round_2_id": comparer_round_id
+                }
+            ).insert_id()
+        else:
+            round_group_id = round_group.id
+        
+        compare_key = f"ROUND_GROUP_{round_group_id}_PKG_COMPARE"
+        if redis_client.keys(compare_key):
+            return jsonify(
+                error_code=RET.RUNTIME_ERROR,
+                error_msg=f"pkg compare between round {comparee_round_id} and "
+                f"round {comparer_round_id} is in progress, please be patient and wait."
+            )
+
         try:
             comparer = PackageListHandler(
                 comparer_round_id,
@@ -1430,6 +1464,9 @@ class PackageListCompareEvent(Resource):
                 error_code=RET.NO_DATA_ERR,
                 error_msg=str(e),
             )
+
+        #设置锁，避免在比对未完成前，重复触发比对， 比对完成后删除锁
+        redis_client.set(compare_key, 1, 2400)
 
         (
             compare_results,
@@ -1582,6 +1619,20 @@ class DailyBuildPackageListCompareEvent(Resource):
     @response_collect
     @validate()
     def post(self, comparer_round_id, body: DailyBuildPackageCompareSchema):
+        comparer_round = Round.query.get(comparer_round_id)
+        if not comparer_round:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg=f"round {comparer_round_id} does not exist.",
+            )
+        compare_key = f"DAILYBUILD_{body.daily_name}_ROUND_{comparer_round.name}_PKG_COMPARE"
+        if redis_client.keys(compare_key):
+            return jsonify(
+                error_code=RET.RUNTIME_ERROR,
+                error_msg=f"pkg compare between {body.daily_name} and "
+                f"{comparer_round.name} is in progress, please be patient and wait."
+            )
+
         try:
             comparer = PackageListHandler(
                 comparer_round_id,
@@ -1615,13 +1666,15 @@ class DailyBuildPackageListCompareEvent(Resource):
                 error_msg=str(e),
             )
 
+        #设置锁，避免在比对未完成前，重复触发比对， 比对完成后删除锁
+        redis_client.set(compare_key, 1, 2400)
+
         (
             compare_results,
             _,
             repeat_rpm_list_comparee,
         ) = comparer.compare(comparee.packages)
 
-        comparer_round = Round.query.get(comparer_round_id)
         _path = current_app.config.get("PRODUCT_PKGLIST_PATH")
         file_path = f"{_path}/{comparer_round.name}-{body.daily_name}-{body.repo_path}.xls"
         update_daily_compare_result.delay(
@@ -1802,6 +1855,16 @@ class DailyPackagCompareResultExportEvent(Resource):
                 error_code=RET.NO_DATA_ERR,
                 error_msg="round does not exist.",
             )
+        
+        daily_name = "-".join(query.compare_name.split("-")[:-1])
+
+        compare_key = f"DAILYBUILD_{daily_name}_ROUND_{comparer_round.name}_PKG_COMPARE"
+        if redis_client.keys(compare_key):
+            return jsonify(
+                error_code=RET.RUNTIME_ERROR,
+                error_msg=f"pkg compare between {daily_name} and "
+                f"{comparer_round.name} is in progress, please be patient and wait."
+            )
     
         _path = current_app.config.get("PRODUCT_PKGLIST_PATH")
         file_path = f"{_path}/{comparer_round.name}-{query.compare_name}.xls"
@@ -1824,6 +1887,13 @@ class PackagCompareResultExportEvent(Resource):
             return jsonify(
                 error_code=RET.NO_DATA_ERR,
                 error_msg="round group does not exist.",
+            )
+        compare_key = f"ROUND_GROUP_{rg.id}_PKG_COMPARE"
+        if redis_client.keys(compare_key):
+            return jsonify(
+                error_code=RET.RUNTIME_ERROR,
+                error_msg=f"pkg compare between round {comparee_round_id} and "
+                f"round {comparer_round_id} is in progress, please be patient and wait."
             )
         comparer_round = Round.query.get(comparer_round_id)
         comparee_round = Round.query.get(comparee_round_id)
@@ -1849,6 +1919,13 @@ class SamePackagCompareResultExportEvent(Resource):
             return jsonify(
                 error_code=RET.NO_DATA_ERR,
                 error_msg="round does not exist.",
+            )
+        compare_key = f"SAME_ROUND_{round_id}_PKG_COMPARE"
+        if redis_client.keys(compare_key):
+            return jsonify(
+                error_code=RET.RUNTIME_ERROR,
+                error_msg=f"same pkg compare of round {round_id} is in progress, "
+                "please be patient and wait."
             )
         _path = current_app.config.get("PRODUCT_PKGLIST_PATH")
         file_path = f"{_path}/{_round.name}-{query.repo_path}.xls"

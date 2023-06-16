@@ -51,7 +51,7 @@ class CaseNode(BaseModel, PermissionBaseModel, db.Model):
     suite_id = db.Column(db.Integer(), db.ForeignKey("suite.id"))
 
     case_id = db.Column(db.Integer(), db.ForeignKey("case.id"))
-    case_result = db.Column(db.Enum('success', 'failed', 'running', "pending"), nullable=True)
+    case_result = db.Column(db.Enum('success', 'failed', 'running', "pending"), default="pending", nullable=True)
     baseline_id = db.Column(db.Integer(), db.ForeignKey("baseline.id"))
 
     milestone_id = db.Column(db.Integer(), db.ForeignKey("milestone.id"))
