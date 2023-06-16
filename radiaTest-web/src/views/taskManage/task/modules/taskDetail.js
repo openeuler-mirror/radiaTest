@@ -1272,7 +1272,8 @@ function getTemplateName() {
   distributeTaskOption.value = [];
   axios
     .get('v1/tasks/distribute-templates', {
-      group_id: modalData.value.detail.group_id
+      group_id: modalData.value.detail.group_id,
+      simple: true
     })
     .then((res) => {
       if (res.data.items) {

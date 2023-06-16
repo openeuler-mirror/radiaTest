@@ -10,6 +10,7 @@ const formValue = ref({
   permission_type: null,
   version_type: '',
   is_forced_check: true,
+  built_by_ebs: false,
   description: undefined
 });
 
@@ -20,6 +21,7 @@ const clean = () => {
     permission_type: null,
     version_type: '',
     is_forced_check: true,
+    built_by_ebs: false,
     description: null
   };
 };
