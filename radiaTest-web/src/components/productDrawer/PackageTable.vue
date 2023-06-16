@@ -375,23 +375,32 @@ const frameworkFiltersChange = (filters) => {
 
 // 导出比对结果
 const exportPackageComparationFn = () => {
-  axios
-    .downLoad(`/v1/round/${roundCompareeId.value}/with/${roundCurId.value}/pkg-compare-result-export`, {
+  let axiosUrl = '';
+  let param = {};
+  if (packageTabValueFirst.value === 'softwarescope') {
+    axiosUrl = `/v1/round/${roundCompareeId.value}/with/${roundCurId.value}/pkg-compare-result-export`;
+    param = {
       repo_path: packageTabValueSecond.value,
       arches: JSON.stringify(archesParam.value)
-    })
-    .then((res) => {
-      let blob = new Blob([res], { type: 'application/vnd.ms-excel' });
-      let url = URL.createObjectURL(blob);
-      let alink = document.createElement('a');
-      document.body.appendChild(alink);
-      alink.download = '比对结果';
-      alink.target = '_blank';
-      alink.href = url;
-      alink.click();
-      alink.remove();
-      URL.revokeObjectURL(url);
-    });
+    };
+  } else {
+    axiosUrl = `/v1/round/${roundCurId.value}/pkg-compare-result-export`;
+    param = {
+      repo_path: packageTabValueSecond.value
+    };
+  }
+  axios.downLoad(axiosUrl, param).then((res) => {
+    let blob = new Blob([res], { type: 'application/vnd.ms-excel' });
+    let url = URL.createObjectURL(blob);
+    let alink = document.createElement('a');
+    document.body.appendChild(alink);
+    alink.download = '比对结果';
+    alink.target = '_blank';
+    alink.href = url;
+    alink.click();
+    alink.remove();
+    URL.revokeObjectURL(url);
+  });
 };
 
 // 多版本软件包
