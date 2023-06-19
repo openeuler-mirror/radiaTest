@@ -87,7 +87,9 @@
         <n-tree
           block-line
           :data="baselineTreeData"
-          :default-expand-all="true"
+          expand-on-click
+          :expanded-keys="baselineTreeExpandedKeys"
+          :on-update:expanded-keys="updateExpandedKeys"
           :node-props="baselineTreeNodeProps"
           :render-prefix="renderBaselineTreePrefix"
           class="baseline-tree-wrap"
@@ -319,7 +321,7 @@ const options = ref([]);
 const showDropdown = ref(false);
 const x = ref(0);
 const y = ref(0);
-const selectedNode = ref(null);
+const selectedNode = ref(null); // 当前操作的节点信息
 
 const casesetNodeOptions = ref([]);
 
@@ -339,7 +341,7 @@ const nodeEditForm = ref({
 const searchWords = ref();
 const templateDetail = ref();
 const templateList = ref([]);
-const checkedItem = ref({});
+const checkedItem = ref({}); // 当前选择的基线模板信息
 
 const showCreateModal = ref(false);
 const createForm = ref({
@@ -539,6 +541,12 @@ const baselineTreeNodeProps = ({ option }) => {
   };
 };
 
+const baselineTreeExpandedKeys = ref([]);
+
+const updateExpandedKeys = (keys) => {
+  baselineTreeExpandedKeys.value = keys;
+};
+
 function onClickoutside() {
   showDropdown.value = false;
 }
@@ -624,7 +632,6 @@ function submitEditCallback() {
 function submitDeleteCallback() {
   deleteBaselineTemplate(checkedItem.value.id)
     .then(() => {
-      message.success('删除成功');
       getTemplateList();
     })
     .finally(() => {
@@ -711,6 +718,7 @@ function handleTemplateClick(item) {
   editForm.value.openable = item.openable;
   templateDetail.value = null;
   showBaselineTemplateSpin.value = true;
+  baselineTreeExpandedKeys.value = [];
   getBaselineTemplateItem(item.id)
     .then((res) => {
       templateDetail.value = res.data;
@@ -758,6 +766,9 @@ function onPositiveClick() {
 const createChildNodeLoading = ref(false);
 
 function createChildNode() {
+  if (!baselineTreeExpandedKeys.value.includes(selectedNode.value.id)) {
+    baselineTreeExpandedKeys.value.push(selectedNode.value.id);
+  }
   createChildNodeLoading.value = true;
   addBaseNode(checkedItem.value.id, {
     is_root: false,
