@@ -290,7 +290,7 @@ class Commit(BaseModel, PermissionBaseModel, db.Model):
 
     id = db.Column(db.Integer(), primary_key=True)
     title = db.Column(db.String(255), nullable=False)
-    reviewer_id = db.Column(db.Integer())
+    reviewer_id = db.Column(db.String(512))
     review_time = db.Column(db.DateTime())
     description = db.Column(db.String(255), nullable=True)
     machine_num = db.Column(db.Integer())

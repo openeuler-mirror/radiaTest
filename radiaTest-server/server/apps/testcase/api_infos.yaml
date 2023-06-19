@@ -1,0 +1,7 @@
+commit:
+  - uri:  /api/v1/case/commit/{commit_id}
+    act: put
+    alias: 修改casecommit
+  - uri:  /api/v1/case/commit/{commit_id}
+    act: delete
+    alias: 删除casecommit

@@ -4,7 +4,7 @@ from server.model.milestone import Milestone, TestReport
 from server.model.mirroring import IMirroring, QMirroring, Repo
 from server.model.pmachine import Pmachine, MachineGroup
 from server.model.vmachine import Vmachine, Vdisk, Vnic
-from server.model.testcase import Suite, Case, SuiteDocument
+from server.model.testcase import Suite, Case, SuiteDocument, Commit
 from server.model.template import Template
 from server.model.job import Job, Analyzed, Logs
 from server.model.framework import Framework, GitRepo

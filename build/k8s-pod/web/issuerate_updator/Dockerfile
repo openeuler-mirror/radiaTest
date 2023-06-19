@@ -16,4 +16,4 @@
 FROM radia-test/gunicorn
 LABEL maintainer="ethanzhang55@outlook.com"
 
-CMD celery -A manage.my_celery worker --loglevel=info --hostname=celery_issuerate_updator --queues=queue_update_field_issue_rate -O fair --pool=gevent --concurrency=10
+CMD celery -A manage.my_celery worker --loglevel=info --hostname=celery_issuerate_updator --queues=queue_update_field_issue_rate -O fair --pool=gevent --concurrency=3

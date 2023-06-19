@@ -71,6 +71,8 @@ from server.utils.permission_utils import GetAllByPermission
 from server.utils.md_util import MdUtil
 from celeryservice.tasks import resolve_testcase_file, resolve_testcase_set
 from celeryservice.sub_tasks import create_case_node_multi_select
+from server.utils.resource_utils import ResourceManager
+from server.utils.permission_utils import PermissionManager
 
 
 class CaseImportHandler:
@@ -1005,7 +1007,7 @@ class HandlerCaseReview(object):
             source += CaseNode.query.get(_s).title + '>'
         source += case.name
         insert_data['source'] = source
-        commit_id = Insert(Commit, insert_data).insert_id(Commit, '/commit')
+        ResourceManager('commit').add_v2("testcase/api_infos.yaml", insert_data)
         return jsonify(error_code=RET.OK, error_msg="OK")
 
     @staticmethod
@@ -1133,6 +1135,7 @@ class HandlerCaseReview(object):
             _case = Case.query.filter_by(id=commit.case_detail_id).first()
             db.session.delete(_case)
             db.session.commit()
+        PermissionManager().clean("/api/v1/case/commit/", [commit_id])
         return jsonify(error_code=RET.OK, error_msg="OK")
 
     @staticmethod

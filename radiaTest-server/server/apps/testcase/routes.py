@@ -628,7 +628,6 @@ class CaseCommit(Resource):
 
     @auth.login_required()
     @response_collect
-    @casbin_enforcer.enforcer
     def get(self, commit_id):
         return HandlerCaseReview.handler_case_detail(commit_id)
 

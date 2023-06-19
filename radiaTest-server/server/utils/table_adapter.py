@@ -12,6 +12,7 @@ from server.model import (
     SuiteDocument,
     BaselineTemplate,
     BaseNode,
+    Commit,
 )
 
 class TableAdapter:
@@ -28,3 +29,4 @@ class TableAdapter:
     suite_document=SuiteDocument
     baseline_template=BaselineTemplate
     base_node=BaseNode
+    commit=Commit
