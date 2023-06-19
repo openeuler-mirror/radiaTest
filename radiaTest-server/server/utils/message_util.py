@@ -34,7 +34,7 @@ class MessageManager:
                         _is = False
                         break
                 if _is:
-                    _api["id"] = uri_arr[4]
+                    _api["id"] = uri_arr[int(_api.get('index'))] if _api.get('index') else uri_arr[4]
                     _api["cur_uri"] = uri
                     _instance = Precise(
                         getattr(TableAdapter, _api["table"]),
@@ -72,9 +72,10 @@ class MessageManager:
         if not re_role_user:
             raise RuntimeError("the user with this role does not exist.")
 
-        _api.update({
-            "ip": _instance.ip
-        })
+        if hasattr(_instance, "ip"):
+            _api.update({
+                "ip": _instance.ip
+            })
         for item in re_role_user:
             MessageManager.send_scrpt_msg(
                 item.user_id, MsgLevel.user.value, _api, _instance.permission_type, cur_org_id
@@ -82,11 +83,14 @@ class MessageManager:
 
     @staticmethod
     def send_scrpt_msg(to_user_id, msg_leve: MsgLevel, _api, permission_type, org_id):
+        info = f'<b>{g.user_login}</b>请求{_api.get("alias")}。'
+        if _api.get("ip"):
+            info = f'<b>{g.user_login}</b>请求{_api.get("alias")}<b>{_api.get("ip")}</b>。'
         _message = dict(
             data=json.dumps(
                 dict(
                     permission_type=permission_type,
-                    info=f'<b>{g.user_login}</b>请求{_api.get("alias")}<b>{_api["ip"]}</b>。',
+                    info=info,
                     script=_api["cur_uri"],
                     method=_api.get("act"),
                     _alias=_api.get("alias"),

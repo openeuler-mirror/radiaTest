@@ -94,15 +94,3 @@
   act: put
   alias: 修改GitRepo
   table: git_repo
-- uri:  /api/v1/case/commit/{commit_id}
-  act: put
-  alias: 修改casecommit
-  table: commit
-- uri:  /api/v1/case/commit/{commit_id}
-  act: get
-  alias: 查询casecommit
-  table: commit
-- uri:  /api/v1/case/commit/{commit_id}
-  act: delete
-  alias: 删除casecommit
-  table: commit
