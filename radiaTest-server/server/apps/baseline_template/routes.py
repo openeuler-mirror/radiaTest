@@ -442,7 +442,8 @@ class BaseNodeItemEvent(Resource):
                 error_msg="Associated node cannot be modified."
             )
         if base_node.parent:
-            for node in base_node.parent.children:
+            parent = base_node.parent[0]
+            for node in parent.children:
                 if node.title == body.title:
                     return jsonify(
                         error_code=RET.DATA_EXIST_ERR, 
