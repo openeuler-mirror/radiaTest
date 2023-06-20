@@ -237,7 +237,8 @@ function createCasesetActions(item) {
     actions.unshift(createChildrenAction);
   } else if (item.type === 'suite') {
     actions.unshift(moveCaseNodeAction);
-    actions.unshift(exportTestcaseAction);
+    actions.unshift(exportTestsuiteInXlsxAction);
+    actions.unshift(exportTestsuiteInMdAction);
     actions.unshift(createTestcaseAction);
   } else if (item.type === 'case') {
     actions.unshift(editAction);
@@ -252,8 +253,7 @@ function createBaselineActions(item) {
     actions.unshift(relateSuiteAction);
     actions.unshift(createChildrenDirectoryAction);
   } else if (item.type === 'suite') {
-    actions.unshift(exportTestsuiteInXlsxAction);
-    actions.unshift(exportTestsuiteInMdAction);
+    actions.unshift(exportTestcaseAction);
     actions.unshift(relateTestcaseAction);
   } else if (item.type === 'case') {
     actions.unshift(exportTestcaseAction);
