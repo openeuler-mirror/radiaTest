@@ -290,6 +290,15 @@ class GiteeV8BaseIssueHandler(IssueOpenApiHandler):
             return int(cnt)
         return cnt
 
+    def get_all_issues(self, param):
+        resp = self.get_all(param)
+        resp = resp.get_json()
+        if resp.get("error_code") == RET.OK:
+            total = json.loads(resp.get("data")).get("total_count")
+            data = json.loads(resp.get("data")).get("data")
+            return total, data
+        return 0, []
+
 
 class GiteeV8IssueHandler:
     @staticmethod
