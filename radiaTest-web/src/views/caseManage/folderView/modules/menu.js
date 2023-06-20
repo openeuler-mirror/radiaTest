@@ -1215,13 +1215,13 @@ const actionHandlder = {
   },
   exportTestsuiteInXlsx: {
     handler(contextmenu) {
-      exportTestsuite(node.info.org_id, node.info.id, { filetype: 'xlsx' })
+      exportTestsuite(contextmenu.info.org_id, contextmenu.info.id, { filetype: 'xlsx' })
         .then((res) => {
           let blob = new Blob([res], { type: 'application/vnd.ms-excel' });
           let url = URL.createObjectURL(blob);
           let alink = document.createElement('a');
           document.body.appendChild(alink);
-          alink.download = `${node.info.title}.xlsx`;
+          alink.download = `${contextmenu.info.title}.xlsx`;
           alink.target = '_blank';
           alink.href = url;
           alink.click();
@@ -1235,15 +1235,15 @@ const actionHandlder = {
   },
   exportTestsuiteInMarkdown: {
     handler(contextmenu) {
-      exportTestsuite(node.info.org_id, node.info.id, { filetype: 'md' })
+      exportTestsuite(contextmenu.info.org_id, contextmenu.info.id, { filetype: 'md' })
         .then((res) => {
           let a = document.createElement('a');
           let blob = new Blob([res]);
           const url = window.URL.createObjectURL(blob);
           a.href = url;
-          a.download = `${node.info.title}.md`;
+          a.download = `${contextmenu.info.title}.md`;
           a.click();
-          a.remove()
+          a.remove();
           window.URL.revokeObjectURL(url);
         })
         .catch((err) => {
