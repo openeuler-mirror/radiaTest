@@ -456,7 +456,6 @@ class OpenEulerReleasePlanHandler(FeatureHandler):
                         "feature_id": feature_id,
                         "is_new": True,
                         "product_id": self.product_id,
-                        "is_archived": False,                       
                     }
                 )
                 db.session.add(re_row)
