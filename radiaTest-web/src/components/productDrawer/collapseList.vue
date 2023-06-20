@@ -1,5 +1,5 @@
 <template>
-  <n-collapse @item-header-click="itemHeaderClick" :expanded-names="expandedNamesArray">
+  <n-collapse @item-header-click="itemHeaderClick" :default-expanded-names="expandedNamesArray">
     <n-collapse-item v-for="item in treeList" :key="item.id" :title="item.title" :name="item.id">
       <collapseList
         v-if="childrenList[item.id] && childrenList[item.id][0]?.type !== 'case'"
