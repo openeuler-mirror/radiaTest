@@ -1217,7 +1217,7 @@ const actionHandlder = {
     handler(contextmenu) {
       exportTestsuite(contextmenu.info.org_id, contextmenu.info.id, { filetype: 'xlsx' })
         .then((res) => {
-          let blob = new Blob([res], { type: 'application/vnd.ms-excel' });
+          let blob = new Blob([res], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
           let url = URL.createObjectURL(blob);
           let alink = document.createElement('a');
           document.body.appendChild(alink);
