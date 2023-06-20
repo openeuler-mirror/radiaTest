@@ -581,6 +581,19 @@ function addChildNodeFunc() {
     case_node_ids: null,
     type: selectedNode.value.type === 'suite' ? 'case' : 'directory'
   };
+  if (nodeCreateForm.value.type === 'case') {
+    suiteCaseLoading.value = true;
+    getCaseNode(currentCaseNodeId.value).then((res) => {
+      suiteCaseLoading.value = false;
+      suiteCaseOptions.value = [{ label: '全选', key: 'allSelected', children: [] }];
+      suiteCaseOptions.value[0].children = res.data.children.map((item) => {
+        return {
+          label: item.title,
+          key: item.id
+        };
+      });
+    });
+  }
 }
 const selectFunc = {
   editNode: editNodeFunc,
@@ -899,18 +912,6 @@ watch(
             children: setNodeOptions(res.data[i].children)
           });
         }
-      });
-    } else if (nodeCreateForm.value.type === 'case') {
-      suiteCaseLoading.value = true;
-      getCaseNode(currentCaseNodeId.value).then((res) => {
-        suiteCaseLoading.value = false;
-        suiteCaseOptions.value = [{ label: '全选', key: 'allSelected', children: [] }];
-        suiteCaseOptions.value[0].children = res.data.children.map((item) => {
-          return {
-            label: item.title,
-            key: item.id
-          };
-        });
       });
     }
   }
