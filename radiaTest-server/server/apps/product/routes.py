@@ -130,7 +130,7 @@ class UpdateProductIssueRate(Resource):
     @validate()
     @response_collect
     def put(self, product_id):
-        from celeryservice.lib.issuerate import UpdateIssueRate
+        from celeryservice.tasks import async_update_all_issue_rate
         product = Product.query.filter_by(id=product_id, is_forced_check=True).first()
         if not product:
             return jsonify(
@@ -138,7 +138,7 @@ class UpdateProductIssueRate(Resource):
                 error_msg="product does not exist.",
             )
 
-        UpdateIssueRate.main(product_id)
+        async_update_all_issue_rate.delay(product_id)
 
         return jsonify(
             error_code=RET.OK,

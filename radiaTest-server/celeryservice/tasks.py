@@ -221,8 +221,8 @@ def async_check_vmachine_lifecycle():
 
 
 @celery.task
-def async_update_all_issue_rate():
-    UpdateIssueRate.main()
+def async_update_all_issue_rate(product_id=None):
+    UpdateIssueRate.statistics(product_id)
 
 
 @celery.task(bind=True)
