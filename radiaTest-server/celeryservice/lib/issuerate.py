@@ -341,8 +341,11 @@ class UpdateIssueRateData:
         else:
             solved_rate = current_resolved_cnt / current_cnt
             current_resolved_rate = "%.f%%" % (solved_rate * 100)
-
-        qrsh = QualityResultCompareHandler("product", self.products.get("product_id"))
+        if rate_type == "round":
+            obj_id = round_id
+        else:
+            obj_id = Milestone.query.filter_by(gitee_milestone_id=milestone_ids[0]).first().id
+        qrsh = QualityResultCompareHandler(rate_type, obj_id)
         serious_main_resolved_passed = qrsh.compare_issue_rate("serious_main_resolved_rate", serious_main_resolved_rate)
         main_resolved_passed = qrsh.compare_issue_rate("main_resolved_rate", main_resolved_rate)
         serious_resolved_passed = qrsh.compare_issue_rate("serious_resolved_rate", serious_resolved_rate)
