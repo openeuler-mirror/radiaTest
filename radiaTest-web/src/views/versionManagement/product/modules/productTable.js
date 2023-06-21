@@ -1279,6 +1279,7 @@ const leaveProductDrawer = () => {
   packageTabValueSecond.value = 'everything';
   showPackage.value = false;
   showList.value = false;
+  defaultMilestoneId.value = null;
 };
 
 export {

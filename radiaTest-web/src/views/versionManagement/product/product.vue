@@ -280,7 +280,7 @@
                         </template>
                       </n-button>
                     </template>
-                    创建每日构建
+                    获取每日构建软件范围
                   </n-popover>
                   <refresh-button
                     :size="18"

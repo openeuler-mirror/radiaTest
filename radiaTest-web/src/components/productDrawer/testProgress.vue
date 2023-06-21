@@ -27,9 +27,9 @@ const exchangeProgress = (progress) => {
 };
 
 const getTreeList = () => {
-  treeList.value = [];
   getMilestoneProgress(defaultMilestoneId.value)
     .then((res) => {
+      treeList.value = [];
       treeList.value.push({
         title: res.data.title,
         progress: exchangeProgress(res.data.test_progress),
