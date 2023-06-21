@@ -252,8 +252,7 @@ class AllVersionTaskProgressHandler(TaskHandlerBase):
         tasks = Task.query.filter(
             Task.type == "VERSION",
             Task.is_delete.is_(False),
-            Task.case_node_id.isnot(None),
-            Task.percentage != 100,
+            Task.case_node_id.isnot(None)
         ).all()
         for task in tasks:
             self.logger.info(f"start statistics task {task.title} test progress")

@@ -446,9 +446,13 @@ class OpenEulerReleasePlanHandler(FeatureHandler):
                 no=data.get("no")
             ).first()
             if not _row:
-                table_row = self.table(**data)
-                db.session.add(table_row)
-                db.session.flush()
+                try:
+                    table_row = self.table(**data)
+                    db.session.add(table_row)
+                    db.session.flush()
+                except (IntegrityError, SQLAlchemyError, TypeError) as e:
+                    db.session.rollback()
+                    raise e
                 feature_id = table_row.id
 
                 re_row = self.re_table(

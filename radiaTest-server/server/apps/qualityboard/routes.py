@@ -22,6 +22,7 @@ from flask import jsonify, current_app, g
 from flask_restful import Resource
 from flask_pydantic import validate
 from sqlalchemy import func, or_
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from server import db, redis_client
 from server.utils.auth_util import auth
@@ -1159,7 +1160,13 @@ class FeatureEvent(Resource):
                         )
                     )
                 handler.resolve(md_content)
-                handler.store()
+                try:
+                    handler.store()
+                except (IntegrityError, SQLAlchemyError, TypeError) as e:
+                    return jsonify(
+                        error_code=RET.RUNTIME_ERROR,
+                        error_msg=str(e)
+                    )
             else:
                 # 社区暂未统一继承特性的定义
                 pass
