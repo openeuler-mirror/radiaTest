@@ -423,9 +423,11 @@ class OpenEulerReleasePlanHandler(FeatureHandler):
         if exitcode != 0:
             return None
 
+        file_path = f"/tmp/release-management/{product_version}/release-plan.md"
+        if not os.path.exists(file_path):
+            return None
         md_content = None
-        with open(f"/tmp/release-management/{product_version}/release-plan.md", 'r'
-        ) as f:
+        with open(file_path, 'r') as f:
             md_content = f.read()
 
         return md_content
