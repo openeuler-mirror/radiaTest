@@ -117,7 +117,7 @@ def update_compare_result(round_group_id: int, results, repo_path):
                 }
             ).single()
 
-    compare_key = f"ROUND_GROUP_{round_group_id}_PKG_COMPARE"
+    compare_key = f"ROUND_GROUP_{round_group_id}_{repo_path}_PKG_COMPARE"
     redis_client.delete(compare_key)
 
 
@@ -154,8 +154,8 @@ def update_daily_compare_result(daily_name, comparer_round_name, compare_results
         cnt += 1
 
     wb.save(file_path)
-
-    compare_key = f"DAILYBUILD_{daily_name}_ROUND_{comparer_round_name}_PKG_COMPARE"
+    repo_path = file_path.split(".")[0].split('-')[-1]
+    compare_key = f"DAILYBUILD_{daily_name}_ROUND_{comparer_round_name}_{repo_path}_PKG_COMPARE"
     redis_client.delete(compare_key)
 
 
@@ -188,7 +188,7 @@ def update_samerpm_compare_result(round_id: int, results, repo_path):
                 }
             ).single()
 
-    compare_key = f"SAME_ROUND_{round_id}_PKG_COMPARE"
+    compare_key = f"SAME_ROUND_{round_id}_{repo_path}_PKG_COMPARE"
     redis_client.delete(compare_key)
 
 

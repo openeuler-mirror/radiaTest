@@ -1306,7 +1306,7 @@ class SamePackageListCompareEvent(Resource):
     @response_collect
     @validate()
     def post(self, qualityboard_id, round_id, body: PackageCompareSchema):
-        compare_key = f"SAME_ROUND_{round_id}_PKG_COMPARE"
+        compare_key = f"SAME_ROUND_{round_id}_{body.repo_path}_PKG_COMPARE"
         if redis_client.keys(compare_key):
             return jsonify(
                 error_code=RET.RUNTIME_ERROR,
@@ -1442,7 +1442,7 @@ class PackageListCompareEvent(Resource):
         else:
             round_group_id = round_group.id
         
-        compare_key = f"ROUND_GROUP_{round_group_id}_PKG_COMPARE"
+        compare_key = f"ROUND_GROUP_{round_group_id}_{body.repo_path}_PKG_COMPARE"
         if redis_client.keys(compare_key):
             return jsonify(
                 error_code=RET.RUNTIME_ERROR,
@@ -1632,7 +1632,7 @@ class DailyBuildPackageListCompareEvent(Resource):
                 error_code=RET.NO_DATA_ERR,
                 error_msg=f"round {comparer_round_id} does not exist.",
             )
-        compare_key = f"DAILYBUILD_{body.daily_name}_ROUND_{comparer_round.name}_PKG_COMPARE"
+        compare_key = f"DAILYBUILD_{body.daily_name}_ROUND_{comparer_round.name}_{body.repo_path}_PKG_COMPARE"
         if redis_client.keys(compare_key):
             return jsonify(
                 error_code=RET.RUNTIME_ERROR,
@@ -1862,17 +1862,18 @@ class DailyPackagCompareResultExportEvent(Resource):
                 error_code=RET.NO_DATA_ERR,
                 error_msg="round does not exist.",
             )
-        
-        daily_name = "-".join(query.compare_name.split("-")[:-1])
 
-        compare_key = f"DAILYBUILD_{daily_name}_ROUND_{comparer_round.name}_PKG_COMPARE"
+        daily_name = "-".join(query.compare_name.split("-")[:-1])
+        repo_path = query.compare_name.split("-")[-1]
+
+        compare_key = f"DAILYBUILD_{daily_name}_ROUND_{comparer_round.name}_{repo_path}_PKG_COMPARE"
         if redis_client.keys(compare_key):
             return jsonify(
                 error_code=RET.RUNTIME_ERROR,
                 error_msg=f"pkg compare between {daily_name} and "
                 f"{comparer_round.name} is in progress, please be patient and wait."
             )
-    
+
         _path = current_app.config.get("PRODUCT_PKGLIST_PATH")
         file_path = f"{_path}/{comparer_round.name}-{query.compare_name}.xls"
         result = PackagCompareResultExportHandler().get_compare_result_file(
@@ -1895,7 +1896,7 @@ class PackagCompareResultExportEvent(Resource):
                 error_code=RET.NO_DATA_ERR,
                 error_msg="round group does not exist.",
             )
-        compare_key = f"ROUND_GROUP_{rg.id}_PKG_COMPARE"
+        compare_key = f"ROUND_GROUP_{rg.id}_{query.repo_path}_PKG_COMPARE"
         if redis_client.keys(compare_key):
             return jsonify(
                 error_code=RET.RUNTIME_ERROR,
@@ -1927,7 +1928,7 @@ class SamePackagCompareResultExportEvent(Resource):
                 error_code=RET.NO_DATA_ERR,
                 error_msg="round does not exist.",
             )
-        compare_key = f"SAME_ROUND_{round_id}_PKG_COMPARE"
+        compare_key = f"SAME_ROUND_{round_id}_{query.repo_path}_PKG_COMPARE"
         if redis_client.keys(compare_key):
             return jsonify(
                 error_code=RET.RUNTIME_ERROR,
