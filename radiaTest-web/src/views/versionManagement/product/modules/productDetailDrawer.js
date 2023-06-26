@@ -310,9 +310,15 @@ watch(
   }
 );
 
+const currentPanelDetail = ref({}); // 当前软件包对比tab详细
+
+// 更改软件包比对tab
 watch(currentPanel, () => {
   packageTabValueFirst.value = 'softwarescope';
   packageTabValueSecond.value = 'everything';
+  currentPanelDetail.value = packageComparePanels.value.find((item) => {
+    return item.id === currentPanel.value;
+  });
   getPackageListComparationSummary(dashboardId.value, {
     refresh: false,
     repoPath: packageTabValueSecond.value,
@@ -519,5 +525,6 @@ export {
   roundLoading,
   roundOptions,
   roundCompareeId,
-  hasMultiVersionPackage
+  hasMultiVersionPackage,
+  currentPanelDetail
 };
