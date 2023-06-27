@@ -195,12 +195,12 @@ class FeatureQuerySchema(BaseModel):
 class PackageListQuerySchema(BaseModel):
     summary: bool = False
     refresh: bool = False
-    repo_path: Optional[Literal["everything", "EPOL"]]
+    repo_path: Optional[Literal["everything", "EPOL", "update"]]
     arch: Optional[Literal["x86_64", "aarch64", "all"]]
 
 
 class PackageCompareSchema(BaseModel):
-    repo_path: Literal["everything", "EPOL"]
+    repo_path: Literal["everything", "EPOL", "update"]
 
 
 class DailyBuildBaseSchema(BaseModel):
@@ -228,7 +228,7 @@ class SamePackageCompareQuerySchema(PageBaseSchema):
     search: Optional[str]
     compare_result_list: Optional[str]
     desc: bool = False
-    repo_path: Literal["everything", "EPOL"]
+    repo_path: Literal["everything", "EPOL", "update"]
 
     @validator("compare_result_list")
     def validate_status(cls, v):
@@ -250,7 +250,7 @@ class PackageCompareQuerySchema(SamePackageCompareQuerySchema):
 
 
 class SamePackageCompareResult(BaseModel):
-    repo_path: Literal["everything", "EPOL"]
+    repo_path: Literal["everything", "EPOL", "update"]
     new_result: bool = False
 
 
@@ -310,4 +310,4 @@ class RoundIssueQueryV8(BaseModel):
 
 
 class QueryRepeatRpmSchema(PageBaseSchema):
-    repo_path: Literal["everything", "EPOL"]
+    repo_path: Literal["everything", "EPOL", "update"]

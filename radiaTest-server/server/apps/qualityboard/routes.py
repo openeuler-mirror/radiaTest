@@ -1237,6 +1237,17 @@ class PackageListEvent(Resource):
                 error_code=RET.NO_DATA_ERR,
                 error_msg="qualityboard doesn't exist.",
             )
+        _round = Round.query.get(round_id)
+        if not _round:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="round does not exist.",
+            )
+        if query.repo_path == "update" and _round.type == "round":
+            return jsonify(
+                error_code=RET.RUNTIME_ERROR,
+                error_msg="when repo_path is update, round must be release version",
+            )
         if query.refresh:
             _round = Round.query.filter_by(id=round_id).first()
             if not _round:
@@ -1279,7 +1290,6 @@ class PackageListEvent(Resource):
         pkgs_dict, _ = RpmNameLoader.rpmlist2rpmdict(_pkgs)
 
         if query.summary:
-            _round = Round.query.filter_by(id=round_id).first()
             cnt = db.session.query(func.count(RepeatRpm.id)).filter_by(
                 round_id=round_id,
                 repo_path=query.repo_path,
@@ -1306,6 +1316,18 @@ class SamePackageListCompareEvent(Resource):
     @response_collect
     @validate()
     def post(self, qualityboard_id, round_id, body: PackageCompareSchema):
+        _round = Round.query.get(round_id)
+        if not _round:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="round does not exist.",
+            )
+ 
+        if body.repo_path == "update" and _round.type == "round":
+            return jsonify(
+                error_code=RET.RUNTIME_ERROR,
+                error_msg="when repo_path is update, round must be release version",
+            )
         compare_key = f"SAME_ROUND_{round_id}_{body.repo_path}_PKG_COMPARE"
         if redis_client.keys(compare_key):
             return jsonify(
@@ -1350,6 +1372,17 @@ class SamePackageListCompareEvent(Resource):
     @response_collect
     @validate()
     def get(self, qualityboard_id, round_id, query: SamePackageCompareQuerySchema):
+        _round = Round.query.get(round_id)
+        if not _round:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="round does not exist.",
+            )
+        if query.repo_path == "update" and _round.type == "round":
+            return jsonify(
+                error_code=RET.RUNTIME_ERROR,
+                error_msg="when repo_path is update, round must be release version",
+            )
         _lack_num = db.session.query(
             func.count(SameRpmCompare.id)
         ).filter(
@@ -1441,7 +1474,15 @@ class PackageListCompareEvent(Resource):
             ).insert_id()
         else:
             round_group_id = round_group.id
-        
+
+        comparee_round = Round.query.get(comparee_round_id)
+        comparer_round = Round.query.get(comparer_round_id)
+        if body.repo_path == "update" and (comparee_round.type == "round" or comparer_round.type == "round"):
+            return jsonify(
+                error_code=RET.RUNTIME_ERROR,
+                error_msg="when repo_path is update, both comparee_round and comparer_round must be release version",
+            )
+
         compare_key = f"ROUND_GROUP_{round_group_id}_{body.repo_path}_PKG_COMPARE"
         if redis_client.keys(compare_key):
             return jsonify(
@@ -1542,7 +1583,14 @@ class PackageListCompareEvent(Resource):
                     comparer_round_id
                 )
             )
-        
+        comparee_round = Round.query.get(comparee_round_id)
+        comparer_round = Round.query.get(comparer_round_id)
+        if query.repo_path == "update" and (comparee_round.type == "round" or comparer_round.type == "round"):
+            return jsonify(
+                error_code=RET.RUNTIME_ERROR,
+                error_msg="when repo_path is update, both comparee_round and comparer_round must be release version",
+            )
+
         _add_num = db.session.query(
             func.count(RpmCompare.id)
         ).filter(
@@ -1896,6 +1944,13 @@ class PackagCompareResultExportEvent(Resource):
                 error_code=RET.NO_DATA_ERR,
                 error_msg="round group does not exist.",
             )
+        comparee_round = Round.query.get(comparee_round_id)
+        comparer_round = Round.query.get(comparer_round_id)
+        if query.repo_path == "update" and (comparee_round.type == "round" or comparer_round.type == "round"):
+            return jsonify(
+                error_code=RET.RUNTIME_ERROR,
+                error_msg="when repo_path is update, both comparee_round and comparer_round must be release version",
+            )
         compare_key = f"ROUND_GROUP_{rg.id}_{query.repo_path}_PKG_COMPARE"
         if redis_client.keys(compare_key):
             return jsonify(
@@ -1903,8 +1958,6 @@ class PackagCompareResultExportEvent(Resource):
                 error_msg=f"pkg compare between round {comparee_round_id} and "
                 f"round {comparer_round_id} is in progress, please be patient and wait."
             )
-        comparer_round = Round.query.get(comparer_round_id)
-        comparee_round = Round.query.get(comparee_round_id)
         _path = current_app.config.get("PRODUCT_PKGLIST_PATH")
         file_path = f"{_path}/{comparer_round.name}-{comparee_round.name}-{query.repo_path}.xls"
         result = PackagCompareResultExportHandler(
@@ -1927,6 +1980,11 @@ class SamePackagCompareResultExportEvent(Resource):
             return jsonify(
                 error_code=RET.NO_DATA_ERR,
                 error_msg="round does not exist.",
+            )
+        if query.repo_path == "update" and _round.type == "round":
+            return jsonify(
+                error_code=RET.RUNTIME_ERROR,
+                error_msg="when repo_path is update, round must be release version",
             )
         compare_key = f"SAME_ROUND_{round_id}_{query.repo_path}_PKG_COMPARE"
         if redis_client.keys(compare_key):
