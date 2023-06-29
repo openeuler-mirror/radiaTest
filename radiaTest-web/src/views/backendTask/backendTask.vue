@@ -2,7 +2,7 @@
   <div class="container">
     <div class="task-header">
       <n-h2>后台任务</n-h2>
-      <n-inpu
+      <n-input
         v-model:value="searchInfo"
         round
         placeholder="请输入"
