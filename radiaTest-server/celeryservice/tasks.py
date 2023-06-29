@@ -361,6 +361,7 @@ def resolve_pkglist_after_resolve_rc_name(repo_url, store_path, product, round_n
 
     _repo_url = repo_url
     product_version = f"{store_path}/{product}"
+    repo_paths = ["everything", "EPOL/main", "update"]
     if round_num :
         product_version = f'{product_version}-round-{round_num}'
         resp = requests.get(repo_url)
@@ -381,8 +382,9 @@ def resolve_pkglist_after_resolve_rc_name(repo_url, store_path, product, round_n
             logger.error(output)
             return
         _repo_url = f'{_repo_url}/{output}'
+        repo_paths = repo_paths[:-1]
 
-    for repo_path in ["everything", "EPOL/main"]:
+    for repo_path in repo_paths:
         product_version_repo = f"{product_version}-{repo_path.split('/')[0]}"
         for arch in ["aarch64", "x86_64"]:
             _url =  f"{_repo_url}/{repo_path}/{arch}/Packages/"
