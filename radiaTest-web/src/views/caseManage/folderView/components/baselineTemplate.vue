@@ -632,10 +632,10 @@ function getTemplateList() {
   });
 }
 
+// 编辑基线模板
 function submitEditCallback() {
   updateBaselineTemplate(checkedItem.value.id, editForm.value)
     .then(() => {
-      message.success('修改成功');
       getTemplateList();
     })
     .finally(() => {
@@ -655,7 +655,6 @@ function submitDeleteCallback() {
 // 编辑节点
 function submitNodeEditCallback() {
   updateBaseNode(selectedNode.value.id, nodeEditForm.value).then(() => {
-    message.success('编辑成功');
     nodeEditForm.value.title = undefined;
     showNodeEditModal.value = false;
     getBaselineTemplateItem(checkedItem.value.id)

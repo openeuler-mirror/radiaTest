@@ -361,6 +361,12 @@
                         >
                           <n-tab name="everything"> everything </n-tab>
                           <n-tab name="EPOL"> EPOL </n-tab>
+                          <n-tab
+                            name="update"
+                            v-if="currentPanelDetail.type === 'release' && currentRound.type === 'release'"
+                          >
+                            update
+                          </n-tab>
                         </n-tabs>
                         <div class="packageCard" v-show="packageTabValueFirst !== 'homonymousIsomerism'">
                           <div class="package-left">
