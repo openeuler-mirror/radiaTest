@@ -416,6 +416,7 @@ class Round(BaseModel, db.Model):
             return [{
                 "id": round_.id,
                 "name": round_.name,
+                "type": round_.type,
             } for round_ in rounds]
         else:
             return []
