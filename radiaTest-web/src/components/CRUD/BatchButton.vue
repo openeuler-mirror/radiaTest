@@ -11,7 +11,7 @@
 </template>
 
 <script>
-import { ref, watch, computed, defineComponent } from 'vue';
+import { computed, defineComponent, ref, watch } from 'vue';
 import { useStore } from 'vuex';
 
 export default defineComponent({
@@ -25,11 +25,7 @@ export default defineComponent({
     const selectedData = computed(() => store.getters.selectedData);
     const deletedData = computed(() => store.getters.deletedData);
     watch([selectedData, deletedData], () => {
-      if (selectedData.value.length - deletedData.value.length === 0) {
-        disabled.value = true;
-      } else {
-        disabled.value = false;
-      }
+      disabled.value = selectedData.value.length - deletedData.value.length === 0;
     });
     return {
       disabled,

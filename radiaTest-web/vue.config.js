@@ -1,3 +1,5 @@
+const path = require('path');
+const NodePolyfillPlugin = require('node-polyfill-webpack-plugin');
 module.exports = {
   pwa: {
     iconPaths: {
@@ -13,6 +15,20 @@ module.exports = {
       args[0].title = 'radiaTest测试平台';
       return args;
     });
+    config.module
+      .rule('md')
+      .test(/\.md/)
+      .use('html-loader')
+      .loader('html-loader')
+      .end()
+      .use('remark-loader')
+      .loader('remark-loader')
+      .options({
+        remarkOptions: {
+          plugins: [
+            import('remark-html')]
+        }
+      });
   },
   productionSourceMap: false,
   configureWebpack: {
@@ -23,8 +39,15 @@ module.exports = {
           enabled: true
         }
       }),
-      require('unplugin-vue-components/webpack')({ dts: true })
-    ]
+      require('unplugin-vue-components/webpack')({dts: true}),
+      new NodePolyfillPlugin()
+    ],
+    resolve: {
+      // 配置路径别名
+      alias: {
+        '@': path.resolve(__dirname, 'src'),
+      },
+    },
   },
   devServer: {
     host: '10.211.55.3',
@@ -38,17 +61,17 @@ module.exports = {
     compress: true,
     proxy: {
       '/api': {
-        target: 'http://10.211.55.3:21500/',
+        target: 'http://0.0.0.0:21500/',
         changeOrigin: true,
         secure: false
       },
       '/static': {
-        target: 'http://10.211.55.3:21500/',
+        target: 'http://0.0.0.0:21500/',
         changeOrigin: true,
         secure: false
       },
       '/socket.io': {
-        target: 'http://10.211.55.3:21500/',
+        target: 'http://0.0.0.0:21500/',
         changeOrigin: true,
         // ws: true,
       },

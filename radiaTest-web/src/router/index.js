@@ -45,6 +45,10 @@ import Product from '@/views/versionManagement/product/product.vue';
 import Milestone from '@/views/versionManagement/milestone/milestone.vue';
 import NotFound from '@/views/resultPage/NotFound.vue';
 import Workspaces from '@/views/home/Workspaces.vue';
+import Notice from '@/views/home/Notice.vue';
+import NoticeDetail from '@/views/home/NoticeDetail.vue';
+import Doc from '@/views/home/Doc.vue';
+import DocDetail from '@/views/home/DocDetail.vue';
 
 const routerHistory = createWebHistory();
 const router = createRouter({
@@ -68,7 +72,31 @@ const router = createRouter({
           component: Workspaces,
           meta: {
             title: 'raidaTest测试平台'
-          }
+          },
+        },
+        {
+          path: 'notice/',
+          component: Notice,
+          name: 'notice',
+          children: [
+            {
+              path: ':title',
+              component: NoticeDetail,
+              name: 'noticeDetail',
+            }
+          ]
+        },
+        {
+          path: 'doc/',
+          component: Doc,
+          name: 'doc',
+          children: [
+            {
+              path: ':title',
+              component: DocDetail,
+              name: 'docDetail'
+            }
+          ]
         },
         {
           path: 'ws/:workspace/workbench',
