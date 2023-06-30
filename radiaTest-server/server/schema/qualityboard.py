@@ -195,12 +195,12 @@ class FeatureQuerySchema(BaseModel):
 class PackageListQuerySchema(BaseModel):
     summary: bool = False
     refresh: bool = False
-    repo_path: Optional[Literal["everything", "EPOL", "update"]]
+    repo_path: Optional[Literal["everything", "EPOL", "update", "source"]]
     arch: Optional[Literal["x86_64", "aarch64", "all"]]
 
 
 class PackageCompareSchema(BaseModel):
-    repo_path: Literal["everything", "EPOL", "update"]
+    repo_path: Literal["everything", "EPOL", "update", "source"]
 
 
 class DailyBuildBaseSchema(BaseModel):
@@ -240,6 +240,7 @@ class SamePackageCompareQuerySchema(PageBaseSchema):
 
 class PackageCompareQuerySchema(SamePackageCompareQuerySchema):
     arches: Optional[str]
+    repo_path: Literal["everything", "EPOL", "update", "source"]
 
     @validator("arches")
     def validate_arches(cls, v):
@@ -247,6 +248,12 @@ class PackageCompareQuerySchema(SamePackageCompareQuerySchema):
             return json.loads(v)
 
         raise ValueError("the format of arches is not valid")
+
+    @root_validator
+    def check_validation(cls, values):
+        if values.get("repo_path") == "source" and values.get("arches") is not None:
+            raise ValueError("when repo_path is source, arches must be None.")
+        return values
 
 
 class SamePackageCompareResult(BaseModel):
@@ -256,6 +263,7 @@ class SamePackageCompareResult(BaseModel):
 
 class PackageCompareResult(SamePackageCompareResult):
     arches: Optional[str]
+    repo_path: Literal["everything", "EPOL", "update", "source"]
 
     @validator("arches")
     def validate_arches(cls, v):
@@ -263,6 +271,12 @@ class PackageCompareResult(SamePackageCompareResult):
             return json.loads(v)
 
         raise ValueError("the format of arches is not valid")
+
+    @root_validator
+    def check_validation(cls, values):
+        if values.get("repo_path") == "source" and values.get("arches") is not None:
+            raise ValueError("when repo_path is source, arches must be None.")
+        return values
 
 
 class QueryQualityResultSchema(BaseModel):
