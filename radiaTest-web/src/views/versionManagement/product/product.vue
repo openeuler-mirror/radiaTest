@@ -361,6 +361,7 @@
                         >
                           <n-tab name="everything"> everything </n-tab>
                           <n-tab name="EPOL"> EPOL </n-tab>
+                          <n-tab name="source"> source </n-tab>
                           <n-tab
                             name="update"
                             v-if="currentPanelDetail.type === 'release' && currentRound.type === 'release'"

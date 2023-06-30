@@ -1,7 +1,10 @@
 <template>
   <n-checkbox-group v-model:value="archesParam" :min="1">
     <n-space justify="space-between">
-      <n-space item-style="display: flex;" v-show="packageTabValueFirst === 'softwarescope'">
+      <n-space
+        item-style="display: flex;"
+        v-show="packageTabValueFirst === 'softwarescope' && packageTabValueSecond !== 'source'"
+      >
         <n-checkbox value="aarch64" label="aarch64" />
         <n-checkbox value="x86_64" label="x86_64" />
         <n-checkbox value="noarch" label="noarch" />
@@ -269,6 +272,14 @@ const frameworkPagination = reactive({
   }
 });
 
+// 处理arches参数
+const archesAxiosParam = computed(() => {
+  if (packageTabValueSecond.value === 'source') {
+    return null;
+  }
+  return JSON.stringify(archesParam.value);
+});
+
 // 获取比对数据
 function getData(qualityboardIdParam, roundCompareeIdParam, roundCurIdParam) {
   loading.value = true;
@@ -276,7 +287,7 @@ function getData(qualityboardIdParam, roundCompareeIdParam, roundCurIdParam) {
   if (packageTabValueFirst.value === 'softwarescope') {
     getPackageListComparationDetail(qualityboardIdParam, roundCompareeIdParam, roundCurIdParam, {
       compare_result_list: JSON.stringify(compareResultColumn.filterOptionValues),
-      arches: JSON.stringify(archesParam.value),
+      arches: archesAxiosParam.value,
       ...thisParams.value,
       page_num: softwarescopePagination.page,
       page_size: softwarescopePagination.pageSize
@@ -381,7 +392,7 @@ const exportPackageComparationFn = () => {
     axiosUrl = `/v1/round/${roundCompareeId.value}/with/${roundCurId.value}/pkg-compare-result-export`;
     param = {
       repo_path: packageTabValueSecond.value,
-      arches: JSON.stringify(archesParam.value)
+      arches: archesAxiosParam.value
     };
   } else {
     axiosUrl = `/v1/round/${roundCurId.value}/pkg-compare-result-export`;
