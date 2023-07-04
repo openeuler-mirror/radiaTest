@@ -552,11 +552,13 @@ class PackageListHandler:
     def get_packages(self):
         _path = current_app.config.get("PRODUCT_PKGLIST_PATH")
         _product_version = f"{self._round.product.name}-{self._round.product.version}"
-        _filename = f"{_product_version}-{self.repo_path}-{self.arch}"
+        _filename = f"{_product_version}-{self.repo_path}"
         _round = None
         if self._round.type == "round":
             _round = self._round.round_num
-            _filename = f"{_product_version}-round-{_round}-{self.repo_path}-{self.arch}"
+            _filename = f"{_product_version}-round-{_round}-{self.repo_path}"
+        if self.arch != "":
+            _filename = f"{_filename}-{self.arch}"
 
         try:
             return RpmNameLoader.load_rpmlist_from_file(
@@ -846,10 +848,14 @@ class PackagCompareResultExportHandler:
 
     def get_pkg_compare_result(self):
         wb = None
-        pkg_results = RpmCompare.query.filter(
+        filter_param = [
             RpmCompare.round_group_id == self.rg.id,
-            RpmCompare.repo_path == self.repo_path,
-            RpmCompare.arch.in_(self.arches),
+            RpmCompare.repo_path == self.repo_path
+        ]
+        if self.arches is not None:
+            filter_param.append(RpmCompare.arch.in_(self.arches))
+        pkg_results = RpmCompare.query.filter(
+            *filter_param
         ).all()
         if not pkg_results:
             return wb
@@ -860,15 +866,22 @@ class PackagCompareResultExportHandler:
         ws = wb.add_sheet(f"{self.repo_path}")
         ws.write(0, 0, comparer_round.name)
         ws.write(0, 1, comparee_round.name)
-        ws.write(0, 2, "arch")
-        ws.write(0, 3, "compare result")
-        
-        for pkg_result in pkg_results:
-            ws.write(cnt, 0, pkg_result.rpm_comparee)
-            ws.write(cnt, 1, pkg_result.rpm_comparer)
-            ws.write(cnt, 2, pkg_result.arch)
-            ws.write(cnt, 3, pkg_result.compare_result)
-            cnt += 1
+        if self.repo_path == "source":
+            ws.write(0, 2, "compare result")
+            for pkg_result in pkg_results:
+                ws.write(cnt, 0, pkg_result.rpm_comparee)
+                ws.write(cnt, 1, pkg_result.rpm_comparer)
+                ws.write(cnt, 2, pkg_result.compare_result)
+                cnt += 1
+        else:
+            ws.write(0, 2, "arch")
+            ws.write(0, 3, "compare result")
+            for pkg_result in pkg_results:
+                ws.write(cnt, 0, pkg_result.rpm_comparee)
+                ws.write(cnt, 1, pkg_result.rpm_comparer)
+                ws.write(cnt, 2, pkg_result.arch)
+                ws.write(cnt, 3, pkg_result.compare_result)
+                cnt += 1
         return wb
 
     def get_same_pkg_compare_result(self):

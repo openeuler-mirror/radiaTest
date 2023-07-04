@@ -1491,16 +1491,17 @@ class PackageListCompareEvent(Resource):
                 f"round {comparer_round_id} is in progress, please be patient and wait."
             )
 
+        arch = "" if body.repo_path == "source" else "all"
         try:
             comparer = PackageListHandler(
                 comparer_round_id,
                 body.repo_path,
-                "all"
+                arch
             )
             comparee = PackageListHandler(
                 comparee_round_id,
                 body.repo_path,
-                "all"
+                arch
             )
         except RuntimeError as e:
             return jsonify(
@@ -1556,9 +1557,9 @@ class PackageListCompareEvent(Resource):
                     )
                     db.session.add(_repeat_rpm)
                     db.session.commit()
-        
-        add_repeat_rpm(body.repo_path, comparer_round_id, repeat_rpm_list_comparer)
-        add_repeat_rpm(body.repo_path, comparee_round_id, repeat_rpm_list_comparee)
+        if body.repo_path in ["everything", "EPOL"]:
+            add_repeat_rpm(body.repo_path, comparer_round_id, repeat_rpm_list_comparer)
+            add_repeat_rpm(body.repo_path, comparee_round_id, repeat_rpm_list_comparee)
 
         update_compare_result.delay(round_group_id, compare_results, body.repo_path)
         return jsonify(

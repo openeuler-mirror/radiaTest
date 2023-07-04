@@ -387,26 +387,10 @@ def resolve_pkglist_after_resolve_rc_name(repo_url, store_path, product, round_n
     for repo_path in repo_paths:
         product_version_repo = f"{product_version}-{repo_path.split('/')[0]}"
         for arch in ["aarch64", "x86_64"]:
-            _url =  f"{_repo_url}/{repo_path}/{arch}/Packages/"
-            resp = requests.get(_url)
-            if resp.status_code != 200:
-                logger.error("Could not connect to the url: {}".format(_url))
-                return
-            resp.encoding = 'utf-8'
-            # 写入网页内容到文件中
+            _url = f"{_repo_url}/{repo_path}/{arch}/Packages/"
             tmp_file_name = f"{product_version_repo}-{arch}-html.txt"
-            with open(tmp_file_name, "wb") as f:
-                f.write(resp.content)
-                f.close()
-
-            exitcode, output = subprocess.getstatusoutput(
-                f"cat {tmp_file_name} | " 
-                + "grep 'title=' | awk -F 'title=\"' '{print $2}' | awk -F '\">' '{print $1}' | grep '.rpm' | uniq >" 
-                + f"{product_version_repo}-{arch}.pkgs"
-            )
-            if exitcode != 0:
-                logger.error(output)
-                return
+            pkg_file = f"{product_version_repo}-{arch}.pkgs"
+            get_pkg_file(_url, tmp_file_name, pkg_file)
 
         exitcode, output = subprocess.getstatusoutput(
             f"sort {product_version_repo}-aarch64.pkgs"
@@ -415,6 +399,32 @@ def resolve_pkglist_after_resolve_rc_name(repo_url, store_path, product, round_n
         if exitcode != 0:
             logger.error(output)
             return
+
+    _url =  f"{_repo_url}/source/Packages/"
+    tmp_file_name = f"{product_version}-source-html.txt"
+    pkg_file = f"{product_version}-source.pkgs"
+    get_pkg_file(_url, tmp_file_name, pkg_file)
+
+    def get_pkg_file(url, tmp_file_name, pkg_file):
+        resp = requests.get(url)
+        if resp.status_code != 200:
+            logger.error("Could not connect to the url: {}".format(url))
+            return
+        resp.encoding = 'utf-8'
+        # 写入网页内容到文件中
+        with open(tmp_file_name, "wb") as f:
+            f.write(resp.content)
+            f.close()
+
+        exitcode, output = subprocess.getstatusoutput(
+            f"cat {tmp_file_name} | " 
+            + "grep 'title=' | awk -F 'title=\"' '{print $2}' | awk -F '\">' '{print $1}' | grep '.rpm' | uniq >" 
+            + f"{pkg_file}"
+        )
+        if exitcode != 0:
+            logger.error(output)
+            return
+
     _, _ = subprocess.getstatusoutput(
         f"rm -f {store_path}/{product}*html.txt"
     )
