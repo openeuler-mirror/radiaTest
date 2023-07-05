@@ -4,6 +4,7 @@
       <testsuite-create
         ref="putFormRef"
         :data="suiteInfo"
+        @getDataEmit="getData"
         @close="
           () => {
             putModalRef.close();
@@ -23,14 +24,16 @@
     :row-key="(row) => row.id"
   />
 </template>
-<script>
-import { h, ref } from 'vue';
+<script setup>
 import { NIcon, NButton, NSpace } from 'naive-ui';
 import { Construct } from '@vicons/ionicons5';
-import Common from '@/components/CRUD';
+import { Delete24Regular } from '@vicons/fluent';
 import testsuiteCreate from '@/components/testsuiteComponents/testsuiteCreate.vue';
 import { renderTooltip } from '@/assets/render/tooltip';
 import { workspace } from '@/assets/config/menu.js';
+import axios from '@/axios';
+import { deleteSuiteAxios } from '@/api/delete';
+import textDialog from '@/assets/utils/dialog';
 
 const baseColumns = [
   {
@@ -74,71 +77,78 @@ function createBtn(type, icon, text, clickFn, row) {
     text
   );
 }
-export default {
-  components: { ...Common, testsuiteCreate },
-  methods: {
-    getData() {
-      this.loading = true;
-      this.$axios.get(`/v1/ws/${workspace.value}/suite`).then((res) => {
-        this.data = res.data;
-        this.loading = false;
-      });
+
+function getData() {
+  loading.value = true;
+  axios.get(`/v1/ws/${workspace.value}/suite`).then((res) => {
+    data.value = res.data;
+    loading.value = false;
+  });
+}
+
+function setPagination() {
+  pagination.value = {
+    page: 1,
+    showSizePicker: true,
+    pageSize: 10,
+    pageSizes: [5, 10, 20, 50],
+    onChange: (page) => {
+      pagination.value.page = page;
     },
-    setPagination() {
-      this.pagination = {
-        page: 1,
-        showSizePicker: true,
-        pageSize: 10,
-        pageSizes: [5, 10, 20, 50],
-        onChange: (page) => {
-          this.pagination.page = page;
+    onPageSizeChange: (pageSize) => {
+      pagination.value.pageSize = pageSize;
+      pagination.value.page = 1;
+    }
+  };
+}
+
+const suiteInfo = ref();
+const putModalRef = ref(null);
+
+function editSuite(row) {
+  suiteInfo.value = row;
+  putModalRef.value.show();
+}
+
+function deleteSuite(row) {
+  textDialog('warning', '警告', '你确定要删除此测试套吗?', async () => {
+    await deleteSuiteAxios(row.id);
+    pagination.value.page = 1;
+    getData();
+  });
+}
+
+const data = ref([]);
+const columns = [
+  ...baseColumns,
+  {
+    title: '操作',
+    key: 'action',
+    align: 'center',
+    render: (row) => {
+      return h(
+        NSpace,
+        {
+          justify: 'center',
+          align: 'cemter'
         },
-        onPageSizeChange: (pageSize) => {
-          this.pagination.pageSize = pageSize;
-          this.pagination.page = 1;
-        }
-      };
+        [
+          createBtn('warning', Construct, '修改', editSuite, row),
+          createBtn('error', Delete24Regular, '删除', deleteSuite, row)
+        ]
+      );
     }
-  },
-  mounted() {
-    this.getData();
-    this.setPagination();
-  },
-  setup() {
-    const suiteInfo = ref();
-    const putModalRef = ref(null);
-    function editSuite(row) {
-      suiteInfo.value = row;
-      putModalRef.value.show();
-    }
-    const data = ref([]);
-    const columns = [
-      ...baseColumns,
-      {
-        title: '操作',
-        key: 'action',
-        align: 'center',
-        render: (row) => {
-          return h(
-            NSpace,
-            {
-              justify: 'center',
-              align: 'cemter'
-            },
-            [createBtn('warning', Construct, '修改', editSuite, row)]
-          );
-        }
-      }
-    ];
-    return {
-      columns,
-      data,
-      pagination: ref(),
-      loading: ref(false),
-      putModalRef,
-      suiteInfo,
-      putFormRef: ref(null)
-    };
   }
-};
+];
+
+const pagination = ref();
+const loading = ref(false);
+const putFormRef = ref(null);
+
+onMounted(() => {
+  getData();
+  setPagination();
+});
+
+defineExpose({ data, getData, pagination });
 </script>
