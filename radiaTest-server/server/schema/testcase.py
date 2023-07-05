@@ -175,25 +175,8 @@ class SuiteBase(BaseModel):
             raise ValueError("The type of add_disk is not validate.") from e
 
 
-
 class SuiteCreate(SuiteBase):
     name: str
-    parent_id: int
-
-
-class SuiteCreateBody(SuiteCreate, CaseNodeBodySchema):
-    parent_id: int
-    title: Optional[str] = None
-    type: Optional[CaseNodeType] = "suite"
-
-
-    @root_validator
-    def validate_suite(cls, values):
-        if not values["title"]:
-            values["title"] = values["name"]
-        if values["type"] != "suite":
-            raise ValueError("The case_node type should be suite.")
-        return values
 
 
 class SuiteUpdate(SuiteBase):
@@ -204,16 +187,23 @@ class DeleteSchema(BaseModel):
     case_node_id:  Optional[int]
 
 
-class SuiteCaseNodeUpdate(SuiteBase):
+class SuiteBaseUpdate(BaseModel):
     name: Optional[str]
-    title: Optional[str]
-    
+    machine_num: Optional[int]
+    machine_type: Optional[MachineType]
+    add_network_interface: Optional[int]
+    add_disk: Optional[str]
+    remark: Optional[str]
 
-    @root_validator
-    def validate_suite(cls, values):
-        if values["name"] and not values["title"]:
-            values["title"] = values["name"]
-        return values
+    @validator("add_disk")
+    def check_add_disk(cls, v):
+        try:
+            if v:
+                disks = list(map(int, v.strip().split(",")))
+                _ = [int(disk) for disk in disks]
+            return v
+        except (ValueError, AttributeError, TypeError) as e:
+            raise ValueError("The type of add_disk is not validate.") from e
 
 
 class SuiteDirectoryUpdate(BaseModel):
