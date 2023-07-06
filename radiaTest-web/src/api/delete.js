@@ -112,3 +112,8 @@ export function deleteDailyBuild(data) {
 export function deleteDailyBuildCompare(roundId, data) {
   return deleteRequest(`/v1/qualityboard/daily-build/with/round/${roundId}/pkg-compare`, data);
 }
+
+// 删除测试套
+export function deleteSuiteAxios(suiteId, data) {
+  return deleteRequest(`/v1/suite/${suiteId}`, data);
+}
