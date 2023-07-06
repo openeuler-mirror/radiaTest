@@ -772,7 +772,7 @@ class RoundHandler:
 
     @staticmethod
     def update_round_issue_rate(round_id):
-        from celeryservice.lib.issuerate import UpdateIssueRate
+        from celeryservice.lib.issuerate import UpdateIssueRateData
         _round = Round.query.filter_by(
             id=round_id).first()
         if not _round:
@@ -788,10 +788,10 @@ class RoundHandler:
                 {"round_id": round_id, "type": "round"}
             ).single()
 
-        UpdateIssueRate.update_round_issue_resolved_rate(
-            {"product_id": _round.product_id, "org_id": _round.product.org_id},
-            round_id
+        uird = UpdateIssueRateData(
+           {"product_id": _round.product_id, "org_id": _round.product.org_id} 
         )
+        uird.update_issue_resolved_rate_round(round_id)
         return jsonify(
             error_code=RET.OK,
             error_msg="OK",
