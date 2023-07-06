@@ -147,6 +147,8 @@ class Suite(PermissionBaseModel, BaseModel, db.Model):
     remark = db.Column(LONGTEXT(), nullable=True)
     owner = db.Column(db.String(64), nullable=True)
     deleted = db.Column(db.Boolean(), nullable=False, default=False)
+    #测试套来源，默认是代码仓：project，手动创建：manual
+    source_type = db.Column(db.Enum("project", "manual"), nullable=False, default="project")
 
     git_repo_id = db.Column(db.Integer(), db.ForeignKey("git_repo.id"))
 
@@ -172,13 +174,7 @@ class Suite(PermissionBaseModel, BaseModel, db.Model):
 
         if self.git_repo_id:
             git_repo_dict = self.git_repo.to_json()
-
-            _framework = Framework.query.filter_by(
-                id=self.git_repo.framework_id
-            ).first()
-
-            if _framework is not None:
-                framework = _framework.to_json()
+            framework = git_repo_dict.get("framework")
 
         return {
             "id": self.id,
@@ -189,6 +185,7 @@ class Suite(PermissionBaseModel, BaseModel, db.Model):
             "add_network_interface": self.add_network_interface,
             "add_disk": self.add_disk,
             "remark": self.remark,
+            "source_type": self.source_type,
             "git_repo": git_repo_dict,
             "framework": framework,
             "group_id": self.group_id,

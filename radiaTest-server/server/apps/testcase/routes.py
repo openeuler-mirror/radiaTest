@@ -56,8 +56,7 @@ from server.schema.testcase import (
     SuiteDocumentUpdateSchema,
     SuiteDocumentQuerySchema,
     BaselineCreateSchema,
-    SuiteCreateBody,
-    SuiteCaseNodeUpdate,
+    SuiteBaseUpdate,
     CaseCaseNodeUpdate,
     CaseNodeRelateSchema,
     ResourceQuerySchema,
@@ -77,6 +76,7 @@ from server.apps.testcase.handler import (
     CaseSetHandler,
 )
 from server.utils.resource_utils import ResourceManager
+from server import db
 
 
 class CaseNodeEvent(Resource):
@@ -150,8 +150,7 @@ class SuiteEvent(Resource):
     @response_collect
     @validate()
     def post(self, body: SuiteCreate):
-        return_data = dict()
-        suite_body = SuiteCreate(**body.__dict__).dict()
+        suite_body = body.__dict__
         
         suites = Suite.query.filter_by(name=suite_body["name"]).all()
         if suites:
@@ -162,25 +161,14 @@ class SuiteEvent(Resource):
                 ),
             )
 
-        suite_body.update({"creator_id": g.user_id})
         suite_body.update({
+            "source_type": "manual",
+            "creator_id": g.user_id,
+            "permission_type": "org",
             "org_id": redis_client.hget(RedisKey.user(g.user_id), 'current_org_id')
         })
-        _id = Insert(Suite, suite_body).insert_id(Suite, "/suite")
-        return_data["suite_id"] = _id
-
-        suite_body.update({"suite_id": _id})
-
-        _body = SuiteCreateBody(**suite_body)
-        _resp =  CaseNodeHandler.create(_body)
-        _resp = json.loads(_resp.data.decode('UTF-8'))
-        if _resp.get("error_code") != RET.OK:
-            return jsonify(
-                error_code=RET.BAD_REQ_ERR,
-                error_msg="Create case_node error."
-            )
-        return_data["case_node_id"] = _resp.get("data")
-        return jsonify(error_code=RET.OK, error_msg="OK", data=return_data)
+        _ = Insert(Suite, suite_body).insert_id(Suite, "/suite")
+        return jsonify(error_code=RET.OK, error_msg="OK")
 
 
     @auth.login_required()
@@ -280,15 +268,17 @@ class SuiteItemEvent(Resource):
     @auth.login_required()
     @response_collect
     @validate()
-    def put(self, suite_id, body: SuiteCaseNodeUpdate):
-        suite = Suite.query.filter_by(id=suite_id).first()
+    def put(self, suite_id, body: SuiteBaseUpdate):
+        suite = Suite.query.filter_by(
+            id=suite_id,
+            source_type="manual",
+        ).first()
         if not suite:
             return jsonify(
                 error_code=RET.NO_DATA_ERR,
-                error_msg="the suite does not exist"
+                error_msg="the suite does not exist, or no right"
             )
 
-        
         if body.name and body.name != suite.name:
             suites = Suite.query.filter_by(name=body.name).all()
             if suites:
@@ -302,29 +292,6 @@ class SuiteItemEvent(Resource):
         _data = body.__dict__
         _data.update({"id": suite_id})
         Edit(Suite, body.__dict__).single(Suite, "/suite")
-
-        if body.name and body.name != suite.name: 
-            case_nodes = CaseNode.query.filter(
-                CaseNode.suite_id==suite_id,
-            ).all()
-
-            if not case_nodes:
-                return jsonify(
-                    error_code=RET.NO_DATA_ERR,
-                    error_msg="the case_node does not exist"
-                )
-
-            return_resp = [
-                CaseNodeHandler.update(
-                    case_node.id, body
-                ) for case_node in case_nodes
-            ]
-
-            for resp in return_resp:
-                _resp = json.loads(resp.response[0])
-                if _resp.get("error_code") != RET.OK:
-                    return _resp
-            
         return jsonify(error_code=RET.OK, error_msg="OK")
 
 
@@ -332,18 +299,46 @@ class SuiteItemEvent(Resource):
     @response_collect
     @validate()
     def delete(self, suite_id):
-        case_node = CaseNode.query.filter(
-            CaseNode.suite_id == suite_id,
-            CaseNode.type == "suite",
-            CaseNode.baseline_id.is_(None)
-            ).first()
-        if not case_node:
+        suite = Suite.query.filter_by(
+            id=suite_id,
+            source_type="manual",
+        ).first()
+        if not suite:
             return jsonify(
                 error_code=RET.NO_DATA_ERR,
-                error_msg="the case_node does not exist"
+                error_msg="suite does not exist, or no right."
             )
-        Delete(CaseNode, {"id": case_node.id}).single(CaseNode, "/case_node")
-        return Delete(Suite, {"id": suite_id}).single(Suite, "/suite")
+        case_nodes = CaseNode.query.filter(
+            CaseNode.suite_id == suite_id,
+            CaseNode.type == "suite",
+        ).all()
+
+        source = list()
+        for _case_node in case_nodes:
+            cur = _case_node
+            node_path = ""
+            while cur:
+                if not cur.parent.all():
+                    node_path = cur.title + "->" + node_path
+                    break
+                if len(cur.parent.all()) > 1:
+                    raise RuntimeError(
+                        "case_node should not have parents beyond one")
+                node_path = cur.title + "->" + node_path
+                cur = cur.parent[0]
+            source.append(node_path[:-2])
+        if len(source) > 0:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg=f"there are case nodes associated with suite {suite.name}",
+                data=source
+            )
+        db.session.delete(suite)
+        db.session.commit()
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK.",
+        )
 
 
 class PreciseSuiteEvent(Resource):

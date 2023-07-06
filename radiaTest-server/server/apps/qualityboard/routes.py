@@ -1268,12 +1268,12 @@ class PackageListEvent(Resource):
                 error_msg=f"the packages of {_round.name} " \
                 f"start resolving, please wait for several minutes"
             )
-
+        arch = "" if query.repo_path == "source" else "all"
         try:
             handler = PackageListHandler(
                 round_id,
                 query.repo_path,
-                query.arch
+                arch
             )
         except RuntimeError as e:
             return jsonify(
