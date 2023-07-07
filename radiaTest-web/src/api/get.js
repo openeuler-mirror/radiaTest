@@ -1,20 +1,23 @@
 import axios from '@/axios';
+import axios2 from 'axios';
 import { unkonwnErrorMsg } from '@/assets/utils/description';
 import { workspace } from '@/assets/config/menu.js';
 
-function getRequest(url, data) {
+function getRequest(url, data, config) {
   return new Promise((resolve, reject) => {
     axios
-      .get(url, data)
+      .get(url, data, config)
       .then((res) => {
         resolve(res);
       })
       .catch((err) => {
-        window.$notification?.error({
-          content: err.data.error_msg || unkonwnErrorMsg,
-          duration: 5000,
-          keepAliveOnHover: true
-        });
+        if (!axios2.isCancel(err)) {
+          window.$notification?.error({
+            content: err?.data?.error_msg || unkonwnErrorMsg,
+            duration: 5000,
+            keepAliveOnHover: true
+          });
+        }
         reject(err);
       });
   });
@@ -445,4 +448,9 @@ export function getDailyBuild(data) {
 // 查询每日构建比对结果
 export function getDailyBuildCompare(roundId, data) {
   return getRequest(`/v1/qualityboard/daily-build/with/round/${roundId}/pkg-compare`, data);
+}
+
+// 根据测试脚本代码仓查询测试套、测试用例
+export function getCasesByRepo(repoId, data, config) {
+  return getRequest(`/v1/template/cases/${repoId}`, data, config);
 }

@@ -13,7 +13,7 @@
     "@orh/vue-kityminder": "^2.0.0",
     "@tinymce/tinymce-vue": "^4.0.5",
     "animate.css": "^4.1.1",
-    "axios": "^0.21.1",
+    "axios": "^0.22.0",
     "core-js": "^3.8.3",
     "crypto-js": "^4.1.1",
     "dayjs": "^1.11.7",

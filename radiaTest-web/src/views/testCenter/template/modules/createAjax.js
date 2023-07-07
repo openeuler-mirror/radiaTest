@@ -38,18 +38,22 @@ const exchangeCases = (cases) => {
   });
 };
 
-const postForm = (formValue) => {
+const postForm = (formValue, isUploadCases) => {
   const formData = new FormData();
   formData.append('name', formValue.value.name);
   formData.append('milestone_id', formValue.value.milestone_id);
   formData.append('description', formValue.value.description);
   formData.append('git_repo_id', formValue.value.git_repo_id);
-  formData.append('file', formValue.value.file[0]?.file);
   formData.append('permission_type', formValue.value.permission_type.split('-')[0]);
   formData.append('creator_id', storage.getValue('user_id'));
   formData.append('org_id', storage.getValue('loginOrgId'));
   if (formValue.value.permission_type.includes('group')) {
     formData.append('group_id', Number(formValue.value.permission_type.split('-')[1]));
+  }
+  if (isUploadCases) {
+    formData.append('file', formValue.value.file[0]?.file);
+  } else {
+    formData.append('cases', exchangeCases(formValue.value.cases));
   }
 
   return createTemplate(formData);

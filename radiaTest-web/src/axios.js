@@ -136,12 +136,13 @@ export default {
     });
   },
 
-  get(url, data) {
+  get(url, data, config) {
     return new Promise((resolve, reject) => {
       server({
         method: 'get',
         url,
-        params: data
+        params: data,
+        ...config
       })
         .then((res) => {
           resolve(res.data);
