@@ -3,8 +3,5 @@ template:
     act: delete
     alias: 删除Template
   - uri: /api/v1/template/{template_id}
-    act: get
-    alias: 获取Template
-  - uri: /api/v1/template/{template_id}
     act: put
     alias: 修改Template
