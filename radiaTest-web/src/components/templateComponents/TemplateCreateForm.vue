@@ -9,13 +9,13 @@
         content: 'hard'
       }"
       header-style="
-            font-size: 20px; 
-            height: 40px;
-            padding-top: 10px;
-            padding-bottom: 10px; 
-            font-family: 'v-sans'; 
-            background-color: rgba(250,250,252,1);
-        "
+              font-size: 20px; 
+              height: 40px;
+              padding-top: 10px;
+              padding-bottom: 10px; 
+              font-family: 'v-sans'; 
+              background-color: rgba(250,250,252,1);
+          "
     >
       <div>
         <n-form inline :label-width="80" :model="formValue" :rules="rules" size="medium" ref="formRef">
@@ -55,6 +55,7 @@
                 :options="gitRepoOpts"
                 v-model:value="formValue.git_repo_id"
                 placeholder="选择模板绑定的测试脚本代码仓"
+                @update:value="changeRepo"
                 filterable
               />
             </n-form-item-gi>
@@ -62,15 +63,31 @@
               <n-input v-model:value="formValue.description" />
             </n-form-item-gi>
             <n-form-item-gi :span="24" label="绑定测试用例" path="file">
-              <n-upload
-                v-model:file-list="formValue.file"
-                :max="1"
-                :default-upload="false"
-                accept=".json,.xls,.xlsx"
-                :trigger-style="{ width: '84px' }"
-              >
-                <n-button>上传文件</n-button>
-              </n-upload>
+              <n-switch class="case-switch" v-model:value="isUploadCases">
+                <template #checked> 上传 </template>
+                <template #unchecked> 勾选 </template>
+              </n-switch>
+              <n-spin :show="showLoading" style="width: 100%">
+                <n-upload
+                  v-if="isUploadCases"
+                  v-model:file-list="formValue.file"
+                  :max="1"
+                  :default-upload="false"
+                  accept=".json,.xls,.xlsx"
+                  :trigger-style="{ width: '84px' }"
+                >
+                  <n-button>上传文件</n-button>
+                </n-upload>
+                <n-transfer
+                  v-else
+                  ref="transfer"
+                  v-model:value="formValue.cases"
+                  :options="flattenTree(casesOption)"
+                  :render-source-list="renderSourceList"
+                  target-filterable
+                  virtual-scroll
+                />
+              </n-spin>
             </n-form-item-gi>
           </n-grid>
         </n-form>
@@ -90,6 +107,8 @@ import extendForm from '@/views/versionManagement/product/modules/createForm.js'
 import { getProductOpts, getVersionOpts, getMilestoneOpts } from '@/assets/utils/getOpts.js';
 import { createRepoOptions } from '@/assets/utils/getOpts';
 import { updateTemplateDrawer } from '@/api/put.js';
+import { getCasesByRepo } from '@/api/get.js';
+import { NTree } from 'naive-ui';
 
 const emit = defineEmits(['onNegativeClick']);
 const props = defineProps(['modalData', 'isEditTemplate']);
@@ -104,7 +123,8 @@ const formValue = ref({
   description: undefined,
   git_repo_id: undefined,
   permission_type: undefined,
-  file: undefined
+  file: undefined,
+  cases: []
 });
 const rules = {
   name: {
@@ -144,15 +164,22 @@ const rules = {
   },
   file: {
     required: true,
-    message: '请上传测试用例',
+    message: '请上传或勾选测试用例',
     validator(rule, value) {
-      if (value?.length) {
+      if (isUploadCases.value) {
+        if (value?.length) {
+          return true;
+        }
+        return false;
+      } else if (formValue.value.cases?.length) {
         return true;
       }
       return false;
     }
   }
 };
+
+const isUploadCases = ref(true);
 
 const clean = () => {
   formValue.value = {
@@ -163,7 +190,8 @@ const clean = () => {
     description: undefined,
     git_repo_id: undefined,
     permission_type: undefined,
-    file: undefined
+    file: undefined,
+    cases: []
   };
 };
 
@@ -190,6 +218,75 @@ watch(
   }
 );
 
+const casesOption = ref([]);
+const axiosStatus = ref(false);
+const showLoading = computed(() => {
+  return !isUploadCases.value && axiosStatus.value;
+});
+
+const createChildren = (arr) => {
+  let tempArr = [];
+  arr.forEach((item) => {
+    tempArr.push({
+      label: item.case_name,
+      value: `case-${item.case_id}`
+    });
+  });
+
+  return tempArr;
+};
+
+let controller;
+
+const changeRepo = (value) => {
+  axiosStatus.value = true;
+  formValue.value.cases = [];
+  controller?.abort(); // 终止上一个请求
+  controller = new AbortController();
+  let signal = controller.signal;
+  getCasesByRepo(value, {}, { signal }).then((res) => {
+    axiosStatus.value = false;
+    casesOption.value = [];
+    res.data.forEach((item) => {
+      casesOption.value.push({
+        label: item.suite_name,
+        value: `suite-${item.suite_id}`,
+        children: createChildren(item.case)
+      });
+    });
+  });
+};
+
+const flattenTree = (list) => {
+  const result = [];
+  function flatten(_list = []) {
+    _list.forEach((item) => {
+      result.push(item);
+      flatten(item.children);
+    });
+  }
+  flatten(list);
+  return result;
+};
+
+const renderSourceList = ({ onCheck }) => {
+  return h(NTree, {
+    style: 'margin: 0 4px;',
+    keyField: 'value',
+    checkable: true,
+    selectable: false,
+    blockLine: true,
+    checkOnClick: true,
+    cascade: true,
+    checkStrategy: 'child',
+    data: casesOption.value,
+    checkedKeys: formValue.value.cases,
+    onUpdateCheckedKeys: (checkedKeys) => {
+      onCheck(checkedKeys);
+    }
+  });
+};
+
 const milestoneOpts = ref([]);
 watch(
   () => formValue.value.version,
@@ -209,10 +306,14 @@ const onPositiveClick = () => {
         formData.append('milestone_id', formValue.value.milestone_id);
         formData.append('description', formValue.value.description);
         formData.append('git_repo_id', formValue.value.git_repo_id);
-        formData.append('file', formValue.value.file[0]?.file);
+        if (isUploadCases.value) {
+          formData.append('file', formValue.value.file[0]?.file);
+        } else {
+          formData.append('cases', createAjax.exchangeCases(formValue.value.cases));
+        }
         await updateTemplateDrawer(formData, modalData.value.id);
       } else {
-        await createAjax.postForm(formValue);
+        await createAjax.postForm(formValue, isUploadCases.value);
       }
       emit('onNegativeClick');
     }
@@ -230,6 +331,10 @@ onMounted(() => {
     formValue.value.permission_type = modalData.value.template_type;
     formValue.value.description = modalData.value.description;
     formValue.value.git_repo_id = String(modalData.value.git_repo.id);
+    changeRepo(formValue.value.git_repo_id);
+    formValue.value.cases = modalData.value?.cases?.map((item) => {
+      return `case-${item.id}`;
+    });
   }
 });
 
@@ -238,4 +343,10 @@ onUnmounted(() => {
 });
 </script>
 
-<style scoped></style>
+<style scoped>
+.case-switch {
+  position: absolute;
+  top: -30px;
+  left: 110px;
+}
+</style>
