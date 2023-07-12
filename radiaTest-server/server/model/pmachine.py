@@ -91,7 +91,7 @@ class Pmachine(ServiceModel, PermissionBaseModel, db.Model):
     occupier = db.Column(db.String(64), nullable=True)
     occupier_id = db.Column(db.String(512), nullable=True)
     locked = db.Column(db.Boolean(), default=False)
-
+    is_release_notification = db.Column(db.Boolean(), nullable=False, default=False)
     machine_group_id = db.Column(db.Integer(), db.ForeignKey("machine_group.id"))
 
     vmachine = db.relationship(
