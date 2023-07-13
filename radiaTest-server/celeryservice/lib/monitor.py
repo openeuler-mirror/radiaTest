@@ -13,7 +13,7 @@ from server.model.pmachine import Pmachine
 from celeryservice.lib import TaskHandlerBase
 from server.utils.response_util import ssl_cert_verify_error_collect
 from server.model.message import Message, MsgType, MsgLevel
-from server.utils.db import Insert
+from server.utils.db import Insert, Edit
 from server.model.permission import Role, ReUserRole
 from server.apps.pmachine.handlers import PmachineOccupyReleaseHandler
 
@@ -40,6 +40,7 @@ class LifecycleMonitor(TaskHandlerBase):
         filter_params = [
             Pmachine.state == "occupied",
             Pmachine.end_time.isnot(None),
+            Pmachine.is_release_notification == 0
         ]
         pmachines = Pmachine.query.filter(*filter_params).all()
         pmachine_handler = PmachineOccupyReleaseHandler()
@@ -50,7 +51,7 @@ class LifecycleMonitor(TaskHandlerBase):
                         end_time.astimezone(pytz.timezone('Asia/Shanghai')):
                     self.logger.info(
                         "pmachine {} is going to be released, with end_time {}".format(
-                            pmachine.id, pmachine.end_time
+                            pmachine.bmc_ip, pmachine.end_time
                         )
                     )
 
@@ -97,6 +98,7 @@ class LifecycleMonitor(TaskHandlerBase):
                                     "org_id": pmachine.org_id
                                 }
                             ).single()
+
                         Insert(
                             Message,
                             {
@@ -112,6 +114,8 @@ class LifecycleMonitor(TaskHandlerBase):
                                 "org_id": pmachine.org_id
                             }
                         ).single()
+
+                        Edit(Pmachine, {"id": pmachine.id, "is_release_notification": 1}).single(Pmachine, "/pmachine")
                     else:
                         pmachine_handler.release_with_release_scopes(pmachine)
             except Exception as e:
