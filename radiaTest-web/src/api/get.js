@@ -454,3 +454,8 @@ export function getDailyBuildCompare(roundId, data) {
 export function getCasesByRepo(repoId, data, config) {
   return getRequest(`/v1/template/cases/${repoId}`, data, config);
 }
+
+// 对于组织下的suite类型节点，根据选择的导出文件格式按测试套导出文本用例
+export function exportTestsuite(orgId, caseNodeId, data) {
+  return getRequest(`/v1/org/${orgId}/case-node/${caseNodeId}/export`, data);
+}

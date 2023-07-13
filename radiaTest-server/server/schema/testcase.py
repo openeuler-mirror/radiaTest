@@ -395,3 +395,7 @@ class OrphanSuitesQuerySchema(PageBaseSchema):
     owner: Optional[str]
     framework_name: Optional[str]
     git_repo_url: Optional[str]
+
+
+class CasefileExportSchema(BaseModel):
+    filetype: Literal['xlsx', 'md'] = 'xlsx'
