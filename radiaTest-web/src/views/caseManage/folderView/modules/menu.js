@@ -1233,7 +1233,7 @@ const actionHandlder = {
         });
     }
   },
-  exportTestsuiteInMd: {
+  exportTestsuiteInMarkdown: {
     handler(contextmenu) {
       exportTestsuite(node.info.org_id, node.info.id, { filetype: 'md' })
         .then((res) => {
