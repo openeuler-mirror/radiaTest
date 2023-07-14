@@ -79,7 +79,7 @@ class TemplateEvent(Resource):
             _body = body.__dict__
             _ = ResourceManager("template").add("api_infos.yaml", _body)
             try:
-                cases = json.loads(request.form.get("cases"))
+                cases = map(int, request.form.get("cases").split(','))
             except ValueError:
                 return jsonify(error_code=RET.PARMA_ERR, error_msg="cases param error.")
             template = Template.query.filter_by(name=body.name).first()
@@ -154,7 +154,7 @@ class TemplateItemEvent(Resource):
             )
         elif request.form.get("cases"):
             try:
-                cases = json.loads(request.form.get("cases"))
+                cases = map(int, request.form.get("cases").split(','))
             except ValueError:
                 return jsonify(error_code=RET.PARMA_ERR, error_msg="cases param error.")
             TemplateCaseImportHandler.update_template_cases(
