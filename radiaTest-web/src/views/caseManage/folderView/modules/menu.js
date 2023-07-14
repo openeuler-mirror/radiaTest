@@ -29,7 +29,7 @@ import {
   getOrphanOrgSuites,
   getOrphanGroupSuites,
   getCasesBySuite,
-  exportTestsuite,
+  exportTestsuite
 } from '@/api/get';
 import { addBaseline, casenodeApplyTemplate } from '@/api/post';
 import { updateCaseNodeParent } from '@/api/put';
@@ -115,12 +115,12 @@ const relateSuiteAction = {
 const exportTestsuiteInXlsxAction = {
   label: '导出为Excel文件',
   key: 'exportTestsuiteInXlsx',
-  icon: renderIcon(ExportOutlined),
+  icon: renderIcon(ExportOutlined)
 };
 const exportTestsuiteInMdAction = {
   label: '导出为Markdown文件',
   key: 'exportTestsuiteInMarkdown',
-  icon: renderIcon(ExportOutlined),
+  icon: renderIcon(ExportOutlined)
 };
 const exportTestcaseAction = {
   label: '导出文本用例',
@@ -1215,9 +1215,10 @@ const actionHandlder = {
   },
   exportTestsuiteInXlsx: {
     handler(contextmenu) {
-      exportTestsuite(contextmenu.info.org_id, contextmenu.info.id, { filetype: 'xlsx' })
+      axios
+        .downLoad(`/v1/org/${contextmenu.info.org_id}/case-node/${contextmenu.info.id}/export`, { filetype: 'xlsx' })
         .then((res) => {
-          let blob = new Blob([res], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+          let blob = new Blob([res], { type: 'application/vnd.ms-excel' });
           let url = URL.createObjectURL(blob);
           let alink = document.createElement('a');
           document.body.appendChild(alink);
