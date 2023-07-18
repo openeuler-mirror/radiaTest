@@ -53,6 +53,7 @@ class ManualJob(BaseModel, db.Model, PermissionBaseModel):
         executor_name = User.query.filter_by(user_id=self.creator_id).first().user_name  # 这里没有用backref
         milestone_name = Milestone.query.filter_by(id=self.milestone_id).first().name
         _case = Case.query.filter_by(id=self.case_id).first()
+        steps = ManualJobStep.query.filter_by(manual_job_id=self.id).all()
         return {
             "id": self.id,
             "name": self.name,
@@ -70,7 +71,8 @@ class ManualJob(BaseModel, db.Model, PermissionBaseModel):
             "case_description": _case.description,
             "case_preset": _case.preset,
             "case_expection": _case.expection,
-            "creator_id": self.creator_id
+            "creator_id": self.creator_id,
+            "steps": [s.to_json() for s in steps]
         }
 
 
@@ -79,7 +81,15 @@ class ManualJobStep(BaseModel, db.Model):
     log_content = db.Column(LONGTEXT, nullable=True)
     passed = db.Column(db.Boolean(), nullable=True)
     step_num = db.Column(db.Integer(), nullable=False)
-    operation = db.Column(db.String(255), nullable=True)  # 操作内容, 是这个manual_job_step所属的manual_job所属的case的steps字段经文本分割的结果
+    operation = db.Column(db.Text(), nullable=True)  # 操作内容, 是这个manual_job_step所属的manual_job所属的case的steps字段经文本分割的结果
 
     manual_job_id = db.Column(db.Integer(), db.ForeignKey("manual_job.id"))
-    
+
+    def to_json(self):
+        return {
+            "id": self.id,
+            "log_content": self.log_content,
+            "passed": self.passed,
+            "step_num": self.step_num,
+            "operation": self.operation,
+        }

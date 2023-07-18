@@ -47,6 +47,7 @@ from celeryservice.lib.casenode import CaseNodeCreator
 from celeryservice.lib.template import TemplateCaseHandler
 from celeryservice.lib.task import TaskdistributeHandler, VersionTaskProgressHandler, AllVersionTaskProgressHandler
 from celeryservice.lib.baseline_template import ResolveBaseNodeHandler
+from celeryservice.lib.manualjob import ManualJobAsyncHandler
 
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -289,6 +290,11 @@ def resolve_template_testcase(self, filetype, filepath, body):
         filepath=filepath,
         body=body,
     )
+
+
+@celery.task(bind=True)
+def resolve_create_manualjob(self, body):
+    ManualJobAsyncHandler(logger, self).create(body=body)
 
 
 @celery.task

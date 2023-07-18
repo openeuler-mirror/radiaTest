@@ -83,12 +83,13 @@ class TestcaseHandler(TaskAuthHandler):
         ).run(excel)
 
         suites = set()
+        caseids = set()
 
         for case in cases:
-            if not case.get("name") or not case.get("suite") or not case.get("steps") or not case.get("expection") or not case.get("description"):
+            if not case.get("name") or not case.get("suite"):
                 continue
 
-            if case.get("automatic") == '是' or case.get("automatic") == 'Y':
+            if case.get("automatic") == '是' or case.get("automatic") == 'Y' or case.get("automatic") == 'True':
                 case["automatic"] = True
             else:
                 case["automatic"] = False
@@ -137,13 +138,13 @@ class TestcaseHandler(TaskAuthHandler):
                     db.session.flush()
 
                 db.session.commit()
-
+                caseids.add(_case.id)
             except (IntegrityError, SQLAlchemyError) as e:
                 self.logger.error(f'database operate error -> {e}')
                 db.session.rollback()
                 continue
 
-        return suites
+        return suites, caseids
 
     def get_case_node_id(self, _title, _type, _parent_id, _suite_id=None, _case_id=None):
         """已存在节点则直接获取id，不存在的节点新增后获取"""
@@ -206,7 +207,7 @@ class TestcaseHandler(TaskAuthHandler):
 
             return case_node_id
 
-    def travelsal_case_node_tree(self, _parent_id, _suites):
+    def travelsal_case_node_tree(self, _parent_id, _suites, cases):
         for _suite_id in _suites:
             _suite = Suite.query.filter_by(id=_suite_id).first()
 
@@ -219,14 +220,17 @@ class TestcaseHandler(TaskAuthHandler):
                 _suite_id=_suite.id,
                 _parent_id=_parent_id,
             )
-
-            for case in _suite.case:
-                _ = self.get_case_node_id(
-                    _title=case.name,
-                    _type="case",
-                    _parent_id=_this_suite_id,
-                    _case_id=case.id,
-                )
+            for case_id in cases:
+                case = Case.query.get(case_id)
+                if not case:
+                    continue
+                if case in _suite.case:
+                    _ = self.get_case_node_id(
+                        _title=case.name,
+                        _type="case",
+                        _parent_id=_this_suite_id,
+                        _case_id=case.id,
+                    )
 
     @ssl_cert_verify_error_collect
     def deep_create(self, _filepath, _parent_id):
@@ -330,7 +334,7 @@ class TestcaseHandler(TaskAuthHandler):
 
             pattern = r'^([^(\.|~)].*)\.(xls|xlsx|csv|md|markdown)$'
             if re.match(pattern, os.path.basename(filepath)) is not None:
-                suites = self.loads_data(
+                suites, cases = self.loads_data(
                     filetype[1:],
                     filepath,
                 )
@@ -352,7 +356,7 @@ class TestcaseHandler(TaskAuthHandler):
                 )
 
                 if parent_id is not None:
-                    self.travelsal_case_node_tree(parent_id, suites)
+                    self.travelsal_case_node_tree(parent_id, suites, cases)
 
                 self.next_period()
                 self.promise.update_state(

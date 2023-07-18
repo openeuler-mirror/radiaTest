@@ -86,6 +86,11 @@ def make_celery(app_name):
                 'routing_key': 'distribute_template',
                 'delivery_mode': 1,
             },
+            'celeryservice.tasks.resolve_create_manualjob': {
+                'queue': 'queue_resolve_create_manualjob',
+                'routing_key': 'create_manualjob',
+                'delivery_mode': 1,
+            },
             'celeryservice.tasks.resolve_base_node': {
                 'queue': 'queue_resolve_base_node',
                 'routing_key': 'base_node',

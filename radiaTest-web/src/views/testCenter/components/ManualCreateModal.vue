@@ -188,7 +188,7 @@ const onPositiveClick = () => {
   formRef.value?.validate((errors) => {
     if (!errors) {
       createManualJob({
-        case_id: formValue.value.case_id,
+        cases: formValue.value.cases,
         name: formValue.value.name,
         milestone_id: formValue.value.milestone_id
       }).then(() => {

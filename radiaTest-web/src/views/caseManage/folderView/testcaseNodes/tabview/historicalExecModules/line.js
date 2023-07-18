@@ -23,9 +23,8 @@ const getAnalysisList = (_case,record) => {
   ];
 };
 function handleline(value){
-  axios.get('/v1/analyzed/logs',{
-    id:value.id
-  }).then(res=>{
+  axios.get(`/v1/analyzed/${value.id}/logs`
+  ).then(res=>{
     logsData.value = res.data;
     selectedRecord.value = value;
   });

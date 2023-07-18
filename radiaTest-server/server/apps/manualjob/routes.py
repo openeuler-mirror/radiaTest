@@ -27,6 +27,7 @@ from server.apps.manualjob.handler import (
     ManualJobLogQueryHandler)
 from server.model.manualjob import ManualJob
 from server.model.testcase import Case
+from server.model.milestone import Milestone
 from server.schema.manualjob import (
     ManualJobCreate,
     ManualJobQuery,
@@ -36,13 +37,6 @@ from server.schema.manualjob import (
 from server.utils.auth_util import auth
 from server.utils.response_util import response_collect, RET, workspace_error_collect
 
-
-def _find_object_by_id(id_value: int, table: db.Model):
-    """
-        按请求参数中的id到数据库中查询记录, 如果查到了就返回反映此条记录的对象, 否则返回None.
-    """
-    obj = table.query.filter_by(id=id_value).first()  # 这里把id写死了
-    return obj
 
 
 class ManualJobEvent(Resource):
@@ -54,7 +48,7 @@ class ManualJobEvent(Resource):
     @response_collect
     @workspace_error_collect
     @validate()
-    def post(self, workspace: str, body: ManualJobCreate):
+    def post(self, body: ManualJobCreate):
         """
             在数据库中新增ManualJob数据, 根据其所属的Case的步骤数, 在数据库中新增数个ManualJobStep.
             请求体:
@@ -73,15 +67,17 @@ class ManualJobEvent(Resource):
                 "error_msg": "Request processed successfully."
             }
         """
-        # 查case表, 看输入的case_id是否存在, 不存在就返回错误信息
-        input_case_id = body.case_id
-        _case = _find_object_by_id(input_case_id, Case)
-        if _case is None:
+        try:
+            _ = map(int, body.cases.split(','))
+        except ValueError:
+            return jsonify(error_code=RET.PARMA_ERR, error_msg="cases param error.")
+        _milestone = Milestone.query.get(body.milestone_id)
+        if _milestone is None:
             return jsonify(
                 error_code=RET.NO_DATA_ERR,
-                error_msg=f"the case with id {input_case_id} does not exist"
+                error_msg=f"the milestone with id {body.milestone_id} does not exist"
             )
-        return ManualJobHandler.create(_case, body, workspace)
+        return ManualJobHandler.create(body)
 
     @auth.login_required()
     @response_collect
@@ -124,6 +120,13 @@ class ManualJobEvent(Resource):
                 "error_msg": "Request processed successfully."
             }
         """
+        if query.case_id is not None:
+            _case = Case.query.get(query.case_id)
+            if _case is None:
+                return jsonify(
+                    error_code=RET.NO_DATA_ERR,
+                    error_msg=f"the case with id {query.case_id} does not exist"
+                )
         return ManualJobHandler.query(query, workspace)
 
 
@@ -146,7 +149,7 @@ class ManualJobSubmitEvent(Resource):
                 "error_msg": "Request processed successfully."
             }
         """
-        manual_job = _find_object_by_id(manual_job_id, ManualJob)
+        manual_job = ManualJob.query.get(manual_job_id)
         if manual_job is None:
             return jsonify(
                 error_code=RET.NO_DATA_ERR,
@@ -247,7 +250,7 @@ class ManualJobLogQueryEvent(Resource):
             }
         """
         # 按id查找ManualJob
-        manual_job = _find_object_by_id(manual_job_id, ManualJob)
+        manual_job = ManualJob.query.get(manual_job_id)
         if manual_job is None:
             return jsonify(
                 error_code=RET.NO_DATA_ERR,
