@@ -42,11 +42,17 @@ class OpenqaTestsOverviewItem(scrapy.Item):
     aarch64_res_log = scrapy.Field()
     aarch64_failedmodule_name = scrapy.Field()
     aarch64_failedmodule_log = scrapy.Field()
-    
+    aarch64_start_time = scrapy.Field()
+    aarch64_end_name = scrapy.Field()
+    aarch64_test_duration = scrapy.Field()
+
     x86_64_res_status = scrapy.Field()
     x86_64_res_log = scrapy.Field()
     x86_64_failedmodule_name = scrapy.Field()
     x86_64_failedmodule_log = scrapy.Field()
+    x86_64_start_time = scrapy.Field()
+    x86_64_end_name = scrapy.Field()
+    x86_64_test_duration = scrapy.Field()
     
 
 class OpeneulerPkgsListItem(scrapy.Item):

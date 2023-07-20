@@ -11,11 +11,17 @@
 # @Date    : 2022/08/10 14:13:00
 # @License : Mulan PSL v2
 #####################################
+import logging
+import re
+from datetime import datetime
 
+import requests
 from scrapy import Request
 from scrapy.spiders import Spider
 
 from scrapyspider.items import OpenqaTestsOverviewItem
+
+logger = logging.getLogger(__name__)
 
 
 class OpenqaTestsOverviewSpider(Spider):
@@ -33,6 +39,30 @@ class OpenqaTestsOverviewSpider(Spider):
         for url in urls:
             yield Request(url=url, callback=self.parse)
 
+    def get_test_time_by_res_log(self, res_log):
+        start_time = "-"
+        end_time = "-"
+        test_duration = "-"
+        res = re.match("/tests/(?P<job_id>\d+)", res_log)
+        if res:
+            try:
+                job_id = res.group("job_id")
+                job_detail_url = f"{self.openqa_url}/api/v1/jobs/{job_id}"
+                resp = requests.request("get", job_detail_url)
+                job_data = resp.json()["job"]
+                start_date = datetime.strptime(job_data.get("t_started", "-"), "%Y-%m-%dT%H:%M:%S")
+                end_date = datetime.strptime(job_data.get("t_finished", "-"), "%Y-%m-%dT%H:%M:%S")
+                if start_date:
+                    start_time = start_date.strftime("%Y-%m-%d %H:%M:%S")
+                if end_date:
+                    end_time = end_date.strftime("%Y-%m-%d %H:%M:%S")
+                if end_date > start_date:
+                    test_duration = (end_date - start_date).seconds
+            except Exception as err:
+                logger.error(f"获取测试时间失败， {err}")
+
+        return start_time, end_time, test_duration
+
     def parse(self, response):       
         results = response.xpath('//table[@id="results_dvd"]/tbody/tr')
 
@@ -44,10 +74,17 @@ class OpenqaTestsOverviewSpider(Spider):
             item["aarch64_res_log"] = "-"
             item["aarch64_failedmodule_name"] = "-"
             item["aarch64_failedmodule_log"] = "-"
+            item["aarch64_start_time"] = "-"
+            item["aarch64_end_name"] = "-"
+            item["aarch64_test_duration"] = "-"
+
             item["x86_64_res_status"] = "-"
             item["x86_64_res_log"] = "-"
             item["x86_64_failedmodule_name"] = "-"
             item["x86_64_failedmodule_log"] = "-"
+            item["x86_64_start_time"] = "-"
+            item["x86_64_end_name"] = "-"
+            item["x86_64_test_duration"] = "-"
 
             res_selectors = result.xpath('./td[starts-with(@id, "res_dvd_")]|./td[text()="-"]')
             if not res_selectors:
@@ -62,7 +99,11 @@ class OpenqaTestsOverviewSpider(Spider):
                     res = aarch64_selector.xpath('./a')
                 
                 item["aarch64_res_status"] = res.xpath('./i/@title').extract()[0]
-                item["aarch64_res_log"] = f"{self.openqa_url}{res.xpath('./@href').extract()[0]}"
+                aarch64_res_log = res.xpath('./@href').extract()[0]
+                item["aarch64_res_log"] = f"{self.openqa_url}{aarch64_res_log}"
+
+                item["aarch64_start_time"], item["aarch64_end_name"], item["aarch64_test_duration"] = \
+                    self.get_test_time_by_res_log(aarch64_res_log)
 
                 failedmodule = aarch64_selector.xpath('./span[@class="failedmodule"]')
                 if failedmodule:
@@ -81,7 +122,11 @@ class OpenqaTestsOverviewSpider(Spider):
                     res = x86_64_selector.xpath('./a')
                 
                 item["x86_64_res_status"] = res.xpath('./i/@title').extract()[0]
-                item["x86_64_res_log"] = f"{self.openqa_url}{res.xpath('./@href').extract()[0]}"
+                x86_64_res_log = res.xpath('./@href').extract()[0]
+                item["x86_64_res_log"] = f"{self.openqa_url}{x86_64_res_log}"
+
+                item["x86_64_start_time"], item["x86_64_end_name"], item["x86_64_test_duration"] = \
+                    self.get_test_time_by_res_log(x86_64_res_log)
 
                 failedmodule = x86_64_selector.xpath('./span[@class="failedmodule"]')
                 if failedmodule:

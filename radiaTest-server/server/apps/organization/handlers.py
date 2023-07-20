@@ -1,7 +1,21 @@
+# Copyright (c) [2022] Huawei Technologies Co.,Ltd.ALL rights reserved.
+# This program is licensed under Mulan PSL v2.
+# You can use it according to the terms and conditions of the Mulan PSL v2.
+#          http://license.coscl.org.cn/MulanPSL2
+# THIS PROGRAM IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+# EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+# MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+# See the Mulan PSL v2 for more details.
+####################################
+# @Author  :
+# @email   :
+# @Date    :
+# @License : Mulan PSL v2
+#####################################
+
 import json
 from flask import request, g, jsonify
 from sqlalchemy import or_
-from server import redis_client
 from server.model.organization import Organization, ReUserOrganization
 from server.model.user import User
 from server.model.group import Group, ReUserGroup
@@ -9,11 +23,9 @@ from server.model.permission import Role, ReUserRole
 from server.utils.response_util import RET
 from server.utils.page_util import PageUtil
 from server.utils.db import collect_sql_error, Insert
-from server.utils.redis_util import RedisKey
 from server.utils.cla_util import ClaShowUserSchema, Cla, ClaShowAdminSchema
 from server.utils.read_from_yaml import get_default_suffix
 from server.schema.organization import OrgBaseSchema, ReUserOrgSchema
-from server.schema.user import UserBaseSchema
 from server.schema.base import PageBaseSchema
 from server.schema.group import GroupInfoSchema
 

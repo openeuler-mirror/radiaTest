@@ -1,11 +1,25 @@
+# Copyright (c) [2022] Huawei Technologies Co.,Ltd.ALL rights reserved.
+# This program is licensed under Mulan PSL v2.
+# You can use it according to the terms and conditions of the Mulan PSL v2.
+#          http://license.coscl.org.cn/MulanPSL2
+# THIS PROGRAM IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+# EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+# MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+# See the Mulan PSL v2 for more details.
+####################################
+# @Author  :
+# @email   :
+# @Date    :
+# @License : Mulan PSL v2
+#####################################
+
 from flask import Blueprint
 from flask_restful import Resource
 from flask_pydantic import validate
-from server.utils.db import Select
 from server.utils.cla_util import ClaSignSchema
 from server.utils.auth_util import auth
 from server.utils.response_util import response_collect
-from server.schema.user import UpdateUserSchema, JoinGroupSchema, UserQuerySchema, UserTaskSchema, UserMachineSchema
+from server.schema.user import UserTaskSchema, UserMachineSchema
 from server.schema.user import OauthLoginSchema, LoginSchema, UpdateUserSchema, JoinGroupSchema, UserQuerySchema
 from server.schema.user import UserCaseCommitSchema
 from server.schema.base import PageBaseSchema

@@ -418,19 +418,10 @@ class StateHandler:
         if not re:
             return jsonify(error_code=RET.NO_DATA_ERR, error_msg="The group which machine belongs to is not exist")
 
-        _message = dict(
-            data=json.dumps(
+        return Message.create_instance(json.dumps(
                 dict(
                     group_id=re.group.id,
                     info=f'<b>{redis_client.hget(RedisKey.user(g.user_id), "user_name")}</b>\
                     请求{StateHandler.english_to_chinese.get(self.to_state)}物理机<b>{self.pmachine.ip}</b>。'
                 )
-            ),
-            level=MsgLevel.user.value,
-            from_id=g.user_id,
-            to_id=re.user.user_name,
-            type=MsgType.script.value,
-            org_id=org_id
-        )
-
-        return Insert(Message, _message).single()
+            ), g.user_id, [re.user_id], org_id, level=MsgLevel.user.value, msg_type=MsgType.script.value)

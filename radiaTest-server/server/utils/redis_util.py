@@ -102,15 +102,28 @@ class RedisClient(object):
         return self.connection.ttl(name)
 
 
+def format_str_wrapper(str_prefix=None, str_suffix=None):
+    def get_str_func(value):
+        if str_prefix:
+            data = f"{str_prefix}{value}"
+        else:
+            data = value
+        if str_suffix:
+            data = f"{data}{str_suffix}"
+        return data
+    return get_str_func
+
+
 class RedisKey(object):
-    token = lambda user_id: f"token_{user_id}"
-    refresh_token = lambda user_id: f"refresh_token_{user_id}"
-    user = lambda user_id: f"user_{user_id}"
-    organization = lambda organization_id: f"organization_{organization_id}"
-    login_org = lambda user_id: f"{user_id}_login_org"
-    issue_types = lambda enterprise_id: f"issue_types_{enterprise_id}"
-    issue_states = lambda enterprise_id: f"issue_states_{enterprise_id}"
-    oauth_user = lambda user_id: f"{user_id}"
-    projects = lambda enterprise_id: f"projects_{enterprise_id}"
-    messenger_token = lambda token: f"messenger_token_{token}"
-    daily_build = lambda enterprise_id: f"daily_build_infos_{enterprise_id}"
+    token = format_str_wrapper(str_prefix="token_")
+    refresh_token = format_str_wrapper(str_prefix="refresh_token_")
+    user = format_str_wrapper(str_prefix="user_")
+    organization = format_str_wrapper(str_prefix="organization_")
+    login_org = format_str_wrapper(str_suffix="_login_org")
+    issue_types = format_str_wrapper(str_prefix="issue_types_")
+    issue_states = format_str_wrapper(str_prefix="issue_states_")
+    oauth_user = format_str_wrapper()
+    projects = format_str_wrapper(str_prefix="projects_")
+    messenger_token = format_str_wrapper(str_prefix="messenger_token_")
+    daily_build = format_str_wrapper(str_prefix="daily_build_infos_")
+    message_lock = format_str_wrapper(str_prefix="message_lock_")

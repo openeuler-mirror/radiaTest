@@ -13,7 +13,6 @@
 # @License : Mulan PSL v2
 #####################################
 import os
-import time
 import string
 import random
 import time

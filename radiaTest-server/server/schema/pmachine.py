@@ -1,15 +1,28 @@
-# -*- coding: utf-8 -*-
-# @Author: Your name
-# @Date:   2022-04-12 11:25:48
-# @Last Modified by:   Your name
+# Copyright (c) [2022] Huawei Technologies Co.,Ltd.ALL rights reserved.
+# This program is licensed under Mulan PSL v2.
+# You can use it according to the terms and conditions of the Mulan PSL v2.
+#          http://license.coscl.org.cn/MulanPSL2
+# THIS PROGRAM IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+# EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+# MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+# See the Mulan PSL v2 for more details.
+####################################
+# @Author  :
+# @email   :
+# @Date    :
+# @License : Mulan PSL v2
+#####################################
+
+
 from datetime import datetime, timedelta
 from typing import Optional
 import pytz
+
 from flask import current_app
-from dateutil.relativedelta import relativedelta
 from pydantic import conint, BaseModel, constr, validator, root_validator
 from sqlalchemy import and_, or_
-import sqlalchemy
+
+
 from server.schema.base import PageBaseSchema
 from server.schema import (
     Frame,
@@ -208,7 +221,7 @@ class PmachineBaseSchema(BaseModel):
                 raise ValueError(
                     "As a CI host, ip、user、port、password must be provided."
                 )
-            if len(values["password"]) < 6 or len(values["password"] > 256):
+            if len(values["password"]) < 6 or len(values["password"]) > 256:
                 raise ValueError(
                     "As a CI host, password length should be in range [6, 256]"
                 )
@@ -308,7 +321,6 @@ class PmachineBmcSchema(BaseModel):
 
 class PmachineInstallSchema(BaseModel):
     milestone_id: int
-    status: Power
 
 
 class PmachinePowerSchema(BaseModel):

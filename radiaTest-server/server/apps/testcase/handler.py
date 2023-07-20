@@ -1020,22 +1020,13 @@ class HandlerCaseReview(object):
         for _commit in _commits:
             _commit.status = 'pending'
             _commit.add_update()
-            Insert(
-                Message,
-                {
-                    "data": json.dumps(
+            Message.create_instance(json.dumps(
                         {
                             "info": f'您提交的名为<b>{_commit.title}</b>的用例评审因已合入'
                                     f'<b>{creator.user_name}</b>提交版本,故已退回,请知悉'
                         }
-                    ),
-                    "level": MsgLevel.user.value,
-                    "from_id": g.user_id,
-                    "to_id": _commit.creator_id,
-                    "type": MsgType.text.value,
-                    "org_id": _commit.org_id
-                }
-            ).insert_id()
+                    ), g.user_id, [_commit.creator_id], _commit.org_id)
+
 
     @staticmethod
     @collect_sql_error

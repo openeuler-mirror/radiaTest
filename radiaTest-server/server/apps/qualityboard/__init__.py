@@ -53,6 +53,8 @@ from .routes import (
     PackagCompareResultExportEvent,
     SamePackagCompareResultExportEvent,
     RoundRepeatRpmEvent,
+    ReportEvent,
+    ATReportEvent, BranchEvent
 )
 
 
@@ -200,4 +202,19 @@ def init_api(api: Api):
     api.add_resource(
         RoundRepeatRpmEvent,
         "/api/v1/round/<int:round_id>/repeat-rpm"
+    )
+
+    api.add_resource(
+        ReportEvent,
+        "/api/v1/qualityboard/<int:product_id>/report"  # 质量看板报告
+    )
+
+    api.add_resource(
+        ATReportEvent,
+        "/api/v1/qualityboard/<int:qualityboard_id>/at-report"  # AT报告
+    )
+
+    api.add_resource(
+        BranchEvent,
+        "/api/v1/qualityboard/<int:product_id>/branch-list"  # 根据产品issue列表获取对应的分支列表
     )

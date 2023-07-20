@@ -12,10 +12,8 @@
 # Date : 2022/12/13 14:00:00
 # License : Mulan PSL v2
 #####################################
+
 # 基线模板(Baseline_template)的model
-
-from sqlalchemy.orm import backref
-
 from server import db
 from server.model.base import BaseModel, PermissionBaseModel
 

@@ -14,7 +14,7 @@
 #####################################
 
 import yaml
-from flask import jsonify, g, request, current_app
+from flask import jsonify, g, current_app
 from sqlalchemy import or_, and_
 
 from server import db, redis_client

@@ -344,17 +344,7 @@ def send_message(task: Task, msg, from_id=1):
     to_id.append(task.executor_id)
     to_id.append(task.creator_id)
     to_id = set(to_id)
-    for item in to_id:
-        Insert(
-            Message,
-            {
-                "data": json.dumps({"info": msg}),
-                "from_id": from_id,
-                "to_id": item,
-                "level": MsgLevel.system.value,
-                "org_id": task.org_id
-            },
-        ).insert_id()
+    Message.create_instance(json.dumps({"info": msg}), from_id, to_id, task.org_id, level=MsgLevel.system.value)
 
 
 def judge_task_automatic(task_milestone: TaskMilestone):

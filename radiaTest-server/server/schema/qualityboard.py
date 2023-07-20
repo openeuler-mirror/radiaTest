@@ -325,3 +325,5 @@ class RoundIssueQueryV8(BaseModel):
 
 class QueryRepeatRpmSchema(PageBaseSchema):
     repo_path: Literal["everything", "EPOL", "update"]
+
+

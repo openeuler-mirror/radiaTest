@@ -57,23 +57,12 @@ class VmachineReleaseNotice(TaskHandlerBase):
                 for key, value in user_vmachines.items():
                     vmachines = ','.join(value)
                     user_org = key.split('_')
-
-                    Insert(
-                        Message,
-                        {
-                            "data": json.dumps(
+                    Message.create_instance(json.dumps(
                                 {
                                     'info': f'您在平台创建的部分虚拟机即将过期，如需继续使用，请尽快延期:'
                                             f'<b>{vmachines}</b>'
-                                }
-                            ),
-                            "level": MsgLevel.system.value,
-                            "from_id": 1,
-                            "to_id": user_org[0],
-                            "type": MsgType.text.value,
-                            "org_id": user_org[1]
-                        }
-                    ).insert_id()
+                                }),
+                        1, [user_org[0]], user_org[1], level=MsgLevel.system.value, msg_type=MsgType.text.value)
 
                     re_vmachine = Vmachine.query.filter(Vmachine.name.in_(value)).all()
                     for single_vmachine in re_vmachine:
