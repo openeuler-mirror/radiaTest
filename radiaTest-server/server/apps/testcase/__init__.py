@@ -20,6 +20,7 @@ from server.apps.testcase.routes import (
     CaseNodeEvent,
     CaseNodeItemEvent,
     CaseNodeImportEvent,
+    OrgSuiteExportEvent,
     SuiteEvent,
     CaseEvent,
     CaseItemEvent,
@@ -263,4 +264,8 @@ def init_api(api: Api):
     api.add_resource(
         CasefileConvertEvent,
         "/api/v1/casefile/convert",
+    )
+    api.add_resource(
+        OrgSuiteExportEvent,
+        "/api/v1/org/<int:org_id>/case-node/<int:case_node_id>/export",
     )

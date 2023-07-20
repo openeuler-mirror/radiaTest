@@ -14,14 +14,17 @@
 #####################################
 # 用例管理(Testcase)相关接口的handler层
 
+import abc
 import math
 import os
 import json
 import shutil
 import time
 import datetime
+from typing import List
 import uuid
 import openpyxl
+from openpyxl.styles import Alignment
 import pytz
 
 from flask import jsonify, g, current_app, request
@@ -1664,3 +1667,110 @@ class OrphanSuitesHandler:
         if e:
             return jsonify(error_code=RET.SERVER_ERR, error_msg=f'get orphan suites page error {e}')
         return jsonify(error_code=RET.OK, error_msg="OK", data=page_dict)
+
+
+class CasefileExportUtil:
+    COL_NAMES = [
+        '测试套', '用例名', '测试级别', '测试类型', '用例描述', '节点数', 
+        '预置条件', '操作步骤', '预期输出', '是否自动化', '备注'
+    ]
+
+    def __init__(self, filename: str, cases: List[dict]):
+        self.filename = filename
+        self.cases = cases
+
+    @abc.abstractmethod
+    def create_casefile(self):
+        pass
+
+    @abc.abstractmethod
+    def add_row(self):
+        pass
+
+    def get_casefile(self):
+        return self.casefile
+    
+    def rm_casefile(self):
+        if os.path.isfile(self.casefile):
+            os.remove(self.casefile)
+
+    def inject_data(self):
+        if not self.casefile:
+            return
+        for case_ in self.cases:
+            self._inject_row(case_)
+
+    def _inject_row(self, case: dict):
+        _row_data = self._extract_row(case)
+        self.add_row(_row_data)
+
+    def _extract_row(self, case: dict):
+        _row = []
+        for col_name in self.COL_NAMES:
+            translation_dict = current_app.config.get("OE_QA_TESTCASE_DICT")
+            try:
+                _v = case.get(translation_dict.get(col_name))
+                if not _v:
+                    _v = ''
+                else:
+                    _v = str(_v)
+                _row.append(_v)
+            except KeyError:
+                _row.append('')
+        return _row
+
+
+class ExcelExportUtil(CasefileExportUtil):
+    def __init__(self, filename: str, cases: List[dict]):
+        self.next_row = 1
+        super().__init__(filename, cases)
+
+    def create_casefile(self):
+        wb = openpyxl.Workbook()
+        sheet = wb.active
+        sheet.title = self.filename
+        for i, col_name in enumerate(self.COL_NAMES):
+            sheet.cell(self.next_row, i+1).value = col_name
+        
+        wb.save(os.path.join(current_app.config.get("TMP_FILE_SAVE_PATH"), f"{self.filename}.xlsx"))
+        self.next_row += 1
+        self.casefile = os.path.join(current_app.config.get("TMP_FILE_SAVE_PATH"), f"{self.filename}.xlsx")
+    
+    def add_row(self, row_data: list):
+        wb = openpyxl.load_workbook(self.casefile)
+        sheet = wb[self.filename]
+        for i, value in enumerate(row_data):
+            sheet.cell(self.next_row, i+1).value = value
+            sheet.cell(self.next_row, i+1).alignment = Alignment(
+                wrapText=True,
+                vertical='top',
+                horizontal='left',
+            )
+        
+        wb.save(self.casefile)
+        self.next_row += 1
+
+
+class MdExportUtil(CasefileExportUtil):
+    def create_casefile(self):
+        with open(
+            os.path.join(
+                current_app.config.get("TMP_FILE_SAVE_PATH"), 
+                f"{self.filename}.md"
+            ), 
+            "a",
+        ) as f:
+            f.write(f"|{'|'.join(self.COL_NAMES)}|\n")
+            split_row = "|---"*len(self.COL_NAMES) + "|\n"
+            f.write(split_row)
+        
+        self.casefile = os.path.join(current_app.config.get("TMP_FILE_SAVE_PATH"), f"{self.filename}.md")
+    
+    def add_row(self, row_data: list):
+        with open(self.casefile, "a+") as f:
+            _row = '|'
+            for cell in row_data:
+                cell = cell.replace('\n', '<br />')
+                _row = _row + str(cell) + '|'
+            _row += '\n'
+            f.write(_row)

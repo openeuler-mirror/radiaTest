@@ -38,7 +38,6 @@ from server.utils.permission_utils import GetAllByPermission
 from server.utils.resource_utils import ResourceManager
 from server.utils.auth_util import generate_messenger_token
 from server.schema.job import PayLoad
-from server.model.user import User
 from server.utils.mail_util import Mail
 from server.model.vmachine import Vmachine
 
@@ -300,6 +299,7 @@ class PmachineOccupyReleaseHandler:
                 "end_time": sqlalchemy.null(),
                 "state": "idle",
                 "listen": sqlalchemy.null(),
+                "is_release_notification": 0
             }
 
         resp = Edit(Pmachine, _body).single(Pmachine, "/pmachine")

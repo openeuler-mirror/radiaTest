@@ -48,7 +48,7 @@ ntplib==0.4.0
 numpy==1.22.3
 openpyxl==3.0.9
 pandas==1.3.4
-paramiko==2.8.0
+paramiko==3.2.0
 parso==0.8.3
 prettytable==0.7.2
 prompt-toolkit==3.0.24

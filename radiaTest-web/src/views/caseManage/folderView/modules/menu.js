@@ -28,7 +28,8 @@ import {
   getCaseNodeRoot,
   getOrphanOrgSuites,
   getOrphanGroupSuites,
-  getCasesBySuite
+  getCasesBySuite,
+  exportTestsuite
 } from '@/api/get';
 import { addBaseline, casenodeApplyTemplate } from '@/api/post';
 import { updateCaseNodeParent } from '@/api/put';
@@ -110,6 +111,16 @@ const relateSuiteAction = {
   label: '关联测试套',
   key: 'relateSuite',
   icon: renderIcon(Box16Regular)
+};
+const exportTestsuiteInXlsxAction = {
+  label: '导出为Excel文件',
+  key: 'exportTestsuiteInXlsx',
+  icon: renderIcon(ExportOutlined)
+};
+const exportTestsuiteInMdAction = {
+  label: '导出为Markdown文件',
+  key: 'exportTestsuiteInMarkdown',
+  icon: renderIcon(ExportOutlined)
 };
 const exportTestcaseAction = {
   label: '导出文本用例',
@@ -226,7 +237,8 @@ function createCasesetActions(item) {
     actions.unshift(createChildrenAction);
   } else if (item.type === 'suite') {
     actions.unshift(moveCaseNodeAction);
-    actions.unshift(exportTestcaseAction);
+    actions.unshift(exportTestsuiteInXlsxAction);
+    actions.unshift(exportTestsuiteInMdAction);
     actions.unshift(createTestcaseAction);
   } else if (item.type === 'case') {
     actions.unshift(editAction);
@@ -1199,6 +1211,45 @@ const actionHandlder = {
     handler(contextmenu) {
       importInfo = contextmenu;
       importModalRef.value.show();
+    }
+  },
+  exportTestsuiteInXlsx: {
+    handler(contextmenu) {
+      axios
+        .downLoad(`/v1/org/${contextmenu.info.org_id}/case-node/${contextmenu.info.id}/export`, { filetype: 'xlsx' })
+        .then((res) => {
+          let blob = new Blob([res], { type: 'application/vnd.ms-excel' });
+          let url = URL.createObjectURL(blob);
+          let alink = document.createElement('a');
+          document.body.appendChild(alink);
+          alink.download = `${contextmenu.info.title}.xlsx`;
+          alink.target = '_blank';
+          alink.href = url;
+          alink.click();
+          alink.remove();
+          URL.revokeObjectURL(url);
+        })
+        .catch((err) => {
+          window.$message?.error(`导出失败: ${err.error_msg}`);
+        });
+    }
+  },
+  exportTestsuiteInMarkdown: {
+    handler(contextmenu) {
+      exportTestsuite(contextmenu.info.org_id, contextmenu.info.id, { filetype: 'md' })
+        .then((res) => {
+          let a = document.createElement('a');
+          let blob = new Blob([res]);
+          const url = window.URL.createObjectURL(blob);
+          a.href = url;
+          a.download = `${contextmenu.info.title}.md`;
+          a.click();
+          a.remove();
+          window.URL.revokeObjectURL(url);
+        })
+        .catch((err) => {
+          window.$message?.error(`导出失败: ${err.error_msg}`);
+        });
     }
   },
   refresh: {

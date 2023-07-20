@@ -40,6 +40,7 @@ from server.schema.testcase import (
     CaseNodeItemQuerySchema,
     CaseNodeSuitesCreateSchema,
     CaseNodeUpdateSchema,
+    CasefileExportSchema,
     OrphanSuitesQuerySchema,
     SuiteCreate,
     CaseCreate,
@@ -67,6 +68,8 @@ from server.apps.testcase.handler import (
     CaseImportHandler,
     CaseNodeHandler,
     CaseHandler,
+    ExcelExportUtil,
+    MdExportUtil,
     OrphanSuitesHandler,
     TemplateCasesHandler,
     HandlerCaseReview,
@@ -1224,3 +1227,61 @@ class CasefileConvertEvent(Resource):
             )
         
         return send_file(converted_filepath, as_attachment=True)
+
+
+class OrgSuiteExportEvent(Resource):
+    @auth.login_required()
+    @response_collect
+    @validate()
+    def get(self, org_id: int, case_node_id: int, query: CasefileExportSchema):
+        """
+            组织类型测试套下文本用例集体导出，markdown/excel格式
+            请求表单:
+            {
+                "filetype": "md" | "xlsx",
+            }
+            返回体:
+            .md/.xlsx file attachment
+            or
+            {
+                "error_code": str,
+                "error_msg": str
+            }
+        """
+        case_node = CaseNode.query.filter_by(id=case_node_id).first()
+        if not case_node or case_node.type != 'suite':
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg=f"the CaseNode[{case_node_id}] to export is not valid",
+            )
+        
+        suite = Suite.query.filter_by(id=case_node.suite_id).first()
+        if not suite:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg=f"the Suite[{case_node.suite_id}] to export doest not exist"
+            )
+        
+        cases = Case.query.filter_by(suite_id=suite.id).all()
+        cases_data = [case_.to_json() for case_ in cases]
+
+        exportor = None
+        if query.filetype == 'xlsx':
+            exportor = ExcelExportUtil(filename=suite.name, cases=cases_data)
+        elif query.filetype == 'md':
+            exportor = MdExportUtil(filename=suite.name, cases=cases_data)
+
+        try:
+            exportor.create_casefile()
+            exportor.inject_data()
+            return send_file(
+                exportor.get_casefile(),
+                as_attachment=True,
+            )
+        except Exception as e:
+            return jsonify(
+                error_code=RET.BAD_REQ_ERR,
+                error_msg=str(e)
+            )
+        finally:
+            exportor.rm_casefile()

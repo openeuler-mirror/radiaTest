@@ -208,7 +208,7 @@ class PmachineBaseSchema(BaseModel):
                 raise ValueError(
                     "As a CI host, ip、user、port、password must be provided."
                 )
-            if len(values["password"]) < 6 or len(values["password"] > 256):
+            if len(values["password"]) < 6 or len(values["password"]) > 256:
                 raise ValueError(
                     "As a CI host, password length should be in range [6, 256]"
                 )
