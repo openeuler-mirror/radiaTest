@@ -1,17 +1,18 @@
 from typing import Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, root_validator
+from server.schema.base import PageBaseSchema, PermissionBase
 
-from server.schema.base import PageBaseSchema
 
-
-class ManualJobCreate(BaseModel):
-    case_id: int
+class ManualJobCreate(PermissionBase):
+    cases: str
     name: str
     milestone_id: int
 
 
 class ManualJobQuery(PageBaseSchema):
     status: int
+    case_id: Optional[int]
+    name: Optional[str]
 
 
 class ManualJobLogModify(BaseModel):

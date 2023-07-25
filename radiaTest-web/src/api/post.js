@@ -154,7 +154,7 @@ export function casenodeApplyTemplate(caseNodeId, baselineTemplateId) {
 }
 
 export function createManualJob(data) {
-  return postRequest(`/v1/ws/${workspace.value}/manual-job`, data);
+  return postRequest('/v1/manual-job', data);
 }
 
 export function submitManualJob(jobId) {

@@ -72,24 +72,15 @@ class TimeBaseSchema(BaseModel):
 
 
 class PermissionBase(BaseModel):
-    creator_id: str
+    creator_id: Optional[str]
     permission_type: PermissionType
     group_id: Optional[int] = None
-    org_id: int
+    org_id: Optional[int]
 
     @root_validator
     def check_exist(cls, values):
-        user = Precise(
-            User, {"user_id": values.get("creator_id")}
-        ).first()
-        if not user:
-            raise ValueError("The user does not exist.")
-        
-        if values.get("creator_id") != g.user_id:
-            raise ValueError("The user is not current login user.")
-        
-        if values.get("org_id") != int(redis_client.hget(RedisKey.user(g.user_id), "current_org_id")):
-            raise ValueError("The org is not current login org.")
+        values['creator_id'] = g.user_id
+        values["org_id"] = int(redis_client.hget(RedisKey.user(g.user_id), "current_org_id"))
 
         if values.get("permission_type") == "group":
             if not values.get("group_id"):

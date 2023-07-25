@@ -167,6 +167,11 @@ task_queues = (
         routing_key="distribute_template",
     ),
     Queue(
+        "queue_resolve_create_manualjob",
+        exchange=Exchange("server_exchange", type="direct"),
+        routing_key="create_manualjob",
+    ),
+    Queue(
         "queue_resolve_base_node",
         exchange=Exchange("server_exchange", type="direct"),
         routing_key="base_node",

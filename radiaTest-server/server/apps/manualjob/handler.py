@@ -28,75 +28,16 @@ from server.utils.response_util import RET
 from server.utils.db import collect_sql_error
 from server.utils.page_util import PageUtil
 from server.utils.text_utils import TextItemSplitter, DefaultNumeralRule
+from celeryservice.tasks import resolve_create_manualjob
 
 
 class ManualJobHandler:
     @staticmethod
     @collect_sql_error
-    def create(_case: Case, body, workspace=None):
-        # 向数据库中插入此条ManualJob记录, manual_job_dict中为部分字段.
-        manual_job_dict = deepcopy(body.__dict__)
-
-        _permission_body = {
-            "permission_type": "org",
-            "org_id": int(
-                redis_client.hget(
-                    RedisKey.user(g.user_id), 
-                    "current_org_id"
-                )
-            )
-        }
-
-        if re.match(r'^group_\d+$', workspace):
-            _permission_body.update({
-                "permission_type": "group",
-                "group_id": int(workspace.split("_")[1])
-            })
-        
-        manual_job_dict.update(_permission_body)
-
-        manual_job_dict["executor_id"] = g.user_id
-        # 从所属的Case那里计算总步骤数
-        if _case.steps is not None and _case.steps != "":
-            text_item_splitter = TextItemSplitter(
-                numeral_rules=[DefaultNumeralRule],
-                separators=[".", "、"],
-                terminators=["\n"]
-            )
-            step_operation_dict = text_item_splitter.split_text_items(_case.steps)
-            total_step = len(step_operation_dict)
-            step_operation_dict_key_list = sorted(list(step_operation_dict.keys()))
-        else:  # 如果该manualjob所属case的steps字段留空, 视为有1个步骤(而不是0个步骤)
-            total_step = 1
-            step_operation_dict = {1: ""}
-            step_operation_dict_key_list = [1]
-
-        manual_job_dict["total_step"] = total_step
-
-        manual_job = ManualJob(**manual_job_dict)
-
-        db.session.add(manual_job)  # 执行插入操作, 并获取本次插入记录的id.
-        db.session.flush()  # 此步不会真正的提交, 但会把数据同步到数据库的缓存中, 这之后就可以获取新插入这条数据的id.
-
-        manual_job_id = manual_job.id
-
-        # 根据上面取得的步骤数, 在数据库中创建这个数量的ManualJobStep记录
-        for cnt in range(total_step):
-            manual_job_step_dict = {}
-            manual_job_step_dict["manual_job_id"] = manual_job_id
-            manual_job_step_dict["step_num"] = cnt + 1
-            manual_job_step_dict["operation"] = step_operation_dict.get(step_operation_dict_key_list[cnt])
-            manual_job_step = ManualJobStep(**manual_job_step_dict)
-            db.session.add(manual_job_step)
-
-        try:
-            db.session.commit()  # 提交事务
-        except (IntegrityError, SQLAlchemyError) as e:
-            db.session.rollback()
-            raise e  # 把异常抛给外层@collect_sql_error
-
+    def create(body):
+        manual_job_dict = body.__dict__
+        resolve_create_manualjob.delay(manual_job_dict)
         return jsonify(
-            data={"id": manual_job_id},
             error_code=RET.OK,
             error_msg="Request processed successfully."
         )
@@ -112,6 +53,10 @@ class ManualJobHandler:
 
         filter_params = GetAllByPermission(ManualJob, workspace).get_filter()
         filter_params.append(ManualJob.status == query.status)
+        if query.name is not None:
+            filter_params.append(ManualJob.name.like(f'%{query.name}%'))
+        if query.case_id is not None:
+            filter_params.append(ManualJob.case_id == query.case_id)
 
         # 分页对象
         page_dict, e = PageUtil.get_page_dict(
