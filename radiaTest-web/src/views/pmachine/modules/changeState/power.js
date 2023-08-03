@@ -2,9 +2,8 @@ import axios from '@/axios';
 
 const poweroff = (machineId, disabled) => {
   axios
-    .put('/v1/pmachine/power', {
-      id: machineId,
-      status: 'off',
+    .put(`/v1/pmachine/${machineId}/power`, {
+      status: 'off'
     })
     .then((res) => {
       if (res.error_code === '2000') {
@@ -26,9 +25,8 @@ const poweroff = (machineId, disabled) => {
 
 const poweron = (machineId, disabled) => {
   axios
-    .put('/v1/pmachine/power', {
-      id: machineId,
-      status: 'on',
+    .put(`/v1/pmachine/${machineId}/power`, {
+      status: 'on'
     })
     .then((res) => {
       if (res.error_code === '2000') {
@@ -58,9 +56,6 @@ const handlePowerClick = (machineId, status, disabled) => {
     window.$message?.error('物理机运行状态未知，请联系管理员进行处理');
     disabled.value = false;
   }
-
 };
 
-export {
-  handlePowerClick,
-};
+export { handlePowerClick };
