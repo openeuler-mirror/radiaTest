@@ -18,7 +18,7 @@ const handleFailUpdate = (msg) => {
 const putForm = (url, formValue) => {
   return new Promise((resolve, reject) => {
     axios
-      .put(`${url}/${formValue.value.id}`, formValue.value)
+      .put(url, formValue.value)
       .then((res) => {
         if (res.error_code === '2000') {
           handleSuccessUpdate();
