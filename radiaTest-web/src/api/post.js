@@ -3,7 +3,6 @@ import { lyla } from 'lyla';
 import { unkonwnErrorMsg } from '@/assets/utils/description';
 import config from '@/assets/config/settings';
 import { storage } from '@/assets/utils/storageUtils';
-import { workspace } from '@/assets/config/menu.js';
 
 function postRequest(url, data) {
   return new Promise((resolve, reject) => {
