@@ -26,6 +26,7 @@ from server.schema.job import (
 from server.model.testcase import Case, Baseline, CaseNode
 from server.model.pmachine import MachineGroup
 from server.model.task import TaskMilestone
+from server.model.template import Template
 from server.utils.auth_util import auth
 from server.utils.page_util import PageUtil
 from server.utils.response_util import RET, response_collect, workspace_error_collect
@@ -54,7 +55,19 @@ class RunTemplateEvent(Resource):
     @response_collect
     @validate()
     def post(self, body: RunTemplateBase):
-        messenger = JobMessenger(body.__dict__)
+        template = Template.query.get(body.template_id)
+        if template is None:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="template doesn't exist."
+            )
+        _body = body.__dict__
+        _body['template_name'] = template.template_name
+        _body['permission_type'] = template.permission_type
+        _body['group_id'] = template.group_id
+        _body['org_id'] = template.org_id
+        _body['creator_id'] = g.user_id
+        messenger = JobMessenger(_body)
 
         machine_group = MachineGroup.query.filter_by(id=body.machine_group_id).first()
         if not machine_group:
@@ -87,7 +100,7 @@ class JobEvent(Resource):
 
         if query.name:
             filter_params.append(Job.name.like(f"%{query.name}%"))
-        
+
         if query.status == "PENDING":
             filter_params.append(Job.status == "PENDING")
         elif query.status == "DONE":

@@ -52,7 +52,6 @@ class RunJobBase(PermissionBase):
 
 class RunTemplateBase(RunJobBase):
     template_id: int
-    template_name: str
     name: Optional[str]
     taskmilestone_id: Optional[int]
 
