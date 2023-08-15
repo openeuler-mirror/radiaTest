@@ -2,6 +2,7 @@ import os
 import shutil
 from time import sleep
 
+from server.model.testcase import Suite
 from celeryservice.sub_tasks import update_suite
 from celeryservice.lib import TaskHandlerBase
 from celeryservice.lib.repo.repo_adaptor import GitRepoAdaptor
@@ -110,9 +111,22 @@ class RepoTaskHandler(TaskHandlerBase):
             }
         )
 
+        radia_suites = set()
+        suites = Suite.query.filter_by(git_repo_id=repo_id).all()
+        [ radia_suites.add(suite.name) for suite in suites ]
+        
+        git_suites = set()
         # update suites and cases data of the target repo to database by celery task
         for (suite_data, cases_data) in suite2cases:
+            git_suites.add(suite_data.get('name'))
             update_suite.delay(suite_data, cases_data)
+        
+        rm_suites = radia_suites - git_suites
+        for rm_suite in rm_suites:
+            suite = Suite.query.filter_by(git_repo_id=repo_id, name=rm_suite).first()
+            suite.deleted = True
+            suite.add_update()
+            suite.commit()
 
         # set the state to DONE, record the clock
         self.next_period()

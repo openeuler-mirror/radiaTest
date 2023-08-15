@@ -149,6 +149,15 @@ class CaseNodeBaseSchema(BaseModel):
     in_set: bool = False
 
 
+class SuiteQuery(PageBaseSchema):
+    name: str = None
+    machine_num: int = None
+    machine_type: str = None
+    owner: str = None
+    description: str = None
+    deleted: bool = False
+
+
 class SuiteBase(BaseModel):
     name: str
     machine_num: Optional[int] = 1
@@ -219,6 +228,19 @@ class CaseBase(SuiteBase):
     automatic: bool
     usabled: Optional[bool] = False
     code: Optional[str]
+
+
+class CaseQuery(PageBaseSchema):
+    name: str = None
+    test_level: str = None
+    test_type: str = None
+    machine_num: int = None
+    machine_type: str = None
+    suite_name: str = None
+    owner: str = None
+    description: str = None
+    automatic: bool = None
+    deleted: bool = False
 
 
 class CaseCreate(CaseBase):

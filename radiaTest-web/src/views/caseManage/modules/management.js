@@ -127,8 +127,8 @@ const recycleBinCaseColumns = [
             onClick: () => {
               warning('恢复用例', '您确定要恢复此用例吗？', () => {
                 updateAjax.putForm(
-                  '/v1/case',
-                  ref({ id: row.id, deleted: false })
+                  `/v1/case/${row.id}`,
+                  ref({ deleted: false })
                 );
                 query();
               });
@@ -144,7 +144,7 @@ const recycleBinCaseColumns = [
             onClick: () => {
               warning('彻底删除用例', '您确定要彻底删除此用例吗？', () => {
                 axios
-                  .delete('/v1/case', { id: [row.id] })
+                  .delete(`/v1/case/${row.id}`)
                   .then(() => {
                     query();
                   })

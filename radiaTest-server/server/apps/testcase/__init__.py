@@ -27,6 +27,7 @@ from server.apps.testcase.routes import (
     CaseNodeCommitEvent,
     CaseImport,
     CaseRecycleBin,
+    SuiteRecycleBin,
     ResolveTestcaseByFilepath,
     SuiteItemEvent,
     TemplateCasesQuery,
@@ -167,6 +168,12 @@ def init_api(api: Api):
         CaseRecycleBin, 
         "/api/v1/case/recycle-bin",
         "/api/v1/ws/<string:workspace>/case/recycle-bin",  
+        methods=["GET"]
+    )
+    api.add_resource(
+        SuiteRecycleBin, 
+        "/api/v1/suite/recycle-bin",
+        "/api/v1/ws/<string:workspace>/suite/recycle-bin",  
         methods=["GET"]
     )
     api.add_resource(
