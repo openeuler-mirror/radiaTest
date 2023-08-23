@@ -20,6 +20,7 @@ from celeryservice.tasks import resolve_testcase_file
 from flask import request, g, jsonify, Response, send_file
 from flask_restful import Resource
 from flask_pydantic import validate
+from sqlalchemy import or_
 
 from server import redis_client, casbin_enforcer
 from server.utils.redis_util import RedisKey
@@ -63,6 +64,8 @@ from server.schema.testcase import (
     ResourceQuerySchema,
     CaseSetQuerySchema,
     CaseSetNodeQueryBySuiteSchema,
+    CaseQuery,
+    SuiteQuery,
 )
 from server.apps.testcase.handler import (
     CaseImportHandler,
@@ -79,6 +82,7 @@ from server.apps.testcase.handler import (
     CaseSetHandler,
 )
 from server.utils.resource_utils import ResourceManager
+from server.utils.page_util import PageUtil
 from server import db
 
 
@@ -154,7 +158,7 @@ class SuiteEvent(Resource):
     @validate()
     def post(self, body: SuiteCreate):
         suite_body = body.__dict__
-        
+
         suites = Suite.query.filter_by(name=suite_body["name"]).all()
         if suites:
             return jsonify(
@@ -173,18 +177,30 @@ class SuiteEvent(Resource):
         _ = Insert(Suite, suite_body).insert_id(Suite, "/suite")
         return jsonify(error_code=RET.OK, error_msg="OK")
 
-
     @auth.login_required()
     @response_collect
     @workspace_error_collect
-    def get(self, workspace: str):
-        body = dict()
+    @validate()
+    def get(self, workspace: str, query: SuiteQuery):
+        filter_params = GetAllByPermission(Suite, workspace).get_filter()
 
-        for key, value in request.args.to_dict().items():
-            if value:
-                body[key] = value
+        if query.name is not None:
+            filter_params.append(Suite.name.like(f'%{query.name}%'))
+        if query.description is not None:
+            filter_params.append(
+                Suite.description.like(f'%{query.description}%'))
+        if query.machine_type is not None:
+            filter_params.append(Suite.machine_type == query.machine_type)
+        if query.machine_num is not None:
+            filter_params.append(Suite.machine_num == query.machine_num)
+        if query.owner is not None:
+            filter_params.append(Suite.owner == query.owner)
+        if query.deleted is not None:
+            filter_params.append(Suite.deleted.is_(query.deleted))
 
-        return GetAllByPermission(Suite, workspace).fuzz(body)
+        query_filter = Suite.query.filter(*filter_params)
+
+        return PageUtil.get_data(query_filter, query)
 
 
 class OrphanOrgSuitesEvent(Resource):
@@ -211,6 +227,7 @@ class OrphanGroupSuitesEvent(Resource):
         ])
         return handler.get_all()
 
+
 class CaseNodeSuitesEvent(Resource):
     @auth.login_required()
     @response_collect
@@ -223,7 +240,7 @@ class CaseNodeSuitesEvent(Resource):
                 error_code=RET.NO_DATA_ERR,
                 error_msg=f"case node #{case_node_id} does not exist/not valid",
             )
-        
+
         from celeryservice.tasks import async_create_testsuite_node
         for suite_id in body.suites:
             _task = async_create_testsuite_node.delay(
@@ -242,7 +259,8 @@ class CaseNodeSuitesEvent(Resource):
                 "user_id": g.user_id,
             }
 
-            _ = Insert(CeleryTask, celerytask).single(CeleryTask, "/celerytask")
+            _ = Insert(CeleryTask, celerytask).single(
+                CeleryTask, "/celerytask")
 
         return jsonify(
             error_code=RET.OK,
@@ -266,7 +284,6 @@ class SuiteItemEvent(Resource):
             error_msg="OK",
             data=suite.to_json()
         )
-
 
     @auth.login_required()
     @response_collect
@@ -297,14 +314,16 @@ class SuiteItemEvent(Resource):
         Edit(Suite, body.__dict__).single(Suite, "/suite")
         return jsonify(error_code=RET.OK, error_msg="OK")
 
-
     @auth.login_required()
     @response_collect
     @validate()
     def delete(self, suite_id):
-        suite = Suite.query.filter_by(
-            id=suite_id,
-            source_type="manual",
+        suite = Suite.query.filter(
+            Suite.id == suite_id,
+            or_(
+                Suite.source_type == "manual",
+                Suite.deleted.is_(True)
+            )
         ).first()
         if not suite:
             return jsonify(
@@ -418,12 +437,12 @@ class CaseEvent(Resource):
         case_node = CaseNode.query.filter_by(suite_id=_suite.id).first()
         if not case_node:
             return jsonify(
-                error_code=RET.VERIFY_ERR, 
+                error_code=RET.VERIFY_ERR,
                 error_msg="case-node is not exist.")
         case_body.update({"parent_id": case_node.id})
 
         body = CaseCreateBody(**case_body)
-        _resp =  CaseNodeHandler.create(body)
+        _resp = CaseNodeHandler.create(body)
         _resp = json.loads(_resp.data.decode('UTF-8'))
         if _resp.get("error_code") != RET.OK:
             return jsonify(
@@ -432,19 +451,37 @@ class CaseEvent(Resource):
             )
         return_data["case_node_id"] = _resp.get("data")
         return jsonify(error_code=RET.OK, error_msg="OK", data=return_data)
-        
 
     @auth.login_required()
     @response_collect
     @workspace_error_collect
-    def get(self, workspace: str):
-        body = dict()
+    @validate()
+    def get(self, workspace: str, query: CaseQuery):
+        filter_params = GetAllByPermission(Case, workspace).get_filter()
 
-        for key, value in request.args.to_dict().items():
-            if value:
-                body[key] = value
-        return GetAllByPermission(Case, workspace).precise(body)
+        if query.name is not None:
+            filter_params.append(Case.name.like(f'%{query.name}%'))
+        if query.description is not None:
+            filter_params.append(
+                Case.description.like(f'%{query.description}%'))
+        if query.automatic is not None:
+            filter_params.append(Case.automatic.is_(query.automatic))
+        if query.test_level is not None:
+            filter_params.append(Case.test_level == query.test_level)
+        if query.test_type is not None:
+            filter_params.append(Case.test_type == query.test_type)
+        if query.machine_type is not None:
+            filter_params.append(Case.machine_type == query.machine_type)
+        if query.machine_num is not None:
+            filter_params.append(Case.machine_num == query.machine_num)
+        if query.owner is not None:
+            filter_params.append(Case.owner == query.owner)
+        if query.deleted is not None:
+            filter_params.append(Case.deleted.is_(query.deleted))
 
+        query_filter = Case.query.filter(*filter_params)
+
+        return PageUtil.get_data(query_filter, query)
 
 
 class CaseItemEvent(Resource):
@@ -474,10 +511,10 @@ class CaseItemEvent(Resource):
             _body["suite_id"] = Suite.query.filter_by(
                 name=_body.get("suite")).first().id
             _body.pop("suite")
-
+        _body['id'] = case_id
         Edit(Case, _body).single(Case, "/case")
-        
-        if body.name: 
+
+        if body.name:
             case_nodes = CaseNode.query.filter(
                 CaseNode.case_id == case_id,
             ).all()
@@ -492,9 +529,8 @@ class CaseItemEvent(Resource):
                 if case_node.title != body.name:
                     case_node.title = body.name
                     case_node.add_update()
-        
-        return jsonify(error_code=RET.OK, error_msg="OK")
 
+        return jsonify(error_code=RET.OK, error_msg="OK")
 
     @auth.login_required()
     @response_collect
@@ -504,7 +540,7 @@ class CaseItemEvent(Resource):
             CaseNode.case_id == case_id,
             CaseNode.type == "case",
             CaseNode.baseline_id.is_(None)
-            ).first()
+        ).first()
         if not case_node:
             return jsonify(
                 error_code=RET.NO_DATA_ERR,
@@ -512,7 +548,6 @@ class CaseItemEvent(Resource):
             )
         Delete(CaseNode, {"id": case_node.id}).single(CaseNode, "/case_node")
         return Delete(Case, {"id": case_id}).single(Case, "/case")
-
 
     @auth.login_required()
     @response_collect
@@ -523,7 +558,7 @@ class CaseItemEvent(Resource):
                 error_code=RET.OK,
                 error_msg="OK"
             )
-        data = case.to_json() 
+        data = case.to_json()
         return jsonify(
             error_code=RET.OK,
             error_msg="OK",
@@ -547,13 +582,21 @@ class CaseRecycleBin(Resource):
         return GetAllByPermission(Case, workspace).precise({"deleted": 1})
 
 
+class SuiteRecycleBin(Resource):
+    @auth.login_required()
+    @response_collect
+    @workspace_error_collect
+    def get(self, workspace: str):
+        return GetAllByPermission(Suite, workspace).precise({"deleted": 1})
+
+
 class CaseImport(Resource):
     @auth.login_required()
     @response_collect
     def post(self):
         if not request.files.get("file"):
             return jsonify(
-                error_code=RET.PARMA_ERR, 
+                error_code=RET.PARMA_ERR,
                 error_msg="The file being uploaded is not exist"
             )
 
@@ -564,7 +607,7 @@ class CaseImport(Resource):
                 error_code=RET.RUNTIME_ERROR,
                 error_msg=str(e),
             )
-        
+
         return import_handler.import_case(
             request.form.get("group_id"),
             request.form.get("case_node_id"),
@@ -777,7 +820,6 @@ class SuiteDocumentEvent(Resource):
         """
         return SuiteDocumentHandler.post(suite_id, body)
 
-
     @auth.login_required()
     @response_collect
     @validate()
@@ -799,13 +841,13 @@ class SuiteDocumentEvent(Resource):
                 "error_code": "2000",
                 "error_msg": "OK!"
             }
-        """        
+        """
         suite = Suite.query.filter_by(id=suite_id).first()
         if not suite:
             return jsonify(
                 error_code=RET.NO_DATA_ERR,
                 error_msg="The suite is not exist"
-        )
+            )
         filter_params = GetAllByPermission(SuiteDocument).get_filter()
         filter_params.append(SuiteDocument.suite_id == suite_id)
 
@@ -814,10 +856,10 @@ class SuiteDocumentEvent(Resource):
             if not value:
                 continue
             if key == 'title':
-                filter_params.append(SuiteDocument.title.like(f'%{value}%'))               
+                filter_params.append(SuiteDocument.title.like(f'%{value}%'))
         suitedocuments = SuiteDocument.query.filter(*filter_params).all()
         return_data = [document.to_json() for document in suitedocuments]
-        
+
         return jsonify(error_code=RET.OK, error_msg="OK", data=return_data)
 
 
@@ -851,7 +893,6 @@ class SuiteDocumentItemEvent(Resource):
         """
         return GetAllByPermission(SuiteDocument).precise({"id": document_id})
 
-
     @auth.login_required()
     @response_collect
     @validate()
@@ -874,7 +915,6 @@ class SuiteDocumentItemEvent(Resource):
         return Edit(SuiteDocument, _body).single(
             SuiteDocument, "/suite_document"
         )
-
 
     @auth.login_required()
     @response_collect
@@ -951,14 +991,14 @@ class CaseNodeMoveToEvent(Resource):
             "error_code": "2000",
             "error_msg": "OK"
             }
-        """       
+        """
         from_casenode = CaseNode.query.filter_by(id=from_id).first()
         if not from_casenode:
             return jsonify(
                 error_code=RET.VERIFY_ERR,
                 error_msg="The casenode is not exist."
             )
-        old_parent =  CaseNode.query.filter(
+        old_parent = CaseNode.query.filter(
             CaseNode.children.contains(from_casenode)
         ).first()
 
@@ -968,28 +1008,27 @@ class CaseNodeMoveToEvent(Resource):
                 error_code=RET.VERIFY_ERR,
                 error_msg="The casenode is not exist."
             )
-        
+
         if from_id == to_id:
             return jsonify(error_code=RET.OK, error_msg="OK")
-        
+
         if from_casenode.in_set == True and from_casenode.type == "case":
             return jsonify(
-                error_code=RET.VERIFY_ERR, 
+                error_code=RET.VERIFY_ERR,
                 error_msg="Only suite and directory could be moved."
             )
-        
+
         if to_casenode.type not in ["directory", "baseline"]:
             return jsonify(
-                error_code=RET.VERIFY_ERR, 
+                error_code=RET.VERIFY_ERR,
                 error_msg="Only could moved to type of directory or baseline."
             )
-        
+
         from_casenode.parent.remove(old_parent)
         from_casenode.parent.append(to_casenode)
         from_casenode.add_update()
 
         return jsonify(error_code=RET.OK, error_msg="OK")
-
 
 
 class CaseNodeGetRootEvent(Resource):
@@ -1018,20 +1057,20 @@ class CaseNodeGetRootEvent(Resource):
             "title": str,
             "type": str
             }
-        """   
+        """
         casenode = CaseNode.query.filter_by(id=case_node_id).first()
         if not casenode:
             return jsonify(
                 error_code=RET.VERIFY_ERR,
                 error_msg="The casenode is not exist."
             )
-        
+
         root_case_node = CaseNodeHandler.get_root_case_node(case_node_id)
 
         return jsonify(
-            error_code = RET.OK,
-            error_msg = "OK",
-            data = root_case_node.to_json()
+            error_code=RET.OK,
+            error_msg="OK",
+            data=root_case_node.to_json()
         )
 
 
@@ -1078,7 +1117,7 @@ class CaseSetItemEvent(Resource):
             }
         """
         return_data = dict()
-        casenode = CaseNode.query.filter_by(id = case_node_id).first()
+        casenode = CaseNode.query.filter_by(id=case_node_id).first()
         if not casenode:
             return jsonify(
                 error_code=RET.NO_DATA_ERR,
@@ -1090,7 +1129,7 @@ class CaseSetItemEvent(Resource):
             return_data = CaseSetHandler.get_caseset_details(
                 casenode, "baseline", query)
             if isinstance(return_data, Response):
-                return  return_data
+                return return_data
         elif casenode.type == "directory" and\
                 casenode.is_root == 1 and \
                 casenode.title == "用例集":
@@ -1098,13 +1137,13 @@ class CaseSetItemEvent(Resource):
             return_data = CaseSetHandler.get_caseset_details(
                 casenode, "directory", query)
             if isinstance(return_data, Response):
-                return  return_data
+                return return_data
         else:
             return jsonify(
                 error_code=RET.VERIFY_ERR,
                 error_msg="The type of casenode is invalid or casenode is not root node."
             )
-        
+
         return jsonify(
             error_code=RET.OK,
             error_msg="OK",
@@ -1117,7 +1156,7 @@ class BaselineEvent(Resource):
         创建、查询基线(BaseLine).
         url="/api/v1/baseline", 
         methods=["POST", "GET"]
-    """    
+    """
     @auth.login_required()
     @response_collect
     @validate()
@@ -1149,7 +1188,8 @@ class BaselineEvent(Resource):
                 error_code=RET.NO_DATA_ERR,
                 error_msg="milestone is not exist."
             )
-        _baseline = Baseline.query.filter_by(milestone_id=body.milestone_id).first()
+        _baseline = Baseline.query.filter_by(
+            milestone_id=body.milestone_id).first()
         if _baseline:
             return jsonify(
                 error_code=RET.NO_DATA_ERR,
@@ -1157,7 +1197,7 @@ class BaselineEvent(Resource):
             )
 
         baseline_body = BaselineCreateSchema(**body.__dict__).dict()
-        
+
         baseline_body.update({"creator_id": g.user_id})
         baseline_body.update({
             "org_id": redis_client.hget(RedisKey.user(g.user_id), 'current_org_id')
@@ -1166,7 +1206,7 @@ class BaselineEvent(Resource):
         return_data["baseline_id"] = _id
 
         body.baseline_id = _id
-        _resp =  CaseNodeHandler.create(body)
+        _resp = CaseNodeHandler.create(body)
         _resp = json.loads(_resp.data.decode('UTF-8'))
 
         if _resp.get("error_code") != RET.OK:
@@ -1225,7 +1265,7 @@ class CasefileConvertEvent(Resource):
                 error_code=RET.RUNTIME_ERROR,
                 error_msg=str(e)
             )
-        
+
         return send_file(converted_filepath, as_attachment=True)
 
 
@@ -1254,14 +1294,14 @@ class OrgSuiteExportEvent(Resource):
                 error_code=RET.NO_DATA_ERR,
                 error_msg=f"the CaseNode[{case_node_id}] to export is not valid",
             )
-        
+
         suite = Suite.query.filter_by(id=case_node.suite_id).first()
         if not suite:
             return jsonify(
                 error_code=RET.NO_DATA_ERR,
                 error_msg=f"the Suite[{case_node.suite_id}] to export doest not exist"
             )
-        
+
         cases = Case.query.filter_by(suite_id=suite.id).all()
         cases_data = [case_.to_json() for case_ in cases]
 

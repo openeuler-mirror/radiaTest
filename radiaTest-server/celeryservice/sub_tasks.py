@@ -73,7 +73,16 @@ def update_suite(suite_data, cases_data):
 
         suite_id = same_suite.id
 
+    radia_cases = set()
+    cases = Case.query.filter_by(
+        suite_id=suite_id,
+        deleted=False,
+    ).all()
+
+    [ radia_cases.add(case.name) for case in cases ]
+    git_cases = set()
     for case_data in cases_data:
+        git_cases.add(case_data.get("name"))
         case_data.update({
             "suite_id": suite_id,
             "git_repo_id": _repo.id,
@@ -83,6 +92,13 @@ def update_suite(suite_data, cases_data):
             "creator_id": _repo.creator_id
         })
         _ = update_case.delay(case_data)
+
+    del_cases = radia_cases - git_cases
+    for del_case in del_cases:
+        case = Case.query.filter_by(name=del_case).first()
+        case.deleted = True
+        case.add_update()
+        case.commit()
 
 
 @celery.task
