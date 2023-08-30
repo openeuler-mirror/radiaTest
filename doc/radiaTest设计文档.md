@@ -67,7 +67,7 @@ radiaTest采用前后端分离的模式，前端采用vue3框架js实现，后�
 - 消息队列为节点本地的异步任务队列，不涉及非本机通信
 - 平台具备相对完整的日志审计和健康检查的体系，支撑运维。
 
-![radiaTest架构](./assets/radiaTest架构.png)
+![radiaTest架构](https://radiatest.openeuler.org/static/assets/radiaTest架构.png)
 
 #### 3.1.2、radiaTest部署架构
 
@@ -82,11 +82,11 @@ radiaTest主体为web服务的前后端模块，辅以部署于接入网段入�
 
 ##### 3.1.2.1、基于平台自有服务、单机器组接入的部署视图
 
-![radiaTest平台部署视图](./assets/radiaTest平台部署视图.png)
+![radiaTest平台部署视图](https://radiatest.openeuler.org/static/assets/radiaTest平台部署视图.png)
 
 ##### 3.1.2.2、基于多元化测试服务、多机器组接入的部署视图
 
-![多元测试引擎接入-部署视图](./assets/多元测试引擎接入-部署视图.png)
+![多元测试引擎接入-部署视图](https://radiatest.openeuler.org/static/assets/多元测试引擎接入-部署视图.png)
 
 
 
@@ -105,7 +105,7 @@ radiaTest主体为web服务的前后端模块，辅以部署于接入网段入�
 
 - 业务流图
 
-  <img src="./assets/业务流图/用户鉴权.png" alt="用户鉴权" style="zoom:75%;" />
+  <img src="https://radiatest.openeuler.org/static/assets/业务流图/用户鉴权.png" alt="用户鉴权" style="zoom:75%;" />
 
   
 
@@ -148,11 +148,11 @@ radiaTest主体为web服务的前后端模块，辅以部署于接入网段入�
 
 - 用例视图
 
-  ![权限管理-用例视图](./assets/用例视图/权限管理-用例视图.png)
+  ![权限管理-用例视图](https://radiatest.openeuler.org/static/assets/用例视图/权限管理-用例视图.png)
 
 - 业务流图
 
-  ![接口访问控制-业务流图](./assets/业务流图/接口访问控制-业务流图.png)
+  ![接口访问控制-业务流图](https://radiatest.openeuler.org/static/assets/业务流图/接口访问控制-业务流图.png)
 
   
 
@@ -167,7 +167,7 @@ radiaTest主体为web服务的前后端模块，辅以部署于接入网段入�
   
 - 业务流图
 
-  <img src="./assets/业务流图/系统通知-业务流图.png" alt="系统通知-业务流图" style="zoom:50%;" />
+  <img src="https://radiatest.openeuler.org/static/assets/业务流图/系统通知-业务流图.png" alt="系统通知-业务流图" style="zoom:50%;" />
 
   
 
@@ -211,7 +211,7 @@ radiaTest平台除了具备自有资源池，同时支持各基于不同测试�
 
 - 用例视图
 
-  <img src="./assets/用例视图/资源池-用例视图.png" alt="资源池-用例视图" />
+  <img src="https://radiatest.openeuler.org/static/assets/用例视图/资源池-用例视图.png" alt="资源池-用例视图" />
 
 #### 3.2.3.2 第三方接入资源池
 
@@ -235,7 +235,7 @@ radiaTest平台除了具备自有资源池，同时支持各基于不同测试�
 
 * 用例视图
 
-  <img src="./assets/用例视图/文本用例管理-用例视图.png" alt="用例管理-用例视图" style="zoom:50%;" />
+  <img src="https://radiatest.openeuler.org/static/assets/用例视图/文本用例管理-用例视图.png" alt="用例管理-用例视图" style="zoom:50%;" />
 
   
 
@@ -249,7 +249,7 @@ radiaTest平台除了具备自有资源池，同时支持各基于不同测试�
 
 - 用例视图
 
-  <img src="./assets/用例视图/用例集与测试策略管理-用例视图.png" alt="用例集与测试策略管理-用例视图" style="zoom:50%;" />
+  <img src="https://radiatest.openeuler.org/static/assets/用例视图/用例集与测试策略管理-用例视图.png" alt="用例集与测试策略管理-用例视图" style="zoom:50%;" />
 
 
 
@@ -267,7 +267,7 @@ radiaTest平台除了具备自有资源池，同时支持各基于不同测试�
 
 - 类图
 
-  <img src="./assets/类图/框架适配器-类图.png" alt="框架适配器-类图" />
+  <img src="https://radiatest.openeuler.org/static/assets/类图/框架适配器-类图.png" alt="框架适配器-类图" />
 
 
 
@@ -281,7 +281,7 @@ radiaTest平台除了具备自有资源池，同时支持各基于不同测试�
 
 - 用例视图
 
-  <img src="./assets/用例视图/自动化脚本定时存储与解析-用例视图.png" alt="自动化脚本定时存储与解析-用例视图" style="zoom:50%;" />
+  <img src="https://radiatest.openeuler.org/static/assets/用例视图/自动化脚本定时存储与解析-用例视图.png" alt="自动化脚本定时存储与解析-用例视图" style="zoom:50%;" />
 
 
 
@@ -297,7 +297,7 @@ radiaTest平台除了具备自有资源池，同时支持各基于不同测试�
 
 * 用例视图
 
-  <img src="./assets/用例视图/任务管理-用例视图.png" alt="任务管理-用例视图" style="zoom:50%;" />
+  <img src="https://radiatest.openeuler.org/static/assets/用例视图/任务管理-用例视图.png" alt="任务管理-用例视图" style="zoom:50%;" />
 
 #### 3.2.5.1 执行中状态任务关联的自动化用例自动执行
 
@@ -307,7 +307,7 @@ radiaTest平台除了具备自有资源池，同时支持各基于不同测试�
 
 * 业务流图
 
-  <img src="./assets/业务流图/执行中任务关联用例自动化执行-业务流图.png" alt="执行中任务关联用例自动化执行-业务流图" style="zoom:50%;" />
+  <img src="https://radiatest.openeuler.org/static/assets/业务流图/执行中任务关联用例自动化执行-业务流图.png" alt="执行中任务关联用例自动化执行-业务流图" style="zoom:50%;" />
 
 
 
@@ -380,7 +380,7 @@ radiaTest平台除了具备自有资源池，同时支持各基于不同测试�
 
   若机器被选取后，没有正常部署测试环境和执行测试，则该机器的有效权重将依据下述模型进行衰退，直到再次正常运作的轮次恢复为固有权重并清空轮次。
   $$
-  F_\omega(i) = 
+  F_\omega(i) =
   \begin{cases}
   \quad \frac{\omega_s}{1+e^{\alpha i+\beta}},\hspace{3em} i ∈ (0,i_{max}),\quad \alpha与\beta根据设定的e_{min}、i_{min}与\omega_{rest}与i_{max}计算得出\\\\
   \quad \omega_{rest}\hspace{4em} i ∈ [\,i_{max},\infty)\\\\

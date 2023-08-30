@@ -37,6 +37,7 @@ import { Pending } from '@vicons/carbon';
 import { RunningWithErrorsFilled } from '@vicons/material';
 import customProgress from '@/components/customProgress/customProgress.vue';
 import { getMilestoneProgressCaseNode } from '@/api/get.js';
+import { inject, ref, toRefs } from 'vue';
 
 const props = defineProps(['treeList']);
 const { treeList } = toRefs(props);

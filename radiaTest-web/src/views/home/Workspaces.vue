@@ -1,11 +1,11 @@
 <template>
   <div class="workspaces-container">
     <n-layout
-      embedded
-      :content-style="{
+        :content-style="{
         padding: '24px',
         backgroundColor: '#f5f5f5'
       }"
+        embedded
     >
       <div class="welcome-warp">
         <H2>Hi，欢迎使用开源测试管理平台radiaTest！</H2>
@@ -41,30 +41,30 @@
           <div class="text">任务管理管理能力，实现测试活动全流程承载</div>
         </div>
         <div class="image-box">
-          <n-image height="250" width="350" :src="titleImage" preview-disabled />
+          <n-image :src="titleImage" height="250" preview-disabled width="350"/>
         </div>
         <div class="stat-box">
           <n-statistic label="当前组织已有" tabular-nums>
-            <n-number-animation ref="groupStat" :from="0" :to="totalGroupNum" />
-            <template #suffix> 个团队接入 </template>
+            <n-number-animation ref="groupStat" :from="0" :to="totalGroupNum"/>
+            <template #suffix> 个团队接入</template>
           </n-statistic>
           <n-statistic label="当前组织已有" tabular-nums>
-            <n-number-animation ref="userStat" :from="0" :to="totalUserNum" />
-            <template #suffix> 位用户注册 </template>
+            <n-number-animation ref="userStat" :from="0" :to="totalUserNum"/>
+            <template #suffix> 位用户注册</template>
           </n-statistic>
         </div>
       </div>
-      <n-grid :cols="12" x-gap="24" style="margin-top: 20px">
+      <n-grid :cols="12" style="margin-top: 20px" x-gap="24">
         <n-gi :span="10">
           <div class="workspaces-wrap">
             <div class="workspaces-title">Workspaces</div>
             <n-collapse :default-expanded-names="['publicWorkspaces', 'groupWorkspaces']" class="workspaces-content">
-              <n-collapse-item title="公共workspaces" name="publicWorkspaces">
+              <n-collapse-item name="publicWorkspaces" title="公共workspaces">
                 <n-grid :cols="2" x-gap="24">
                   <n-gi :span="1">
                     <div class="publicworkspaces-wrap" @click="clickDefaultWorkspace">
                       <div>
-                        <n-avatar :size="100" :src="orgAvatarSrc"> </n-avatar>
+                        <n-avatar :size="100" :src="orgAvatarSrc"></n-avatar>
                       </div>
                       <div class="detail-box">
                         <h3>默认workspace</h3>
@@ -77,7 +77,7 @@
                   <n-gi :span="1">
                     <div class="publicworkspaces-wrap workspace-disabled" @click="clickVersionWorkspace">
                       <div>
-                        <n-avatar :size="100" :src="orgAvatarSrc"> </n-avatar>
+                        <n-avatar :size="100" :src="orgAvatarSrc"></n-avatar>
                       </div>
                       <div class="detail-box">
                         <h3>版本workspace</h3>
@@ -89,50 +89,50 @@
                   </n-gi>
                 </n-grid>
               </n-collapse-item>
-              <n-collapse-item title="团队workspaces" name="groupWorkspaces">
+              <n-collapse-item name="groupWorkspaces" title="团队workspaces">
                 <n-tabs type="line">
-                  <n-tab name="all"> 全部 </n-tab>
-                  <n-tab name="myJoin" :disabled="true"> 我加入的 </n-tab>
-                  <n-tab name="myCreate" :disabled="true"> 我创建的 </n-tab>
+                  <n-tab name="all"> 全部</n-tab>
+                  <n-tab :disabled="true" name="myJoin"> 我加入的</n-tab>
+                  <n-tab :disabled="true" name="myCreate"> 我创建的</n-tab>
                 </n-tabs>
                 <template #header-extra>
                   <n-input
-                    v-model:value="searchGroupValue"
-                    clearable
-                    placeholder="请输入团队名称"
-                    @click.stop.prevent
-                    @change="searchValueChange"
+                      v-model:value="searchGroupValue"
+                      clearable
+                      placeholder="请输入团队名称"
+                      @change="searchValueChange"
+                      @click.stop.prevent
                   />
                 </template>
                 <div class="group-workspaces-wrap">
                   <div
-                    v-for="(groupItem, groupIndex) in groupList"
-                    :key="groupIndex"
-                    class="group-workspace"
-                    @click="clickGroupWorkspace(groupItem)"
+                      v-for="(groupItem, groupIndex) in groupList"
+                      :key="groupIndex"
+                      class="group-workspace"
+                      @click="clickGroupWorkspace(groupItem)"
                   >
                     <div class="group-workspace-content">
                       <div class="detail">
                         <div class="image-wrap">
                           <n-image
-                            width="50"
-                            :src="groupItem.groupAvatarUrl"
-                            :fallback-src="createAvatar(groupItem.groupName.slice(0, 1), 100)"
+                              :fallback-src="createAvatar(groupItem.groupName.slice(0, 1), 100)"
+                              :src="groupItem.groupAvatarUrl"
+                              width="50"
                           />
                         </div>
                         <div class="name-user">
                           <div class="name">{{ groupItem.groupName }}</div>
                           <div class="user-wrap">
-                            <AvatarGroup :options="groupItem.AvatarList" :size="30" :max="3" />
+                            <AvatarGroup :max="3" :options="groupItem.AvatarList" :size="30"/>
                           </div>
                         </div>
                       </div>
                       <span class="description">{{ groupItem.description }}</span>
-                      <div class="lock-icon" v-if="!groupItem.isAllowed">
+                      <div v-if="!groupItem.isAllowed" class="lock-icon">
                         <n-tooltip trigger="hover">
                           <template #trigger>
                             <n-icon :size="16">
-                              <Lock />
+                              <Lock/>
                             </n-icon>
                           </template>
                           不属于该用户组成员，无法进入此workspace
@@ -142,14 +142,14 @@
                   </div>
                 </div>
                 <n-pagination
-                  class="pagination-wrap"
-                  v-model:page="groupPage"
-                  v-model:page-size="groupPageSize"
-                  :page-count="groupTotal"
-                  show-size-picker
-                  :page-sizes="[12, 24, 48, 100]"
-                  @update:page="groupPageChange"
-                  @update:page-size="groupPageSizeChange"
+                    v-model:page="groupPage"
+                    v-model:page-size="groupPageSize"
+                    :page-count="groupTotal"
+                    :page-sizes="[12, 24, 48, 100]"
+                    class="pagination-wrap"
+                    show-size-picker
+                    @update:page="groupPageChange"
+                    @update:page-size="groupPageSizeChange"
                 />
               </n-collapse-item>
             </n-collapse>
@@ -161,21 +161,30 @@
               <div class="document-text">公告</div>
               <div class="view-all">查看全部</div>
             </div>
+            <div v-for="item in noticeList" :key="item.id" class="hover">
+              <n-tag size="small" style="margin-right: 0.5rem;margin-bottom: 0.5rem" type="error">
+                {{ item.tag }}
+              </n-tag>
+              <router-link :to="`/home/notice/${item.title}`">{{ item.title }}</router-link>
+            </div>
             <div class="document-content-wrap">
               <div class="document-content">
                 <div class="content-type document-first">发布</div>
-                <div class="content-text"></div>
+                <div class="content-text">
+                </div>
               </div>
-              <!--<div class="document-content">
-                <div class="content-type">升级</div>
-                <div class="content-text"></div>
-              </div>-->
             </div>
           </div>
           <div class="document-wrap help-document">
             <div class="document-title">
               <div class="document-text">帮助文档</div>
               <div class="view-all">查看全部</div>
+            </div>
+            <div v-for="item in docList" :key="item.id" class="hover">
+              <n-tag size="small" style="margin-right: 0.5rem;margin-bottom: 0.5rem;" type="info">
+                {{ item.tag }}
+              </n-tag>
+              <router-link :to="`/home/doc/${item.title}`">{{ item.title }}</router-link>
             </div>
             <div class="document-content-wrap">
               <div class="document-content">
@@ -185,49 +194,51 @@
             </div>
           </div>
           <n-card
-            class="hovered-card rank-wrap"
-            :content-style="{
+              :content-style="{
               padding: '0'
             }"
+              class="hovered-card rank-wrap"
           >
-            <n-tabs animated type="line" justify-content="space-evenly">
+            <n-tabs animated justify-content="space-evenly" type="line">
               <n-tab
-                name="person"
-                @click="
+                  name="person"
+                  @click="
                   () => {
                     rankType = 'person';
                   }
                 "
-                >个人积分</n-tab
+              >个人积分
+              </n-tab
               >
               <n-tab
-                name="group"
-                @click="
+                  name="group"
+                  @click="
                   () => {
                     rankType = 'group';
                   }
                 "
-                >团队积分</n-tab
+              >团队积分
+              </n-tab
               >
             </n-tabs>
             <div class="all-rank-container">
               <n-spin :show="loading">
-                <div class="rank-item all-rank" v-for="(item, index) in rankList" :key="index">
+                <div v-for="(item, index) in rankList" :key="index" class="rank-item all-rank">
                   <p class="rank-item-header">
-                    <n-gradient-text class="rank-item-header-number"> {{ item.rank }}. </n-gradient-text>
+                    <n-gradient-text class="rank-item-header-number"> {{ item.rank }}.</n-gradient-text>
                     <n-avatar
-                      circle
-                      :fallback-src="handleFallbackSrc(item)"
-                      :size="24"
-                      :src="item.avatar_url"
-                      style="margin-right: 10px"
+                        :fallback-src="handleFallbackSrc(item)"
+                        :size="24"
+                        :src="item.avatar_url"
+                        circle
+                        style="margin-right: 10px"
                     />
                     <span class="rank-item-header-name">{{ item.user_name ? item.user_name : item.name }}</span>
                   </p>
                   <p class="rank-item-bq">
                     <span class="rank-item-bq-number">{{ item.influence }}</span>
                     <n-icon :size="16">
-                      <radio />
+                      <radio/>
                     </n-icon>
                   </p>
                 </div>
@@ -235,30 +246,30 @@
             </div>
             <div class="rank-pagination">
               <n-pagination
-                v-model:page="rankPage"
-                :page-size="rankPageSize"
-                :page-count="rankPageCount"
-                :simple="true"
-                size="small"
-                @update:page="handleRankPageChange"
+                  v-model:page="rankPage"
+                  :page-count="rankPageCount"
+                  :page-size="rankPageSize"
+                  :simple="true"
+                  size="small"
+                  @update:page="handleRankPageChange"
               />
             </div>
-            <div class="self-rank rank-item" v-if="rankType === 'person'">
+            <div v-if="rankType === 'person'" class="self-rank rank-item">
               <p class="rank-item-header">
-                <n-text class="rank-item-header-number"> {{ accountRank }}. </n-text>
+                <n-text class="rank-item-header-number"> {{ accountRank }}.</n-text>
                 <n-avatar
-                  circle
-                  :fallback-src="createAvatar(accountName.slice(0, 1))"
-                  :size="24"
-                  :src="avatarUrl"
-                  style="margin-right: 10px"
+                    :fallback-src="createAvatar(accountName.slice(0, 1))"
+                    :size="24"
+                    :src="avatarUrl"
+                    circle
+                    style="margin-right: 10px"
                 />
                 <span class="rank-item-header-name">{{ accountName }}</span>
               </p>
               <p class="rank-item-bq">
                 <span class="rank-item-bq-number">{{ influenceScore }}</span>
                 <n-icon :size="16">
-                  <radio />
+                  <radio/>
                 </n-icon>
               </p>
             </div>
@@ -272,16 +283,18 @@
   </div>
 </template>
 <script setup>
-import { Check } from '@vicons/tabler';
-import { Radio } from '@vicons/ionicons5';
-import { storage } from '@/assets/utils/storageUtils';
-import { createAvatar } from '@/assets/utils/createImg';
-import { useRouter } from 'vue-router';
-import { getUserAssetRank, getGroupAssetRank, getUserInfo, getAllOrg, getOrgStat, getMsgGroup } from '@/api/get';
+import {Check} from '@vicons/tabler';
+import {Radio} from '@vicons/ionicons5';
+import {storage} from '@/assets/utils/storageUtils';
+import {createAvatar} from '@/assets/utils/createImg';
+import {useRouter} from 'vue-router';
+import {getAllOrg, getGroupAssetRank, getMsgGroup, getOrgStat, getUserAssetRank, getUserInfo} from '@/api/get';
 import titleImage from '@/assets/images/programming.png';
 import AvatarGroup from '@/components/personalCenter/avatarGroup.vue';
-import { Lock } from '@vicons/fa';
+import {Lock} from '@vicons/fa';
 import config from '@/assets/config/settings';
+import {ref} from 'vue';
+import {useStore} from 'vuex';
 
 const router = useRouter();
 
@@ -304,7 +317,7 @@ const getOrgStatistic = () => {
 };
 
 const clickDefaultWorkspace = () => {
-  router.push({ name: 'dashboard', params: { workspace: 'default' } });
+  router.push({name: 'dashboard', params: {workspace: 'default'}});
 };
 
 const clickVersionWorkspace = () => {
@@ -313,12 +326,12 @@ const clickVersionWorkspace = () => {
 
 const clickGroupWorkspace = (groupItem) => {
   if (groupItem.isAllowed) {
-    router.push({ name: 'automatic', params: { workspace: window.btoa(groupItem.id) } });
+    router.push({name: 'automatic', params: {workspace: window.btoa(groupItem.id)}});
   }
 };
 
 const getOrgInfo = () => {
-  getAllOrg({ org_id: storage.getValue('loginOrgId') }).then((res) => {
+  getAllOrg({org_id: storage.getValue('loginOrgId')}).then((res) => {
     // orgAvatarSrc.value = res.data.avatar_url;
     res.data.forEach((item) => {
       if (item.org_id === storage.getValue('loginOrgId')) {
@@ -343,22 +356,22 @@ const groupPageSize = ref(12);
 const groupTotal = ref(0);
 
 const getGroupInfo = () => {
-  getMsgGroup({ page_num: groupPage.value, page_size: groupPageSize.value, name: searchGroupValue.value }).then(
-    (res) => {
-      groupList.value = [];
-      res.data?.items.forEach((item) => {
-        groupList.value.push({
-          id: `group_${item.id}`,
-          groupName: item.name,
-          groupAvatarUrl: item.avatar_url,
-          description: item.description,
-          AvatarList: setAvatarList(item.admin_awatar),
-          isAllowed: item.user_add_group_flag
+  getMsgGroup({page_num: groupPage.value, page_size: groupPageSize.value, name: searchGroupValue.value}).then(
+      (res) => {
+        groupList.value = [];
+        res.data?.items.forEach((item) => {
+          groupList.value.push({
+            id: `group_${item.id}`,
+            groupName: item.name,
+            groupAvatarUrl: item.avatar_url,
+            description: item.description,
+            AvatarList: setAvatarList(item.admin_awatar),
+            isAllowed: item.user_add_group_flag
+          });
         });
-      });
-      groupTotal.value = res.data.pages;
-      groupPage.value = res.data.current_page;
-    }
+        groupTotal.value = res.data.pages;
+        groupPage.value = res.data.current_page;
+      }
   );
 };
 
@@ -390,7 +403,7 @@ const accountName = ref(''); // 当前登录账号
 const avatarUrl = ref(null); // 当前账号头像
 
 const getRank = (asyncFunc) => {
-  asyncFunc({ page_num: rankPage.value, page_size: rankPageSize.value }).then((res) => {
+  asyncFunc({page_num: rankPage.value, page_size: rankPageSize.value}).then((res) => {
     rankList.value = res.data.items;
     rankPage.value = res.data.current_page;
     rankPageCount.value = res.data.pages;
@@ -430,6 +443,10 @@ onMounted(() => {
     influenceScore.value = res.data.influence;
   });
 });
+//公告栏
+const store = useStore();
+const noticeList = store.state.notices.noticeList;
+const docList = store.state.docs.docList;
 </script>
 
 <style lang="less" scoped>
@@ -450,6 +467,7 @@ onMounted(() => {
       display: flex;
       align-items: center;
       height: 22px;
+
       .text {
         margin-left: 10px;
         line-height: 22px;
@@ -483,6 +501,7 @@ onMounted(() => {
 
     .workspaces-content {
       margin-top: 20px;
+
       .publicworkspaces-wrap {
         display: flex;
         align-items: center;
@@ -553,6 +572,7 @@ onMounted(() => {
               .name-user {
                 margin-left: 15px;
                 width: 75%;
+
                 .name {
                   width: 100%;
                   font-weight: 500;
@@ -632,20 +652,20 @@ onMounted(() => {
         gap: 8px;
         height: 20px;
         width: 100%;
-
         .content-type {
           padding: 0 7px;
           font-size: 12px;
           line-height: 20px;
           white-space: nowrap;
         }
-
         .content-text {
           width: 85%;
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
+
         }
+
         .document-first {
           color: white;
           background-color: #002fa7;
@@ -680,29 +700,35 @@ onMounted(() => {
   overflow: scroll;
   height: 560px;
 }
+
 .rank-item {
   display: flex;
   justify-content: space-between;
+
   .rank-item-header {
     display: flex;
     align-items: center;
     justify-content: space-evenly;
     margin-left: 20px;
+
     .rank-item-header-number {
       margin-right: 10px;
       font-size: 16px;
       font-weight: 900;
     }
+
     .rank-item-header-name {
       font-family: monospace;
       font-size: 16px;
     }
   }
+
   .rank-item-bq {
     display: flex;
     align-items: center;
     justify-content: space-evenly;
     margin-right: 20px;
+
     .rank-item-bq-number {
       margin-right: 10px;
       color: #002fa7;
@@ -710,20 +736,24 @@ onMounted(() => {
     }
   }
 }
+
 .rank-pagination {
   margin: 10px 0 10px 0;
   display: flex;
   align-items: center;
   justify-content: center;
 }
+
 .all-rank:hover {
   background-image: linear-gradient(71deg, #4b94d5, transparent);
   box-shadow: 0 1px 2px -2px rgba(0, 0, 0, 0.08), 0 3px 6px 0 rgba(0, 0, 0, 0.06), 0 5px 12px 4px rgba(0, 0, 0, 0.04);
 }
+
 .self-rank {
   color: white;
   background-color: #4b94d5;
   border-radius: 0 0 2px 2px;
+
   .rank-item-header {
     .rank-item-header-number {
       font-size: 16px;
@@ -731,10 +761,15 @@ onMounted(() => {
       color: white;
     }
   }
+
   .rank-item-bq {
     .rank-item-bq-number {
       color: white;
     }
   }
+}
+a {
+  text-decoration: none;
+  color: #000;
 }
 </style>

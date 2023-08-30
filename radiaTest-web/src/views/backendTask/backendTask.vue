@@ -28,8 +28,14 @@ import { onMounted, onUnmounted } from 'vue';
 import { Socket } from '@/socket';
 import config from '@/assets/config/settings';
 import { modules } from './modules';
+import { loading } from '@/views/caseManage/caseReview/modules/list';
 
 export default {
+  computed: {
+    loading() {
+      return loading;
+    }
+  },
   setup() {
     const socketObj = new Socket(`${config.websocketProtocol}://${config.serverPath}/celerytask`);
     onMounted(() => {
