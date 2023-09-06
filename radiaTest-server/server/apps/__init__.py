@@ -46,7 +46,7 @@ from . import (
 
 
 def init_api(app: Flask):
-    app.register_blueprint(oauth)       # 注册登陆鉴权相关接口蓝图
+    app.register_blueprint(oauth)       # 注册登录鉴权相关接口蓝图
     api = Api(app)
     administrator.init_api(api)
     user.init_api(api)

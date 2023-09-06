@@ -50,7 +50,7 @@ class TestUser(AdminAuthUnittestTestCase):
         api_org.session.close()
     
     def test_gitee_login(self): 
-        logger.info("验证码云Oauth2鉴权登陆")
+        logger.info("验证码云Oauth2鉴权登录")
         api_gitee_login = RestApi(
             f"{server_url}/api/v1/gitee/oauth/login?org_id={self.org_id}",
             auth=self.tmp_token
@@ -59,7 +59,7 @@ class TestUser(AdminAuthUnittestTestCase):
         self.assertIn(
             self.gitee_oauth_login_url,
             resp.text,
-            "验证码云Oauth2鉴权登陆失败!"
+            "验证码云Oauth2鉴权登录失败!"
         )
 
         api_gitee_login.session.close()
@@ -69,13 +69,13 @@ class TestUser(AdminAuthUnittestTestCase):
         request_url = rapi.get()
         rapi.session.close()
 
-        logger.info("验证基于码云Oauth鉴权赋予的code的本地登陆")
+        logger.info("验证基于码云Oauth鉴权赋予的code的本地登录")
         api_login = RestApi(request_url)
         resp = api_login.get()
         self.assertIn(
             "?isSuccess=True",
             resp.text,
-            "验证基于码云Oauth鉴权赋予的code的本地登陆失败!"
+            "验证基于码云Oauth鉴权赋予的code的本地登录失败!"
         )
         
         api_login.session.close()

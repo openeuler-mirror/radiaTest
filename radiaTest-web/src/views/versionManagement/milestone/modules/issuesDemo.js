@@ -5,7 +5,7 @@ const demoData = [
     number: 'I48TOF',
     html_url: 'https://gitee.com/src-openeuler/systemd/issues/I48TOF',
     title:
-          '[21.09]每日构建2021-09-04-22版本，arm/x86安装，reboot后卡住，无法进入登陆界面',
+          '[21.09]每日构建2021-09-04-22版本，arm/x86安装，reboot后卡住，无法进入登录界面',
     priority: 4,
     issue_type: '缺陷',
     scheduled_time: 0,
@@ -20,7 +20,7 @@ const demoData = [
     number: 'I48TOF',
     html_url: 'https://gitee.com/src-openeuler/systemd/issues/I48TOF',
     title:
-          '[21.09]每日构建2021-09-04-22版本，arm/x86安装，reboot后卡住，无法进入登陆界面',
+          '[21.09]每日构建2021-09-04-22版本，arm/x86安装，reboot后卡住，无法进入登录界面',
     priority: 3,
     issue_type: '缺陷',
     scheduled_time: 0,
@@ -35,7 +35,7 @@ const demoData = [
     number: 'I48TOF',
     html_url: 'https://gitee.com/src-openeuler/systemd/issues/I48TOF',
     title:
-          '[21.09]每日构建2021-09-04-22版本，arm/x86安装，reboot后卡住，无法进入登陆界面',
+          '[21.09]每日构建2021-09-04-22版本，arm/x86安装，reboot后卡住，无法进入登录界面',
     priority: 2,
     issue_type: '缺陷',
     scheduled_time: 0,
@@ -50,7 +50,7 @@ const demoData = [
     number: 'I48TOF',
     html_url: 'https://gitee.com/src-openeuler/systemd/issues/I48TOF',
     title:
-          '[21.09]每日构建2021-09-04-22版本，arm/x86安装，reboot后卡住，无法进入登陆界面',
+          '[21.09]每日构建2021-09-04-22版本，arm/x86安装，reboot后卡住，无法进入登录界面',
     priority: 1,
     issue_type: '缺陷',
     scheduled_time: 0,
@@ -65,7 +65,7 @@ const demoData = [
     number: 'I48TOF',
     html_url: 'https://gitee.com/src-openeuler/systemd/issues/I48TOF',
     title:
-          '[21.09]每日构建2021-09-04-22版本，arm/x86安装，reboot后卡住，无法进入登陆界面',
+          '[21.09]每日构建2021-09-04-22版本，arm/x86安装，reboot后卡住，无法进入登录界面',
     priority: 2,
     issue_type: '缺陷',
     scheduled_time: 0,
@@ -80,7 +80,7 @@ const demoData = [
     number: 'I48TOF',
     html_url: 'https://gitee.com/src-openeuler/systemd/issues/I48TOF',
     title:
-          '[21.09]每日构建2021-09-04-22版本，arm/x86安装，reboot后卡住，无法进入登陆界面',
+          '[21.09]每日构建2021-09-04-22版本，arm/x86安装，reboot后卡住，无法进入登录界面',
     priority: 4,
     issue_type: '缺陷',
     scheduled_time: 0,
@@ -95,7 +95,7 @@ const demoData = [
     number: 'I48TOF',
     html_url: 'https://gitee.com/src-openeuler/systemd/issues/I48TOF',
     title:
-          '[21.09]每日构建2021-09-04-22版本，arm/x86安装，reboot后卡住，无法进入登陆界面',
+          '[21.09]每日构建2021-09-04-22版本，arm/x86安装，reboot后卡住，无法进入登录界面',
     priority: 2,
     issue_type: '缺陷',
     scheduled_time: 0,
@@ -110,7 +110,7 @@ const demoData = [
     number: 'I48TOF',
     html_url: 'https://gitee.com/src-openeuler/systemd/issues/I48TOF',
     title:
-          '[21.09]每日构建2021-09-04-22版本，arm/x86安装，reboot后卡住，无法进入登陆界面',
+          '[21.09]每日构建2021-09-04-22版本，arm/x86安装，reboot后卡住，无法进入登录界面',
     priority: 3,
     issue_type: '缺陷',
     scheduled_time: 0,
@@ -125,7 +125,7 @@ const demoData = [
     number: 'I48TOF',
     html_url: 'https://gitee.com/src-openeuler/systemd/issues/I48TOF',
     title:
-          '[21.09]每日构建2021-09-04-22版本，arm/x86安装，reboot后卡住，无法进入登陆界面',
+          '[21.09]每日构建2021-09-04-22版本，arm/x86安装，reboot后卡住，无法进入登录界面',
     priority: 4,
     issue_type: '缺陷',
     scheduled_time: 0,
@@ -140,7 +140,7 @@ const demoData = [
     number: 'I48TOF',
     html_url: 'https://gitee.com/src-openeuler/systemd/issues/I48TOF',
     title:
-          '[21.09]每日构建2021-09-04-22版本，arm/x86安装，reboot后卡住，无法进入登陆界面',
+          '[21.09]每日构建2021-09-04-22版本，arm/x86安装，reboot后卡住，无法进入登录界面',
     priority: 4,
     issue_type: '缺陷',
     scheduled_time: 0,
@@ -155,7 +155,7 @@ const demoData = [
     number: 'I48TOF',
     html_url: 'https://gitee.com/src-openeuler/systemd/issues/I48TOF',
     title:
-          '[21.09]每日构建2021-09-04-22版本，arm/x86安装，reboot后卡住，无法进入登陆界面',
+          '[21.09]每日构建2021-09-04-22版本，arm/x86安装，reboot后卡住，无法进入登录界面',
     priority: 1,
     issue_type: '缺陷',
     scheduled_time: 0,

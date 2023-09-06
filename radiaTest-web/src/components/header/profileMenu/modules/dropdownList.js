@@ -18,7 +18,7 @@ const options = [
     }
   },
   {
-    label: '退出登陆',
+    label: '退出登录',
     key: 'exit',
     props: {
       style: {
