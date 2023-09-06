@@ -107,7 +107,7 @@ class TestAdministrator(AdminAuthUnittestTestCase):
             "注册的组织查询失败，验证Administrator登录后get组织信息失败!"
         )
 
-        logger.info("验证Administrator登陆后通过org_id修改组织信息")
+        logger.info("验证Administrator登录后通过org_id修改组织信息")
         oid = get_val_by_key_val(
             "organization_name", 
             org_name, 

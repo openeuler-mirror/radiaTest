@@ -305,7 +305,7 @@ const router = createRouter({
       component: newLogin,
       name: 'login',
       meta: {
-        title: '登陆'
+        title: '登录'
       }
     },
     {

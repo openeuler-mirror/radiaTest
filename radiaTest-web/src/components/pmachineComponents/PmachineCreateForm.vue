@@ -147,7 +147,7 @@
           @input="handlePasswordInput"
           type="password"
           show-password-on="click"
-          placeholder="请输入SSH登陆密码"
+          placeholder="请输入SSH登录密码"
           :style="{ width: '90%' }"
         />
       </n-form-item>
