@@ -1,8 +1,22 @@
+# Copyright (c) [2022] Huawei Technologies Co.,Ltd.ALL rights reserved.
+# This program is licensed under Mulan PSL v2.
+# You can use it according to the terms and conditions of the Mulan PSL v2.
+#          http://license.coscl.org.cn/MulanPSL2
+# THIS PROGRAM IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+# EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+# MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+# See the Mulan PSL v2 for more details.
+####################################
+# @Author  :
+# @email   :
+# @Date    :
+# @License : Mulan PSL v2
+#####################################
+
 import json, yaml, os
-from flask import g, current_app
+from flask import g
 
 from server.model import (
-    ReUserOrganization,
     Message,
     MsgLevel,
     MsgType,
@@ -76,33 +90,33 @@ class MessageManager:
             _api.update({
                 "ip": _instance.ip
             })
-        for item in re_role_user:
-            MessageManager.send_scrpt_msg(
-                item.user_id, MsgLevel.user.value, _api, _instance.permission_type, cur_org_id
-            )
+        # 过滤重复触发请求
+        request_msgs = Message.query.filter_by(from_id=g.user_id, level=MsgLevel.user.value,
+                                               type=MsgType.script.value, is_delete=False, has_read=False).all()
+        request_set = set()
+        for msg in request_msgs:
+            msg_data = json.loads(msg.data)
+            url = msg_data.get("callback_url") if msg_data.get("callback_url") else msg_data.get("script")
+            if url:
+                method = msg_data.get("method", 'none')
+                request_set.add(f"{url}_{method}")
 
-    @staticmethod
-    def send_scrpt_msg(to_user_id, msg_leve: MsgLevel, _api, permission_type, org_id):
+        current_unique = f"{_api['cur_uri']}_{_api.get('act', 'none')}"
+        if current_unique in request_set:
+            # 忽略重复请求
+            return f"请勿重复操作，请联系管理员处理未完成的请求"
         info = f'<b>{g.user_login}</b>请求{_api.get("alias")}。'
         if _api.get("ip"):
             info = f'<b>{g.user_login}</b>请求{_api.get("alias")}<b>{_api.get("ip")}</b>。'
-        _message = dict(
-            data=json.dumps(
+        Message.create_instance(json.dumps(
                 dict(
-                    permission_type=permission_type,
+                    permission_type=_instance.permission_type,
                     info=info,
                     script=_api["cur_uri"],
                     method=_api.get("act"),
                     _alias=_api.get("alias"),
                     _id=_api.get("id"),
                     body=_api["body"],
-                )
-            ),
-            level=msg_leve,
-            from_id=g.user_id,
-            to_id=to_user_id,
-            type=MsgType.script.value,
-            org_id=org_id
-        )
-
-        Insert(Message, _message).single()
+                )), g.user_id, [item.user_id for item in re_role_user], cur_org_id,
+            level=MsgLevel.user.value, msg_type=MsgType.script.value)
+        return "Unauthorized, Your request has been sent to the administrator for processing."

@@ -1,3 +1,18 @@
+# Copyright (c) [2022] Huawei Technologies Co.,Ltd.ALL rights reserved.
+# This program is licensed under Mulan PSL v2.
+# You can use it according to the terms and conditions of the Mulan PSL v2.
+#          http://license.coscl.org.cn/MulanPSL2
+# THIS PROGRAM IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+# EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+# MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+# See the Mulan PSL v2 for more details.
+####################################
+# @Author  : hukun66
+# @email   : hu_kun@hoperun.com
+# @Date    : 2023/09/04
+# @License : Mulan PSL v2
+#####################################
+
 import os
 import sys
 import shlex
@@ -8,6 +23,7 @@ from celery.utils.log import get_task_logger
 
 from celeryservice import celeryconfig
 from celeryservice.lib.job.handler import RunSuite, RunTemplate, RunAt
+from celeryservice.lib.pmachine.pxe_install import PXEAutoInstall
 from messenger.utils.pssh import ConnectionApi
 from messenger.utils.requests_util import do_request
 from messenger.utils.response_util import RET
@@ -113,3 +129,8 @@ def run_template(self, body, user):
 @celery.task(bind=True)
 def run_at(self, body, user):
     RunAt(body, self, user, logger).run()
+
+
+@celery.task(bind=True)
+def run_pxe_install(self, user, body):
+    PXEAutoInstall(body, self, user, logger).run()

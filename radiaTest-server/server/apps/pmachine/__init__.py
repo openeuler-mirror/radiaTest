@@ -37,7 +37,7 @@ def init_api(api: Api):
     api.add_resource(PmachineReleaseEvent, "/api/v1/pmachine/<int:pmachine_id>/release")
     api.add_resource(PmachineDelayEvent, "/api/v1/pmachine/<int:pmachine_id>/delay")
     api.add_resource(Power, "/api/v1/pmachine/<int:pmachine_id>/power")
-    api.add_resource(Install, "/api/v1/pmachine/<int:pmachine>/install")
+    api.add_resource(Install, "/api/v1/pmachine/<int:pmachine_id>/install")
     api.add_resource(MachineGroupEvent, "/api/v1/machine-group", "/api/v1/ws/<string:workspace>/machine-group")
     api.add_resource(MachineGroupItemEvent, "/api/v1/machine-group/<int:machine_group_id>")
     api.add_resource(MachineGroupHeartbeatEvent, "/api/v1/machine-group/heartbeat")

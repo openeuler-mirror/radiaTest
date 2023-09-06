@@ -1,3 +1,20 @@
+# Copyright (c) [2022] Huawei Technologies Co.,Ltd.ALL rights reserved.
+# This program is licensed under Mulan PSL v2.
+# You can use it according to the terms and conditions of the Mulan PSL v2.
+#          http://license.coscl.org.cn/MulanPSL2
+# THIS PROGRAM IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+# EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+# MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+# See the Mulan PSL v2 for more details.
+####################################
+# @Author  :
+# @email   :
+# @Date    :
+# @License : Mulan PSL v2
+#####################################
+
+import datetime
+
 from importlib_metadata import abc
 
 
@@ -73,6 +90,23 @@ class OpenqaATStatistic(ATStatistic):
                 else:
                     self.stats["failure"] += 1
 
+    @staticmethod
+    def format_test_duration(test_duration):
+        try:
+            test_duration = int(test_duration)
+            return str(datetime.timedelta(seconds=test_duration))
+        except ValueError:
+            return "-"
+
+    @property
+    def test_duration(self):
+        test_duration = 0
+        key_name = f'product_build_test_set_{self.product}_{self.build}'
+        for member in self.redis_client.zrange(key_name, 0, -1):
+            score = int(self.redis_client.zscore(key_name, member))
+            test_duration += score
+        return self.format_test_duration(test_duration)
+
     @property
     def group_overview(self):
         self.calc_stats()
@@ -83,6 +117,7 @@ class OpenqaATStatistic(ATStatistic):
                 self.build
             ),
             **self.stats,
+            "test_duration": self.test_duration
         }
 
     @property
@@ -100,6 +135,10 @@ class OpenqaATStatistic(ATStatistic):
                 overview[f"{arch}_res_log"] = self.redis_client.hget(test, f"{arch}_res_log")
                 overview[f"{arch}_failedmodule_name"] = self.redis_client.hget(test, f"{arch}_failedmodule_name")
                 overview[f"{arch}_failedmodule_log"] = self.redis_client.hget(test, f"{arch}_failedmodule_log")
+                overview[f"{arch}_start_time"] = self.redis_client.hget(test, f"{arch}_start_time")
+                overview[f"{arch}_end_name"] = self.redis_client.hget(test, f"{arch}_end_name")
+                overview[f"{arch}_test_duration"] = self.format_test_duration(
+                    self.redis_client.hget(test, f"{arch}_test_duration"))
             
             return_data.append(overview)
     

@@ -1,12 +1,25 @@
+# Copyright (c) [2022] Huawei Technologies Co.,Ltd.ALL rights reserved.
+# This program is licensed under Mulan PSL v2.
+# You can use it according to the terms and conditions of the Mulan PSL v2.
+#          http://license.coscl.org.cn/MulanPSL2
+# THIS PROGRAM IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+# EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+# MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+# See the Mulan PSL v2 for more details.
+####################################
+# @Author  :
+# @email   :
+# @Date    :
+# @License : Mulan PSL v2
+#####################################
+
 import time
 
 from flask import current_app, jsonify
-from flask.helpers import send_file
 from paramiko import SSHException
-from .response_util import RET
 
-
-from messenger.utils.shell import ShellCmd
+from messenger.utils.response_util import RET
+from messenger.utils.shell import ShellCmd, ShellCmdApi
 from messenger.utils.pssh import ConnectionApi
 from messenger.utils.bash import (
     check_ip,
@@ -17,14 +30,16 @@ from messenger.utils.bash import (
     restart_dhcp,
     restore_dhcp,
     inquire_ip,
+    pxe_boot,
+    rsync_http_dir_to_local,
+    annotating_dhcp_conf
 )
 
 
 class DHCP:
     def __init__(self) -> None:
-        if ShellCmd(check_ip(current_app.config.get("PXE_IP")))._bexec():
-            self._conn = None
-        else:
+        self._conn = None
+        if not self.base_exec_cmd(check_ip(current_app.config.get("PXE_IP"))):
             self._conn = ConnectionApi(
                 current_app.config.get("PXE_IP"),
                 port=current_app.config.get("PXE_SSH_PORT"),
@@ -33,113 +48,162 @@ class DHCP:
             )
             self._conn.conn()
 
+    def base_exec_cmd(self, cmd):
+        return ShellCmd(cmd, self._conn)._bexec()
+
+    def exec_cmd(self, cmd):
+        return ShellCmd(cmd, self._conn)._exec()
+
 
 class PxeInstall(DHCP):
-    def __init__(self, mac, ip, efi) -> None:
+    def __init__(self, pmachine, mirroring) -> None:
         super().__init__()
-
-        self._mac = mac
-        self._ip = ip
-        self._efi = efi.strip()
+        self.pmachine = pmachine
+        self.mirroring = mirroring
+        self._mac = pmachine["mac"]
+        self._ip = pmachine["ip"]
+        self._efi = mirroring["efi"]
+        self.tftp_root = current_app.config.get("PXE_TFTP_ROOT")
+        self.httpd_root = current_app.config.get("PXE_HTTPD_ROOT")
+        self.httpd_prefix = current_app.config.get("PXE_HTTPD_PREFIX")
 
     def clear_bind(self):
-        if ShellCmd(judge_bind(self._mac), self._conn)._bexec():
-            exitcode, output = ShellCmd(backup_conf(), self._conn)._exec()
+        if self.base_exec_cmd(judge_bind(self._mac)):
+            exitcode, output = self.exec_cmd(backup_conf())
             if exitcode:
                 current_app.logger.error(output)
                 self._conn.close()
-                return jsonify(
-                    {
-                        {
-                            "error_code": RET.NET_CONF_ERR,
-                            "error_msg": "dhcp configuration file backup failed, please contact the administrator to deal with it in time.",
-                        }
-                    }
-                )
 
-            exitcode, output = ShellCmd(clear_bind_mac(self._mac), self._conn)._exec()
+                return False
+
+            exitcode, output = self.exec_cmd(clear_bind_mac(self._mac))
             if exitcode:
                 current_app.logger.error(output)
-                exitcode, output = ShellCmd(restore_dhcp(), self._conn)._exec()
+                exitcode, output = self.exec_cmd(restore_dhcp())
                 if exitcode:
                     current_app.logger.error(output)
-                    self._conn.close()
-                    return jsonify(
-                        {
-                            {
-                                "error_code": RET.NET_CONF_ERR,
-                                "error_msg": "dhcp configuration item cleanup failed and recovery failed, please contact the administrator in time.",
-                            }
-                        }
-                    )
-
+                current_app.logger.debug("dhcp configuration item cleanup failed.")
                 self._conn.close()
-                return jsonify(
-                    {
-                        "error_code": RET.NET_CONF_ERR,
-                        "error_msg": "dhcp configuration item cleanup failed.",
-                    }
-                )
+                return False
+            # 注释手动绑定过的mac地址
+            self.exec_cmd(annotating_dhcp_conf(self._mac))
+            return True
 
-    def bind_efi_mac_ip(self):
-        output = self.clear_bind()
-        if isinstance(output, tuple):
-            return output
-
-        exitcode, output = ShellCmd(
-            bind_mac(self._efi, self._mac, self._ip), self._conn
-        )._exec()
+    def bind_efi_mac_ip(self, tftp_efi):
+        if self.clear_bind() is False:
+            return False
+        exitcode, output = self.exec_cmd(bind_mac(tftp_efi, self._mac, self._ip))
         if exitcode:
             current_app.logger.error(output)
-            exitcode, output = ShellCmd(restore_dhcp(), self._conn)._exec()
+            exitcode, output = self.exec_cmd(restore_dhcp())
             if exitcode:
                 current_app.logger.error(output)
                 self._conn.close()
-                return jsonify(
-                    {
-                        {
-                            "error_code": RET.NET_CONF_ERR,
-                            "error_msg": "Failed to bind the mac address and recovery failed, please contact the administrator in time.",
-                        }
-                    }
-                )
+            current_app.logger.debug(f"{self._ip} Failed to bind mac address.")
+            return False
 
-            self._conn.close()
-            return jsonify(
-                {{"error_code": RET.NET_CONF_ERR, "error_msg": "Failed to bind mac address."}}
-            )
-
-        exitcode, output = ShellCmd(restart_dhcp(), self._conn)._exec()
+        exitcode, output = self.exec_cmd(restart_dhcp())
         if exitcode:
             current_app.logger.error(output)
 
-            exitcode1, output1 = ShellCmd(restore_dhcp(), self._conn)._exec()
-            exitcode2, output2 = ShellCmd(restart_dhcp(), self._conn)._exec()
+            exitcode1, output1 = self.exec_cmd(restore_dhcp())
+            exitcode2, output2 = self.exec_cmd(restart_dhcp())
             if exitcode1 or exitcode2:
                 current_app.logger.error(output1)
                 current_app.logger.error(output2)
-                self._conn.close()
-                return jsonify(
-                    {
-                        {
-                            "error_code": RET.NET_CONF_ERR,
-                            "error_msg": "Failed to bind the mac address and recovery failed, please contact the administrator in time.",
-                        }
-                    }
-                )
-
             self._conn.close()
-            return jsonify(
-                {
-                    {
-                        "error_code": RET.NET_CONF_ERR,
-                        "error_msg": "Failed to bind mac address.",
-                    }
-                }
-            )
+            current_app.logger.debug(f"{self._ip} Failed to bind mac address.")
+            return False
+        return True
 
     def close_conn(self):
-        self._conn._client.close()
+        if self._conn:
+            self._conn._client.close()
+
+    def get_boot_file_by_name(self, path, name):
+        find_cmd = f"cd {path} && find {name}|tail -n 1"
+        exitcode, output = self.exec_cmd(find_cmd)
+        if exitcode:
+            return False, ''
+        return True, output
+
+    def check_efi_file(self, efi_file):
+        exitcode, output = self.exec_cmd(f"ls {self.tftp_root}/{efi_file}")
+        if exitcode:
+            return False
+        return True
+
+    def sync_boot_file(self, os_name, template_ks, template_grub):
+        if not self._efi.startswith("http"):
+            # 支持手动适配过的pxe
+            current_app.logger.info(f"使用已适配的efi引导文件：{self._efi}")
+            return True, self._efi
+        # http地址需要同步至pxe服务器
+        relative_path = f"radia_test/{self._ip}"
+        sync_efi_path = f"{self.tftp_root}/{relative_path}"
+        pxe_boot_file_path = f"{sync_efi_path}/pxeboot"
+        efi_name = self._efi.split("/")[-1]
+        self.exec_cmd(f"rm -rf {sync_efi_path} && mkdir -p {pxe_boot_file_path}")
+        # sync efi file
+        exitcode, output = self.exec_cmd(rsync_http_dir_to_local(
+            self._efi, sync_efi_path, cut_num=self._efi.count("/") - 3))
+        if exitcode:
+            current_app.logger.error(f"efi引导文件同步失败")
+            return False, output
+
+        pxeboot_url = self.mirroring["location"] + "/images/pxeboot/"
+        exitcode1, output1 = self.exec_cmd(rsync_http_dir_to_local(
+            pxeboot_url, pxe_boot_file_path, cut_num=pxeboot_url.count("/") - 2))
+        if exitcode1:
+            current_app.logger.error(f"pxeboot目录同步失败")
+            return False, output
+        # config ks
+        sftp = self._conn._client.open_sftp()
+        relative_ks_path = f"ks/radia_test/{self._ip}.ks"
+        target_ks = f"{self.httpd_root}/{relative_ks_path}"
+        self.exec_cmd(f"mkdir -p {self.httpd_root}/ks/radia_test && rm -rf {target_ks}")
+        sftp.put(template_ks, target_ks)
+        modify_ks = 'sed -i "s#{os_repo}#%s#" %s' % (self.mirroring["location"], target_ks)
+        target_grub = f"{sync_efi_path}/grub.cfg"
+        exitcode2, output2 = self.exec_cmd(modify_ks)
+        if exitcode2:
+            current_app.logger.error(f"{target_ks}修改失败")
+            return False, output2
+        # config grub.cfg
+        sftp.put(template_grub, target_grub)
+        sftp.close()
+        flag1, linux_file = self.get_boot_file_by_name(pxe_boot_file_path, "vmlinu*")
+        flag2, initrd_file = self.get_boot_file_by_name(pxe_boot_file_path, "initr*")
+        if not all([flag1, flag2]):
+            return False, "pxe引导文件同步失败"
+        # 固定的cfg模版替换关键参数，方便后期动态调整安装启动参数
+        modify_cfg = """
+target_grub=%s
+relative_path=%s
+sed -i "s#{replace_os_name}#%s#" ${target_grub}
+sed -i "s#{replace_ks}#%s#" ${target_grub}
+sed -i "s#{replace_linux}#${relative_path}/%s#" ${target_grub}
+sed -i "s#{replace_initrd}#${relative_path}/%s#" ${target_grub}
+""" % (target_grub, f'{relative_path}/pxeboot', os_name,
+            f"{self.httpd_prefix}/{relative_ks_path}", linux_file, initrd_file)
+        exitcode2, output2 = self.exec_cmd(modify_cfg)
+        if exitcode2:
+            current_app.logger.error(f"{target_grub}修改失败")
+            return False, output2
+        return True, f"{relative_path}/{efi_name}"
+
+    def set_pxe_boot(self):
+        exitcode, output = ShellCmdApi(
+            pxe_boot(
+                self.pmachine["bmc_ip"],
+                self.pmachine["bmc_user"],
+                self.pmachine["bmc_password"],
+            )
+        ).exec()
+        if exitcode:
+            return False
+        else:
+            return True
 
 
 class CheckInstall:
@@ -155,14 +219,12 @@ class CheckInstall:
             if conn:
                 break
             time.sleep(1)
+        else:
+            return False
 
         if not conn:
-            return jsonify(
-                {
-                    "error_code": RET.NET_CONECT_ERR,
-                    "error_msg": "Cannot connect to the installed machine, you need to check whether the installation is successful, or whether the provided user name and password are correct.",
-                }
-            )
+            return False
+        return True
 
 
 class QueryIp(DHCP):

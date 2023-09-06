@@ -1,0 +1,73 @@
+#version=DEVEL
+ignoredisk --only-use=sda
+#autopart --type=lvm
+# clean system disk
+clearpart --all --initlabel --drives=sda
+zerombr
+# Use graphical install
+graphical
+# Use network installation
+url --url={os_repo}
+
+# Keyboard layouts
+keyboard --vckeymap=us --xlayouts='us'
+# System language
+lang en_US.UTF-8
+
+# close firewall
+#firewall --disabled
+# close selinux
+#selinux --disabled
+
+
+
+
+# Network information
+network  --bootproto=dhcp --device=enp125s0f0 --ipv6=auto --activate
+network  --bootproto=dhcp --device=enp125s0f1 --ipv6=auto
+network  --bootproto=dhcp --device=enp125s0f2 --ipv6=auto
+network  --bootproto=dhcp --device=enp125s0f3 --ipv6=auto
+network  --bootproto=dhcp --device=enp135s0 --ipv6=auto --activate
+network  --bootproto=dhcp --device=enp136s0 --ipv6=auto
+network  --bootproto=dhcp --device=enp137s0 --ipv6=auto
+network  --bootproto=dhcp --device=enp138s0 --ipv6=auto
+network  --hostname=localhost.localdomain
+
+
+# Root password
+rootpw --iscrypted $6$sNp4Eeut01k2a2f0$.oiozUhW/B1VLdGCG4Qb2iDuZaQOfJ9H474LBAXNDililnrqOgGQnWKZCvCbibDgLIUaQ4KRDu02qE/9O1XrI/
+
+
+# Run the Setup Agent on first boot
+firstboot --enable
+# DO not configure the Xwindow System
+skipx
+# System services
+#services --enabled="chronyd"
+# System timezone
+timezone Asia/Shanghai --utc
+
+# Disk partitioning information
+autopart
+
+# reboot
+reboot
+
+%packages
+@^minimal-environment
+%end
+
+
+#---------pre------------
+%pre --interpreter=/usr/bin/bash --log=/root/ks_pre_install.log --erroronfail
+echo pre cmd
+# clean disk
+dmsetup remove_all
+wipefs -a --force /dev/sda
+%end
+
+
+#-----------------------
+%post --interpreter=/usr/bin/bash --log=/root/ks_post_install.log --erroronfail
+echo post cmd
+%end

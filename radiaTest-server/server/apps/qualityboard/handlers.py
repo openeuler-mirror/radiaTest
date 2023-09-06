@@ -14,6 +14,7 @@
 #####################################
 
 import abc
+import re
 from collections import defaultdict
 from datetime import datetime
 from math import floor
@@ -21,23 +22,29 @@ import os
 import subprocess
 import io
 
-from flask import jsonify, current_app, g, make_response
+from flask import jsonify, current_app, g, make_response, send_file
 from sqlalchemy import func
+import requests
 import pytz
 import xlwt
+import redis
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from server import db, redis_client
-from server.model.qualityboard import Checklist, CheckItem, Round, SameRpmCompare, RpmCompare
+from server.apps.issue.handler import GiteeV8BaseIssueHandler
+from server.apps.qualityboard.excel_report import QualityReport, ATReport
+from server.model.qualityboard import Checklist, CheckItem, Round, SameRpmCompare, RpmCompare, QualityBoard
 from server.model.milestone import IssueSolvedRate, Milestone
 from server.model.organization import Organization
 from server.model.product import Product
+from server.utils.at_utils import OpenqaATStatistic
 from server.utils.db import Select, collect_sql_error, Insert
 from server.utils.response_util import RET
 from server.utils.page_util import PageUtil
 from server.utils.md_util import MdUtil
 from server.utils.rpm_util import RpmNameComparator, RpmNameLoader
 from celeryservice.tasks import resolve_pkglist_after_resolve_rc_name, resolve_pkglist_from_url
+from server.utils.shell import add_escape
 
 
 class ChecklistHandler:
@@ -935,3 +942,470 @@ class PackagCompareResultExportHandler:
         response.headers["Content-Disposition"] = f'attachment; filename={file_path.split("/")[-1]}'
         response.headers["Content-Type"] = 'application/x-xlsx'
         return response
+
+
+# 重写GiteeV8BaseIssueHandler query方法返回值, 返回可操作的dict
+class GiteeV8IssueHandlerV2(GiteeV8BaseIssueHandler):
+    @collect_sql_error
+    def query(self, url, params=None):
+        _params = {
+            "access_token": self.access_token,
+        }
+        if params is not None and isinstance(params, dict):
+            _params.update(params)
+        _resp = requests.get(
+            url=url, params=_params, headers=self.headers
+        )
+        _resp.encoding = _resp.apparent_encoding
+
+        if _resp.status_code != 200:
+            current_app.logger.error(_resp.text)
+            raise Exception(f"gitee v8 接口请求失败，{_resp.text}")
+        return _resp.json()
+
+
+class ReportHandler(object):
+
+    def __init__(self, product_id, params):
+        self.product_id = product_id
+        self.round_id = params.get("round_id")
+        self.branch = params.get("branch")
+        self.params = params
+        self.gitee_v8_handler = GiteeV8IssueHandlerV2()
+        self.max_overdue_days = 0
+
+    @staticmethod
+    def verify_date_str(date_str):
+        if re.match(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\+\d{2}:\d{2}$", date_str) is None:
+            return False
+        else:
+            return True
+
+    def format_date(self, date_str):
+        if not date_str:
+            return ""
+        if self.verify_date_str(date_str) is True:
+            return datetime.strptime(date_str, "%Y-%m-%dT%H:%M:%S%z").strftime("%Y/%m/%d")
+        else:
+            return "日期解析失败"
+
+    def get_all_issue(self, params):
+        # 递归获取所有issue
+        res = self.gitee_v8_handler.get_all(params)
+        total = res.get("total_count")
+        page = params.get("page")
+        per_page = params.get("per_page")
+        data = res.get("data")
+        if int(total) > int(page) * int(per_page):
+            params["page"] = page + 1
+            data.extend(self.get_all_issue(params))
+        return data
+
+    def get_all_issue_by_type_name(self, type_name=None):
+        # 获取issue_type为type_name所有issue
+        filter_param = [Milestone.product_id == self.product_id, Milestone.is_sync.is_(True)]
+        if self.round_id:
+            filter_param.append(Milestone.round_id == self.round_id)
+        milestones = Milestone.query.filter(*filter_param).all()
+        issue_list = []
+        if not milestones:
+            return issue_list
+        m_ids = ",".join([str(i.gitee_milestone_id) for i in milestones])
+        query_dict = self.params.__dict__
+        update_params = {
+                "milestone_id": m_ids,
+                "per_page": 100  # 接口最大条数100
+            }
+        if type_name:
+            update_params["issue_type_id"] = self.gitee_v8_handler.get_bug_issue_type_id(type_name)
+        query_dict.update(update_params)
+        # 从第一页开始递归获取当前条件下的所有issue
+        query_dict["page"] = 1
+        return self.get_all_issue(query_dict)
+
+    def get_overdue_days(self, deadline, finished_at):
+        if not deadline:
+            return '无截止日期'
+        if self.verify_date_str(deadline) is False:
+            return '截止日期格式错误'
+        # 获取逾期日期
+        deadline_date = datetime.strptime(deadline, "%Y-%m-%dT%H:%M:%S%z").replace(hour=23, minute=59, second=59)
+        if finished_at and self.verify_date_str(finished_at):
+            finished_date = datetime.strptime(finished_at, "%Y-%m-%dT%H:%M:%S%z").replace(hour=23, minute=59, second=59)
+            if finished_date > deadline_date:
+                return str((finished_date - deadline_date).days)
+            else:
+                return '未逾期'
+        now_date = datetime.now(tz=pytz.timezone('Asia/Shanghai')).astimezone(
+            deadline_date.tzinfo).replace(hour=23, minute=59, second=59)
+        if deadline_date >= now_date:
+            return '未逾期'
+        return str((now_date - deadline_date).days)
+
+    @staticmethod
+    def parse_lables(labels):
+        label_dict = {}
+        all_label_str = ""
+        if not labels:
+            return {
+                "SIG": "未知",
+                "block": "否"
+            }, all_label_str
+
+        for label in labels:
+            label_name = label["name"]
+            if not all_label_str:
+                all_label_str = label_name
+            else:
+                all_label_str = f"{all_label_str},{label_name}"
+            if label_name.startswith("sig/"):
+                label_dict["SIG"] = label_name.split("sig/")[1]
+            else:
+                label_dict["SIG"] = '未知'
+            if label_name.lower() == "block":
+                label_dict["block"] = "是"
+            else:
+                label_dict["block"] = "否"
+        return label_dict, all_label_str
+
+    @staticmethod
+    def get_di(priority_dict):
+        """
+        DI = 10×W1＋3×W2＋1×W3＋0.1×W4
+        W1：致命问题数。
+        W2：严重问题数。
+        W3：主要问题数。
+        W4：次要、不重要问题数。
+        """
+        di = 0
+        for priority, priority_count in priority_dict.items():
+            if priority == "严重":
+                di += 10 * priority_count
+            elif priority == "主要":
+                di += 3 * priority_count
+            elif priority == "次要":
+                di += 1 * priority_count
+            else:
+                di += 0.1 * priority_count
+        return di
+
+    @staticmethod
+    def get_ratio(part, total):
+        if isinstance(part, int) and isinstance(total, int) and total != 0:
+            return "{:.2%}".format(part / total)
+        else:
+            return "NAN"
+
+    def issue_sort_compare(self, issue):
+        """
+        issue列表复杂排序
+        排序优先展示block、逾期，再按优先级排序
+        block > 逾期 > 优先级
+        """
+        score = 0
+        if issue["is_block"] == "是":
+            score += 200
+        if issue["overdue_days"].isdigit() and self.max_overdue_days > 0:
+            score += 100 * int(issue["overdue_days"]) / self.max_overdue_days
+        score += int(issue["priority"])
+        issue["score"] = score
+        return score
+
+    def issue_statistic(self, issue_list):
+        # 遍历所有issue
+        abnormal_list = []  # 严重、block issue
+        unclosed_list = []  # 所有未闭环issue
+        sig_count = {}  # sig统计
+        milestone_count = {}  # 里程碑统计
+        issue_count = {
+            "status": {},  # issue状态分布
+            "priority": {},  # 优先级统计
+            "total": 0,  # 有效总数
+            "all_count": 0,  # 总数
+            "unclosed": 0,  # 未闭环数量
+            "closed": 0,  # 闭环数量
+            "focus": 0,  # 关注issue(严重或阻塞)数量
+            "assignee_count": {},
+        }
+
+        for issue in issue_list:
+            # 分支过滤
+            branch = issue["branch"] if issue.get("branch") else ""
+            if self.branch and self.branch != branch:
+                continue
+            label_dict, all_label_str = self.parse_lables(issue["labels"])
+            status = issue["issue_state"]["title"]
+            sig_name = label_dict.get("SIG")
+            is_block = label_dict.get("block", "否")
+            priority_human = issue["priority_human"]
+            if status not in issue_count["status"]:
+                issue_count["status"][status] = 1
+            else:
+                issue_count["status"][status] += 1
+
+            issue_count["all_count"] += 1
+            # 过滤无效问题单
+            if status == "已取消":
+                continue
+            issue_count["total"] += 1
+
+            if priority_human not in issue_count["priority"]:
+                issue_count["priority"][priority_human] = 1
+            else:
+                issue_count["priority"][priority_human] += 1
+
+            if sig_name not in sig_count:
+                sig_count[sig_name] = {"total": 1, "unclosed": 0, "priority": {priority_human: 1}}
+            else:
+                sig_count[sig_name]["total"] += 1
+                if priority_human not in sig_count[sig_name]["priority"]:
+                    sig_count[sig_name]["priority"][priority_human] = 1
+                else:
+                    sig_count[sig_name]["priority"][priority_human] += 1
+
+            milestone = issue["milestone"]["title"] if issue.get("milestone") else "未关联里程碑"
+            if milestone not in milestone_count:
+                milestone_count[milestone] = {"total": 0, "closed": 0}
+            milestone_count[milestone]["total"] += 1
+
+            # 总体版本已验收算闭环, 迭代版本已完成也算闭环
+            if self.round_id:
+                closed_status = ["已完成", "已验收"]
+            else:
+                closed_status = ["已验收"]
+            if status in closed_status:
+                milestone_count[milestone]["closed"] += 1
+                issue_count["closed"] += 1
+            else:
+                issue_count["unclosed"] += 1
+                sig_count[sig_name]["unclosed"] += 1
+
+            if status in closed_status:
+                continue
+
+            if issue["assignee"]:
+                assignee_username = issue["assignee"]["username"]
+                assignee_name = issue["assignee"]["name"]
+            else:
+                assignee_username = "未知"
+                assignee_name = "未知"
+            if assignee_name not in issue_count["assignee_count"]:
+                issue_count["assignee_count"][assignee_name] = 1
+            else:
+                issue_count["assignee_count"][assignee_name] += 1
+
+            overdue_days = self.get_overdue_days(issue["deadline"], issue["finished_at"])
+            format_issue = {
+                "milestone": milestone,
+                "issue_id": issue["ident"],
+                "issue_title": issue["title"],
+                "assignee_username": assignee_username,
+                "assignee_name": assignee_name,
+                "assignee_enterprise": "",
+                "plan_started_at": self.format_date(issue["plan_started_at"]),
+                "deadline": self.format_date(issue["deadline"]),
+                "finished_at": self.format_date(issue["finished_at"]),
+                "issue_type": issue["issue_type"]["title"],
+                "priority": issue["priority"],
+                "priority_human": issue["priority_human"],
+                "branch":  branch,
+                "status": status,
+                "SIG": sig_name,
+                "is_block": is_block,
+                "overdue_days": overdue_days,
+                "label": all_label_str,
+            }
+            if overdue_days.isdigit() and self.max_overdue_days < int(overdue_days):
+                self.max_overdue_days = int(overdue_days)
+
+            if is_block == "是" or issue["priority_human"] == "严重":
+                issue_count["focus"] += 1
+                abnormal_list.append(format_issue)
+            if status not in closed_status:
+                unclosed_list.append(format_issue)
+
+        # 汇总计算
+        closed_rate = self.get_ratio(issue_count["closed"], issue_count["total"])
+        for sig_name, sig_info in sig_count.items():
+            # DI值计算
+            sig_info["DI"] = self.get_di(sig_info["priority"])
+
+        for milestone, milestone_info in milestone_count.items():
+            milestone_info["closed_rate"] = self.get_ratio(milestone_info["closed"], milestone_info["total"])
+
+        version_di = self.get_di(issue_count["priority"])
+
+        return {
+            "branch": self.branch,
+            "version_di": version_di,
+            "closed_rate": closed_rate,
+            "milestone_count": milestone_count,
+            "issue_count": issue_count,
+            "sig_count": sig_count,
+            "abnormal_list": sorted(abnormal_list, key=self.issue_sort_compare, reverse=True),
+            "unclosed_list": sorted(unclosed_list, key=self.issue_sort_compare, reverse=True),
+        }
+
+    def get_quality_report(self):
+        all_issue_list = self.get_all_issue_by_type_name("缺陷")
+        product = Product.query.filter_by(id=self.product_id).first()
+        if not product:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="product does not exist.",
+            )
+        product_name = f"{product.name}_{product.version}"
+        if self.round_id:
+            _round = Round.query.filter_by(id=self.round_id).first()
+            if not _round:
+                return jsonify(
+                    error_code=RET.NO_DATA_ERR,
+                    error_msg="round does not exist.",
+                )
+            if _round.type == "release":
+                round_name = f"{_round.type}"
+            else:
+                round_name = f"{_round.type}_{_round.round_num}"
+        else:
+            round_name = None
+
+        quality_report = QualityReport(product_name, round_name=round_name).generate_excel_report(
+            self.issue_statistic(all_issue_list))
+        if not os.path.exists(quality_report):
+            return jsonify(
+                error_code=RET.SERVER_ERR,
+                error_msg="质量报告生成失败"
+            )
+        return send_file(quality_report, as_attachment=True)
+
+    def get_branch_list(self):
+        branch_list = []
+        for issue in self.get_all_issue_by_type_name("缺陷"):
+            branch = issue.get("branch")
+            if branch and branch not in branch_list:
+                branch_list.append(branch)
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+            data=branch_list,
+        )
+
+
+class ATOverviewHandler:
+    def __init__(self, qualityboard_id):
+        self.openqa_url = current_app.config.get("OPENQA_URL")
+        self.qualityboard_id = qualityboard_id
+        self.qualityboard = QualityBoard.query.filter_by(id=qualityboard_id).first()
+        product = self.qualityboard.product
+        self.product_name = f"{product.name}-{product.version}"
+
+        self.scrapyspider_pool = redis.ConnectionPool.from_url(
+            current_app.config.get("SCRAPYSPIDER_BACKEND"), decode_responses=True)
+        self.redis_client = redis.StrictRedis(connection_pool=self.scrapyspider_pool)
+
+    def close(self):
+        self.redis_client.close()
+        self.scrapyspider_pool.disconnect()
+
+    def get_builds_list(self, start=None, end=None, desc=True):
+        product_name = self.product_name
+        total_count = self.redis_client.zcard(product_name)
+        if not start:
+            start = 0
+        if not end:
+            end = total_count - 1
+        builds_list = self.redis_client.zrange(product_name, start, end, desc=desc)
+        return_data = {
+            "total_num": total_count,
+        }
+        if not builds_list:
+            return_data = {
+                "total_num": 0,
+                "data": [],
+            }
+        else:
+            return_data["data"] = list(
+                map(
+                    lambda build: OpenqaATStatistic(
+                        arches=current_app.config.get("SUPPORTED_ARCHES"),
+                        product=product_name,
+                        build=build,
+                        redis_client=self.redis_client,
+                    ).group_overview,
+                    builds_list
+                )
+            )
+
+        self.scrapyspider_pool.disconnect()
+        return return_data
+
+    def get_build_detail(self, build_name):
+        at_statistic = OpenqaATStatistic(
+            arches=current_app.config.get(
+                "SUPPORTED_ARCHES", ["aarch64", "x86_64"]
+            ),
+            product=self.product_name,
+            build=build_name,
+            redis_client=self.redis_client
+        )
+        self.scrapyspider_pool.disconnect()
+        return at_statistic.tests_overview
+
+    def get_overview(self, query):
+        if not self.qualityboard:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="qualityboard {} not exitst".format(self.qualityboard_id)
+            )
+        build_name = query.get("build_name")
+        if not build_name:
+            page_num = query.get("page_num")
+            page_size = query.get("page_size")
+            _start = (page_num - 1) * page_size
+            _end = page_num * page_size - 1
+            builds_list = self.get_builds_list(start=_start, end=_end, desc=query.get("build_order") == "descend")
+            return jsonify(
+                error_code=RET.OK,
+                error_msg="OK",
+                data=builds_list.get("data"),
+                total_num=builds_list.get("total_num")
+            )
+        else:
+            build_detail = self.get_build_detail(build_name)
+
+            return jsonify(
+                error_code=RET.OK,
+                error_msg="OK",
+                data=build_detail,
+            )
+
+
+class ATReportHandler(object):
+    def __init__(self, qualityboard_id):
+        self.qualityboard_id = qualityboard_id
+
+    def get_quality_report(self):
+        at_handler = ATOverviewHandler(self.qualityboard_id)
+        if not at_handler.qualityboard:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="qualityboard {} not exitst".format(self.qualityboard_id)
+            )
+        builds_list = at_handler.get_builds_list(desc=True).get("data")
+        if not builds_list:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="build list is null!".format(self.qualityboard_id)
+            )
+
+        for build_info in builds_list:
+            build_info["detail_list"] = at_handler.get_build_detail(build_info["build"])
+
+        at_report = ATReport(at_handler.product_name).generate_excel_report(builds_list)
+
+        if not os.path.exists(at_report):
+            return jsonify(
+                error_code=RET.SERVER_ERR,
+                error_msg="AT报告生成失败"
+            )
+        return send_file(at_report, as_attachment=True)

@@ -1,0 +1,17 @@
+## grub_template.cfg文件
+控制该文件内的参数即可控制物理机pxe安装过程的参数，根据实际情况变化调整该文件
+
+## ks模版
+# ks模版创建命名和使用规则
+os_name、os_version与Product对应字段需一致
+假设os_name=openEuler, os_version=20.03-LTS-SP3
+创建的模版目前仅修改repo源地址,参考common-ks.template
+url --url={os_repo}
+#命名规则
+若当前需要os安装的ks存在版本间差异，则{os_name}-{os_version}-ks.template格式命名
+若仅为厂商间差异, 则{os_name}-ks.template格式命名
+若无差异，则使用默认的通用模版common-ks.template
+# 使用优先级
+{os_name}-{os_version}-ks.template > {os_name}-ks.template > common-ks.template
+# 模版存放位置
+radiaTest-messenger/celeryservice/lib/pmachine下

@@ -1,3 +1,17 @@
+# Copyright (c) [2022] Huawei Technologies Co.,Ltd.ALL rights reserved.
+# This program is licensed under Mulan PSL v2.
+# You can use it according to the terms and conditions of the Mulan PSL v2.
+#          http://license.coscl.org.cn/MulanPSL2
+# THIS PROGRAM IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+# EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+# MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+# See the Mulan PSL v2 for more details.
+####################################
+# @Author  :
+# @email   :
+# @Date    :
+# @License : Mulan PSL v2
+#####################################
 from shlex import quote
 
 from flask.globals import current_app
@@ -152,3 +166,26 @@ def rsync_dir_push(path, job_name):
 # 删除临时密码文件
 def rsync_password_file_delete():
     return "rm -rf {}".format(current_app.config.get("RSYNC_PASSWORD_FILE"))
+
+
+# 递归同步远程http目录下的文件到本地
+def rsync_http_dir_to_local(target, local, cut_num):
+
+    return f"wget  -e robots=off -m --reject=‘index.html*’ -nH --no-parent --recursive --relative --level=1 " \
+           f" --cut-dirs={cut_num}  {target} -P {local}"
+
+
+# 注释所有dhcp已绑定的mac地址
+def annotating_dhcp_conf(mac_addr):
+    return """
+mac_addr=%s
+dhcp_conf=%s
+second_nus=($(cat -n ${dhcp_conf} |grep -i ${mac_addr}|grep -v "#"|awk '{print $1}'))
+for second_nu in ${second_nus[*]}
+do
+  start_nu=$(head -n "${second_nu}" "${dhcp_conf}"|cat -n|grep host|tail -n 1|awk '{print $1}')
+  last_nu=$(cat -n "${dhcp_conf}"|tail -n 1|awk '{print $1}')
+  end_nu=$(cat -n  "${dhcp_conf}"|tail -n $((last_nu - start_nu + 1))|grep '}'|head -n 1|awk '{print $1}')
+  sed -i "${start_nu},${end_nu}s/^/#/" "${dhcp_conf}"
+done
+""" % (mac_addr, current_app.config.get("DHCP_CONF"))

@@ -1,3 +1,18 @@
+# Copyright (c) [2022] Huawei Technologies Co.,Ltd.ALL rights reserved.
+# This program is licensed under Mulan PSL v2.
+# You can use it according to the terms and conditions of the Mulan PSL v2.
+#          http://license.coscl.org.cn/MulanPSL2
+# THIS PROGRAM IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+# EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+# MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+# See the Mulan PSL v2 for more details.
+####################################
+# @Author  :
+# @email   :
+# @Date    :
+# @License : Mulan PSL v2
+#####################################
+
 import json
 import datetime
 import requests
@@ -81,39 +96,12 @@ class LifecycleMonitor(TaskHandlerBase):
                             continue
 
                         re_role_user = ReUserRole.query.filter_by(role_id=role.id).all()
-
-                        for item in re_role_user:
-                            Insert(
-                                Message,
-                                {
-                                    "data": json.dumps(
-                                        {
-                                            'info': check_res
-                                        }
-                                    ),
-                                    "level": MsgLevel.system.value,
-                                    "from_id": 1,
-                                    "to_id": item.user_id,
-                                    "type": MsgType.text.value,
-                                    "org_id": pmachine.org_id
-                                }
-                            ).single()
-
-                        Insert(
-                            Message,
-                            {
-                                "data": json.dumps(
-                                    {
-                                        'info': check_res
-                                    }
-                                ),
-                                "level": MsgLevel.system.value,
-                                "from_id": 1,
-                                "to_id": pmachine.occupier,
-                                "type": MsgType.text.value,
-                                "org_id": pmachine.org_id
-                            }
-                        ).single()
+                        Message.create_instance(json.dumps({'info': check_res}),
+                                                1, [item.user_id for item in re_role_user], pmachine.org_id,
+                                                level=MsgLevel.system.value, msg_type=MsgType.text.value)
+                        Message.create_instance(json.dumps({'info': check_res}),
+                                                1, [pmachine.occupier], pmachine.org_id,
+                                                level=MsgLevel.system.value, msg_type=MsgType.text.value)
 
                         Edit(Pmachine, {"id": pmachine.id, "is_release_notification": 1}).single(Pmachine, "/pmachine")
                     else:

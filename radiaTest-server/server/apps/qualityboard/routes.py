@@ -18,7 +18,7 @@ import json
 
 import yaml
 import redis
-from flask import jsonify, current_app, g
+from flask import jsonify, current_app, g, request
 from flask_restful import Resource
 from flask_pydantic import validate
 from sqlalchemy import func, or_
@@ -32,9 +32,6 @@ from server.model import Milestone, Product, Organization
 from server.model.milestone import IssueSolvedRate
 from server.model.strategy import ReProductFeature
 from server.model.qualityboard import (
-    QualityBoard, 
-    Checklist, 
-    DailyBuild,
     RpmCompare,
     SameRpmCompare, 
     QualityBoard,
@@ -84,7 +81,6 @@ from server.apps.qualityboard.handlers import (
     ChecklistHandler,
     PackageListHandler,
     DailyBuildPackageListHandler,
-    RoundHandler,
     feature_handlers,
     CheckItemHandler,
     QualityResultCompareHandler,
@@ -92,6 +88,7 @@ from server.apps.qualityboard.handlers import (
     ChecklistResultHandler,
     CompareRoundHandler,
     PackagCompareResultExportHandler,
+    ReportHandler, ATOverviewHandler, ATReportHandler
 )
 from server.apps.issue.handler import GiteeV8BaseIssueHandler
 from server.utils.shell import add_escape
@@ -615,121 +612,7 @@ class ATOverview(Resource):
     @response_collect
     @validate()
     def get(self, qualityboard_id, query: ATOverviewSchema):
-        qualityboard = QualityBoard.query.filter_by(id=qualityboard_id).first()
-        if not qualityboard:
-            return jsonify(
-                error_code=RET.NO_DATA_ERR,
-                error_msg="qualityboard {} not exitst".format(qualityboard_id)
-            )
-        product = qualityboard.product
-
-        product_name = f"{product.name}-{product.version}"
-
-        scrapyspider_pool = redis.ConnectionPool.from_url(
-            current_app.config.get("SCRAPYSPIDER_BACKEND"),
-            decode_responses=True
-        )
-        scrapyspider_redis_client = redis.StrictRedis(
-            connection_pool=scrapyspider_pool
-        )
-
-        openqa_url = current_app.config.get("OPENQA_URL")
-
-        _start = (query.page_num - 1) * query.page_size
-        _end = query.page_num * query.page_size - 1
-
-        if not query.build_name:
-            builds_list = scrapyspider_redis_client.zrange(
-                product_name,
-                _start,
-                _end,
-                desc=query.build_order == "descend",
-            )
-
-            if not builds_list:
-                scrapyspider_pool.disconnect()
-                return jsonify(
-                    error_code=RET.OK,
-                    error_msg="OK",
-                    data=[],
-                    total_num=0
-                )
-
-            _tests_overview_url = scrapyspider_redis_client.get(
-                f"{product_name}_{builds_list[0]}_tests_overview_url"
-            )
-
-            # positively sync crawl latest data from openqa of latest build
-            exitcode, output = subprocess.getstatusoutput(
-                "pushd scrapyspider && scrapy crawl openqa_tests_overview_spider "
-                f"-a product_build={product_name}_{builds_list[0]} "
-                f"-a openqa_url={openqa_url} "
-                f"-a tests_overview_url={add_escape(_tests_overview_url)}"
-            )
-            if exitcode != 0:
-                current_app.logger.error(
-                    f"crawl latest tests overview data of {product_name}_{builds_list[0]} fail. Because {output}"
-                )
-
-            return_data = list(
-                map(
-                    lambda build: OpenqaATStatistic(
-                        arches=current_app.config.get("SUPPORTED_ARCHES"),
-                        product=product_name,
-                        build=build,
-                        redis_client=scrapyspider_redis_client,
-                    ).group_overview,
-                    builds_list
-                )
-            )
-
-            scrapyspider_pool.disconnect()
-
-            return jsonify(
-                error_code=RET.OK,
-                error_msg="OK",
-                data=return_data,
-                total_num=scrapyspider_redis_client.zcard(product_name)
-            )
-
-        else:
-            product_build = f"{product_name}_{query.build_name}"
-            tests_overview_url = scrapyspider_redis_client.get(
-                f"{product_build}_tests_overview_url"
-            )
-
-            # positively crawl latest data from openqa of pointed build
-            exitcode, output = subprocess.getstatusoutput(
-                "pushd scrapyspider && scrapy crawl openqa_tests_overview_spider "
-                f"-a product_build={product_build} "
-                f"-a openqa_url={openqa_url} "
-                f"-a tests_overview_url={add_escape(tests_overview_url)}"
-            )
-            if exitcode != 0:
-                current_app.logger.error(
-                    f"crawl latest tests overview data of {product_build} fail. Because {output}"
-                )
-
-            current_app.logger.info(
-                f"crawl latest tests overview data of product {product_build} succeed"
-            )
-
-            at_statistic = OpenqaATStatistic(
-                arches=current_app.config.get(
-                    "SUPPORTED_ARCHES", ["aarch64", "x86_64"]
-                ),
-                product=product_name,
-                build=query.build_name,
-                redis_client=scrapyspider_redis_client
-            )
-
-            scrapyspider_pool.disconnect()
-
-            return jsonify(
-                error_code=RET.OK,
-                error_msg="OK",
-                data=at_statistic.tests_overview,
-            )
+        return ATOverviewHandler(qualityboard_id=qualityboard_id).get_overview(query.__dict__)
 
 
 class QualityDefendEvent(Resource):
@@ -2222,3 +2105,24 @@ class RoundRepeatRpmEvent(Resource):
             RepeatRpm.repo_path == query.repo_path
         )
         return PageUtil.get_data(query_filter, query)
+
+
+class ReportEvent(Resource):
+    @auth.login_required
+    @response_collect
+    def get(self, product_id):
+        return ReportHandler(product_id, request.args).get_quality_report()
+
+
+class ATReportEvent(Resource):
+    @auth.login_required
+    @response_collect
+    def get(self, qualityboard_id):
+        return ATReportHandler(qualityboard_id).get_quality_report()
+
+
+class BranchEvent(Resource):
+    @auth.login_required
+    @response_collect
+    def get(self, product_id):
+        return ReportHandler(product_id, request.args).get_branch_list()

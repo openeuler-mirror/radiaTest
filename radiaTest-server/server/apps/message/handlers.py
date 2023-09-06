@@ -1,18 +1,47 @@
+# Copyright (c) [2022] Huawei Technologies Co.,Ltd.ALL rights reserved.
+# This program is licensed under Mulan PSL v2.
+# You can use it according to the terms and conditions of the Mulan PSL v2.
+#          http://license.coscl.org.cn/MulanPSL2
+# THIS PROGRAM IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+# EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+# MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+# See the Mulan PSL v2 for more details.
+####################################
+# @Author  : hukun66
+# @email   : hu_kun@hoperun.com
+# @Date    : 2023/09/04
+# @License : Mulan PSL v2
+#####################################
+
 import json
 
 from flask import g, jsonify, request
 from flask_socketio import emit
 
 from server import db, redis_client
-from server.model.message import Message
+from server.model.message import Message, MessageUsers
 from server.model.group import ReUserGroup, Group
 from server.model.user import User
 from server.schema.message import MessageModel
-from server.schema.group import ReUserGroupSchema, GroupInfoSchema
+from server.schema.group import GroupInfoSchema
 from server.utils.response_util import RET
 from server.utils.page_util import PageUtil
 from server.utils.db import collect_sql_error
 from server.utils.redis_util import RedisKey
+
+
+def lock_message(msg_id):
+    if redis_client.get(RedisKey.message_lock(msg_id)):
+        return False
+    else:
+        # 加锁10秒钟
+        redis_client.set(RedisKey.message_lock(msg_id), 1, 10)
+        return True
+
+
+def release_message_lock(msg_ids):
+    for msg_id in msg_ids:
+        redis_client.delete(RedisKey.message_lock(msg_id))
 
 
 @collect_sql_error
@@ -24,14 +53,15 @@ def handler_msg_list():
     org_id = redis_client.hget(RedisKey.user(g.user_id), 'current_org_id')
 
     filter_params = [
-        Message.to_id == g.user_id,
+        MessageUsers.user_id == g.user_id,
         Message.is_delete.is_(False),
         Message.org_id == org_id
     ]
     if has_read in [0, 1]:
         filter_params.append(Message.has_read == (True if has_read else False))
 
-    query_filter = Message.query.filter(*filter_params).order_by(Message.create_time.desc(), Message.id.asc())
+    query_filter = Message.query.join(MessageUsers).filter(*filter_params).order_by(
+        Message.create_time.desc(), Message.id.asc())
     page_func = lambda item: MessageModel(**item.to_dict()).dict()
     page_data, e = PageUtil.get_page_dict(query_filter, page_num=page_num, page_size=page_size, func=page_func)
     if e:
@@ -51,7 +81,7 @@ def handler_update_msg():
         return jsonify(errro_code=RET.PARMA_ERR, error_msg='msg_ids is not null')
     # 获取数据
     filter_params = [
-        Message.to_id == g.user_id,
+        MessageUsers.user_id == g.user_id,
         Message.is_delete.is_(False),
         Message.org_id == org_id
     ]
@@ -64,12 +94,25 @@ def handler_update_msg():
         update_dict['has_read'] = has_read
     if not update_dict:
         return jsonify(error_code=RET.PARMA_ERR, error_msg='no params need update')
-    Message.query.filter(*filter_params).update(update_dict, synchronize_session=False)
+    message_list = Message.query.join(MessageUsers).filter(*filter_params).all()
+    lock_err_ids = []
+    lock_success_ids = []
+    for msg in message_list:
+        if lock_message(msg.id) is False:
+            lock_err_ids.append(str(msg.id))
+        else:
+            lock_success_ids.append(msg.id)
+
+    if lock_err_ids:
+        release_message_lock(lock_success_ids)
+        return jsonify(error_code=RET.OK, error_msg=f"部分消息正在被处理请重试,无法处理的消息id{','.join(lock_err_ids)}!")
+
+    Message.query.filter(
+        Message.id.in_([message.id for message in message_list])).update(update_dict, synchronize_session=False)
     db.session.commit()
-    msg_count = Message.query.filter(Message.to_id == g.user_id,
-                                     Message.is_delete.is_(False),
-                                     Message.has_read.is_(False),
-                                     Message.org_id == org_id).count()
+    msg_count = Message.query.join(MessageUsers).filter(
+        MessageUsers.user_id == g.user_id, Message.is_delete.is_(False),
+        Message.has_read.is_(False), Message.org_id == org_id).count()
     emit(
         "count",
         {"num": msg_count},
@@ -83,18 +126,21 @@ def handler_update_msg():
 def handler_msg_callback(body):
     msg = Message.query.filter_by(id=body.msg_id, is_delete=False).first()
     if not msg:
-        raise RuntimeError("the msg does not exist.")
+        return jsonify(error_code=RET.NO_DATA_ERR, error_msg="消息不存在")
+
+    lock_flag = lock_message(msg.id)
+    if lock_flag is False:
+        return jsonify(error_code=RET.DATA_EXIST_ERR, error_msg="消息正在被处理")
+
     _data = json.loads(msg.data)
     info = f'<b>您</b>请求{_data.get("_alias")}<b>{_data.get("_id")}</b>已经被{{}}</b>。'
     if body.access:
         info = info.format('管理员处理')
     else:
         info = info.format('管理员拒绝')
-    message = Message.create_instance(dict(info=info), g.user_id, msg.from_id, msg.org_id)
+    Message.create_instance(dict(info=info), g.user_id, [msg.from_id], msg.org_id)
     msg.has_read = True
-
     msg.type = 0
-    message.add_update()
     msg.add_update()
     return jsonify(error_code=RET.OK, error_msg="OK")
 
@@ -102,10 +148,15 @@ def handler_msg_callback(body):
 @collect_sql_error
 def handler_addgroup_msg_callback(body):
     org_name = redis_client.hget(RedisKey.user(g.user_id), "current_org_name")
-    msg = Message.query.filter_by(id=body.msg_id, is_delete=False, has_read=False).first()
+    msg = Message.query.filter_by(id=body.msg_id, is_delete=False).first()
     if not msg:
-        raise RuntimeError("the msg does not exist.")
-    _data = json.loads(msg.data)
+        return jsonify(error_code=RET.NO_DATA_ERR, error_msg="消息不存在")
+
+    lock_flag = lock_message(msg.id)
+    if lock_flag is False:
+        return jsonify(error_code=RET.OK, error_msg="消息正在被处理")
+
+    _data = json.loads(msg.data) if isinstance(msg.data, str) else msg.data
     info = f'您请求加入<b>{org_name}</b>组织下的<b>{_data.get("group_name")}</b>组已经被<b>{{}}</b>。'
     re = ReUserGroup.query.filter_by(
         user_id=msg.from_id,
@@ -133,9 +184,7 @@ def handler_addgroup_msg_callback(body):
         else:
             info = info.format('管理员拒绝')
             re.delete()
-    message = Message.create_instance(dict(info=info), g.user_id, msg.from_id, msg.org_id)
-    message.add_update()
-
+    Message.create_instance(dict(info=info), g.user_id, [msg.from_id], msg.org_id)
     return jsonify(error_code=RET.OK, error_msg="OK")
 
 
@@ -198,3 +247,15 @@ def handler_group_page():
     if e:
         return jsonify(error_code=RET.SERVER_ERR, error_msg=f'get group page error {e}')
     return jsonify(error_code=RET.OK, error_msg="OK", data=page_dict)
+
+
+@collect_sql_error
+def handler_create_text_msg(body):
+    # 用户id合法性校验
+    for user_id in body.to_ids:
+        if User.query.filter_by(user_id=user_id).count() != 1:
+            return jsonify(error_code=RET.VERIFY_ERR, error_msg="to_ids error")
+
+    org_id = redis_client.hget(RedisKey.user(g.user_id), 'current_org_id')
+    Message.create_instance(body.data, g.user_id, body.to_ids, org_id)
+    return jsonify(error_code=RET.OK, error_msg="OK")

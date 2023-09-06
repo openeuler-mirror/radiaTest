@@ -1,9 +1,21 @@
-# -*- coding: utf-8 -*-
-# @Author: Your name
-# @Date:   2022-04-12 14:05:57
+# Copyright (c) [2022] Huawei Technologies Co.,Ltd.ALL rights reserved.
+# This program is licensed under Mulan PSL v2.
+# You can use it according to the terms and conditions of the Mulan PSL v2.
+#          http://license.coscl.org.cn/MulanPSL2
+# THIS PROGRAM IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+# EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+# MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+# See the Mulan PSL v2 for more details.
+####################################
+# @Author  : hukun66
+# @email   : hu_kun@hoperun.com
+# @Date    : 2023/09/04
+# @License : Mulan PSL v2
+#####################################
+
 import json
 
-from flask import jsonify, current_app
+from flask import jsonify, current_app, g
 from flask_restful import Resource
 from flask_pydantic import validate
 
@@ -367,30 +379,27 @@ class Install(Resource):
                 error_msg="the machine does not exist"
             )
 
-        machine_group = pmachine.machine_group
-        messenger = PmachineMessenger(body.__dict__)
-        messenger.send_request(machine_group, "/api/v1/pmachine/check-bmc-info")
-
-        imirroring = IMirroring.query.filter_by(
-            milestone_id=body.milestone_id
-        ).first()
+        imirroring = IMirroring.query.filter_by(milestone_id=body.milestone_id, frame=pmachine.frame).order_by(
+            IMirroring.update_time.desc(), IMirroring.id.desc()).first()
         if not imirroring:
             return jsonify(
                 error_code=RET.NO_DATA_ERR,
                 error_msg="the iso mirror of this milestone does not exist"
             )
-
         _body = body.__dict__
         _body.update(
             {
                 "id": pmachine_id,
                 "pmachine": pmachine.to_json(),
-                "mirroring": imirroring.to_json()
+                "mirroring": imirroring.to_json(),
+                "milestone_name": imirroring.milestone.name,
+                "os_info": {"name": imirroring.milestone.product.name, "version": imirroring.milestone.product.version},
+                "user_id": g.user_id,
             }
         )
 
         messenger = PmachineMessenger(_body)
-        return messenger.send_request(machine_group, "/api/v1/pmachine/install")
+        return messenger.send_request(pmachine.machine_group, "/api/v1/pmachine/install")
 
 
 class Power(Resource):

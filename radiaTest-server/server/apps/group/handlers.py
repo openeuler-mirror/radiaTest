@@ -135,23 +135,14 @@ def handler_delete_group(group_id):
         res = ReUserGroup.query.filter_by(is_delete=False, group_id=group_id).all()
         org_id = redis_client.hget(RedisKey.user(g.user_id), "current_org_id")
         org_name = redis_client.hget(RedisKey.user(g.user_id), "current_org_name")
-        for item in res:
-            Insert(
-                Message,
-                {
-                    "data": json.dumps(
+        Message.create_instance(json.dumps(
                         {
                             "info": f'<b>{org_name}'
                                     f'</b>组织下的<b>{re.group.name}</b>用户组已解散'
                         }
-                    ),
-                    "level": MsgLevel.group.value,
-                    "from_id": group_id,
-                    "to_id": item.user.user_id,
-                    "type": MsgType.text.value,
-                    "org_id": org_id
-                }
-            ).insert_id()
+                    ), group_id, [item.user.user_id for item in res], org_id,
+            level=MsgLevel.group.value, msg_type=MsgType.text.value)
+
         Group.query.filter_by(is_delete=False, id=group_id).update({'is_delete': True}, synchronize_session=False)
         ReUserGroup.query.filter_by(is_delete=False, group_id=group_id).update({'is_delete': True},
                                                                                synchronize_session=False)
@@ -164,24 +155,14 @@ def handler_delete_group(group_id):
         re.is_delete = True
         org_id = redis_client.hget(RedisKey.user(g.user_id), "current_org_id")
         org_name = redis_client.hget(RedisKey.user(g.user_id), "current_org_name")
-        for item in res:
-            Insert(
-                Message,
-                {
-                    "data": json.dumps(
+        Message.create_instance(json.dumps(
                         {
                             "info": f'<b>{re.user.user_name}</b>退出'
                                     f'<b>{org_name}'
                                     f'</b>组织下的<b>{re.group.name}</b>用户组'
                         }
-                    ),
-                    "level": MsgLevel.group.value,
-                    "from_id": g.user_id,
-                    "to_id": item.user.user_id,
-                    "type": MsgType.text.value,
-                    "org_id": org_id
-                }
-            ).insert_id()
+                    ), g.user_id, [item.user.user_id for item in res], org_id,
+            level=MsgLevel.group.value, msg_type=MsgType.text.value)
         re.add_update()
 
         # 解除组内角色和用户的绑定
@@ -290,24 +271,15 @@ def handler_add_user(group_id, body):
             group_id=int(group_id),
             org_id=org_id
         ))
-        Insert(
-            Message,
-            {
-                "data": json.dumps(
+        Message.create_instance(json.dumps(
                     {
                         "group_id": group_id,
                         "info": f'<b>{re.user.user_name}</b>邀请您加入'
                                 f'<b>{org_name}</b>组织下的'
                                 f'<b>{re.group.name}</b>用户组。'
                     }
-                ),
-                "level": MsgLevel.user.value,
-                "from_id": re.user.user_id,
-                "to_id": user_id,
-                "type": MsgType.script.value,
-                "org_id": org_id
-            }
-        ).insert_id()
+                ), re.user.user_id, [user_id], org_id, level=MsgLevel.user.value, msg_type=MsgType.script.value)
+
     db.session.execute(ReUserGroup.__table__.insert(), add_list)
     db.session.commit()
     return jsonify(error_code=RET.OK, error_msg="OK")
@@ -345,23 +317,13 @@ def handler_update_user(group_id, body):
                 for _re in re_list:
                     Delete(ReUserRole, {"id": _re.id}).single()
 
-                Insert(
-                    Message,
-                    {
-                        "data": json.dumps(
+                Message.create_instance(json.dumps(
                             {
                                 'info': f'<b>{re.user.user_name}</b>将您请出'
                                         f'<b>{org_name}</b>组织下的'
                                         f'<b>{re.group.name}</b>用户组！'
                             }
-                        ),
-                        "level": MsgLevel.user.value,
-                        "from_id": g.user_id,
-                        "to_id": item.user_id,
-                        "type": MsgType.text.value,
-                        "org_id": org_id
-                    }
-                ).insert_id()
+                        ), g.user_id, [item.user_id], org_id, level=MsgLevel.user.value, msg_type=MsgType.text.value)
                 item.delete()
         else:
             if body.role_type in [GroupRole.admin.value, GroupRole.user.value]:
@@ -386,64 +348,45 @@ def handler_apply_join_group(group_id):
                                        ReUserGroup.role_type.in_([1, 2])).all()
     org_name = redis_client.hget(RedisKey.user(g.user_id), "current_org_name")
     user_info = User.query.filter_by(user_id=g.user_id).first()
-    for item in re_info:
-        Insert(
-            Message,
-            {
-                "data": json.dumps(
-                    {
-                        "callback_url": '/api/v1/msg/addgroup/callback',
-                        "group_id": group_id,
-                        "group_name": group.name,
-                        "info": f'<b>{user_info.user_name}</b>申请加入'
-                                f'<b>{org_name}</b>组织下的'
-                                f'<b>{group.name}</b>用户组。'
-                    }
-                ),
-                "level": MsgLevel.user.value,
-                "from_id": g.user_id,
-                "to_id": item.user_id,
-                "type": MsgType.script.value,
-                "org_id": group.org_id
-            }
-        ).insert_id()
-    add_list = list()
 
-    add_list.append(dict(
+    # 创建请求处理脚本消息
+    apply_msg_info = json.dumps(
+                {
+                    "callback_url": '/api/v1/msg/addgroup/callback',
+                    "group_id": group_id,
+                    "group_name": group.name,
+                    "info": f'<b>{user_info.user_name}</b>申请加入'
+                            f'<b>{org_name}</b>组织下的'
+                            f'<b>{group.name}</b>用户组。'
+                }
+            )
+    Message.create_instance(apply_msg_info, g.user_id, [item.user_id for item in re_info], group.org_id,
+                            level=MsgLevel.user.value, msg_type=MsgType.script.value)
+
+    update_dict = dict(
         is_delete=False,
         user_add_group_flag=False,
         role_type=0,
         user_id=g.user_id,
         group_id=int(group_id),
         org_id=group.org_id
-    ))
+    )
     if re_exists and re_exists.is_delete:
-        add_list[0].update({
-            "id": re_exists.id
-        })
-        db.session.execute(ReUserGroup.__table__.update(), add_list)
+        db.session.query(ReUserGroup).filter_by(id=re_exists.id).update(update_dict)
         db.session.commit()
     else:
-        db.session.execute(ReUserGroup.__table__.insert(), add_list)
-        db.session.commit()
+        Insert(ReUserGroup, update_dict).single()
 
-    Insert(
-        Message,
-        {
-            "data": json.dumps(
+    # 申请通知消息
+    notice_msg_info = json.dumps(
                 {
                     'info': f'您申请加入'
                             f'<b>{org_name}</b>组织下的'
                             f'<b>{group.name}</b>用户组请求已发送，请求通过后将通知您'
                 }
-            ),
-            "level": MsgLevel.system.value,
-            "from_id": 1,
-            "to_id": g.user_id,
-            "type": MsgType.text.value,
-            "org_id": group.org_id
-        }
-    ).insert_id()
+            )
+    Message.create_instance(notice_msg_info, 1, [g.user_id], group.org_id, level=MsgLevel.system.value,
+                            msg_type=MsgType.text.value)
     return jsonify(error_code=RET.OK, error_msg="申请已发送")
 
 

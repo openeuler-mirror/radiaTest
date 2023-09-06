@@ -1,26 +1,36 @@
-import abc
+# Copyright (c) [2022] Huawei Technologies Co.,Ltd.ALL rights reserved.
+# This program is licensed under Mulan PSL v2.
+# You can use it according to the terms and conditions of the Mulan PSL v2.
+#          http://license.coscl.org.cn/MulanPSL2
+# THIS PROGRAM IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+# EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+# MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+# See the Mulan PSL v2 for more details.
+####################################
+# @Author  :
+# @email   :
+# @Date    :
+# @License : Mulan PSL v2
+#####################################
+
 import json
-from math import floor
 import os
 import subprocess
 
-from flask import current_app, request, Response, current_app, g, jsonify
-import sqlalchemy
+from flask import current_app, g, jsonify
 import requests
-from sqlalchemy import func, or_
-from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+
 
 from celeryservice import celeryconfig
 from server import db, redis_client
 from server.utils.redis_util import RedisKey
-from server.utils.db import pdbc
 from server.utils.response_util import RET
 from server.model.qualityboard import Feature
 from server.model.organization import Organization
 from server.model.product import Product
 from server.model.user import User
-from server.model.strategy import ReProductFeature, Strategy, StrategyTemplate, StrategyCommit
-from server.utils.db import Insert, Edit, Delete, Precise, collect_sql_error
+from server.model.strategy import ReProductFeature, Strategy
+from server.utils.db import Insert, collect_sql_error
 
 
 class FeatureHandler:

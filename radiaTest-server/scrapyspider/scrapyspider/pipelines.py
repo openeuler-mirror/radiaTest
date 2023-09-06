@@ -171,7 +171,6 @@ class RedisPipeline:
                 item["product_build"],
                 item["test"],
             )
-
             self.db_conn.hset(
                 _key,
                 "aarch64_res_status",
@@ -187,6 +186,21 @@ class RedisPipeline:
                 _key,
                 "aarch64_failedmodule_log",
                 item["aarch64_failedmodule_log"]
+            )
+            self.db_conn.hset(
+                _key,
+                "aarch64_start_time",
+                item["aarch64_start_time"]
+            )
+            self.db_conn.hset(
+                _key,
+                "aarch64_end_name",
+                item["aarch64_end_name"]
+            )
+            self.db_conn.hset(
+                _key,
+                "aarch64_test_duration",
+                item["aarch64_test_duration"]
             )
 
             self.db_conn.hset(
@@ -204,6 +218,27 @@ class RedisPipeline:
                 _key,
                 "x86_64_failedmodule_log",
                 item["x86_64_failedmodule_log"]
+            )
+            self.db_conn.hset(
+                _key,
+                "x86_64_start_time",
+                item["x86_64_start_time"]
+            )
+            self.db_conn.hset(
+                _key,
+                "x86_64_end_name",
+                item["x86_64_end_name"]
+            )
+            self.db_conn.hset(
+                _key,
+                "x86_64_test_duration",
+                item["x86_64_test_duration"]
+            )
+            aarch64_test_duration = int(item["aarch64_test_duration"]) if item["aarch64_test_duration"] != "-" else 0
+            x86_64_test_duration = int(item["x86_64_test_duration"]) if item["aarch64_test_duration"] != "-" else 0
+            self.db_conn.zadd(
+                "product_build_test_set_{}".format(item["product_build"]),
+                {item["test"]: aarch64_test_duration + x86_64_test_duration}
             )
 
     def close_spider(self, spider):

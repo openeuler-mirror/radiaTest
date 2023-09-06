@@ -1,3 +1,18 @@
+# Copyright (c) [2022] Huawei Technologies Co.,Ltd.ALL rights reserved.
+# This program is licensed under Mulan PSL v2.
+# You can use it according to the terms and conditions of the Mulan PSL v2.
+#          http://license.coscl.org.cn/MulanPSL2
+# THIS PROGRAM IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+# EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+# MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+# See the Mulan PSL v2 for more details.
+####################################
+# @Author  :
+# @email   :
+# @Date    :
+# @License : Mulan PSL v2
+#####################################
+
 from celery import Celery
 from celeryservice import celeryconfig
 
@@ -39,6 +54,11 @@ def make_celery(app_name):
             'celeryservice.tasks.run_at': {
                 'queue': 'queue_run_at',
                 'routing_key': 'run_at',
+                'delivery_mode': 1,
+            },
+            'celeryservice.tasks.run_pxe_install': {
+                'queue': 'queue_run_pxe_install',
+                'routing_key': 'run_pxe_install',
                 'delivery_mode': 1,
             },
         }

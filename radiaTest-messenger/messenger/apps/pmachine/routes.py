@@ -1,3 +1,18 @@
+# Copyright (c) [2022] Huawei Technologies Co.,Ltd.ALL rights reserved.
+# This program is licensed under Mulan PSL v2.
+# You can use it according to the terms and conditions of the Mulan PSL v2.
+#          http://license.coscl.org.cn/MulanPSL2
+# THIS PROGRAM IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+# EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+# MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+# See the Mulan PSL v2 for more details.
+####################################
+# @Author  : hukun66
+# @email   : hu_kun@hoperun.com
+# @Date    : 2023/09/04
+# @License : Mulan PSL v2
+#####################################
+
 from flask import request, jsonify
 from flask_restful import Resource
 from flask_pydantic import validate
@@ -24,10 +39,8 @@ class Install(Resource):
     @validate()
     def put(self, body: PmachineInstallSchema):
         _body = body.__dict__
-        _body.update({
-            "auth": request.headers.get("authorization")
-        })
-        return AutoInstall(_body).kickstart()
+        # 前端触发安装执行celery任务
+        return AutoInstall(_body).kickstart(is_async=True)
 
 
 class Power(Resource):

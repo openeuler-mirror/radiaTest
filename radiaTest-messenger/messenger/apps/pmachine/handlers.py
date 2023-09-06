@@ -1,17 +1,31 @@
+# Copyright (c) [2022] Huawei Technologies Co.,Ltd.ALL rights reserved.
+# This program is licensed under Mulan PSL v2.
+# You can use it according to the terms and conditions of the Mulan PSL v2.
+#          http://license.coscl.org.cn/MulanPSL2
+# THIS PROGRAM IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+# EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+# MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+# See the Mulan PSL v2 for more details.
+####################################
+# @Author  : hukun66
+# @email   : hu_kun@hoperun.com
+# @Date    : 2023/09/04
+# @License : Mulan PSL v2
+#####################################
+
 import json
 import secrets
 import string
-from flask import current_app, jsonify
+from flask import current_app, jsonify, g, request
 from subprocess import getstatusoutput
 from messenger.utils.shell import ShellCmdApi
 from messenger.utils.bash import (
-    pxe_boot,
     power_on_off,
     pmachine_reset_password,
     get_bmc_user_id,
     reset_bmc_user_passwd,
 )
-from messenger.utils.pxe import PxeInstall, CheckInstall
+
 from messenger.utils.response_util import RET
 from messenger.utils.requests_util import update_request
 from messenger.utils.pssh import ConnectionApi
@@ -19,18 +33,45 @@ from messenger.utils.pssh import ConnectionApi
 
 class AutoInstall:
     def __init__(self, body):
-        self.pmachine = json.loads(body.get("pmachine"))
-        self.mirroring = json.loads(body.get("mirroring"))
+        pmachine = body.get("pmachine")
+        if isinstance(pmachine, str):
+            pmachine = json.loads(pmachine)
+        self.pmachine = pmachine
 
-    def kickstart(self):
+        mirroring = body.get("mirroring")
+        if isinstance(mirroring, str):
+            mirroring = json.loads(mirroring)
+        self.mirroring = mirroring
+        self.body = body
+        if (not isinstance(self.pmachine, dict)) or (not isinstance(self.mirroring, dict)):
+            raise Exception("安装参数必须为json格式")
+
+    def kickstart(self, is_async=False):
+        """
+        is_async 是否异步执行
+        """
         if not self.mirroring["efi"]:
             return jsonify(
                 {
                     "error_code": RET.INSTALL_CONF_ERR,
-                    "error_msg": "The milestone image does not provide grub.efi path .",
+                    "error_msg": "The milestone image does not provide grub.efi path.",
+                }
+            )
+        if not self.mirroring["location"]:
+            return jsonify(
+                {
+                    "error_code": RET.INSTALL_CONF_ERR,
+                    "error_msg": "The milestone image does not provide location path.",
                 }
             )
 
+        if not self.mirroring["ks"]:
+            return jsonify(
+                {
+                    "error_code": RET.INSTALL_CONF_ERR,
+                    "error_msg": "The milestone image does not provide ks path.",
+                }
+            )
         if not self.pmachine["mac"]:
             return jsonify(
                 {
@@ -46,45 +87,28 @@ class AutoInstall:
                     "error_msg": "The registration information of the physical machine does not have an IP address.",
                 }
             )
-
-        result = PxeInstall(
-            self.pmachine["mac"],
-            self.pmachine["ip"],
-            self.mirroring["efi"]
-        ).bind_efi_mac_ip()
-
-        if isinstance(result, tuple):
-            return result
-
-        exitcode, output = ShellCmdApi(
-            pxe_boot(
-                self.pmachine["bmc_ip"],
-                self.pmachine["bmc_user"],
-                self.pmachine["bmc_password"],
-            )
-        ).exec()
-
-        if exitcode:
-            error_msg = (
-                    "Failed to boot pxe to start the physical machine:%s."
-                    % self.pmachine["ip"]
-            )
-            current_app.logger.error(error_msg)
-            current_app.logger.error(output)
-
-            return jsonify(
-                error_code=RET.INSTALL_CONF_ERR,
-                error_msg=error_msg
-            )
-
-        result = CheckInstall(self.pmachine["ip"]).check()
-
-        if isinstance(result, tuple):
-            return result
+        # 是否异步任务提前返回结果
+        user = {
+            "user_id": self.body.get("user_id"),
+            "auth": request.headers.get("authorization"),
+        }
+        body = {
+            "pmachine": self.pmachine,
+            "mirroring": self.mirroring,
+            "milestone_name": self.body.get("milestone_name"),
+            "os_info": self.body.get("os_info"),
+            "frame": self.pmachine['frame'],
+        }
+        # 循环导入规避
+        from celeryservice.tasks import run_pxe_install
+        if is_async is True:
+            run_pxe_install.delay(user, body)
+        else:
+            run_pxe_install.apply(args=(user, body))
 
         return jsonify(
             error_code=RET.OK,
-            error_msg="os install succeed"
+            error_msg="succeed"
         )
 
 
@@ -129,13 +153,16 @@ class PmachineSshPassword:
         self._body = body
 
     def reset_password(self):
-        random_password = "".join(
-            [secrets.choice(string.ascii_letters) for _ in range(3)]
-            + [secrets.choice(string.digits) for _ in range(3)]
-            + ["\\" + secrets.choice(current_app.config.get("RANDOM_PASSWORD_CHARACTER")) for _ in range(2)]
-        )
-
-        new_password = random_password
+        # 适配密码修改接口
+        if self._body.get("password"):
+            new_password = self._body.get("password")
+        else:
+            random_password = "".join(
+                [secrets.choice(string.ascii_letters) for _ in range(3)]
+                + [secrets.choice(string.digits) for _ in range(3)]
+                + ["\\" + secrets.choice(current_app.config.get("RANDOM_PASSWORD_CHARACTER")) for _ in range(2)]
+            )
+            new_password = random_password
         ssh = ConnectionApi(
             ip=self._body.get("ip"),
             port=self._body.get("port"),
