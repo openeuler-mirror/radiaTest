@@ -1,5 +1,6 @@
 import axios from '@/axios';
 import repoCard from './repoCard.js';
+import milestoneTable from '@/views/versionManagement/milestone/modules/milestoneTable';
 
 const getcode = (id, thisFrame) => {
   repoCard.loading.value = true;
@@ -30,6 +31,7 @@ const handleCreateClick = (id, thisFrame) => {
         window.$message?.error('创建失败');
       }
       getcode(id, thisFrame);
+      milestoneTable.getTableData();
     })
     .catch((err) => {
       window.$message?.error(

@@ -14,7 +14,9 @@ import {
   getCheckListTableDataAxios,
   getMilestones,
   getRoundIssueRate,
-  getChecklistResult
+  getChecklistResult,
+  getRoundIdList,
+  getBranchList
 } from '@/api/get';
 import { createProductMessage, addCheckListItem } from '@/api/post';
 import {
@@ -39,6 +41,7 @@ import {
   showList
 } from './productDetailDrawer';
 import { renderTooltip } from '@/assets/render/tooltip';
+import axios from '@/axios';
 
 const message = useMessage();
 const tableLoading = ref(false); // 产品版本表格加载状态
@@ -340,6 +343,8 @@ function rowProps(row) {
       hasQualityboard.value = false;
       ProductId.value = row.id;
       getDefaultCheckNode(ProductId.value);
+      getRoundSelectList(ProductId.value);
+      getBranchSelectList(ProductId.value);
     }
   };
 }
@@ -1151,6 +1156,83 @@ function getDefaultCheckNode(id) {
     });
 }
 
+// 获取roundId下拉列表
+const roundId = ref({});
+const roundIdOptions = ref([]);
+const getRoundSelectList = (productId) => {
+  roundId.value = ref({name: '选择round', id: null });
+  let roundList = [];
+  getRoundIdList(productId).then((res) => {
+    res.data.length && res.data.forEach((item) => {
+      roundList.push({
+        label: item.name,
+        value: { name: item.name, id: item.id }
+      });
+    });
+    roundList.unshift({
+      label: '选择round',
+      value: { name: '选择round', id: null }
+    });
+    roundIdOptions.value = roundList;
+  });
+};  
+
+// 获取branches下拉列表
+const branchOptions = ref([]);
+const branch = ref({});
+const getBranchSelectList = (productId) => {
+  branch.value = ref({name: '选择分支', id: null });
+  branchOptions.value = [];
+  let branchList = [];
+  getBranchList(productId, {round_id : roundId.value.id} ).then((res) => {
+    res.data.length && res.data.forEach((item) => {
+      branchList.push({
+        label: item,
+        value: { name: item, id: item }
+      });
+    });
+    branchList.unshift({
+      label: '选择分支',
+      value: {name: '选择分支', id: null }
+    });
+    branchOptions.value = branchList;
+  });
+};
+
+// 导出质量看板报告
+const loadingRef = ref(false);
+const exportQualityHistoryFn = () => {
+  loadingRef.value = true;
+  let axiosUrl = `/v1/qualityboard/${ProductId.value}/report`;
+  let param = {
+    round_id: roundId.value.id || null,
+    branch: branch.value.id || null
+  };
+  let tag = 'report';
+  axios.downLoad(axiosUrl, param, tag).then((res) => {
+    let blob = new Blob([res.data], { type: 'application/vnd.ms-excel' });
+    let url = URL.createObjectURL(blob);
+    let alink = document.createElement('a');
+    document.body.appendChild(alink);
+    alink.download = decodeURIComponent(res.headers['content-disposition'].split('=')[2].slice(7));
+    alink.target = '_blank';
+    alink.href = url;
+    alink.click();
+    alink.remove();
+    URL.revokeObjectURL(url);
+    loadingRef.value = false;
+  }).catch(()=>{
+    loadingRef.value = false;
+  });
+};
+
+// 切换round列表
+const selectRound = (value) => {
+  if (value.id) {
+    getBranchSelectList(ProductId.value);
+  }
+};
+
 // 开启下一轮迭代测试
 function stepAdd() {
   if (hasQualityboard.value === false) {
@@ -1374,5 +1456,14 @@ export {
   productVersionPageSizeChange,
   filterRule,
   filterchange,
-  defaultMilestoneId
+  defaultMilestoneId,
+  branchOptions,
+  roundIdOptions,
+  loadingRef,
+  branch,
+  roundId,
+  getRoundSelectList,
+  getBranchSelectList,
+  exportQualityHistoryFn,
+  selectRound
 };

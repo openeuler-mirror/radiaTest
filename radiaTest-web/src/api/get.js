@@ -375,6 +375,16 @@ export function getMilestoneProgressCaseNode(milestoneId, caseNode) {
   return getRequest(`/v1/milestone/${milestoneId}/task-progress/case-node/${caseNode}`);
 }
 
+// 查询round列表
+export function getRoundIdList(productId) {
+  return getRequest(`/v1/round?product_id=${productId}`);
+}
+
+// 查询branch列表
+export function getBranchList(productId, param) {
+  return getRequest(`/v1/qualityboard/${productId}/branch-list`, param);
+}
+
 // 获取特性集特性
 export function getAllFeature(param) {
   return getRequest('/v1/feature', param);
@@ -458,4 +468,8 @@ export function getCasesByRepo(repoId, data, config) {
 // 对于组织下的suite类型节点，根据选择的导出文件格式按测试套导出文本用例
 export function exportTestsuite(orgId, caseNodeId, data) {
   return getRequest(`/v1/org/${orgId}/case-node/${caseNodeId}/export`, data);
+}
+// 批量同步里程碑时选择里程碑判断是否与数据库里程碑重名
+export function determinMilestoneName(data) {
+  return getRequest('/v2/milestone/verify-name', data);
 }
