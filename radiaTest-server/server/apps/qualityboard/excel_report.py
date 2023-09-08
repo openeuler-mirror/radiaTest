@@ -124,23 +124,28 @@ class QualityReport(BaseReport):
         self.set_cell_color(ws, row_num, 1, '2F75B5')
 
         row_num += 1
-        line2 = '一、问题健康度（仅关注在行版本分支），'
-        branch_str = f'当前为{excel_data["branch"]}分支' if excel_data.get("branch") else '未选择分支'
+        line2 = '一、问题健康度（仅关注在行版本分支）'
+        if excel_data.get("branch"):
+            line2 += f'，当前为{excel_data["branch"]}分支'
 
         self.merge_cells(ws, row_num)
-        write_content(ws, row_num, 1, line2 + branch_str + "。", font=bold_font)
+        write_content(ws, row_num, 1, line2 + "。", font=bold_font)
         self.set_cell_color(ws, row_num, 1, 'BDD7EE')
 
         row_num += 1
         self.merge_cells(ws, row_num)
         status_count_str = "，".join([f"{name}{count}个" for name, count in excel_data["issue_count"]["status"].items()])
-        line3 = "问题单总览：{}，共{}个issue{}".format(
+        if excel_data.get("branch"):
+            branch_str = f'当前为{excel_data["branch"]}分支，'
+        else:
+            branch_str = ""
+        line3 = "问题单总览：{}共{}个issue{}".format(
             branch_str, excel_data["issue_count"]["all_count"], "，" + status_count_str if status_count_str else "")
         write_content(ws, row_num, 1, line3 + "。", font=bold_font)
 
         row_num += 1
         self.merge_cells(ws, row_num)
-        write_content(ws, row_num, 1, '严重&block问题列表', font=bold_font)
+        write_content(ws, row_num, 1, '问题列表', font=bold_font)
         self.set_cell_color(ws, row_num, 1, 'FFC000')
 
         row_num += 1
@@ -148,9 +153,18 @@ class QualityReport(BaseReport):
         self.merge_cells(ws, row_num, start_column=2, end_column=3)
         write_content(ws, row_num, 2, excel_data["issue_count"]['unclosed'], font=bold_font)
 
-        write_content(ws, row_num, 4, '问题闭环率', font=bold_font)
-        self.merge_cells(ws, row_num, start_column=5, end_column=8)
-        write_content(ws, row_num, 5, excel_data["closed_rate"], font=bold_font)
+        if excel_data.get("is_round") is True:
+            # 写入完成率、验收率
+            write_content(ws, row_num, 4, '问题完成率', font=bold_font)
+            self.merge_cells(ws, row_num, start_column=5, end_column=6)
+            write_content(ws, row_num, 5, excel_data["completed_rate"], font=bold_font)
+            write_content(ws, row_num, 7, '问题验收率', font=bold_font)
+            write_content(ws, row_num, 8, excel_data["approved_rate"], font=bold_font)
+        else:
+            # 写入闭环率
+            write_content(ws, row_num, 4, '问题闭环率', font=bold_font)
+            self.merge_cells(ws, row_num, start_column=5, end_column=8)
+            write_content(ws, row_num, 5, excel_data["closed_rate"], font=bold_font)
 
         self.merge_cells(ws, row_num, start_column=9, end_column=10)
         write_content(ws, row_num, 9, '严重/阻塞问题数', font=bold_font)
@@ -170,7 +184,7 @@ class QualityReport(BaseReport):
 
         # 写入block、严重issue
         row_num += 1
-        row_num = self.write_issue_list(ws, row_num, table_header, excel_data["abnormal_list"]) + 2
+        row_num = self.write_issue_list(ws, row_num, table_header, excel_data["unclosed_list"]) + 2
 
         # 写入未闭环issue
         if excel_data["unclosed_list"]:
@@ -230,28 +244,6 @@ class QualityReport(BaseReport):
 
         row_num += 3
         self.merge_cells(ws, row_num)
-        write_content(ws, row_num, 1, '3)issue SIG 分布：')
-        self.set_cell_color(ws, row_num, 1, '92D050')
-        sig_chart_x_data = Reference(ws, min_row=sig_start_row, max_row=sig_end_row, min_col=1, max_col=1)
-        sig_chart_y_data = Reference(ws, min_row=sig_start_row, max_row=sig_end_row, min_col=2, max_col=2)
-
-        if sig_end_row > sig_start_row:
-            # 插入饼图
-            pie_chart = PieChart()
-            pie_chart.width = 30
-            pie_chart.height = 12
-            series = SeriesFactory(sig_chart_y_data, title="SIG分布")
-            pie_chart.series.append(series)
-            pie_chart.set_categories(sig_chart_x_data)
-
-            ws.add_chart(pie_chart, f"B{row_num + 3}")
-            row_num += 30
-        else:
-            row_num += 1
-            write_content(ws, row_num, 1, '暂无')
-            row_num += 2
-
-        self.merge_cells(ws, row_num)
         write_content(ws, row_num, 1, '4)每轮迭代问题单闭环情况：')
         self.set_cell_color(ws, row_num, 1, '92D050')
 
@@ -273,8 +265,60 @@ class QualityReport(BaseReport):
         self.merge_cells(ws, row_num)
         write_content(ws, row_num, 1, '5)issue统计(柱状图)：')
         self.set_cell_color(ws, row_num, 1, '92D050')
-        # 责任人分布
+        # 优先级分布
         row_num += 1
+        self.merge_cells(ws, row_num)
+        write_content(ws, row_num, 1, '优先级分布：', font=bold_font)
+        row_num += 1
+        priority_count = excel_data["issue_count"]["priority"]
+        write_content(ws, row_num, 1, "优先级")
+        write_content(ws, row_num, 2, "数量")
+        priority_start_row = row_num + 1
+        for priority, count in priority_count.items():
+            row_num += 1
+            write_content(ws, row_num, 1, priority)
+            write_content(ws, row_num, 2, count)
+        priority_end_row = row_num
+        priority_x_data = Reference(ws, min_row=priority_start_row, max_row=priority_end_row, min_col=1, max_col=1)
+        priority_y_data = Reference(ws, min_row=priority_start_row, max_row=priority_end_row, min_col=2, max_col=2)
+        priority_count_chart = BarChart3D()
+        priority_count_chart.width = 35
+        priority_count_chart.height = 8
+        priority_count_chart.title = "优先级分布"
+        priority_count_chart.type = "bar"
+        series = SeriesFactory(priority_y_data)
+        priority_count_chart.series.append(series)
+        priority_count_chart.set_categories(priority_x_data)
+        ws.add_chart(priority_count_chart, f"C{priority_start_row - 1}")
+        # 优先级柱状图高度约17个单元格
+        row_num = priority_start_row + 17
+        # 任务状态分布
+        self.merge_cells(ws, row_num)
+        write_content(ws, row_num, 1, '任务状态分布：', font=bold_font)
+        row_num += 1
+        status_count = excel_data["issue_count"]["status"]
+        write_content(ws, row_num, 1, "任务状态")
+        write_content(ws, row_num, 2, "数量")
+        status_start_row = row_num + 1
+        for status, count in status_count.items():
+            row_num += 1
+            write_content(ws, row_num, 1, status)
+            write_content(ws, row_num, 2, count)
+        status_end_row = row_num
+        status_x_data = Reference(ws, min_row=status_start_row, max_row=status_end_row, min_col=1, max_col=1)
+        status_y_data = Reference(ws, min_row=status_start_row, max_row=status_end_row, min_col=2, max_col=2)
+        status_count_chart = BarChart3D()
+        status_count_chart.width = 35
+        status_count_chart.height = 8
+        status_count_chart.title = "任务状态分布"
+        status_count_chart.type = "bar"
+        series = SeriesFactory(status_y_data)
+        status_count_chart.series.append(series)
+        status_count_chart.set_categories(status_x_data)
+        ws.add_chart(status_count_chart, f"C{status_start_row - 1}")
+        # 任务状态柱状图高度约17个单元格
+        row_num = status_start_row + 17
+        # 责任人分布
         self.merge_cells(ws, row_num)
         write_content(ws, row_num, 1, '责任人分布：', font=bold_font)
         row_num += 1
@@ -310,65 +354,14 @@ class QualityReport(BaseReport):
         sig_count_chart.height = 20
         sig_count_chart.title = "SIG分布"
         sig_count_chart.type = "bar"
+        sig_chart_x_data = Reference(ws, min_row=sig_start_row, max_row=sig_end_row, min_col=1, max_col=1)
+        sig_chart_y_data = Reference(ws, min_row=sig_start_row, max_row=sig_end_row, min_col=2, max_col=2)
         series = SeriesFactory(sig_chart_y_data)
         sig_count_chart.series.append(series)
         sig_count_chart.set_categories(sig_chart_x_data)
-        ws.add_chart(sig_count_chart, f"C{row_num + 1}")
+        ws.add_chart(sig_count_chart, f"C{row_num}")
         # sig组无需填入数据只需汇总柱状图，故高度固定43
-        row_num += 43 + 2
-        # 优先级分布
-        self.merge_cells(ws, row_num)
-        write_content(ws, row_num, 1, '优先级分布：', font=bold_font)
-        row_num += 1
-        priority_count = excel_data["issue_count"]["priority"]
-        write_content(ws, row_num, 1, "优先级")
-        write_content(ws, row_num, 2, "数量")
-        priority_start_row = row_num + 1
-        for priority, count in priority_count.items():
-            row_num += 1
-            write_content(ws, row_num, 1, priority)
-            write_content(ws, row_num, 2, count)
-        priority_end_row = row_num
-        priority_x_data = Reference(ws, min_row=priority_start_row, max_row=priority_end_row, min_col=1, max_col=1)
-        priority_y_data = Reference(ws, min_row=priority_start_row, max_row=priority_end_row, min_col=2, max_col=2)
-        priority_count_chart = BarChart3D()
-        priority_count_chart.width = 35
-        priority_count_chart.height = 20
-        priority_count_chart.title = "优先级分布"
-        priority_count_chart.type = "bar"
-        series = SeriesFactory(priority_y_data)
-        priority_count_chart.series.append(series)
-        priority_count_chart.set_categories(priority_x_data)
-        ws.add_chart(priority_count_chart, f"C{priority_start_row - 1}")
-        # 优先级数据仅四行，故也固定为柱状图高度
-        row_num += 40
-        # 任务状态分布
-        self.merge_cells(ws, row_num)
-        write_content(ws, row_num, 1, '任务状态分布：', font=bold_font)
-        row_num += 1
-        status_count = excel_data["issue_count"]["status"]
-        write_content(ws, row_num, 1, "任务状态")
-        write_content(ws, row_num, 2, "数量")
-        status_start_row = row_num + 1
-        for status, count in status_count.items():
-            row_num += 1
-            write_content(ws, row_num, 1, status)
-            write_content(ws, row_num, 2, count)
-        status_end_row = row_num
-        status_x_data = Reference(ws, min_row=status_start_row, max_row=status_end_row, min_col=1, max_col=1)
-        status_y_data = Reference(ws, min_row=status_start_row, max_row=status_end_row, min_col=2, max_col=2)
-        status_count_chart = BarChart3D()
-        status_count_chart.width = 35
-        status_count_chart.height = 20
-        status_count_chart.title = "任务状态分布"
-        status_count_chart.type = "bar"
-        series = SeriesFactory(status_y_data)
-        status_count_chart.series.append(series)
-        status_count_chart.set_categories(status_x_data)
-        ws.add_chart(status_count_chart, f"C{status_start_row - 1}")
-        # 任务状态数据也小于42，故也固定为柱状图高度
         row_num += 43
-
         # 全部设置边框
         set_border(ws, 1, row_num, 1, self.total_col_num)
         # 设置列宽

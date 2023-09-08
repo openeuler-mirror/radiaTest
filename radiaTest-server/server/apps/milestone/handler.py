@@ -17,13 +17,15 @@ from datetime import datetime
 import json
 import os
 import io
+import re
 import pytz
 
 from flask.globals import current_app
 from flask import g, jsonify
 from sqlalchemy import or_, and_
 
-from server import redis_client
+from server import redis_client, db
+from server.model import Product
 from server.utils.db import collect_sql_error, Insert, Edit
 from server.utils.page_util import PageUtil
 from server.utils.response_util import RET
@@ -90,6 +92,87 @@ class CreateMilestone:
             return jsonify(
                 error_code=RET.OK, error_msg="Request processed successfully."
             )
+
+    @staticmethod
+    def gitee_milestone_id_list(product_id):
+        gitee_milestone_id_list = []
+        for milestone in Milestone.query.filter_by(product_id=product_id).all():
+            if milestone.gitee_milestone_id:
+                gitee_milestone_id_list.append(milestone.gitee_milestone_id)
+        return gitee_milestone_id_list
+
+    @staticmethod
+    def verify_milestone_name(name):
+        if Milestone.query.filter_by(name=name).count() > 0:
+            existed = True
+        else:
+            existed = False
+        return existed
+
+    @staticmethod
+    def format_gitee_datestr(date_str):
+        if date_str and re.match(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\+\d{2}:\d{2}$", date_str):
+            return datetime.strptime(date_str, "%Y-%m-%dT%H:%M:%S%z").strftime("%Y-%m-%d %H:%M:%S")
+        else:
+            return datetime.now(tz=pytz.timezone('Asia/Shanghai')).strftime("%Y-%m-%d %H:%M:%S")
+
+    def batch_sync_create(self, body):
+        product_id = body.get("product_id")
+        milestone_list = body.get("milestone_list")
+        org_id = body.get("org_id")
+        group_id = body.get("group_id")
+        permission_type = body.get("permission_type")
+        if Product.query.filter_by(id=product_id).count() != 1:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR, error_msg="产品不存在"
+            )
+        if not milestone_list:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR, error_msg="无里程碑数据"
+            )
+        # 校验里程碑是否重复关联
+        gitee_milestone_id_list = self.gitee_milestone_id_list(product_id)
+        success_list = []
+        faild_list = []
+        for milestone in milestone_list:
+            gitee_milestone_id = milestone.get("id")
+            if gitee_milestone_id in gitee_milestone_id_list:
+                current_app.logger.error(f"{gitee_milestone_id}该gitee里程碑id已关联里程碑")
+                faild_list.append(gitee_milestone_id)
+                continue
+            name = milestone.get("title")
+            if self.verify_milestone_name(name) is True:
+                current_app.logger.error(f"{name}该gitee里程碑名字已存在，已忽略")
+                faild_list.append(gitee_milestone_id)
+                continue
+            self.run({
+                "name": name,
+                "description": milestone.get("description"),
+                "state": milestone.get("state"),
+                "product_id": product_id,
+                "type": "community",
+                "is_sync": False,
+                "gitee_milestone_id": gitee_milestone_id,
+                "start_time": self.format_gitee_datestr(milestone.get("start_date")),
+                "end_time": self.format_gitee_datestr(milestone.get("due_date")),
+                "org_id": org_id,
+                "group_id": group_id,
+                "permission_type": permission_type
+            })
+            success_list.append(gitee_milestone_id)
+        # 批量将同步状态改为True
+        if success_list:
+            Milestone.query.filter_by(gitee_milestone_id=success_list).update({"is_sync": True})
+            db.session.commit()
+        if not faild_list:
+            return jsonify(error_code=RET.OK, error_msg="OK")
+        elif not success_list:
+            return jsonify(error_code=RET.PARMA_ERR, error_msg="批量同步创建里程碑失败!")
+        else:
+            return jsonify(error_code=RET.PARMA_ERR, error_msg="部分里程碑同步创建成功", data={
+                "success_list": success_list, "failed_list": faild_list
+            })
+
 
 
 class DeleteMilestone:
@@ -364,7 +447,16 @@ class MilestoneOpenApiHandler(BaseOpenApiHandler):
         _resp = self.query(url=_url, params=params)
         json_resp = _resp.get_json()
         if json_resp.get("error_code") == RET.OK:
-            return jsonify(error_code=RET.OK, error_msg="OK", data=json.loads(json_resp.get("data")))
+            data = json.loads(json_resp.get("data"))
+            page = params.get("page")
+            per_page = params.get("per_page")
+            total_count = data.get("total_count")
+            data.update({
+                    "page": page,
+                    "per_page": per_page,
+                    "has_next": False if page * per_page >= total_count else True,
+            })
+            return jsonify(error_code=RET.OK, error_msg="OK", data=data)
         return _resp
 
 

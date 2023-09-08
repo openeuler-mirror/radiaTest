@@ -1397,8 +1397,8 @@ class PackageListCompareEvent(Resource):
                 error_msg=str(e),
             )
 
-        #设置锁，避免在比对未完成前，重复触发比对， 比对完成后删除锁
-        redis_client.set(compare_key, 1, 2400)
+        #设置锁时长两个小时，避免在比对未完成前，重复触发比对， 比对完成后删除锁
+        redis_client.set(compare_key, 1, 7200)
 
         (
             compare_results,
