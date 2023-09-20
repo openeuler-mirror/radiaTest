@@ -24,7 +24,7 @@ from flask_pydantic import validate
 from sqlalchemy import func, or_
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
-from server import db, redis_client
+from server import db, redis_client, swagger_adapt
 from server.utils.auth_util import auth
 from server.utils.redis_util import RedisKey
 from server.utils.response_util import response_collect, RET
@@ -98,10 +98,26 @@ from server.utils.rpm_util import RpmNameLoader
 from celeryservice.sub_tasks import update_compare_result, update_samerpm_compare_result, update_daily_compare_result
 
 
+def get_quality_board_tag():
+    return {
+        "name": "质量看板",
+        "description": "质量看板相关接口",
+    }
+
+
 class QualityBoardEvent(Resource):
     @auth.login_required()
     @response_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "QualityBoardEvent",  # 当前接口视图函数名
+        "func_name": "post",   # 当前接口所对应的函数名
+        "tag": get_quality_board_tag(),  # 当前接口所对应的标签
+        "summary": "创建质量看板",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "request_schema_model": QualityBoardSchema,  # 当前接口请求体参数schema校验器
+    })
     def post(self, body: QualityBoardSchema):
         _db = QualityBoard.query.filter_by(product_id=body.product_id).first()
         if _db:
@@ -141,12 +157,30 @@ class QualityBoardEvent(Resource):
     @auth.login_required()
     @response_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "QualityBoardEvent",  # 当前接口视图函数名
+        "func_name": "get",   # 当前接口所对应的函数名
+        "tag": get_quality_board_tag(),  # 当前接口所对应的标签
+        "summary": "获取质量看板信息",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "query_schema_model": QualityBoardSchema,  # 当前接口请求体参数schema校验器
+    })
     def get(self, query: QualityBoardSchema):
         return Select(QualityBoard, query.__dict__).precise()
 
     @auth.login_required()
     @response_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "QualityBoardEvent",  # 当前接口视图函数名
+        "func_name": "delete",   # 当前接口所对应的函数名
+        "tag": get_quality_board_tag(),  # 当前接口所对应的标签
+        "summary": "删除质量看板",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "query_schema_model": QualityBoardSchema,  # 当前接口请求体参数schema校验器
+    })
     def delete(self, body: QualityBoardSchema):
         return Delete(QualityBoard, body.__dict__).single()
 
@@ -155,6 +189,15 @@ class QualityBoardItemEvent(Resource):
     @auth.login_required()
     @response_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "QualityBoardItemEvent",  # 当前接口视图函数名
+        "func_name": "put",   # 当前接口所对应的函数名
+        "tag": get_quality_board_tag(),  # 当前接口所对应的标签
+        "summary": "质量看板发布",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "request_schema_model": QualityBoardUpdateSchema,  # 当前接口请求体参数schema校验器
+    })
     def put(self, qualityboard_id, body: QualityBoardUpdateSchema):
         qualityboard = QualityBoard.query.filter_by(id=qualityboard_id).first()
         if not qualityboard:
@@ -221,6 +264,14 @@ class QualityBoardItemEvent(Resource):
 class QualityBoardDeleteVersionEvent(Resource):
     @auth.login_required()
     @response_collect
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "QualityBoardDeleteVersionEvent",  # 当前接口视图函数名
+        "func_name": "put",   # 当前接口所对应的函数名
+        "tag": get_quality_board_tag(),  # 当前接口所对应的标签
+        "summary": "返回上一迭代版本",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+    })
     def put(self, qualityboard_id):
         qualityboard = QualityBoard.query.filter_by(id=qualityboard_id).first()
         if not qualityboard:
@@ -253,6 +304,15 @@ class DeselectChecklistItem(Resource):
     @auth.login_required()
     @response_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "DeselectChecklistItem",  # 当前接口视图函数名
+        "func_name": "put",   # 当前接口所对应的函数名
+        "tag": get_quality_board_tag(),  # 当前接口所对应的标签
+        "summary": "取消选中checklist",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "request_schema_model": DeselectChecklistSchema
+    })
     def put(self, checklist_id, body: DeselectChecklistSchema):
         _cl = Checklist.query.filter_by(id=checklist_id).first()
         if not _cl:
@@ -308,12 +368,29 @@ class ChecklistItem(Resource):
     @auth.login_required()
     @response_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "ChecklistItem",  # 当前接口视图函数名
+        "func_name": "get",   # 当前接口所对应的函数名
+        "tag": get_quality_board_tag(),  # 当前接口所对应的标签
+        "summary": "获取checklist",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+    })
     def get(self, checklist_id):
         return ChecklistHandler.handler_get_one(checklist_id)
 
     @auth.login_required()
     @response_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "ChecklistItem",  # 当前接口视图函数名
+        "func_name": "put",   # 当前接口所对应的函数名
+        "tag": get_quality_board_tag(),  # 当前接口所对应的标签
+        "summary": "编辑checklist",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "request_schema_model": UpdateChecklistSchema
+    })
     def put(self, checklist_id, body: UpdateChecklistSchema):
         _cl = Checklist.query.filter_by(id=checklist_id).first()
         if not _cl:
@@ -427,6 +504,14 @@ class ChecklistItem(Resource):
     @auth.login_required()
     @response_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "ChecklistItem",  # 当前接口视图函数名
+        "func_name": "delete",   # 当前接口所对应的函数名
+        "tag": get_quality_board_tag(),  # 当前接口所对应的标签
+        "summary": "删除checklist",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+    })
     def delete(self, checklist_id):
         return Delete(Checklist, {"id": checklist_id}).single()
 
@@ -435,12 +520,30 @@ class ChecklistEvent(Resource):
     @auth.login_required()
     @response_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "ChecklistEvent",  # 当前接口视图函数名
+        "func_name": "get",   # 当前接口所对应的函数名
+        "tag": get_quality_board_tag(),  # 当前接口所对应的标签
+        "summary": "分页获取checklist",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "query_schema_model": QueryChecklistSchema
+    })
     def get(self, query: QueryChecklistSchema):
         return ChecklistHandler.handler_get_checklist(query)
 
     @auth.login_required()
     @response_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "ChecklistEvent",  # 当前接口视图函数名
+        "func_name": "post",   # 当前接口所对应的函数名
+        "tag": get_quality_board_tag(),  # 当前接口所对应的标签
+        "summary": "创建checklist",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "query_schema_model": AddChecklistSchema
+    })
     def post(self, body: AddChecklistSchema):
         ci = CheckItem.query.filter_by(id=body.checkitem_id).first()
         if not ci:
@@ -476,6 +579,15 @@ class ChecklistRoundsCountEvent(Resource):
     @auth.login_required()
     @response_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "ChecklistRoundsCountEvent",  # 当前接口视图函数名
+        "func_name": "get",   # 当前接口所对应的函数名
+        "tag": get_quality_board_tag(),  # 当前接口所对应的标签
+        "summary": "获取checklist最大rounds数",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "query_schema_model": QueryChecklistSchema
+    })
     def get(self, query: QueryChecklistSchema):
         _p = Product.query.filter_by(id=query.product_id).first()
         if not _p:
@@ -497,12 +609,30 @@ class CheckItemEvent(Resource):
     @auth.login_required()
     @response_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "CheckItemEvent",  # 当前接口视图函数名
+        "func_name": "get",   # 当前接口所对应的函数名
+        "tag": get_quality_board_tag(),  # 当前接口所对应的标签
+        "summary": "分页查询check检查项",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "query_schema_model": QueryCheckItemSchema
+    })
     def get(self, query: QueryCheckItemSchema):
         return CheckItemHandler.get_all(query)
 
     @auth.login_required()
     @response_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "CheckItemEvent",  # 当前接口视图函数名
+        "func_name": "post",   # 当前接口所对应的函数名
+        "tag": get_quality_board_tag(),  # 当前接口所对应的标签
+        "summary": "创建check检查项",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "request_schema_model": QueryCheckItemSchema
+    })
     def post(self, body: CheckItemSchema):
         _ci = CheckItem.query.filter(
             or_(
@@ -521,6 +651,14 @@ class CheckItemEvent(Resource):
 class CheckItemSingleEvent(Resource):
     @auth.login_required()
     @response_collect
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "CheckItemSingleEvent",  # 当前接口视图函数名
+        "func_name": "get",   # 当前接口所对应的函数名
+        "tag": get_quality_board_tag(),  # 当前接口所对应的标签
+        "summary": "check检查项详情",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+    })
     def get(self, checkitem_id):
         _ci = CheckItem.query.filter_by(id=checkitem_id).first()
         if not _ci:
@@ -534,6 +672,15 @@ class CheckItemSingleEvent(Resource):
     @auth.login_required()
     @response_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "CheckItemSingleEvent",  # 当前接口视图函数名
+        "func_name": "put",   # 当前接口所对应的函数名
+        "tag": get_quality_board_tag(),  # 当前接口所对应的标签
+        "summary": "编辑check检查项",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "request_schema_model": CheckItemSchema
+    })
     def put(self, checkitem_id, body: CheckItemSchema):
         _ci = CheckItem.query.filter_by(
             id=checkitem_id
@@ -567,6 +714,14 @@ class CheckItemSingleEvent(Resource):
 
     @auth.login_required()
     @response_collect
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "CheckItemSingleEvent",  # 当前接口视图函数名
+        "func_name": "delete",   # 当前接口所对应的函数名
+        "tag": get_quality_board_tag(),  # 当前接口所对应的标签
+        "summary": "删除check检查项",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+    })
     def delete(self, checkitem_id):
         _ci = CheckItem.query.filter_by(id=checkitem_id).first()
         if not _ci:
@@ -587,6 +742,14 @@ class ChecklistResultEvent(Resource):
     @auth.login_required()
     @response_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "ChecklistResultEvent",  # 当前接口视图函数名
+        "func_name": "get",   # 当前接口所对应的函数名
+        "tag": get_quality_board_tag(),  # 当前接口所对应的标签
+        "summary": "获取当前round版本的checklist结果",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+    })
     def get(self, round_id):
         _round = Round.query.filter_by(id=round_id).first()
         if not _round:
@@ -611,6 +774,15 @@ class ATOverview(Resource):
     @auth.login_required()
     @response_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "ATOverview",  # 当前接口视图函数名
+        "func_name": "get",   # 当前接口所对应的函数名
+        "tag": get_quality_board_tag(),  # 当前接口所对应的标签
+        "summary": "AT总览",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "query_schema_model": ATOverviewSchema
+    })
     def get(self, qualityboard_id, query: ATOverviewSchema):
         return ATOverviewHandler(qualityboard_id=qualityboard_id).get_overview(query.__dict__)
 
@@ -619,6 +791,14 @@ class QualityDefendEvent(Resource):
     @auth.login_required()
     @response_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "QualityDefendEvent",  # 当前接口视图函数名
+        "func_name": "get",   # 当前接口所对应的函数名
+        "tag": get_quality_board_tag(),  # 当前接口所对应的标签
+        "summary": "获取质量防护数据",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+    })
     def get(self, qualityboard_id):
         qualityboard = QualityBoard.query.filter_by(id=qualityboard_id).first()
         if not qualityboard:
@@ -755,6 +935,15 @@ class DailyBuildOverview(Resource):
     @auth.login_required()
     @response_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "DailyBuildOverview",  # 当前接口视图函数名
+        "func_name": "get",   # 当前接口所对应的函数名
+        "tag": get_quality_board_tag(),  # 当前接口所对应的标签
+        "summary": "分页展示每日构建总览",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "query_schema_model": PageBaseSchema
+    })
     def get(self, qualityboard_id, query: PageBaseSchema):
         qualityboard = QualityBoard.query.filter_by(id=qualityboard_id).first()
         if not qualityboard:
@@ -783,6 +972,14 @@ class DailyBuildOverview(Resource):
 class DailyBuildDetail(Resource):
     @auth.login_required()
     @response_collect
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "DailyBuildDetail",  # 当前接口视图函数名
+        "func_name": "get",   # 当前接口所对应的函数名
+        "tag": get_quality_board_tag(),  # 当前接口所对应的标签
+        "summary": "每日构建详情",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+    })
     def get(self, dailybuild_id):
         dailybuild = DailyBuild.query.filter_by(id=dailybuild_id).first()
         if not dailybuild:
@@ -805,6 +1002,14 @@ class RpmCheckOverview(Resource):
     @auth.login_required()
     @response_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "RpmCheckOverview",  # 当前接口视图函数名
+        "func_name": "get",   # 当前接口所对应的函数名
+        "tag": get_quality_board_tag(),  # 当前接口所对应的标签
+        "summary": "rpm检查总览",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+    })
     def get(self, qualityboard_id, query: PageBaseSchema):
         qualityboard = QualityBoard.query.filter_by(id=qualityboard_id).first()
         if not qualityboard:
@@ -862,6 +1067,15 @@ class RpmCheckDetailEvent(Resource):
     @auth.login_required()
     @response_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "RpmCheckDetailEvent",  # 当前接口视图函数名
+        "func_name": "get",   # 当前接口所对应的函数名
+        "tag": get_quality_board_tag(),  # 当前接口所对应的标签
+        "summary": "rpm检查详情",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "query_schema_model": QueryRpmCheckSchema
+    })
     def get(self, query: QueryRpmCheckSchema):
         _rpmcheck = redis_client.keys(
             query.name
@@ -927,6 +1141,15 @@ class WeeklybuildHealthOverview(Resource):
     @auth.login_required()
     @response_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "WeeklybuildHealthOverview",  # 当前接口视图函数名
+        "func_name": "get",   # 当前接口所对应的函数名
+        "tag": get_quality_board_tag(),  # 当前接口所对应的标签
+        "summary": "每周构建健康度总览",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "query_schema_model": PageBaseSchema
+    })
     def get(self, qualityboard_id, query: PageBaseSchema):
         qualityboard = QualityBoard.query.filter_by(id=qualityboard_id).first()
         if not qualityboard:
@@ -964,6 +1187,14 @@ class WeeklybuildHealthOverview(Resource):
 class WeeklybuildHealthEvent(Resource):
     @auth.login_required()
     @response_collect
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "WeeklybuildHealthEvent",  # 当前接口视图函数名
+        "func_name": "get",   # 当前接口所对应的函数名
+        "tag": get_quality_board_tag(),  # 当前接口所对应的标签
+        "summary": "每周构建健康度详情",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+    })
     def get(self, weeklybuild_id):
         weekly_health = WeeklyHealth.query.filter_by(id=weeklybuild_id).first()
         if not weekly_health:
@@ -1006,6 +1237,15 @@ class FeatureEvent(Resource):
     @response_collect
     @collect_sql_error
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "FeatureEvent",  # 当前接口视图函数名
+        "func_name": "get",   # 当前接口所对应的函数名
+        "tag": get_quality_board_tag(),  # 当前接口所对应的标签
+        "summary": "获取特性",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "query_schema_model": FeatureQuerySchema
+    })
     def get(self, qualityboard_id, query: FeatureQuerySchema):
         qualityboard = QualityBoard.query.filter_by(id=qualityboard_id).first()
         if not qualityboard:
@@ -1069,6 +1309,14 @@ class FeatureEvent(Resource):
 class FeatureSummary(Resource):
     @auth.login_required
     @response_collect
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "FeatureSummary",  # 当前接口视图函数名
+        "func_name": "get",   # 当前接口所对应的函数名
+        "tag": get_quality_board_tag(),  # 当前接口所对应的标签
+        "summary": "特性总览",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+    })
     def get(self, qualityboard_id):
         qualityboard = QualityBoard.query.filter_by(id=qualityboard_id).first()
         if not qualityboard:
@@ -1113,6 +1361,15 @@ class PackageListEvent(Resource):
     @auth.login_required
     @response_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "PackageListEvent",  # 当前接口视图函数名
+        "func_name": "get",   # 当前接口所对应的函数名
+        "tag": get_quality_board_tag(),  # 当前接口所对应的标签
+        "summary": "获取软件包列表",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "query_schema_model": PackageListQuerySchema
+    })
     def get(self, qualityboard_id, round_id, query: PackageListQuerySchema):
         qualityboard = QualityBoard.query.filter_by(id=qualityboard_id).first()
         if not qualityboard:
@@ -1198,6 +1455,15 @@ class SamePackageListCompareEvent(Resource):
     @auth.login_required
     @response_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "SamePackageListCompareEvent",  # 当前接口视图函数名
+        "func_name": "post",   # 当前接口所对应的函数名
+        "tag": get_quality_board_tag(),  # 当前接口所对应的标签
+        "summary": "同名软件包对比",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "request_schema_model": PackageCompareSchema
+    })
     def post(self, qualityboard_id, round_id, body: PackageCompareSchema):
         _round = Round.query.get(round_id)
         if not _round:
@@ -1254,6 +1520,15 @@ class SamePackageListCompareEvent(Resource):
     @auth.login_required
     @response_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "SamePackageListCompareEvent",  # 当前接口视图函数名
+        "func_name": "get",   # 当前接口所对应的函数名
+        "tag": get_quality_board_tag(),  # 当前接口所对应的标签
+        "summary": "分页获取同名软件包对比结果",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "query_schema_model": SamePackageCompareQuerySchema
+    })
     def get(self, qualityboard_id, round_id, query: SamePackageCompareQuerySchema):
         _round = Round.query.get(round_id)
         if not _round:
@@ -1341,6 +1616,15 @@ class PackageListCompareEvent(Resource):
     @auth.login_required
     @response_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "PackageListCompareEvent",  # 当前接口视图函数名
+        "func_name": "post",   # 当前接口所对应的函数名
+        "tag": get_quality_board_tag(),  # 当前接口所对应的标签
+        "summary": "软件包对比",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "request_schema_model": PackageCompareSchema
+    })
     def post(self, qualityboard_id, comparee_round_id, comparer_round_id, body: PackageCompareSchema):
         round_group = RoundGroup.query.filter_by(
             round_1_id=comparee_round_id,
@@ -1450,10 +1734,18 @@ class PackageListCompareEvent(Resource):
             error_msg="OK",
         )
 
-
     @auth.login_required
     @response_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "PackageListCompareEvent",  # 当前接口视图函数名
+        "func_name": "get",   # 当前接口所对应的函数名
+        "tag": get_quality_board_tag(),  # 当前接口所对应的标签
+        "summary": "分页获取软件包对比结果",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "query_schema_model": PackageCompareQuerySchema
+    })
     def get(self, qualityboard_id, comparer_round_id, comparee_round_id, query: PackageCompareQuerySchema):
         round_group = RoundGroup.query.filter_by(
             round_1_id=comparee_round_id,
@@ -1557,6 +1849,15 @@ class DailyBuildPackageListCompareEvent(Resource):
     @auth.login_required
     @response_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "DailyBuildPackageListCompareEvent",  # 当前接口视图函数名
+        "func_name": "post",   # 当前接口所对应的函数名
+        "tag": get_quality_board_tag(),  # 当前接口所对应的标签
+        "summary": "每日构建软件包对比",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "request_schema_model": DailyBuildPackageCompareSchema
+    })
     def post(self, comparer_round_id, body: DailyBuildPackageCompareSchema):
         comparer_round = Round.query.get(comparer_round_id)
         if not comparer_round:
@@ -1637,6 +1938,15 @@ class DailyBuildPackageListCompareEvent(Resource):
     @auth.login_required
     @response_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "DailyBuildPackageListCompareEvent",  # 当前接口视图函数名
+        "func_name": "get",   # 当前接口所对应的函数名
+        "tag": get_quality_board_tag(),  # 当前接口所对应的标签
+        "summary": "分页获取每日构建软件包对比结果",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "query_schema_model": DailyBuildPackageCompareQuerySchema
+    })
     def get(self, comparer_round_id, query: DailyBuildPackageCompareQuerySchema):
         comparer_round = Round.query.get(comparer_round_id)
         daily_build_compare_infos = redis_client.hgetall(f"daily_build_compare_{comparer_round.name}")
@@ -1706,6 +2016,15 @@ class DailyBuildPkgEvent(Resource):
     @auth.login_required
     @response_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "DailyBuildPkgEvent",  # 当前接口视图函数名
+        "func_name": "post",   # 当前接口所对应的函数名
+        "tag": get_quality_board_tag(),  # 当前接口所对应的标签
+        "summary": "创建每日构建信息，并获取所有软件包",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "request_schema_model": DailyBuildSchema
+    })
     def post(self, body: DailyBuildSchema):
         try:
             DailyBuildPackageListHandler.get_all_packages_file(body.daily_name, body.repo_url)
@@ -1729,6 +2048,15 @@ class DailyBuildPkgEvent(Resource):
     @auth.login_required
     @response_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "DailyBuildPkgEvent",  # 当前接口视图函数名
+        "func_name": "get",   # 当前接口所对应的函数名
+        "tag": get_quality_board_tag(),  # 当前接口所对应的标签
+        "summary": "分页获取每日构建信息",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "query_schema_model": PageBaseSchema
+    })
     def get(self, query: PageBaseSchema):
         org_id = redis_client.hget(RedisKey.user(g.user_id), 'current_org_id')
         daily_build_infos = redis_client.hgetall(RedisKey.daily_build(org_id))
@@ -1766,6 +2094,15 @@ class DailyBuildPkgEvent(Resource):
     @auth.login_required
     @response_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "DailyBuildPkgEvent",  # 当前接口视图函数名
+        "func_name": "delete",   # 当前接口所对应的函数名
+        "tag": get_quality_board_tag(),  # 当前接口所对应的标签
+        "summary": "删除每日构建信息",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "query_schema_model": DailyBuildBaseSchema
+    })
     def delete(self, body: DailyBuildBaseSchema):
         org_id = redis_client.hget(RedisKey.user(g.user_id), 'current_org_id')
         redis_client.hdel(
@@ -1787,6 +2124,15 @@ class DailyPackagCompareResultExportEvent(Resource):
     @auth.login_required()
     @response_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "DailyPackagCompareResultExportEvent",  # 当前接口视图函数名
+        "func_name": "get",   # 当前接口所对应的函数名
+        "tag": get_quality_board_tag(),  # 当前接口所对应的标签
+        "summary": "每日构建软件包对比结果导出",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "query_schema_model": DailyBuildPackageCompareResultSchema
+    })
     def get(self, comparer_round_id, query: DailyBuildPackageCompareResultSchema):
         comparer_round = Round.query.get(comparer_round_id)
         if not comparer_round:
@@ -1818,6 +2164,15 @@ class PackagCompareResultExportEvent(Resource):
     @auth.login_required()
     @response_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "PackagCompareResultExportEvent",  # 当前接口视图函数名
+        "func_name": "get",   # 当前接口所对应的函数名
+        "tag": get_quality_board_tag(),  # 当前接口所对应的标签
+        "summary": "软件包对比结果导出",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "query_schema_model": PackageCompareResult
+    })
     def get(self, comparer_round_id, comparee_round_id, query: PackageCompareResult):
         rg = RoundGroup.query.filter_by(
             round_1_id=comparee_round_id,
@@ -1856,6 +2211,15 @@ class SamePackagCompareResultExportEvent(Resource):
     @auth.login_required()
     @response_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "SamePackagCompareResultExportEvent",  # 当前接口视图函数名
+        "func_name": "get",   # 当前接口所对应的函数名
+        "tag": get_quality_board_tag(),  # 当前接口所对应的标签
+        "summary": "同名软件包对比结果导出",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "query_schema_model": SamePackageCompareResult
+    })
     def get(self, round_id, query: SamePackageCompareResult):
         _round = Round.query.filter_by(
             id=round_id,
@@ -1890,6 +2254,15 @@ class QualityResultCompare(Resource):
     @auth.login_required()
     @response_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "QualityResultCompare",  # 当前接口视图函数名
+        "func_name": "get",   # 当前接口所对应的函数名
+        "tag": get_quality_board_tag(),  # 当前接口所对应的标签
+        "summary": "获取issue对比比率",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "query_schema_model": QueryQualityResultSchema
+    })
     def get(self, query: QueryQualityResultSchema):
         if query.type == "issue":
             qrsh = QualityResultCompareHandler(query.obj_type, query.obj_id)
@@ -1909,6 +2282,14 @@ class QualityResult(Resource):
     @auth.login_required()
     @response_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "QualityResult",  # 当前接口视图函数名
+        "func_name": "get",   # 当前接口所对应的函数名
+        "tag": get_quality_board_tag(),  # 当前接口所对应的标签
+        "summary": "获取质量结果",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+    })
     def get(self, milestone_id):
         m = Milestone.query.filter_by(id=milestone_id, is_sync=True).first()
         if not m:
@@ -1984,6 +2365,15 @@ class RoundEvent(Resource):
     @auth.login_required
     @response_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "RoundEvent",  # 当前接口视图函数名
+        "func_name": "get",   # 当前接口所对应的函数名
+        "tag": get_quality_board_tag(),  # 当前接口所对应的标签
+        "summary": "通过product_id获取所有round",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "query_schema_model": QueryRound
+    })
     def get(self, query: QueryRound):
         return Select(Round, query.__dict__).precise()
 
@@ -1992,6 +2382,15 @@ class RoundItemEvent(Resource):
     @auth.login_required
     @response_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "RoundItemEvent",  # 当前接口视图函数名
+        "func_name": "put",   # 当前接口所对应的函数名
+        "tag": get_quality_board_tag(),  # 当前接口所对应的标签
+        "summary": "编辑round名称",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "request_schema_model": RoundUpdateSchema
+    })
     def put(self, round_id, body: RoundUpdateSchema):
         _round = Round.query.filter_by(id=round_id).first()
         if not _round:
@@ -2013,6 +2412,14 @@ class RoundItemEvent(Resource):
     @auth.login_required
     @response_collect
     @collect_sql_error
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "RoundItemEvent",  # 当前接口视图函数名
+        "func_name": "get",   # 当前接口所对应的函数名
+        "tag": get_quality_board_tag(),  # 当前接口所对应的标签
+        "summary": "获取round详情",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+    })
     def get(self, round_id):
         _round = Round.query.filter_by(id=round_id).first()
         if not _round:
@@ -2032,6 +2439,15 @@ class CompareRoundEvent(Resource):
     @auth.login_required
     @response_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "CompareRoundEvent",  # 当前接口视图函数名
+        "func_name": "put",   # 当前接口所对应的函数名
+        "tag": get_quality_board_tag(),  # 当前接口所对应的标签
+        "summary": "修改当前round的比对round项",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "request_schema_model": CompareRoundUpdateSchema
+    })
     def put(self, round_id, body: CompareRoundUpdateSchema):
         """
         修改当前round的比对round项
@@ -2045,6 +2461,15 @@ class RoundMilestoneEvent(Resource):
     @auth.login_required
     @response_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "RoundMilestoneEvent",  # 当前接口视图函数名
+        "func_name": "put",   # 当前接口所对应的函数名
+        "tag": get_quality_board_tag(),  # 当前接口所对应的标签
+        "summary": "里程碑绑定round",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "request_schema_model": RoundToMilestone
+    })
     def put(self, round_id, body: RoundToMilestone):
         return RoundHandler.bind_round_milestone(round_id, body.milestone_id, body.isbind)
 
@@ -2053,12 +2478,28 @@ class RoundIssueRateEvent(Resource):
     @auth.login_required
     @response_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "RoundIssueRateEvent",  # 当前接口视图函数名
+        "func_name": "put",   # 当前接口所对应的函数名
+        "tag": get_quality_board_tag(),  # 当前接口所对应的标签
+        "summary": "更新round issue比率",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+    })
     def put(self, round_id):
         return RoundHandler.update_round_issue_rate(round_id)
     
     @auth.login_required
     @response_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "RoundIssueRateEvent",  # 当前接口视图函数名
+        "func_name": "get",   # 当前接口所对应的函数名
+        "tag": get_quality_board_tag(),  # 当前接口所对应的标签
+        "summary": "获取round issue比率",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+    })
     def get(self, round_id):
         return RoundHandler.get_rate_by_round(round_id)
 
@@ -2067,6 +2508,15 @@ class RoundIssueEvent(Resource):
     @auth.login_required
     @response_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "RoundIssueEvent",  # 当前接口视图函数名
+        "func_name": "get",   # 当前接口所对应的函数名
+        "tag": get_quality_board_tag(),  # 当前接口所对应的标签
+        "summary": "获取当前round版本的所有issue",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "query_schema_model": RoundIssueQueryV8
+    })
     def get(self, round_id, query: RoundIssueQueryV8):
         milestones = Milestone.query.filter_by(round_id=round_id, is_sync=True).all()
         if not milestones:
@@ -2092,6 +2542,15 @@ class RoundRepeatRpmEvent(Resource):
     @auth.login_required
     @response_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "RoundRepeatRpmEvent",  # 当前接口视图函数名
+        "func_name": "get",   # 当前接口所对应的函数名
+        "tag": get_quality_board_tag(),  # 当前接口所对应的标签
+        "summary": "分页获取当前round版本的所有重复软件包",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "query_schema_model": QueryRepeatRpmSchema
+    })
     def get(self, round_id, query: QueryRepeatRpmSchema):
         _round = Round.query.filter_by(id=round_id).first()
         if not _round:
@@ -2110,6 +2569,30 @@ class RoundRepeatRpmEvent(Resource):
 class ReportEvent(Resource):
     @auth.login_required
     @response_collect
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "ReportEvent",  # 当前接口视图函数名
+        "func_name": "get",   # 当前接口所对应的函数名
+        "tag": get_quality_board_tag(),  # 当前接口所对应的标签
+        "summary": "获取质量报告",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "query_schema_model": [{
+            "name": "round_id",
+            "in": "query",
+            "required": False,
+            "style": "form",
+            "explode": True,
+            "description": "round id",
+            "schema": {"type": "integer"}},
+            {
+            "name": "branch",
+            "in": "query",
+            "required": False,
+            "style": "form",
+            "explode": True,
+            "description": "分支名称",
+            "schema": {"type": "string"}}],
+    })
     def get(self, product_id):
         return ReportHandler(product_id, request.args).get_quality_report()
 
@@ -2117,6 +2600,14 @@ class ReportEvent(Resource):
 class ATReportEvent(Resource):
     @auth.login_required
     @response_collect
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "ATReportEvent",  # 当前接口视图函数名
+        "func_name": "get",   # 当前接口所对应的函数名
+        "tag": get_quality_board_tag(),  # 当前接口所对应的标签
+        "summary": "获取AT报告",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+    })
     def get(self, qualityboard_id):
         return ATReportHandler(qualityboard_id).get_quality_report()
 
@@ -2124,5 +2615,29 @@ class ATReportEvent(Resource):
 class BranchEvent(Resource):
     @auth.login_required
     @response_collect
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "BranchEvent",  # 当前接口视图函数名
+        "func_name": "get",   # 当前接口所对应的函数名
+        "tag": get_quality_board_tag(),  # 当前接口所对应的标签
+        "summary": "当前产品下issue关联的所有分支",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "query_schema_model": [{
+            "name": "round_id",
+            "in": "query",
+            "required": False,
+            "style": "form",
+            "explode": True,
+            "description": "round id",
+            "schema": {"type": "integer"}},
+            {
+                "name": "branch",
+                "in": "query",
+                "required": False,
+                "style": "form",
+                "explode": True,
+                "description": "分支名称",
+                "schema": {"type": "string"}}],
+    })
     def get(self, product_id):
         return ReportHandler(product_id, request.args).get_branch_list()

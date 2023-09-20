@@ -54,10 +54,17 @@ from server.utils.response_util import attribute_error_collect, response_collect
 from server.model import Vmachine, Vdisk, Vnic
 from server.utils.permission_utils import PermissionManager, GetAllByPermission
 from server.utils.resource_utils import ResourceManager
-from server import casbin_enforcer
+from server import casbin_enforcer, swagger_adapt
 from server.utils.callback_auth_util import callback_auth
 from server import redis_client
 from server.utils.vmachine_util import EditVmachine
+
+
+def get_vmachine_tag():
+    return {
+        "name": "虚拟机",
+        "description": "虚拟机相关接口",
+    }
 
 
 class VmachineItemEvent(Resource):
@@ -66,6 +73,14 @@ class VmachineItemEvent(Resource):
     @attribute_error_collect
     @validate()
     @casbin_enforcer.enforcer
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_vmachine_tag.__module__,  # 获取当前接口所在模块
+        "resource_name": "VmachineItemEvent",  # 当前接口视图函数名
+        "func_name": "delete",  # 当前接口所对应的函数名
+        "tag": get_vmachine_tag(),  # 当前接口所对应的标签
+        "summary": "删除虚拟机",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+    })
     def delete(self, vmachine_id):
         _vmachine = Vmachine.query.filter_by(id=vmachine_id).first()
         vmachine = _vmachine.to_json()
@@ -85,6 +100,14 @@ class VmachineItemEvent(Resource):
     @response_collect
     @validate()
     @casbin_enforcer.enforcer
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_vmachine_tag.__module__,  # 获取当前接口所在模块
+        "resource_name": "VmachineItemEvent",  # 当前接口视图函数名
+        "func_name": "get",  # 当前接口所对应的函数名
+        "tag": get_vmachine_tag(),  # 当前接口所对应的标签
+        "summary": "获取虚拟机信息",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+    })
     def get(self, vmachine_id):
         vmachine = Vmachine.query.filter_by(id=vmachine_id).first()
         if not vmachine:
@@ -102,6 +125,15 @@ class VmachineItemEvent(Resource):
     @response_collect
     @casbin_enforcer.enforcer
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_vmachine_tag.__module__,  # 获取当前接口所在模块
+        "resource_name": "VmachineItemEvent",  # 当前接口视图函数名
+        "func_name": "put",  # 当前接口所对应的函数名
+        "tag": get_vmachine_tag(),  # 当前接口所对应的标签
+        "summary": "修改虚拟机信息",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "request_schema_model": VmachineItemUpdateSchema
+    })
     def put(self, vmachine_id, body: VmachineItemUpdateSchema):
         vmachine = Vmachine.query.filter_by(id=vmachine_id).first()
         pmachine = vmachine.pmachine
@@ -128,6 +160,15 @@ class PreciseVmachineEvent(Resource):
     @response_collect
     @attribute_error_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_vmachine_tag.__module__,  # 获取当前接口所在模块
+        "resource_name": "PreciseVmachineEvent",  # 当前接口视图函数名
+        "func_name": "get",  # 当前接口所对应的函数名
+        "tag": get_vmachine_tag(),  # 当前接口所对应的标签
+        "summary": "精确查询虚拟机",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "query_schema_model": VmachinePreciseQuerySchema
+    })
     def get(self, workspace: str, query: VmachinePreciseQuerySchema):
         return GetAllByPermission(Vmachine, workspace).precise(query.__dict__)
 
@@ -136,6 +177,14 @@ class VmachineBatchDelayEvent(Resource):
     @auth.login_required
     @response_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_vmachine_tag.__module__,  # 获取当前接口所在模块
+        "resource_name": "VmachineBatchDelayEvent",  # 当前接口视图函数名
+        "func_name": "put",  # 当前接口所对应的函数名
+        "tag": get_vmachine_tag(),  # 当前接口所对应的标签
+        "summary": "虚拟机批量延期",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+    })
     def put(self):
         _body = request.json
         return Edit(Vmachine, _body).batch(Vmachine, "/vmachine")
@@ -150,6 +199,15 @@ class VmachineEvent(Resource):
     @response_collect
     @attribute_error_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_vmachine_tag.__module__,  # 获取当前接口所在模块
+        "resource_name": "VmachineEvent",  # 当前接口视图函数名
+        "func_name": "post",  # 当前接口所对应的函数名
+        "tag": get_vmachine_tag(),  # 当前接口所对应的标签
+        "summary": "创建虚拟机",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "request_schema_model": VmachineCreateSchema
+    })
     def post(self, body: VmachineCreateSchema):
         if not body.capacity:
             body.capacity = current_app.config.get("VM_DEFAULT_CAPACITY")
@@ -224,12 +282,38 @@ class VmachineEvent(Resource):
     @response_collect
     @workspace_error_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_vmachine_tag.__module__,  # 获取当前接口所在模块
+        "resource_name": "VmachineEvent",  # 当前接口视图函数名
+        "func_name": "get",  # 当前接口所对应的函数名
+        "tag": get_vmachine_tag(),  # 当前接口所对应的标签
+        "summary": "分页查询虚拟机",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "query_schema_model": VmachineQuerySchema
+    })
     def get(self, workspace: str, query: VmachineQuerySchema):
         return VmachineHandler.get_all(query, workspace)
 
     @auth.login_required
     @response_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_vmachine_tag.__module__,  # 获取当前接口所在模块
+        "resource_name": "VmachineEvent",  # 当前接口视图函数名
+        "func_name": "delete",  # 当前接口所对应的函数名
+        "tag": get_vmachine_tag(),  # 当前接口所对应的标签
+        "summary": "批量删除虚拟机",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "query_schema_model":  [{
+            "name": "id",
+            "in": "query",
+            "required": True,
+            "style": "form",
+            "explode": True,
+            "description": "虚拟机id列表",
+            "schema": {'type': "array", 'items': {"type": "integer"}}}
+        ]
+    })
     def delete(self):
         vmachine_list = request.json.get("id")
         return VmachineHandler.delete(vmachine_list)
@@ -240,6 +324,15 @@ class VmachineBatchEvent(Resource):
     @response_collect
     @attribute_error_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_vmachine_tag.__module__,  # 获取当前接口所在模块
+        "resource_name": "VmachineBatchEvent",  # 当前接口视图函数名
+        "func_name": "post",  # 当前接口所对应的函数名
+        "tag": get_vmachine_tag(),  # 当前接口所对应的标签
+        "summary": "批量创建虚拟机",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "request_schema_model": VmachineBatchCreateSchema
+    })
     def post(self, body: VmachineBatchCreateSchema):
         des = body.description
         name = body.name
@@ -273,6 +366,15 @@ class VmachineControl(Resource):
     @response_collect
     @attribute_error_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_vmachine_tag.__module__,  # 获取当前接口所在模块
+        "resource_name": "VmachineControl",  # 当前接口视图函数名
+        "func_name": "put",  # 当前接口所对应的函数名
+        "tag": get_vmachine_tag(),  # 当前接口所对应的标签
+        "summary": "虚拟机上下电",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "request_schema_model": PowerSchema
+    })
     def put(self, body: PowerSchema):
         vmachine = Vmachine.query.filter_by(id=body.id).first()
         pmachine = vmachine.pmachine
@@ -298,6 +400,15 @@ class VmachineDelayEvent(Resource):
     @auth.login_required
     @response_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_vmachine_tag.__module__,  # 获取当前接口所在模块
+        "resource_name": "VmachineDelayEvent",  # 当前接口视图函数名
+        "func_name": "put",  # 当前接口所对应的函数名
+        "tag": get_vmachine_tag(),  # 当前接口所对应的标签
+        "summary": "虚拟机延期",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "request_schema_model": VmachineDelaySchema
+    })
     def put(self, vmachine_id, body: VmachineDelaySchema):
         _body = body.__dict__
         _body.update(
@@ -312,6 +423,15 @@ class VmachineIpaddrItem(Resource):
     @auth.login_required
     @response_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_vmachine_tag.__module__,  # 获取当前接口所在模块
+        "resource_name": "VmachineIpaddrItem",  # 当前接口视图函数名
+        "func_name": "put",  # 当前接口所对应的函数名
+        "tag": get_vmachine_tag(),  # 当前接口所对应的标签
+        "summary": "虚拟机ip修改",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "request_schema_model": VmachineIpaddrSchema
+    })
     def put(self, vmachine_id, body: VmachineIpaddrSchema):
         _body = body.__dict__
         _body.update(
@@ -326,6 +446,14 @@ class VmachineItemForceEvent(Resource):
     @auth.login_required
     @response_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_vmachine_tag.__module__,  # 获取当前接口所在模块
+        "resource_name": "VmachineItemForceEvent",  # 当前接口视图函数名
+        "func_name": "delete",  # 当前接口所对应的函数名
+        "tag": get_vmachine_tag(),  # 当前接口所对应的标签
+        "summary": "虚拟机强制删除",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+    })
     def delete(self, vmachine_id):
         return VmachineForceHandler.delete(vmachine_id)
 
@@ -335,6 +463,14 @@ class VmachineSshEvent(Resource):
     @response_collect
     @validate()
     @casbin_enforcer.enforcer
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_vmachine_tag.__module__,  # 获取当前接口所在模块
+        "resource_name": "VmachineSshEvent",  # 当前接口视图函数名
+        "func_name": "get",  # 当前接口所对应的函数名
+        "tag": get_vmachine_tag(),  # 当前接口所对应的标签
+        "summary": "获取虚拟机ssh信息",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+    })
     def get(self, vmachine_id):
         vmachine = Vmachine.query.filter_by(id=vmachine_id).first()
         if not vmachine:
@@ -354,6 +490,15 @@ class AttachDevice(Resource):
     @response_collect
     @attribute_error_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_vmachine_tag.__module__,  # 获取当前接口所在模块
+        "resource_name": "AttachDevice",  # 当前接口视图函数名
+        "func_name": "post",  # 当前接口所对应的函数名
+        "tag": get_vmachine_tag(),  # 当前接口所对应的标签
+        "summary": "虚拟机附加设备",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "request_schema_model": DeviceBaseSchema
+    })
     def post(self, body: DeviceBaseSchema):
         vmachine = Vmachine.query.filter_by(id=body.vmachine_id).first()
         pmachine = vmachine.pmachine
@@ -380,6 +525,15 @@ class VnicEvent(Resource):
     @response_collect
     @attribute_error_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_vmachine_tag.__module__,  # 获取当前接口所在模块
+        "resource_name": "VnicEvent",  # 当前接口视图函数名
+        "func_name": "post",  # 当前接口所对应的函数名
+        "tag": get_vmachine_tag(),  # 当前接口所对应的标签
+        "summary": "虚拟机创建vnic",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "request_schema_model": VnicCreateSchema
+    })
     def post(self, body: VnicCreateSchema):
         vmachine = Vmachine.query.filter_by(id=body.vmachine_id).first()
         pmachine = vmachine.pmachine
@@ -403,6 +557,15 @@ class VnicEvent(Resource):
     @response_collect
     @attribute_error_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_vmachine_tag.__module__,  # 获取当前接口所在模块
+        "resource_name": "VnicEvent",  # 当前接口视图函数名
+        "func_name": "delete",  # 当前接口所对应的函数名
+        "tag": get_vmachine_tag(),  # 当前接口所对应的标签
+        "summary": "虚拟机删除vnic",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "query_schema_model": DeviceDeleteSchema
+    })
     def delete(self, body: DeviceDeleteSchema):
         vnic = Vnic.query.filter_by(id=body.id).first()
         vmachine = vnic.vmachine
@@ -426,6 +589,23 @@ class VnicEvent(Resource):
 
     @auth.login_required
     @response_collect
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_vmachine_tag.__module__,  # 获取当前接口所在模块
+        "resource_name": "VnicEvent",  # 当前接口视图函数名
+        "func_name": "get",  # 当前接口所对应的函数名
+        "tag": get_vmachine_tag(),  # 当前接口所对应的标签
+        "summary": "获取虚拟机所有vnic",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        # 自定义请求参数
+        "query_schema_model": [{
+            "name": "vmachine_id",
+            "in": "query",
+            "required": True,
+            "style": "form",
+            "explode": True,
+            "description": "虚拟机id",
+            "schema": {"type": "integer"}}],
+    })
     def get(self):
         body = request.args.to_dict()
         return search_device(body, Vnic)
@@ -436,6 +616,15 @@ class VdiskEvent(Resource):
     @response_collect
     @attribute_error_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_vmachine_tag.__module__,  # 获取当前接口所在模块
+        "resource_name": "VdiskEvent",  # 当前接口视图函数名
+        "func_name": "post",  # 当前接口所对应的函数名
+        "tag": get_vmachine_tag(),  # 当前接口所对应的标签
+        "summary": "虚拟机vdisk创建",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "request_schema_model": VdiskCreateSchema
+    })
     def post(self, body: VdiskCreateSchema):
         vmachine = Vmachine.query.filter_by(id=body.vmachine_id).first()
         pmachine = vmachine.pmachine
@@ -459,6 +648,15 @@ class VdiskEvent(Resource):
     @response_collect
     @attribute_error_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_vmachine_tag.__module__,  # 获取当前接口所在模块
+        "resource_name": "VdiskEvent",  # 当前接口视图函数名
+        "func_name": "delete",  # 当前接口所对应的函数名
+        "tag": get_vmachine_tag(),  # 当前接口所对应的标签
+        "summary": "虚拟机删除vdisk",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "query_schema_model": DeviceDeleteSchema
+    })
     def delete(self, body: DeviceDeleteSchema):
         vdisk = Vdisk.query.filter_by(id=body.id).first()
         vmachine = vdisk.vmachine
@@ -480,6 +678,22 @@ class VdiskEvent(Resource):
             "delete",
         )
 
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_vmachine_tag.__module__,  # 获取当前接口所在模块
+        "resource_name": "VdiskEvent",  # 当前接口视图函数名
+        "func_name": "get",  # 当前接口所对应的函数名
+        "tag": get_vmachine_tag(),  # 当前接口所对应的标签
+        "summary": "虚拟机获取vdisk",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "query_schema_model": [{
+            "name": "vmachine_id",
+            "in": "query",
+            "required": True,
+            "style": "form",
+            "explode": True,
+            "description": "虚拟机id",
+            "schema": {"type": "integer"}}],
+    })
     def get(self):
         body = request.args.to_dict()
         return search_device(body, Vdisk)
@@ -489,6 +703,15 @@ class VmachineData(Resource):
     @auth.login_required
     @response_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_vmachine_tag.__module__,  # 获取当前接口所在模块
+        "resource_name": "VmachineData",  # 当前接口视图函数名
+        "func_name": "post",  # 当前接口所对应的函数名
+        "tag": get_vmachine_tag(),  # 当前接口所对应的标签
+        "summary": "创建虚拟机数据",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "request_schema_model": VmachineDataCreateSchema
+    })
     def post(self, body: VmachineDataCreateSchema):
         vmachine = Insert(Vmachine, body.__dict__).insert_obj(
             Vmachine,
@@ -510,6 +733,15 @@ class VmachineItemData(Resource):
     @auth.login_required
     @response_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_vmachine_tag.__module__,  # 获取当前接口所在模块
+        "resource_name": "VmachineItemData",  # 当前接口视图函数名
+        "func_name": "put",  # 当前接口所对应的函数名
+        "tag": get_vmachine_tag(),  # 当前接口所对应的标签
+        "summary": "修改虚拟机",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "request_schema_model": VmachineDataUpdateSchema
+    })
     def put(self, vmachine_id, body: VmachineDataUpdateSchema):
         _body = body.__dict__
         _body.update({"id": vmachine_id})
@@ -517,6 +749,14 @@ class VmachineItemData(Resource):
 
     @auth.login_required
     @response_collect
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_vmachine_tag.__module__,  # 获取当前接口所在模块
+        "resource_name": "VmachineItemData",  # 当前接口视图函数名
+        "func_name": "delete",  # 当前接口所对应的函数名
+        "tag": get_vmachine_tag(),  # 当前接口所对应的标签
+        "summary": "删除虚拟机",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+    })
     def delete(self, vmachine_id):
         return ResourceManager("vmachine").del_single(vmachine_id)
 
@@ -525,6 +765,15 @@ class VnicData(Resource):
     @auth.login_required
     @response_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_vmachine_tag.__module__,  # 获取当前接口所在模块
+        "resource_name": "VnicData",  # 当前接口视图函数名
+        "func_name": "post",  # 当前接口所对应的函数名
+        "tag": get_vmachine_tag(),  # 当前接口所对应的标签
+        "summary": "创建虚拟机vnic",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "request_schema_model": VnicCreateSchema
+    })
     def post(self, body: VnicCreateSchema):
         vnic = Insert(Vnic, body.__dict__).insert_obj(
             Vnic,
@@ -543,6 +792,15 @@ class VnicItemData(Resource):
     @auth.login_required
     @response_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_vmachine_tag.__module__,  # 获取当前接口所在模块
+        "resource_name": "VnicItemData",  # 当前接口视图函数名
+        "func_name": "put",  # 当前接口所对应的函数名
+        "tag": get_vmachine_tag(),  # 当前接口所对应的标签
+        "summary": "修改虚拟机vnic",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "request_schema_model": VnicBaseSchema
+    })
     def put(self, vnic_id, body: VnicBaseSchema):
         _body = body.__dict__
         _body.update({"id": vnic_id})
@@ -550,6 +808,14 @@ class VnicItemData(Resource):
 
     @auth.login_required
     @response_collect
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_vmachine_tag.__module__,  # 获取当前接口所在模块
+        "resource_name": "VnicItemData",  # 当前接口视图函数名
+        "func_name": "delete",  # 当前接口所对应的函数名
+        "tag": get_vmachine_tag(),  # 当前接口所对应的标签
+        "summary": "删除虚拟机vnic",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+    })
     def delete(self, vnic_id):
         return Delete(
             Vnic,
@@ -563,6 +829,15 @@ class VdiskData(Resource):
     @auth.login_required
     @response_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_vmachine_tag.__module__,  # 获取当前接口所在模块
+        "resource_name": "VdiskData",  # 当前接口视图函数名
+        "func_name": "post",  # 当前接口所对应的函数名
+        "tag": get_vmachine_tag(),  # 当前接口所对应的标签
+        "summary": "虚拟机vdisk创建",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "request_schema_model": VdiskCreateSchema
+    })
     def post(self, body: VdiskCreateSchema):
         vdisk = Insert(Vdisk, body.__dict__).insert_obj(
             Vdisk,
@@ -580,6 +855,15 @@ class VdiskItemData(Resource):
     @auth.login_required
     @response_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_vmachine_tag.__module__,  # 获取当前接口所在模块
+        "resource_name": "VdiskItemData",  # 当前接口视图函数名
+        "func_name": "put",  # 当前接口所对应的函数名
+        "tag": get_vmachine_tag(),  # 当前接口所对应的标签
+        "summary": "修改虚拟机vdisk",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "request_schema_model": VdiskUpdateSchema
+    })
     def put(self, vdisk_id, body: VdiskUpdateSchema):
         _body = body.__dict__
         _body.update({"id": vdisk_id})
@@ -587,6 +871,14 @@ class VdiskItemData(Resource):
 
     @auth.login_required
     @response_collect
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_vmachine_tag.__module__,  # 获取当前接口所在模块
+        "resource_name": "VdiskItemData",  # 当前接口视图函数名
+        "func_name": "delete",  # 当前接口所对应的函数名
+        "tag": get_vmachine_tag(),  # 当前接口所对应的标签
+        "summary": "删除虚拟机vdisk",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+    })
     def delete(self, vdisk_id):
         return Delete(
             Vdisk,
@@ -598,6 +890,14 @@ class VdiskItemData(Resource):
 
 class VmachineStatusEvent(Resource):
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_vmachine_tag.__module__,  # 获取当前接口所在模块
+        "resource_name": "VmachineStatusEvent",  # 当前接口视图函数名
+        "func_name": "put",  # 当前接口所对应的函数名
+        "tag": get_vmachine_tag(),  # 当前接口所对应的标签
+        "summary": "批量修改虚拟机",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+    })
     def put(self):
         _body = request.get_json()
         vmachines_name = list(_body.keys())
@@ -614,6 +914,15 @@ class VmachineStatusEvent(Resource):
 class VmachineCallBackEvent(Resource):
     @auth.login_required
     @response_collect
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_vmachine_tag.__module__,  # 获取当前接口所在模块
+        "resource_name": "VmachineCallBackEvent",  # 当前接口视图函数名
+        "func_name": "put",  # 当前接口所对应的函数名
+        "tag": get_vmachine_tag(),  # 当前接口所对应的标签
+        "summary": "虚拟机回调接口，更新数据",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "request_schema_model": swagger_adapt.get_request_schema_by_db_model(Vmachine)
+    })
     def put(self, vmachine_id):
         _body = request.get_json()
         _body.update({"id": vmachine_id})

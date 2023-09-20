@@ -27,8 +27,15 @@ from server.utils.page_util import PageUtil
 from server.schema.product import ProductBase, ProductUpdate, ProductQueryBase
 from server.utils.permission_utils import GetAllByPermission
 from server.utils.resource_utils import ResourceManager
-from server import casbin_enforcer
+from server import casbin_enforcer, swagger_adapt
 from server.utils.response_util import RET, response_collect, workspace_error_collect
+
+
+def get_product_tag():
+    return {
+        "name": "产品",
+        "description": "产品相关接口",
+    }
 
 
 class ProductEventItem(Resource):
@@ -36,6 +43,14 @@ class ProductEventItem(Resource):
     @validate()
     @casbin_enforcer.enforcer
     @response_collect
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_product_tag.__module__,  # 获取当前接口所在模块
+        "resource_name": "ProductEventItem",  # 当前接口视图函数名
+        "func_name": "delete",  # 当前接口所对应的函数名
+        "tag": get_product_tag(),  # 当前接口所对应的标签
+        "summary": "删除产品",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+    })
     def delete(self, product_id):
         return ResourceManager("product").del_cascade_single(
             product_id, Milestone, [Milestone.product_id == product_id], False
@@ -45,6 +60,14 @@ class ProductEventItem(Resource):
     @validate()
     @casbin_enforcer.enforcer
     @response_collect
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_product_tag.__module__,  # 获取当前接口所在模块
+        "resource_name": "ProductEventItem",  # 当前接口视图函数名
+        "func_name": "get",  # 当前接口所对应的函数名
+        "tag": get_product_tag(),  # 当前接口所对应的标签
+        "summary": "获取产品",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+    })
     def get(self, product_id):
         return Select(Product, {"id": product_id}).single()
 
@@ -52,6 +75,15 @@ class ProductEventItem(Resource):
     @validate()
     @casbin_enforcer.enforcer
     @response_collect
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_product_tag.__module__,  # 获取当前接口所在模块
+        "resource_name": "ProductEventItem",  # 当前接口视图函数名
+        "func_name": "put",  # 当前接口所对应的函数名
+        "tag": get_product_tag(),  # 当前接口所对应的标签
+        "summary": "编辑产品",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "request_schema_model": ProductUpdate
+    })
     def put(self, product_id, body: ProductUpdate):
         product = Product.query.filter_by(id=product_id).first()
         if not product:
@@ -83,6 +115,15 @@ class ProductEvent(Resource):
     @auth.login_required
     @validate()
     @response_collect
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_product_tag.__module__,  # 获取当前接口所在模块
+        "resource_name": "ProductEvent",  # 当前接口视图函数名
+        "func_name": "post",  # 当前接口所对应的函数名
+        "tag": get_product_tag(),  # 当前接口所对应的标签
+        "summary": "注册产品",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "request_schema_model": ProductBase
+    })
     def post(self, body: ProductBase):
         return ResourceManager("product").add("api_infos.yaml", body.__dict__)
 
@@ -90,6 +131,15 @@ class ProductEvent(Resource):
     @response_collect
     @workspace_error_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_product_tag.__module__,  # 获取当前接口所在模块
+        "resource_name": "ProductEvent",  # 当前接口视图函数名
+        "func_name": "get",  # 当前接口所对应的函数名
+        "tag": get_product_tag(),  # 当前接口所对应的标签
+        "summary": "分页查询产品",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "query_schema_model": ProductQueryBase
+    })
     def get(self, workspace: str, query: ProductQueryBase):
         _g = GetAllByPermission(Product, workspace)
         if query.permission_type is not None:
@@ -115,6 +165,15 @@ class PreciseProductEvent(Resource):
     @auth.login_required
     @response_collect
     @workspace_error_collect
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_product_tag.__module__,  # 获取当前接口所在模块
+        "resource_name": "PreciseProductEvent",  # 当前接口视图函数名
+        "func_name": "get",  # 当前接口所对应的函数名
+        "tag": get_product_tag(),  # 当前接口所对应的标签
+        "summary": "精确查询产品",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "query_schema_model": swagger_adapt.get_query_schema_by_db_model(Product)
+    })
     def get(self, workspace: str):
         body = dict()
 
@@ -129,6 +188,14 @@ class UpdateProductIssueRate(Resource):
     @auth.login_required
     @validate()
     @response_collect
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_product_tag.__module__,  # 获取当前接口所在模块
+        "resource_name": "UpdateProductIssueRate",  # 当前接口视图函数名
+        "func_name": "put",  # 当前接口所对应的函数名
+        "tag": get_product_tag(),  # 当前接口所对应的标签
+        "summary": "同步当前版本所有issue比率",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+    })
     def put(self, product_id):
         from celeryservice.tasks import async_update_all_issue_rate
         product = Product.query.filter_by(id=product_id, is_forced_check=True).first()
@@ -149,6 +216,14 @@ class UpdateProductIssueRate(Resource):
 class ProductTestReportEvent(Resource):
     @auth.login_required()
     @response_collect
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_product_tag.__module__,  # 获取当前接口所在模块
+        "resource_name": "ProductTestReportEvent",  # 当前接口视图函数名
+        "func_name": "get",  # 当前接口所对应的函数名
+        "tag": get_product_tag(),  # 当前接口所对应的标签
+        "summary": "获取当前产品的测试报告",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+    })
     def get(self, product_id):
         _product = Product.query.filter_by(id=product_id).first()
         if not _product:

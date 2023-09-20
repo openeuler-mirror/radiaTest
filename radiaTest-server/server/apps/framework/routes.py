@@ -27,13 +27,29 @@ from server.utils.db import Edit
 from server.schema.framework import FrameworkBase, FrameworkQuery
 from server.utils.resource_utils import ResourceManager
 from server.utils.permission_utils import GetAllByPermission
-from server import casbin_enforcer
+from server import casbin_enforcer, swagger_adapt
+
+
+def get_framework_tag():
+    return {
+        "name": "测试框架",
+        "description": "测试框架相关接口",
+    }
 
 
 class FrameworkEvent(Resource):
     @auth.login_required()
     @response_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_framework_tag.__module__,  # 获取当前接口所在模块
+        "resource_name": "FrameworkEvent",  # 当前接口视图函数名
+        "func_name": "post",  # 当前接口所对应的函数名
+        "tag": get_framework_tag(),  # 当前接口所对应的标签
+        "summary": "添加测试框架",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "request_schema_model": FrameworkBase
+    })
     def post(self, body: FrameworkBase):
         return ResourceManager("framework").add("api_infos.yaml", body.__dict__)
 
@@ -41,6 +57,15 @@ class FrameworkEvent(Resource):
     @response_collect
     @workspace_error_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_framework_tag.__module__,  # 获取当前接口所在模块
+        "resource_name": "FrameworkEvent",  # 当前接口视图函数名
+        "func_name": "get",  # 当前接口所对应的函数名
+        "tag": get_framework_tag(),  # 当前接口所对应的标签
+        "summary": "查询测试框架",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "query_schema_model": FrameworkQuery
+    })
     def get(self, workspace: str, query: FrameworkQuery):
         filter_params = GetAllByPermission(Framework, workspace).get_filter()
         if query.name:
@@ -74,6 +99,14 @@ class FrameworkItemEvent(Resource):
     @response_collect
     @validate()
     @casbin_enforcer.enforcer
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_framework_tag.__module__,  # 获取当前接口所在模块
+        "resource_name": "FrameworkItemEvent",  # 当前接口视图函数名
+        "func_name": "delete",  # 当前接口所对应的函数名
+        "tag": get_framework_tag(),  # 当前接口所对应的标签
+        "summary": "删除测试框架",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+    })
     def delete(self, framework_id):
         return ResourceManager("framework").del_cascade_single(framework_id, GitRepo,
                                                                [GitRepo.framework_id == framework_id], False)
@@ -82,6 +115,15 @@ class FrameworkItemEvent(Resource):
     @response_collect
     @validate()
     @casbin_enforcer.enforcer
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_framework_tag.__module__,  # 获取当前接口所在模块
+        "resource_name": "FrameworkItemEvent",  # 当前接口视图函数名
+        "func_name": "put",  # 当前接口所对应的函数名
+        "tag": get_framework_tag(),  # 当前接口所对应的标签
+        "summary": "修改测试框架",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "request_schema_model": FrameworkQuery
+    })
     def put(self, framework_id, body: FrameworkQuery):
         _body = {
             **body.__dict__,
@@ -94,6 +136,14 @@ class FrameworkItemEvent(Resource):
     @response_collect
     @validate()
     @casbin_enforcer.enforcer
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_framework_tag.__module__,  # 获取当前接口所在模块
+        "resource_name": "FrameworkItemEvent",  # 当前接口视图函数名
+        "func_name": "get",  # 当前接口所对应的函数名
+        "tag": get_framework_tag(),  # 当前接口所对应的标签
+        "summary": "获取测试框架信息",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+    })
     def get(self, framework_id):
         framework = Framework.query.filter_by(id=framework_id).first()
         if not framework:

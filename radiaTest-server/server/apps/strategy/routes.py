@@ -21,7 +21,7 @@ from flask_restful import Resource
 from flask_pydantic import validate
 from sqlalchemy import not_
 
-from server import redis_client, db
+from server import redis_client, db, swagger_adapt
 from server.utils.page_util import PageUtil
 from server.utils.redis_util import RedisKey
 from server.utils.auth_util import auth
@@ -53,6 +53,13 @@ from server.apps.strategy.handler import (
 from server.utils.response_util import value_error_collect
 
 
+def get_strategy_tag():
+    return {
+        "name": "测试策略",
+        "description": "测试策略相关接口",
+    }
+
+
 class FeatureSetEvent(Resource):
     """
         创建特性
@@ -65,6 +72,15 @@ class FeatureSetEvent(Resource):
     @validate()
     @value_error_collect
     @collect_sql_error
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_strategy_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "FeatureSetEvent",  # 当前接口视图函数名
+        "func_name": "post",   # 当前接口所对应的函数名
+        "tag": get_strategy_tag(),  # 当前接口所对应的标签
+        "summary": "创建特性",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "request_schema_model": FeatureSetBodySchema,  # 当前接口请求体参数schema校验器
+    })
     def post(self, body: FeatureSetBodySchema):
         """
             在数据库中Feature表中创建特性.
@@ -118,6 +134,15 @@ class FeatureSetEvent(Resource):
     @response_collect
     @value_error_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_strategy_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "FeatureSetEvent",  # 当前接口视图函数名
+        "func_name": "get",   # 当前接口所对应的函数名
+        "tag": get_strategy_tag(),  # 当前接口所对应的标签
+        "summary": "分页查询特性集",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "query_schema_model": StrategyQuerySchema,  # 当前接口请求体参数schema校验器
+    })
     def get(self, query: StrategyQuerySchema):
         """
             在数据库中查询特性集.
@@ -172,6 +197,15 @@ class StrategyRelateEvent(Resource):
     @response_collect
     @validate()
     @value_error_collect
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_strategy_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "StrategyRelateEvent",  # 当前接口视图函数名
+        "func_name": "post",   # 当前接口所对应的函数名
+        "tag": get_strategy_tag(),  # 当前接口所对应的标签
+        "summary": "关联继承特性",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "request_schema_model": StrategyRelateSchema,  # 当前接口请求体参数schema校验器
+    })
     def post(self, product_id, body: StrategyRelateSchema):
         """
             在数据库中关联继承特性.
@@ -218,6 +252,14 @@ class FeatureSetItemEvent(Resource):
     @response_collect
     @validate()
     @value_error_collect
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_strategy_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "FeatureSetItemEvent",  # 当前接口视图函数名
+        "func_name": "get",   # 当前接口所对应的函数名
+        "tag": get_strategy_tag(),  # 当前接口所对应的标签
+        "summary": "特性详情",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+    })
     def get(self, feature_id):
         """
             在数据库中查询指定特性. 
@@ -262,6 +304,15 @@ class FeatureSetItemEvent(Resource):
     @validate()
     @value_error_collect
     @collect_sql_error
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_strategy_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "FeatureSetItemEvent",  # 当前接口视图函数名
+        "func_name": "put",   # 当前接口所对应的函数名
+        "tag": get_strategy_tag(),  # 当前接口所对应的标签
+        "summary": "修改指定特性",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "request_schema_model": FeatureSetUpdateSchema
+    })
     def put(self, feature_id, body: FeatureSetUpdateSchema):
         """
             在数据库中修改指定特性.
@@ -322,6 +373,14 @@ class FeatureSetItemEvent(Resource):
     @validate()
     @value_error_collect
     @collect_sql_error
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_strategy_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "FeatureSetItemEvent",  # 当前接口视图函数名
+        "func_name": "delete",   # 当前接口所对应的函数名
+        "tag": get_strategy_tag(),  # 当前接口所对应的标签
+        "summary": "删除指定特性",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+    })
     def delete(self, feature_id):
         """
             在数据库中删除指定特性.
@@ -352,6 +411,15 @@ class ProductFeatureEvent(Resource):
     @response_collect
     @validate()
     @value_error_collect
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_strategy_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "ProductFeatureEvent",  # 当前接口视图函数名
+        "func_name": "get",   # 当前接口所对应的函数名
+        "tag": get_strategy_tag(),  # 当前接口所对应的标签
+        "summary": "获取产品所有特性",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "query_schema_model": FeatureQuerySchema
+    })
     def get(self, product_id, query: FeatureQuerySchema):
         """
             在数据库查询产品所有特性，包括新特性以及继承特性.
@@ -425,6 +493,14 @@ class StrategyCommitEvent(Resource):
     @response_collect
     @validate()
     @value_error_collect
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_strategy_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "StrategyCommitEvent",  # 当前接口视图函数名
+        "func_name": "get",   # 当前接口所对应的函数名
+        "tag": get_strategy_tag(),  # 当前接口所对应的标签
+        "summary": "获取测试策略脑图",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+    })
     def get(self, product_feature_id):
         """
             在数据库中查询测试策略脑图.
@@ -492,6 +568,15 @@ class StrategyCommitEvent(Resource):
     @validate()
     @value_error_collect
     @collect_sql_error
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_strategy_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "StrategyCommitEvent",  # 当前接口视图函数名
+        "func_name": "post",   # 当前接口所对应的函数名
+        "tag": get_strategy_tag(),  # 当前接口所对应的标签
+        "summary": "创建测试策略",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "request_schema_model": StrategyBodySchema
+    })
     def post(self, product_feature_id, body: StrategyBodySchema):
         """
             在数据库中创建测试策略.
@@ -573,6 +658,15 @@ class StrategyCommitEvent(Resource):
     @validate()
     @value_error_collect
     @collect_sql_error
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_strategy_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "StrategyCommitEvent",  # 当前接口视图函数名
+        "func_name": "delete",   # 当前接口所对应的函数名
+        "tag": get_strategy_tag(),  # 当前接口所对应的标签
+        "summary": "删除产品测试策略",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "query_schema_model": StrategyPermissionBaseSchema
+    })
     def delete(self, product_feature_id, body: StrategyPermissionBaseSchema):
         strategy = Strategy.query.filter_by(
             org_id=body.org_id, creator_id=body.user_id, product_feature_id=product_feature_id
@@ -602,6 +696,14 @@ class StrategyItemEvent(Resource):
     @response_collect
     @validate()
     @value_error_collect
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_strategy_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "StrategyItemEvent",  # 当前接口视图函数名
+        "func_name": "get",   # 当前接口所对应的函数名
+        "tag": get_strategy_tag(),  # 当前接口所对应的标签
+        "summary": "获取测试策略",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+    })
     def get(self, strategy_id):
         """
             在数据库中获取测试策略.
@@ -637,6 +739,14 @@ class StrategyItemEvent(Resource):
     @validate()
     @value_error_collect
     @collect_sql_error
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_strategy_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "StrategyItemEvent",  # 当前接口视图函数名
+        "func_name": "delete",   # 当前接口所对应的函数名
+        "tag": get_strategy_tag(),  # 当前接口所对应的标签
+        "summary": "删除测试策略",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+    })
     def delete(self, strategy_id):
         """
             在数据库中删除测试策略.
@@ -682,6 +792,15 @@ class StrategyTemplateEvent(Resource):
     @response_collect
     @validate()
     @value_error_collect
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_strategy_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "StrategyTemplateEvent",  # 当前接口视图函数名
+        "func_name": "get",   # 当前接口所对应的函数名
+        "tag": get_strategy_tag(),  # 当前接口所对应的标签
+        "summary": "查询测试策略模板",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "query_schema_model": StrategyTemplateQuerySchema
+    })
     def get(self, query: StrategyTemplateQuerySchema):
         """
             在数据库中查询测试策略模板.
@@ -720,6 +839,15 @@ class StrategyTemplateEvent(Resource):
     @validate()
     @value_error_collect
     @collect_sql_error
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_strategy_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "StrategyTemplateEvent",  # 当前接口视图函数名
+        "func_name": "post",   # 当前接口所对应的函数名
+        "tag": get_strategy_tag(),  # 当前接口所对应的标签
+        "summary": "创建测试策略模板",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "request_schema_model": StrategyTemplateBodySchema
+    })
     def post(self, body: StrategyTemplateBodySchema):
         """
             在数据库中创建测试策略模板.
@@ -775,6 +903,14 @@ class StrategyTemplateItemEvent(Resource):
     @response_collect
     @validate()
     @value_error_collect
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_strategy_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "StrategyTemplateItemEvent",  # 当前接口视图函数名
+        "func_name": "get",   # 当前接口所对应的函数名
+        "tag": get_strategy_tag(),  # 当前接口所对应的标签
+        "summary": "获取测试策略模板",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+    })
     def get(self, strategy_template_id):
         """
             在数据库中查询测试策略模板.
@@ -813,6 +949,15 @@ class StrategyTemplateItemEvent(Resource):
     @response_collect
     @validate()
     @value_error_collect
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_strategy_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "StrategyTemplateItemEvent",  # 当前接口视图函数名
+        "func_name": "put",   # 当前接口所对应的函数名
+        "tag": get_strategy_tag(),  # 当前接口所对应的标签
+        "summary": "修改测试策略模板",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "request_schema_model": StrategyTemplateBodySchema
+    })
     def put(self, strategy_template_id, body: StrategyTemplateBodySchema):
         """
             在数据库中修改测试策略模板.
@@ -847,6 +992,14 @@ class StrategyTemplateItemEvent(Resource):
     @validate()
     @value_error_collect
     @collect_sql_error
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_strategy_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "StrategyTemplateItemEvent",  # 当前接口视图函数名
+        "func_name": "delete",   # 当前接口所对应的函数名
+        "tag": get_strategy_tag(),  # 当前接口所对应的标签
+        "summary": "删除测试策略模板",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+    })
     def delete(self, strategy_template_id):
         """
             在数据库中删除测试策略模板.
@@ -881,6 +1034,14 @@ class StrategyTemplateApplyEvent(Resource):
     @validate()
     @value_error_collect
     @collect_sql_error
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_strategy_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "StrategyTemplateApplyEvent",  # 当前接口视图函数名
+        "func_name": "post",   # 当前接口所对应的函数名
+        "tag": get_strategy_tag(),  # 当前接口所对应的标签
+        "summary": "应用测试策略模板",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+    })
     def post(self, strategy_template_id, product_feature_id):
         """
             在数据库中应用测试策略模板.
@@ -1045,6 +1206,14 @@ class StrategySubmmitEvent(Resource):
     @validate()
     @value_error_collect
     @collect_sql_error
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_strategy_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "StrategySubmmitEvent",  # 当前接口视图函数名
+        "func_name": "post",   # 当前接口所对应的函数名
+        "tag": get_strategy_tag(),  # 当前接口所对应的标签
+        "summary": "测试策略提交",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+    })
     def post(self, strategy_id):
         """
             暂存在数据库中创建测试策略commit.
@@ -1112,6 +1281,15 @@ class StrategyCommitStageEvent(Resource):
     @response_collect
     @validate()
     @value_error_collect
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_strategy_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "StrategyCommitStageEvent",  # 当前接口视图函数名
+        "func_name": "post",   # 当前接口所对应的函数名
+        "tag": get_strategy_tag(),  # 当前接口所对应的标签
+        "summary": "创建测试策略commit",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "request_schema_model": StrategyCommitBodySchema
+    })
     def post(self, strategy_id, body: StrategyCommitBodySchema):
         """
             暂存在数据库中创建测试策略commit.
@@ -1175,6 +1353,14 @@ class StrategyCommitItemEvent(Resource):
     @response_collect
     @validate()
     @value_error_collect
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_strategy_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "StrategyCommitItemEvent",  # 当前接口视图函数名
+        "func_name": "get",   # 当前接口所对应的函数名
+        "tag": get_strategy_tag(),  # 当前接口所对应的标签
+        "summary": "获取测试策略commit",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+    })
     def get(self, product_feature_id):
         """
             在数据库中获取测试策略commit.
@@ -1217,6 +1403,15 @@ class StrategyCommitItemEvent(Resource):
     @response_collect
     @validate()
     @value_error_collect
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_strategy_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "StrategyCommitItemEvent",  # 当前接口视图函数名
+        "func_name": "put",   # 当前接口所对应的函数名
+        "tag": get_strategy_tag(),  # 当前接口所对应的标签
+        "summary": "编辑测试策略commit",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "request_schema_model": StrategyCommitUpdateSchema
+    })
     def put(self, strategy_commit_id, body: StrategyCommitUpdateSchema):
         """
             在数据库中获取测试策略commit.
@@ -1249,6 +1444,14 @@ class StrategyCommitReductEvent(Resource):
     @validate()
     @value_error_collect
     @collect_sql_error
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_strategy_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "StrategyCommitReductEvent",  # 当前接口视图函数名
+        "func_name": "delete",   # 当前接口所对应的函数名
+        "tag": get_strategy_tag(),  # 当前接口所对应的标签
+        "summary": "删除测试策略commit",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+    })
     def delete(self, strategy_id):
         """
             在数据库中还原测试策略commit.
@@ -1293,6 +1496,14 @@ class ProductInheritFeatureEvent(Resource):
     @response_collect
     @validate()
     @value_error_collect
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_strategy_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "ProductInheritFeatureEvent",  # 当前接口视图函数名
+        "func_name": "post",   # 当前接口所对应的函数名
+        "tag": get_strategy_tag(),  # 当前接口所对应的标签
+        "summary": "更新继承特性",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+    })
     def post(self, product_id):
         """
             在数据库中更新继承特性.
