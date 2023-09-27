@@ -20,7 +20,7 @@ from flask import request, jsonify, current_app
 from flask_restful import Resource
 from flask_pydantic import validate
 
-from messenger.schema.at import AtSchema
+from messenger.schema.at import AtSchema, AtJobItemSchema
 from messenger.utils.response_util import RET
 from celeryservice.tasks import run_at
 from messenger.utils.yaml_util import YamlUtil
@@ -79,3 +79,22 @@ class AtEvent(Resource):
             error_code=RET.OK,
             error_msg="succeed in creating the job for running at"
         )
+
+
+class AtItemEvent(Resource):
+    @validate()
+    def post(self, body: AtJobItemSchema):
+        job_detail_url = f"http://{body.ip}:{current_app.config.get('OPENQA_PORT')}/api/v1/jobs/{body.job_id}"
+        resp = requests.request("get", job_detail_url)
+        if resp.status_code == 200:
+            return jsonify(
+                data=resp.json()["job"],
+                error_code=RET.OK,
+                error_msg="success"
+            )
+        else:
+            return jsonify(
+                data={},
+                error_code=RET.NO_DATA_ERR,
+                error_msg="failed to get job info"
+            )

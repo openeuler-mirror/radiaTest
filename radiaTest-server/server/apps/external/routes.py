@@ -27,7 +27,7 @@ from flask import current_app, jsonify, request, make_response, send_file, rende
 from flask_restful import Resource
 from flask_pydantic import validate
 
-from server import casbin_enforcer
+from server import casbin_enforcer, swagger_adapt
 from server.utils.auth_util import auth
 from server.schema.external import (
     LoginOrgListSchema,
@@ -62,8 +62,44 @@ from server.model.job import AtJob
 from server import redis_client
 
 
+def get_external_tag():
+    return {
+        "name": "对外相关",
+        "description": "对外相关接口",
+    }
+
+
+def get_at_messenger(body):
+    pmachine_info = Pmachine.query.filter_by(
+        description=current_app.config.get("OPENQA_SERVER"), state="occupied"
+    ).first()
+    if not pmachine_info:
+        return {
+            "error_code": RET.NO_DATA_ERR,
+            "error_msg": "the openqa server machine does not exist"
+        }
+
+    machine_group = MachineGroup.query.filter_by(id=pmachine_info.machine_group_id).first()
+    body.update({
+        "user": pmachine_info.user,
+        "password": pmachine_info.password,
+        "port": pmachine_info.port,
+        "ip": pmachine_info.ip
+    })
+    return AtMessenger(body, machine_group)
+
+
 class UpdateTaskEvent(Resource):
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_external_tag.__module__,
+        "resource_name": "UpdateTaskEvent",
+        "func_name": "post",
+        "tag": get_external_tag(),
+        "summary": "对openEuler QA提供的接口，同步创建里程碑、用例",
+        "externalDocs": {"description": "", "url": ""},
+        "request_schema_model": OpenEulerUpdateTaskBase,
+    })
     def post(self, body: OpenEulerUpdateTaskBase):
         form = UpdateTaskForm(body)
 
@@ -134,6 +170,21 @@ class UpdateTaskEvent(Resource):
 
 
 class LoginOrgList(Resource):
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_external_tag.__module__,
+        "resource_name": "LoginOrgList",
+        "func_name": "get",
+        "tag": get_external_tag(),
+        "summary": "获取可登录的组织列表",
+        "externalDocs": {"description": "", "url": ""},
+        "response_data_schema": {
+                '200': {'content': {'application/json':
+                        {'schema': {
+                            'type': "array",
+                            'items': LoginOrgListSchema.schema()
+                        }}},
+                        'description': 'success'}}
+    })
     def get(self):
         return_data = []
         orgs = Organization.query.filter_by(is_delete=False).all()
@@ -154,6 +205,16 @@ class LoginOrgList(Resource):
 
 class VmachineExist(Resource):
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_external_tag.__module__,
+        "resource_name": "VmachineExist",
+        "func_name": "get",
+        "tag": get_external_tag(),
+        "summary": "查询虚拟机是否存在",
+        "externalDocs": {"description": "", "url": ""},
+        "query_schema_model": VmachineExistSchema
+
+    })
     def get(self, query: VmachineExistSchema):
         vmachine = Vmachine.query.filter_by(name=query.domain).first()
         if not vmachine:
@@ -172,12 +233,49 @@ class VmachineExist(Resource):
 class CaCert(Resource):
     @auth.login_required()
     @response_collect
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_external_tag.__module__,
+        "resource_name": "CaCert",
+        "func_name": "get",
+        "tag": get_external_tag(),
+        "summary": "获取ca证书",
+        "externalDocs": {"description": "", "url": ""},
+
+    })
     def get(self):
         return send_file(
             current_app.config.get("CA_CERT"),
             as_attachment=True
         )
 
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_external_tag.__module__,
+        "resource_name": "CaCert",
+        "func_name": "post",
+        "tag": get_external_tag(),
+        "summary": "机器组ca证书更新",
+        "externalDocs": {"description": "", "url": ""},
+        "request_schema_model": {
+            "description": "",
+            "content": {
+                "multipart/form-data": {
+                    "schema": {
+                            "type": "object",
+                            "properties": {
+                                        "san": {
+                                            "title": "签名字符串",
+                                            "type": "string"
+                                        },
+                                        "ip": {
+                                            "title": "messenger ip",
+                                            "type": "string"
+                                        },
+                                        "csr": {
+                                            "type": "string",
+                                            "format": "binary"}},
+                            "required": ["san", "ip", "csr"]
+                    }}}}
+    })
     def post(self):
         _san = request.form.get("san")
         _messenger_ip = request.form.get("ip")
@@ -252,6 +350,15 @@ class CaCert(Resource):
     @response_collect
     @casbin_enforcer.enforcer
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_external_tag.__module__,
+        "resource_name": "CaCert",
+        "func_name": "delete",
+        "tag": get_external_tag(),
+        "summary": "删除机器组ca证书",
+        "externalDocs": {"description": "", "url": ""},
+        "query_schema_model": DeleteCertifiSchema
+    })
     def delete(self, body: DeleteCertifiSchema):
         
         _cert_file = "{0}/certs/{1}.crt".format(
@@ -281,6 +388,35 @@ class CaCert(Resource):
 
 
 class DailyBuildEvent(Resource):
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_external_tag.__module__,
+        "resource_name": "DailyBuildEvent",
+        "func_name": "post",
+        "tag": get_external_tag(),
+        "summary": "创建DailyBuild",
+        "externalDocs": {"description": "", "url": ""},
+        "request_schema_model": {
+            "description": "",
+            "content": {
+                "multipart/form-data": {
+                    "schema": {
+                            "type": "object",
+                            "properties": {
+                                    "product": {
+                                        "title": "产品",
+                                        "type": "string"
+                                    },
+                                    "build": {
+                                        "title": "构建名",
+                                        "type": "string"
+                                    },
+                                    "file": {
+                                        "type": "string",
+                                        "format": "binary"}},
+                            "required": ["product", "build", "file"]
+                    }},
+            }}
+    })
     def post(self):
         _product = request.form.get("product")
         _build = request.form.get("build")
@@ -354,6 +490,34 @@ class DailyBuildEvent(Resource):
 
 
 class RpmCheckEvent(Resource):
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_external_tag.__module__,
+        "resource_name": "RpmCheckEvent",
+        "func_name": "post",
+        "tag": get_external_tag(),
+        "summary": "rpm检查",
+        "externalDocs": {"description": "", "url": ""},
+        "request_schema_model": {
+            "description": "",
+            "content": {
+                "multipart/form-data": {
+                    "schema": {
+                            "type": "object",
+                            "properties": {
+                                    "product": {
+                                        "title": "产品",
+                                        "type": "string"
+                                    },
+                                    "build": {
+                                        "title": "构建名",
+                                        "type": "string"
+                                    },
+                                    "file": {
+                                        "type": "string",
+                                        "format": "binary"}},
+                            "required": ["product", "build", "file"]
+                    }}}}
+    })
     def post(self):
         _product = request.form.get("product")
         _build = request.form.get("build")
@@ -392,28 +556,19 @@ class RpmCheckEvent(Resource):
 
 class AtEvent(Resource):
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_external_tag.__module__,
+        "resource_name": "AtEvent",
+        "func_name": "post",
+        "tag": get_external_tag(),
+        "summary": "At任务创建",
+        "externalDocs": {"description": "", "url": ""},
+    })
     def post(self):
         body = request.get_json()
+        messenger = get_at_messenger(body)
 
-        pmachine_info = Pmachine.query.filter_by(
-            description=current_app.config.get("OPENQA_SERVER"), state="occupied"
-        ).first()
-        if not pmachine_info:
-            return {
-                "error_code": RET.NO_DATA_ERR,
-                "error_msg": "the openqa server machine does not exist"
-            }
-
-        machine_group = MachineGroup.query.filter_by(id=pmachine_info.machine_group_id).first()
-        body.update({
-            "user": pmachine_info.user,
-            "password": pmachine_info.password,
-            "port": pmachine_info.port,
-            "ip": pmachine_info.ip
-        })
-        messenger = AtMessenger(body)
-
-        resp = messenger.send_request(machine_group, "/api/v1/openeuler/at")
+        resp = messenger.send_request("/api/v1/openeuler/at")
         resp = json.loads(resp.data.decode('UTF-8'))
         _id = int(0)
         if resp.get("error_code") == RET.OK:
@@ -428,11 +583,35 @@ class AtEvent(Resource):
             "error_msg": resp.get("error_msg")
         }
 
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_external_tag.__module__,
+        "resource_name": "AtEvent",
+        "func_name": "get",
+        "tag": get_external_tag(),
+        "summary": "At结果获取",
+        "externalDocs": {"description": "", "url": ""},
+        "query_schema_model": [{
+            "name": "release_url_x86_64",
+            "in": "query",
+            "required": False,
+            "style": "form",
+            "explode": True,
+            "description": "x86_64 release url",
+            "schema": {"type": "string"}},
+            {
+                "name": "release_url_aarch64",
+                "in": "query",
+                "required": False,
+                "style": "form",
+                "explode": False,
+                "description": "aarch64 release url",
+                "schema": {"type": "string"}}],
+    })
     def get(self):
         buildname_x86 = request.values.get("release_url_x86_64")
         buildname_aarch64 = request.values.get("release_url_aarch64")
 
-        at = AtHandler(buildname_x86, buildname_aarch64)
+        at = AtHandler(get_at_messenger({}), buildname_x86, buildname_aarch64)
         result = at.get_result()
         if result[0]:
             return {
@@ -446,6 +625,33 @@ class AtEvent(Resource):
                 "error_msg": "unknown arch"
             }
 
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_external_tag.__module__,
+        "resource_name": "AtEvent",
+        "func_name": "put",
+        "tag": get_external_tag(),
+        "summary": "At任务更新",
+        "externalDocs": {"description": "", "url": ""},
+        "request_schema_model": {
+            "description": "",
+            "content": {
+                "application/json":
+                    {"schema": {
+                        "properties": {
+                            "build_name": {
+                                "title": "构建名",
+                                "type": "string"
+                            }
+
+                        },
+                        "required": ["build_name"],
+                        "title": "ATSchema",
+                        "type": "object"
+                    }}
+            },
+            "required": True
+        }
+    })
     def put(self):
         body = request.get_json()
         _id = redis_client.get(body.get("build_name"))
@@ -460,8 +666,53 @@ class AtEvent(Resource):
         return Edit(AtJob, body).single(AtJob, "/at")
 
 
+class AtDetailEvent(Resource):
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_external_tag.__module__,
+        "resource_name": "AtDetailEvent",
+        "func_name": "get",
+        "tag": get_external_tag(),
+        "summary": "At结果详情获取",
+        "externalDocs": {"description": "", "url": ""},
+        "query_schema_model": [{
+            "name": "release_url_x86_64",
+            "in": "query",
+            "required": False,
+            "style": "form",
+            "explode": True,
+            "description": "x86_64 release url",
+            "schema": {"type": "string"}},
+            {
+                "name": "release_url_aarch64",
+                "in": "query",
+                "required": False,
+                "style": "form",
+                "explode": False,
+                "description": "aarch64 release url",
+                "schema": {"type": "string"}}],
+    })
+    def get(self):
+        buildname_x86 = request.values.get("release_url_x86_64")
+        buildname_aarch64 = request.values.get("release_url_aarch64")
+        at = AtHandler(get_at_messenger({}), buildname_x86, buildname_aarch64)
+        return {
+            "error_code": RET.OK,
+            "error_msg": "OK",
+            "data": at.get_report()
+        }
+
+
 class GetTestReportFileEvent(Resource):
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_external_tag.__module__,
+        "resource_name": "GetTestReportFileEvent",
+        "func_name": "get",
+        "tag": get_external_tag(),
+        "summary": "获取测试报告",
+        "externalDocs": {"description": "", "url": ""},
+        "query_schema_model": QueryTestReportFileSchema
+    })
     def get(self, query: QueryTestReportFileSchema):
         _milstone = Milestone.query.filter_by(name=query.milestone_name).first()
         if not _milstone:
@@ -491,7 +742,7 @@ class GetTestReportFileEvent(Resource):
         tmp_folder = current_app.template_folder
         current_app.template_folder = current_app.config.get("TEST_REPORT_PATH")
         if query.file_type == "md":
-            resp =  make_response(render_template(_test_report.md_file))
+            resp = make_response(render_template(_test_report.md_file))
         else:
             resp = make_response(render_template(_test_report.html_file))
         current_app.template_folder = tmp_folder
@@ -500,6 +751,14 @@ class GetTestReportFileEvent(Resource):
 
 class MajunCheckTokenEvent(Resource):
     @auth.login_required()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_external_tag.__module__,
+        "resource_name": "MajunCheckTokenEvent",
+        "func_name": "post",
+        "tag": get_external_tag(),
+        "summary": "Majun token 检查",
+        "externalDocs": {"description": "", "url": ""},
+    })
     def post(self):
         return jsonify(
             error_code=RET.OK,
@@ -508,6 +767,38 @@ class MajunCheckTokenEvent(Resource):
 
 
 class MajunLoginEvent(Resource):
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_external_tag.__module__,
+        "resource_name": "MajunLoginEvent",
+        "func_name": "get",
+        "tag": get_external_tag(),
+        "summary": "Majun登录",
+        "externalDocs": {"description": "", "url": ""},
+        "query_schema_model": [{
+            "name": "type",
+            "in": "query",
+            "required": True,
+            "style": "form",
+            "explode": True,
+            "description": "登录类型",
+            "schema": {"type": "string", "enum": ["openeuler", "gitee"]}},
+            {
+                "name": "org_id",
+                "in": "query",
+                "required": True,
+                "style": "form",
+                "explode": True,
+                "description": "组织id",
+                "schema": {"type": "string"}},
+            {
+                "name": "access_token",
+                "in": "query",
+                "required": True,
+                "style": "form",
+                "explode": True,
+                "description": "令牌",
+                "schema": {"type": "string"}}],
+    })
     def get(self):
         majun = MajunLoginHandler(
             request.values.get("type"), request.values.get("org_id"), request.values.get("access_token")

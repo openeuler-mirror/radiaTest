@@ -8,7 +8,7 @@
         embedded
     >
       <div class="welcome-warp">
-        <H2>Hi，欢迎使用开源测试管理平台radiaTest！</H2>
+        <h2>Hi，欢迎使用开源测试管理平台radiaTest！</h2>
         <p>radiaTest提供一站式测试资产管理、测试服务编排调用、以及跨团队版本级测试协作能力。</p>
         <div class="detail-wrap">
           <n-icon color="#429cee">
@@ -75,7 +75,7 @@
                     </div>
                   </n-gi>
                   <n-gi :span="1">
-                    <div class="publicworkspaces-wrap workspace-disabled" @click="clickVersionWorkspace">
+                    <div class="publicworkspaces-wrap " @click="clickVersionWorkspace">
                       <div>
                         <n-avatar :size="100" :src="orgAvatarSrc"></n-avatar>
                       </div>
@@ -281,6 +281,24 @@
       {{ `${config.name} ${config.version}·${config.license}` }}
     </div>
   </div>
+  <n-modal
+      v-model:show="showModal"
+      preset="dialog"
+      style="width: 75rem  /* 1200/16 */"
+      title="选择您要进入的版本"
+      transform-origin="center"
+  >
+    <n-data-table
+        :columns="columns"
+        :data="tableData"
+        :loading="tableLoading"
+        :pagination="productVersionPagination"
+        :row-props="rowProps"
+        remote
+        @update:page="productVersionPageChange"
+        @update:page-size="productVersionPageSizeChange"
+    />
+  </n-modal>
 </template>
 <script setup>
 import {Check} from '@vicons/tabler';
@@ -288,25 +306,62 @@ import {Radio} from '@vicons/ionicons5';
 import {storage} from '@/assets/utils/storageUtils';
 import {createAvatar} from '@/assets/utils/createImg';
 import {useRouter} from 'vue-router';
-import {getAllOrg, getGroupAssetRank, getMsgGroup, getOrgStat, getUserAssetRank, getUserInfo} from '@/api/get';
+import {
+  getAllOrg,
+  getGroupAssetRank,
+  getMsgGroup,
+  getOrgStat,
+  getUserAssetRank,
+  getUserInfo
+} from '@/api/get';
 import titleImage from '@/assets/images/programming.png';
 import AvatarGroup from '@/components/personalCenter/avatarGroup.vue';
 import {Lock} from '@vicons/fa';
 import config from '@/assets/config/settings';
 import {ref} from 'vue';
 import {useStore} from 'vuex';
+import {
+  columns,
+  productVersionPageChange,
+  productVersionPageSizeChange,
+  getVersionTableData,
+  getDefaultCheckNode,
+  getRoundSelectList,
+  getBranchSelectList,
+  productVersionPagination,
+  tableData,
+  tableLoading,
+  hasQualityboard,
+  productId,
+  detail,
+  list
+} from './modules/workspace';
 
 const router = useRouter();
-
 const orgAvatarSrc = ref(''); // 组织头像
 const groupList = ref([]);
-
 const userStat = ref();
 const groupStat = ref();
-
+const showModal = ref(false);
 const totalGroupNum = ref(0);
 const totalUserNum = ref(0);
 
+const rowProps=(row)=>{
+  return {
+    style: 'cursor:pointer',
+    onClick: () => {
+      detail.value = row;
+      // drawerShow.value = true;
+      list.value = [];
+      hasQualityboard.value = false;
+      productId.value = row.id;
+      getDefaultCheckNode(productId.value);
+      getRoundSelectList(productId.value);
+      getBranchSelectList(productId.value);
+      router.push({name: 'dashboard', params: {workspace: 'release'}});
+    }
+  };
+};
 const getOrgStatistic = () => {
   getOrgStat(storage.getValue('loginOrgId')).then((res) => {
     totalGroupNum.value = res.data.total_groups;
@@ -321,7 +376,7 @@ const clickDefaultWorkspace = () => {
 };
 
 const clickVersionWorkspace = () => {
-  // router.push({ name: 'dashboard', params: { workspace: 'release' } });
+  showModal.value = true;
 };
 
 const clickGroupWorkspace = (groupItem) => {
@@ -329,7 +384,10 @@ const clickGroupWorkspace = (groupItem) => {
     router.push({name: 'automatic', params: {workspace: window.btoa(groupItem.id)}});
   }
 };
-
+// const onAfterLeave = () => {
+//   // console.log(1);
+//   router.push({name: 'dashboard', params: {workspace: 'release'}});
+// };
 const getOrgInfo = () => {
   getAllOrg({org_id: storage.getValue('loginOrgId')}).then((res) => {
     // orgAvatarSrc.value = res.data.avatar_url;
@@ -341,8 +399,8 @@ const getOrgInfo = () => {
   });
 };
 
-const setAvatarList = (list) => {
-  return list.map((item) => {
+const setAvatarList = (avatarList) => {
+  return avatarList.map((item) => {
     return {
       name: item.user_name,
       src: item.avatar_url
@@ -354,7 +412,6 @@ const searchGroupValue = ref(null); // 团队查询条件
 const groupPage = ref(1);
 const groupPageSize = ref(12);
 const groupTotal = ref(0);
-
 const getGroupInfo = () => {
   getMsgGroup({page_num: groupPage.value, page_size: groupPageSize.value, name: searchGroupValue.value}).then(
       (res) => {
@@ -401,7 +458,6 @@ const influenceScore = ref(0); // 影响力
 const accountRank = ref(null); // 影响力等级
 const accountName = ref(''); // 当前登录账号
 const avatarUrl = ref(null); // 当前账号头像
-
 const getRank = (asyncFunc) => {
   asyncFunc({page_num: rankPage.value, page_size: rankPageSize.value}).then((res) => {
     rankList.value = res.data.items;
@@ -442,6 +498,7 @@ onMounted(() => {
     avatarUrl.value = res.data.avatar_url;
     influenceScore.value = res.data.influence;
   });
+  getVersionTableData({page_num: 1, page_size: 10});
 });
 //公告栏
 const store = useStore();
@@ -453,7 +510,6 @@ const docList = store.state.docs.docList;
 .workspaces-container {
   height: 100%;
   width: 100%;
-
   .welcome-warp {
     padding: 20px;
     // background-image: linear-gradient(rgb(239, 240, 249) 0%, rgb(232, 233, 244) 99%);
@@ -652,12 +708,14 @@ const docList = store.state.docs.docList;
         gap: 8px;
         height: 20px;
         width: 100%;
+
         .content-type {
           padding: 0 7px;
           font-size: 12px;
           line-height: 20px;
           white-space: nowrap;
         }
+
         .content-text {
           width: 85%;
           white-space: nowrap;
@@ -768,6 +826,7 @@ const docList = store.state.docs.docList;
     }
   }
 }
+
 a {
   text-decoration: none;
   color: #000;

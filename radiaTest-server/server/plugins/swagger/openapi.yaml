@@ -1,0 +1,58 @@
+openapi: 3.0.3
+info:
+  title:  radiaTest server Swagger - OpenAPI 3.0
+  description: |-
+      基于Swagger工具的radiaTest server端接口文档
+  termsOfService: http://swagger.io/terms/
+  contact:
+    name: openEuler
+    email: qa@openeuler.org
+    url: https://radiatest.openeuler.org
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  version: 1.0.0
+externalDocs:
+  description: Find out more about Swagger
+  url: http://swagger.io
+servers:
+- url: "{protocol}://{host}:{port}{basePath}"
+  description: "The production API server"
+  variables:
+    protocol:
+      enum:
+        - http
+        - https
+      default: https
+    host:
+      "default": "radiatest.openeuler.org"
+      "description": "域名或环境ip"
+    port:
+      enum: ["443", "80", "8080"]
+      default: "443"
+    basePath:
+      enum: ["", "/v1"]
+      default: "/"
+tags: []
+
+paths: {}
+
+components:
+  securitySchemes:
+    api_key:
+      type: apiKey
+      in: header
+      name: Authorization
+
+  schemas:
+    default_responses:
+      description: default response
+      type: object
+      properties:
+        data:
+          type: object
+        error_code:
+          type: string
+        error_msg:
+          default: OK
+          type: string

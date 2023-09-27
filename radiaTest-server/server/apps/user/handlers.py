@@ -560,9 +560,9 @@ def handler_get_all(query):
     if query.user_id:
         filter_params.append(User.user_id.like(f'%{query.user_id}%'))
     if query.user_login:
-        filter_params.append(User.user_id.like(f'%{query.user_login}%'))
+        filter_params.append(User.user_login.like(f'%{query.user_login}%'))
     if query.user_name:
-        filter_params.append(User.user_id.like(f'%{query.user_name}%'))
+        filter_params.append(User.user_name.like(f'%{query.user_name}%'))
 
     query_filter = User.query.filter(*filter_params).order_by(User.create_time.desc(), User.user_id.asc())
 

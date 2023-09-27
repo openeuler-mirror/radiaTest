@@ -13,6 +13,7 @@
             font-family: 'v-sans';
             background-color: rgb(242,242,242);
         "
+    v-if="$route.params.workspace==='default'"
   >
     <template #header>
       <n-grid :cols="3">
@@ -58,7 +59,7 @@
         </n-gi>
       </n-grid>
     </template>
-    <template #default>
+    <template #default  >
       <div class="recycleWrap">
         <n-modal v-model:show="showRecycleBinModal">
           <n-card
@@ -79,6 +80,20 @@
           </n-card>
         </n-modal>
       </div>
+      <router-view></router-view>
+    </template>
+  </n-card>
+  <n-card
+      :bordered="false"
+      size="huge"
+      :segmented="{
+      content: 'hard',
+    }"
+      style="height: 100%"
+      content-style="padding:0"
+      v-if="$route.params.workspace==='release'"
+  >
+    <template #default  >
       <router-view></router-view>
     </template>
   </n-card>

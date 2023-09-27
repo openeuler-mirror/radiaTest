@@ -17,28 +17,46 @@ const showSyncRepoModal = ref(false);
 const selectMilestoneValue = ref('');
 const selectMilestoneOptions = ref([]);
 const milestoneId = ref(null);
-
-const searchMilestoneFn = (data) => {
+const loading = ref(false);
+const searchName = ref({});
+const page = ref(1);
+const hasNext = ref(true);
+const perPage = 30;
+const searchMilestoneFn = () => {
+  loading.value = true;
   getMilestonesByName({
-    search: data.name
+    search: searchName.value.name,
+    per_page: perPage,
+    page: page.value,
   }).then((res) => {
-    selectMilestoneOptions.value = [];
-    res.data.data.forEach((v) => {
-      selectMilestoneOptions.value.push({
-        label: v.title,
-        value: v.id
-      });
+    milestoneId.value = searchName.value.id;
+    hasNext.value = res.data.has_next;
+    res.data.data.forEach(item => {
+      item.label = item.title;
+      item.value = item.id;
     });
-    milestoneId.value = data.id;
+    selectMilestoneOptions.value =  selectMilestoneOptions.value.concat(res.data.data);
+    loading.value = false;
   });
 };
-
 const syncMilestoneFn = () => {
   updateSyncMilestone(milestoneId.value, {
     gitee_milestone_id: selectMilestoneValue.value
   }).then(() => {
     showSyncRepoModal.value = false;
+  }).catch(()=>{
+    showSyncRepoModal.value = false;
   });
+};
+
+ const handleScroll = async (e) => {
+    const currentTarget = e.currentTarget;
+    if (currentTarget.scrollTop + currentTarget.offsetHeight >= currentTarget.scrollHeight) {
+      if(hasNext.value){
+        page.value = page.value + 1;
+        searchMilestoneFn();
+      }
+    }
 };
 
 const changeState = (data) => {
@@ -109,7 +127,8 @@ const constColumns = [
                 e.preventDefault();
                 e.stopPropagation();
                 showSyncRepoModal.value = true;
-                searchMilestoneFn(row);
+                searchName.value = row;
+                searchMilestoneFn();
               }
             },
             h(NIcon, { size: '20' }, h(icon))
@@ -277,5 +296,6 @@ export default {
   selectMilestoneOptions,
   syncMilestoneFn,
   leaveSyncRepoModal,
-  startTimeColumn
+  startTimeColumn,
+  handleScroll
 };

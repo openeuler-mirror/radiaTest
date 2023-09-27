@@ -17,9 +17,10 @@
 
 import re
 import datetime
+import json
 
 from flask import current_app, jsonify, request
-import redis
+
 
 from server.model.product import Product
 from server.model.milestone import Milestone
@@ -179,22 +180,23 @@ class UpdateRepo:
 
 
 class AtMessenger:
-    def __init__(self, body):
+    def __init__(self, body, machine_group):
         self._body = body
         self._body.update({
             "user_id": 1,
         })
+        self.machine_group = machine_group
 
     @ssl_cert_verify_error_collect
-    def send_request(self, machine_group, api):
+    def send_request(self, api, method="post"):
         _resp = dict()
         payload = PayLoad(1, "at")
         token = generate_messenger_token(payload)
         _r = do_request(
-            method="post",
+            method=method,
             url="https://{}:{}{}".format(
-                machine_group.messenger_ip,
-                machine_group.messenger_listen,
+                self.machine_group.messenger_ip,
+                self.machine_group.messenger_listen,
                 api
             ),
             body=self._body,
@@ -214,16 +216,21 @@ class AtMessenger:
 
         return jsonify(_resp)
 
+    def get_job_detail(self, job_id):
+        self._body["job_id"] = job_id
+        res = self.send_request(f"/api/v1/openeuler/at_job")
+        return json.loads(res.get_data(as_text=True)).get("data", {})
+
 
 class AtHandler:
-    def __init__(self, buildname_x86=None, buildname_aarch64=None):
-        self.buildname_x86 = buildname_x86
-        self.buildname_aarch64 = buildname_aarch64
+    def __init__(self, at_messenger, buildname_x86=None, buildname_aarch64=None):
+        self.at_messenger = at_messenger
+        self.buildname_x86 = buildname_x86 if buildname_x86 else ""
+        self.buildname_aarch64 = buildname_aarch64 if buildname_aarch64 else ""
 
     def get_result(self):
         build_list = list()
         at_result = dict()
-
         if self.buildname_x86:
             build_list.append(self.buildname_x86)
         if self.buildname_aarch64:
@@ -238,51 +245,38 @@ class AtHandler:
             })
             return True, at_result
         else:
-            scrapyspider_pool = redis.ConnectionPool.from_url(
-                current_app.config.get("SCRAPYSPIDER_BACKEND"),
-                decode_responses=True
-            )
-            scrapyspider_redis_client = redis.StrictRedis(
-                connection_pool=scrapyspider_pool
-            )
-
             total_job_num = 0
             job_success_num = 0
             job_fail_num = 0
+            job_cancel_num = 0
 
             for job in at_jobs:
-                if "x86_64" in job.build_name:
-                    arch = "x86_64"
-                elif "aarch64" in job.build_name:
-                    arch = "aarch64"
-                else:
-                    return False, "unkown arch"
-
-                if not job.at_job_name:
+                if not job.at_job_ids:
                     continue
+                at_job_ids = job.at_job_ids.split(",")
 
-                at_job_name = job.at_job_name.split(",")
-                total_job_num += len(at_job_name)
-
-                for job_name in at_job_name:
-                    result = scrapyspider_redis_client.hget(job_name, "{}_res_status".format(arch))
-                    result = result if not result else result.split(":")[1]
-                    if not result:
+                for job_id in at_job_ids:
+                    job_detail = self.at_messenger.get_job_detail(job_id)
+                    # 排除异常job_id
+                    if not job_detail:
                         continue
-                    elif "failed" in result:
-                        job_fail_num += 1
+                    total_job_num += 1
+                    state = job_detail.get("state")
+                    result = job_detail.get("result")
+                    # 任务状态done且结果为passed执行成功
+                    if state == "done":
+                        if "passed" == result:
+                            job_success_num += 1
+                        else:
+                            job_fail_num += 1
+                    elif state == "cancelled":
+                        job_cancel_num += 1
                     else:
-                        job_success_num += 1
+                        continue
 
-            release_path_item = build_list[0].split("dailybuild")[1].replace("//", "").split("/")
-            version = release_path_item[0].replace("openEuler-", "")
-            build = release_path_item[1].replace("openeuler", "")
-            openqa_url = "{}/tests/overview?distri=openeuler&version={}&build={}".format(
-                current_app.config.get("OPENQA_URL"),
-                version,
-                build
-            )
-            job_done_num = job_success_num + job_fail_num
+            openqa_url = "https://radiatest.openeuler.org/at-detail?release_url_x86_64={}" \
+                         "&release_url_aarch64={}".format(self.buildname_x86, self.buildname_aarch64)
+            job_done_num = job_success_num + job_fail_num + job_cancel_num
 
             if total_job_num == 0:
                 at_result.update({
@@ -299,18 +293,83 @@ class AtHandler:
                 })
                 return True, at_result
             else:
-                if job_fail_num != 0:
-                    result = "failed"
-                else:
+                if job_fail_num == 0 and job_cancel_num == 0:
                     result = "passed"
+                else:
+                    result = "failed"
 
-            at_result.update({
-                "result": result,
-                "openqa_url": openqa_url,
-                "rate": 1
-            })
+                at_result.update({
+                    "result": result,
+                    "openqa_url": openqa_url,
+                    "rate": 1
+                })
 
-            return True, at_result
+                return True, at_result
+
+    def get_report(self):
+        build_list = list()
+        detail_dict = dict()
+        if self.buildname_x86:
+            build_list.append(self.buildname_x86)
+        if self.buildname_aarch64:
+            build_list.append(self.buildname_aarch64)
+        at_jobs = AtJob.query.filter(AtJob.build_name.in_(build_list)).all()
+        total_job_num = 0
+        job_success_num = 0
+        job_fail_num = 0
+        job_cancel_num = 0
+
+        for job in at_jobs:
+            if not job.at_job_ids:
+                continue
+            at_job_ids = job.at_job_ids.split(",")
+
+            for job_id in at_job_ids:
+                job_detail = self.at_messenger.get_job_detail(job_id)
+                # 排除异常job_id
+                if not job_detail:
+                    continue
+                total_job_num += 1
+                settings = job_detail.get("settings")
+                arch = settings.get("ARCH")
+                testcase = settings.get("TEST")
+                state = job_detail.get("state")
+                result = job_detail.get("result")
+                if testcase not in detail_dict:
+                    detail_dict[testcase] = {}
+                if arch in detail_dict[testcase]:
+                    current_app.logger.warning(f"{job_id} arch is repeat!")
+                detail_dict[testcase][arch] = {
+                    "state": state,
+                    "result": result
+                }
+                # 任务状态done且结果为passed执行成功
+                if state == "done":
+                    if "passed" == result:
+                        job_success_num += 1
+                    else:
+                        job_fail_num += 1
+                elif state == "cancelled":
+                    job_cancel_num += 1
+                else:
+                    continue
+        detail_list = []
+        arch_list = []
+        for testcase, case_info in detail_dict.items():
+            detail = {"test": testcase}
+            for arch, info in case_info.items():
+                if arch not in arch_list:
+                    arch_list.append(arch)
+                detail[arch] = info
+            detail_list.append(detail)
+        return {
+            "total": total_job_num,
+            "success": job_success_num,
+            "failed": job_fail_num,
+            "canceled": job_cancel_num,
+            "detail_list": detail_list,
+            "arch_list": sorted(arch_list)
+        }
 
 
 class MajunLoginHandler:

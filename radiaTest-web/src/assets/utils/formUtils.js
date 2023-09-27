@@ -50,7 +50,7 @@ const checkCIValid = (description, sshRules, basicRules) => {
     };
     sshRules.value.password = {
       required: true,
-      message: '必须设置SSH登陆密码',
+      message: '必须设置SSH登录密码',
       trigger: ['blur'],
     };
     sshRules.value.ip = {
@@ -65,13 +65,13 @@ const checkCIValid = (description, sshRules, basicRules) => {
     };
     sshRules.value.user = {
       required: true,
-      message: '必须设置SSH登陆用户名',
+      message: '必须设置SSH登录用户名',
       trigger: ['blur'],
     };
   } else if (description === 'used for ci') {
     sshRules.value.password = {
       required: true,
-      message: '必须设置SSH登陆密码',
+      message: '必须设置SSH登录密码',
       trigger: ['blur'],
     };
     sshRules.value.ip = {

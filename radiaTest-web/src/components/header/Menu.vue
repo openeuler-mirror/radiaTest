@@ -46,7 +46,7 @@ import MyTab from './MyTab.vue';
 
 const router = useRouter();
 const route = useRoute();
-
+// console.log(route.params);
 const showResourcePool = computed(() => {
   if (window.atob(route.params?.workspace).search('group') !== -1) {
     return false;
@@ -55,7 +55,7 @@ const showResourcePool = computed(() => {
 });
 
 const showVersionManagment = computed(() => {
-  if (window.atob(route.params?.workspace).search('group') !== -1) {
+  if (window.atob(route.params?.workspace).search('group') !== -1||route.params.workspace==='release') {
     return false;
   }
   return true;

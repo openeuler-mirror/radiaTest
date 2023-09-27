@@ -10,6 +10,7 @@
 import { defineComponent } from 'vue';
 import taskManage from '@/views/taskManage/TaskManage';
 import modules from './index';
+// import {useRoute} from 'vue-router';
 
 export default defineComponent({
   components: {
@@ -17,7 +18,9 @@ export default defineComponent({
   },
   methods: {},
   setup() {
+    // const route=useRoute();
     modules.initData();
+    // console.log(route.params.workspace);
     return {
       ...modules
     };

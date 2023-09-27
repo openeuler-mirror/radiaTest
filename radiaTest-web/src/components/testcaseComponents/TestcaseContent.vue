@@ -79,7 +79,7 @@ export default defineComponent({
   watch: {
     form: {
       handler(value) {
-        console.log(1,value);
+        // console.log(1,value);
         this.formValue = ref({
           machine_type: undefined,
           machine_num: undefined,

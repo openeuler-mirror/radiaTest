@@ -76,7 +76,6 @@
 
 <script>
 import { ref } from 'vue';
-import { workspace } from '@/assets/config/menu.js';
 
 export default {
   props: ['multiple', 'defaultValue'],
@@ -108,7 +107,11 @@ export default {
     const filterValue = ref({
       paged: false
     });
-    this.$axios.get(`/v2/ws/${workspace.value}/milestone`, filterValue.value).then((res) => {
+    // this.$axios.get(`/v2/ws/${workspace.value}/milestone`, filterValue.value).then((res) => {
+    //   this.milepostArray = res.data?.items||[];
+    //   this.milepostArrayTemp = res.data?.items||[];
+    // });
+    this.$axios.get('/v2/ws/default/milestone', filterValue.value).then((res) => {
       this.milepostArray = res.data?.items||[];
       this.milepostArrayTemp = res.data?.items||[];
     });

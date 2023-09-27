@@ -146,7 +146,7 @@ function frameRowProps(row) {
 }
 // let frameworkId ;
 function getFramework() {
-  axios.get(`/v1/ws/${workspace.value}/framework`).then((res) => {
+  axios.get('/v1/ws/default/framework').then((res) => {
     frameworkData.value = res.data.map((item) => {
       return {
         ...item,

@@ -188,10 +188,12 @@ class AtJob(BaseModel, db.Model):
     id = db.Column(db.Integer(), primary_key=True)
     build_name = db.Column(db.String(255), nullable=False)
     at_job_name = db.Column(LONGTEXT(), nullable=True)
+    at_job_ids = db.Column(LONGTEXT(), nullable=True)
 
     def to_json(self):
         return {
             "id": self.id,
             "build_name": self.build_name,
-            "at_job_name": self.at_job_name
+            "at_job_name": self.at_job_name,
+            "at_job_ids": self.at_job_ids,
         }

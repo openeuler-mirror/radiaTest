@@ -18,7 +18,7 @@ from flask import jsonify
 from flask_pydantic import validate
 from flask_restful import Resource
 
-from server import db
+from server import db, swagger_adapt
 from server.apps.manualjob.handler import (
     ManualJobHandler,
     ManualJobSubmitHandler,
@@ -38,6 +38,12 @@ from server.utils.auth_util import auth
 from server.utils.response_util import response_collect, RET, workspace_error_collect
 
 
+def get_manual_job_tag():
+    return {
+        "name": "手工任务",
+        "description": "手工任务接口",
+    }
+
 
 class ManualJobEvent(Resource):
     """
@@ -48,6 +54,15 @@ class ManualJobEvent(Resource):
     @response_collect
     @workspace_error_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_manual_job_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "ManualJobEvent",  # 当前接口视图函数名
+        "func_name": "post",   # 当前接口所对应的函数名
+        "tag": get_manual_job_tag(),  # 当前接口所对应的标签
+        "summary": "创建手工任务",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "request_schema_model": ManualJobCreate,  # 当前接口请求体参数schema校验器
+    })
     def post(self, body: ManualJobCreate):
         """
             在数据库中新增ManualJob数据, 根据其所属的Case的步骤数, 在数据库中新增数个ManualJobStep.
@@ -83,6 +98,15 @@ class ManualJobEvent(Resource):
     @response_collect
     @workspace_error_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_manual_job_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "ManualJobEvent",  # 当前接口视图函数名
+        "func_name": "get",   # 当前接口所对应的函数名
+        "tag": get_manual_job_tag(),  # 当前接口所对应的标签
+        "summary": "分页查询手工任务",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "query_schema_model": ManualJobQuery
+    })
     def get(self, workspace: str, query: ManualJobQuery):
         """
             请求行示例: /api/v1/manual-job?status=0&page_num=1&page_size=1
@@ -138,6 +162,16 @@ class ManualJobSubmitEvent(Resource):
     @auth.login_required()
     @response_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_manual_job_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "ManualJobSubmitEvent",  # 当前接口视图函数名
+        "func_name": "post",   # 当前接口所对应的函数名
+        "tag": get_manual_job_tag(),  # 当前接口所对应的标签
+        "summary": "设置手工任务状态已结束(每个步骤都有日志, 且日志的passed字段都是True,"
+                   " 则把此手工测试任务的result字段更改为1(与预期一致))",
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "request_schema_model": ManualJobQuery
+    })
     def post(self, manual_job_id: int):
         """
             设置指定id的手工测试任务(ManualJob)的status字段为1(已结束), 设置end_time字段为当前时间.
@@ -167,6 +201,15 @@ class ManualJobLogEvent(Resource):
     @auth.login_required()
     @response_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_manual_job_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "ManualJobLogEvent",  # 当前接口视图函数名
+        "func_name": "put",   # 当前接口所对应的函数名
+        "tag": get_manual_job_tag(),  # 当前接口所对应的标签
+        "summary": "更新指定id的手工测试任务(ManualJob)的日志",
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "request_schema_model": ManualJobLogModify
+    })
     def put(self, manual_job_id, body: ManualJobLogModify):
         """
             更新指定id的手工测试任务(ManualJob)的日志. 同时把这个ManualJob的current_step字段置为这个步骤的序数.
@@ -188,6 +231,15 @@ class ManualJobLogEvent(Resource):
     @auth.login_required()
     @response_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_manual_job_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "ManualJobLogEvent",  # 当前接口视图函数名
+        "func_name": "delete",   # 当前接口所对应的函数名
+        "tag": get_manual_job_tag(),  # 当前接口所对应的标签
+        "summary": "删除指定id的手工测试任务(ManualJob)的日志",
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "query_schema_model": ManualJobLogModify
+    })
     def delete(self, manual_job_id, body: ManualJobLogDelete):
         """
             删除指定id的手工测试任务(ManualJob)的日志. 同时, 这个ManualJob的current_step字段退回到它剩下的ManualJobStep中step_num字段的最大值.
@@ -213,6 +265,14 @@ class ManualJobDeleteEvent(Resource):
     @auth.login_required()
     @response_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_manual_job_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "ManualJobDeleteEvent",  # 当前接口视图函数名
+        "func_name": "delete",   # 当前接口所对应的函数名
+        "tag": get_manual_job_tag(),  # 当前接口所对应的标签
+        "summary": "删除指定id的手工测试任务",
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+    })
     def delete(self, manual_job_id: int):
         """
             在数据库中删除指定id的手工测试任务(ManualJob)
@@ -234,6 +294,14 @@ class ManualJobLogQueryEvent(Resource):
     @auth.login_required()
     @response_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_manual_job_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "ManualJobLogQueryEvent",  # 当前接口视图函数名
+        "func_name": "get",   # 当前接口所对应的函数名
+        "tag": get_manual_job_tag(),  # 当前接口所对应的标签
+        "summary": "获取指定手工测试任务下的指定步骤的日志",
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+    })
     def get(self, manual_job_id: int, step_num: int):
         """
             请求行: /api/v1/manual-job/<int:manual_job_id>/step/<int:step_num>

@@ -85,8 +85,10 @@ export function getMsgGroup(data) {
 export function getCaseReview(data) {
   return getRequest('/v1/case/commit/query', data);
 }
+
+// 需要后端适配
 export function getMachineGroup(data) {
-  return getRequest(`/v1/ws/${workspace.value}/machine-group`, data);
+  return getRequest('/v1/ws/default/machine-group', data);
 }
 export function getRootCert(data) {
   return new Promise((resolve, reject) => {
@@ -140,8 +142,10 @@ export function getMilestoneTask(milestoneId, data) {
 export function getMilestone(productId, data) {
   return getRequest(`/v1/milestone/preciseget?product_id=${productId}`, data);
 }
+
+// 需要后端适配
 export function getAllMilestone(data) {
-  return getRequest(`v2/ws/${workspace.value}/milestone`, data);
+  return getRequest('v2/ws/default/milestone', data);
 }
 export function getProductMessage(productId, data) {
   return getRequest(`/v1/qualityboard?product_id=${productId}`, data);
@@ -170,8 +174,10 @@ export function getOrgUser(id, data) {
 export function getOrgGroup(id, data) {
   return getRequest(`/v1/org/${id}/groups`, data);
 }
+
+// 需要后端适配
 export function getProduct(data) {
-  return getRequest(`/v1/ws/${workspace.value}/product`, data);
+  return getRequest('/v1/ws/default/product', data);
 }
 export function getCaseNodeTask(id, data) {
   return getRequest(`/v1/case-node/${id}/task`, data);
@@ -283,8 +289,9 @@ export function getRequireAttributors(id, params) {
   return getRequest(`/v1/requirement/${id}/attributor`, params);
 }
 
+// 需要后端适配
 export function getMilestones(data) {
-  return getRequest(`/v2/ws/${workspace.value}/milestone`, data);
+  return getRequest('/v2/ws/default/milestone', data);
 }
 
 export function getRoundIssueRate(roundId) {
@@ -303,10 +310,10 @@ export function getCaseNodeResource(id, data) {
   return getRequest(`/v1/case-node/${id}/resource`, data);
 }
 
+// 需要后端适配
 export function getBaselineTemplates(data) {
-  return getRequest(`/v1/ws/${workspace.value}/baseline-template`, data);
+  return getRequest('/v1/ws/default/baseline-template', data);
 }
-
 export function getBaselineTemplateItem(id, data) {
   return getRequest(`/v1/baseline-template/${id}`, data);
 }
@@ -315,10 +322,10 @@ export function getScopedGitRepo(data) {
   return getRequest('/v1/git-repo/scoped', data);
 }
 
+// 需要后端适配
 export function getFramework(data) {
-  return getRequest(`/v1/ws/${workspace.value}/framework`, data);
+  return getRequest('/v1/ws/default/framework', data);
 }
-
 export function getSuiteDocuments(suiteId, data) {
   return getRequest(`/v1/suite/${suiteId}/document`, data);
 }
@@ -373,6 +380,16 @@ export function getMilestoneProgress(milestoneId) {
 
 export function getMilestoneProgressCaseNode(milestoneId, caseNode) {
   return getRequest(`/v1/milestone/${milestoneId}/task-progress/case-node/${caseNode}`);
+}
+
+// 查询round列表
+export function getRoundIdList(productId) {
+  return getRequest(`/v1/round?product_id=${productId}`);
+}
+
+// 查询branch列表
+export function getBranchList(productId, param) {
+  return getRequest(`/v1/qualityboard/${productId}/branch-list`, param);
 }
 
 // 获取特性集特性
@@ -458,4 +475,8 @@ export function getCasesByRepo(repoId, data, config) {
 // 对于组织下的suite类型节点，根据选择的导出文件格式按测试套导出文本用例
 export function exportTestsuite(orgId, caseNodeId, data) {
   return getRequest(`/v1/org/${orgId}/case-node/${caseNodeId}/export`, data);
+}
+// 批量同步里程碑时选择里程碑判断是否与数据库里程碑重名
+export function determinMilestoneName(data) {
+  return getRequest('/v2/milestone/verify-name', data);
 }

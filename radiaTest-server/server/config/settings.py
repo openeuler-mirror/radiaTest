@@ -147,6 +147,11 @@ class Config(object):
 
     STORE_AT_MAX_TIME = 172800
 
+    # swagger
+    SWAGGER_SWITCH = "off"  # 生产环境必须关闭
+    SWAGGER_URL = "/static/api_docs"  # nginx代理原因, 必须以/static路径开头才能访问
+    SWAGGER_YAML_FILE = "swagger.yaml"  # 实际api文件, 将文件放入
+
 
 class TestingConfig(Config):
     TESTING = True

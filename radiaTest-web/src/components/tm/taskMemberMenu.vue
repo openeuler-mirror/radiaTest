@@ -210,7 +210,7 @@ export default {
             }
             return i.id === item.user_id && i.name === item.user_name;
           });
-          console.log(element);
+          // console.log(element);
           return JSON.stringify(element);
         });
         const index = this.personArray.findIndex((item) => {

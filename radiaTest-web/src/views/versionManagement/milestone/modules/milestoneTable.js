@@ -2,7 +2,6 @@ import { ref } from 'vue';
 import store from '@/store';
 import { get } from '@/assets/CRUD/read';
 import milestoneTableColumns from '@/views/versionManagement/milestone/modules/milestoneTableColumns';
-import { workspace } from '@/assets/config/menu.js';
 
 const totalData = ref([]);
 const rowData = ref({});
@@ -46,7 +45,8 @@ const handleCheck = (rowKeys) => {
   store.commit('selected/setSelectedData', rowKeys);
 };
 function getTableData() {
-  get.list(`/v2/ws/${workspace.value}/milestone`, totalData, loading, filter.value, pagination);
+  // get.list(`/v2/ws/${workspace.value}/milestone`, totalData, loading, filter.value, pagination);
+  get.list('/v2/ws/default/milestone', totalData, loading, filter.value, pagination);
 }
 function changePage(page) {
   pagination.value.page = page;

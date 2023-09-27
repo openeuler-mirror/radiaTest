@@ -87,7 +87,7 @@ server.interceptors.response.use(
     const isIframe = storage.getValue('isIframe');
     if (error.response?.status === 401) {
       window.$message?.destroyAll();
-      window.$message?.error('请重新登陆');
+      window.$message?.error('请重新登录');
       if (isIframe && isIframe === '1') {
         router.push({
           name: 'home'
@@ -98,7 +98,7 @@ server.interceptors.response.use(
         });
       }
       error.response.data = {
-        error_msg: '登陆失效'
+        error_msg: '登录失效'
       };
     } else if (error.response?.status === 500) {
       window.$message?.destroyAll();
@@ -215,7 +215,7 @@ export default {
     });
   },
 
-  downLoad(url, data) {
+  downLoad(url, data, tag=null) {
     return new Promise((resolve, reject) => {
       server({
         method: 'get',
@@ -224,6 +224,13 @@ export default {
         responseType: 'blob'
       })
         .then((res) => {
+          if(res.data.type ==='application/json'){
+            window.$message?.error('下载文件内容为空！');
+            return;
+          }
+          if(tag){
+            resolve(res);
+          }
           resolve(res.data);
         })
         .catch((err) => {

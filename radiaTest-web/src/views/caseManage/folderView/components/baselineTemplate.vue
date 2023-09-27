@@ -530,6 +530,7 @@ const baselineTreeNodeProps = ({ option }) => {
       getBaseNode(selectedNode.value.id).then((res) => {
         selectedNode.value.type = res.data.type;
         options.value = renderOptions(res.data);
+        // console.log(res.data);
         currentCaseNodeId.value = res.data.case_node_id;
         nextTick(() => {
           showDropdown.value = true;

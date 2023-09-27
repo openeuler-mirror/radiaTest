@@ -291,6 +291,8 @@ class GiteeIssueQueryV5(BaseModel):
 
 class GiteeMilestoneQuerySchema(BaseModel):
     search: str
+    page: int = 1
+    per_page: int = 20
 
 
 class SyncMilestoneSchema(BaseModel):
@@ -299,3 +301,8 @@ class SyncMilestoneSchema(BaseModel):
 
 class MilestoneStateEventSchema(BaseModel):
     state_event: Literal["activate", "close"]
+
+
+class BatchSyncMilestoneSchema(PermissionBase):
+    product_id: int
+    milestone_list: list

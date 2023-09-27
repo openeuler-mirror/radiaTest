@@ -69,7 +69,6 @@
 import { ref, defineComponent, computed } from 'vue';
 import { Add } from '@vicons/ionicons5';
 import axios from '@/axios';
-import { workspace } from '@/assets/config/menu.js';
 
 export default defineComponent({
   components: {
@@ -143,7 +142,10 @@ export default defineComponent({
       ];
     });
     const frameworkList = ref();
-    axios.get(`/v1/ws/${workspace.value}/framework`).then((res) => {
+    // axios.get(`/v1/ws/${workspace.value}/framework`).then((res) => {
+    //   frameworkList.value = res.data?.map((item) => ({ label: item.name, value: item.id }));
+    // });
+    axios.get('/v1/ws/default/framework').then((res) => {
       frameworkList.value = res.data?.map((item) => ({ label: item.name, value: item.id }));
     });
     const infoFormRef = ref();

@@ -49,7 +49,7 @@ def init(app):
 
 def generate_token(user_id, user_login, ex=60 * 60 * 2):
     # 根据user_id去获取用户token,防止用户多次创建token值
-    # 令牌策略为保证后来者登陆有效，旧令牌清除
+    # 令牌策略为保证后来者登录有效，旧令牌清除
 
     # 判断当前用户是否存在令牌
     if redis_client.exists(RedisKey.token(user_id)):
@@ -106,7 +106,7 @@ def verify_token(token):
         if redis_client.exists(RedisKey.token(token)):
             # 用户签名过期登录不过期
             data = redis_client.hgetall(RedisKey.token(token))
-            # 获取原令牌剩余登陆失效时间，并使新令牌继承
+            # 获取原令牌剩余登录失效时间，并使新令牌继承
             rest_login_expires_time = redis_client.ttl(RedisKey.token(token))
 
             redis_client.delete(RedisKey.token(data.get('user_id')))
@@ -118,7 +118,7 @@ def verify_token(token):
             )
             token = new_token
         else:
-            # 登陆已过期
+            # 登录已过期
             return False
     
     except BadSignature:

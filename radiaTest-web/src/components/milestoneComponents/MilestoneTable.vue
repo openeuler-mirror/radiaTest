@@ -26,7 +26,6 @@ import { get, selection } from '@/assets/CRUD/read';
 import { any2stamp } from '@/assets/utils/dateFormatUtils.js';
 import milestoneTable from '@/views/versionManagement/milestone/modules/milestoneTable.js';
 import milestoneTableColumns from '@/views/versionManagement/milestone/modules/milestoneTableColumns.js';
-import { workspace } from '@/assets/config/menu.js';
 
 export default defineComponent({
   setup(props, context) {
@@ -35,20 +34,34 @@ export default defineComponent({
     milestoneSocket.connect();
 
     onMounted(() => {
+      // get.list(
+      //   `/v2/ws/${workspace.value}/milestone`,
+      //   milestoneTable.totalData,
+      //   milestoneTable.loading,
+      //   milestoneTable.filter.value,
+      //   milestoneTable.pagination
+      // );
       get.list(
-        `/v2/ws/${workspace.value}/milestone`,
-        milestoneTable.totalData,
-        milestoneTable.loading,
-        milestoneTable.filter.value,
-        milestoneTable.pagination
-      );
-      milestoneSocket.listen('update', () => {
-        get.list(
-          `/v2/ws/${workspace.value}/milestone`,
+          '/v2/ws/default/milestone',
           milestoneTable.totalData,
           milestoneTable.loading,
           milestoneTable.filter.value,
           milestoneTable.pagination
+      );
+      milestoneSocket.listen('update', () => {
+        // get.list(
+        //   `/v2/ws/${workspace.value}/milestone`,
+        //   milestoneTable.totalData,
+        //   milestoneTable.loading,
+        //   milestoneTable.filter.value,
+        //   milestoneTable.pagination
+        // );
+        get.list(
+            '/v2/ws/default/milestone',
+            milestoneTable.totalData,
+            milestoneTable.loading,
+            milestoneTable.filter.value,
+            milestoneTable.pagination
         );
       });
     });
@@ -75,7 +88,8 @@ export default defineComponent({
       showSelection: () => selection.show(columns),
       offSelection: () => selection.off(columns),
       refreshData: () =>
-        get.refresh(`/v2/ws/${workspace.value}/milestone`, milestoneTable.data, milestoneTable.loading, milestoneTable.filter.value)
+        // get.refresh(`/v2/ws/${workspace.value}/milestone`, milestoneTable.data, milestoneTable.loading, milestoneTable.filter.value)
+          get.refresh('/v2/ws/default/milestone', milestoneTable.data, milestoneTable.loading, milestoneTable.filter.value)
     };
   }
 });

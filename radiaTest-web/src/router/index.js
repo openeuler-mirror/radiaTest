@@ -49,6 +49,7 @@ import Notice from '@/views/home/Notice.vue';
 import NoticeDetail from '@/views/home/NoticeDetail.vue';
 import Doc from '@/views/home/Doc.vue';
 import DocDetail from '@/views/home/DocDetail.vue';
+import AtDetail from '@/views/atDetail/index.vue';
 
 const routerHistory = createWebHistory();
 const router = createRouter({
@@ -57,6 +58,14 @@ const router = createRouter({
     {
       path: '/',
       redirect: '/login'
+    },
+    {
+      path: '/at-detail',
+      component: AtDetail,
+      name: 'atDetail',
+      meta: {
+        title: 'AT报告'
+      }
     },
     {
       path: '/home/',
@@ -305,7 +314,7 @@ const router = createRouter({
       component: newLogin,
       name: 'login',
       meta: {
-        title: '登陆'
+        title: '登录'
       }
     },
     {

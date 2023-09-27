@@ -25,8 +25,7 @@ from flask_script import Manager
 from flask_migrate import Migrate, MigrateCommand
 
 from server.utils.celery_utils import make_celery
-from server import create_app, db, redis_client
-
+from server import create_app, db, redis_client, swagger_adapt
 
 my_celery = make_celery(__name__)
 
@@ -67,6 +66,38 @@ def init_asr():
 def prepare_recv_id():
     from server.utils.read_from_yaml import get_recv_id
     get_recv_id(db, app)
+
+
+@manager.command
+def swagger_init():
+    # 批量添加路由地址和请求方式
+    api_info_map = swagger_adapt.api_info_map
+    for rule in app.url_map.iter_rules():
+        methods = rule.methods
+        url = rule.rule
+        # 忽略静态资源路径
+        if url.startswith("/static"):
+            continue
+        for method in methods:
+            method = method.lower()
+            # 忽略部分请求方式
+            if method in ["head", "options"]:
+                continue
+            view_func = app.view_functions.get(rule.endpoint)
+            if view_func:
+                if not hasattr(view_func, "view_class"):
+                    continue
+                __module__ = view_func.view_class.__module__
+                if __module__ in api_info_map:
+                    resource_name = view_func.view_class.__name__
+                    if resource_name in api_info_map[__module__]:
+                        if method in api_info_map[__module__][resource_name]:
+                            api_info_map[__module__][resource_name][method].update({
+                                "url": url,
+                                "method": method,
+                            })
+    # 保存api map信息
+    swagger_adapt.save_api_info_map()
 
 
 if __name__ == "__main__":

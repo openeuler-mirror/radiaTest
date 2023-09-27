@@ -361,7 +361,7 @@
                         >
                           <n-tab name="everything"> everything </n-tab>
                           <n-tab name="EPOL"> EPOL </n-tab>
-                          <n-tab name="source"> source </n-tab>
+                          <n-tab name="source" v-if="packageTabValueFirst!=='homonymousIsomerism'"> source </n-tab>
                           <n-tab
                             name="update"
                             v-if="currentPanelDetail.type === 'release' && currentRound.type === 'release'"
@@ -443,7 +443,34 @@
                 </div>
               </n-card>
             </n-gi>
-            <n-gi :span="2" style="margin-top: 40px">
+            <n-gi :span="2" style="margin-top: 10px">
+                <div class="middledowload">
+                  <n-popselect
+                    v-model:value="roundId"
+                    :options="roundIdOptions"
+                    @update:value="selectRound"
+                  >
+                    <n-button   @click.stop class="selectbutton ">{{ roundId.name || '选择round' }}</n-button>
+                  </n-popselect>
+
+                  <n-popselect
+                    v-model:value="branch"
+                    :options="branchOptions"
+                  >
+                    <n-button  @click.stop class="selectbutton marginbutton">{{ branch.name || '选择分支' }}</n-button>
+                  </n-popselect>
+                  
+                  <n-button :loading="loadingRef" @click.stop="exportQualityHistoryFn" type="primary" ghost>
+                    <template #icon>
+                      <n-icon>
+                        <FileExport />
+                      </n-icon>
+                    </template>
+                    质量报告导出
+                  </n-button>
+                </div>
+            </n-gi>
+            <n-gi :span="2" style="margin-top: 5px">
               <n-tabs type="line" animated v-model:value="activeTab">
                 <n-tab-pane tab="测试进展" name="testProgress"> </n-tab-pane>
                 <n-tab-pane tab="质量防护网" name="qualityProtect"> </n-tab-pane>
@@ -634,6 +661,7 @@ import PackageTable from '@/components/productDrawer/PackageTable.vue';
 import RefreshButton from '@/components/CRUD/RefreshButton';
 import { getProductVersionOpts } from '@/assets/utils/getOpts';
 import echart from '@/components/echart/echart.vue';
+import { FileExport } from '@vicons/tabler';
 
 export default {
   components: {
@@ -654,7 +682,8 @@ export default {
     FeatureTable,
     PackageTable,
     echart,
-    BuildCircleOutlined
+    BuildCircleOutlined,
+    FileExport
   },
   setup() {
     const additionFeatureOption = reactive(JSON.parse(JSON.stringify(modules.featureOption)));
@@ -689,7 +718,8 @@ export default {
       ...modules,
       inheritFeatureOption,
       additionFeatureOption,
-      refreshTableData
+      refreshTableData,
+      FileExport
     };
   }
 };
@@ -760,7 +790,17 @@ export default {
     }
   }
 }
-
+.middledowload{
+  margin-left: 10px;
+  display: flex;
+  .selectbutton{
+    width: 220px;
+    overflow: hidden;
+  }
+  .marginbutton{
+    margin: 0 20px;
+  }
+}
 .packageCard {
   display: flex;
   justify-content: space-evenly;

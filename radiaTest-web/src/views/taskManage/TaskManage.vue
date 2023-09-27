@@ -18,14 +18,21 @@
   >
     <template #header>
       <div class="nav-header">
-        <div class="nav-body">
-          <ul class="nav-wrapper">
+        <div class="nav-body" >
+          <ul class="nav-wrapper" >
             <li v-for="(item, index) in menu" :key="index" @click="menuClick(item)">
               <template v-if="showMenuItem(item)">
                 <a :class="{ active: menuSelect === item.id }">{{ item.text }}</a>
               </template>
             </li>
           </ul>
+<!--          <ul class="nav-wrapper" v-if="$route.params.workspace==='release'">-->
+<!--            <li v-for="(item, index) in versionMenu" :key="index" @click="menuClick(item)">-->
+<!--              <template v-if="showMenuItem(item)">-->
+<!--                <a :class="{ active: menuSelect === item.id }">{{ item.text }}</a>-->
+<!--              </template>-->
+<!--            </li>-->
+<!--          </ul>-->
         </div>
         <div class="nav-footer">
           <div v-show="isTask" class="footer-wrapper">
@@ -138,7 +145,6 @@ export default defineComponent({
   },
   setup() {
     const route = useRoute();
-
     const showMenuItem = (item) => {
       if (item.name !== 'testing') {
         if (window.atob(route.params?.workspace).search('group') !== -1) {
