@@ -17,15 +17,12 @@ import os
 import re
 import socket
 import datetime
+from pathlib import Path
 from uuid import uuid1
-from shutil import rmtree, move
 from shlex import quote
 from functools import lru_cache
 from werkzeug.utils import secure_filename
 
-import zipfile
-import rarfile
-import tarfile
 from flask import current_app
 from pypinyin import lazy_pinyin
 
@@ -140,69 +137,14 @@ class ZipImportFile(ImportFile):
         ]
         self.macos_cache = "__MACOSX"
         self.filename, self.filetype = self._validate_filetype()
-    
-    def unicoding(self, name, dest_dir):
-        according = False
 
-        try:
-            new_name = name.encode('cp437').decode('utf-8')
-        except (UnicodeEncodeError, UnicodeDecodeError):
-            try:
-                new_name = name.encode('gbk').decode('utf-8')
-            except (UnicodeEncodeError, UnicodeDecodeError):
-                new_name = name.encode('utf-8').decode('utf-8')
-                according = True
-
-        new_path = os.path.join(dest_dir, new_name)
-        if name != new_name and os.path.isdir(new_path):
-            rmtree(new_path)
-
-        move(
-            os.path.join(dest_dir, name), 
-            os.path.join(dest_dir, new_name)
-        )
-
-        return not according
-
-    def uncompress(self, dest_dir):
-        if self.filetype == 'zip':
-            zip_file = zipfile.ZipFile(self.filepath)
-            
-            require_delete_origin = True
-
-            for name in zip_file.namelist():
-                # 过滤MAC OS压缩生成的缓存文件
-                if self.macos_cache in name:
-                    continue
-                
-                zip_file.extract(name, dest_dir)
-
-                require_delete_origin = self.unicoding(name, dest_dir)
-            
-            if require_delete_origin:
-                tmp_filepath = os.path.join(dest_dir, zip_file.namelist()[0])
-                try:
-                    rmtree(tmp_filepath)
-                except NotADirectoryError:
-                    os.remove(tmp_filepath)
-                    raise RuntimeError(
-                        "zipped object should be a dictionary as importing case set"
-                    )
-            
-            zip_file.close()
-
-        elif self.filetype == 'rar':
-            rar = rarfile.RarFile(self.filepath)
-            os.chdir(dest_dir)
-            rar.extractall()
-            rar.close()
-
-        else:
-            tar = tarfile.open(name=self.filepath, mode="r:*")
-            for name in tar.getnames():
-                tar.extract(name, dest_dir)
-                self.unicoding(name, dest_dir)
-            tar.close()
+    def uncompress(self, dist_dir):
+        # 赋予uncompress解压目录权限
+        local_cmd("chmod 777 '{}'".format(dist_dir)).exec()
+        # 使用uncompress普通用户,安全解压
+        safe_uncompress = Path(__file__).parent.joinpath("safe_uncompress.py")
+        local_cmd("sudo -u uncompress python3 '{}' '{}' '{}' '{}'".format(
+            safe_uncompress, self.filetype, self.filepath, dist_dir)).exec()
 
 
 class ExcelImportFile(ImportFile):

@@ -19,8 +19,8 @@ LABEL maintainer="ethanzhang55@outlook.com"
 ENV TZ Asia/Shanghai
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
-ENV GIT_REPO https://gitee.com/openeuler/radiaTest
-ENV BRANCH master
+ENV GIT_REPO https://gitee.com/hukun66/radiaTest
+ENV BRANCH dev-build
 
 WORKDIR /opt
 
@@ -42,4 +42,7 @@ RUN npm cache clean --force \
     && npm run build \
     && cat ./deploy/nginx.conf > /etc/nginx/nginx.conf
 
+# 创建radiaTest用户
+RUN useradd -ms /bin/bash radiaTest
+USER radiaTest
 ENTRYPOINT [ "nginx", "-g", "daemon off;" ]

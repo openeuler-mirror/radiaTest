@@ -14,6 +14,7 @@
 #####################################
 #!/bin/bash -c
 
+mkdir -p /etc/radiaTest_ssl
 pushd /etc/radiaTest_ssl || exit
 
 mkdir conf certs newcerts crl csr private  

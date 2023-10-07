@@ -46,8 +46,32 @@ RUN crond \
 
 RUN cp -r ./conf/supervisor/* /etc/
 
-RUN bash ./install_rar.sh \
-    && pip3 install -r requirements.txt -i $PIP_REPO
+RUN bash ./install_rar.sh
+
+# 增加radiaTest、 uncompress(文件解压专用)
+RUN useradd -ms /bin/bash radiaTest
+RUN useradd -ms /bin/bash uncompress
+# 配置radiaTest免密操作uncompress
+RUN echo "radiatest ALL=(uncompress) NOPASSWD: ALL" >> /etc/sudoers
+
+# /opt/radiaTest增加权限
+RUN chown -R radiaTest:radiaTest /opt/radiaTest
+RUN chown -R radiaTest:radiaTest /etc/supervisord.d
+RUN chown -R radiaTest:radiaTest /etc/supervisord.conf
+
+RUN chmod -R 740 /opt/radiaTest
+RUN chmod -R 740 /etc/radiaTest_ssl
+RUN chmod -R 740 /etc/radiaTest
+
+# 解压脚本增加执行权限
+RUN RUN chmod +x /opt/radiaTest/radiaTest-server/server/utils/safe_uncompress.py
+
+
+# 授予启动supervisord的相应用户的权限
+RUN chmod 777 /run
+USER radiaTest
+ENV PATH="/home/radiaTest/.local/bin:${PATH}"
+RUN pip3 install -r requirements.txt -i $PIP_REPO
 
 CMD bash /opt/radiaTest/build/docker-compose/containers/web/supervisor/init_db.sh \
     && supervisord -n

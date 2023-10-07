@@ -59,7 +59,10 @@ services:
             - websockify
 
     nginx:
-        image: nginx:1.21.5
+        image: web/nginx_web:radiaTest
+        build:
+            context: ./nginx_web
+            dockerfile: Dockerfile
         restart: always
         ports:
             - 21510:21510

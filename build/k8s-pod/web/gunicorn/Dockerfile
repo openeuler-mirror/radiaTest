@@ -19,9 +19,9 @@ LABEL maintainer="ethanzhang55@outlook.com"
 ENV TZ Asia/Shanghai
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
-ENV GIT_REPO https://gitee.com/openeuler/radiaTest
+ENV GIT_REPO https://gitee.com/hukun66/radiaTest
 ENV PIP_REPO https://pypi.tuna.tsinghua.edu.cn/simple
-ENV BRANCH master
+ENV BRANCH dev-build
 
 WORKDIR /opt
 
@@ -37,8 +37,26 @@ RUN dnf install -y git \
 WORKDIR /opt/radiaTest/radiaTest-server/
 
 RUN bash ./install_rar.sh 
+RUN bash /opt/radiaTest/build/k8s-pod/web/gunicorn/init_ca.sh
+
+# 切换到radiaTest用户
+# 增加radiaTest、 uncompress(文件解压专用)
+RUN useradd -ms /bin/bash radiaTest
+RUN useradd -ms /bin/bash uncompress
+# 配置radiaTest免密操作uncompress
+RUN echo "radiatest ALL=(uncompress) NOPASSWD: ALL" >> /etc/sudoers
+# /opt/radiaTest增加权限
+RUN chown -R radiaTest:radiaTest /opt/radiaTest
+RUN chown -R radiaTest:radiaTest /etc/radiaTest_ssl
+
+RUN chmod -R 740 /opt/radiaTest
+RUN chmod -R 740 /etc/radiaTest_ssl
+# 解压脚本增加执行权限
+RUN RUN chmod +x /opt/radiaTest/radiaTest-server/server/utils/safe_uncompress.py
+
+USER radiaTest
+ENV PATH="/home/radiaTest/.local/bin:${PATH}"
 RUN pip3 install -r requirements.txt -i $PIP_REPO || pip3 install -r requirements.txt
 
 CMD bash /opt/radiaTest/build/k8s-pod/web/gunicorn/init_db.sh \
-    && bash /opt/radiaTest/build/k8s-pod/web/gunicorn/init_ca.sh\
     && gunicorn -c gunicorn/gunicorn.conf.py manage:app

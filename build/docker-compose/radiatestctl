@@ -15,6 +15,9 @@
 
 # /bin/sh
 
+# 创建radiaTest用户
+useradd -ms /bin/bash radiaTest
+
 GIT_REPO=https://gitee.com/openeuler/radiaTest
 PIP_REPO=https://pypi.tuna.tsinghua.edu.cn/simple
 
@@ -81,6 +84,10 @@ while getopts "u:d:" option; do
             if [ ! -f /etc/radiaTest/server.ini ]; then
                 cp ${OET_PATH}/conf/server.ini /etc/radiaTest/
             fi
+            # 赋予挂在目录权限
+            chown -R radiaTest:radiaTest /var/log/radiaTest-server
+            chown -R radiaTest:radiaTest /var/lib/radiaTest/migrations
+            chown -R radiaTest:radiaTest /etc/radiaTest
             ;;
         messenger)
             if [ ! -d /etc/radiaTest ]; then
@@ -90,6 +97,10 @@ while getopts "u:d:" option; do
             if [ ! -f /etc/radiaTest/messenger.ini ]; then
                 cp ${OET_PATH}/conf/messenger.ini /etc/radiaTest/
             fi
+            # 赋予挂在目录权限
+            chown -R radiaTest:radiaTest /var/lib/vnc_tokens
+            chown -R radiaTest:radiaTest /var/log/radiaTest-messenger
+            chown -R radiaTest:radiaTest /etc/radiaTest
             ;;
         worker)
             if [ ! -d /etc/radiaTest ]; then

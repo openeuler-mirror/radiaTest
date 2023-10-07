@@ -17,6 +17,7 @@ from flask_restful import Resource
 from flask_pydantic import validate
 
 from server import swagger_adapt
+from server import casbin_enforcer
 from server.utils.cla_util import ClaSignSchema
 from server.utils.auth_util import auth
 from server.utils.response_util import response_collect
@@ -38,6 +39,8 @@ from .handlers import handler_get_user_machine
 from .handlers import handler_login_callback
 from .handlers import handler_get_user_case_commit
 from .handlers import handler_get_user_asset_rank
+from .handlers import handler_private
+
 
 
 oauth = Blueprint('oauth', __name__)
@@ -322,3 +325,12 @@ class UserAssetRank(Resource):
     })
     def get(self, query: PageBaseSchema):
         return handler_get_user_asset_rank(query)
+
+
+class UserPrivate(Resource):
+    @auth.login_required()
+    @casbin_enforcer.enforcer
+    @response_collect
+    @validate()
+    def get(self, user_id):
+        return handler_private(user_id)

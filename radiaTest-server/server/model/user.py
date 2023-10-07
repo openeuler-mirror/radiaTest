@@ -12,6 +12,7 @@
 # @Date    :
 # @License : Mulan PSL v2
 #####################################
+import re
 
 from flask import g
 from sqlalchemy import func, select
@@ -43,14 +44,32 @@ class User(db.Model, BaseModel):
     re_user_requirement_publisher = db.relationship("RequirementPublisher", backref="user")
     re_user_requirement_acceptor = db.relationship("RequirementAcceptor", backref="user")
 
+    # 个人手机号邮箱隐私处理
+    @staticmethod
+    def mask_phone(phone):
+        if isinstance(phone, str):
+            ret = re.match(r"^1[3-9]\d{9}$", phone)
+            if ret:
+                return phone[:3] + "****" + phone[-4:]
+        return ""
+
+    @staticmethod
+    def mask_cla_email(cla_email):
+        if isinstance(cla_email, str):
+            ret = re.match(r"^[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)*@[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)+$", cla_email)
+            if ret:
+                left, right = cla_email.split("@")
+                return cla_email[0] + "*" * (len(left) - 1) + right
+        return ""
+
     def _get_basic_info(self):
         return {
             "user_id": self.user_id,
             "user_login": self.user_login,
             "user_name": self.user_name,
-            "phone": self.phone,
+            "phone": self.mask_phone(self.phone),
             "avatar_url": self.avatar_url,
-            "cla_email": self.cla_email
+            "cla_email": self.mask_phone(self.cla_email)
         }
 
     def _get_roles(self):
