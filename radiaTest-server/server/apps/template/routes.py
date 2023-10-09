@@ -21,11 +21,10 @@ from flask_restful import Resource
 from flask_pydantic import validate
 
 from server.model.template import Template
-from server.model.testcase import Case
-from server.utils.db import Edit
 from server.utils.auth_util import auth
+from server.utils.page_util import PageUtil
 from server.utils.response_util import RET, response_collect, workspace_error_collect
-from server.schema.template import TemplateUpdate, TemplateCloneBase, TemplateCreateByimportFile
+from server.schema.template import TemplateUpdate, TemplateCloneBase, TemplateCreateByimportFile, TemplateQuery
 from server.utils.permission_utils import GetAllByPermission
 from server.utils.resource_utils import ResourceManager
 from server import casbin_enforcer, swagger_adapt
@@ -41,6 +40,7 @@ def get_template_tag():
 
 class TemplateEvent(Resource):
     @auth.login_required()
+    @validate()
     @response_collect
     @swagger_adapt.api_schema_model_map({
         "__module__": get_template_tag.__module__,   # 获取当前接口所在模块
@@ -51,13 +51,7 @@ class TemplateEvent(Resource):
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
         "request_schema_model": TemplateCreateByimportFile,  # 当前接口请求体参数schema校验器
     })
-    def post(self):
-        _form = dict()
-        for key, value in request.form.items():
-            if value:
-                _form[key] = value
-
-        body = TemplateCreateByimportFile(**_form)
+    def post(self, body: TemplateCreateByimportFile):
         template = Template.query.filter_by(name=body.name).first()
         if template:
             return jsonify(error_code=RET.DATA_EXIST_ERR, error_msg="the template exists")
@@ -91,11 +85,12 @@ class TemplateEvent(Resource):
                     "git_repo_id": body.git_repo_id
                 }
             )
-        elif request.form.get("cases"):
+        else:
             _body = body.__dict__
-            _ = ResourceManager("template").add("api_infos.yaml", _body)
+
             try:
-                cases = map(int, request.form.get("cases").split(','))
+                cases = map(int, _body.pop("cases").split(','))
+                _ = ResourceManager("template").add("api_infos.yaml", _body)
             except ValueError:
                 return jsonify(error_code=RET.PARMA_ERR, error_msg="cases param error.")
             template = Template.query.filter_by(name=body.name).first()
@@ -106,6 +101,7 @@ class TemplateEvent(Resource):
         return jsonify(error_code=RET.OK, error_msg="OK")
 
     @auth.login_required
+    @validate()
     @response_collect
     @workspace_error_collect
     @swagger_adapt.api_schema_model_map({
@@ -113,12 +109,28 @@ class TemplateEvent(Resource):
         "resource_name": "TemplateEvent",  # 当前接口视图函数名
         "func_name": "get",   # 当前接口所对应的函数名
         "tag": get_template_tag(),  # 当前接口所对应的标签
-        "summary": "模糊查询模版信息",  # 当前接口概述
+        "summary": "分页查询模版信息",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "query_schema_model": TemplateQuery
     })
-    def get(self, workspace: str):
-        body = request.args.to_dict()
-        return GetAllByPermission(Template, workspace).fuzz(body)
+    def get(self, workspace: str, query: TemplateQuery):
+
+        filter_params = GetAllByPermission(Template, workspace).get_filter()
+
+        if query.name is not None:
+            filter_params.append(Template.name.like(f'%{query.name}%'))
+        if query.description is not None:
+            filter_params.append(
+                Template.description.like(f'%{query.description}%'))
+        if query.milestone_id is not None:
+            filter_params.append(Template.milestone_id == query.milestone_id)
+        if query.git_repo_id is not None:
+            filter_params.append(Template.git_repo_id == query.git_repo_id)
+        if query.type is not None:
+            filter_params.append(Template.type == query.type)
+        query_filter = Template.query.filter(*filter_params)
+
+        return PageUtil.get_data(query_filter, query)
 
 
 class TemplateItemEvent(Resource):

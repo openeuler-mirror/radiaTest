@@ -21,11 +21,8 @@ from pydantic.class_validators import root_validator
 from pydantic.networks import HttpUrl
 from typing_extensions import Literal
 from server.model.testcase import Suite, Case
-from server.schema.base import UpdateBaseModel, PageBaseSchema
-from server.schema import MachineType, PermissionType, CaseNodeType
 from server.schema.base import PermissionBase, UpdateBaseModel, PageBaseSchema
 from server.schema import MachineType, PermissionType, CaseNodeType, CommitType
-
 
 
 class PermissionBaseSchema(BaseModel):
@@ -156,6 +153,7 @@ class SuiteQuery(PageBaseSchema):
     owner: str = None
     description: str = None
     deleted: bool = False
+    git_repo_id: Optional[int]
 
 
 class SuiteBase(BaseModel):
@@ -241,6 +239,7 @@ class CaseQuery(PageBaseSchema):
     description: str = None
     automatic: bool = None
     deleted: bool = False
+    suite_id: int = None
 
 
 class CaseCreate(CaseBase):
@@ -421,3 +420,14 @@ class OrphanSuitesQuerySchema(PageBaseSchema):
 
 class CasefileExportSchema(BaseModel):
     filetype: Literal['xlsx', 'md'] = 'xlsx'
+
+
+class CaseNodeBodyQuerySchema(BaseModel):
+    milestone_id: int
+
+
+class CaseV2Query(PageBaseSchema):
+    name: str = None
+    baseline_id: int = None
+    description: str = None
+    automatic: bool = None

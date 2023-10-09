@@ -46,13 +46,18 @@ class Template(BaseModel, PermissionBaseModel, db.Model):
         db.Integer(), db.ForeignKey("milestone.id"), nullable=False
     )
 
-    git_repo_id = db.Column(
-        db.Integer(), db.ForeignKey("git_repo.id"), nullable=False
-    )
+    git_repo_id = db.Column(db.Integer(), db.ForeignKey("git_repo.id"))
 
     creator_id = db.Column(db.String(512), db.ForeignKey("user.user_id"))
     group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
     org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
+    type = db.Column(
+        db.Enum(
+            "automatic",  # 自动化测试模版
+            "manual",  # 手工测试模版
+        ),
+        default="automatic"
+    )
 
     def to_json(self):
         author = User.query.filter_by(user_id=self.creator_id).first().user_name
@@ -95,5 +100,6 @@ class Template(BaseModel, PermissionBaseModel, db.Model):
             "template_type": self.permission_type,
             "creator_id": self.creator_id,
             "group_id": self.group_id,
-            "org_id": self.org_id
+            "org_id": self.org_id,
+            "type": self.type
         }

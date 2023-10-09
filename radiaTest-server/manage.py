@@ -92,10 +92,15 @@ def swagger_init():
                     resource_name = view_func.view_class.__name__
                     if resource_name in api_info_map[__module__]:
                         if method in api_info_map[__module__][resource_name]:
-                            api_info_map[__module__][resource_name][method].update({
-                                "url": url,
-                                "method": method,
-                            })
+                            # 接口存在多路径
+                            if "url" in api_info_map[__module__][resource_name][method]:
+                                api_info_map[__module__][resource_name][method]["url"].append(url)
+                            else:
+                                api_info_map[__module__][resource_name][method].update({
+                                    "url": [url],
+                                    "method": method,
+                                })
+
     # 保存api map信息
     swagger_adapt.save_api_info_map()
 

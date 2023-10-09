@@ -364,7 +364,7 @@ class GetAllByPermission:
             "current_org_id"
         )
         self.re_user_groups = ReUserGroup.query.filter_by(
-            user_id=g.user_id, org_id=int(self.current_org_id)
+            user_id=g.user_id, org_id=int(self.current_org_id), user_add_group_flag=True
         ).all()
 
         self.filter_params = self._get_filter_params(workspace)

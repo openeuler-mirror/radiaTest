@@ -16,12 +16,11 @@
 from datetime import datetime
 import pytz
 
-from flask import jsonify, g
 
-from server import db, redis_client
+from server import db
 from server.model import Case, ManualJob, ManualJobStep
-from server.utils.response_util import RET
-from server.utils.db import collect_sql_error
+from server.model.manualjob import ManualJobGroup
+from server.utils.db import collect_sql_error, Insert
 from server.utils.text_utils import TextItemSplitter, DefaultNumeralRule
 from celeryservice.lib import TaskHandlerBase
 
@@ -38,13 +37,21 @@ class ManualJobAsyncHandler(TaskHandlerBase):
         cases = map(int, manual_job_dict.get('cases').split(','))
         manual_job_dict.pop('cases')
         name = manual_job_dict['name']
+        # 手工任务组创建
+        manual_job_group = ManualJobGroup(**body)
+        db.session.add(manual_job_group)
+        db.session.flush()
+        manual_job_dict["job_group_id"] = manual_job_group.id
+        success_list = []
+        failed_list = []
         for case_id in cases:
             _case = Case.query.get(case_id)
             if not _case:
+                failed_list.append(case_id)
                 continue
             manual_job_dict['case_id'] = case_id
-            manual_job_dict['name'] = f"{name}_{str(case_id)}_\
-            {datetime.now(tz=pytz.timezone('Asia/Shanghai')).strftime('%Y%m%d%H%M%S')}"
+            manual_job_dict['name'] = f"{name}_{str(case_id)}_" \
+                                      f"{datetime.now(tz=pytz.timezone('Asia/Shanghai')).strftime('%Y%m%d%H%M%S')}"
             # 从所属的Case那里计算总步骤数
             if _case.steps is not None and _case.steps != "":
                 text_item_splitter = TextItemSplitter(
@@ -77,6 +84,17 @@ class ManualJobAsyncHandler(TaskHandlerBase):
                 manual_job_step_dict["operation"] = step_operation_dict.get(step_operation_dict_key_list[cnt])
                 manual_job_step = ManualJobStep(**manual_job_step_dict)
                 db.session.add(manual_job_step)
-
+            success_list.append(case_id)
+        if failed_list:
+            db.session.rollback()
+            return False, {
+                "success_list": success_list,
+                "failed_list": failed_list,
+            }
+        else:
             db.session.commit()
+            return True, {
+                "success_list": success_list,
+                "failed_list": failed_list,
+            }
 

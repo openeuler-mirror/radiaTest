@@ -17,6 +17,7 @@ import os
 import re
 import threading
 import uuid
+from copy import deepcopy
 from functools import wraps
 from pathlib import Path
 from typing import Optional, List, Dict
@@ -54,9 +55,6 @@ class SwaggerJsonAdapt(object):
         self.root_path = Path(__file__).parent
         self.openai_yaml = self.root_path.joinpath("openapi.yaml")
         self.swagger_json = {}
-        # 初始化时删除旧的swagger_file
-        if self.swagger_file.exists():
-            os.remove(self.swagger_file.absolute())
 
     def add_query_parameters(self, schema_model):
         if not isinstance(schema_model, type) or not issubclass(schema_model, BaseModel):
@@ -267,6 +265,9 @@ class SwaggerJsonAdapt(object):
     def save_api_info_map(self):
         # 限制保存映射次数
         with self._instance_lock:
+            # 删除旧的swagger_file
+            if self.swagger_file.exists():
+                os.remove(self.swagger_file.absolute())
             self.load_swagger_json()
             for _, resource_info in self.api_info_map.items():
                 for _, func_info in resource_info.items():
@@ -274,7 +275,10 @@ class SwaggerJsonAdapt(object):
                         url = api_schema_dict.get("url")
                         method = api_schema_dict.get("method")
                         if url and method:
-                            self.add_api(api_schema_dict)
+                            for url_item in url:
+                                api_dict = deepcopy(api_schema_dict)
+                                api_dict["url"] = url_item
+                                self.add_api(api_dict)
             self.save_swagger_yaml()
 
     def api_schema_model_map(self, api_schema_dict):

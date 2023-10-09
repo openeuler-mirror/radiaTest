@@ -13,8 +13,8 @@
 # @License : Mulan PSL v2
 #####################################
 
-from typing import Optional
-from pydantic import BaseModel, root_validator
+from typing import Optional, Literal
+from pydantic import BaseModel
 from server.schema.base import PageBaseSchema, PermissionBase
 
 
@@ -27,6 +27,7 @@ class ManualJobCreate(PermissionBase):
 class ManualJobQuery(PageBaseSchema):
     status: int
     case_id: Optional[int]
+    job_group_id: Optional[int]
     name: Optional[str]
 
 
@@ -38,3 +39,27 @@ class ManualJobLogModify(BaseModel):
 
 class ManualJobLogDelete(BaseModel):
     step: Optional[int]
+
+
+class ManualJobGroupQuery(PageBaseSchema):
+    milestone_id: Optional[int]
+    name: Optional[str]
+    status: int = 0  # get请求为str类型，无法自动转换只能指定int  0执行中 、1已完成
+
+
+class ManualJobGroupStatus(BaseModel):
+    status: Literal[0, 1] = 1
+
+
+class ManualJobGroupReport(BaseModel):
+    report: str
+
+
+class ManualJobModify(BaseModel):
+    result: Literal[0, 1, 2] = 1  # 0 失败 1 成功  2 block
+    remark: Optional[str]
+
+
+class ManualJobGroupCopySchema(BaseModel):
+    id: int
+    milestone_id: Optional[int]

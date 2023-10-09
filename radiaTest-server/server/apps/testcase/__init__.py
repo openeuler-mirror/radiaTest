@@ -58,6 +58,7 @@ from server.apps.testcase.routes import (
     OrphanGroupSuitesEvent,
     CaseNodeSuitesEvent,
     QueryCaseSetNodeEvent,
+    CaseEventV2
 )
 
 
@@ -112,7 +113,7 @@ def init_api(api: Api):
     api.add_resource(
         BaselineEvent,
         "/api/v1/baseline",
-        methods=["POST"]
+        methods=["GET", "POST"]
     )
     api.add_resource(
         PreciseCaseEvent, 
@@ -275,4 +276,8 @@ def init_api(api: Api):
     api.add_resource(
         OrgSuiteExportEvent,
         "/api/v1/org/<int:org_id>/case-node/<int:case_node_id>/export",
+    )
+    api.add_resource(
+        CaseEventV2,
+        "/api/v1/ws/<string:workspace>/caseV2",
     )
