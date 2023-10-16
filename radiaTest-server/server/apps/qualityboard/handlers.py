@@ -913,30 +913,29 @@ class PackagCompareResultExportHandler:
         return wb
 
     def get_compare_result_file(self, file_path, new_result=False, pkg_type="same"):
-        if os.path.exists(file_path) and not new_result:
-            # 读取保存的文件
-            filedata = open(file_path, 'rb').read()
+        # 保证获取excel为最新数据
+        if os.path.exists(file_path):
+            os.remove(file_path)
+        wb = None
+        if pkg_type == "same":
+            wb = self.get_same_pkg_compare_result()
         else:
-            wb = None
-            if pkg_type == "same":
-                wb = self.get_same_pkg_compare_result()
-            else:
-                wb = self.get_pkg_compare_result()
+            wb = self.get_pkg_compare_result()
 
-            if wb is None:
-                return jsonify(
-                    error_code=RET.NO_DATA_ERR,
-                    error_msg="no compare data.",
-                )
+        if wb is None:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="no compare data.",
+            )
 
-            # 保存比对结果到文件中
-            wb.save(file_path)
+        # 保存比对结果到文件中
+        wb.save(file_path)
 
-            # 保存比对结果到文件流中
-            stream = io.BytesIO()
-            wb.save(stream)
-            filedata = stream.getvalue()
-            stream.close()
+        # 保存比对结果到文件流中
+        stream = io.BytesIO()
+        wb.save(stream)
+        filedata = stream.getvalue()
+        stream.close()
 
         response = make_response(filedata)
         response.headers["Content-Disposition"] = f'attachment; filename={file_path.split("/")[-1]}'
@@ -1099,21 +1098,28 @@ class ReportHandler(object):
     def issue_sort_compare(self, issue):
         """
         issue列表复杂排序
-        排序优先展示block、逾期，再按优先级排序
-        block > 逾期 > 优先级
+        排序权重 严重：500 block 200  逾期 0-100  无责任人 50  无优先级 20
+        严重 > block > 逾期 > 优先级
         """
         score = 0
+        if issue.get("priority_human") == "严重":
+            score += 500
+        elif issue.get("priority_human") == "无优先级":
+            score += 20
+        else:
+            score += int(issue["priority"])
+
         if issue["is_block"] == "是":
             score += 200
         if issue["overdue_days"].isdigit() and self.max_overdue_days > 0:
             score += 100 * int(issue["overdue_days"]) / self.max_overdue_days
-        score += int(issue["priority"])
+        if issue.get("assignee_username") == "未知":
+            score += 50
         issue["score"] = score
         return score
 
     def issue_statistic(self, issue_list):
         # 遍历所有issue
-        abnormal_list = []  # 严重、block issue
         unclosed_list = []  # 所有未闭环issue
         sig_count = {}  # sig统计
         milestone_count = {}  # 里程碑统计
@@ -1220,7 +1226,6 @@ class ReportHandler(object):
 
             if is_block == "是" or issue["priority_human"] == "严重":
                 issue_count["focus"] += 1
-                abnormal_list.append(format_issue)
             if status not in closed_status:
                 unclosed_list.append(format_issue)
 
@@ -1232,7 +1237,10 @@ class ReportHandler(object):
 
         for milestone, milestone_info in milestone_count.items():
             milestone_info["closed_rate"] = self.get_ratio(milestone_info["closed"], milestone_info["total"])
-
+        # 完成率、验收率
+        completed_rate = self.get_ratio(issue_count["status"].get("已完成", 0) + issue_count["status"].get("已验收", 0),
+                                        issue_count["total"])
+        approved_rate = self.get_ratio(issue_count["status"].get("已验收", 0), issue_count["total"])
         version_di = self.get_di(issue_count["priority"])
 
         return {
@@ -1242,7 +1250,9 @@ class ReportHandler(object):
             "milestone_count": milestone_count,
             "issue_count": issue_count,
             "sig_count": sig_count,
-            "abnormal_list": sorted(abnormal_list, key=self.issue_sort_compare, reverse=True),
+            "is_round": True if self.round_id else False,
+            "completed_rate": completed_rate,
+            "approved_rate": approved_rate,
             "unclosed_list": sorted(unclosed_list, key=self.issue_sort_compare, reverse=True),
         }
 
