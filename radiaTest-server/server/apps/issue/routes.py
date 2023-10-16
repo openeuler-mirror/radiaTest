@@ -18,6 +18,7 @@ from flask import request, jsonify
 from flask_restful import Resource
 from flask_pydantic import validate
 
+from server import swagger_adapt
 from server.utils.auth_util import auth
 from server.utils.response_util import response_collect, RET
 from server.model.milestone import Milestone
@@ -33,16 +34,41 @@ from server.apps.issue.handler import (
 )
 
 
+def get_issue_tag():
+    return {
+        "name": "issue",
+        "description": "issue相关接口",
+    }
+
+
 class IssueEvent(Resource):
     @auth.login_required()
     @response_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_issue_tag.__module__,  # 获取当前接口所在模块
+        "resource_name": "IssueEvent",  # 当前接口视图函数名
+        "func_name": "post",  # 当前接口所对应的函数名
+        "tag": get_issue_tag(),  # 当前接口所对应的标签
+        "summary": "创建issue",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "request_schema_model": CreateIssueSchema,
+    })
     def post(self, body: CreateIssueSchema):
         return GiteeV8IssueHandler.create_issue(body=body)
 
     @auth.login_required()
     @response_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_issue_tag.__module__,  # 获取当前接口所在模块
+        "resource_name": "IssueEvent",  # 当前接口视图函数名
+        "func_name": "get",  # 当前接口所对应的函数名
+        "tag": get_issue_tag(),  # 当前接口所对应的标签
+        "summary": "分页查询issue",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "query_schema_model": QueryIssueSchema,   # 当前接口查询参数schema校验器
+    })
     def get(self, query: QueryIssueSchema):
         return GiteeV8IssueHandler.get_issues(query=query)
 
@@ -51,6 +77,14 @@ class IssueItemEvent(Resource):
     @auth.login_required()
     @response_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_issue_tag.__module__,  # 获取当前接口所在模块
+        "resource_name": "IssueItemEvent",  # 当前接口视图函数名
+        "func_name": "get",  # 当前接口所对应的函数名
+        "tag": get_issue_tag(),  # 当前接口所对应的标签
+        "summary": "issue详情",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+    })
     def get(self, issue_id):
         _issue = Issue.query.filter_by(id=issue_id).first()
         if _issue:
@@ -70,6 +104,14 @@ class GiteeIssuesItem(Resource):
     @auth.login_required()
     @response_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_issue_tag.__module__,  # 获取当前接口所在模块
+        "resource_name": "GiteeIssuesItem",  # 当前接口视图函数名
+        "func_name": "get",  # 当前接口所对应的函数名
+        "tag": get_issue_tag(),  # 当前接口所对应的标签
+        "summary": "gitee平台issue详情",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+    })
     def get(self, gitee_issue_id):
         return GiteeV8BaseIssueHandler().get(gitee_issue_id)
 
@@ -77,6 +119,14 @@ class GiteeIssuesItem(Resource):
 class GiteeIssuesType(Resource):
     @auth.login_required
     @response_collect
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_issue_tag.__module__,  # 获取当前接口所在模块
+        "resource_name": "GiteeIssuesType",  # 当前接口视图函数名
+        "func_name": "get",  # 当前接口所对应的函数名
+        "tag": get_issue_tag(),  # 当前接口所对应的标签
+        "summary": "当前用户所属组织的issue类型(gitee平台redis缓存数据)",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+    })
     def get(self):
         return GiteeV8IssueHandler.get_issue_type()
 
@@ -84,6 +134,14 @@ class GiteeIssuesType(Resource):
 class GiteeIssuesState(Resource):
     @auth.login_required
     @response_collect
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_issue_tag.__module__,  # 获取当前接口所在模块
+        "resource_name": "GiteeIssuesState",  # 当前接口视图函数名
+        "func_name": "get",  # 当前接口所对应的函数名
+        "tag": get_issue_tag(),  # 当前接口所对应的标签
+        "summary": "当前用户所属组织的issue状态(gitee平台redis缓存数据)",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+    })
     def get(self):
         return GiteeV8IssueHandler.get_issue_state()
 
@@ -92,8 +150,16 @@ class GiteeProjectEvent(Resource):
     @auth.login_required()
     @response_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_issue_tag.__module__,  # 获取当前接口所在模块
+        "resource_name": "GiteeProjectEvent",  # 当前接口视图函数名
+        "func_name": "get",  # 当前接口所对应的函数名
+        "tag": get_issue_tag(),  # 当前接口所对应的标签
+        "summary": "当前用户所属组织的所有项目(gitee平台redis缓存数据)",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+    })
     def get(self):
-        data =  GiteeV8BaseIssueHandler().get_all_project()
+        data = GiteeV8BaseIssueHandler().get_all_project()
         return jsonify(
             error_code=RET.OK,
             error_msg="OK",
@@ -105,6 +171,15 @@ class GiteeIssuesV8(Resource):
     @auth.login_required()
     @response_collect
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_issue_tag.__module__,  # 获取当前接口所在模块
+        "resource_name": "GiteeIssuesV8",  # 当前接口视图函数名
+        "func_name": "get",  # 当前接口所对应的函数名
+        "tag": get_issue_tag(),  # 当前接口所对应的标签
+        "summary": "通过里程碑id查询所有gitee平台issue数据",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "query_schema_model": GiteeIssueQueryV8
+    })
     def get(self, query: GiteeIssueQueryV8):
         milestone = Milestone.query.filter_by(id=query.milestone_id).first()
         if not milestone or milestone.is_sync is False:
@@ -124,6 +199,14 @@ class GiteeIssuesV8(Resource):
 
 class UpdateGiteeIssuesTypeState(Resource):
     @auth.login_required
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_issue_tag.__module__,  # 获取当前接口所在模块
+        "resource_name": "UpdateGiteeIssuesTypeState",  # 当前接口视图函数名
+        "func_name": "post",  # 当前接口所对应的函数名
+        "tag": get_issue_tag(),  # 当前接口所对应的标签
+        "summary": "同步更新issue的类型、状态数据至redis",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+    })
     def post(self):
         from server import redis_client
         from server.utils.redis_util import RedisKey

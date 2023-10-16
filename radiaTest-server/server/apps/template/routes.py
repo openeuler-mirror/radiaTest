@@ -28,13 +28,29 @@ from server.utils.response_util import RET, response_collect, workspace_error_co
 from server.schema.template import TemplateUpdate, TemplateCloneBase, TemplateCreateByimportFile
 from server.utils.permission_utils import GetAllByPermission
 from server.utils.resource_utils import ResourceManager
-from server import casbin_enforcer
+from server import casbin_enforcer, swagger_adapt
 from server.apps.template.handler import TemplateCaseImportHandler
+
+
+def get_template_tag():
+    return {
+        "name": "模版",
+        "description": "模版相关接口",
+    }
 
 
 class TemplateEvent(Resource):
     @auth.login_required()
     @response_collect
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_template_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "TemplateEvent",  # 当前接口视图函数名
+        "func_name": "post",   # 当前接口所对应的函数名
+        "tag": get_template_tag(),  # 当前接口所对应的标签
+        "summary": "创建模版",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "request_schema_model": TemplateCreateByimportFile,  # 当前接口请求体参数schema校验器
+    })
     def post(self):
         _form = dict()
         for key, value in request.form.items():
@@ -92,6 +108,14 @@ class TemplateEvent(Resource):
     @auth.login_required
     @response_collect
     @workspace_error_collect
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_template_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "TemplateEvent",  # 当前接口视图函数名
+        "func_name": "get",   # 当前接口所对应的函数名
+        "tag": get_template_tag(),  # 当前接口所对应的标签
+        "summary": "模糊查询模版信息",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+    })
     def get(self, workspace: str):
         body = request.args.to_dict()
         return GetAllByPermission(Template, workspace).fuzz(body)
@@ -101,6 +125,15 @@ class TemplateItemEvent(Resource):
     @auth.login_required
     @validate()
     @casbin_enforcer.enforcer
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_template_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "TemplateItemEvent",  # 当前接口视图函数名
+        "func_name": "put",   # 当前接口所对应的函数名
+        "tag": get_template_tag(),  # 当前接口所对应的标签
+        "summary": "编辑模版",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "request_schema_model": TemplateUpdate
+    })
     def put(self, template_id):
         template = Template.query.filter_by(id=template_id).first()
         if not template:
@@ -164,6 +197,14 @@ class TemplateItemEvent(Resource):
         return jsonify(error_code=RET.OK, error_msg="OK")
 
     @auth.login_required
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_template_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "TemplateItemEvent",  # 当前接口视图函数名
+        "func_name": "get",   # 当前接口所对应的函数名
+        "tag": get_template_tag(),  # 当前接口所对应的标签
+        "summary": "获取模版信息",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+    })
     def get(self, template_id):
         template = Template.query.filter_by(id=template_id).first()
         if not template:
@@ -188,6 +229,14 @@ class TemplateItemEvent(Resource):
     @auth.login_required
     @validate()
     @casbin_enforcer.enforcer
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_template_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "TemplateItemEvent",  # 当前接口视图函数名
+        "func_name": "delete",   # 当前接口所对应的函数名
+        "tag": get_template_tag(),  # 当前接口所对应的标签
+        "summary": "删除模版",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+    })
     def delete(self, template_id):
         return ResourceManager("template").del_single(template_id)
 
@@ -195,6 +244,15 @@ class TemplateItemEvent(Resource):
 class TemplateCloneEvent(Resource):
     @auth.login_required
     @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_template_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "TemplateCloneEvent",  # 当前接口视图函数名
+        "func_name": "post",   # 当前接口所对应的函数名
+        "tag": get_template_tag(),  # 当前接口所对应的标签
+        "summary": "模版克隆",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "request_schema_model": TemplateCloneBase
+    })
     def post(self, body: TemplateCloneBase):
         _template = Template.query.filter_by(id=body.id).first()
         if not _template:

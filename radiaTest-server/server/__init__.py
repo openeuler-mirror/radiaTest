@@ -17,18 +17,23 @@ import os
 import json
 import logging
 import logging.config
+from pathlib import Path
 
 import pymysql
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from flask_socketio import SocketIO
+from flask_swagger_ui import get_swaggerui_blueprint
+
 
 from .utils.redis_util import RedisClient
 from importlib import import_module
 from .plugins.flask_authz import CasbinEnforcer
+from server.config.settings import Config
 from server.utils.config_util import loads_config_ini
 from server.utils.celery_utils import init_celery
+from server.plugins.swagger.adapt_swagger import SwaggerJsonAdapt
 
 
 db = SQLAlchemy()
@@ -38,6 +43,19 @@ socketio = SocketIO(
     async_mode="gevent",
 )
 casbin_enforcer = CasbinEnforcer()
+
+# swagger
+swagger_url = Config.SWAGGER_URL  # nginx代理原因, 必须以/static路径开头才能访问
+api_url = Config.SWAGGER_YAML_FILE  # 实际api文件, 将文件放入{SWAGGER_URL}/dist/
+swagger_blueprint = get_swaggerui_blueprint(
+    swagger_url,  # Swagger UI static files will be mapped to '{SWAGGER_URL}/dist/'
+    api_url,
+    config={  # Swagger UI config overrides
+        'app_name': "api docs application"
+    }
+)
+Path(swagger_blueprint.static_folder)
+swagger_adapt = SwaggerJsonAdapt(Path(swagger_blueprint.static_folder).joinpath(api_url))
 
 
 def init_logging(default_level, cfg_path):
@@ -90,6 +108,11 @@ def create_app(**kwargs):
     adapter = Adapter(filtered=True)
     
     casbin_enforcer.init_app(app, adapter)
+
+    # 生产环境默认关闭swagger
+    swagger_switch = Config.SWAGGER_SWITCH
+    if isinstance(swagger_switch, str) and swagger_switch.lower() == "on":
+        app.register_blueprint(swagger_blueprint, url_prefix=swagger_url)
 
     # apps
     apps = import_module('server.apps')
