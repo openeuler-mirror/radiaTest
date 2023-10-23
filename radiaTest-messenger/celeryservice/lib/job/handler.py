@@ -451,7 +451,8 @@ class RunAt(RunJob):
                 "/api/v1/openeuler/at",
                 {
                     "build_name": self._body.get("release_url"),
-                    "at_job_name": ",".join(at_job_name)
+                    "at_job_name": ",".join(at_job_name),
+                    "at_job_ids": ",".join(map(str, job_ids))
                 },
                 self.user.get("auth")
             )

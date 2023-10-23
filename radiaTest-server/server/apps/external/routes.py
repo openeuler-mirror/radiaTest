@@ -69,6 +69,26 @@ def get_external_tag():
     }
 
 
+def get_at_messenger(body):
+    pmachine_info = Pmachine.query.filter_by(
+        description=current_app.config.get("OPENQA_SERVER"), state="occupied"
+    ).first()
+    if not pmachine_info:
+        return {
+            "error_code": RET.NO_DATA_ERR,
+            "error_msg": "the openqa server machine does not exist"
+        }
+
+    machine_group = MachineGroup.query.filter_by(id=pmachine_info.machine_group_id).first()
+    body.update({
+        "user": pmachine_info.user,
+        "password": pmachine_info.password,
+        "port": pmachine_info.port,
+        "ip": pmachine_info.ip
+    })
+    return AtMessenger(body, machine_group)
+
+
 class UpdateTaskEvent(Resource):
     @validate()
     @swagger_adapt.api_schema_model_map({
@@ -546,26 +566,9 @@ class AtEvent(Resource):
     })
     def post(self):
         body = request.get_json()
+        messenger = get_at_messenger(body)
 
-        pmachine_info = Pmachine.query.filter_by(
-            description=current_app.config.get("OPENQA_SERVER"), state="occupied"
-        ).first()
-        if not pmachine_info:
-            return {
-                "error_code": RET.NO_DATA_ERR,
-                "error_msg": "the openqa server machine does not exist"
-            }
-
-        machine_group = MachineGroup.query.filter_by(id=pmachine_info.machine_group_id).first()
-        body.update({
-            "user": pmachine_info.user,
-            "password": pmachine_info.password,
-            "port": pmachine_info.port,
-            "ip": pmachine_info.ip
-        })
-        messenger = AtMessenger(body)
-
-        resp = messenger.send_request(machine_group, "/api/v1/openeuler/at")
+        resp = messenger.send_request("/api/v1/openeuler/at")
         resp = json.loads(resp.data.decode('UTF-8'))
         _id = int(0)
         if resp.get("error_code") == RET.OK:
@@ -590,7 +593,7 @@ class AtEvent(Resource):
         "query_schema_model": [{
             "name": "release_url_x86_64",
             "in": "query",
-            "required": True,
+            "required": False,
             "style": "form",
             "explode": True,
             "description": "x86_64 release url",
@@ -598,9 +601,9 @@ class AtEvent(Resource):
             {
                 "name": "release_url_aarch64",
                 "in": "query",
-                "required": True,
+                "required": False,
                 "style": "form",
-                "explode": True,
+                "explode": False,
                 "description": "aarch64 release url",
                 "schema": {"type": "string"}}],
     })
@@ -608,7 +611,7 @@ class AtEvent(Resource):
         buildname_x86 = request.values.get("release_url_x86_64")
         buildname_aarch64 = request.values.get("release_url_aarch64")
 
-        at = AtHandler(buildname_x86, buildname_aarch64)
+        at = AtHandler(get_at_messenger({}), buildname_x86, buildname_aarch64)
         result = at.get_result()
         if result[0]:
             return {
@@ -661,6 +664,42 @@ class AtEvent(Resource):
             "id": _id
         })
         return Edit(AtJob, body).single(AtJob, "/at")
+
+
+class AtDetailEvent(Resource):
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_external_tag.__module__,
+        "resource_name": "AtDetailEvent",
+        "func_name": "get",
+        "tag": get_external_tag(),
+        "summary": "At结果详情获取",
+        "externalDocs": {"description": "", "url": ""},
+        "query_schema_model": [{
+            "name": "release_url_x86_64",
+            "in": "query",
+            "required": False,
+            "style": "form",
+            "explode": True,
+            "description": "x86_64 release url",
+            "schema": {"type": "string"}},
+            {
+                "name": "release_url_aarch64",
+                "in": "query",
+                "required": False,
+                "style": "form",
+                "explode": False,
+                "description": "aarch64 release url",
+                "schema": {"type": "string"}}],
+    })
+    def get(self):
+        buildname_x86 = request.values.get("release_url_x86_64")
+        buildname_aarch64 = request.values.get("release_url_aarch64")
+        at = AtHandler(get_at_messenger({}), buildname_x86, buildname_aarch64)
+        return {
+            "error_code": RET.OK,
+            "error_msg": "OK",
+            "data": at.get_report()
+        }
 
 
 class GetTestReportFileEvent(Resource):

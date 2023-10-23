@@ -23,3 +23,12 @@ class AtSchema(BaseModel):
     password: str
     ip: str
     user_id: str
+
+
+class AtJobItemSchema(BaseModel):
+    job_id: str
+    user: str
+    port: int
+    password: str
+    ip: str
+    user_id: str
