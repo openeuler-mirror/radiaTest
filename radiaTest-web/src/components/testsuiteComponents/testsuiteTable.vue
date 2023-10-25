@@ -1,5 +1,11 @@
 <template>
-  <modal-card :initY="100" :initX="300" title="修改测试套" ref="putModalRef" @validate="() => putFormRef.put()">
+  <modal-card
+    :initY="100"
+    :initX="300"
+    title="修改测试套"
+    ref="putModalRef"
+    @validate="() => putFormRef.put()"
+  >
     <template #form>
       <testsuite-create
         ref="putFormRef"
@@ -14,6 +20,7 @@
     </template>
   </modal-card>
   <n-data-table
+    remote
     ref="table"
     size="large"
     :bordered="false"
@@ -21,6 +28,8 @@
     :data="data"
     :loading="loading"
     :pagination="pagination"
+    @update:page="testsuitePageChange"
+    @update:page-size="testsuitePageSizeChange"
     :row-key="(row) => row.id"
   />
 </template>
@@ -39,28 +48,28 @@ const baseColumns = [
   {
     title: '测试套',
     key: 'name',
-    align: 'center'
+    align: 'center',
   },
   {
     title: '节点数',
     key: 'machine_num',
-    align: 'center'
+    align: 'center',
   },
   {
     title: '节点类型',
     key: 'machine_type',
-    align: 'center'
+    align: 'center',
   },
   {
     title: '备注',
     key: 'remark',
-    align: 'center'
+    align: 'center',
   },
   {
     title: '责任人',
     key: 'owner',
-    align: 'center'
-  }
+    align: 'center',
+  },
 ];
 function createBtn(type, icon, text, clickFn, row) {
   return renderTooltip(
@@ -70,38 +79,42 @@ function createBtn(type, icon, text, clickFn, row) {
         size: 'medium',
         type,
         circle: true,
-        onClick: () => clickFn(row)
+        onClick: () => clickFn(row),
       },
       h(NIcon, { size: '20' }, h(icon))
     ),
     text
   );
 }
-
-function getData() {
-  loading.value = true;
-  axios.get(`/v1/ws/${workspace.value}/suite`).then((res) => {
-    data.value = res.data;
-    loading.value = false;
-  });
-}
-
-function setPagination() {
-  pagination.value = {
-    page: 1,
-    showSizePicker: true,
-    pageSize: 10,
-    pageSizes: [5, 10, 20, 50],
-    onChange: (page) => {
-      pagination.value.page = page;
-    },
-    onPageSizeChange: (pageSize) => {
-      pagination.value.pageSize = pageSize;
-      pagination.value.page = 1;
-    }
+const loading = ref(false);
+const putFormRef = ref(null);
+const pagination = ref({
+  page: 1,
+  pageSize: 10,
+  pageCount: 1,
+  showSizePicker: true,
+  pageSizes: [5, 10, 20, 50],
+});
+const data = ref([]);
+const getData = () => {
+  let param = {
+    page_num: pagination.value.page,
+    page_size: pagination.value.pageSize,
   };
-}
-
+  loading.value = true;
+  axios
+    .get(`/v1/ws/${workspace.value}/suite`, param)
+    .then((res) => {
+      data.value = res.data.items;
+      pagination.value.pageCount = res.data.pages;
+      pagination.value.page = res.data.current_page;
+      pagination.value.pageSize = res.data.page_size;
+      loading.value = false;
+    })
+    .catch(() => {
+      loading.value = false;
+    });
+};
 const suiteInfo = ref();
 const putModalRef = ref(null);
 
@@ -118,7 +131,6 @@ function deleteSuite(row) {
   });
 }
 
-const data = ref([]);
 const columns = [
   ...baseColumns,
   {
@@ -130,24 +142,30 @@ const columns = [
         NSpace,
         {
           justify: 'center',
-          align: 'cemter'
+          align: 'cemter',
         },
         [
           createBtn('warning', Construct, '修改', editSuite, row),
-          createBtn('error', Delete24Regular, '删除', deleteSuite, row)
+          createBtn('error', Delete24Regular, '删除', deleteSuite, row),
         ]
       );
-    }
-  }
+    },
+  },
 ];
 
-const pagination = ref();
-const loading = ref(false);
-const putFormRef = ref(null);
+const testsuitePageChange = (page) => {
+  pagination.value.page = page;
+  getData();
+};
+
+const testsuitePageSizeChange = (pageSize) => {
+  pagination.value.pageSize = pageSize;
+  pagination.value.page = 1;
+  getData();
+};
 
 onMounted(() => {
   getData();
-  setPagination();
 });
 
 defineExpose({ data, getData, pagination });

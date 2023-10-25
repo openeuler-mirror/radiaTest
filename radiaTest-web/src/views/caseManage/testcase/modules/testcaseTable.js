@@ -40,7 +40,7 @@ const getFilter = (item, filter) => {
 
 const data = computed(() => {
   const filter = store.getters.filterCaseState;
-  return totalData.value.filter((item) => {
+  return totalData.value.items && totalData.value.items.filter((item) => {
     const suiteFilter = getFilter(item.suite, filter.suite);
     const nameFilter = getFilter(item.name, filter.name);
     const machineNumFilter = getFilter(item.machine_num, filter.machine_num);
@@ -56,7 +56,7 @@ const data = computed(() => {
     );
   });
 });
-
+const pageCounts = computed(() => totalData.value.pages);
 export default {
   data,
   totalData,
@@ -67,5 +67,6 @@ export default {
   loading,
   rowProps,
   isUpdating,
-  showDetailDrawer
+  showDetailDrawer,
+  pageCounts,
 };
