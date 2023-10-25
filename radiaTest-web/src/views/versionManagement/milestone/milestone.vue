@@ -18,12 +18,42 @@
       />
     </template>
   </modal-card>
+
+  <modal-card
+    title="批量同步社区里程碑"
+    url="/v2/milestone/batch-sync"
+    ref="synchModalRef"
+    @validate="() => synchFormRef.handlePropsButtonClick()"
+    @submit="synchFormRef.post()"
+  >
+    <template #form>
+      <milestone-synch-form
+        ref="synchFormRef"
+        @valid="() => synchModalRef.submitCreateForm()"
+        @close="
+          () => {
+            synchModalRef.close();
+          }
+        "
+      />
+    </template>
+  </modal-card>
+
   <div class="milestone-head">
     <div>
       <create-button title="注册里程碑" @click="createModalRef.show()" />
+      <create-button
+        style="margin-left: 30px"
+        title="批量同步社区里程碑"
+        @click="synchModalRef.show()"
+      />
     </div>
     <div style="display: flex; align-items: center">
-      <filterButton :filterRule="filterRule" @filterchange="filterchange" style="display: flex; padding-right: 20px">
+      <filterButton
+        :filterRule="filterRule"
+        @filterchange="filterchange"
+        style="display: flex; padding-right: 20px"
+      >
       </filterButton>
       <refresh-button @refresh="getTableData()"> 刷新里程碑列表 </refresh-button>
     </div>
@@ -51,10 +81,29 @@
         </template>
       </modal-card>
       <n-modal v-model:show="showSyncRepoModal" @after-leave="leaveSyncRepoModal">
-        <n-card style="width: 600px" title="同步企业仓" :bordered="false" size="huge" role="dialog" aria-modal="true">
+        <n-card
+          style="width: 600px"
+          title="同步企业仓"
+          :bordered="false"
+          size="huge"
+          role="dialog"
+          aria-modal="true"
+        >
           <div class="itemWrap">
-            <n-select class="item" v-model:value="selectMilestoneValue" :options="selectMilestoneOptions" />
-            <n-button class="btn" type="info" ghost @click="syncMilestoneFn" :disabled="!selectMilestoneValue"
+            <n-select
+              class="item"
+              v-model:value="selectMilestoneValue"
+              :options="selectMilestoneOptions"
+              @scroll="handleScroll"
+              :loading="loading"
+              remote
+            />
+            <n-button
+              class="btn"
+              type="info"
+              ghost
+              @click="syncMilestoneFn"
+              :disabled="!selectMilestoneValue"
               >同步</n-button
             >
           </div>
@@ -78,7 +127,7 @@ export default defineComponent({
   components: {
     filterButton,
     ...Common,
-    ...Essential
+    ...Essential,
   },
   // eslint-disable-next-line max-lines-per-function
   setup() {
@@ -87,12 +136,14 @@ export default defineComponent({
     const updateFormRef = ref(null);
     const createModalRef = ref(null);
     const updateModalRef = ref(null);
+    const synchModalRef = ref(null);
+    const synchFormRef = ref(null);
     const filterRule = ref([
       {
         path: 'milestoneName',
         name: '里程碑名',
-        type: 'input'
-      }
+        type: 'input',
+      },
     ]);
 
     const filterchange = (filterArray) => {
@@ -109,12 +160,14 @@ export default defineComponent({
       updateFormRef,
       createModalRef,
       updateModalRef,
+      synchModalRef,
+      synchFormRef,
       filterchange,
       filterRule,
       ...milestoneTable,
-      ...milestoneTableColumns
+      ...milestoneTableColumns,
     };
-  }
+  },
 });
 </script>
 

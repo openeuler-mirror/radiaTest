@@ -215,7 +215,7 @@ export default {
     });
   },
 
-  downLoad(url, data) {
+  downLoad(url, data, tag=null) {
     return new Promise((resolve, reject) => {
       server({
         method: 'get',
@@ -224,6 +224,13 @@ export default {
         responseType: 'blob'
       })
         .then((res) => {
+          if(res.data.type ==='application/json'){
+            window.$message?.error('下载文件内容为空！');
+            return;
+          }
+          if(tag){
+            resolve(res);
+          }
           resolve(res.data);
         })
         .catch((err) => {

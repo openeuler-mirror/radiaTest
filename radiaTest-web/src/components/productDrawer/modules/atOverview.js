@@ -43,7 +43,13 @@ const atColumns = [
         h('span', null, row.build_time)
       ]
     ),
-    sorter:  true
+    sorter:  true,
+    minWidth: 100
+  },
+  {
+    title: '执行时长',
+    key: 'test_duration',
+    minWidth: 80
   },
   {
     title: '测试进展',
@@ -103,21 +109,35 @@ const atTestsColumns = [
         ]);
       }
       return h(
-        NTooltip,
-        { trigger: 'hover' },
+        'div',
         {
-          default: () => row.aarch64_res_status,
-          trigger: () => h(
-            NIcon,
-            {
-              size: 14,
-              color: renderResColor(row.aarch64_res_status, row.aarch64_failedmodule_name),
-              style: { cursor: 'pointer' },
-              onClick: () => handleUrlClick(row.aarch64_res_log),
-            },
-            { default: () => h(Circle24Filled) }
-          )
-        }
+          style: {display: 'flex', alignItems: 'center'}
+        },
+        [
+          h(
+              NTooltip,
+              { trigger: 'hover' },
+              {
+                default: () => row.aarch64_res_status,
+                trigger: () => h(
+                  NIcon,
+                  {
+                    size: 14,
+                    color: renderResColor(row.aarch64_res_status, row.aarch64_failedmodule_name),
+                    style: { cursor: 'pointer' },
+                    onClick: () => handleUrlClick(row.aarch64_res_log),
+                  },
+                  { default: () => h(Circle24Filled) }
+                )
+              }
+            ),
+          h('span', 
+          { 
+            style: { marginLeft: '5px' },
+          }, 
+          row.aarch64_test_duration)
+        ]
+        
       );
     }
   },
@@ -155,21 +175,35 @@ const atTestsColumns = [
         ]);
       }
       return h(
-        NTooltip,
-        { trigger: 'hover' },
+        'div',
         {
-          default: () => row.x86_64_res_status,
-          trigger: () => h(
-            NIcon,
+          style: {display: 'flex', alignItems: 'center'}
+        },
+        [
+          h(
+            NTooltip,
+            { trigger: 'hover' },
             {
-              size: 14,
-              color: renderResColor(row.x86_64_res_status, row.x86_64_failedmodule_name),
-              style: { cursor: 'pointer' },
-              onClick: () => handleUrlClick(row.x86_64_res_log),
-            },
-            { default: () => h(Circle24Filled) }
-          )
-        }
+              default: () => row.x86_64_res_status,
+              trigger: () => h(
+                NIcon,
+                {
+                  size: 14,
+                  color: renderResColor(row.x86_64_res_status, row.x86_64_failedmodule_name),
+                  style: { cursor: 'pointer' },
+                  onClick: () => handleUrlClick(row.x86_64_res_log),
+                },
+                { default: () => h(Circle24Filled) }
+              )
+            }
+          ),
+          h('span', 
+          { 
+            style: { marginLeft: '5px' },
+          }, 
+          row.x86_64_test_duration)
+        ]
+        
       );
     }
   },

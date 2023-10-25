@@ -73,6 +73,16 @@
       <rpm-check :quality-board-id="qualityBoardId" />
     </n-card>
     <n-card title="AT历史记录" v-if="showCard == 'AT'">
+      <template #header-extra>
+        <n-button type="primary" ghost :loading="loadingRef" @click="exportAtHistoryFn(qualityBoardId)">
+          <template #icon>
+            <n-icon>
+              <FileExport />
+            </n-icon>
+          </template>
+          AT报告导出
+        </n-button>
+      </template>
       <at-overview :quality-board-id="qualityBoardId" />
     </n-card>
     <n-card title="每周构建记录" v-if="showCard == 'weeklybuild-health'">
@@ -81,6 +91,8 @@
   </div>
 </template>
 <script>
+import axios from '@/axios';
+import { FileExport } from '@vicons/tabler';
 import atOverview from './atOverview';
 import dailyBuild from './dailyBuild';
 import weeklybuildHealth from './weeklybuildHealth';
@@ -91,7 +103,8 @@ export default {
     atOverview,
     dailyBuild,
     weeklybuildHealth,
-    rpmCheck
+    rpmCheck,
+    FileExport
   },
   props: {
     qualityBoardId: Number
@@ -106,9 +119,34 @@ export default {
       modules.cleanQualityProtectData();
     });
 
+  // 导出AT报告结果
+  const loadingRef = ref(false);
+    const exportAtHistoryFn = (id) => {
+    loadingRef.value = true;
+    let axiosUrl = `/v1/qualityboard/${id}/at-report`;
+    let tag = 'report';
+    axios.downLoad(axiosUrl, null, tag).then((res) => {
+      let blob = new Blob([res.data], { type: 'application/vnd.ms-excel' });
+      let url = URL.createObjectURL(blob);
+      let alink = document.createElement('a');
+      document.body.appendChild(alink);
+      alink.download = decodeURIComponent(res.headers['content-disposition'].split('=')[2].slice(7));
+      alink.target = '_blank';
+      alink.href = url;
+      alink.click();
+      alink.remove();
+      URL.revokeObjectURL(url);
+      loadingRef.value = false;
+    }).catch(()=>{
+      loadingRef.value = false;
+    });
+  };
+  
     return {
       pagenation: false,
-      ...modules
+      ...modules,
+      FileExport,
+      exportAtHistoryFn
     };
   }
 };

@@ -78,6 +78,7 @@ declare module '@vue/runtime-core' {
     MilestoneImageCard: typeof import('./src/components/milestoneComponents/MilestoneImageCard.vue')['default']
     MilestoneIssuesCard: typeof import('./src/components/milestoneComponents/MilestoneIssuesCard.vue')['default']
     MilestoneRepoCard: typeof import('./src/components/milestoneComponents/MilestoneRepoCard.vue')['default']
+    MilestoneSynchForm: typeof import('./src/components/milestoneComponents/MilestoneSynchForm.vue')['default']
     MilestoneTable: typeof import('./src/components/milestoneComponents/MilestoneTable.vue')['default']
     MilestoneTaskTable: typeof import('./src/components/milestoneComponents/MilestoneTaskTable.vue')['default']
     MilestoneUpdateForm: typeof import('./src/components/milestoneComponents/MilestoneUpdateForm.vue')['default']

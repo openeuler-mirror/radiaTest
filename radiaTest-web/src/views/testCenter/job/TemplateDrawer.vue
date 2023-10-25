@@ -8,7 +8,8 @@
         创建模板
       </n-button>
       <div class="menuWrap">
-        <filterButton :filterRule="filterRule" @filterchange="filterchange" class="filterBtn"> </filterButton>
+        <filterButton :filterRule="filterRule" @filterchange="filterchange" class="filterBtn">
+        </filterButton>
         <refresh-button :size="30" @refresh="refreshTableData"> 刷新 </refresh-button>
       </div>
     </div>
@@ -33,7 +34,7 @@
           size="huge"
           :bordered="false"
           :segmented="{
-            content: 'hard'
+            content: 'hard',
           }"
           header-style="
             font-size: 20px; 
@@ -61,8 +62,12 @@
               </n-form-item>
             </n-form>
             <n-space class="NPbutton">
-              <n-button size="large" type="error" @click="onNegativeCloneClick" ghost>取消 </n-button>
-              <n-button size="large" type="primary" @click="onPositiveCloneClick" ghost> 提交 </n-button>
+              <n-button size="large" type="error" @click="onNegativeCloneClick" ghost
+                >取消
+              </n-button>
+              <n-button size="large" type="primary" @click="onPositiveCloneClick" ghost>
+                提交
+              </n-button>
             </n-space>
           </div>
         </n-card>
@@ -97,7 +102,7 @@ const templatePagination = ref({
   //   pageCount: 1, //总页数
   //   pageSize: 10, //受控模式下的分页大小
   showSizePicker: true,
-  pageSizes: [5, 10, 20, 50]
+  pageSizes: [5, 10, 20, 50],
 });
 const isEditTemplate = ref(false);
 const modalData = ref(null);
@@ -110,7 +115,7 @@ const getTableData = () => {
       templateTableData.value = res.data;
       templateList.value = res.data.map((item) => ({
         label: item.name,
-        value: String(item.id)
+        value: String(item.id),
       }));
       resolve();
     });
@@ -122,33 +127,33 @@ const templateTableColumns = [
     type: 'expand',
     renderExpand: (rowData) =>
       h(ExpandedCardTemplate, {
-        data: rowData.suite_cases
-      })
+        data: rowData.suite_cases,
+      }),
   },
   {
     title: '模板名称',
     key: 'name',
-    align: 'left'
+    align: 'left',
   },
   {
     title: '关联里程碑',
     key: 'milestone',
-    align: 'center'
+    align: 'center',
   },
   {
     title: '创建人',
     key: 'author',
-    align: 'center'
+    align: 'center',
   },
   {
     title: '权限类型',
     key: 'template_type',
-    align: 'center'
+    align: 'center',
   },
   {
     title: '权限归属',
     key: 'owner',
-    align: 'center'
+    align: 'center',
   },
   {
     title: '操作',
@@ -159,7 +164,7 @@ const templateTableColumns = [
         NSpace,
         {
           justify: 'center',
-          align: 'center'
+          align: 'center',
         },
         [
           renderTooltip(
@@ -173,7 +178,7 @@ const templateTableColumns = [
                   showCreateTemplateModal.value = true;
                   isEditTemplate.value = true;
                   modalData.value = row;
-                }
+                },
               },
               h(NIcon, { size: '20' }, h(EditRegular))
             ),
@@ -191,7 +196,7 @@ const templateTableColumns = [
                     await deleteAjax.singleDelete(`/v1/template/${row.id}`, row.id);
                     getTableData();
                   });
-                }
+                },
               },
               h(NIcon, { size: '20' }, h(Delete))
             ),
@@ -207,7 +212,7 @@ const templateTableColumns = [
                 onClick: () => {
                   showCloneModal.value = true;
                   cloneFormValue.value.cloneTemplateId = String(row.id);
-                }
+                },
               },
               h(NIcon, { size: '20' }, h(CopyRegular))
             ),
@@ -223,16 +228,16 @@ const templateTableColumns = [
                 onClick: () => {
                   execModalRef.value.showModal = true;
                   execModalRef.value.renderExecute(row);
-                }
+                },
               },
               h(NIcon, { size: '20' }, h(PlayCircleRegular))
             ),
             '执行'
-          )
+          ),
         ]
       );
-    }
-  }
+    },
+  },
 ];
 const templateList = ref([]); // 模板列表
 
@@ -256,28 +261,28 @@ const filterRule = ref([
   {
     path: 'name',
     name: '模板名称',
-    type: 'input'
+    type: 'input',
   },
   {
     path: 'milestone',
     name: '关联里程碑',
-    type: 'input'
+    type: 'input',
   },
   {
     path: 'author',
     name: '创建人',
-    type: 'input'
+    type: 'input',
   },
   {
     path: 'template_type',
     name: '权限类型',
-    type: 'input'
+    type: 'input',
   },
   {
     path: 'owner',
     name: '权限归属',
-    type: 'input'
-  }
+    type: 'input',
+  },
 ]);
 
 const filterchange = async (filterArray) => {
@@ -300,7 +305,7 @@ const showCloneModal = ref(false);
 const cloneForm = ref();
 const cloneFormValue = ref({
   cloneTemplateId: undefined,
-  permissionType: undefined
+  permissionType: undefined,
 });
 const cloneFormRule = {
   cloneTemplateId: {
@@ -311,18 +316,18 @@ const cloneFormRule = {
         return true;
       }
       return false;
-    }
+    },
   },
   permissionType: {
     trigger: ['input', 'blur'],
-    message: '请选择要克隆的模板',
+    message: '请选择类型',
     validator() {
       if (cloneFormValue.value.permissionType) {
         return true;
       }
       return false;
-    }
-  }
+    },
+  },
 };
 
 // 类型
@@ -330,7 +335,7 @@ const typeOptions = ref([
   //   { label: '公共', value: 'public', isLeaf: true },
   { label: '组织', value: 'org', isLeaf: true },
   { label: '团队', value: 'group', isLeaf: false },
-  { label: '个人', value: 'person', isLeaf: true }
+  { label: '个人', value: 'person', isLeaf: true },
 ]);
 
 // 取消克隆
@@ -349,7 +354,7 @@ const onPositiveCloneClick = () => {
           creator_id: storage.getValue('user_id'),
           org_id: storage.getValue('loginOrgId'),
           group_id: Number(cloneFormValue.value.permissionType.split('-')[1]),
-          id: Number(cloneFormValue.value.cloneTemplateId)
+          id: Number(cloneFormValue.value.cloneTemplateId),
         })
           .then(() => {
             showCloneModal.value = false;
@@ -367,7 +372,9 @@ const onPositiveCloneClick = () => {
 
 const execModalRef = ref(null);
 
-const templateSocket = new Socket(`${settings.websocketProtocol}://${settings.serverPath}/template`);
+const templateSocket = new Socket(
+  `${settings.websocketProtocol}://${settings.serverPath}/template`
+);
 templateSocket.connect();
 
 onMounted(() => {

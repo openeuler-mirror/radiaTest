@@ -1,5 +1,5 @@
 import axios from '@/axios';
-import { getRepo, getSuite, getPm, getVm } from '@/api/get';
+import { getRepo, getSuite, getPm, getVm, getMilestonesByName } from '@/api/get';
 import { workspace } from '@/assets/config/menu.js';
 
 export async function createRepoOptions(filter) {
@@ -145,6 +145,31 @@ const getVersionOpts = (versionOpts, productName, loading) => {
       window.$message?.error('无法连接服务器，获取版本选项失败');
     });
 };
+const getEnterpriseOpts = (milestoneOpts,hasNext,filter, tag) => {
+  getMilestonesByName(filter).then(res=>{
+    // 仓库相同id去重
+    let findArr = [];
+    res.data.data.forEach(item=>{
+      if(!findArr.find(el => el.id === item.id)){
+        findArr.push(item);
+      }
+    });
+    let resultArr = findArr.map(item=>{
+      return{
+        label: item.title,
+        value: item,
+      };
+    });
+    hasNext.value = res.data.has_next;
+    if(tag ==='search'){
+      milestoneOpts.value = resultArr;
+    }else{
+      milestoneOpts.value = milestoneOpts.value.concat(resultArr);
+    }
+  }).catch(() => {
+    window.$message?.error('无法连接服务器，获取里程碑选项失败');
+  });
+};
 
 const getMilestoneOpts = (milestoneOpts, productId, loading) => {
   loading ? (loading.value = true) : 0;
@@ -202,5 +227,6 @@ export {
   getVersionOpts,
   getMilestoneOpts,
   getFrameOpts,
-  getCheckItemOpts
+  getCheckItemOpts,
+  getEnterpriseOpts
 };
