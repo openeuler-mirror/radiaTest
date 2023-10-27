@@ -28,6 +28,7 @@ from .routes import (
     GetTestReportFileEvent,
     MajunCheckTokenEvent,
     MajunLoginEvent,
+    AtDetailEvent
 )
 
 
@@ -39,6 +40,7 @@ def init_api(api: Api):
     api.add_resource(DailyBuildEvent, "/api/v1/dailybuild")
     api.add_resource(RpmCheckEvent, "/api/v1/rpmcheck")
     api.add_resource(AtEvent, "/api/v1/openeuler/at")
+    api.add_resource(AtDetailEvent, "/api/v1/openeuler/at-detail")
     api.add_resource(GetTestReportFileEvent, "/api/v1/test-report/file")
     api.add_resource(MajunCheckTokenEvent, "/api/v1/majun/check-token")
     api.add_resource(MajunLoginEvent, "/api/v1/majun/login")
