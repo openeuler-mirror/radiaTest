@@ -64,8 +64,33 @@ const filter = (url, data, loading, filters) => {
     });
 };
 
+const filterItem = (url, data, loading, filters) => {
+  loading.value = true;
+  axios
+    .get(url, filters)
+    .then((res) => {
+      res.data.items && res.data.items?.forEach((item) => {
+        item.start_time ? (item.start_time = any2standard(item.start_time)) : 0;
+        item.end_time ? (item.end_time = any2standard(item.end_time)) : 0;
+        item.create_time
+          ? (item.start_time = any2standard(item.start_time))
+          : 0;
+        item.update_time ? (item.end_time = any2standard(item.end_time)) : 0;
+      });
+      data.value = res.data;
+      loading.value = false;
+    })
+    .catch(() => {
+      window.$notification?.error({
+        content: '发生未知错误，获取数据失败',
+      });
+      loading.value = false;
+    });
+};
+
 export default {
   list,
   refresh,
   filter,
+  filterItem,
 };
