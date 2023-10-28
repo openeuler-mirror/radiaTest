@@ -54,7 +54,6 @@ import { defineComponent, ref } from 'vue';
 import Timeline from '@/components/timeline/timeline.vue';
 import TimelineItem from '@/components/timeline/timelineItem.vue';
 import axios from '@/axios';
-import { workspace } from '@/assets/config/menu.js';
 
 function resultType(result) {
   if (result === 'success') {
@@ -88,7 +87,10 @@ export default defineComponent({
     const failRecordsOnly = ref(false);
     const milestone = ref();
     const milestoneList = ref([]);
-    axios.get(`/v2/ws/${workspace.value}/milestone`).then(res => {
+    // axios.get(`/v2/ws/${workspace.value}/milestone`).then(res => {
+    //   milestoneList.value = res.data?.items.map(item => ({ label: item.name, value: item.id }));
+    // }).catch(err => window.$message?.error(err.data.error_msg || '未知错误'));
+    axios.get('/v2/ws/default/milestone').then(res => {
       milestoneList.value = res.data?.items.map(item => ({ label: item.name, value: item.id }));
     }).catch(err => window.$message?.error(err.data.error_msg || '未知错误'));
     return {

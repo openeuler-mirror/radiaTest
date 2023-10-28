@@ -120,7 +120,6 @@ import {
 import { formatTime } from '@/assets/utils/dateFormatUtils';
 import { storage } from '@/assets/utils/storageUtils';
 import { getGroup } from '@/api/get';
-import { workspace } from '@/assets/config/menu.js';
 
 export default {
   props:{
@@ -225,8 +224,9 @@ export default {
     },
     getMilestone() {
       this.$axios
-        .get(`/v2/ws/${workspace.value}/milestone`)
-        .then((res) => {
+        // .get(`/v2/ws/${workspace.value}/milestone`)
+          .get('/v2/ws/default/milestone')
+          .then((res) => {
           this.milestones =
             res.data?.items?.map((item) => ({
               label: item.name,

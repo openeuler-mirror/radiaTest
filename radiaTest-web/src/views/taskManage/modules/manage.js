@@ -6,7 +6,7 @@ import { storage } from '@/assets/utils/storageUtils';
 import { NButton } from 'naive-ui';
 import { editTask } from '../task/modules/taskDetail.js';
 import { getGroup } from '@/api/get';
-import { workspace } from '@/assets/config/menu.js';
+// import { workspace } from '@/assets/config/menu.js';
 
 const menuSelect = ref(null); // 当前页面索引值
 const isTask = ref(true); // 是否是任务看板页面
@@ -210,10 +210,10 @@ const menu = ref([
     name: 'testing'
   }
 ]);
-
 //获取里程碑列表
 function getMilestones() {
-  axios.get(`/v2/ws/${workspace.value}/milestone`, { page_num: 1, page_size: 999999 }).then((response) => {
+  // 需要后端适配
+  axios.get('/v2/ws/default/milestone', { page_num: 1, page_size: 999999 }).then((response) => {
     if (response?.data) {
       milestones.value =
         response.data?.items?.map((item) => ({
@@ -438,6 +438,7 @@ export {
   participants,
   statusOptions,
   menu,
+  // versionMenu,
   milestones,
   initCondition,
   menuClick,

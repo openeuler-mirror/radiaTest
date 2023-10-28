@@ -67,7 +67,8 @@ const getProductVersionOpts = (productOpts, loading) => {
   loading ? (loading.value = true) : 0;
   productOpts.value = [];
   axios
-    .get(`/v1/ws/${workspace.value}/product`, { paged: false })
+    // .get(`/v1/ws/${workspace.value}/product`, { paged: false })
+    .get('/v1/ws/default/product', { paged: false })
     .then((res) => {
       loading ? (loading.value = false) : 0;
       productOpts.value = res.data.items.map((item) => {

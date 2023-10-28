@@ -8,7 +8,7 @@
 </template>
 
 <script setup>
-import collapseList from '@/components/productDrawer/collapseList.vue';
+import collapseList from '@/components/productDrawer/drawerCollapseList.vue';
 import { getMilestoneProgress } from '@/api/get.js';
 
 const props = defineProps(['defaultMilestoneId']);

@@ -105,7 +105,7 @@ function handlePageChange(page) {
 function handlePageSizeChange(pageSize) {
   pagination.value.pageSize = pageSize;
   pagination.value.page = 1;
-  console.log(pageSize);
+  // console.log(pageSize);
   getTask();
 }
 

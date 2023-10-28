@@ -147,7 +147,7 @@ export default {
     },
     getPosition() {
       this.$refs.body.style[this.placement] = 0;
-      console.log(this.$refs.armrest.style.clientWidth);
+      // console.log(this.$refs.armrest.style.clientWidth);
       if (this.placement === 'left' || this.placement === 'right') {
         this.$refs.body.style.height = '100%';
         this.$refs.body.style.top = 0;

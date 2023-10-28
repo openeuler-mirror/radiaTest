@@ -44,6 +44,7 @@ declare module '@vue/runtime-core' {
     Diff: typeof import('./src/components/testcaseComponents/diff.vue')['default']
     DisksDataTable: typeof import('./src/components/vmachineComponents/expandedContent/DisksDataTable.vue')['default']
     DisksForm: typeof import('./src/components/vmachineComponents/expandedContent/createForms/DisksForm.vue')['default']
+    DrawerCollapseList: typeof import('./src/components/productDrawer/drawerCollapseList.vue')['default']
     DropdownSettings: typeof import('./src/components/public/DropdownSettings.vue')['default']
     Echart: typeof import('./src/components/echart/echart.vue')['default']
     EditModal: typeof import('./src/components/vmachineComponents/expandedContent/EditModal.vue')['default']

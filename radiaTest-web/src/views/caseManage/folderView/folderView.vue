@@ -109,14 +109,26 @@
           请确保文本用例格式与模板一致，否则导入时将会被跳过。点击<a :href="caseTemplateUrl">下载</a>文本用例模板文件
         </n-alert>
         <tree
+            :expandKeys="expandKeys"
+            :data="menuList"
+            @load="loadData"
+            @selectAction="selectAction"
+            @menuClick="menuClick"
+            :selectKey="selectKey"
+            @expand="expand"
+            v-if="$route.params.workspace==='default'"
+        />
+        <tree
           :expandKeys="expandKeys"
-          :data="menuList"
+          :data="releaseMenu"
           @load="loadData"
           @selectAction="selectAction"
           @menuClick="menuClick"
           :selectKey="selectKey"
           @expand="expand"
+          v-if="$route.params.workspace==='release'"
         />
+<!--        TODO:匹配对应版本和阶段-->
       </n-layout-sider>
       <n-layout-content
         content-style="padding: 24px;"
@@ -134,12 +146,12 @@ import { modules } from './modules';
 import config from '@/assets/config/settings.js';
 import Common from '@/components/CRUD';
 import Essential from '@/components/testcaseComponents';
-import { ref } from 'vue';
+import {ref} from 'vue';
 import testsuiteCreate from '@/components/testsuiteComponents/testsuiteCreate.vue';
 import createDrawer from '@/components/task/createDrawer.vue';
-import { workspace } from '@/assets/config/menu.js';
+// import { workspace } from '@/assets/config/menu.js';
 import createSuites from './createSuites/CreateSuites';
-
+import {useRoute} from 'vue-router';
 export default {
   components: {
     ...Common,
@@ -155,18 +167,33 @@ export default {
     }
   },
   mounted() {
-    this.$axios.get(`/v1/ws/${workspace.value}/framework`).then((res) => {
+    // this.$axios.get(`/v1/ws/${workspace.value}/framework`).then((res) => {
+    //   this.frameworkList = res.data?.map((item) => ({
+    //     label: item.name,
+    //     value: item.id,
+    //     isLeaf: false
+    //   }));
+    // });
+    // console.log('folder');
+    this.$axios.get('/v1/ws/default/framework').then((res) => {
       this.frameworkList = res.data?.map((item) => ({
         label: item.name,
         value: item.id,
         isLeaf: false
       }));
     });
-    this.contentHeight =
-      document.body.clientHeight -
-      document.getElementById('header').clientHeight -
-      document.querySelector('.n-card-header').clientHeight -
-      10;
+    if(this.$route.params.workspace==='default'){
+      this.contentHeight =
+          document.body.clientHeight -
+          document.getElementById('header').clientHeight -
+          document.querySelector('.n-card-header').clientHeight -
+          10;
+      // console.log(this.contentHeight);
+    }else{
+      this.contentHeight = document.body.clientHeight-
+      document.getElementById('header').clientHeight - 10;
+      // console.log(this.contentHeight);
+    }
     this.$nextTick(() => {
       window.addEventListener('refreshEvent', ({ detail }) => {
         this.expandNode(detail.caseNodeId);
@@ -178,10 +205,21 @@ export default {
   },
   setup() {
     const caseTemplateUrl = `https://${config.serverPath}/static/case_template.xls`;
-
+    const route=useRoute();
     modules.clearSelectKey();
     if (!modules.menuList.value) {
       modules.getRootNodes();
+    }
+    if(route.params.workspace==='release' && modules.menuList.value){
+      // console.log(currentRound.value.name);
+      // console.log(modules.menuList.value);
+      // if(modules.menuList.value[0].children){
+      //   console.log(modules.menuList.value[0].children
+      //       .find(item=>item.label===currentRound.value.name));
+      // }
+      // modules.menuList.value=[modules.menuList.value[0].children
+      //     .find(item=>item.label===currentRound.value.name)];
+      // console.log(modules.menuList.value.children.find(item=>item.label===currentRound.value.name));
     }
     const contentHeight = ref(0);
     return {

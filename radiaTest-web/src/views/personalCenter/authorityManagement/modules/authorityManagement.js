@@ -182,7 +182,7 @@ function authorityRowProps(rowData) {
     onClick: () => {
       showAuthorityModal.value = true;
       roleValue.value = rowData.roleID;
-      console.log(rowData);
+      // console.log(rowData);
     },
   };
 }

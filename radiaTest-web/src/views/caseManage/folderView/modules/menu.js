@@ -1,54 +1,55 @@
-import { h, ref } from 'vue';
+import {h, ref} from 'vue';
 
 import axios from '@/axios.js';
-import { storage } from '@/assets/utils/storageUtils';
-import { Organization20Regular, Folder16Regular, Delete28Regular, Box16Regular } from '@vicons/fluent';
+import {storage} from '@/assets/utils/storageUtils';
+import {Box16Regular, Delete28Regular, Folder16Regular, Organization20Regular} from '@vicons/fluent';
 import {
-  GroupsFilled,
-  DriveFileRenameOutlineFilled,
   CreateNewFolderOutlined,
-  DriveFileMoveRound
+  DriveFileMoveRound,
+  DriveFileRenameOutlineFilled,
+  GroupsFilled
 } from '@vicons/material';
-import { MdRefresh } from '@vicons/ionicons4';
-import { FileImport, DatabaseImport, File } from '@vicons/tabler';
-import { Database } from '@vicons/fa';
-import { ExportOutlined, EditOutlined } from '@vicons/antd';
-import { ArchiveOutline } from '@vicons/ionicons5';
-import { ChartRelationship, Milestone } from '@vicons/carbon';
-import { changeLoadingStatus } from '@/assets/utils/loading';
-import { putModalRef, updateModalRef } from './editRef';
-import { getDetail } from '@/views/caseManage/folderView/testcaseNodes/modules/details';
+import {MdRefresh} from '@vicons/ionicons4';
+import {DatabaseImport, File, FileImport} from '@vicons/tabler';
+import {Database} from '@vicons/fa';
+import {EditOutlined, ExportOutlined} from '@vicons/antd';
+import {ArchiveOutline} from '@vicons/ionicons5';
+import {ChartRelationship, Milestone} from '@vicons/carbon';
+import {changeLoadingStatus} from '@/assets/utils/loading';
+import {putModalRef, updateModalRef} from './editRef';
+import {getDetail} from '@/views/caseManage/folderView/testcaseNodes/modules/details';
 import store from '@/store';
 import {
+  exportTestsuite,
+  getBaselineTemplates,
   getCaseDetail,
+  getCaseNodeRoot,
+  getCasesBySuite,
   getCaseSetNodes,
   getGroupMilestone,
   getOrgMilestone,
-  getBaselineTemplates,
-  getCaseNodeRoot,
-  getOrphanOrgSuites,
   getOrphanGroupSuites,
-  getCasesBySuite,
-  exportTestsuite
+  getOrphanOrgSuites
 } from '@/api/get';
-import { addBaseline, casenodeApplyTemplate } from '@/api/post';
-import { updateCaseNodeParent } from '@/api/put';
+import {addBaseline, casenodeApplyTemplate} from '@/api/post';
+import {updateCaseNodeParent} from '@/api/put';
 import {
   NButton,
   NFormItem,
-  NInput,
-  NSpace,
   NIcon,
-  NSelect,
-  NUpload,
-  NUploadDragger,
-  NText,
+  NInput,
   NP,
-  NTreeSelect
+  NSelect,
+  NSpace,
+  NText,
+  NTreeSelect,
+  NUpload,
+  NUploadDragger
 } from 'naive-ui';
 import router from '@/router';
-import { createModalRef, createFormRef, importModalRef } from './createRef';
-import { workspace } from '@/assets/config/menu.js';
+import {createFormRef, createModalRef, importModalRef} from './createRef';
+
+// import { workspace } from '@/assets/config/menu.js';
 
 function renderIcon(icon) {
   return () =>
@@ -56,6 +57,7 @@ function renderIcon(icon) {
       default: () => h(icon)
     });
 }
+
 const suiteInfo = ref();
 
 const createSuitesShow = ref(false);
@@ -173,11 +175,12 @@ const iconType = {
   suite: Box16Regular,
   case: File
 };
-const commonAction = [{ label: '刷新', key: 'refresh', icon: renderIcon(MdRefresh) }];
+const commonAction = [{label: '刷新', key: 'refresh', icon: renderIcon(MdRefresh)}];
 
 const frameworkList = ref([]);
 
 const menuList = ref();
+const releaseMenu = ref([]);
 const expandKeys = ref([]);
 
 function getDirectory(node) {
@@ -187,11 +190,13 @@ function getDirectory(node) {
   } else if (node && node.type === 'group') {
     params.group_id = node.key.replace('group-', '');
   } else {
-    return new Promise(() => {});
+    return new Promise(() => {
+    });
   }
   return new Promise((resolve, reject) => {
+    // 需要后端适配
     axios
-      .get(`/v1/ws/${workspace.value}/case-node`, params)
+      .get('/v1/ws/default/case-node', params)
       .then((res) => {
         node.children = [];
         for (const item of res.data) {
@@ -207,7 +212,7 @@ function getDirectory(node) {
             actions.unshift(createChildrenDirectoryAction);
             actions.unshift(applyBaselineTemplate);
           }
-
+          
           node.children.push({
             label: item.title,
             key: `${item.type}-${item.id}`,
@@ -335,8 +340,23 @@ function getRootNodes() {
   actions.unshift(createBaselineAction);
   menuList.value = [];
   axios.get(`/v1/users/${storage.getValue('user_id')}`).then((res) => {
-    const { data } = res;
+    const {data} = res;
     data.orgs.forEach((item) => {
+      if (item.org_name === 'openEuler') {
+        releaseMenu.value.push({
+          label: item.org_name,
+          key: `org-${item.org_id}`,
+          info: {
+            org_id: item.org_id
+          },
+          actions,
+          iconColor: 'rgba(0, 47, 167, 1)',
+          isLeaf: false,
+          type: 'org',
+          root: true,
+          icon: Organization20Regular
+        });
+      }
       if (item.re_user_org_default) {
         menuList.value.push({
           label: item.org_name,
@@ -360,6 +380,21 @@ function getRootNodes() {
       })
       .then((_res) => {
         for (const item of _res.data.items) {
+          if (item.name === 'openEuler') {
+            releaseMenu.value.push({
+              label: item.name,
+              key: `group-${item.id}`,
+              isLeaf: false,
+              root: true,
+              info: {
+                group_id: item.id
+              },
+              type: 'group',
+              iconColor: 'rgba(0, 47, 167, 1)',
+              icon: GroupsFilled,
+              actions
+            });
+          }
           menuList.value.push({
             label: item.name,
             key: `group-${item.id}`,
@@ -377,6 +412,7 @@ function getRootNodes() {
       });
   });
 }
+
 const info = ref('');
 const inputInfo = ref('');
 const infoRules = {
@@ -433,6 +469,7 @@ const moveRules = {
 };
 
 const files = ref();
+
 function validateUploadInfo() {
   // if (!info.value) {
   //   window.$message?.error('请选择测试框架');
@@ -544,13 +581,13 @@ function newDectoryContent() {
 
 function getCurMilestones(node, query) {
   milestoneLoading.value = true;
-  let params = { paged: true };
+  let params = {paged: true};
   if (query) {
     params.name = query;
   }
   if (node.type === 'org') {
     getOrgMilestone(node.info.org_id, params).then((res) => {
-      const { data } = res;
+      const {data} = res;
       milestoneOptions.value = data.items?.map((item) => {
         return {
           label: item.name,
@@ -561,7 +598,7 @@ function getCurMilestones(node, query) {
     });
   } else if (node.type === 'group') {
     getGroupMilestone(node.info.group_id, params).then((res) => {
-      const { data } = res;
+      const {data} = res;
       milestoneOptions.value = data.items?.map((item) => {
         return {
           label: item.name,
@@ -584,7 +621,7 @@ function getTemplates(node, query) {
     params.group_id = node.info.group_id;
   }
   getBaselineTemplates(params).then((res) => {
-    const { data } = res;
+    const {data} = res;
     templateOptions.value = data.map((item) => {
       return {
         label: item.title,
@@ -678,7 +715,7 @@ function moveCaseNodeContent(node) {
         onUpdateValue: (value) => {
           nextParentId.value = value;
         },
-        renderPrefix: ({ option }) => {
+        renderPrefix: ({option}) => {
           return h(
             NIcon,
             {
@@ -734,7 +771,7 @@ const setNodeOptions = (array, relateType) => {
     } else if (item.type === 'case') {
       newKey = `case-${item.case_id}`;
     }
-
+    
     return {
       label: item.title,
       info: item,
@@ -781,8 +818,8 @@ function relateSuiteCaseContent(node, relateType) {
           },
           onFocus: () => {
             moveLoading.value = true;
-            caseOptions.value = [{ label: '全选', key: 'allSelected', children: [] }];
-            getCasesBySuite({ suite_id: node.info.suite_id }).then((res) => {
+            caseOptions.value = [{label: '全选', key: 'allSelected', children: []}];
+            getCasesBySuite({suite_id: node.info.suite_id}).then((res) => {
               caseOptions.value[0].children = res.data.children.map((item) => {
                 return {
                   label: item.title,
@@ -811,7 +848,7 @@ function relateSuiteCaseContent(node, relateType) {
           onUpdateValue: (value) => {
             info.value = value;
           },
-          renderPrefix: ({ option }) => {
+          renderPrefix: ({option}) => {
             return h(
               NIcon,
               {
@@ -897,6 +934,7 @@ function uploadSet(node) {
       changeLoadingStatus(false);
     });
 }
+
 function renderUpload() {
   const tip = h(NText, null, '点击或者拖动文件到该区域来上传');
   const icon = h(
@@ -933,12 +971,13 @@ function renderUpload() {
 function uploadContent() {
   return h('div', null, [renderUpload()]);
 }
+
 function dialogView(confirmFn, node, contentType = 'directory') {
   window.$dialog?.destroyAll();
   const d = window.$dialog?.info({
     title: node.label,
     showIcon: false,
-    style: { width: '800px' },
+    style: {width: '800px'},
     content: () => {
       switch (contentType) {
         case 'directory':
@@ -967,6 +1006,7 @@ function dialogView(confirmFn, node, contentType = 'directory') {
     }
   });
 }
+
 function newDirectory(node) {
   axios
     .post('/v1/case-node', {
@@ -987,6 +1027,7 @@ function newDirectory(node) {
       window.$message.error(err.data.error_msg || '未知错误');
     });
 }
+
 function newBaseline(node) {
   let data = {
     title: info.value,
@@ -999,12 +1040,13 @@ function newBaseline(node) {
   } else if (node.type === 'group') {
     data.group_id = node.info.group_id;
   }
-
+  
   addBaseline(data).then(() => {
     window.$message?.info(`已成功创建版本基线：${info.value}`);
     getDirectory(node);
   });
 }
+
 function applyTemplate(node) {
   changeLoadingStatus(true);
   casenodeApplyTemplate(node.info.id, templateId.value)
@@ -1017,6 +1059,7 @@ function applyTemplate(node) {
       changeLoadingStatus(false);
     });
 }
+
 function moveCaseNode(node) {
   updateCaseNodeParent(node.info.id, nextParentId.value.split('-').at(-1)).then(() => {
     window.$message?.info(`${node.label}已成功移动至目标节点下`);
@@ -1051,6 +1094,7 @@ function relateSuiteCase(node, nodeType) {
       window.$message.error(err.data.error_msg || '未知错误');
     });
 }
+
 function deleteCaseNode(node) {
   changeLoadingStatus(true);
   axios
@@ -1071,6 +1115,7 @@ function deleteCaseNode(node) {
       window.$message.error(err.data.error_msg || '未知错误');
     });
 }
+
 function renameCaseNode(node) {
   axios
     .put(`/v1/case-node/${node.info.id}`, {
@@ -1084,6 +1129,7 @@ function renameCaseNode(node) {
       window.$message.error(err.data.error_msg || '未知错误');
     });
 }
+
 function newCase(node, caseId, title) {
   axios
     .post('/v1/case-node', {
@@ -1137,9 +1183,11 @@ function initDialogViewData() {
   moveOptions.value = [];
   moveLoading.value = false;
 }
+
 function refreshNode(node) {
   node.root ? getDirectory(node) : getCaseNode(node);
 }
+
 let inSetnode;
 let importInfo;
 const actionHandlder = {
@@ -1216,9 +1264,9 @@ const actionHandlder = {
   exportTestsuiteInXlsx: {
     handler(contextmenu) {
       axios
-        .downLoad(`/v1/org/${contextmenu.info.org_id}/case-node/${contextmenu.info.id}/export`, { filetype: 'xlsx' })
+        .downLoad(`/v1/org/${contextmenu.info.org_id}/case-node/${contextmenu.info.id}/export`, {filetype: 'xlsx'})
         .then((res) => {
-          let blob = new Blob([res], { type: 'application/vnd.ms-excel' });
+          let blob = new Blob([res], {type: 'application/vnd.ms-excel'});
           let url = URL.createObjectURL(blob);
           let alink = document.createElement('a');
           document.body.appendChild(alink);
@@ -1236,7 +1284,7 @@ const actionHandlder = {
   },
   exportTestsuiteInMarkdown: {
     handler(contextmenu) {
-      exportTestsuite(contextmenu.info.org_id, contextmenu.info.id, { filetype: 'md' })
+      exportTestsuite(contextmenu.info.org_id, contextmenu.info.id, {filetype: 'md'})
         .then((res) => {
           let a = document.createElement('a');
           let blob = new Blob([res]);
@@ -1262,7 +1310,8 @@ const actionHandlder = {
       const [key] = contextmenu.key.split('-');
       if (key === 'suite') {
         const id = contextmenu.info.suite_id;
-        axios.get(`/v1/ws/${workspace.value}/suite`, { id }).then((res) => {
+        // 需要后端适配
+        axios.get('/v1/ws/default/suite', {id}).then((res) => {
           [suiteInfo.value] = res;
           putModalRef.value.show();
         });
@@ -1279,19 +1328,21 @@ const actionHandlder = {
 };
 
 // 点击右键菜单
-function selectAction({ contextmenu, action }) {
+function selectAction({contextmenu, action}) {
   actionHandlder[action.key].handler(contextmenu);
 }
+
 const selectKey = ref();
 const selectOptions = ref();
-function menuClick({ key, options }) {
+
+function menuClick({key, options}) {
   if (!key.length) {
     return;
   }
   selectKey.value = key;
   selectOptions.value = options;
   const [itemkey, id] = key[0].split('-');
-  const [{ label, type, suiteId, caseId }] = options;
+  const [{label, type, suiteId, caseId}] = options;
   if (itemkey === 'org') {
     router.push({
       name: 'orgNode',
@@ -1393,6 +1444,7 @@ function submitCreateCase() {
     }
   });
 }
+
 function expandNode(caseNodeId) {
   let timer = null;
   timer = setInterval(() => {
@@ -1400,6 +1452,7 @@ function expandNode(caseNodeId) {
     getNode(caseNodeId);
   }, 500);
 }
+
 function expandRoot(rootType, id) {
   let timer = null;
   timer = setInterval(() => {
@@ -1411,12 +1464,15 @@ function expandRoot(rootType, id) {
     getDirectory(node);
   }, 500);
 }
+
 function expand(option) {
   expandKeys.value = option;
 }
+
 function clearSelectKey() {
   selectKey.value = '';
 }
+
 function extendSubmit(value) {
   if (!value.file.length) {
     window.$message?.error('请上传用例文本');
@@ -1438,6 +1494,7 @@ export {
   selectKey,
   selectOptions,
   menuList,
+  releaseMenu,
   expandKeys,
   createSuitesShow,
   orphanSuitesData,
