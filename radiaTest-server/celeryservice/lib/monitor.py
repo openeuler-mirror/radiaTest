@@ -18,9 +18,10 @@ import datetime
 import requests
 import pytz
 
-from flask import jsonify
+from flask import g, current_app
 
 from celeryservice import celeryconfig
+from server.model import User
 from server.utils.response_util import RET
 from server import db
 from server.model.vmachine import Vmachine
@@ -55,7 +56,6 @@ class LifecycleMonitor(TaskHandlerBase):
         filter_params = [
             Pmachine.state == "occupied",
             Pmachine.end_time.isnot(None),
-            Pmachine.is_release_notification == 0
         ]
         pmachines = Pmachine.query.filter(*filter_params).all()
         pmachine_handler = PmachineOccupyReleaseHandler()
@@ -81,11 +81,12 @@ class LifecycleMonitor(TaskHandlerBase):
                         "bmc_password": pmachine.bmc_password
                     })
                     _resp = CeleryMonitorMessenger(body).send_request(
-                        pmachine.machine_group, "/api/v1/pmachine/auto-release-check"
-                    )
+                        pmachine.machine_group, "/api/v1/pmachine/auto-release-check", method="post")
                     if _resp.get("error_code") != RET.OK:
+                        # 避免重复发生通知
+                        if pmachine.is_release_notification == 1:
+                            continue
                         check_res = _resp.get("error_msg")
-
                         if pmachine.permission_type in ["org", "person"]:
                             role = Role.query.filter_by(name="admin", org_id=pmachine.org_id).first()
                         elif pmachine.permission_type == "group":
@@ -105,7 +106,12 @@ class LifecycleMonitor(TaskHandlerBase):
 
                         Edit(Pmachine, {"id": pmachine.id, "is_release_notification": 1}).single(Pmachine, "/pmachine")
                     else:
-                        pmachine_handler.release_with_release_scopes(pmachine)
+                        # 构建释放请求上下文
+                        with current_app.test_request_context():
+                            occupier_user = User.query.filter_by(user_id=pmachine.occupier_id).first()
+                            g.user_id = occupier_user.user_id
+                            g.user_login = occupier_user.user_login
+                            pmachine_handler.release_with_release_scopes(pmachine)
             except Exception as e:
                 self.logger.info("pmachine release error:{}".format(e))
                 continue
@@ -120,25 +126,22 @@ class CeleryMonitorMessenger:
         self._body = body
 
     @ssl_cert_verify_error_collect
-    def send_request(self, machine_group, api):
-        resp = requests.get(
-            "https://{}:{}{}".format(
-                machine_group.messenger_ip,
-                machine_group.messenger_listen,
-                api
-            ),
-            params=self._body,
-            headers={
-                "content-type": "application/json;charset=utf-8",
-            },
-            verify=celeryconfig.cacert_path
-        )
-        if resp.status_code != 200:
-            return jsonify(
-                error_code=RET.RUNTIME_ERROR,
-                error_msg="could not reach messenger of this machine group"
-            )
+    def send_request(self, machine_group, api, method="get"):
+        request_url = "https://{}:{}{}".format(machine_group.messenger_ip, machine_group.messenger_listen, api)
+        verify = celeryconfig.cacert_path
+        headers = {"content-type": "application/json;charset=utf-8"}
 
+        if method == "post":
+            resp = requests.post(request_url, json=self._body, headers=headers, verify=verify)
+        else:
+            resp = requests.get(request_url, params=self._body, headers=headers, verify=verify)
+
+        if resp.status_code != 200:
+            return dict(
+                error_code=RET.RUNTIME_ERROR,
+                error_msg=f"could not reach messenger of this machine group, "
+                          f"auto release pmanchine {self._body.get('ip')} failed!"
+            )
         try:
             result = json.loads(resp.text)
         except AttributeError:
