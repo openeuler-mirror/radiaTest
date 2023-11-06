@@ -5,7 +5,7 @@ import Pmachine from '@/views/pmachine/Pmachine';
 import Vmachine from '@/views/vmachine/Vmachine';
 import TestCenterManagement from '@/views/testCenter/TestCenterManagement.vue';
 import Job from '@/views/testCenter/job/Job';
-import Manual from '@/views/testCenter/Manual';
+import Manual from '@/views/testCenter/manual/Manual';
 import Gui from '@/views/testCenter/Gui';
 import Testcase from '@/views/caseManage/testcase/Testcase';
 import Blank from '@/components/public/Blank';

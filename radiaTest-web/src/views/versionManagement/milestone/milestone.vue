@@ -147,7 +147,7 @@ export default defineComponent({
     ]);
 
     const filterchange = (filterArray) => {
-      milestoneTable.filter.value.name = filterArray[0].value;
+      milestoneTable.filter.value.name = filterArray.length ? filterArray[0].value : null;
       milestoneTable.pagination.value.page = 1;
       milestoneTable.filter.value.page_num = 1;
       milestoneTable.getTableData();

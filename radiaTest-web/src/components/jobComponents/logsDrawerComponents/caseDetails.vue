@@ -29,23 +29,24 @@
     <n-card size="huge" segment="false" hoverable>
       <template #header>
         <p>
-          <n-icon
-            v-if="selectedRecord.result === 'fail'"
-            :size="20"
-            color="rgba(206,64,64,1)"
-          >
+          <n-icon v-if="selectedRecord.result === 'fail'" :size="20" color="rgba(206,64,64,1)">
             <cancel-filled />
+          </n-icon>
+          <n-icon v-else-if="selectedRecord.result === 'block'" :size="20" color="#f0a020">
+            <BlockRound />
           </n-icon>
           <n-icon v-else :size="20" color="green">
             <check-circle />
           </n-icon>
           <span style="padding-left: 20px">{{
-            selectedRecord.result === 'success' ? '执行成功' : '执行失败'
+            selectedRecord.result === 'success'
+              ? '执行成功'
+              : selectedRecord.result === 'block'
+              ? '执行阻塞'
+              : '执行失败'
           }}</span>
         </p>
-        <p style="font-size: 12px; font-weight: 400; padding-left: 40px">
-          用时:
-        </p>
+        <p style="font-size: 12px; font-weight: 400; padding-left: 40px">用时:</p>
       </template>
       <template #header-extra>
         <p style="font-size: 18px; font-weight: 600">
@@ -58,7 +59,7 @@
 </template>
 <script>
 import { ref } from 'vue';
-import { CancelFilled } from '@vicons/material';
+import { CancelFilled, BlockRound } from '@vicons/material';
 import { CheckCircle } from '@vicons/fa';
 import LogDataTable from '@/components/jobComponents/LogDataTable';
 import CollapseList from '@/components/collapseList/collapseList.vue';
@@ -68,6 +69,7 @@ export default {
   components: {
     CancelFilled,
     CheckCircle,
+    BlockRound,
     LogDataTable,
     ModalCard,
     FailureUpdateForm,

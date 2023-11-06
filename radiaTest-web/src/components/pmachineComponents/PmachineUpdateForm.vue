@@ -9,12 +9,7 @@
       ref="basicFormRef"
     >
       <n-grid :cols="24" :x-gap="24">
-        <n-form-item-gi
-          :span="12"
-          label="架构"
-          path="frame"
-          ref="basicFrameRef"
-        >
+        <n-form-item-gi :span="12" label="架构" path="frame" ref="basicFrameRef">
           <n-select
             v-model:value="basicFormValue.frame"
             :options="[
@@ -57,7 +52,7 @@
           <n-input
             v-model:value="bmcFormValue.bmc_user"
             placeholder="输入BMC用户名"
-            @keydown.enter.prevent          
+            @keydown.enter.prevent
           />
         </n-form-item-gi>
       </n-grid>
@@ -83,25 +78,13 @@
     >
       <n-grid :cols="24" :x-gap="24">
         <n-form-item-gi :span="6" label="SSH IP" path="ip">
-          <n-input
-            v-model:value="sshFormValue.ip"
-            placeholder="请输入"
-            @keydown.enter.prevent
-          />
+          <n-input v-model:value="sshFormValue.ip" placeholder="请输入" @keydown.enter.prevent />
         </n-form-item-gi>
         <n-form-item-gi :span="6" label="SSH 端口" path="port">
-          <n-input
-            v-model:value="sshFormValue.port"
-            placeholder="请输入"
-            @keydown.enter.prevent
-          />
+          <n-input v-model:value="sshFormValue.port" placeholder="请输入" @keydown.enter.prevent />
         </n-form-item-gi>
         <n-form-item-gi :span="12" label="SSH 用户名">
-          <n-input
-            v-model:value="sshFormValue.user"
-            placeholder="请输入"
-            @keydown.enter.prevent
-          />
+          <n-input v-model:value="sshFormValue.user" placeholder="请输入" @keydown.enter.prevent />
         </n-form-item-gi>
       </n-grid>
       <n-form-item label="输入密码">
@@ -146,7 +129,7 @@ export default defineComponent({
           ...updateForm.bmcFormValue.value,
           ...updateForm.sshFormValue.value,
         });
-        updateAjax.putForm('/v1/pmachine', formValue);
+        updateAjax.putForm(`/v1/pmachine/${updateForm.machineId.value}`, formValue);
         context.emit('close');
       },
     };

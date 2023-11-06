@@ -1,14 +1,14 @@
 <template>
   <div id="container">
     <div style="height: 100%; width: 100%; overflow-y: scroll">
-      <collapseList :treeList="treeList" v-if="treeList.length > 0" />
+      <collapseProList :treeList="treeList" v-if="treeList.length > 0" />
       <n-empty v-else style="height: 60%; justify-content: center" description="暂无测试进展" />
     </div>
   </div>
 </template>
 
 <script setup>
-import collapseList from '@/components/productDrawer/drawerCollapseList.vue';
+import collapseProList from '@/components/productDrawer/drawerCollapseList.vue';
 import { getMilestoneProgress } from '@/api/get.js';
 
 const props = defineProps(['defaultMilestoneId']);
@@ -35,7 +35,7 @@ const getTreeList = () => {
         progress: exchangeProgress(res.data.test_progress),
         id: res.data.id,
         type: res.data.type,
-        is_root: true
+        is_root: true,
       });
     })
     .catch(() => {

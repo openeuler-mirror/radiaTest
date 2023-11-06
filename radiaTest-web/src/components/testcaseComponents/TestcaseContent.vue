@@ -78,8 +78,7 @@ export default defineComponent({
   },
   watch: {
     form: {
-      handler(value) {
-        // console.log(1,value);
+      handler() {
         this.formValue = ref({
           machine_type: undefined,
           machine_num: undefined,
@@ -94,7 +93,7 @@ export default defineComponent({
       deep: true,
     },
   },
-  methods:{
+  methods: {
     // submit(value){
     //   createCaseReview({...value,case_detail_id:this.form.id}).then(()=>{
     //     this.$refs.updateModalRef.close();

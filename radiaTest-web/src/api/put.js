@@ -143,6 +143,10 @@ export function updateCaseNodeParent(caseNodeId, nextParentId) {
 export function updateStepLogAxios(jobId, data) {
   return putRequest(`/v1/manual-job/log/${jobId}`, data);
 }
+// 手工任务组状态变更
+export function updateTask(manualJobGroupId, data) {
+  return putRequest(`/v1/manual-job-group/${manualJobGroupId}`, data);
+}
 
 export function statisticsProduct(id) {
   return putRequest(`/v1/product/${id}/issue-rate`, {}, { successMsg: '统计成功' });
@@ -169,4 +173,9 @@ export function changeProductFeature(featureId, data) {
 // 修改任务完成度
 export function changeTaskPercentage(taskId, data) {
   return putRequest(`/v1/tasks/${taskId}/percentage`, data);
+}
+
+// 设置手工用例状态
+export function updateCase(manualJobId, data) {
+  return putRequest(`/v1/manual-job/${manualJobId}/submit`, data);
 }
