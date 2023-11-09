@@ -276,19 +276,24 @@ class PmachineOccupyReleaseHandler:
             else:
                 messenger_res = _resp.get("error_msg")
                 current_app.logger.info("messenger response info:{}".format(messenger_res))
-                pmachine_passwd = _resp.get("data")
-                if isinstance(pmachine_passwd, list):
-                    mail = Mail()
-                    mail.send_text_mail(
-                        current_app.config.get("ADMIN_MAIL_ADDR"),
-                        subject="【radiaTest平台】{}-密码变更通知".format(pmachine_passwd[0]),
-                        text="{} new password:{}".format(pmachine_passwd[0], pmachine_passwd[1])
-                    )
-                else:
-                    return jsonify(
-                        error_code=RET.BAD_REQ_ERR,
-                        error_msg="messenger response is not correct"
-                    )
+                try:
+                    pmachine_passwd = _resp.get("data")
+                    if isinstance(pmachine_passwd, list):
+                        mail = Mail()
+                        mail.send_text_mail(
+                            current_app.config.get("ADMIN_MAIL_ADDR"),
+                            subject="【radiaTest平台】{}-密码变更通知".format(pmachine_passwd[0]),
+                            text="{} new password:{}".format(pmachine_passwd[0], pmachine_passwd[1])
+                        )
+                    else:
+                        return jsonify(
+                            error_code=RET.BAD_REQ_ERR,
+                            error_msg="messenger response is not correct"
+                        )
+                except Exception as e:
+                    # 邮件发送异常仅打印日志，不影响机器释放
+                    current_app.logger.error("密码变更通知错误:{}".format(e))
+
         if pmachine.state == "occupied":
             _body = {
                 "id": pmachine.id,

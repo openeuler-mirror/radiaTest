@@ -67,12 +67,16 @@ def restore_dhcp():
         current_app.config.get("DHCP_CONF"),
     )
 
+
 # pxe引导启动物理机
 def pxe_boot(ip, user, password):
     ipmitool_cmd = "ipmitool -I lanplus -H {} -U {}  -P {}".format(
         quote(ip), quote(user), quote(password)
     )
-    return "%s chassis bootdev pxe && %s power reset" % (ipmitool_cmd, ipmitool_cmd)
+    # 设置uefi pxe引导
+    return "%s chassis bootdev disk options=persistent && %s chassis bootdev pxe options=efiboot && %s power reset" % (
+        ipmitool_cmd, ipmitool_cmd, ipmitool_cmd)
+
 
 # 物理机 上下电
 def power_on_off(ip, user, password, status):

@@ -12,9 +12,12 @@
 # @Date    :
 # @License : Mulan PSL v2
 #####################################
-
+import threading
 import time
+from contextlib import contextmanager
+from datetime import datetime
 
+import pytz
 from flask import current_app, jsonify
 from paramiko import SSHException
 
@@ -56,6 +59,16 @@ class DHCP:
 
 
 class PxeInstall(DHCP):
+    # 适配单例模式
+    _instance_lock = threading.Lock()
+    _instance = None
+
+    def __new__(cls, *args, **kwargs):
+        if not getattr(cls, "_instance"):
+            with cls._instance_lock:
+                cls._instance = super().__new__(cls)
+        return cls._instance
+
     def __init__(self, pmachine, mirroring) -> None:
         super().__init__()
         self.pmachine = pmachine
@@ -66,6 +79,25 @@ class PxeInstall(DHCP):
         self.tftp_root = current_app.config.get("PXE_TFTP_ROOT")
         self.httpd_root = current_app.config.get("PXE_HTTPD_ROOT")
         self.httpd_prefix = current_app.config.get("PXE_HTTPD_PREFIX")
+
+        self.dhcp_lock_time = None
+
+    @contextmanager
+    def get_dhcp_lock(self):
+        # dhcp锁最多锁定5分钟
+        while True:
+            if not self.dhcp_lock_time:
+                break
+            else:
+                now = datetime.now(tz=pytz.timezone('Asia/Shanghai'))
+                if (now - self.dhcp_lock_time).seconds > 5 * 60:
+                    break
+            current_app.logger.info("sleep 10s,wait dhcp lock release!")
+            time.sleep(10)
+        self.dhcp_lock_time = datetime.now(tz=pytz.timezone('Asia/Shanghai'))
+        yield
+        if self.dhcp_lock_time:
+            self.dhcp_lock_time = None
 
     def clear_bind(self):
         if self.base_exec_cmd(judge_bind(self._mac)):
@@ -85,36 +117,38 @@ class PxeInstall(DHCP):
                 current_app.logger.debug("dhcp configuration item cleanup failed.")
                 self._conn.close()
                 return False
-            # 注释手动绑定过的mac地址
-            self.exec_cmd(annotating_dhcp_conf(self._mac))
-            return True
+        # 注释手动绑定过的mac地址
+        self.exec_cmd(annotating_dhcp_conf(self._mac))
+        return True
 
     def bind_efi_mac_ip(self, tftp_efi):
-        if self.clear_bind() is False:
-            return False
-        exitcode, output = self.exec_cmd(bind_mac(tftp_efi, self._mac, self._ip))
-        if exitcode:
-            current_app.logger.error(output)
-            exitcode, output = self.exec_cmd(restore_dhcp())
+        # 对修改dhcp文件操作进行上锁，避免同时操作引发异常
+        with self.get_dhcp_lock():
+            if self.clear_bind() is False:
+                return False
+            exitcode, output = self.exec_cmd(bind_mac(tftp_efi, self._mac, self._ip))
             if exitcode:
                 current_app.logger.error(output)
+                exitcode, output = self.exec_cmd(restore_dhcp())
+                if exitcode:
+                    current_app.logger.error(output)
+                    self._conn.close()
+                current_app.logger.debug(f"{self._ip} Failed to bind mac address.")
+                return False
+
+            exitcode, output = self.exec_cmd(restart_dhcp())
+            if exitcode:
+                current_app.logger.error(output)
+
+                exitcode1, output1 = self.exec_cmd(restore_dhcp())
+                exitcode2, output2 = self.exec_cmd(restart_dhcp())
+                if exitcode1 or exitcode2:
+                    current_app.logger.error(output1)
+                    current_app.logger.error(output2)
                 self._conn.close()
-            current_app.logger.debug(f"{self._ip} Failed to bind mac address.")
-            return False
-
-        exitcode, output = self.exec_cmd(restart_dhcp())
-        if exitcode:
-            current_app.logger.error(output)
-
-            exitcode1, output1 = self.exec_cmd(restore_dhcp())
-            exitcode2, output2 = self.exec_cmd(restart_dhcp())
-            if exitcode1 or exitcode2:
-                current_app.logger.error(output1)
-                current_app.logger.error(output2)
-            self._conn.close()
-            current_app.logger.debug(f"{self._ip} Failed to bind mac address.")
-            return False
-        return True
+                current_app.logger.debug(f"{self._ip} Failed to bind mac address.")
+                return False
+            return True
 
     def close_conn(self):
         if self._conn:
