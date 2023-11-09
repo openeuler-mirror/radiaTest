@@ -66,6 +66,8 @@ from server.schema.testcase import (
     CaseSetNodeQueryBySuiteSchema,
     CaseQuery,
     SuiteQuery,
+    CaseNodeBodyQuerySchema,
+    CaseV2Query
 )
 from server.apps.testcase.handler import (
     CaseImportHandler,
@@ -317,7 +319,8 @@ class SuiteEvent(Resource):
             filter_params.append(Suite.owner == query.owner)
         if query.deleted is not None:
             filter_params.append(Suite.deleted.is_(query.deleted))
-
+        if query.git_repo_id is not None:
+            filter_params.append(Suite.git_repo_id == query.git_repo_id)
         query_filter = Suite.query.filter(*filter_params)
 
         return PageUtil.get_data(query_filter, query)
@@ -695,7 +698,8 @@ class CaseEvent(Resource):
             filter_params.append(Case.owner == query.owner)
         if query.deleted is not None:
             filter_params.append(Case.deleted.is_(query.deleted))
-
+        if query.suite_id is not None:
+            filter_params.append(Case.suite_id == query.suite_id)
         query_filter = Case.query.filter(*filter_params)
 
         return PageUtil.get_data(query_filter, query)
@@ -1759,6 +1763,44 @@ class BaselineEvent(Resource):
         return_data["case_node_id"] = _resp.get("data")
         return jsonify(error_code=RET.OK, error_msg="OK", data=return_data)
 
+    @auth.login_required()
+    @response_collect
+    @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_testcase_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "BaselineEvent",  # 当前接口视图函数名
+        "func_name": "get",   # 当前接口所对应的函数名
+        "tag": get_testcase_tag(),  # 当前接口所对应的标签
+        "summary": "根据里程碑查询版本基线信息及其对应节点信息",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "query_schema_model": CaseNodeBodyQuerySchema
+    })
+    def get(self, query: CaseNodeBodyQuerySchema):
+        _baseline = Baseline.query.filter_by(
+            milestone_id=query.milestone_id).first()
+        if not _baseline:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="baseline not exist!"
+            )
+
+        root_case_node = CaseNode.query.filter_by(is_root=True, baseline_id=_baseline.id,
+                                                  milestone_id=_baseline.milestone_id).first()
+        if not root_case_node:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="case node not exist!"
+            )
+        data = _baseline.to_json()
+        # 追加版本基线根节点id
+
+        data.update({"root_case_node_id": root_case_node.id})
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+            data=data,
+        )
+
 
 class OrgCasesetEvent(Resource):
     @auth.login_required()
@@ -1921,3 +1963,33 @@ class OrgSuiteExportEvent(Resource):
             )
         finally:
             exportor.rm_casefile()
+
+
+class CaseEventV2(Resource):
+    @auth.login_required()
+    @response_collect
+    @workspace_error_collect
+    @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_testcase_tag.__module__,   # 获取当前接口所在模块
+        "resource_name": "CaseEventV2",  # 当前接口视图函数名
+        "func_name": "get",   # 当前接口所对应的函数名
+        "tag": get_testcase_tag(),  # 当前接口所对应的标签
+        "summary": "分页查询版本基线下的用例",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "query_schema_model": CaseV2Query
+    })
+    def get(self, workspace: str, query: CaseV2Query):
+        filter_params = GetAllByPermission(Case, workspace).get_filter()
+        if query.name is not None:
+            filter_params.append(Case.name.like(f'%{query.name}%'))
+        if query.description is not None:
+            filter_params.append(
+                Case.description.like(f'%{query.description}%'))
+        if query.automatic is not None:
+            filter_params.append(Case.automatic.is_(query.automatic))
+        if query.baseline_id is not None:
+            filter_params.append(CaseNode.baseline_id == query.baseline_id)
+        query_filter = Case.query.join(CaseNode).filter(*filter_params)
+
+        return PageUtil.get_data(query_filter, query)

@@ -20,7 +20,10 @@ from server.apps.manualjob.routes import (
     ManualJobSubmitEvent,
     ManualJobLogEvent,
     ManualJobDeleteEvent,
-    ManualJobLogQueryEvent
+    ManualJobLogQueryEvent,
+    ManualJobGroupEvent,
+    ManualJobGroupDetail,
+    ManualJobGroupCopy
 )
 
 
@@ -31,8 +34,13 @@ def init_api(api: Api):
         "/api/v1/manual-job", "/api/v1/ws/<string:workspace>/manual-job",
         methods=["POST", "GET"]
     )
+    # 手工任务组查询
+    api.add_resource(ManualJobGroupEvent,  "/api/v1/ws/<string:workspace>/manual-job-group", methods=["GET"])
+    # 手工任务组详情
+    api.add_resource(ManualJobGroupDetail,  "/api/v1/manual-job-group/<int:manual_job_group_id>",
+                     methods=["GET", "PUT", "POST", "DELETE"])
     # 提交完成执行指定id的手工测试任务.
-    api.add_resource(ManualJobSubmitEvent, "/api/v1/manual-job/<int:manual_job_id>/submit", methods=["POST"])
+    api.add_resource(ManualJobSubmitEvent, "/api/v1/manual-job/<int:manual_job_id>/submit", methods=["POST", "PUT"])
     # 更新、删除指定id的手工测试任务的日志.
     api.add_resource(ManualJobLogEvent, "/api/v1/manual-job/log/<int:manual_job_id>", methods=["PUT", "DELETE"])
     # 删除指定id的手工测试任务(ManualJob).
@@ -40,3 +48,5 @@ def init_api(api: Api):
     # 查询指定id的手工测试任务的指定步骤的日志.
     api.add_resource(ManualJobLogQueryEvent, "/api/v1/manual-job/<int:manual_job_id>/step/<int:step_num>",
                      methods=["GET"])
+    # 复制手工任务组
+    api.add_resource(ManualJobGroupCopy,  "/api/v1/manual-job-group/copy", methods=["POST"])

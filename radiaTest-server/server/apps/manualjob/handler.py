@@ -14,20 +14,20 @@
 #####################################
 # 手工测试任务(ManualJob)相关接口的handler层
 
-import re
-from copy import deepcopy
+from datetime import datetime
 
+import pytz
 from flask import jsonify, g
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
-from server import db, redis_client
-from server.model import Case, ManualJob, ManualJobStep
-from server.utils.redis_util import RedisKey
+from celeryservice.lib.manualjob import ManualJobAsyncHandler
+from server import db
+from server.model import ManualJob, ManualJobStep, Analyzed
+from server.model.manualjob import ManualJobGroup
 from server.utils.permission_utils import GetAllByPermission
 from server.utils.response_util import RET
 from server.utils.db import collect_sql_error
 from server.utils.page_util import PageUtil
-from server.utils.text_utils import TextItemSplitter, DefaultNumeralRule
 from celeryservice.tasks import resolve_create_manualjob
 
 
@@ -36,11 +36,19 @@ class ManualJobHandler:
     @collect_sql_error
     def create(body):
         manual_job_dict = body.__dict__
-        resolve_create_manualjob.delay(manual_job_dict)
-        return jsonify(
-            error_code=RET.OK,
-            error_msg="Request processed successfully."
-        )
+        # 同步执行创建任务
+        flag, result = ManualJobAsyncHandler.create(manual_job_dict)
+        if flag is True:
+            return jsonify(
+                error_code=RET.OK,
+                error_msg="Request processed successfully."
+            )
+        else:
+            return jsonify(
+                data=result,
+                error_code=RET.PARMA_ERR,
+                error_msg="任务创建失败,请检查用例是否存在!"
+            )
 
     @staticmethod
     @collect_sql_error
@@ -57,7 +65,8 @@ class ManualJobHandler:
             filter_params.append(ManualJob.name.like(f'%{query.name}%'))
         if query.case_id is not None:
             filter_params.append(ManualJob.case_id == query.case_id)
-
+        if query.job_group_id is not None:
+            filter_params.append(ManualJob.job_group_id == query.job_group_id)
         # 分页对象
         page_dict, e = PageUtil.get_page_dict(
             query_filter=ManualJob.query.filter(*filter_params),
@@ -76,11 +85,41 @@ class ManualJobHandler:
             error_msg="Request processed successfully."
         )
 
-
-class ManualJobSubmitHandler:
     @staticmethod
     @collect_sql_error
-    def post(manual_job: ManualJob):
+    def query_manual_job_group(query, workspace=None):
+        filter_params = GetAllByPermission(ManualJobGroup, workspace).get_filter()
+        if query.name is not None:
+            filter_params.append(ManualJobGroup.name.like(f'%{query.name}%'))
+        if query.milestone_id is not None:
+            filter_params.append(ManualJobGroup.milestone_id == query.milestone_id)
+        if query.status is not None:
+            filter_params.append(ManualJobGroup.status == query.status)
+
+        # 分页对象
+        page_dict, e = PageUtil.get_page_dict(
+            query_filter=ManualJobGroup.query.filter(*filter_params),
+            page_num=query.page_num,
+            page_size=query.page_size,
+            func=ManualJobGroup.to_json
+        )
+        if e:
+            return jsonify(
+                error_code=RET.SERVER_ERR,
+                error_msg=f"get manual_job_group page error {e}."
+            )
+        return jsonify(
+            data=page_dict,
+            error_code=RET.OK,
+            error_msg="Request processed successfully."
+        )
+
+
+class ManualJobSubmitHandler:
+
+    @classmethod
+    @collect_sql_error
+    def post(cls, manual_job: ManualJob):
         manual_job.status = 1
 
         result = 1
@@ -95,6 +134,8 @@ class ManualJobSubmitHandler:
 
         if result >= 0:
             manual_job.result = result
+            # 同步执行记录
+            cls.update_case_analyzed(manual_job, result)
             try:
                 db.session.commit()
             except (IntegrityError, SQLAlchemyError) as e:
@@ -109,6 +150,39 @@ class ManualJobSubmitHandler:
                 error_code=RET.VERIFY_ERR,
                 error_msg="Not all the steps' logs are filled."
             )
+
+    @classmethod
+    @collect_sql_error
+    def update(cls, manual_job, body):
+        # 设置任务结果
+        manual_job.status = 1
+        manual_job.result = body.result
+        if body.remark:
+            manual_job.remark = body.remark
+        # 同步执行记录
+        cls.update_case_analyzed(manual_job, body.result)
+        try:
+            db.session.commit()
+        except (IntegrityError, SQLAlchemyError) as e:
+            db.session.rollback()
+            raise e
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="Request processed successfully."
+        )
+
+    @staticmethod
+    def update_case_analyzed(manual_job, result):
+        # 同步创建执行手工任务执行记录
+        if result == 1:
+            res_str = "success"
+        elif result == 0:
+            res_str = "fail"
+        elif result == 2:
+            res_str = "block"
+        else:
+            res_str = "NA"
+        db.session.add(Analyzed(result=res_str, case_id=manual_job.case_id, manual_job_id=manual_job.id))
 
 
 class ManualJobLogHandler:
@@ -234,6 +308,31 @@ class ManualJobDeleteHandler:
             error_msg="Request processed successfully."
         )
 
+    @staticmethod
+    @collect_sql_error
+    def delete_manual_job_group(manual_job_group_id: int):
+        group_job_result = ManualJobGroup.query.filter_by(id=manual_job_group_id).first()
+        if group_job_result is None:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg=f"the manual_job_group with id {manual_job_group_id} does not exist"
+            )
+        db.session.delete(group_job_result)
+        query_result = ManualJob.query.filter_by(job_group_id=manual_job_group_id).all()
+        if query_result:
+            for manual_job in query_result:
+                db.session.delete(manual_job)
+        try:
+            db.session.commit()
+        except (IntegrityError, SQLAlchemyError) as e:
+            db.session.rollback()
+            raise e
+
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="Request processed successfully."
+        )
+
 
 class ManualJobLogQueryHandler:
     @staticmethod
@@ -256,3 +355,39 @@ class ManualJobLogQueryHandler:
             error_code=RET.OK,
             error_msg="Request processed successfully."
         )
+
+
+class ManualJobGroupCopyHandler:
+    @staticmethod
+    @collect_sql_error
+    def copy(manual_job_group, body):
+        name = manual_job_group.name + datetime.now(tz=pytz.timezone('Asia/Shanghai')).strftime("-%Y-%m-%d-%H:%M:%S")
+        if not body.get("milestone_id"):
+            milestone_id = manual_job_group.milestone_id
+        else:
+            milestone_id = body.get("milestone_id")
+        case_ids = []
+        for manual_job in ManualJob.query.filter_by(job_group_id=manual_job_group.id).all():
+            case_ids.append(str(manual_job.case_id))
+        create_data = {
+            "name": name,
+            "milestone_id": milestone_id,
+            "cases": ",".join(case_ids),
+            "creator_id": g.user_id,
+            "permission_type":  manual_job_group.permission_type,
+            "group_id": manual_job_group.group_id,
+            "org_id": manual_job_group.org_id,
+        }
+        # 同步执行创建任务
+        flag, result = ManualJobAsyncHandler.create(create_data)
+        if flag is True:
+            return jsonify(
+                error_code=RET.OK,
+                error_msg="Request processed successfully."
+            )
+        else:
+            return jsonify(
+                data=result,
+                error_code=RET.PARMA_ERR,
+                error_msg="任务创建失败,请检查用例是否存在!"
+            )

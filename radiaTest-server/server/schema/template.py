@@ -13,11 +13,19 @@
 # @License : Mulan PSL v2
 #####################################
 
-from typing import Optional
+from typing import Optional, Literal
 
 from pydantic import BaseModel, constr
 
-from server.schema.base import PermissionBase
+from server.schema.base import PermissionBase, PageBaseSchema
+
+
+class TemplateQuery(PageBaseSchema):
+    name: Optional[constr(max_length=128)]
+    milestone_id: Optional[int]
+    git_repo_id: Optional[int]
+    description: Optional[constr(max_length=255)]
+    type: Literal['automatic', 'manual'] = "automatic"
 
 
 class TemplateUpdate(BaseModel):
@@ -35,5 +43,7 @@ class TemplateCreateByimportFile(PermissionBase):
     name: constr(max_length=128)
     description: Optional[constr(max_length=255)]
     milestone_id: int
-    git_repo_id: int
+    git_repo_id: Optional[int]
+    type: Literal['automatic', 'manual'] = "automatic"
+    cases: Optional[str]
 

@@ -294,7 +294,7 @@ def resolve_template_testcase(self, filetype, filepath, body):
 
 @celery.task(bind=True)
 def resolve_create_manualjob(self, body):
-    ManualJobAsyncHandler(logger, self).create(body=body)
+    return ManualJobAsyncHandler(logger, self).create(body=body)
 
 
 @celery.task

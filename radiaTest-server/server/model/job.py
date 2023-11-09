@@ -137,9 +137,25 @@ class Analyzed(BaseModel, db.Model):
 
     case_id = db.Column(db.Integer(), db.ForeignKey("case.id"))
     job_id = db.Column(db.Integer(), db.ForeignKey("job.id"))
+    # 手工任务绑定
+    manual_job_id = db.Column(db.Integer(), db.ForeignKey("manual_job.id"))
     logs = db.relationship('Logs', backref='analyzed', secondary=analyzed_logs)
 
     def to_json(self):
+        milestone_id = None
+        if self.job_id:
+            job_name = self.job.name
+            milestone_id = self.job.milestone_id
+        else:
+            job_name = ''
+        if self.manual_job_id:
+            manual_job_name = self.manual_job.name
+            milestone_id = self.manual_job.milestone_id
+            manual = True
+        else:
+            manual_job_name = ''
+            manual = False
+
         return {
             "id": self.id,
             "result": self.result,
@@ -147,12 +163,15 @@ class Analyzed(BaseModel, db.Model):
             "fail_type": self.fail_type,
             "details": self.details,
             "case": self.case.to_json(),
-            "job": self.job.name,
+            "job": job_name,
             "job_id": self.job_id,
+            "manual_job": manual_job_name,
+            "manual_job_id": self.manual_job_id,
             "create_time": self.create_time.strftime("%Y-%m-%d %H:%M:%S"),
             "update_time": self.update_time.strftime("%Y-%m-%d %H:%M:%S"),
-            "milestone_id": self.job.milestone_id,
+            "milestone_id": milestone_id,
             "running_time": self.running_time,
+            "manual": manual
         }
 
     def get_logs(self):

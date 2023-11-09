@@ -17,6 +17,7 @@ from sqlalchemy.dialects.mysql import TINYTEXT
 
 from server import db
 from server.model import BaseModel, PermissionBaseModel
+from server.model.testcase import Baseline
 
 
 class Milestone(BaseModel, PermissionBaseModel, db.Model):
@@ -102,7 +103,9 @@ class Milestone(BaseModel, PermissionBaseModel, db.Model):
             "creator_id": self.creator_id,
             "permission_type": self.permission_type,
             "group_id": self.group_id,
-            "org_id": self.org_id
+            "org_id": self.org_id,
+            # 是否关联版本基线
+            "has_baseline": True if Baseline.query.filter_by(milestone_id=self.id).count() else False
         }
 
     def to_gantt_dict(self):

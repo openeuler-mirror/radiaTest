@@ -52,8 +52,8 @@ def get_user_tag():
 
 @oauth.route("/api/v1/oauth/callback", methods=["GET"])
 @swagger_adapt.api_schema_model_map({
-    # 当前接口非Resource类，需要手动添加 url、method
-    "url": "/api/v1/oauth/callback",  # 获取当前接口所在模块
+    # 当前接口非Resource类，需要手动添加 url、method, 当前接口比较特殊，映射url为列表
+    "url": ["/api/v1/oauth/callback"],
     "method": "get",  # 获取当前接口所在模块
     "__module__": get_user_tag.__module__,  # 获取当前接口所在模块
     "resource_name": "None",  # 当前接口视图函数名
