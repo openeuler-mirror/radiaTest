@@ -88,6 +88,10 @@ export function cleanBaselineTemplate(id) {
 export function deleteManualJob(id) {
   return deleteRequest(`/v1/manual-job/${id}`);
 }
+// 删除手工任务
+export function deleteManualTask(manualJobGroupId) {
+  return deleteRequest(`/v1/manual-job-group/${manualJobGroupId}`);
+}
 
 // 删除测试策略模板
 export function deleteStrategyTemplate(strategyTemplateId) {

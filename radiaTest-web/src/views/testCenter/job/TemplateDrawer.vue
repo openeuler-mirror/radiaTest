@@ -14,11 +14,14 @@
       </div>
     </div>
     <n-data-table
+      remote
       :loading="templateTableLoading"
       :columns="templateTableColumns"
       :data="templateTableData"
       :pagination="templatePagination"
       :row-key="(row) => row.id"
+      @update:page="changePage"
+      @update:page-size="changePageSize"
     />
     <n-modal v-model:show="showCreateTemplateModal" :mask-closable="false">
       <TemplateCreateForm
@@ -83,24 +86,23 @@ import { EditRegular, CopyRegular, PlayCircleRegular } from '@vicons/fa';
 import { NSpace, NButton, NIcon } from 'naive-ui';
 import { renderTooltip } from '@/assets/render/tooltip';
 import { Delete24Regular as Delete } from '@vicons/fluent';
-import axios from '@/axios';
 import textDialog from '@/assets/utils/dialog';
 import { deleteAjax } from '@/assets/CRUD/delete';
 import { cloneTemplate } from '@/api/post';
+import { getTemplateList } from '@/api/get';
 import { storage } from '@/assets/utils/storageUtils';
 import extendForm from '@/views/versionManagement/product/modules/createForm.js';
 import { createTitle } from '@/assets/utils/createTitle';
 import ExpandedCardTemplate from '@/components/templateComponents/ExpandedCardTemplate.vue';
 import { Socket } from '@/socket.js';
 import settings from '@/assets/config/settings.js';
-import { workspace } from '@/assets/config/menu.js';
 
 const templateTableLoading = ref(false);
 const templateTableData = ref([]);
 const templatePagination = ref({
-  //   page: 1,
-  //   pageCount: 1, //总页数
-  //   pageSize: 10, //受控模式下的分页大小
+  page: 1,
+  pageSize: 10,
+  pageCount: 1,
   showSizePicker: true,
   pageSizes: [5, 10, 20, 50],
 });
@@ -108,20 +110,37 @@ const isEditTemplate = ref(false);
 const modalData = ref(null);
 
 const getTableData = () => {
-  return new Promise((resolve) => {
-    templateTableLoading.value = true;
-    axios.get(`/v1/ws/${workspace.value}/template`).then((res) => {
+  getTemplateList({
+    page_num: templatePagination.value.page,
+    page_size: templatePagination.value.pageSize,
+    type: 'automatic',
+  })
+    .then((res) => {
       templateTableLoading.value = false;
-      templateTableData.value = res.data;
-      templateList.value = res.data.map((item) => ({
-        label: item.name,
-        value: String(item.id),
-      }));
-      resolve();
+      templatePagination.value.pageCount = res.data.pages;
+      templatePagination.value.page = res.data.current_page;
+      templatePagination.value.pageSize = res.data.page_size;
+      if (res.data && res.data.items && res.data.items.length) {
+        templateTableData.value = res.data.items;
+        templateList.value = res.data.items.map((item) => ({
+          label: item.name,
+          value: String(item.id),
+        }));
+      }
+    })
+    .finally(() => {
+      templateTableLoading.value = false;
     });
-  });
 };
-
+const changePage = (page) => {
+  templatePagination.value.page = page;
+  getTableData();
+};
+const changePageSize = (pageSize) => {
+  templatePagination.value.page = 1;
+  templatePagination.value.pageSize = pageSize;
+  getTableData();
+};
 const templateTableColumns = [
   {
     type: 'expand',
@@ -240,9 +259,6 @@ const templateTableColumns = [
   },
 ];
 const templateList = ref([]); // 模板列表
-
-// const templateTablePageChange = () => {};
-// const templateTablePageSizeChange = () => {};
 
 const showCreateTemplateModal = ref(false);
 

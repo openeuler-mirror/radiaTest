@@ -61,6 +61,9 @@ export function getJob(data) {
 export function getTemplateInfo(id, data) {
   return getRequest(`/v1/template/${id}`, data);
 }
+export function getTemplateList(data) {
+  return getRequest(`/v1/ws/${workspace.value}/template`, data);
+}
 export function getIssue(data) {
   return getRequest('/v2/gitee-issues', data);
 }
@@ -361,6 +364,12 @@ export function getSuiteItem(suiteId) {
 export function getManualJob(data) {
   return getRequest(`/v1/ws/${workspace.value}/manual-job`, data);
 }
+export function getManualJobGroup(data) {
+  return getRequest(`/v1/ws/${workspace.value}/manual-job-group`, data);
+}
+export function getManualJobGroupDetail(manualJobGroupId) {
+  return getRequest(`/v1/manual-job-group/${manualJobGroupId}`);
+}
 
 export function getManualJobLog(jobId, stepId) {
   return getRequest(`/v1/manual-job/${jobId}/step/${stepId}`);
@@ -480,3 +489,26 @@ export function exportTestsuite(orgId, caseNodeId, data) {
 export function determinMilestoneName(data) {
   return getRequest('/v2/milestone/verify-name', data);
 }
+
+// 分页查询测试套
+export function getCaseSuite(data) {
+  return getRequest(`/v1/ws/${workspace.value}/suite`, data);
+}
+// 分页查询测试用例
+export function getCases(data) {
+  return getRequest(`/v1/ws/${workspace.value}/case`, data);
+}
+// 获取手工也没叶子节点
+export function getCasesNode(nodeId, data) {
+  return getRequest(`/v1/case-node/${nodeId}`, data);
+}
+// 根据里程碑查询版本基线信息及其对应节点信息
+export function getBaselineByMilestone(data) {
+  return getRequest('/v1/baseline', data);
+}
+// 在某个基线下查询手工用例
+export function getManualCaseBySearch(data) {
+  return getRequest(`/v1/ws/${workspace.value}/caseV2`, data);
+}
+
+

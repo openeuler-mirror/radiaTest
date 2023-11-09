@@ -224,3 +224,16 @@ export function createDailyBuildCompare(roundId, data) {
 export function createTemplate(data) {
   return postRequest('/v1/template', data);
 }
+
+// 设置手工用例状态
+export function updateCase(manualJobId, data) {
+  return postRequest(`/v1/manual-job/${manualJobId}/submit`, data);
+}
+// 手工任务组富文本报告保存
+export function saveManualText(manualJobId, data) {
+  return postRequest(`/v1/manual-job-group/${manualJobId}`, data);
+}
+// 复制手工任务
+export function copyManualTask(data) {
+  return postRequest('/v1/manual-job-group/copy', data);
+}

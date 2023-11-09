@@ -53,10 +53,19 @@ const postForm = (formValue, isUploadCases) => {
   if (isUploadCases) {
     formData.append('file', formValue.value.file[0]?.file);
   } else {
-    formData.append('cases', exchangeCases(formValue.value.cases));
+    formData.append('cases', exchangeCases(formValue.value.cases).join(','));
   }
 
-  return createTemplate(formData);
+  formValue.value.permission_type = formValue.value.permission_type.split('-')[0];
+  formValue.value.creator_id = storage.getValue('user_id');
+  formValue.value.org_id = storage.getValue('loginOrgId');
+  if (formValue.value.permission_type.includes('group')) {
+    formValue.value.group_id = Number(formValue.value.permission_type.split('-')[1]);
+  }
+  formValue.value.cases = exchangeCases(formValue.value.cases).join(',');
+
+  let params = isUploadCases ? formData : formValue.value;
+  return createTemplate(params);
 };
 
 export default {

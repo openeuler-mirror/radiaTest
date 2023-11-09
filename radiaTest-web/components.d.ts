@@ -29,6 +29,7 @@ declare module '@vue/runtime-core' {
     CollapseDrawer: typeof import('./src/components/collapseDrawer/collapseDrawer.vue')['default']
     CollapseList: typeof import('./src/components/collapseList/collapseList.vue')['default']
     CollapseNDrawer: typeof import('./src/components/collapseDrawer/collapseNDrawer.vue')['default']
+    CollapseProList: typeof import('./src/components/productDrawer/collapseProList.vue')['default']
     Comment: typeof import('./src/components/testcaseComponents/comment.vue')['default']
     ConnectButton: typeof import('./src/components/pmachineComponents/changeState/ConnectButton.vue')['default']
     Console: typeof import('./src/components/vmachineComponents/expandedContent/Console.vue')['default']
