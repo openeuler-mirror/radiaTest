@@ -15,3 +15,8 @@ url --url={os_repo}
 {os_name}-{os_version}-ks.template > {os_name}-ks.template > common-ks.template
 # 模版存放位置
 radiaTest-messenger/celeryservice/lib/pmachine下
+
+
+## 系统默认root密码，根据ks配置的密码，请填写在radiaTest-messenger/celeryservice/lib/pmachine/ks_root_pwd.yaml文件中
+若不同ks模版密码不同,请自行配置对应密码，规则如下，在文件内新增以下内容
+{os_name}_{os_version}: xxx

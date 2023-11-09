@@ -244,9 +244,8 @@ class CheckInstall:
     def __init__(self, ip) -> None:
         self._ip = ip
 
-    def check(self):
-        # TODO pxe安装后的密码，后续需要处理（lemon.higgins）
-        client = ConnectionApi(self._ip, "openEuler12#$")  
+    def check(self, root_pwd):
+        client = ConnectionApi(self._ip, root_pwd)
 
         for _ in range(1800):
             conn = client.conn()

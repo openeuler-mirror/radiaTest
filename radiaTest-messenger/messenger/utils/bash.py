@@ -36,11 +36,23 @@ def backup_conf():
         current_app.config.get("DHCP_CONF"),
     )
 
+
 # 清理原本已绑定的mac
 def clear_bind_mac(mac):
-    return "sed -zi ':label; s#host {}".format(
-        quote(mac.replace(":", "_"))
-    ) + "{.*;\\n *}\{1\}##g' %s" % (current_app.config.get("DHCP_CONF"),)
+    # 仅清理手动绑定的当前内容
+    return """
+mac_host=%s
+dhcp_conf=%s
+start_nus=($(cat -n ${dhcp_conf} |grep -i ${mac_host}|grep -v "#"|awk '{print $1}'|sort -r))
+for start_nu in ${start_nus[*]}
+do
+  last_nu=$(cat -n "${dhcp_conf}"|tail -n 1|awk '{print $1}')
+  end_nu=$(cat -n  "${dhcp_conf}"|tail -n $((last_nu - start_nu + 1))|grep '}'|head -n 1|awk '{print $1}')
+  echo "${start_nu},${end_nu}"
+  sed -i "${start_nu},${end_nu}d" "${dhcp_conf}"
+done
+""" % (quote(mac.replace(":", "_")), current_app.config.get("DHCP_CONF"))
+
 
 # 绑定mac地址
 def bind_mac(efi, mac, ip):
@@ -87,7 +99,8 @@ def power_on_off(ip, user, password, status):
 
 # pmachine释放后修改密码
 def pmachine_reset_password(user, new_password):
-    return "echo '{}:{}'| chpasswd" .format(quote(user), quote(new_password))
+    # quote已经转义为字符串无需再加单引号
+    return "echo {}| chpasswd" .format(quote("{}:{}".format(user, new_password)))
 
 
 # 查询物理机Administrator用户id
