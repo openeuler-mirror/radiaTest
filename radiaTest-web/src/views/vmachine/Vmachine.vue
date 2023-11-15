@@ -1,14 +1,22 @@
 <template>
   <n-grid :cols="24" :y-gap="6" style="padding-top: 20px">
-    <n-gi :span="6">
+    <n-gi :span="4">
       <n-space>
-        <create-button title="注册虚拟机" @click="createModalRef.show()" />
+        <div style="display: flex">
+          <create-button title="注册虚拟机" @click="createModalRef.show()" />
+          <create-button
+            title="批量注册虚拟机"
+            style="margin-left: 20px"
+            @click="createBatchModalRef.show()"
+          />
+        </div>
         <modal-card
           title="注册虚拟机"
           url="/v1/vmachine"
           ref="createModalRef"
           @validate="() => createFormRef.handlePropsButtonClick()"
           @submit="createFormRef.post()"
+          transform-origin="center"
         >
           <template #form>
             <vmachine-create-form
@@ -22,12 +30,43 @@
             />
           </template>
         </modal-card>
+        <modal-card
+          title="批量注册虚拟机"
+          url="/v1/vmachine"
+          ref="createBatchModalRef"
+          @validate="() => createFormRef.handlePropsButtonClick()"
+          @submit="createFormRef.post()"
+          style="width: 1266px"
+          transform-origin="center"
+        >
+          <template #form>
+            <vmachine-batch-create-form
+              ref="createFormRef"
+              @valid="() => createBatchModalRef.submitCreateForm()"
+              @close="
+                () => {
+                  createBatchModalRef.close();
+                }
+              "
+            />
+          </template>
+        </modal-card>
       </n-space>
     </n-gi>
+    <!-- <n-gi :span="3">
+      <n-space>
+        
+        
+      </n-space>
+    </n-gi> -->
     <n-gi :span="16"> </n-gi>
     <n-gi :span="2">
       <div class="titleBtnWrap">
-        <filterButton class="item" :filterRule="filterRule" @filterchange="filterchange"></filterButton>
+        <filterButton
+          class="item"
+          :filterRule="filterRule"
+          @filterchange="filterchange"
+        ></filterButton>
         <refresh-button @refresh="tableRef.getData()"> 刷新虚拟机列表 </refresh-button>
       </div>
     </n-gi>
@@ -39,7 +78,11 @@
         <template #form>
           <n-form :model="ipaddr" :rules="ipaddrRule">
             <n-form-item path="ip" label="虚拟机IP地址">
-              <n-input style="width: 100%" v-model:value="ipaddr.ip" placeholder="请确保手动录入的IP有效" />
+              <n-input
+                style="width: 100%"
+                v-model:value="ipaddr.ip"
+                placeholder="请确保手动录入的IP有效"
+              />
             </n-form-item>
           </n-form>
         </template>
@@ -92,7 +135,7 @@ import {
   delay,
   submitIpaddr,
   submitDelay,
-  ipaddrRule
+  ipaddrRule,
 } from './modules/vmachineTableColumns';
 import filterButton from '@/components/filter/filterButton.vue';
 import { useStore } from 'vuex';
@@ -102,7 +145,7 @@ export default defineComponent({
   components: {
     ...Common,
     ...Essential,
-    filterButton
+    filterButton,
   },
   // eslint-disable-next-line max-lines-per-function
   setup() {
@@ -110,18 +153,19 @@ export default defineComponent({
     const createFormRef = ref(null);
     const updateFormRef = ref(null);
     const createModalRef = ref(null);
+    const createBatchModalRef = ref(null);
     const updateModalRef = ref(null);
     const store = useStore();
     const filterRule = ref([
       {
         path: 'name',
         name: '虚拟机名称',
-        type: 'input'
+        type: 'input',
       },
       {
         path: 'ip',
         name: 'IP地址',
-        type: 'input'
+        type: 'input',
       },
       {
         path: 'frame',
@@ -129,19 +173,19 @@ export default defineComponent({
         type: 'select',
         options: [
           { label: 'aarch64', value: 'aarch64' },
-          { label: 'x86_64', value: 'x86_64' }
-        ]
+          { label: 'x86_64', value: 'x86_64' },
+        ],
       },
       {
         path: 'host_ip',
         name: '宿主机IP',
-        type: 'input'
+        type: 'input',
       },
       {
         path: 'description',
         name: '使用描述',
-        type: 'input'
-      }
+        type: 'input',
+      },
     ]);
 
     const filterchange = (filterArray) => {
@@ -151,7 +195,7 @@ export default defineComponent({
         frame: null,
         ip: null,
         host_ip: null,
-        description: null
+        description: null,
       };
       filterArray.forEach((v) => {
         vmachineFilter.filterValue.value[v.path] = v.value;
@@ -167,6 +211,7 @@ export default defineComponent({
       createFormRef,
       updateFormRef,
       createModalRef,
+      createBatchModalRef,
       updateModalRef,
       ipaddrModalRef,
       delayModalRef,
@@ -175,9 +220,9 @@ export default defineComponent({
       ipaddr,
       delay,
       filterRule,
-      filterchange
+      filterchange,
     };
-  }
+  },
 });
 </script>
 

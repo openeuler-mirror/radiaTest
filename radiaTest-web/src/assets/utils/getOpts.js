@@ -11,7 +11,7 @@ export async function createRepoOptions(filter) {
 }
 export async function createSuiteOptions(filter) {
   const data = await getSuite(filter);
-  return data.data.map((item) => ({
+  return data.data?.items.map((item) => ({
     label: item.name,
     value: String(item.id),
     machineCount: item.machine_num,
@@ -146,25 +146,25 @@ const getVersionOpts = (versionOpts, productName, loading) => {
       window.$message?.error('无法连接服务器，获取版本选项失败');
     });
 };
-const getEnterpriseOpts = (milestoneOpts,hasNext,filter, tag) => {
-  getMilestonesByName(filter).then(res=>{
+const getEnterpriseOpts = (milestoneOpts, hasNext, filter, tag) => {
+  getMilestonesByName(filter).then(res => {
     // 仓库相同id去重
     let findArr = [];
-    res.data.data.forEach(item=>{
-      if(!findArr.find(el => el.id === item.id)){
+    res.data.data.forEach(item => {
+      if (!findArr.find(el => el.id === item.id)) {
         findArr.push(item);
       }
     });
-    let resultArr = findArr.map(item=>{
-      return{
+    let resultArr = findArr.map(item => {
+      return {
         label: item.title,
         value: item,
       };
     });
     hasNext.value = res.data.has_next;
-    if(tag ==='search'){
+    if (tag === 'search') {
       milestoneOpts.value = resultArr;
-    }else{
+    } else {
       milestoneOpts.value = milestoneOpts.value.concat(resultArr);
     }
   }).catch(() => {
