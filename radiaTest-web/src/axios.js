@@ -118,8 +118,10 @@ server.interceptors.response.use(
   }
 );
 
+server.spread = axios.spread;
 //方法定义
 export default {
+  server,
   post(url, data) {
     return new Promise((resolve, reject) => {
       server({
@@ -215,7 +217,7 @@ export default {
     });
   },
 
-  downLoad(url, data, tag=null) {
+  downLoad(url, data, tag = null) {
     return new Promise((resolve, reject) => {
       server({
         method: 'get',
@@ -224,11 +226,11 @@ export default {
         responseType: 'blob'
       })
         .then((res) => {
-          if(res.data.type ==='application/json'){
+          if (res.data.type === 'application/json') {
             window.$message?.error('下载文件内容为空！');
             return;
           }
-          if(tag){
+          if (tag) {
             resolve(res);
           }
           resolve(res.data);

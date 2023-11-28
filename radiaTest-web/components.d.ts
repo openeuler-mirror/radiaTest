@@ -137,6 +137,7 @@ declare module '@vue/runtime-core' {
     UserInfo: typeof import('./src/components/user/userInfo.vue')['default']
     VcpusForm: typeof import('./src/components/vmachineComponents/expandedContent/editForms/VcpusForm.vue')['default']
     VHtml: typeof import('./src/components/common/vHtml.vue')['default']
+    VmachineBatchCreateForm: typeof import('./src/components/vmachineComponents/VmachineBatchCreateForm.vue')['default']
     VmachineCreateForm: typeof import('./src/components/vmachineComponents/VmachineCreateForm.vue')['default']
     VmachineTable: typeof import('./src/components/vmachineComponents/VmachineTable.vue')['default']
     WeeklybuildHealth: typeof import('./src/components/productDrawer/weeklybuildHealth.vue')['default']

@@ -1,11 +1,15 @@
 <template>
-  <n-popover :disabled="disabled || data?.length === 0" trigger="click">
+  <n-popover
+    :disabled="disabled || data?.length === 0"
+    trigger="click"
+    @update:show="handleUpdateShow"
+  >
     <template #trigger>
       <div
         class="info"
         :style="{
           width: textWidth ? textWidth : '100%',
-          color: data?.length ? '' : 'grey'
+          color: data?.length ? '' : 'grey',
         }"
       >
         {{ data?.length ? text : '没有可用机器' }}
@@ -29,14 +33,17 @@ export default {
   methods: {
     handleCheck(value) {
       this.$emit('checked', value);
-    }
+    },
+    handleUpdateShow(show) {
+      this.$emit('handleShow', show);
+    },
   },
   setup(props) {
     const columns = [
       {
-        type: 'selection'
+        type: 'selection',
       },
-      ...ColumnDefault
+      ...ColumnDefault,
     ].map((item) => {
       if (item.type) {
         return item;
@@ -46,17 +53,17 @@ export default {
     const vmcols = JSON.parse(JSON.stringify(vmColumns)).splice(0, vmColumns.length - 1);
     const vmcol = [
       {
-        type: 'selection'
+        type: 'selection',
       },
-      ...vmcols
+      ...vmcols,
     ];
     return {
       columns: props.machineType === 'pm' ? columns : vmcol,
       pagination: {
-        pageSize: 5
-      }
+        pageSize: 5,
+      },
     };
-  }
+  },
 };
 </script>
 <style scoped>
