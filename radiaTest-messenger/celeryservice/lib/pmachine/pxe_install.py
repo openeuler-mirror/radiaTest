@@ -17,31 +17,39 @@ from datetime import datetime
 from pathlib import Path
 
 import pytz
+import yaml
 from flask import current_app
 
 from celeryservice.lib.job.handler import RunJob
 from messenger.utils.pxe import PxeInstall, CheckInstall
-from messenger.utils.requests_util import create_request
+from messenger.utils.requests_util import create_request, update_request
+
+current_root_path = Path(__file__).parent
 
 
 class PXEAutoInstall(RunJob):
-    def get_template_ks(self):
+    def get_template_ks_and_root_pwd(self):
         os_name = self._body["os_info"]["name"]
         os_version = self._body["os_info"]["version"]
-        template_ks = Path(__file__).parent.joinpath(f"{os_name}-{os_version}-ks.template")
+        template_ks = current_root_path.joinpath(f"{os_name}-{os_version}-ks.template")
         if not template_ks.exists():
-            template_ks = Path(__file__).parent.joinpath(f"{os_name}-ks.template")
+            template_ks = current_root_path.joinpath(f"{os_name}-ks.template")
             if not template_ks.exists():
-                template_ks = Path(__file__).parent.joinpath(f"common-ks.template")
-
+                template_ks = current_root_path.joinpath(f"common-ks.template")
+        ks_root_pwd_yaml = current_root_path.joinpath("ks_root_pwd.yaml")
+        with open(ks_root_pwd_yaml, "r", encoding="utf-8") as f:
+            root_pwd_map = yaml.safe_load(f)
+            root_pwd = root_pwd_map.get(f"{os_name}_{os_version}")
+        if not root_pwd:
+            root_pwd = root_pwd_map.get("default_pwd")
         current_app.logger.info(f"ks模版使用{template_ks.absolute()}")
-        return template_ks
+        return template_ks, root_pwd
 
     def run(self):
         os_name = self._body.get("milestone_name") + "_" + self._body["frame"]
         pmachine_ip = self._body['pmachine'].get('ip')
-        template_grub = Path(__file__).parent.joinpath("grub_template.cfg")
-        template_ks = self.get_template_ks()
+        template_grub = current_root_path.joinpath("grub_template.cfg")
+        template_ks, root_pwd = self.get_template_ks_and_root_pwd()
         try:
             self._body["name"] = f"物理机{self._body['pmachine'].get('ip')}安装{os_name}" \
                                  + " " + self.start_time.strftime("%Y-%m-%d %H:%M:%S")
@@ -77,11 +85,35 @@ class PXEAutoInstall(RunJob):
                         self._update_job(
                             status="INSTALLING",
                         )
-                        # 检查安装是否完成
-                        if CheckInstall(self._body["pmachine"]["ip"]).check() is True:
+                        if not root_pwd:
+                            self._update_job(
+                                result="fail",
+                                remark="pxe config error!",
+                                end_time=datetime.now(tz=pytz.timezone('Asia/Shanghai')),
+                                status="BLOCK",
+                            )
+                            data = dict(info=f"系统提醒您：<b>{pmachine_ip}</b>物理机安装{os_name}<b>失败</b>,"
+                                             f"<b>请联系管理员</b>检查物理机pxe服务配置！！!")
+                            create_request(
+                                "/api/v1/msg/text_msg",
+                                {
+                                    "data": data,
+                                    "to_ids": [self.user.get("user_id")]
+                                },
+                                self.user.get("auth")
+                            )
+                            return False
+
+                        elif CheckInstall(self._body["pmachine"]["ip"]).check(root_pwd) is True:
+                            # 检查安装是否完成
                             self._update_job(
                                 result="success",
                                 status="FINISHED",
+                            )
+                            # 数据库同步密码变更
+                            update_request(
+                                "/api/v1/pmachine/{}".format(self._body["pmachine"]["id"]), {"password": root_pwd},
+                                self.user.get("auth")
                             )
                             data = dict(info=f"系统提示您：<b>{pmachine_ip}</b>物理机安装{os_name}<b>成功</b>。")
                             create_request(
