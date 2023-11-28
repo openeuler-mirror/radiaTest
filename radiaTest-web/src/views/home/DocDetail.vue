@@ -1,12 +1,17 @@
 <template>
   <div>
-    <!--        <component :is="content" :key="route.params.title"/>-->
-    <Viewer id="markdown-body" :key="route.params.title" :plugins="plugins" :value="content"/>
+    <Viewer id="markdown-body" class="markdown-body" :plugins="plugins" :key="route.params.title" :value="content"/>
   </div>
 </template>
 <script setup>
-import {Viewer} from '@bytemd/vue-next';
-import {getProcessor} from 'bytemd';
+import { Viewer } from '@bytemd/vue-next';
+import { getProcessor } from 'bytemd';
+import 'bytemd/dist/index.min.css';
+import { computed, ref, watchEffect } from 'vue';
+import { useRoute } from 'vue-router';
+import { visit } from 'unist-util-visit';
+import 'katex/dist/katex.css';
+import 'juejin-markdown-themes/dist/github.min.css';
 import breaks from '@bytemd/plugin-breaks';
 import gemoji from '@bytemd/plugin-gemoji';
 import gfm from '@bytemd/plugin-gfm';
@@ -14,14 +19,8 @@ import highlight from '@bytemd/plugin-highlight';
 import math from '@bytemd/plugin-math';
 import mermaid from '@bytemd/plugin-mermaid';
 import frontmatter from '@bytemd/plugin-frontmatter';
-import 'bytemd/dist/index.min.css';
-import {computed, ref, shallowRef, watchEffect} from 'vue';
-import {useRoute} from 'vue-router';
-import {visit} from 'unist-util-visit';
-import 'github-markdown-css/github-markdown.css';
-import 'highlight.js/styles/github.css';
-import mathLocal from '@bytemd/plugin-math/locales/zh_Hans.json'; // 中文包
-import 'katex/dist/katex.css';
+import mathLocal from '@bytemd/plugin-math/locales/zh_Hans.json';
+
 const emit = defineEmits(['catalogue']);
 const plugins = [breaks()
   , frontmatter()
@@ -35,7 +34,7 @@ const plugins = [breaks()
   , mermaid()
 ];
 const route = useRoute();
-const content = shallowRef(null);
+const content = ref(null);
 const catalogueList = ref([]); // 目录
 const currentName = computed(() => {
   return route.params.title;
@@ -103,7 +102,6 @@ const process = () => {
 };
 watchEffect(async () => {
   if (route.path.startsWith('/home/doc/')) {
-    // console.log(require.context('../../../../doc/', true, /\.md$/));
     await import(`../../../../doc/${currentName.value}.md`)
         .then(e => {
           content.value = e.default;

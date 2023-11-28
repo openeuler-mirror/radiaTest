@@ -11,13 +11,15 @@ module.exports = {
     }
   },
   chainWebpack: (config) => {
+    config.mode='production';
     config.plugin('html').tap((args) => {
       args[0].title = 'radiaTest测试平台';
       return args;
     });
+    config.plugin('node-polyfill').use(NodePolyfillPlugin);
     config.module
       .rule('md')
-      .test(/\.md/)
+      .test(/\.md$/)
       .use('html-loader')
       .loader('html-loader')
       .end()
@@ -40,7 +42,6 @@ module.exports = {
         }
       }),
       require('unplugin-vue-components/webpack')({dts: true}),
-      new NodePolyfillPlugin()
     ],
     resolve: {
       // 配置路径别名
@@ -50,18 +51,20 @@ module.exports = {
     },
   },
   devServer: {
-    host: '10.211.55.3',
+    host: '0.0.0.0',
     port: 8080,
     // https: {
     //   key: '/etc/radiaTest/server_ssl/private/cakey.pem',
     //   cert: '/etc/radiaTest/server_ssl/cacert.pem'
     // },
+    allowedHosts:'all',
     open: true,
     hot: false,
     compress: true,
     proxy: {
       '/api': {
-        target: 'http://0.0.0.0:21500/',
+        // target: 'http://0.0.0.0:21500/',
+        target: 'https://116.204.98.119:8080/',
         changeOrigin: true,
         secure: false
       },

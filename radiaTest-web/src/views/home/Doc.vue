@@ -1,6 +1,5 @@
 <script setup>
 import {ref} from 'vue';
-import 'bytemd/dist/index.min.css';
 import {useStore} from 'vuex';
 const store = useStore();
 const docList = store.state.docs.docList;
@@ -12,7 +11,6 @@ const catalogue = res => {
 const activeSelect = index => {
   heading.value[index]?.scrollIntoView();
 };
-
 const catalogueClass = (level) => {
   switch (level) {
     case 1:
@@ -41,9 +39,9 @@ const catalogueClass = (level) => {
         </div>
       </div>
     </n-layout-sider>
-    <n-layout id="doc" class="content" content-style="padding: 2rem;">
+    <n-layout-content id="doc" class="content" content-style="padding: 2rem;">
       <router-view @catalogue="catalogue"/>
-    </n-layout>
+    </n-layout-content>
     <n-layout-sider
         :width="275"
         content-style="padding-top: 0.5rem;"
