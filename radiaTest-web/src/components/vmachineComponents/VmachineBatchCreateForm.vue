@@ -7,6 +7,7 @@
       :size="size"
       label-placement="top"
       ref="formRef"
+      class="batch-form"
     >
       <n-grid :cols="24" :x-gap="20">
         <n-form-item-gi :span="5" label="创建方法" path="method">
@@ -421,14 +422,16 @@ export default defineComponent({
 </script>
 
 <style lang="less">
-.n-dynamic-input .n-dynamic-input-item .n-dynamic-input-item__action {
-  position: absolute;
-  top: 13px;
-  right: 44px;
-}
-.n-base-close {
-  position: absolute;
-  right: 5px;
-  top: 5px;
+.batch-form {
+  .n-dynamic-input .n-dynamic-input-item .n-dynamic-input-item__action {
+    position: absolute;
+    top: 13px;
+    right: 44px;
+  }
+  .n-base-close {
+    position: absolute;
+    right: 5px;
+    top: 5px;
+  }
 }
 </style>
