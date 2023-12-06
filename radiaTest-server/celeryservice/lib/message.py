@@ -25,7 +25,7 @@ from server.model.user import User
 from server.utils.mail_util import Mail
 from celeryservice.lib import TaskHandlerBase
 from server.model.message import Message, MsgType, MsgLevel
-from server.utils.db import Insert
+
 
 
 class VmachineReleaseNotice(TaskHandlerBase):
