@@ -20,7 +20,7 @@ import pytz
 from server import db
 from server.model import Case, ManualJob, ManualJobStep
 from server.model.manualjob import ManualJobGroup
-from server.utils.db import collect_sql_error, Insert
+from server.utils.db import collect_sql_error
 from server.utils.text_utils import TextItemSplitter, DefaultNumeralRule
 from celeryservice.lib import TaskHandlerBase
 

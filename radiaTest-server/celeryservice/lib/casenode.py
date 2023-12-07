@@ -17,8 +17,6 @@ from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 
 from celeryservice.lib import TaskHandlerBase
 from server.model.testcase import CaseNode, Suite
-from server.model.celerytask import CeleryTask
-from server.utils.db import Insert
 
 
 class CaseNodeCreator(TaskHandlerBase):
