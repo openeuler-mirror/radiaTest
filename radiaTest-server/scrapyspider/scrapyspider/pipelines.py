@@ -235,7 +235,7 @@ class RedisPipeline:
                 item["x86_64_test_duration"]
             )
             aarch64_test_duration = int(item["aarch64_test_duration"]) if item["aarch64_test_duration"] != "-" else 0
-            x86_64_test_duration = int(item["x86_64_test_duration"]) if item["aarch64_test_duration"] != "-" else 0
+            x86_64_test_duration = int(item["x86_64_test_duration"]) if item["x86_64_test_duration"] != "-" else 0
             self.db_conn.zadd(
                 "product_build_test_set_{}".format(item["product_build"]),
                 {item["test"]: aarch64_test_duration + x86_64_test_duration}

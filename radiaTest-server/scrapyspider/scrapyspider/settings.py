@@ -85,6 +85,9 @@ ITEM_PIPELINES = {
     'scrapyspider.pipelines.FilePipeline': 500,
 }
 
+LOG_ENABLED = True
+LOG_FILE = 'scrapy.log'
+
 # Enable and configure the AutoThrottle extension (disabled by default)
 # See https://docs.scrapy.org/en/latest/topics/autothrottle.html
 #AUTOTHROTTLE_ENABLED = True
