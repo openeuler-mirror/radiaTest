@@ -53,8 +53,8 @@ const fatherTaskLoading = ref(false); // 父任务搜索加载状态
 const childTaskLoading = ref(false); // 子任务搜索加载状态
 const showReportModal = ref(false); // 生成报告弹窗
 const reportArray = ref([]); // 报告数组
-const editStatus = ref(false); // 编辑状态
-const showEditTaskDetailBtn = ref(true); // 显示编辑任务按钮
+const editStatus = ref(true); // 编辑状态
+const showEditTaskDetailBtn = ref(false); // 显示编辑任务按钮
 
 const frameArray = ref();
 
@@ -1359,8 +1359,8 @@ function showTitleInput() {
 // 任务详情页关闭回调
 function leaveModal() {
   showBackMenu.value = false;
-  editStatus.value = false;
-  showEditTaskDetailBtn.value = true;
+  editStatus.value = true;
+  showEditTaskDetailBtn.value = false;
   showAssociatedTask.value = true;
   showAssociatedChildTask.value = true;
   showAssociatedCases.value = false;
