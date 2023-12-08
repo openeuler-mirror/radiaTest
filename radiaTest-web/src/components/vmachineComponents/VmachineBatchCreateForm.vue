@@ -135,7 +135,7 @@
                 style="display: flex; flex-wrap: wrap; justify-content: space-between"
                 #="{ index, value }"
               >
-                <n-card hoverable @click="handleClickCard(item)" style="height: 132px">
+                <n-card hoverable @click="handleClickCard(item)" style="height: 138px">
                   <div
                     v-on:dblclick="handleClick(typeIndex, index, 'expand')"
                     style="cursor: pointer; width: 215px"
@@ -160,7 +160,9 @@
                     <div>
                       {{ item.machines[index].pm_select_mode === 'auto' ? '全自动选取' : '指定' }}
                     </div>
-
+                    <div>
+                      {{ item.machines[index].selfdescription }}
+                    </div>
                     <n-tooltip trigger="hover">
                       <template #trigger>
                         <n-icon
@@ -300,7 +302,18 @@
                             />
                           </n-form-item-gi>
                           <n-form-item-gi
-                            :span="8"
+                            :span="6"
+                            label="使用描述"
+                            :path="`version_types[${typeIndex}].machines[${index}].selfdescription`"
+                          >
+                            <n-input
+                              v-model:value="item.machines[index].selfdescription"
+                              placeholder="输入使用描述"
+                            />
+                          </n-form-item-gi>
+
+                          <n-form-item-gi
+                            :span="5"
                             label="机器调度策略"
                             :path="`version_types[${typeIndex}].machines[${index}].pm_select_mode`"
                           >
@@ -318,7 +331,7 @@
                             />
                           </n-form-item-gi>
                           <n-form-item-gi
-                            :span="9"
+                            :span="6"
                             label="指定物理机（需先选择架构）"
                             :path="`version_types[${typeIndex}].machines[${index}].pmachine_id`"
                             v-if="item.machines[index].pm_select_mode === 'assign'"

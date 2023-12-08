@@ -567,7 +567,6 @@ function operateMenuEdit(rowData) {
     }
   );
 }
-
 // 删除菜单
 function operateMenuDelete(rowData) {
   return h(
@@ -586,6 +585,25 @@ function operateMenuDelete(rowData) {
     },
     {
       default: () => '删除'
+    }
+  );
+}
+// 复制菜单
+function operateMenuCopy() {
+  return h(
+    NButton,
+    {
+      type: 'primary',
+      text: true,
+      style: 'margin-left:10px;',
+      onClick: () => {
+        warning('复制模板', '您确定要复制此模板吗？', () => {
+          window.$message?.warning('暂未接入接口');
+        });
+      }
+    },
+    {
+      default: () => '复制'
     }
   );
 }
@@ -637,7 +655,7 @@ const distributionColumns = [
     align: 'center',
     render(rowData) {
       if (rowData.level === 'templateName') {
-        return [operateMenuAdd(rowData), operateMenuEdit(rowData), operateMenuDelete(rowData)];
+        return [operateMenuAdd(rowData), operateMenuEdit(rowData), operateMenuDelete(rowData), operateMenuCopy(rowData)];
       } else if (rowData.level !== 'suiteName') {
         return [operateMenuEdit(rowData), operateMenuDelete(rowData)];
       }

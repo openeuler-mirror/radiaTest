@@ -46,6 +46,10 @@ const ColumnDefault = [
     className: 'cols vm-name',
   },
   {
+    title: '版本',
+    key: 'product',
+  },
+  {
     title: 'IP 地址',
     key: 'ip',
     align: 'center',
@@ -74,7 +78,7 @@ const ColumnDefault = [
                 },
               },
               row.ip
-                ? h(NGradientText,{type: 'info'}, row.ip)
+                ? h(NGradientText, { type: 'info' }, row.ip)
                 : [
                   h(
                     NIcon,
@@ -86,7 +90,7 @@ const ColumnDefault = [
                       default: () => h(WarningRound)
                     }
                   ),
-                  h('span',{style: {color: 'grey'}},'Unknown')
+                  h('span', { style: { color: 'grey' } }, 'Unknown')
                 ]
             );
           },
@@ -243,15 +247,15 @@ const ipaddrRule = ref({
   },
 });
 
-export { 
+export {
   ipaddrRule,
   ipaddr,
-  delay, 
+  delay,
   ipaddrModalRef,
-  delayModalRef, 
-  createColumns, 
+  delayModalRef,
+  createColumns,
   submitDelay,
-  submitIpaddr, 
-  ColumnDefault 
+  submitIpaddr,
+  ColumnDefault
 };
 

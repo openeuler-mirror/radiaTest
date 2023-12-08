@@ -1,23 +1,23 @@
-import {h, ref} from 'vue';
+import { h, ref } from 'vue';
 
 import axios from '@/axios.js';
-import {storage} from '@/assets/utils/storageUtils';
-import {Box16Regular, Delete28Regular, Folder16Regular, Organization20Regular} from '@vicons/fluent';
+import { storage } from '@/assets/utils/storageUtils';
+import { Box16Regular, Delete28Regular, Folder16Regular, Organization20Regular } from '@vicons/fluent';
 import {
   CreateNewFolderOutlined,
   DriveFileMoveRound,
   DriveFileRenameOutlineFilled,
   GroupsFilled
 } from '@vicons/material';
-import {MdRefresh} from '@vicons/ionicons4';
-import {DatabaseImport, File, FileImport} from '@vicons/tabler';
-import {Database} from '@vicons/fa';
-import {EditOutlined, ExportOutlined} from '@vicons/antd';
-import {ArchiveOutline} from '@vicons/ionicons5';
-import {ChartRelationship, Milestone} from '@vicons/carbon';
-import {changeLoadingStatus} from '@/assets/utils/loading';
-import {putModalRef, updateModalRef} from './editRef';
-import {getDetail} from '@/views/caseManage/folderView/testcaseNodes/modules/details';
+import { MdRefresh } from '@vicons/ionicons4';
+import { DatabaseImport, File, FileImport } from '@vicons/tabler';
+import { Database } from '@vicons/fa';
+import { EditOutlined, ExportOutlined } from '@vicons/antd';
+import { ArchiveOutline } from '@vicons/ionicons5';
+import { ChartRelationship, Milestone } from '@vicons/carbon';
+import { changeLoadingStatus } from '@/assets/utils/loading';
+import { putModalRef, updateModalRef } from './editRef';
+import { getDetail } from '@/views/caseManage/folderView/testcaseNodes/modules/details';
 import store from '@/store';
 import {
   exportTestsuite,
@@ -31,8 +31,8 @@ import {
   getOrphanGroupSuites,
   getOrphanOrgSuites
 } from '@/api/get';
-import {addBaseline, casenodeApplyTemplate} from '@/api/post';
-import {updateCaseNodeParent} from '@/api/put';
+import { addBaseline, casenodeApplyTemplate } from '@/api/post';
+import { updateCaseNodeParent } from '@/api/put';
 import {
   NButton,
   NFormItem,
@@ -47,7 +47,7 @@ import {
   NUploadDragger
 } from 'naive-ui';
 import router from '@/router';
-import {createFormRef, createModalRef, importModalRef} from './createRef';
+import { createFormRef, createModalRef, importModalRef } from './createRef';
 
 // import { workspace } from '@/assets/config/menu.js';
 
@@ -175,7 +175,7 @@ const iconType = {
   suite: Box16Regular,
   case: File
 };
-const commonAction = [{label: '刷新', key: 'refresh', icon: renderIcon(MdRefresh)}];
+const commonAction = [{ label: '刷新', key: 'refresh', icon: renderIcon(MdRefresh) }];
 
 const frameworkList = ref([]);
 
@@ -212,7 +212,7 @@ function getDirectory(node) {
             actions.unshift(createChildrenDirectoryAction);
             actions.unshift(applyBaselineTemplate);
           }
-          
+
           node.children.push({
             label: item.title,
             key: `${item.type}-${item.id}`,
@@ -340,7 +340,7 @@ function getRootNodes() {
   actions.unshift(createBaselineAction);
   menuList.value = [];
   axios.get(`/v1/users/${storage.getValue('user_id')}`).then((res) => {
-    const {data} = res;
+    const { data } = res;
     data.orgs.forEach((item) => {
       if (item.org_name === 'openEuler') {
         releaseMenu.value.push({
@@ -581,13 +581,13 @@ function newDectoryContent() {
 
 function getCurMilestones(node, query) {
   milestoneLoading.value = true;
-  let params = {paged: true};
+  let params = { paged: true };
   if (query) {
     params.name = query;
   }
   if (node.type === 'org') {
     getOrgMilestone(node.info.org_id, params).then((res) => {
-      const {data} = res;
+      const { data } = res;
       milestoneOptions.value = data.items?.map((item) => {
         return {
           label: item.name,
@@ -598,7 +598,7 @@ function getCurMilestones(node, query) {
     });
   } else if (node.type === 'group') {
     getGroupMilestone(node.info.group_id, params).then((res) => {
-      const {data} = res;
+      const { data } = res;
       milestoneOptions.value = data.items?.map((item) => {
         return {
           label: item.name,
@@ -621,7 +621,7 @@ function getTemplates(node, query) {
     params.group_id = node.info.group_id;
   }
   getBaselineTemplates(params).then((res) => {
-    const {data} = res;
+    const { data } = res;
     templateOptions.value = data.map((item) => {
       return {
         label: item.title,
@@ -692,6 +692,7 @@ function applyTemplateContent(node) {
         loading: templateLoading.value,
         options: templateOptions.value,
         remote: true,
+        multiple: true,
         filterable: true,
         onSearch: (query) => {
           getTemplates(node, query);
@@ -715,7 +716,7 @@ function moveCaseNodeContent(node) {
         onUpdateValue: (value) => {
           nextParentId.value = value;
         },
-        renderPrefix: ({option}) => {
+        renderPrefix: ({ option }) => {
           return h(
             NIcon,
             {
@@ -771,7 +772,7 @@ const setNodeOptions = (array, relateType) => {
     } else if (item.type === 'case') {
       newKey = `case-${item.case_id}`;
     }
-    
+
     return {
       label: item.title,
       info: item,
@@ -818,8 +819,8 @@ function relateSuiteCaseContent(node, relateType) {
           },
           onFocus: () => {
             moveLoading.value = true;
-            caseOptions.value = [{label: '全选', key: 'allSelected', children: []}];
-            getCasesBySuite({suite_id: node.info.suite_id}).then((res) => {
+            caseOptions.value = [{ label: '全选', key: 'allSelected', children: [] }];
+            getCasesBySuite({ suite_id: node.info.suite_id }).then((res) => {
               caseOptions.value[0].children = res.data.children.map((item) => {
                 return {
                   label: item.title,
@@ -848,7 +849,7 @@ function relateSuiteCaseContent(node, relateType) {
           onUpdateValue: (value) => {
             info.value = value;
           },
-          renderPrefix: ({option}) => {
+          renderPrefix: ({ option }) => {
             return h(
               NIcon,
               {
@@ -977,7 +978,7 @@ function dialogView(confirmFn, node, contentType = 'directory') {
   const d = window.$dialog?.info({
     title: node.label,
     showIcon: false,
-    style: {width: '800px'},
+    style: { width: '800px' },
     content: () => {
       switch (contentType) {
         case 'directory':
@@ -1040,7 +1041,7 @@ function newBaseline(node) {
   } else if (node.type === 'group') {
     data.group_id = node.info.group_id;
   }
-  
+
   addBaseline(data).then(() => {
     window.$message?.info(`已成功创建版本基线：${info.value}`);
     getDirectory(node);
@@ -1049,15 +1050,34 @@ function newBaseline(node) {
 
 function applyTemplate(node) {
   changeLoadingStatus(true);
-  casenodeApplyTemplate(node.info.id, templateId.value)
-    .then((res) => {
-      const length = res.data?.length;
+  const allRequest = templateId.value.map(item => {
+    return casenodeApplyTemplate(node.info.id, item);
+  });
+  Promise.allSettled(allRequest)
+    .then((results) => {
+      changeLoadingStatus(false);
+      let length = 0;
+      results.filter(p => p.status === 'fulfilled').map((item) => {
+        length = length + item.value.data?.length;
+      });
       window.$message?.info(`${node.info.title}已成功增量应用该模板, 新建${length}个节点`);
+      results.filter(p => p.status === 'rejected').map((item) => {
+        window.$message?.info(item.reason?.data?.error_msg);
+      });
       getCaseNode(node);
     })
-    .finally(() => {
+    .catch(() => {
       changeLoadingStatus(false);
     });
+  // casenodeApplyTemplate(node.info.id, templateId.value)
+  //   .then((res) => {
+  //     const length = res.data?.length;
+  //     window.$message?.info(`${node.info.title}已成功增量应用该模板, 新建${length}个节点`);
+  //     getCaseNode(node);
+  //   })
+  //   .finally(() => {
+  //     changeLoadingStatus(false);
+  //   });
 }
 
 function moveCaseNode(node) {
@@ -1264,9 +1284,9 @@ const actionHandlder = {
   exportTestsuiteInXlsx: {
     handler(contextmenu) {
       axios
-        .downLoad(`/v1/org/${contextmenu.info.org_id}/case-node/${contextmenu.info.id}/export`, {filetype: 'xlsx'})
+        .downLoad(`/v1/org/${contextmenu.info.org_id}/case-node/${contextmenu.info.id}/export`, { filetype: 'xlsx' })
         .then((res) => {
-          let blob = new Blob([res], {type: 'application/vnd.ms-excel'});
+          let blob = new Blob([res], { type: 'application/vnd.ms-excel' });
           let url = URL.createObjectURL(blob);
           let alink = document.createElement('a');
           document.body.appendChild(alink);
@@ -1284,7 +1304,7 @@ const actionHandlder = {
   },
   exportTestsuiteInMarkdown: {
     handler(contextmenu) {
-      exportTestsuite(contextmenu.info.org_id, contextmenu.info.id, {filetype: 'md'})
+      exportTestsuite(contextmenu.info.org_id, contextmenu.info.id, { filetype: 'md' })
         .then((res) => {
           let a = document.createElement('a');
           let blob = new Blob([res]);
@@ -1311,7 +1331,7 @@ const actionHandlder = {
       if (key === 'suite') {
         const id = contextmenu.info.suite_id;
         // 需要后端适配
-        axios.get('/v1/ws/default/suite', {id}).then((res) => {
+        axios.get('/v1/ws/default/suite', { id }).then((res) => {
           [suiteInfo.value] = res;
           putModalRef.value.show();
         });
@@ -1328,21 +1348,21 @@ const actionHandlder = {
 };
 
 // 点击右键菜单
-function selectAction({contextmenu, action}) {
+function selectAction({ contextmenu, action }) {
   actionHandlder[action.key].handler(contextmenu);
 }
 
 const selectKey = ref();
 const selectOptions = ref();
 
-function menuClick({key, options}) {
+function menuClick({ key, options }) {
   if (!key.length) {
     return;
   }
   selectKey.value = key;
   selectOptions.value = options;
   const [itemkey, id] = key[0].split('-');
-  const [{label, type, suiteId, caseId}] = options;
+  const [{ label, type, suiteId, caseId }] = options;
   if (itemkey === 'org') {
     router.push({
       name: 'orgNode',
