@@ -46,6 +46,16 @@ RUN crond \
 
 RUN cp -r ./conf/supervisor/* /etc/
 
+# 切换到radiaTest用户
+RUN useradd -ms /bin/bash radiaTest
+# /opt/radiaTest增加权限
+RUN chown -R radiaTest:radiaTest /opt/radiaTest
+RUN chown -R radiaTest:radiaTest /etc/supervisord.d
+RUN chown -R radiaTest:radiaTest /etc/supervisord.conf
+# 授予启动supervisord的相应用户的权限
+RUN chmod 777 /run
+USER radiaTest
+ENV PATH="/home/radiaTest/.local/bin:${PATH}"
 RUN pip3 install -r requirements.txt -i $PIP_REPO
 
 CMD supervisord -n

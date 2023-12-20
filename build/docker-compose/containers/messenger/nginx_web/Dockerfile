@@ -7,15 +7,16 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 ####################################
-# @Author  : Ethan-Zhang
-# @email   : ethanzhang55@outlook.com
-# @Date    : 2022/05/09 19:59:00
+# @Author  : hukun66
+# @email   : hu_kun@hoperun.com
+# @Date    : 2023/10/07 19:59:00
 # @License : Mulan PSL v2
 #####################################
 
-FROM radia-test/gunicorn
-LABEL maintainer="ethanzhang55@outlook.com"
+FROM nginx:1.21.5
+LABEL maintainer="hu_kun@hoperun.com"
 
-USER radiaTest
+# 创建用户radiaTest
+RUN useradd -ms /bin/bash radiaTest
 
-CMD celery -A manage.my_celery worker --loglevel=info --hostname=celery_worker_scripts_loader@%h --queues=queue_load_scripts -O fair
+

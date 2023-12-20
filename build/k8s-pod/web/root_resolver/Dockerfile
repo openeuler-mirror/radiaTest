@@ -16,4 +16,6 @@
 FROM radia-test/gunicorn
 LABEL maintainer="ethanzhang55@outlook.com"
 
+USER radiaTest
+
 CMD celery -A manage.my_celery worker --loglevel=info --hostname=celery_root_resolver --queues=queue_resolve_dailybuild,queue_resolve_rpmcheck_detail,queue_set_resolution,queue_resolve_openeuler_pkglist,queue_resolve_pkglist_after_resolve_rc_name,queue_resolve_pkglist_from_url,queue_resolve_distribute_template,queue_resolve_base_node,queue_resolve_create_manualjob

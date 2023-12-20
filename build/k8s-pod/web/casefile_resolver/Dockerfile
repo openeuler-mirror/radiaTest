@@ -16,4 +16,6 @@
 FROM radia-test/gunicorn
 LABEL maintainer="ethanzhang55@outlook.com"
 
+USER radiaTest
+
 CMD celery -A manage.my_celery worker --loglevel=info --hostname=celery_casefile_resolver@%h --queues=queue_file_resolution,queue_template_testcase --pool=gevent --concurrency=60

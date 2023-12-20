@@ -94,3 +94,7 @@
   act: put
   alias: 修改GitRepo
   table: git_repo
+- uri: /api/v1/user/private/{user_id}
+  act: get
+  alias: 获取用户隐私信息
+  table: user

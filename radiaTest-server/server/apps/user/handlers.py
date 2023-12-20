@@ -428,7 +428,11 @@ def handler_user_info(user_id):
     if not user:
         return jsonify(error_code=RET.NO_DATA_ERR, error_msg=f"user is no find")
     user_dict = user.to_json()
-
+    # 用户自查信息无需隐私处理
+    user_dict.update({
+        "phone": user.phone,
+        "cla_email": user.cla_email,
+    })
     # 用户组信息
     group_list = []
     groups = user.re_user_group
@@ -880,3 +884,17 @@ def handler_get_user_asset_rank(query):
     )
 
     
+def handler_private(user_id):
+    user = User.query.filter_by(user_id=user_id).first()
+    if not user:
+        return jsonify(error_code=RET.NO_DATA_ERR, error_msg=f"user is no find")
+    return jsonify(
+        error_code=RET.OK,
+        error_msg="OK",
+        data={
+            "user_id": user.user_id,
+            "user_name": user.user_name,
+            "phone": user.phone,
+            "cla_email": user.cla_email,
+        }
+    )

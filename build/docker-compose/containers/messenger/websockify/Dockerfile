@@ -13,7 +13,7 @@
 # @License : Mulan PSL v2
 #####################################
 
-FROM openeuler/openeuler:21.09
+FROM openeuler/openeuler:22.03-lts-sp1
 LABEL maintainer="ethanzhang55@outlook.com"
 
 ENV TZ Asia/Shanghai
@@ -26,5 +26,13 @@ ENV websockify_cert /etc/radiaTest/messenger_ssl/certs/messenger.crt
 WORKDIR /data/vnc_tokens
 
 RUN dnf install -y python3-websockify
+
+# 切换到radiaTest用户
+RUN useradd -ms /bin/bash radiaTest
+# 增加权限
+RUN chown -R radiaTest:radiaTest /etc/radiaTest/messenger_ssl/messenger.key
+RUN chown -R radiaTest:radiaTest /etc/radiaTest/messenger_ssl/certs/messenger.crt
+USER radiaTest
+ENV PATH="/home/radiaTest/.local/bin:${PATH}"
 
 CMD websockify --token-plugin TokenFile --token-source . $websockify_listen --key ${websockify_key} --cert ${websockify_cert} --ssl-version=tlsv1_2

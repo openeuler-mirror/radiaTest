@@ -10,6 +10,10 @@ WORKDIR /opt
 RUN dnf install -y python3-pip && \
     dnf install -y python3-devel
 
+# 切换到radiaTest用户
+RUN useradd -ms /bin/bash radiaTest
+USER radiaTest
+
 RUN pip3 install celery==5.1.2 && \
     pip3 install flower==1.0.0
 

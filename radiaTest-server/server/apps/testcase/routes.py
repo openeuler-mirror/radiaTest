@@ -192,6 +192,7 @@ class CaseNodeItemEvent(Resource):
 
 class CaseNodeImportEvent(Resource):
     @auth.login_required()
+    @casbin_enforcer.enforcer
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({

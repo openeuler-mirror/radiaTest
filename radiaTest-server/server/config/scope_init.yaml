@@ -361,3 +361,6 @@
 - uri: /api/v1/vmachine/{vmachine_id}/ssh
   act: get
   alias: 获取Vmachine的ssh信息
+- uri: /api/v1/user/private/{user_id}
+  act: get
+  alias: 获取用户隐私信息
