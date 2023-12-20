@@ -198,7 +198,7 @@ const validateFormData = async (context) => {
           mItem.product = item.basicInfo.product;
           mItem.version = item.basicInfo.version;
           mItem.method = item.basicInfo.method;
-          mItem.description = formValue.value.description;
+          mItem.description = mItem.selfdescription || formValue.value.description;
           mItem.permission_type = formValue.value.permission_type.split('-')[0];
           mItem.creator_id = storage.getValue('user_id');
           mItem.org_id = storage.getValue('loginOrgId');

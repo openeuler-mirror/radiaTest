@@ -36,7 +36,7 @@ function getTask() {
     .then((results) => {
       results.forEach((item, index) => {
         if (item?.value?.data?.items?.length) {
-          listData.value[index].tasks = item.value.data.items;
+          listData.value[index].tasks = item.value.data.items.reverse();
         }
       });
     })
@@ -47,7 +47,7 @@ function getTask() {
 
 // 初始化数据
 function initData(cb) {
-  userId=String(storage.getValue('user_id'));
+  userId = String(storage.getValue('user_id'));
   showLoading.value = true;
   axios
     .get('/v1/task/status')
