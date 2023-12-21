@@ -45,4 +45,5 @@ RUN npm cache clean --force \
 # 创建radiaTest用户
 RUN useradd -ms /bin/bash radiaTest
 USER radiaTest
+RUN mkdir -p /opt/radiaTest/radiaTest-web/nginx_log
 ENTRYPOINT [ "nginx", "-g", "daemon off;" ]
