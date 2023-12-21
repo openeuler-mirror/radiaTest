@@ -19,8 +19,8 @@ LABEL maintainer="ethanzhang55@outlook.com"
 ENV TZ Asia/Shanghai
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
-ENV GIT_REPO https://gitee.com/hukun66/radiaTest
-ENV BRANCH dev-build
+ENV GIT_REPO https://gitee.com/openeuler/radiaTest
+ENV BRANCH master
 
 WORKDIR /opt
 
@@ -37,13 +37,17 @@ RUN bash ./build/k8s-pod/web/nginx/install_nodejs.sh
 
 WORKDIR /opt/radiaTest/radiaTest-web
 
-RUN npm cache clean --force \
-    && npm install --force --registry=https://registry.npm.taobao.org \
-    && npm run build \
-    && cat ./deploy/nginx.conf > /etc/nginx/nginx.conf
-
 # 创建radiaTest用户
 RUN useradd -ms /bin/bash radiaTest
-USER radiaTest
+# /opt/radiaTest增加权限
 RUN mkdir -p /opt/radiaTest/radiaTest-web/nginx_log
-ENTRYPOINT [ "nginx", "-g", "daemon off;" ]
+RUN chown -R radiaTest:radiaTest /opt/radiaTest
+RUN chmod -R 740 /opt/radiaTest
+RUN cat ./deploy/nginx.conf > /etc/nginx/nginx.conf
+
+USER radiaTest
+RUN npm cache clean --force \
+    && npm install --force --registry=https://registry.npm.taobao.org \
+    && npm run build
+
+ENTRYPOINT [ "nginx", "-c", "/etc/nginx/nginx.conf", "-g", "daemon off;" ]

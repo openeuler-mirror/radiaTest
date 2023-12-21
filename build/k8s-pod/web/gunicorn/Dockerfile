@@ -19,9 +19,9 @@ LABEL maintainer="ethanzhang55@outlook.com"
 ENV TZ Asia/Shanghai
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
-ENV GIT_REPO https://gitee.com/hukun66/radiaTest
+ENV GIT_REPO https://gitee.com/openeuler/radiaTest
 ENV PIP_REPO https://pypi.tuna.tsinghua.edu.cn/simple
-ENV BRANCH dev-build
+ENV BRANCH master
 
 WORKDIR /opt
 
