@@ -52,7 +52,7 @@ RUN chown -R radiaTest:radiaTest /etc/radiaTest_ssl
 RUN chmod -R 740 /opt/radiaTest
 RUN chmod -R 740 /etc/radiaTest_ssl
 # 解压脚本增加执行权限
-RUN RUN chmod +x /opt/radiaTest/radiaTest-server/server/utils/safe_uncompress.py
+RUN chmod +x /opt/radiaTest/radiaTest-server/server/utils/safe_uncompress.py
 
 USER radiaTest
 ENV PATH="/home/radiaTest/.local/bin:${PATH}"
