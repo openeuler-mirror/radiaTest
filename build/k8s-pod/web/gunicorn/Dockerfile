@@ -32,7 +32,8 @@ RUN dnf install -y git \
     && dnf install -y expect \
     && dnf install -y iputils \
     && dnf install -y python3-pip \
-    && dnf install -y python3-devel
+    && dnf install -y python3-devel \
+    && dnf install -y sudo
 
 WORKDIR /opt/radiaTest/radiaTest-server/
 

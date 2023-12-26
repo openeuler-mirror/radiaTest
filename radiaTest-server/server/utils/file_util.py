@@ -140,11 +140,11 @@ class ZipImportFile(ImportFile):
 
     def uncompress(self, dist_dir):
         # 赋予uncompress解压目录权限
-        local_cmd("chmod 777 '{}'".format(dist_dir)).exec()
+        local_cmd("chmod 777 '{}'".format(dist_dir))
         # 使用uncompress普通用户,安全解压
         safe_uncompress = Path(__file__).parent.joinpath("safe_uncompress.py")
-        local_cmd("sudo -u uncompress python3 '{}' '{}' '{}' '{}'".format(
-            safe_uncompress, self.filetype, self.filepath, dist_dir)).exec()
+        local_cmd("sudo -u uncompress python3 '{}' -t '{}' -f '{}' -d '{}'".format(
+            safe_uncompress, self.filetype, self.filepath, dist_dir))
 
 
 class ExcelImportFile(ImportFile):
