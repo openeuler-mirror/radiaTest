@@ -24,7 +24,11 @@
         <create-button title="注册产品版本" @click="createModalRef.show()" />
       </div>
       <div style="display: flex; align-items: center">
-        <filterButton :filterRule="filterRule" @filterchange="filterchange" style="display: flex; padding-right: 20px">
+        <filterButton
+          :filterRule="filterRule"
+          @filterchange="filterchange"
+          style="display: flex; padding-right: 20px"
+        >
         </filterButton>
         <refresh-button @refresh="refreshTableData"> 刷新产品版本列表 </refresh-button>
       </div>
@@ -92,13 +96,17 @@
                 @click="cardClick"
                 :style="{
                   backgroundColor:
-                    issuesResolvedPassed !== null ? (issuesResolvedPassed ? '#D5E8D4' : 'white') : 'white',
+                    issuesResolvedPassed !== null
+                      ? issuesResolvedPassed
+                        ? '#D5E8D4'
+                        : 'white'
+                      : 'white',
                   border:
                     issuesResolvedPassed !== null
                       ? issuesResolvedPassed
                         ? '1px solid #A2C790'
                         : '1px solid #B95854'
-                      : '1px solid #ddddd'
+                      : '1px solid #ddddd',
                 }"
               >
                 <div class="topselect">
@@ -115,7 +123,11 @@
                   class="topProgress"
                   type="circle"
                   :status="
-                    currentResolvedPassed !== true ? (currentResolvedPassed === false ? 'error' : 'default') : 'success'
+                    currentResolvedPassed !== true
+                      ? currentResolvedPassed === false
+                        ? 'error'
+                        : 'default'
+                      : 'success'
                   "
                   :stroke-width="9"
                   :percentage="currentResolvedRate"
@@ -131,14 +143,24 @@
                     <CancelRound color="#D03050" v-else />
                   </n-icon>
                   <span>
-                    {{ issuesResolvedPassed !== null ? (issuesResolvedPassed ? '已达标' : '未达标') : 'unknown' }}
+                    {{
+                      issuesResolvedPassed !== null
+                        ? issuesResolvedPassed
+                          ? '已达标'
+                          : '未达标'
+                        : 'unknown'
+                    }}
                   </span>
                 </div>
                 <div style="position: absolute; left: 61%; top: 16%; text-align: center">
                   <span style="font-size: 20px"> 问题解决统计 </span><br />
                   <span style="font-size: 20px; color: #929292"> 当前迭代 </span>
                   <p style="font-size: 30px; margin-top: 3px; margin-bottom: 3px">
-                    {{ currentAllCnt && currentResolvedRate ? `${currentResolvedCnt}/${currentAllCnt}` : '0/0' }}
+                    {{
+                      currentAllCnt && currentResolvedRate
+                        ? `${currentResolvedCnt}/${currentAllCnt}`
+                        : '0/0'
+                    }}
                   </p>
                   <div style="display: flex; align-items: center; justify-content: space-around">
                     <div style="display: flex; flex-direction: column">
@@ -151,7 +173,13 @@
                 </div>
                 <div
                   class="description"
-                  style="font-size: 19px; position: absolute; top: 69%; display: flex; justify-content: space-around"
+                  style="
+                    font-size: 19px;
+                    position: absolute;
+                    top: 69%;
+                    display: flex;
+                    justify-content: space-around;
+                  "
                 >
                   <span> 严重/主要问题解决率 </span>
                   <span>
@@ -200,7 +228,11 @@
                   <template #trigger>
                     <n-progress
                       :status="
-                        mainResolvedPassed !== true ? (mainResolvedPassed === false ? 'error' : 'default') : 'success'
+                        mainResolvedPassed !== true
+                          ? mainResolvedPassed === false
+                            ? 'error'
+                            : 'default'
+                          : 'success'
                       "
                       style="position: absolute; width: 78%; top: 91%; left: 11%"
                       type="line"
@@ -217,11 +249,16 @@
                 class="transitionBox"
                 v-if="!showPackage"
                 :style="{
-                  width: showList === false ? '100%' : boxWidth + 'px'
+                  width: showList === false ? '100%' : boxWidth + 'px',
                 }"
               >
                 <div
-                  style="display: flex; justify-content: space-evenly; height: 100%; background: white"
+                  style="
+                    display: flex;
+                    justify-content: space-evenly;
+                    height: 100%;
+                    background: white;
+                  "
                   @click="handleListClick"
                   class="card"
                   v-if="!showList"
@@ -259,7 +296,7 @@
                 class="cardbox inout-animated"
                 v-if="!showList"
                 :style="{
-                  height: showPackage ? 'auto' : ''
+                  height: showPackage ? 'auto' : '',
                 }"
                 :bordered="false"
                 title="软件包变更"
@@ -288,7 +325,7 @@
                       getPackageListComparationSummary(dashboardId, {
                         refresh: true,
                         repoPath: 'everything',
-                        arch: 'all'
+                        arch: 'all',
                       })
                     "
                   >
@@ -351,7 +388,9 @@
                           @update:value="changePackageTabFirst"
                         >
                           <n-tab name="softwarescope"> 软件范围 </n-tab>
-                          <n-tab v-if="currentPanel === 'fixed'" name="homonymousIsomerism"> 同名异构 </n-tab>
+                          <n-tab v-if="currentPanel === 'fixed'" name="homonymousIsomerism">
+                            同名异构
+                          </n-tab>
                         </n-tabs>
                         <n-tabs
                           animated
@@ -361,15 +400,24 @@
                         >
                           <n-tab name="everything"> everything </n-tab>
                           <n-tab name="EPOL"> EPOL </n-tab>
-                          <n-tab name="source" v-if="packageTabValueFirst!=='homonymousIsomerism'"> source </n-tab>
+                          <n-tab
+                            name="source"
+                            v-if="packageTabValueFirst !== 'homonymousIsomerism'"
+                          >
+                            source
+                          </n-tab>
                           <n-tab
                             name="update"
-                            v-if="currentPanelDetail.type === 'release' && currentRound.type === 'release'"
+                            v-if="
+                              currentPanelDetail.type === 'release' &&
+                              currentRound.type === 'release'
+                            "
                           >
                             update
                           </n-tab>
                         </n-tabs>
-                        <div class="packageCard" v-show="packageTabValueFirst !== 'homonymousIsomerism'">
+                        <!-- <div class="packageCard" v-show="packageTabValueFirst !== 'homonymousIsomerism'"> -->
+                        <div class="packageCard">
                           <div class="package-left">
                             <n-h3>
                               {{ oldPackage.size }}
@@ -444,31 +492,37 @@
               </n-card>
             </n-gi>
             <n-gi :span="2" style="margin-top: 10px">
-                <div class="middledowload">
-                  <n-popselect
-                    v-model:value="roundId"
-                    :options="roundIdOptions"
-                    @update:value="selectRound"
-                  >
-                    <n-button   @click.stop class="selectbutton ">{{ roundId.name || '选择round' }}</n-button>
-                  </n-popselect>
+              <div class="middledowload">
+                <n-popselect
+                  v-model:value="roundId"
+                  :options="roundIdOptions"
+                  @update:value="selectRound"
+                >
+                  <n-button @click.stop class="selectbutton">{{
+                    roundId.name || '选择round'
+                  }}</n-button>
+                </n-popselect>
 
-                  <n-popselect
-                    v-model:value="branch"
-                    :options="branchOptions"
-                  >
-                    <n-button  @click.stop class="selectbutton marginbutton">{{ branch.name || '选择分支' }}</n-button>
-                  </n-popselect>
-                  
-                  <n-button :loading="loadingRef" @click.stop="exportQualityHistoryFn" type="primary" ghost>
-                    <template #icon>
-                      <n-icon>
-                        <FileExport />
-                      </n-icon>
-                    </template>
-                    质量报告导出
-                  </n-button>
-                </div>
+                <n-popselect v-model:value="branch" :options="branchOptions">
+                  <n-button @click.stop class="selectbutton marginbutton">{{
+                    branch.name || '选择分支'
+                  }}</n-button>
+                </n-popselect>
+
+                <n-button
+                  :loading="loadingRef"
+                  @click.stop="exportQualityHistoryFn"
+                  type="primary"
+                  ghost
+                >
+                  <template #icon>
+                    <n-icon>
+                      <FileExport />
+                    </n-icon>
+                  </template>
+                  质量报告导出
+                </n-button>
+              </div>
             </n-gi>
             <n-gi :span="2" style="margin-top: 5px">
               <n-tabs type="line" animated v-model:value="activeTab">
@@ -479,8 +533,14 @@
               </n-tabs>
               <div>
                 <keep-alive>
-                  <test-progress v-if="activeTab === 'testProgress'" :defaultMilestoneId="defaultMilestoneId" />
-                  <quality-protect v-else-if="activeTab === 'qualityProtect'" :quality-board-id="dashboardId" />
+                  <test-progress
+                    v-if="activeTab === 'testProgress'"
+                    :defaultMilestoneId="defaultMilestoneId"
+                  />
+                  <quality-protect
+                    v-else-if="activeTab === 'qualityProtect'"
+                    :quality-board-id="dashboardId"
+                  />
                 </keep-alive>
               </div>
             </n-gi>
@@ -501,7 +561,10 @@
             width="95%"
           >
             <n-drawer-content closable>
-              <MilestoneIssuesCard :milestone-id="resolvedMilestone.id" :cardType="MilestoneIssuesCardType" />
+              <MilestoneIssuesCard
+                :milestone-id="resolvedMilestone.id"
+                :cardType="MilestoneIssuesCardType"
+              />
             </n-drawer-content>
           </n-drawer>
         </div>
@@ -525,7 +588,10 @@
           </n-card>
         </n-modal>
         <n-modal v-model:show="showRoundMilestoneBoard" @update:show="updateRoundMilestoneBoard">
-          <RoundRelateMilestones :ProductId="ProductId" :currentRound="currentRound"></RoundRelateMilestones>
+          <RoundRelateMilestones
+            :ProductId="ProductId"
+            :currentRound="currentRound"
+          ></RoundRelateMilestones>
         </n-modal>
       </n-drawer-content>
     </n-drawer>
@@ -608,14 +674,30 @@
           </n-form-item>
           <div class="buttonWrap">
             <n-button class="btn" type="error" ghost @click="cancelCheckListDrawer">取消</n-button>
-            <n-button v-show="!isAddBaseline" class="btn" type="info" ghost @click="confirmCheckItem">新增</n-button>
-            <n-button v-show="isAddBaseline" class="btn" type="info" ghost @click="confirmBaseline">确定</n-button>
+            <n-button
+              v-show="!isAddBaseline"
+              class="btn"
+              type="info"
+              ghost
+              @click="confirmCheckItem"
+              >新增</n-button
+            >
+            <n-button v-show="isAddBaseline" class="btn" type="info" ghost @click="confirmBaseline"
+              >确定</n-button
+            >
           </div>
         </n-form>
       </n-drawer-content>
     </n-drawer>
     <n-modal v-model:show="showEditProductVersionModal" class="editProductVersionWrap">
-      <n-card style="width: 600px" title="编辑产品信息" :bordered="false" size="huge" role="dialog" aria-modal="true">
+      <n-card
+        style="width: 600px"
+        title="编辑产品信息"
+        :bordered="false"
+        size="huge"
+        role="dialog"
+        aria-modal="true"
+      >
         <n-form ref="productVersionFormRef" :model="productVersionModel">
           <n-form-item path="name" label="产品">
             <n-input v-model:value="productVersionModel.name" @keydown.enter.prevent />
@@ -633,8 +715,12 @@
             <n-date-picker v-model:value="productVersionModel.end_time" type="date" />
           </n-form-item>
           <div class="buttonWrap">
-            <n-button class="btn" type="error" ghost @click="cancelEditProductVersionModal">取消</n-button>
-            <n-button class="btn" type="info" ghost @click="confirmEditProductVersionModal">确定</n-button>
+            <n-button class="btn" type="error" ghost @click="cancelEditProductVersionModal"
+              >取消</n-button
+            >
+            <n-button class="btn" type="info" ghost @click="confirmEditProductVersionModal"
+              >确定</n-button
+            >
           </div>
         </n-form>
       </n-card>
@@ -650,7 +736,12 @@ import { Search } from '@vicons/carbon';
 import { modules } from './modules';
 import { ArrowLeft32Filled as ArrowLeft, QuestionCircle16Filled } from '@vicons/fluent';
 import { MdClose } from '@vicons/ionicons4';
-import { DoubleArrowFilled, CancelRound, CheckCircleFilled, BuildCircleOutlined } from '@vicons/material';
+import {
+  DoubleArrowFilled,
+  CancelRound,
+  CheckCircleFilled,
+  BuildCircleOutlined,
+} from '@vicons/material';
 import autoSteps from '@/components/autoSteps/autoSteps.vue';
 import MilestoneIssuesCard from '@/components/milestoneComponents/MilestoneIssuesCard.vue';
 import testProgress from '@/components/productDrawer/testProgress.vue';
@@ -683,7 +774,7 @@ export default {
     PackageTable,
     echart,
     BuildCircleOutlined,
-    FileExport
+    FileExport,
   },
   setup() {
     const additionFeatureOption = reactive(JSON.parse(JSON.stringify(modules.featureOption)));
@@ -691,21 +782,37 @@ export default {
     const refreshTableData = () => {
       modules.getTableData({
         page_num: 1,
-        page_size: modules.productVersionPagination.value.pageSize
+        page_size: modules.productVersionPagination.value.pageSize,
       });
     };
     onMounted(() => {
       modules.getTableData({
         page_num: modules.productVersionPagination.value.page,
-        page_size: modules.productVersionPagination.value.pageSize
+        page_size: modules.productVersionPagination.value.pageSize,
       });
       getProductVersionOpts(modules.productList);
-      modules.setFeatureOption(additionFeatureOption, '新增特性', modules.additionFeatureSummary.value);
-      modules.setFeatureOption(inheritFeatureOption, '继承特性', modules.inheritFeatureSummary.value);
+      modules.setFeatureOption(
+        additionFeatureOption,
+        '新增特性',
+        modules.additionFeatureSummary.value
+      );
+      modules.setFeatureOption(
+        inheritFeatureOption,
+        '继承特性',
+        modules.inheritFeatureSummary.value
+      );
     });
     watch([modules.additionFeatureSummary, modules.inheritFeatureSummary], () => {
-      modules.setFeatureOption(additionFeatureOption, '新增特性', modules.additionFeatureSummary.value);
-      modules.setFeatureOption(inheritFeatureOption, '继承特性', modules.inheritFeatureSummary.value);
+      modules.setFeatureOption(
+        additionFeatureOption,
+        '新增特性',
+        modules.additionFeatureSummary.value
+      );
+      modules.setFeatureOption(
+        inheritFeatureOption,
+        '继承特性',
+        modules.inheritFeatureSummary.value
+      );
     });
     onUnmounted(() => {
       modules.cleanPackageListData();
@@ -719,9 +826,9 @@ export default {
       inheritFeatureOption,
       additionFeatureOption,
       refreshTableData,
-      FileExport
+      FileExport,
     };
-  }
+  },
 };
 </script>
 
@@ -790,14 +897,14 @@ export default {
     }
   }
 }
-.middledowload{
+.middledowload {
   margin-left: 10px;
   display: flex;
-  .selectbutton{
+  .selectbutton {
     width: 220px;
     overflow: hidden;
   }
-  .marginbutton{
+  .marginbutton {
     margin: 0 20px;
   }
 }

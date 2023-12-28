@@ -1,26 +1,20 @@
 <template>
   <n-grid :cols="24" y-gap="20">
     <n-gi :span="24">
-      <div style="font-size: 30px; font-weight: 600">
-        {{ data.length }} 个任务{{ suffix }}
-      </div>
+      <div style="font-size: 30px; font-weight: 600">{{ data.length }} 个任务{{ suffix }}</div>
     </n-gi>
     <n-gi :span="16">
       <label style="font-size: 18px; display: inline-block">
         每页
         <n-select
+          :default-value="5"
           :options="[
             { label: '5', value: 5 },
             { label: '10', value: 10 },
             { label: '20', value: 20 },
             { label: '50', value: 50 },
           ]"
-          @update:value="
-            (value) =>
-              !value
-                ? (pagination.pageSize = 10)
-                : (pagination.pageSize = value)
-          "
+          @update:value="handleUpdatePage"
           style="display: inline-block; width: 80px"
           size="small"
           clearable
@@ -68,21 +62,24 @@ export default defineComponent({
       default: 'execute',
       type: String,
     },
-    total: Number
+    total: Number,
   },
   mounted() {
     const tableBoxWidth = this.$refs.tableParent.$el.clientWidth;
-    this.tableWidth = tableBoxWidth>=1600?tableBoxWidth:1600;
+    this.tableWidth = tableBoxWidth >= 1600 ? tableBoxWidth : 1600;
     this.getData();
   },
   methods: {
     formatTime(time) {
       return time
-        ? (new Date(time)
-          .toLocaleString('zh-CN', { hourCycle: 'h23' })
-          .replace(/\//g, '-'))
+        ? new Date(time).toLocaleString('zh-CN', { hourCycle: 'h23' }).replace(/\//g, '-')
         : 0;
     },
+    handleUpdatePage(value) {
+      this.pagination.pageSize = value || 5;
+      this.getData();
+    },
+
     getData() {
       const params = {
         page_size: this.pagination.pageSize,
@@ -94,18 +91,20 @@ export default defineComponent({
       } else if (this.type === 'finish') {
         params.status = 'DONE';
       }
-      getJob(params).then(res => {
-        res.data?.items?.forEach(item => {
-          if (item.multiple) {
-            item.children = [{}];
-          }
-          item.create_time=this.formatTime(item.create_time);
-          item.end_time=this.formatTime(item.end_time);
-          item.start_time=this.formatTime(item.start_time);
-        });
-        this.data = res.data?.items || [];
-        this.pagination.pageCount = res.data.pages;
-      }).catch(err => window.$message?.error(err.data.error_msg || unkonwnErrorMsg));
+      getJob(params)
+        .then((res) => {
+          res.data?.items?.forEach((item) => {
+            if (item.multiple) {
+              item.children = [{}];
+            }
+            item.create_time = this.formatTime(item.create_time);
+            item.end_time = this.formatTime(item.end_time);
+            item.start_time = this.formatTime(item.start_time);
+          });
+          this.data = res.data?.items || [];
+          this.pagination.pageCount = res.data.pages;
+        })
+        .catch((err) => window.$message?.error(err.data.error_msg || unkonwnErrorMsg));
     },
     pageChange(page) {
       this.pagination.page = page;
@@ -119,27 +118,27 @@ export default defineComponent({
             if (iconNode.includes(e.target.nodeName.toLocaleLowerCase())) {
               if (!rowData.children[0]?.id) {
                 getChildrenJob(rowData.id).then((res) => {
-                  res.data?.forEach(item => {
+                  res.data?.forEach((item) => {
                     item.start_time
                       ? (item.start_time = new Date(item.start_time)
-                        .toLocaleString('zh-CN', { hourCycle: 'h23' })
-                        .replace(/\//g, '-'))
+                          .toLocaleString('zh-CN', { hourCycle: 'h23' })
+                          .replace(/\//g, '-'))
                       : 0;
                     item.end_time
                       ? (item.end_time = new Date(item.end_time)
-                        .toLocaleString('zh-CN', { hourCycle: 'h23' })
-                        .replace(/\//g, '-'))
+                          .toLocaleString('zh-CN', { hourCycle: 'h23' })
+                          .replace(/\//g, '-'))
                       : 0;
                     item.create_time = new Date(item.create_time).getTime();
                   });
-                  rowData.children = res.data||[{}];
+                  rowData.children = res.data || [{}];
                 });
               }
             }
           }
-        }
+        },
       };
-    }
+    },
   },
   setup(props) {
     const suffix = ref('');
@@ -148,7 +147,7 @@ export default defineComponent({
     const pagination = ref({
       page: 1,
       pageCount: 1,
-      pageSize: 10,
+      pageSize: 5,
     });
     const columns = ref([]);
     const searchValue = ref('');

@@ -485,7 +485,7 @@ function deleteRow(row) {
 }
 
 // 报告
-function reportRow() {}
+function reportRow() { }
 
 const productList = ref([]); // 产品版本列表
 const currentProduct = ref(''); // checklist选中产品版本
@@ -1160,7 +1160,7 @@ function getDefaultCheckNode(id) {
 const roundId = ref({});
 const roundIdOptions = ref([]);
 const getRoundSelectList = (productId) => {
-  roundId.value = ref({name: '选择round', id: null });
+  roundId.value = ref({ name: '选择round', id: null });
   let roundList = [];
   getRoundIdList(productId).then((res) => {
     res.data.length && res.data.forEach((item) => {
@@ -1175,16 +1175,16 @@ const getRoundSelectList = (productId) => {
     });
     roundIdOptions.value = roundList;
   });
-};  
+};
 
 // 获取branches下拉列表
 const branchOptions = ref([]);
 const branch = ref({});
 const getBranchSelectList = (productId) => {
-  branch.value = ref({name: '选择分支', id: null });
+  branch.value = ref({ name: '选择分支', id: null });
   branchOptions.value = [];
   let branchList = [];
-  getBranchList(productId, {round_id : roundId.value.id} ).then((res) => {
+  getBranchList(productId, { round_id: roundId.value.id }).then((res) => {
     res.data.length && res.data.forEach((item) => {
       branchList.push({
         label: item,
@@ -1193,7 +1193,7 @@ const getBranchSelectList = (productId) => {
     });
     branchList.unshift({
       label: '选择分支',
-      value: {name: '选择分支', id: null }
+      value: { name: '选择分支', id: null }
     });
     branchOptions.value = branchList;
   });
@@ -1221,7 +1221,7 @@ const exportQualityHistoryFn = () => {
     alink.remove();
     URL.revokeObjectURL(url);
     loadingRef.value = false;
-  }).catch(()=>{
+  }).catch(() => {
     loadingRef.value = false;
   });
 };
@@ -1333,19 +1333,23 @@ function handlePackageCardClick() {
 }
 
 // 软件范围获取对比卡片数据
-const getPackageCardData = (type) => {
-  if (type === 'softwarescope') {
-    getPackageListComparationSummary(dashboardId.value, {
-      refresh: false,
-      repoPath: packageTabValueSecond.value,
-      arch: 'all'
-    });
-  }
+const getPackageCardData = () => {
+  // const getPackageCardData = (type) => {
+  // if (type === 'softwarescope') {
+  getPackageListComparationSummary(dashboardId.value, {
+    refresh: false,
+    repoPath: packageTabValueSecond.value,
+    arch: 'all'
+  });
+  // }
 };
 
 // 切换软件范围/同名异构
 const changePackageTabFirst = (value) => {
   packageTabValueFirst.value = value;
+  if (packageTabValueSecond.value === 'source' && value === 'homonymousIsomerism') {
+    packageTabValueSecond.value = 'everything';
+  }
   getPackageCardData(packageTabValueFirst.value);
 };
 

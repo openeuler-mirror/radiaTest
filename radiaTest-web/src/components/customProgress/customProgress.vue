@@ -44,11 +44,12 @@
         <span>无数据 100%</span>
       </n-popover>
     </div>
-    <span
+    <!-- <span
       >{{ (progress?.success || 0) + (progress?.failure || 0) + (progress?.block || 0) + (progress?.running || 0) }}/{{
         progress?.total || 0
       }}</span
-    >
+    > -->
+    <span>{{ progress?.success || 0 }}/{{ progress?.total || 0 }}</span>
   </div>
 </template>
 
@@ -69,14 +70,14 @@ export default {
     },
     runningWidth() {
       return (this.progress.running / this.progress.total) * 100;
-    }
+    },
   },
   props: {
     progress: {
-      type: Object
-    }
+      type: Object,
+    },
   },
-  methods: {}
+  methods: {},
 };
 </script>
 

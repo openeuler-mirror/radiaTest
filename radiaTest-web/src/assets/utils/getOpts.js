@@ -127,10 +127,10 @@ const getCheckItemOpts = (checkItemOpts, loading) => {
   });
 };
 
-const getVersionOpts = (versionOpts, productName, loading) => {
+const getVersionOpts = async (versionOpts, productName, loading) => {
   loading ? (loading.value = true) : 0;
   versionOpts.value = [];
-  axios
+  await axios
     .get(`/v1/ws/${workspace.value}/product/preciseget`, { name: productName })
     .then((res) => {
       loading ? (loading.value = false) : 0;
@@ -172,10 +172,10 @@ const getEnterpriseOpts = (milestoneOpts, hasNext, filter, tag) => {
   });
 };
 
-const getMilestoneOpts = (milestoneOpts, productId, loading) => {
+const getMilestoneOpts = async (milestoneOpts, productId, loading) => {
   loading ? (loading.value = true) : 0;
   milestoneOpts.value = [];
-  axios
+  await axios
     .get('/v1/milestone/preciseget', {
       product_id: productId
     })
