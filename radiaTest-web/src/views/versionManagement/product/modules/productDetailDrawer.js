@@ -382,7 +382,7 @@ const featureListColumns = [
               padding: '5px',
               display: 'block'
             },
-            onClick: () => {}
+            onClick: () => { }
           },
           item
         )
@@ -404,7 +404,7 @@ const featureListColumns = [
               padding: '5px',
               display: 'block'
             },
-            onClick: () => {}
+            onClick: () => { }
           },
           item
         )

@@ -505,10 +505,21 @@ const onPositiveClick = () => {
 const onNegativeClick = () => {
   emit('onNegativeClick');
 };
-
-onMounted(() => {
+const versionResultValue = ref(null);
+const getVersionSelect = (data, milestone) => {
+  if (data.includes(milestone)) {
+    versionResultValue.value = milestone;
+  } else {
+    let lastIndex = milestone.lastIndexOf('-');
+    let result = milestone.substring(0, lastIndex);
+    getVersionSelect(data, result);
+  }
+};
+onMounted(async () => {
   getProductOptions();
   if (isEditTemplate.value) {
+    formValue.value.product = modalData.value.milestone.split('-')[0];
+    await getVersionOpts(versionOpts, formValue.value.product);
     formValue.value.name = modalData.value.name;
     formValue.value.permission_type = modalData.value.template_type;
     formValue.value.description = modalData.value.description;
@@ -517,6 +528,18 @@ onMounted(() => {
     formValue.value.cases = modalData.value?.cases?.map((item) => {
       return `case-${item.id}`;
     });
+    // 先从 modalData.value.milestone的最后截取然后看版本列表中有没有同名的，如果有就是此版本，如果没有则继续向前截取对比，直到取到版本名
+    let mileIndex = modalData.value.milestone.indexOf('-') + 1;
+    let mileResult = modalData.value.milestone.substring(mileIndex);
+    let labels = [];
+    versionOpts.value.map((item) => labels.push(item.label));
+    getVersionSelect(labels, mileResult);
+    formValue.value.version = versionOpts.value.filter(
+      (item) => item.label === versionResultValue.value
+    )[0].value;
+    // 获取里程碑列表
+    // await getMilestoneOpts(milestoneOpts, formValue.value.version);
+    formValue.value.milestone_id = modalData.value.milestone_id.toString();
   }
 });
 
