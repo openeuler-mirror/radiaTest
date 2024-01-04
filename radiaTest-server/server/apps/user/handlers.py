@@ -71,15 +71,15 @@ def handler_oauth_login_url(org: Organization):
         deal_scope(org.oauth_scope)
     )
     return jsonify(
-            error_code=RET.OK,
-            error_msg='OK',
-            data=oauth_login_url
-        )
+        error_code=RET.OK,
+        error_msg='OK',
+        data=oauth_login_url
+    )
 
 
 def send_majun(code):
     _resp = dict()
-    
+
     majun_api = current_app.config.get("MAJUN_API")
     access_token = current_app.config.get("MAJUN_ACCESS_TOKEN")
     _r = do_request(
@@ -142,7 +142,7 @@ def handler_login_callback(query):
         current_app.config.get("OAUTH_REDIRECT_URI"),
         org.oauth_client_secret
     )
-        
+
     if not oauth_flag:
         return jsonify(
             error_code=RET.OTHER_REQ_ERR,
@@ -175,10 +175,10 @@ def handler_login_callback(query):
             error_msg="OK",
             data={
                 "url": '{}?isSuccess=False&user_id={}&org_id={}&require_cla={}'.format(
-                current_app.config["OAUTH_HOME_URL"],
-                result[1],
-                org.id,
-                org.cla_verify_url is not None
+                    current_app.config["OAUTH_HOME_URL"],
+                    result[1],
+                    org.id,
+                    org.cla_verify_url is not None
                 )
             }
         )
@@ -310,12 +310,17 @@ def handler_register(user_id, body):
             cla_email = value
             break
 
-    user = User.query.filter_by(user_id=oauth_user.get("user_id")).first()
+    user = User.query.filter(User.user_id == oauth_user.get("user_id") | User.cla_email == cla_email).first()
     if not user:
         # 用户注册成功保存用户信息、生成token
         user = User.create_commit(
             oauth_user,
             cla_email,
+        )
+    else:
+        return jsonify(
+            error_code=RET.DATA_EXIST_ERR,
+            error_msg="user already exists"
         )
 
     # 查询用户和组织是否已存在关系
@@ -335,7 +340,7 @@ def handler_register(user_id, body):
             }),
             default=False
         )
-    
+
     _role = Role.query.filter_by(name=user.user_id, type='person').first()
     if not _role:
         role = Role(name=user.user_id, type='person')
@@ -615,8 +620,8 @@ def handler_get_user_task(query: UserTaskSchema):
     if now.month < 12:
         next_month_start = datetime(now.year, now.month + 1, 1)
     else:
-        next_month_start = datetime(now.year+1, 1, 1)
-    
+        next_month_start = datetime(now.year + 1, 1, 1)
+
     month_filter_params = [Task.create_time >= this_month_start,
                            Task.create_time < next_month_start]
     month_filter_params.extend(basic_filter_params)
@@ -671,7 +676,7 @@ def handler_get_user_task(query: UserTaskSchema):
     elif query.task_type == 'not_accomplish':
         not_accomplish_filter_params = [Task.accomplish_time.is_(None)]
         not_accomplish_filter_params.extend(basic_filter_params)
-        not_accomplish_filter = Task.query.filter(*not_accomplish_filter_params)\
+        not_accomplish_filter = Task.query.filter(*not_accomplish_filter_params) \
             .order_by(Task.update_time.desc(), Task.id.asc())
         filter_param = not_accomplish_filter
 
@@ -771,7 +776,7 @@ def handler_get_user_case_commit(query: UserCaseCommitSchema):
     if now.month < 12:
         next_month_start = datetime(now.year, now.month + 1, 1)
     else:
-        next_month_start = datetime(now.year+1, 1, 1)
+        next_month_start = datetime(now.year + 1, 1, 1)
 
     month_filter_params = [Commit.create_time >= this_month_start,
                            Commit.create_time < next_month_start]
@@ -824,8 +829,8 @@ def handler_get_user_case_commit(query: UserCaseCommitSchema):
     if now.month < 12:
         next_month_start = datetime(now.year, now.month + 1, 1)
     else:
-        next_month_start = datetime(now.year+1, 1, 1)
-    
+        next_month_start = datetime(now.year + 1, 1, 1)
+
     month_filter_params = [Commit.create_time >= this_month_start,
                            Commit.create_time < next_month_start]
     month_filter_params.extend(basic_filter_params)
@@ -857,33 +862,33 @@ def handler_get_user_asset_rank(query):
         ReUserOrganization.rank != sqlalchemy.null(),
         ReUserOrganization.is_delete == False,
         ReUserOrganization.organization_id == redis_client.hget(
-            RedisKey.user(g.user_id), 
+            RedisKey.user(g.user_id),
             "current_org_id"
         )
     ).order_by(
-        ReUserOrganization.rank.asc(), 
+        ReUserOrganization.rank.asc(),
         User.create_time.asc()
     )
 
     def page_func(item):
         user_dict = item.to_summary()
         return user_dict
-    
+
     page_dict, e = PageUtil.get_page_dict(
         ranked_user, query.page_num, query.page_size, func=page_func
     )
     if e:
         return jsonify(
-            error_code=RET.SERVER_ERR, 
+            error_code=RET.SERVER_ERR,
             error_msg=f'get user rank page error {e}'
         )
     return jsonify(
-        error_code=RET.OK, 
-        error_msg="OK", 
+        error_code=RET.OK,
+        error_msg="OK",
         data=page_dict
     )
 
-    
+
 def handler_private(user_id):
     user = User.query.filter_by(user_id=user_id).first()
     if not user:

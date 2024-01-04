@@ -21,6 +21,7 @@ from server import casbin_enforcer
 from server.utils.cla_util import ClaSignSchema
 from server.utils.auth_util import auth
 from server.utils.response_util import response_collect
+from server.utils.register_auth import register_required
 from server.schema.user import UserTaskSchema, UserMachineSchema, UserInfoSchema
 from server.schema.user import OauthLoginSchema, LoginSchema, UpdateUserSchema, JoinGroupSchema, UserQuerySchema
 from server.schema.user import UserCaseCommitSchema
@@ -145,6 +146,7 @@ class User(Resource):
 
 
 class UserItem(Resource):
+    @register_required
     @validate()
     @swagger_adapt.api_schema_model_map({
         "__module__": get_user_tag.__module__,
