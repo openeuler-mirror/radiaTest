@@ -146,7 +146,6 @@ class User(Resource):
 
 
 class UserItem(Resource):
-    @register_required
     @validate()
     @swagger_adapt.api_schema_model_map({
         "__module__": get_user_tag.__module__,
