@@ -310,7 +310,7 @@ def handler_register(user_id, body):
             cla_email = value
             break
 
-    user = User.query.filter(User.user_id == oauth_user.get("user_id") | User.cla_email == cla_email).first()
+    user = User.query.filter(or_(User.user_id == oauth_user.get("user_id"), User.cla_email == cla_email)).first()
     if not user:
         # 用户注册成功保存用户信息、生成token
         user = User.create_commit(
