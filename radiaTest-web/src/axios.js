@@ -8,8 +8,8 @@ const server = axios.create({
   baseURL: '/api',
   withCredentials: true,
   headers: {
-    'Content-Type': 'application/json;charset=UTF-8'
-  }
+    'Content-Type': 'application/json;charset=UTF-8',
+  },
 });
 // axios.defaults.baseURL = '/api';
 
@@ -43,7 +43,10 @@ server.interceptors.request.use(
       keys = Object.keys(config.data || {});
     }
     for (const key of keys) {
-      if (getValueByKey(config.data, key) === undefined || getValueByKey(config.data, key) === null) {
+      if (
+        getValueByKey(config.data, key) === undefined ||
+        getValueByKey(config.data, key) === null
+      ) {
         if (config.data?.delete) {
           config.data?.delete(key);
         } else {
@@ -70,13 +73,17 @@ server.interceptors.request.use(
 //回应拦截器
 server.interceptors.response.use(
   (response) => {
-    if (response.data.error_code === 200 || response.data.error_code === '2000' || !response.data.error_code) {
+    if (
+      response.data.error_code === 200 ||
+      response.data.error_code === '2000' ||
+      !response.data.error_code
+    ) {
       response.headers.authorization && storage.setValue('token', response.headers.authorization);
       return Promise.resolve(response);
     }
     if (response.data.error_code === '4021') {
       router.push({
-        name: 'home'
+        name: 'home',
       });
       return Promise.reject(response);
     }
@@ -90,20 +97,20 @@ server.interceptors.response.use(
       window.$message?.error('请重新登录');
       if (isIframe && isIframe === '1') {
         router.push({
-          name: 'home'
+          name: 'home',
         });
       } else {
         router.push({
-          name: 'login'
+          name: 'login',
         });
       }
       error.response.data = {
-        error_msg: '登录失效'
+        error_msg: '登录失效',
       };
     } else if (error.response?.status === 500) {
       window.$message?.destroyAll();
       error.response.data = {
-        error_msg: '服务端错误'
+        error_msg: '服务端错误',
       };
     } else if (error.response?.status === 400) {
       const msg = error.response.data.validation_error.body_params
@@ -111,7 +118,7 @@ server.interceptors.response.use(
         : error.response.data.validation_error.query_params[0]?.msg;
 
       error.response.data = {
-        error_msg: msg
+        error_msg: msg,
       };
     }
     return Promise.reject(error.response || error);
@@ -122,12 +129,13 @@ server.spread = axios.spread;
 //方法定义
 export default {
   server,
-  post(url, data) {
+  post(url, data, config) {
     return new Promise((resolve, reject) => {
       server({
         method: 'post',
         url,
-        data
+        data,
+        ...config,
       })
         .then((res) => {
           resolve(res.data);
@@ -144,7 +152,7 @@ export default {
         method: 'get',
         url,
         params: data,
-        ...config
+        ...config,
       })
         .then((res) => {
           resolve(res.data);
@@ -160,7 +168,7 @@ export default {
       server({
         method: 'put',
         url,
-        data
+        data,
       })
         .then((res) => {
           resolve(res.data);
@@ -176,7 +184,7 @@ export default {
       server({
         method: 'delete',
         url,
-        data
+        data,
       })
         .then((res) => {
           resolve(res.data);
@@ -192,7 +200,7 @@ export default {
       server({
         method: 'get',
         url,
-        params: data
+        params: data,
       })
         .then((res) => {
           loading.value = false;
@@ -223,7 +231,7 @@ export default {
         method: 'get',
         url,
         params: data,
-        responseType: 'blob'
+        responseType: 'blob',
       })
         .then((res) => {
           if (res.data.type === 'application/json') {
@@ -239,5 +247,5 @@ export default {
           reject(err);
         });
     });
-  }
+  },
 };

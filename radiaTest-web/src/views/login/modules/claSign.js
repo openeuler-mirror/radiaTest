@@ -7,6 +7,7 @@ import { openChildWindow, urlArgs } from '@/assets/utils/urlUtils';
 import { addRoom } from '@/assets/utils/socketUtils';
 import { storage } from '@/assets/utils/storageUtils';
 import { registerShow, requireCLA } from './login';
+import CryptoJS from 'crypto-js';
 
 const route = urlArgs();
 
@@ -16,7 +17,8 @@ const claEmailRule = {
   required: true,
   validator() {
     if (loginInfo.claEmail) {
-      const emailReg = /^[a-zA-Z0-9\u4e00-\u9fa5_.-]+@[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)*\.[a-zA-Z0-9]{2,6}$/;
+      const emailReg =
+        /^[a-zA-Z0-9\u4e00-\u9fa5_.-]+@[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)*\.[a-zA-Z0-9]{2,6}$/;
       if (!emailReg.test(loginInfo.claEmail)) {
         return new Error('邮箱格式不对!');
       }
@@ -56,14 +58,31 @@ function gotoCLA() {
 function perfectInfo() {
   const userId = route.user_id;
   if (
-    (!requireCLA.value ||(claEmailRule.validator() &&typeof claEmailRule.validator() !== 'object')) &&
+    (!requireCLA.value ||
+      (claEmailRule.validator() && typeof claEmailRule.validator() !== 'object')) &&
     orgNameRule.validator()
   ) {
+    let timestamp = Date.now();
+    const token =
+      'eyJhbGciOiJIUzUxMiIsImlhdCI6MTcwNDM0ODkxMywiZXhwIjoxNzA0Mzc3NzEzfQ.ip54BRH2LvXcYtpr0BABpSamMPlD+QaWHwsBLL14BlxKTP5EkXbI2cdEeElh1fwXoHSF0PzXE+/E/KikO5EUvCEP+cE8pOMO2dlzNvgnTY0=.4VOSqS8iIigrPFhC7uV3WBrgmxl5dmYOX803lUzWaT_SCPHpBWtFGdEO5gd_Z97GuKVDkyK3YRmY-3XfREXRlw';
+    const secretKey = '87f364ec2db54a2ca23681542e4d5a87';
+    let message = token + timestamp;
+    const hash = CryptoJS.HmacSHA256(message, secretKey);
+    const hashInHex = CryptoJS.enc.Base64.stringify(hash);
     axios
-      .post(`/v1/users/${userId}`, {
-        cla_verify_params: requireCLA.value?JSON.stringify({ email: loginInfo.claEmail }):'',
-        organization_id: loginInfo.org,
-      })
+      .post(
+        `/v1/users/${userId}`,
+        {
+          cla_verify_params: requireCLA.value ? JSON.stringify({ email: loginInfo.claEmail }) : '',
+          organization_id: loginInfo.org,
+        },
+        {
+          headers: {
+            timestamp,
+            sign: hashInHex,
+          },
+        }
+      )
       .then((res) => {
         storage.setValue('token', res.data.token);
         storage.setValue('user_id', userId);
@@ -72,8 +91,9 @@ function perfectInfo() {
         contentName.value = stepList.value[current.value - 1].name;
         setTimeout(() => {
           registerShow.value = false;
-          router.push({ name: 'home' })
-            .then(() => {addRoom(storage.getValue('token'));});
+          router.push({ name: 'home' }).then(() => {
+            addRoom(storage.getValue('token'));
+          });
         }, 1000);
       })
       .catch((err) => {
@@ -82,10 +102,14 @@ function perfectInfo() {
           stepList.value = [
             { title: 'Gitee授权', status: 'finish' },
             {
-              title: 'CLA签署', name: 'signCLA', status: 'wait',
+              title: 'CLA签署',
+              name: 'signCLA',
+              status: 'wait',
             },
             {
-              title: '信息完善', name: 'perfectInfo', status: 'wait',
+              title: '信息完善',
+              name: 'perfectInfo',
+              status: 'wait',
             },
             { title: '注册成功', name: 'success', status: 'wait' },
           ];
