@@ -7,7 +7,6 @@ import { openChildWindow, urlArgs } from '@/assets/utils/urlUtils';
 import { addRoom } from '@/assets/utils/socketUtils';
 import { storage } from '@/assets/utils/storageUtils';
 import { registerShow, requireCLA } from './login';
-import CryptoJS from 'crypto-js';
 
 const route = urlArgs();
 
@@ -62,27 +61,11 @@ function perfectInfo() {
       (claEmailRule.validator() && typeof claEmailRule.validator() !== 'object')) &&
     orgNameRule.validator()
   ) {
-    let timestamp = Date.now();
-    const token =
-      'eyJhbGciOiJIUzUxMiIsImlhdCI6MTcwNDM0ODkxMywiZXhwIjoxNzA0Mzc3NzEzfQ.ip54BRH2LvXcYtpr0BABpSamMPlD+QaWHwsBLL14BlxKTP5EkXbI2cdEeElh1fwXoHSF0PzXE+/E/KikO5EUvCEP+cE8pOMO2dlzNvgnTY0=.4VOSqS8iIigrPFhC7uV3WBrgmxl5dmYOX803lUzWaT_SCPHpBWtFGdEO5gd_Z97GuKVDkyK3YRmY-3XfREXRlw';
-    const secretKey = '87f364ec2db54a2ca23681542e4d5a87';
-    let message = token + timestamp;
-    const hash = CryptoJS.HmacSHA256(message, secretKey);
-    const hashInHex = CryptoJS.enc.Base64.stringify(hash);
     axios
-      .post(
-        `/v1/users/${userId}`,
-        {
-          cla_verify_params: requireCLA.value ? JSON.stringify({ email: loginInfo.claEmail }) : '',
-          organization_id: loginInfo.org,
-        },
-        {
-          headers: {
-            timestamp,
-            sign: hashInHex,
-          },
-        }
-      )
+      .post(`/v1/users/${userId}`, {
+        cla_verify_params: requireCLA.value ? JSON.stringify({ email: loginInfo.claEmail }) : '',
+        organization_id: loginInfo.org,
+      })
       .then((res) => {
         storage.setValue('token', res.data.token);
         storage.setValue('user_id', userId);
