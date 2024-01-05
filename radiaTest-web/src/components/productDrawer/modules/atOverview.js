@@ -4,12 +4,12 @@ import customProgress from '@/components/customProgress/customProgress';
 import { NIcon, NTag, NTooltip } from 'naive-ui';
 import { Circle24Filled } from '@vicons/fluent';
 
-function renderResColor (resStatus, failmodule) {
-  if (!typeof(resStatus) === String) {
+function renderResColor(resStatus, failmodule) {
+  if (!typeof (resStatus) === String) {
     return 'white';
   }
 
-  switch(true) {
+  switch (true) {
     case resStatus.startsWith('schedule') || resStatus === 'running':
       return '#2080F0';
     case resStatus === 'Done: passed' && failmodule === '-':
@@ -36,14 +36,14 @@ const atColumns = [
     title: '构建记录',
     key: 'build',
     render: (row) => h(
-      'p', 
+      'p',
       null,
       [
         h('span', null, row.build),
         h('span', null, row.build_time)
       ]
     ),
-    sorter:  true,
+    sorter: true,
     minWidth: 100
   },
   {
@@ -57,8 +57,8 @@ const atColumns = [
     className: 'at-progress',
     render: (row) => {
       return h(
-        customProgress, 
-        { 
+        customProgress,
+        {
           progress: row
         }
       );
@@ -97,13 +97,13 @@ const atTestsColumns = [
             )
           }),
           h(
-            NTag, 
-            { 
-              type: 'error', 
-              size: 'small', 
+            NTag,
+            {
+              type: 'error',
+              size: 'small',
               style: { cursor: 'pointer' },
-              onClick: () => handleUrlClick(row.aarch64_failedmodule_log) 
-            }, 
+              onClick: () => handleUrlClick(row.aarch64_failedmodule_log)
+            },
             row.aarch64_failedmodule_name
           )
         ]);
@@ -111,33 +111,33 @@ const atTestsColumns = [
       return h(
         'div',
         {
-          style: {display: 'flex', alignItems: 'center'}
+          style: { display: 'flex', alignItems: 'center' }
         },
         [
           h(
-              NTooltip,
-              { trigger: 'hover' },
-              {
-                default: () => row.aarch64_res_status,
-                trigger: () => h(
-                  NIcon,
-                  {
-                    size: 14,
-                    color: renderResColor(row.aarch64_res_status, row.aarch64_failedmodule_name),
-                    style: { cursor: 'pointer' },
-                    onClick: () => handleUrlClick(row.aarch64_res_log),
-                  },
-                  { default: () => h(Circle24Filled) }
-                )
-              }
-            ),
-          h('span', 
-          { 
-            style: { marginLeft: '5px' },
-          }, 
-          row.aarch64_test_duration)
+            NTooltip,
+            { trigger: 'hover' },
+            {
+              default: () => row.aarch64_res_status,
+              trigger: () => h(
+                NIcon,
+                {
+                  size: 14,
+                  color: renderResColor(row.aarch64_res_status, row.aarch64_failedmodule_name),
+                  style: { cursor: 'pointer' },
+                  onClick: () => handleUrlClick(row.aarch64_res_log),
+                },
+                { default: () => h(Circle24Filled) }
+              )
+            }
+          ),
+          h('span',
+            {
+              style: { marginLeft: '5px' },
+            },
+            row.aarch64_test_duration)
         ]
-        
+
       );
     }
   },
@@ -163,13 +163,13 @@ const atTestsColumns = [
             )
           }),
           h(
-            NTag, 
-            { 
-              type: 'error', 
-              size: 'small', 
+            NTag,
+            {
+              type: 'error',
+              size: 'small',
               style: { cursor: 'pointer' },
-              onClick: () => handleUrlClick(row.x86_64_failedmodule_log) 
-            }, 
+              onClick: () => handleUrlClick(row.x86_64_failedmodule_log)
+            },
             row.x86_64_failedmodule_name
           )
         ]);
@@ -177,7 +177,7 @@ const atTestsColumns = [
       return h(
         'div',
         {
-          style: {display: 'flex', alignItems: 'center'}
+          style: { display: 'flex', alignItems: 'center' }
         },
         [
           h(
@@ -197,13 +197,13 @@ const atTestsColumns = [
               )
             }
           ),
-          h('span', 
-          { 
-            style: { marginLeft: '5px' },
-          }, 
-          row.x86_64_test_duration)
+          h('span',
+            {
+              style: { marginLeft: '5px' },
+            },
+            row.x86_64_test_duration)
         ]
-        
+
       );
     }
   },
@@ -214,12 +214,14 @@ function getAtData(id, params) {
   getAtOverview(id, params)
     .then((res) => {
       if (!params.build_name) {
-        atGroupOverviewData.value = res.data;
-        if (atGroupOverviewData.value) {
-          totalNum.value = res.total_num;
-        }
+        atGroupOverviewData.value = res?.data;
+        totalNum.value = res?.total_num;
+        // if (atGroupOverviewData.value) {
+        //   totalNum.value = res.total_num;
+        // }
       } else {
-        atTestsOverviewData.value = res.data;
+        atTestsOverviewData.value = res?.data;
+        totalNum.value = res?.total_num;
       }
     })
     .finally(() => {

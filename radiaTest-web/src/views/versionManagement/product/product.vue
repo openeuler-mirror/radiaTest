@@ -778,7 +778,7 @@ export default {
   },
   setup() {
     const additionFeatureOption = reactive(JSON.parse(JSON.stringify(modules.featureOption)));
-    const inheritFeatureOption = reactive(JSON.parse(JSON.stringify(modules.featureOption)));
+    const inheritFeatureOption = reactive(JSON.parse(JSON.stringify(modules.featureOptionRight)));
     const refreshTableData = () => {
       modules.getTableData({
         page_num: 1,

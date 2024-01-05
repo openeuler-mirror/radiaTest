@@ -18,7 +18,36 @@ const featureOption = {
         { name: 'Accepted', value: 0 },
         { name: 'Testing', value: 0 },
         { name: 'Developing', value: 0 },
-      ]
+      ],
+    }
+  ]
+};
+const featureOptionRight = {
+  tooltip: {
+    trigger: 'item'
+  },
+  title: {
+    textStyle: {
+      fontSize: '14',
+    },
+  },
+  color: ['#18a058', '#2080f0', '#d1d1d1'],
+  series: [
+    {
+      type: 'pie',
+      left: 30,
+      radius: ['50%', '70%'],
+      avoidLabelOverlap: false,
+      data: [
+        { name: 'Accepted', value: 0 },
+        { name: 'Testing', value: 0 },
+        { name: 'Developing', value: 0 },
+      ],
+      label: {
+        position: 'outer',
+        alignTo: 'edge',
+        margin: 10,
+      },
     }
   ]
 };
@@ -36,4 +65,5 @@ function setFeatureOption(option, title, data) {
 export {
   featureOption,
   setFeatureOption,
+  featureOptionRight,
 };
