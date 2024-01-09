@@ -14,7 +14,8 @@
 #####################################
 
 from datetime import datetime
-from typing import Literal, Optional
+from typing_extensions import Literal
+from typing import Optional
 import pytz
 
 from pydantic import BaseModel, Field, constr, root_validator

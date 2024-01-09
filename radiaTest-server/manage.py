@@ -21,7 +21,6 @@ monkey.patch_all()
 
 from geventwebsocket.handler import WebSocketHandler
 from werkzeug.middleware.proxy_fix import ProxyFix
-from flask_script import Manager
 from flask_migrate import Migrate, MigrateCommand
 
 from server.utils.celery_utils import make_celery
@@ -32,13 +31,12 @@ my_celery = make_celery(__name__)
 app = create_app(celery=my_celery)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1)
 
-manager = Manager(app)
 migrate = Migrate(app, db)
 
-manager.add_command("db", MigrateCommand)
+app.cli.add_command("db", MigrateCommand)
 
 
-@manager.command
+@app.cli.command("run_gevent")
 def run_gevent():
 
     server = pywsgi.WSGIServer(
@@ -52,7 +50,7 @@ def run_gevent():
     server.serve_forever()
 
 
-@manager.command
+@app.cli.command("init_asr")
 def init_asr():
     from server.utils.read_from_yaml import init_role, init_scope, init_admin
     from server.utils.public_login_util import init_public_login
@@ -62,13 +60,13 @@ def init_asr():
     init_public_login(app, redis_client)
 
 
-@manager.command
+@app.cli.command("prepare_recv_id")
 def prepare_recv_id():
     from server.utils.read_from_yaml import get_recv_id
     get_recv_id(db, app)
 
 
-@manager.command
+@app.cli.command("swagger_init")
 def swagger_init():
     # 批量添加路由地址和请求方式
     api_info_map = swagger_adapt.api_info_map
@@ -106,4 +104,4 @@ def swagger_init():
 
 
 if __name__ == "__main__":
-    manager.run()
+    app.run()
