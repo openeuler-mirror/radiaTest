@@ -1,28 +1,28 @@
 <template>
   <div ref="workbench" class="workbench">
-    <div class="workbenchWrap" v-if="$route.params.workspace==='default'">
+    <div class="workbenchWrap" v-if="$route.params.workspace === 'default'">
       <grid-layout
-          v-model:layout="layout"
-          :col-num="12"
-          :row-height="10"
-          :is-draggable="true"
-          :is-resizable="true"
-          :is-mirrored="false"
-          :vertical-compact="true"
-          :margin="[10, 10]"
-          :use-css-transforms="true"
+        v-model:layout="layout"
+        :col-num="12"
+        :row-height="10"
+        :is-draggable="true"
+        :is-resizable="true"
+        :is-mirrored="false"
+        :vertical-compact="true"
+        :margin="[10, 10]"
+        :use-css-transforms="true"
       >
         <grid-item
-            v-for="item in layout"
-            :x="item.x"
-            :y="item.y"
-            :w="item.w"
-            :h="item.h"
-            :i="item.i"
-            :minH="item.minH"
-            :key="item.i"
-            @resized="resizedEvent"
-            dragIgnoreFrom=".ge-dashboard-module-body"
+          v-for="item in layout"
+          :x="item.x"
+          :y="item.y"
+          :w="item.w"
+          :h="item.h"
+          :i="item.i"
+          :minH="item.minH"
+          :key="item.i"
+          @resized="resizedEvent"
+          dragIgnoreFrom=".ge-dashboard-module-body"
         >
           <div class="ge-dashboard-module" v-if="item.i === 'personal'">
             <div class="ge-dashboard-module-header">
@@ -34,8 +34,13 @@
                 <h2 class="header flex-1">个人数据概览</h2>
               </div>
               <div class="header-actions flex-shrink-0 d-flex flex-center ml-auto">
-                  <span class="action-item mr-2 refresh" title="刷新" ref="personalRefresh" @click="personalRefreshClick"
-                  ><n-icon size="24"> <Refresh /> </n-icon></span>
+                <span
+                  class="action-item mr-2 refresh"
+                  title="刷新"
+                  ref="personalRefresh"
+                  @click="personalRefreshClick"
+                  ><n-icon size="24"> <Refresh /> </n-icon
+                ></span>
               </div>
             </div>
             <div class="ge-dashboard-module-body">
@@ -91,42 +96,55 @@
                 <h2 class="header flex-1">我的机器</h2>
               </div>
               <div class="header-actions flex-shrink-0 d-flex flex-center ml-auto">
-                  <span class="action-item mr-2 refresh" title="刷新" ref="machineRefresh" @click="machineRefreshClick"
+                <span
+                  class="action-item mr-2 refresh"
+                  title="刷新"
+                  ref="machineRefresh"
+                  @click="machineRefreshClick"
                   ><n-icon size="24"> <Refresh /> </n-icon
-                  ></span>
+                ></span>
               </div>
             </div>
             <div class="ge-dashboard-module-body">
               <div class="ge-dashboard-module-collection-view">
                 <div class="ge-dashboard-module-collection-view-header mb-3">
                   <div class="ge-tabs" @click="machineWorkbenchClick">
-                    <a class="item" :class="{ active: machineActive === '0' }" data-index="0">虚拟机</a>
-                    <a class="item" :class="{ active: machineActive === '1' }" data-index="1">物理机</a>
+                    <a class="item" :class="{ active: machineActive === '0' }" data-index="0"
+                      >虚拟机</a
+                    >
+                    <a class="item" :class="{ active: machineActive === '1' }" data-index="1"
+                      >物理机</a
+                    >
                   </div>
                   <div class="searchWrap ml-auto">
                     <n-icon size="22" class="search" @click="machineSearch">
                       <Search />
                     </n-icon>
-                    <n-input type="text" placeholder="搜索..." class="input" v-model:value="machineSearchValue" />
+                    <n-input
+                      type="text"
+                      placeholder="搜索..."
+                      class="input"
+                      v-model:value="machineSearchValue"
+                    />
                   </div>
                 </div>
                 <div class="ge-dashboard-module-collection-view-content">
                   <div class="ge-table-wrap" v-show="machineActive === '0'" @wheel.stop>
                     <n-data-table
-                        :columns="myMachineColVirtual"
-                        :data="myMachineData"
-                        :bordered="false"
-                        :single-column="true"
-                        :bottom-bordered="false"
+                      :columns="myMachineColVirtual"
+                      :data="myMachineData"
+                      :bordered="false"
+                      :single-column="true"
+                      :bottom-bordered="false"
                     />
                   </div>
                   <div class="ge-table-wrap" v-show="machineActive === '1'" @wheel.stop>
                     <n-data-table
-                        :columns="myMachineColPhysics"
-                        :data="myMachineData"
-                        :bordered="false"
-                        :single-column="true"
-                        :bottom-bordered="false"
+                      :columns="myMachineColPhysics"
+                      :data="myMachineData"
+                      :bordered="false"
+                      :single-column="true"
+                      :bottom-bordered="false"
                     />
                   </div>
                 </div>
@@ -143,41 +161,54 @@
                 <h2 class="header flex-1">我的任务</h2>
               </div>
               <div class="header-actions flex-shrink-0 d-flex flex-center ml-auto">
-                  <span class="action-item mr-2 refresh" title="刷新" ref="taskRefresh" @click="taskRefreshClick"
+                <span
+                  class="action-item mr-2 refresh"
+                  title="刷新"
+                  ref="taskRefresh"
+                  @click="taskRefreshClick"
                   ><n-icon size="24"> <Refresh /> </n-icon
-                  ></span>
+                ></span>
               </div>
             </div>
             <div class="ge-dashboard-module-body">
               <div class="ge-dashboard-module-collection-view">
                 <div class="ge-dashboard-module-collection-view-header mb-3">
                   <div class="ge-tabs" @click="taskWorkbenchClick">
-                    <a class="item" :class="{ active: taskActive === '0' }" data-index="0">未完成</a>
+                    <a class="item" :class="{ active: taskActive === '0' }" data-index="0"
+                      >未完成</a
+                    >
                     <a class="item" :class="{ active: taskActive === '1' }" data-index="1">今日</a>
                     <a class="item" :class="{ active: taskActive === '2' }" data-index="2">本周</a>
-                    <a class="item" :class="{ active: taskActive === '3' }" data-index="3">已逾期</a>
+                    <a class="item" :class="{ active: taskActive === '3' }" data-index="3"
+                      >已逾期</a
+                    >
                     <a class="item" :class="{ active: taskActive === '4' }" data-index="4">所有</a>
                   </div>
                   <div class="searchWrap ml-auto">
                     <n-icon size="22" class="search" @click="taskSearch">
                       <Search />
                     </n-icon>
-                    <n-input type="text" placeholder="搜索..." class="input" v-model:value="taskSearchValue" />
+                    <n-input
+                      type="text"
+                      placeholder="搜索..."
+                      class="input"
+                      v-model:value="taskSearchValue"
+                    />
                   </div>
                 </div>
                 <div class="ge-dashboard-module-collection-view-content">
                   <div class="ge-table-wrap" @wheel.stop>
                     <n-data-table
-                        :columns="myTasksCol"
-                        :data="myTasksData"
-                        :row-props="myTasksRowProps"
-                        :bordered="false"
-                        :single-column="true"
-                        :bottom-bordered="false"
-                        :pagination="tasksPagination"
-                        remote
-                        @update:page="handleTasksPageChange"
-                        :loading="tasksloading"
+                      :columns="myTasksCol"
+                      :data="myTasksData"
+                      :row-props="myTasksRowProps"
+                      :bordered="false"
+                      :single-column="true"
+                      :bottom-bordered="false"
+                      :pagination="tasksPagination"
+                      remote
+                      @update:page="handleTasksPageChange"
+                      :loading="tasksloading"
                     />
                   </div>
                 </div>
@@ -194,31 +225,41 @@
                 <h2 class="header flex-1">我的用例状态</h2>
               </div>
               <div class="header-actions flex-shrink-0 d-flex flex-center ml-auto">
-                  <span class="action-item mr-2 refresh" title="刷新" ref="caseRefresh" @click="getMyCase"
+                <span
+                  class="action-item mr-2 refresh"
+                  title="刷新"
+                  ref="caseRefresh"
+                  @click="getMyCase"
                   ><n-icon size="24"> <Refresh /> </n-icon
-                  ></span>
+                ></span>
               </div>
             </div>
             <div class="ge-dashboard-module-body">
               <div class="ge-dashboard-module-collection-view">
                 <div class="ge-dashboard-module-collection-view-header mb-3">
                   <div class="ge-tabs" @click="caseWorkbenchClick">
-                    <a class="item" :class="{ active: caseActive === '0' }" data-index="0">开启的</a>
-                    <a class="item" :class="{ active: caseActive === '1' }" data-index="1">已合并</a>
-                    <a class="item" :class="{ active: caseActive === '2' }" data-index="2">已关闭</a>
+                    <a class="item" :class="{ active: caseActive === '0' }" data-index="0"
+                      >开启的</a
+                    >
+                    <a class="item" :class="{ active: caseActive === '1' }" data-index="1"
+                      >已合并</a
+                    >
+                    <a class="item" :class="{ active: caseActive === '2' }" data-index="2"
+                      >已关闭</a
+                    >
                     <a class="item" :class="{ active: caseActive === '3' }" data-index="3">全部</a>
                   </div>
                 </div>
                 <div class="ge-dashboard-module-collection-view-content">
                   <div class="ge-table-wrap" @wheel.stop>
                     <n-data-table
-                        :columns="myCasesCol"
-                        :data="myCasesData"
-                        remote
-                        :loading="caseLoading"
-                        :pagination="myCasePagination"
-                        :bordered="false"
-                        @update:page="handleCasePageChange"
+                      :columns="myCasesCol"
+                      :data="myCasesData"
+                      remote
+                      :loading="caseLoading"
+                      :pagination="myCasePagination"
+                      :bordered="false"
+                      @update:page="handleCasePageChange"
                     />
                   </div>
                 </div>
@@ -228,28 +269,31 @@
         </grid-item>
       </grid-layout>
     </div>
-    <div v-if="$route.params.workspace==='release'">
+    <div v-if="$route.params.workspace === 'release'">
       <n-modal v-model:show="showChecklistBoard">
         <n-card
-            :bordered="false"
-            aria-modal="true"
-            role="dialog"
-            size="huge"
-            style="width: 1000px"
-            title="检查项比对结果"
+          :bordered="false"
+          aria-modal="true"
+          role="dialog"
+          size="huge"
+          style="width: 1000px"
+          title="检查项比对结果"
         >
           <n-data-table
-              :columns="checklistBoardTableColumns"
-              :data="checklistBoardTableData"
-              :loading="checklistBoardTableLoading"
-              :pagination="checklistBoardTablePagination"
-              @update:page="checklistBoardTablePageChange"
-              @update:page-size="checklistBoardTablePageSizeChange"
+            :columns="checklistBoardTableColumns"
+            :data="checklistBoardTableData"
+            :loading="checklistBoardTableLoading"
+            :pagination="checklistBoardTablePagination"
+            @update:page="checklistBoardTablePageChange"
+            @update:page-size="checklistBoardTablePageSizeChange"
           />
         </n-card>
       </n-modal>
       <n-modal v-model:show="showRoundMilestoneBoard" @update:show="updateRoundMilestoneBoard">
-        <RoundRelateMilestones :ProductId="productId" :currentRound="currentRound"></RoundRelateMilestones>
+        <RoundRelateMilestones
+          :ProductId="productId"
+          :currentRound="currentRound"
+        ></RoundRelateMilestones>
       </n-modal>
       <div id="drawer-target">
         <div style="display: flex; align-items: center">
@@ -262,17 +306,17 @@
         <n-grid x-gap="12" :cols="3">
           <n-gi :span="3" style="margin-top: 40px; margin-bottom: 20px">
             <autoSteps
-                @stepClick="handleClick"
-                @rollback="handleRollback"
-                @haveDone="haveDone"
-                @haveRecovery="haveRecovery"
-                @add="stepAdd"
-                @handleChecklistBoard="handleChecklistBoard"
-                @handleMilestone="handleMilestone"
-                :done="done"
-                :list="list"
-                :currentId="currentId"
-                :hasQualityboard="hasQualityboard"
+              @stepClick="handleClick"
+              @rollback="handleRollback"
+              @haveDone="haveDone"
+              @haveRecovery="haveRecovery"
+              @add="stepAdd"
+              @handleChecklistBoard="handleChecklistBoard"
+              @handleMilestone="handleMilestone"
+              :done="done"
+              :list="list"
+              :currentId="currentId"
+              :hasQualityboard="hasQualityboard"
             />
           </n-gi>
         </n-grid>
@@ -280,57 +324,75 @@
           <!-- 问题解决统计 -->
           <n-gi v-if="!showPackage && !showList" :span="1">
             <div
-                :style="{
-                  backgroundColor:
-                    issuesResolvedPassed !== null ? (issuesResolvedPassed ? '#D5E8D4' : 'white') : 'white',
-                  border:
-                    issuesResolvedPassed !== null
-                      ? issuesResolvedPassed
-                        ? '1px solid #A2C790'
-                        : '1px solid #B95854'
-                      : '1px solid #ddddd'
-                }"
-                class="card inout-animated"
-                @click="cardClick"
+              :style="{
+                backgroundColor:
+                  issuesResolvedPassed !== null
+                    ? issuesResolvedPassed
+                      ? '#D5E8D4'
+                      : 'white'
+                    : 'white',
+                border:
+                  issuesResolvedPassed !== null
+                    ? issuesResolvedPassed
+                      ? '1px solid #A2C790'
+                      : '1px solid #B95854'
+                    : '1px solid #ddddd',
+              }"
+              class="card inout-animated"
+              @click="cardClick"
             >
               <div class="topselect">
                 <n-popselect
-                    v-model:value="resolvedMilestone"
-                    :options="resolvedMilestoneOptions"
-                    trigger="click"
-                    @update:value="selectResolvedMilestone"
+                  v-model:value="resolvedMilestone"
+                  :options="resolvedMilestoneOptions"
+                  trigger="click"
+                  @update:value="selectResolvedMilestone"
                 >
                   <n-button text @click.stop>{{ resolvedMilestone.name || '当前迭代' }}</n-button>
                 </n-popselect>
               </div>
               <n-progress
-                  :percentage="currentResolvedRate"
-                  :status="
-                    currentResolvedPassed !== true ? (currentResolvedPassed === false ? 'error' : 'default') : 'success'
-                  "
-                  :stroke-width="9"
-                  class="topProgress"
-                  type="circle"
+                :percentage="currentResolvedRate"
+                :status="
+                  currentResolvedPassed !== true
+                    ? currentResolvedPassed === false
+                      ? 'error'
+                      : 'default'
+                    : 'success'
+                "
+                :stroke-width="9"
+                class="topProgress"
+                type="circle"
               >
-                  <span style="text-align: center; font-size: 33px">
-                    {{ currentResolvedRate ? `${currentResolvedRate}%` : '0%' }}
-                  </span>
+                <span style="text-align: center; font-size: 33px">
+                  {{ currentResolvedRate ? `${currentResolvedRate}%` : '0%' }}
+                </span>
               </n-progress>
               <div style="display: flex; position: absolute; top: 4%; left: 73%">
                 <n-icon size="20" style="margin-right: 5px">
-                  <CheckCircleFilled v-if="issuesResolvedPassed" color="#18A058"/>
-                  <QuestionCircle16Filled v-else-if="issuesResolvedPassed === null"/>
-                  <CancelRound v-else color="#D03050"/>
+                  <CheckCircleFilled v-if="issuesResolvedPassed" color="#18A058" />
+                  <QuestionCircle16Filled v-else-if="issuesResolvedPassed === null" />
+                  <CancelRound v-else color="#D03050" />
                 </n-icon>
                 <span>
-                    {{ issuesResolvedPassed !== null ? (issuesResolvedPassed ? '已达标' : '未达标') : 'unknown' }}
-                  </span>
+                  {{
+                    issuesResolvedPassed !== null
+                      ? issuesResolvedPassed
+                        ? '已达标'
+                        : '未达标'
+                      : 'unknown'
+                  }}
+                </span>
               </div>
               <div style="position: absolute; left: 61%; top: 16%; text-align: center">
-                <span style="font-size: 20px"> 问题解决统计 </span><br/>
+                <span style="font-size: 20px"> 问题解决统计 </span><br />
                 <span style="font-size: 20px; color: #929292"> 当前迭代 </span>
                 <p style="font-size: 30px; margin-top: 3px; margin-bottom: 3px">
-                  {{ currentAllCnt && currentResolvedRate ? `${currentResolvedCnt}/${currentAllCnt}` : '0/0' }}
+                  {{
+                    currentAllCnt && currentResolvedRate
+                      ? `${currentResolvedCnt}/${currentAllCnt}`
+                      : '0/0'
+                  }}
                 </p>
                 <div style="display: flex; align-items: center; justify-content: space-around">
                   <div style="display: flex; flex-direction: column">
@@ -342,48 +404,54 @@
                 </div>
               </div>
               <div
-                  class="description"
-                  style="font-size: 19px; position: absolute; top: 69%; display: flex; justify-content: space-around"
+                class="description"
+                style="
+                  font-size: 19px;
+                  position: absolute;
+                  top: 69%;
+                  display: flex;
+                  justify-content: space-around;
+                "
               >
                 <span> 严重/主要问题解决率 </span>
                 <span>
-                    {{
+                  {{
                     seriousMainResolvedCnt && seriousMainAllCnt
-                        ? `${seriousMainResolvedCnt}/${seriousMainAllCnt}`
-                        : '0/0'
+                      ? `${seriousMainResolvedCnt}/${seriousMainAllCnt}`
+                      : '0/0'
                   }}
-                  </span>
+                </span>
               </div>
               <n-progress
-                  :border-radius="4"
-                  :fill-border-radius="0"
-                  :height="20"
-                  :indicator-placement="'inside'"
-                  :percentage="seriousMainResolvedRate"
-                  :status="
-                    seriousMainResolvedPassed !== true
-                      ? seriousMainResolvedPassed === false
-                        ? 'error'
-                        : 'default'
-                      : 'success'
-                  "
-                  processing
-                  style="position: absolute; width: 78%; top: 80%; left: 11%"
-                  type="line"
+                :border-radius="4"
+                :fill-border-radius="0"
+                :height="20"
+                :indicator-placement="'inside'"
+                :percentage="seriousMainResolvedRate"
+                :status="
+                  seriousMainResolvedPassed !== true
+                    ? seriousMainResolvedPassed === false
+                      ? 'error'
+                      : 'default'
+                    : 'success'
+                "
+                processing
+                style="position: absolute; width: 78%; top: 80%; left: 11%"
+                type="line"
               />
               <n-tooltip>
                 <template #trigger>
                   <n-progress
-                      :percentage="seriousResolvedRate"
-                      :status="
-                        seriousResolvedPassed !== true
-                          ? seriousResolvedPassed === false
-                            ? 'error'
-                            : 'default'
-                          : 'success'
-                      "
-                      style="position: absolute; width: 78%; top: 86%; left: 11%"
-                      type="line"
+                    :percentage="seriousResolvedRate"
+                    :status="
+                      seriousResolvedPassed !== true
+                        ? seriousResolvedPassed === false
+                          ? 'error'
+                          : 'default'
+                        : 'success'
+                    "
+                    style="position: absolute; width: 78%; top: 86%; left: 11%"
+                    type="line"
                   />
                 </template>
                 严重问题解决率{{ seriousResolvedRate }}%
@@ -391,12 +459,16 @@
               <n-tooltip>
                 <template #trigger>
                   <n-progress
-                      :percentage="mainResolvedRate"
-                      :status="
-                        mainResolvedPassed !== true ? (mainResolvedPassed === false ? 'error' : 'default') : 'success'
-                      "
-                      style="position: absolute; width: 78%; top: 91%; left: 11%"
-                      type="line"
+                    :percentage="mainResolvedRate"
+                    :status="
+                      mainResolvedPassed !== true
+                        ? mainResolvedPassed === false
+                          ? 'error'
+                          : 'default'
+                        : 'success'
+                    "
+                    style="position: absolute; width: 78%; top: 91%; left: 11%"
+                    type="line"
                   />
                 </template>
                 主要问题解决率{{ mainResolvedRate }}%
@@ -406,23 +478,28 @@
           <n-gi ref="requestCard" :span="showList || showPackage ? 3 : 2">
             <!-- 特性 -->
             <div
-                v-if="!showPackage"
-                :style="{
-                  width: showList === false ? '100%' : boxWidth + 'px'
-                }"
-                class="transitionBox"
+              v-if="!showPackage"
+              :style="{
+                width: showList === false ? '100%' : boxWidth + 'px',
+              }"
+              class="transitionBox"
             >
               <div
-                  v-if="!showList"
-                  class="card"
-                  style="display: flex; justify-content: space-evenly; height: 100%; background: white"
-                  @click="handleListClick"
+                v-if="!showList"
+                class="card"
+                style="
+                  display: flex;
+                  justify-content: space-evenly;
+                  height: 100%;
+                  background: white;
+                "
+                @click="handleListClick"
               >
                 <div class="featureProgress">
-                  <echart :option="additionFeatureOption" chartId="additionFeaturePieChart"/>
+                  <echart :option="additionFeatureOption" chartId="additionFeaturePieChart" />
                 </div>
                 <div class="featureProgress">
-                  <echart :option="inheritFeatureOption" chartId="inheritFeaturePieChart"/>
+                  <echart :option="inheritFeatureOption" chartId="inheritFeaturePieChart" />
                 </div>
               </div>
               <div v-if="showList">
@@ -432,15 +509,15 @@
                   </template>
                   <template #header-extra>
                     <n-icon style="cursor: pointer" @click="showList = false">
-                      <MdClose/>
+                      <MdClose />
                     </n-icon>
                   </template>
                   <n-tabs animated type="line">
                     <n-tab-pane name="addition" tab="新增测试需求">
-                      <feature-table :qualityboard-id="dashboardId" type="addition"/>
+                      <feature-table :qualityboard-id="dashboardId" type="addition" />
                     </n-tab-pane>
                     <n-tab-pane name="inherit" tab="继承测试需求">
-                      <feature-table :qualityboard-id="dashboardId" type="inherit"/>
+                      <feature-table :qualityboard-id="dashboardId" type="inherit" />
                     </n-tab-pane>
                   </n-tabs>
                 </n-card>
@@ -448,17 +525,17 @@
             </div>
             <!-- 软件包 -->
             <n-card
-                v-if="!showList"
-                :bordered="false"
-                :style="{
-                  height: showPackage ? 'auto' : ''
-                }"
-                class="cardbox inout-animated"
-                title="软件包变更"
+              v-if="!showList"
+              :bordered="false"
+              :style="{
+                height: showPackage ? 'auto' : '',
+              }"
+              class="cardbox inout-animated"
+              title="软件包变更"
             >
               <template v-if="showPackage" #header-extra>
                 <n-icon style="cursor: pointer" @click="showPackage = false">
-                  <MdClose/>
+                  <MdClose />
                 </n-icon>
               </template>
               <template v-else #header-extra>
@@ -467,7 +544,7 @@
                     <n-button circle quaternary @click="showDailyBuildModal">
                       <template #icon>
                         <n-icon :size="18">
-                          <BuildCircleOutlined/>
+                          <BuildCircleOutlined />
                         </n-icon>
                       </template>
                     </n-button>
@@ -475,23 +552,23 @@
                   获取每日构建软件范围
                 </n-popover>
                 <refresh-button
-                    :size="18"
-                    @refresh="
-                      getPackageListComparationSummary(dashboardId, {
-                        refresh: true,
-                        repoPath: 'everything',
-                        arch: 'all'
-                      })
-                    "
+                  :size="18"
+                  @refresh="
+                    getPackageListComparationSummary(dashboardId, {
+                      refresh: true,
+                      repoPath: 'everything',
+                      arch: 'all',
+                    })
+                  "
                 >
                   获取最新软件包变更数据
                 </refresh-button>
               </template>
               <div class="transitionBox">
                 <div
-                    v-if="!showPackage"
-                    style="display: flex; justify-content: space-around; height: 100%"
-                    @click="handlePackageCardClick"
+                  v-if="!showPackage"
+                  style="display: flex; justify-content: space-around; height: 100%"
+                  @click="handlePackageCardClick"
                 >
                   <div class="packageCard transitionBox">
                     <div class="package-left">
@@ -508,7 +585,7 @@
                         <span>-{{ packageChangeSummary.delPackagesNum }}</span>
                       </p>
                       <n-icon color="green" size="20">
-                        <DoubleArrowFilled/>
+                        <DoubleArrowFilled />
                       </n-icon>
                     </div>
                     <div class="package-right">
@@ -522,46 +599,55 @@
                 <!-- 软件包变更详情卡片 -->
                 <div v-if="showPackage">
                   <n-tabs
-                      v-model:value="currentPanel"
-                      :closable="packageCompareClosable"
-                      addable
-                      animated
-                      type="card"
-                      @add="handlePackageCompareAdd"
-                      @close="handlePackageCompareClose"
+                    v-model:value="currentPanel"
+                    :closable="packageCompareClosable"
+                    addable
+                    animated
+                    type="card"
+                    @add="handlePackageCompareAdd"
+                    @close="handlePackageCompareClose"
                   >
                     <n-tab-pane
-                        v-for="packageComparePanel in packageComparePanels"
-                        :key="packageComparePanel"
-                        :name="packageComparePanel.id"
-                        :tab="`对比${packageComparePanel.name}`"
+                      v-for="packageComparePanel in packageComparePanels"
+                      :key="packageComparePanel"
+                      :name="packageComparePanel.id"
+                      :tab="`对比${packageComparePanel.name}`"
                     >
                       <n-tabs
-                          v-model:value="packageTabValueFirst"
-                          animated
-                          type="line"
-                          @update:value="changePackageTabFirst"
+                        v-model:value="packageTabValueFirst"
+                        animated
+                        type="line"
+                        @update:value="changePackageTabFirst"
                       >
                         <n-tab name="softwarescope"> 软件范围</n-tab>
-                        <n-tab v-if="currentPanel === 'fixed'" name="homonymousIsomerism"> 同名异构</n-tab>
+                        <n-tab v-if="currentPanel === 'fixed'" name="homonymousIsomerism">
+                          同名异构</n-tab
+                        >
                       </n-tabs>
                       <n-tabs
-                          v-model:value="packageTabValueSecond"
-                          animated
-                          type="line"
-                          @update:value="changePackageTabSecond"
+                        v-model:value="packageTabValueSecond"
+                        animated
+                        type="line"
+                        @update:value="changePackageTabSecond"
                       >
                         <n-tab name="everything"> everything</n-tab>
                         <n-tab name="EPOL"> EPOL</n-tab>
-                        <n-tab v-if="packageTabValueFirst!=='homonymousIsomerism'" name="source"> source</n-tab>
+                        <n-tab v-if="packageTabValueFirst !== 'homonymousIsomerism'" name="source">
+                          source</n-tab
+                        >
                         <n-tab
-                            v-if="currentPanelDetail.type === 'release' && currentRound.type === 'release'"
-                            name="update"
+                          v-if="
+                            currentPanelDetail.type === 'release' && currentRound.type === 'release'
+                          "
+                          name="update"
                         >
                           update
                         </n-tab>
                       </n-tabs>
-                      <div v-show="packageTabValueFirst !== 'homonymousIsomerism'" class="packageCard">
+                      <div
+                        v-show="packageTabValueFirst !== 'homonymousIsomerism'"
+                        class="packageCard"
+                      >
                         <div class="package-left">
                           <n-h3>
                             {{ oldPackage.size }}
@@ -576,7 +662,7 @@
                             <span>-{{ packageChangeSummary.delPackagesNum }}</span>
                           </p>
                           <n-icon color="green">
-                            <DoubleArrowFilled/>
+                            <DoubleArrowFilled />
                           </n-icon>
                         </div>
                         <div class="package-right">
@@ -587,12 +673,12 @@
                         </div>
                       </div>
                       <package-table
-                          :hasMultiVersionPackage="hasMultiVersionPackage"
-                          :packageTabValueFirst="packageTabValueFirst"
-                          :packageTabValueSecond="packageTabValueSecond"
-                          :qualityboard-id="dashboardId"
-                          :round-cur-id="currentId"
-                          :roundCompareeId="roundCompareeId"
+                        :hasMultiVersionPackage="hasMultiVersionPackage"
+                        :packageTabValueFirst="packageTabValueFirst"
+                        :packageTabValueSecond="packageTabValueSecond"
+                        :qualityboard-id="dashboardId"
+                        :round-cur-id="currentId"
+                        :roundCompareeId="roundCompareeId"
                       />
                     </n-tab-pane>
                   </n-tabs>
@@ -604,11 +690,11 @@
                       <n-form :model="newCompareForm">
                         <n-form-item label="版本" path="product">
                           <n-select
-                              v-model:value="newCompareForm.product"
-                              :loading="productLoading"
-                              :options="productOptions"
-                              filterable
-                              placeholder="请选择比对的基线版本"
+                            v-model:value="newCompareForm.product"
+                            :loading="productLoading"
+                            :options="productOptions"
+                            filterable
+                            placeholder="请选择比对的基线版本"
                           />
                         </n-form-item>
                         <n-radio-group v-model:value="newCompareForm.type">
@@ -619,10 +705,10 @@
                         </n-radio-group>
                         <n-form-item path="round">
                           <n-select
-                              v-model:value="newCompareForm.round"
-                              :loading="roundLoading"
-                              :options="roundOptions"
-                              filterable
+                            v-model:value="newCompareForm.round"
+                            :loading="roundLoading"
+                            :options="roundOptions"
+                            filterable
                           />
                         </n-form-item>
                       </n-form>
@@ -638,24 +724,30 @@
           <n-gi :span="2" style="margin-top: 10px">
             <div class="middledowload">
               <n-popselect
-                  v-model:value="roundId"
-                  :options="roundIdOptions"
-                  @update:value="selectRound"
+                v-model:value="roundId"
+                :options="roundIdOptions"
+                @update:value="selectRound"
               >
-                <n-button class="selectbutton " @click.stop>{{ roundId.name || '选择round' }}</n-button>
+                <n-button class="selectbutton" @click.stop>{{
+                  roundId.name || '选择round'
+                }}</n-button>
               </n-popselect>
 
-              <n-popselect
-                  v-model:value="branch"
-                  :options="branchOptions"
-              >
-                <n-button class="selectbutton marginbutton" @click.stop>{{ branch.name || '选择分支' }}</n-button>
+              <n-popselect v-model:value="branch" :options="branchOptions">
+                <n-button class="selectbutton marginbutton" @click.stop>{{
+                  branch.name || '选择分支'
+                }}</n-button>
               </n-popselect>
 
-              <n-button :loading="loadingRef" ghost type="primary" @click.stop="exportQualityHistoryFn">
+              <n-button
+                :loading="loadingRef"
+                ghost
+                type="primary"
+                @click.stop="exportQualityHistoryFn"
+              >
                 <template #icon>
                   <n-icon>
-                    <FileExport/>
+                    <FileExport />
                   </n-icon>
                 </template>
                 质量报告导出
@@ -671,29 +763,38 @@
             </n-tabs>
             <div>
               <keep-alive>
-                <test-progress v-if="activeTab === 'testProgress'" :defaultMilestoneId="defaultMilestoneId"/>
-                <quality-protect v-else-if="activeTab === 'qualityProtect'" :quality-board-id="dashboardId"/>
+                <test-progress
+                  v-if="activeTab === 'testProgress'"
+                  :defaultMilestoneId="defaultMilestoneId"
+                />
+                <quality-protect
+                  v-else-if="activeTab === 'qualityProtect'"
+                  :quality-board-id="dashboardId"
+                />
               </keep-alive>
             </div>
           </n-gi>
         </n-grid>
         <n-empty
-            v-else
-            description="未通过质量checklist，无法开启第一轮迭代测试"
-            size="huge"
-            style="justify-content: center; height: 100%"
+          v-else
+          description="未通过质量checklist，无法开启第一轮迭代测试"
+          size="huge"
+          style="justify-content: center; height: 100%"
         />
         <!-- issue 弹窗 -->
         <n-drawer
-            v-model:show="active"
-            :mask-closable="false"
-            :trap-focus="false"
-            height="100%"
-            placement="right"
-            width="95%"
+          v-model:show="active"
+          :mask-closable="false"
+          :trap-focus="false"
+          height="100%"
+          placement="right"
+          width="95%"
         >
           <n-drawer-content closable>
-            <MilestoneIssuesCard :cardType="MilestoneIssuesCardType" :milestone-id="resolvedMilestone.id"/>
+            <MilestoneIssuesCard
+              :cardType="MilestoneIssuesCardType"
+              :milestone-id="resolvedMilestone.id"
+            />
           </n-drawer-content>
         </n-drawer>
       </div>
@@ -703,10 +804,15 @@
 </template>
 
 <script>
-import {BuildCircleOutlined, CancelRound, CheckCircleFilled, DoubleArrowFilled,} from '@vicons/material';
-import {FileExport} from '@vicons/tabler';
+import {
+  BuildCircleOutlined,
+  CancelRound,
+  CheckCircleFilled,
+  DoubleArrowFilled,
+} from '@vicons/material';
+import { FileExport } from '@vicons/tabler';
 import modules from '@/views/dashboard/index';
-import {useRoute} from 'vue-router';
+import { useRoute } from 'vue-router';
 import {
   active,
   activeTab,
@@ -770,10 +876,10 @@ import {
   showList,
   showPackage,
   showRoundMilestoneBoard,
-    boxWidth,
-    MilestoneIssuesCardType,
-    defaultMilestoneId,
-    requestCard,
+  boxWidth,
+  MilestoneIssuesCardType,
+  defaultMilestoneId,
+  requestCard,
   changePackageTabFirst,
   changePackageTabSecond,
   checklistBoardTablePageChange,
@@ -799,13 +905,17 @@ import {
   handleRollback,
   haveDone,
   haveRecovery,
-  cleanPackageListData
+  cleanPackageListData,
 } from '@/views/home/modules/workspace';
-import {MdClose} from '@vicons/ionicons4';
-import {QuestionCircle16Filled} from '@vicons/fluent';
-import {featureOption, setFeatureOption} from '@/views/versionManagement/product/modules/featureProgress';
-import {getProductVersionOpts} from '@/assets/utils/getOpts';
-import {onMounted, onUnmounted, reactive, watch} from 'vue';
+import { MdClose } from '@vicons/ionicons4';
+import { QuestionCircle16Filled } from '@vicons/fluent';
+import {
+  featureOption,
+  setFeatureOption,
+  featureOptionRight,
+} from '@/views/versionManagement/product/modules/featureProgress';
+import { getProductVersionOpts } from '@/assets/utils/getOpts';
+import { onMounted, onUnmounted, reactive, watch } from 'vue';
 
 export default defineComponent({
   components: {
@@ -820,7 +930,7 @@ export default defineComponent({
   methods: {},
   setup() {
     const additionFeatureOption = reactive(JSON.parse(JSON.stringify(featureOption)));
-    const inheritFeatureOption = reactive(JSON.parse(JSON.stringify(featureOption)));
+    const inheritFeatureOption = reactive(JSON.parse(JSON.stringify(featureOptionRight)));
     const route = useRoute();
     if (route.params.workspace === 'default') {
       modules.initData();
@@ -828,14 +938,14 @@ export default defineComponent({
     const refreshTableData = () => {
       getVersionTableData({
         page_num: 1,
-        page_size: productVersionPagination.value.pageSize
+        page_size: productVersionPagination.value.pageSize,
       });
     };
     onMounted(() => {
-      if(route.params.workspace==='release'){
+      if (route.params.workspace === 'release') {
         getVersionTableData({
           page_num: productVersionPagination.value.page,
-          page_size: productVersionPagination.value.pageSize
+          page_size: productVersionPagination.value.pageSize,
         });
         getProductVersionOpts(productList);
         setFeatureOption(additionFeatureOption, '新增特性', additionFeatureSummary.value);
@@ -843,7 +953,7 @@ export default defineComponent({
       }
     });
     onUnmounted(() => {
-      if(route.params.workspace==='release'){
+      if (route.params.workspace === 'release') {
         cleanPackageListData();
         packageTabValueFirst.value = 'softwarescope';
         packageTabValueSecond.value = 'everything';
@@ -954,7 +1064,7 @@ export default defineComponent({
       getPackageChangeSummary,
       // ...productModules,
     };
-  }
+  },
 });
 </script>
 
