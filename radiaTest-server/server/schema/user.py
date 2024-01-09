@@ -14,7 +14,8 @@
 #####################################
 
 from pydantic import BaseModel
-from typing import Optional, Literal
+from typing_extensions import Literal
+from typing import Optional
 from server.schema.base import PageBaseSchema
 
 

@@ -13,7 +13,8 @@
 # @License : Mulan PSL v2
 #####################################
 
-from typing import Literal, Optional
+from typing_extensions import Literal
+from typing import Optional
 
 from pydantic import BaseModel, root_validator, validator
 from pydantic.networks import HttpUrl

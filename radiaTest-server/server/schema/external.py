@@ -14,7 +14,8 @@
 #####################################
 
 import os
-from typing import List, Optional, Literal
+from typing_extensions import Literal
+from typing import List, Optional
 from urllib import request, error
 
 from pydantic import BaseModel, Field, validator

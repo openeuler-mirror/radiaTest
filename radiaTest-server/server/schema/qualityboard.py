@@ -15,7 +15,8 @@
 
 import json
 import re
-from typing import List, Optional, Literal
+from typing_extensions import Literal
+from typing import List, Optional
 
 from pydantic import BaseModel, HttpUrl, validator, root_validator, constr
 

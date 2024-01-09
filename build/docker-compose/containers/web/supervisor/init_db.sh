@@ -1,9 +1,11 @@
 #! /bin/sh
 
-python3 manage.py db init
+export FLASK_APP=/opt/radiaTest/radiaTest-server/manage.py
 
-python3 manage.py db migrate
+flask db init
 
-python3 manage.py db upgrade
+flask db migrate
 
-python3 manage.py init_asr
+flask db upgrade
+
+flask init_asr

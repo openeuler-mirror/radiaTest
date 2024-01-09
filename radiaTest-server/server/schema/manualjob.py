@@ -13,7 +13,8 @@
 # @License : Mulan PSL v2
 #####################################
 
-from typing import Optional, Literal
+from typing_extensions import Literal
+from typing import Optional
 from pydantic import BaseModel
 from server.schema.base import PageBaseSchema, PermissionBase
 
