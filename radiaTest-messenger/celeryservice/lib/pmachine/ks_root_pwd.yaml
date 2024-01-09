@@ -1,3 +1,0 @@
-# 默认密码，必须配置，该密码即为物理机pxe安装完成后的系统默认root密码
-default_pwd: xxx
-# {os_name}_{os_version}: xxx
