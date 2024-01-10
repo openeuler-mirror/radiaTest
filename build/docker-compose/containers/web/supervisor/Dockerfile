@@ -34,7 +34,8 @@ RUN dnf install -y git \
     && dnf install -y cronie \
     && dnf install -y logrotate \
     && dnf install -y python3-pip \
-    && dnf install -y python3-devel
+    && dnf install -y python3-devel \
+    && dnf install -y shadow
 
 WORKDIR /opt/radiaTest/radiaTest-server/
 

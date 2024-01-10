@@ -29,7 +29,8 @@ RUN dnf install -y git \
     && dnf install -y nginx \
     && dnf install -y wget \
     && dnf install -y tar \
-    && dnf install -y xz
+    && dnf install -y xz \
+    && dnf install -y shadow
 
 WORKDIR /opt/radiaTest
 
