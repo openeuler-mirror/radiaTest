@@ -14,7 +14,7 @@ RUN dnf install -y python3-pip && \
 # 切换到radiaTest用户
 RUN useradd -ms /bin/bash radiaTest
 USER radiaTest
-
+ENV PATH="/home/radiaTest/.local/bin:${PATH}"
 RUN pip3 install celery==5.1.2 && \
     pip3 install flower==1.0.0
 
