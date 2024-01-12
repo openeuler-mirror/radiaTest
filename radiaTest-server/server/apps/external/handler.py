@@ -28,8 +28,7 @@ from flask import current_app, jsonify, request
 from celeryservice.tasks import read_openqa_tests_overview
 from server.model.product import Product
 from server.model.milestone import Milestone
-from server.model.testcase import Suite, CaseNode
-from server.model.job import AtJob
+from server.model.testcase import Suite, CaseNode, Baseline
 from server.utils.db import Insert, Precise
 from server.utils.resource_utils import ResourceManager
 from server.utils.response_util import ssl_cert_verify_error_collect, RET
@@ -47,6 +46,7 @@ class UpdateTaskForm:
         self.milestone_id = None
         self.title = None
         self.group = None
+        self.baseline_id = None
 
 
 class UpdateTaskHandler:
@@ -134,16 +134,25 @@ class UpdateTaskHandler:
             "type": "baseline",
             "milestone_id": milestone.id,
             "org_id": form.group.org_id,
-            "permission_type": "group"
+            "permission_type": "group",
+            "baseline_id": form.baseline_id
         }
         root_case_node = Precise(
             CaseNode, root_case_node_body).first()
         if not root_case_node:
             root_case_node = Insert(CaseNode, root_case_node_body).insert_obj()
+        existed_pkgs = []
+        for node in root_case_node.children.all():
+            if node.type == "suite":
+                existed_pkgs.append(node.title)
         for suite in form.body.get("pkgs"):
+            # 避免重复创建，需要对pkgs去重
+            if suite in existed_pkgs:
+                continue
             _suite = Suite.query.filter_by(name=suite).first()
             if not _suite:
                 _suite = Insert(Suite, {"name": suite}).insert_obj()
+
             case_node_body = {
                 "group_id": form.group.id,
                 "title": _suite.name,
@@ -151,13 +160,32 @@ class UpdateTaskHandler:
                 "suite_id": _suite.id,
                 "org_id": form.group.org_id,
                 "is_root": False,
-                "permission_type": "group"
+                "permission_type": "group",
+                "baseline_id": form.baseline_id
             }
             _ = Precise(Milestone, case_node_body).first()
             if not _:
                 _ = Insert(CaseNode, case_node_body).insert_obj()
                 root_case_node.children.append(_)
         root_case_node.add_update()
+
+    @staticmethod
+    def get_baseline_id(form: UpdateTaskForm):
+        baseline = Baseline.query.filter_by(milestone_id=form.milestone_id).first()
+        if not baseline:
+            body = {
+                "permission_type": "org",
+                "creator_id": form.group.creator_id,
+                "group_id": form.group.id,
+                "org_id": form.group.org_id,
+                "milestone_id": form.milestone_id
+            }
+            form.baseline_id = Insert(
+                Baseline,
+                body
+            ).insert_id()
+        else:
+            form.baseline_id = baseline.id
 
 
 class UpdateRepo:

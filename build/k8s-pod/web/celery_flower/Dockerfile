@@ -8,7 +8,8 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 WORKDIR /opt
 
 RUN dnf install -y python3-pip && \
-    dnf install -y python3-devel
+    dnf install -y python3-devel \
+    && dnf install -y shadow
 
 # 切换到radiaTest用户
 RUN useradd -ms /bin/bash radiaTest

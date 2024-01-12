@@ -131,7 +131,8 @@ class UpdateTaskEvent(Resource):
 
         # get milestone_id
         UpdateTaskHandler.get_milestone_id(form)
-
+        # 同步创建baseline
+        UpdateTaskHandler.get_baseline_id(form)
         # get cases
         UpdateTaskHandler.create_case_node(form)
 
