@@ -1,21 +1,12 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import Home from '@/views/home/Home';
 import Dashboard from '@/views/dashboard/Dashboard';
-import Pmachine from '@/views/pmachine/Pmachine';
-import Vmachine from '@/views/vmachine/Vmachine';
-import TestCenterManagement from '@/views/testCenter/TestCenterManagement.vue';
-import Job from '@/views/testCenter/job/Job';
-import Manual from '@/views/testCenter/manual/Manual';
-import Gui from '@/views/testCenter/Gui';
 import Testcase from '@/views/caseManage/testcase/Testcase';
-import Blank from '@/components/public/Blank';
 import Report from '@/views/taskManage/report/Report.vue';
 import Task from '@/views/taskManage/task/Task';
 import Require from '@/views/taskManage/require/Require.vue';
-import PersonalBoard from '@/views/taskManage/personalBoard/PersonalBoard';
 import StrategyCenter from '@/views/strategyCenter/StrategyCenter';
 import Distribution from '@/views/taskManage/distribution/Distribution.vue';
-import newLogin from '@/views/login/newLogin.vue';
 import PersonalCenter from '@/views/personalCenter/PersonalCenter.vue';
 import AccountManagement from '@/views/personalCenter/accountManagement/AccountManagement.vue';
 import AccountInfo from '@/views/personalCenter/accountInfo/AccountInfo.vue';
@@ -25,7 +16,6 @@ import authorityManagement from '@/views/personalCenter/authorityManagement/auth
 import CaseManagement from '@/views/caseManage/CaseManagement.vue';
 import folderView from '@/views/caseManage/folderView/folderView.vue';
 import testcaseNodes from '@/views/caseManage/folderView/testcaseNodes/testcaseNodes.vue';
-import frameWork from '@/views/caseManage/frameWork/frameWork.vue';
 import orgNode from '@/views/caseManage/folderView/orgNodes/orgNodes.vue';
 import termNode from '@/views/caseManage/folderView/termNodes/termNodes.vue';
 import casesetNode from '@/views/caseManage/folderView/casesetNodes/casesetNodes.vue';
@@ -37,19 +27,12 @@ import rolesManagement from '@/views/personalCenter/authorityManagement/rolesMan
 import usersManagement from '@/views/personalCenter/usersManagement/usersManagement.vue';
 import configManagement from '@/views/personalCenter/configManagement.vue';
 import securitySetting from '@/views/personalCenter/securitySetting.vue';
-import caseReview from '@/views/caseManage/caseReview/caseReview.vue';
-import caseReviewDetail from '@/views/caseManage/caseReviewDetail/caseReviewDetail.vue';
-import resourcePool from '@/views/resourcePool/resourcePool.vue';
 import versionManagement from '@/views/versionManagement/versionManagement.vue';
 import Product from '@/views/versionManagement/product/product.vue';
 import Milestone from '@/views/versionManagement/milestone/milestone.vue';
 import NotFound from '@/views/resultPage/NotFound.vue';
-import Workspaces from '@/views/home/Workspaces.vue';
-import Notice from '@/views/home/Notice.vue';
-import NoticeDetail from '@/views/home/NoticeDetail.vue';
-import Doc from '@/views/home/Doc.vue';
-import DocDetail from '@/views/home/DocDetail.vue';
 import AtDetail from '@/views/atDetail/index.vue';
+import PersonalBoard from '@/views/taskManage/personalBoard/PersonalBoard';
 
 const routerHistory = createWebHistory();
 const router = createRouter({
@@ -57,62 +40,31 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      redirect: '/login'
+      redirect: '/home'
     },
     {
       path: '/at-detail',
       component: AtDetail,
       name: 'atDetail',
       meta: {
-        title: 'AT报告'
+        title: 'EulerTest'
       }
     },
     {
       path: '/home/',
-      redirect: '/home/workspaces',
+      redirect: '/home/workdesk',
       component: Home,
       name: 'home',
       meta: {
-        title: 'raidaTest测试平台'
+        title: 'EulerTest'
       },
       children: [
         {
-          path: 'workspaces/',
-          component: Workspaces,
-          meta: {
-            title: 'raidaTest测试平台'
-          },
-        },
-        {
-          path: 'notice/',
-          component: Notice,
-          name: 'notice',
-          children: [
-            {
-              path: ':title',
-              component: NoticeDetail,
-              name: 'noticeDetail',
-            }
-          ]
-        },
-        {
-          path: 'doc/',
-          component: Doc,
-          name: 'doc',
-          children: [
-            {
-              path: ':title',
-              component: DocDetail,
-              name: 'docDetail'
-            }
-          ]
-        },
-        {
-          path: 'ws/:workspace/workbench',
+          path: 'workdesk',
           component: Dashboard,
           redirect: { name: 'dashboard' },
           meta: {
-            title: 'raidaTest测试平台'
+            title: 'EulerTest'
           },
           children: [
             {
@@ -144,43 +96,11 @@ const router = createRouter({
               path: 'design/',
               component: StrategyCenter,
               name: 'design'
-            },
-            {
-              path: 'testing/',
-              redirect: { name: 'automatic' },
-              component: TestCenterManagement,
-              name: 'testing',
-              children: [
-                {
-                  path: 'automatic/',
-                  component: Job,
-                  name: 'automatic',
-                  meta: {
-                    title: '自动化测试'
-                  }
-                },
-                {
-                  path: 'manual/',
-                  component: Manual,
-                  name: 'manual',
-                  meta: {
-                    title: '手工测试'
-                  }
-                },
-                {
-                  path: 'gui/',
-                  component: Gui,
-                  name: 'gui',
-                  meta: {
-                    title: 'GUI测试'
-                  }
-                }
-              ]
             }
           ]
         },
         {
-          path: 'ws/:workspace/version-management/',
+          path: 'product-version',
           redirect: { name: 'vmProduct' },
           component: versionManagement,
           children: [
@@ -189,7 +109,7 @@ const router = createRouter({
               component: Product,
               name: 'vmProduct',
               meta: {
-                title: '产品版本管理'
+                title: 'EulerTest'
               }
             },
             {
@@ -197,62 +117,19 @@ const router = createRouter({
               component: Milestone,
               name: 'vmMilestone',
               meta: {
-                title: '里程碑管理'
+                title: 'EulerTest'
               }
             }
           ]
         },
         {
-          path: 'ws/:workspace/resource-pool/',
-          redirect: { name: 'resourcePool' },
-          component: Blank,
-          children: [
-            {
-              path: 'management/',
-              component: resourcePool,
-              name: 'resourcePool',
-              children: [
-                {
-                  path: 'pmachine/:machineId',
-                  component: Pmachine,
-                  name: 'pmachine',
-                  meta: {
-                    title: '物理机资源池'
-                  }
-                },
-                {
-                  path: 'vmachine/:machineId',
-                  component: Vmachine,
-                  name: 'vmachine',
-                  meta: {
-                    title: '虚拟机资源池'
-                  }
-                }
-              ],
-              meta: {
-                title: '资源池管理'
-              }
-            }
-          ]
-        },
-        {
-          path: 'ws/:workspace/tcm/',
+          path: 'testcase',
           redirect: { name: 'folderview' },
           component: CaseManagement,
           meta: {
-            title: '用例管理'
+            title: 'EulerTest'
           },
           children: [
-            {
-              path: 'case-review/',
-              component: caseReview,
-              name: 'caseReview'
-            },
-            {
-              path: 'case-review-detail/:commitId',
-              component: caseReviewDetail,
-              name: 'caseReviewDetail'
-            },
             {
               path: 'testcase/',
               component: Testcase,
@@ -299,23 +176,10 @@ const router = createRouter({
                   name: 'testcaseNodes'
                 }
               ]
-            },
-            {
-              path: 'framework',
-              component: frameWork,
-              name: 'frameWork'
             }
           ]
         }
       ]
-    },
-    {
-      path: '/login/',
-      component: newLogin,
-      name: 'login',
-      meta: {
-        title: '登录'
-      }
     },
     {
       path: '/personal-center/',
@@ -331,7 +195,7 @@ const router = createRouter({
           component: AccountManagement,
           name: 'accountManagement',
           meta: {
-            title: '账号管理'
+            title: 'EulerTest'
           }
         },
         {
@@ -339,7 +203,7 @@ const router = createRouter({
           component: AccountInfo,
           name: 'accountInfo',
           meta: {
-            title: '基本信息'
+            title: 'EulerTest'
           }
         },
         {
@@ -347,7 +211,7 @@ const router = createRouter({
           component: OrgManagement,
           name: 'orgManagement',
           meta: {
-            title: '组织管理'
+            title: 'EulerTest'
           }
         },
         {
@@ -367,7 +231,7 @@ const router = createRouter({
             }
           ],
           meta: {
-            title: '权限管理'
+            title: 'EulerTest'
           }
         },
         {
@@ -375,7 +239,7 @@ const router = createRouter({
           component: usersManagement,
           name: 'usersManagement',
           meta: {
-            title: '成员管理'
+            title: 'EulerTest'
           }
         },
         {
@@ -383,7 +247,7 @@ const router = createRouter({
           component: configManagement,
           name: 'configManagement',
           meta: {
-            title: '配置管理'
+            title: 'EulerTest'
           }
         },
         {
@@ -391,7 +255,7 @@ const router = createRouter({
           component: securitySetting,
           name: 'securitySetting',
           meta: {
-            title: '安全设置'
+            title: 'EulerTest'
           }
         },
         {
@@ -399,7 +263,7 @@ const router = createRouter({
           component: News,
           name: 'news',
           meta: {
-            title: '消息中心'
+            title: 'EulerTest'
           }
         }
       ]

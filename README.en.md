@@ -5,9 +5,7 @@
 Test Management Platform
 
 - Version-level quality dashboards enable community version testing to be traceable and traceable
-- Diversified resource pools, barrier-free docking of various resource management systems and networks
 - Unified management of text use cases provides a foundation for the development and review of community text use cases
-- Diversified test engines to meet the needs of differentiated testing capabilities in the community and can be flexibly selected
 - Task management and management capabilities to realize the whole process of testing activities
 
 #### Introduction to the Architecture
@@ -15,41 +13,16 @@ Test Management Platform
 radiaTest-web & radiaTest-server: Frontend and backend of the web service
 - If you need to deploy the test management platform web service locally, you need to deploy it (it is recommended to use the public service provided by the radiatest.openeuler.org)
 
-radiaTest-messenger: Request forwarding and processing service for connecting with the machine group
-- A bastion/springboard node for a machine group that communicates with radiaTest-server as a single point
-- Deployed on intranet/extranet jump servers, or deployed on intranet machines after NAT mapping
-- After registering the corresponding machine group with the web service, the individual/team/organization manager can deploy the corresponding machine as needed
-
-radiaTest-worker: dynamic resource (VM resource) management service
-- It is deployed on a physical host to accept requests related to dynamic resources and complete the management of actual VM resources 
-- Can be deployed on the intranet of the machine group and only communicates with messenger nodes (recommended)
-- If it is deployed on a public network machine, you must ensure that it belongs to a public network machine group and can communicate with the messenger node of the corresponding machine group
-
 #### Installation tutorial
-
-radiaTest-worker must be deployed in the server physical environment (only the host physical machine needs to be deployed)
-
 一、Containerized deployment based on bare metal/virtual machine nodes
 1. Installing web service front-end and back-end (radiaTest-web & radiaTest-server)
    1. Install docker and the docker-compose package on the host to be deployed
    2. Execute build/docker -compose/radiatestctl -u web to start the service
    3. Deploy the service according to the interactive guidance, and fill in the certificate inform      ation in the process (the NSL certificate is required for the NGINX service on the web serve      r and messenger side) 4) Modify the /etc/radiaTest/server .ini configuration file
    4. Execute build/docker-compose/radiatestctl -d web to shut down the service
- 
-2. Installing messenger server (radiatest messenger)
-   1. Install docker and the docker-compose package on the host to be deployed
-   2. Execute build/docker-compose/radiatestctl -u messenger to start the service
-   3. Deploy the service according to the interactive instructions, generate a CSR file and reques      t a signing certificate from the server
-   4. Modify the/etc/radiatest/messenger. ini configuration file
-   5. Execute build/docker-compose/radiatest -d messenger to shut down the service
-
-3. Installing worker server (radiaTest-worker)
-   1. Run the build/docker-compose/radiatest -u worker command to start the service (the worker's       flask application will directly occupy the host port)
-   2. Modify the /etc/radiaTest/worker.ini configuration file
-   3. Execute build/docker-compose/radiatest -d worker to shut down the service
 
 二、Based on k8s, the deployment node is k8s pod (Currently only covering radiaTest-web & radiaTest-server)
-1. Build docker images through the Dockerfiles of build/k8s-pod/web/nginx & build/k8s-pod/web/gunicorn and other celery-workers
+1. Build docker images through the Dockerfiles of build/k8s-pod/web/nginx & build/k8s-pod/web/gunicorn
 2. Prepare Redis, RabbitMQ, and databases, which require manual preparation of middleware and database services
 3. Apply the required complete configuration files to the corresponding containers by mounting the directory volume, such as nginx, flask-app, gunicorn, etc
 4. Run the container and check the logs and running status
@@ -68,13 +41,6 @@ If you need to change the service port or the port mapping of docker, please mod
    2. Modify the /etc/radiaTest/server.ini configuration file
    3. Execute the supervisorCTL interactive management service
    4. The nginx configuration file is located in the host /etc/nginx/nginx.conf, and the default H      TTP listener is 8080 and https listener 443
-
-2. Using messenger services (radiaTest-messenger)
-   1. docker exec -ti messenger_supervisor_1 bash    
-   2. Modify the /etc/radiaTest/messenger.ini configuration file
-   3. Execute the supervisorCTL interactive management service 
-
-3. Using worker services (radiaTest-worker)
 
 #### Get involved
 

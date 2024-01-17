@@ -1,7 +1,0 @@
-#! /bin/sh
-
-cd "${OET_PATH}"/containers/worker \
-    && docker-compose up -d || exit 1
-
-cd "${OET_PATH}"/scripts/worker \
-    && bash setup.sh || exit 1

@@ -1,6 +1,0 @@
-#! /bin/sh
-
-cd "${OET_PATH}"/containers/worker \
-    && docker-compose down || exit 1
-
-supervisorctl -u radiaTest -p 1234 shutdown || exit 1
