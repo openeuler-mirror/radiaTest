@@ -41,6 +41,7 @@ class MilestoneBaseSchema(BaseModel):
 
 class MilestoneQuerySchema(MilestoneBaseSchema, PageBaseSchema):
     round_id: Optional[int]
+    org_id: Optional[int]
     page_num: int = 1
     page_size: int = 10
     create_time_order: Optional[SortOrder] = None
@@ -205,6 +206,7 @@ class MilestoneCreateSchema(MilestoneBaseSchema, PermissionBase):
 
 class QueryMilestoneByTimeSchema(BaseModel):
     milestone_time: str
+    org_id: int = None
 
     @validator('milestone_time')
     def validate(cls, v):

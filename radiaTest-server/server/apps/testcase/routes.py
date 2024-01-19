@@ -23,6 +23,7 @@ from flask_pydantic import validate
 from sqlalchemy import or_
 
 from server import redis_client, casbin_enforcer, swagger_adapt
+from server.schema.base import QueryBaseModel
 from server.utils.redis_util import RedisKey
 from server.utils.auth_util import auth
 from server.utils.response_util import RET, response_collect, workspace_error_collect
@@ -33,7 +34,6 @@ from server.model.celerytask import CeleryTask
 from server.model.testcase import Suite, Case, CaseNode, SuiteDocument, Baseline
 from server.model.milestone import Milestone
 from server.utils.db import Insert, Edit, Delete, collect_sql_error
-from server.schema.base import PageBaseSchema
 from server.schema.celerytask import CeleryTaskUserInfoSchema
 from server.schema.testcase import (
     CaseNodeBodySchema,
@@ -48,12 +48,6 @@ from server.schema.testcase import (
     CaseCreateBody,
     CaseNodeCommitCreate,
     AddCaseCommitSchema,
-    UpdateCaseCommitSchema,
-    CommitQuerySchema,
-    AddCommitCommentSchema,
-    UpdateCommitCommentSchema,
-    CaseCommitBatch,
-    QueryHistorySchema,
     SuiteDocumentBodySchema,
     SuiteDocumentUpdateSchema,
     SuiteDocumentQuerySchema,
@@ -78,7 +72,6 @@ from server.apps.testcase.handler import (
     OrphanSuitesHandler,
     TemplateCasesHandler,
     HandlerCaseReview,
-    HandlerCommitComment,
     ResourceItemHandler,
     SuiteDocumentHandler,
     CaseSetHandler,
@@ -111,7 +104,7 @@ class CaseNodeEvent(Resource):
     def post(self, body: CaseNodeBodySchema):
         return CaseNodeHandler.create(body)
 
-    @auth.login_required()
+    @auth.login_check
     @response_collect
     @workspace_error_collect
     @validate()
@@ -146,7 +139,7 @@ class QueryCaseSetNodeEvent(Resource):
 
 
 class CaseNodeItemEvent(Resource):
-    @auth.login_required()
+    @auth.login_check
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
@@ -291,7 +284,7 @@ class SuiteEvent(Resource):
         _ = Insert(Suite, suite_body).insert_id(Suite, "/suite")
         return jsonify(error_code=RET.OK, error_msg="OK")
 
-    @auth.login_required()
+    @auth.login_check
     @response_collect
     @workspace_error_collect
     @validate()
@@ -305,7 +298,7 @@ class SuiteEvent(Resource):
         "query_schema_model": SuiteQuery
     })
     def get(self, workspace: str, query: SuiteQuery):
-        filter_params = GetAllByPermission(Suite, workspace).get_filter()
+        filter_params = GetAllByPermission(Suite, workspace, org_id=query.org_id).get_filter()
 
         if query.name is not None:
             filter_params.append(Suite.name.like(f'%{query.name}%'))
@@ -420,7 +413,6 @@ class CaseNodeSuitesEvent(Resource):
 
 
 class SuiteItemEvent(Resource):
-    @auth.login_required
     @response_collect
     @swagger_adapt.api_schema_model_map({
         "__module__": get_testcase_tag.__module__,   # 获取当前接口所在模块
@@ -664,7 +656,7 @@ class CaseEvent(Resource):
         return_data["case_node_id"] = _resp.get("data")
         return jsonify(error_code=RET.OK, error_msg="OK", data=return_data)
 
-    @auth.login_required()
+    @auth.login_check
     @response_collect
     @workspace_error_collect
     @validate()
@@ -678,7 +670,7 @@ class CaseEvent(Resource):
         "query_schema_model": CaseQuery
     })
     def get(self, workspace: str, query: CaseQuery):
-        filter_params = GetAllByPermission(Case, workspace).get_filter()
+        filter_params = GetAllByPermission(Case, workspace, org_id=query.org_id).get_filter()
 
         if query.name is not None:
             filter_params.append(Case.name.like(f'%{query.name}%'))
@@ -788,7 +780,6 @@ class CaseItemEvent(Resource):
         Delete(CaseNode, {"id": case_node.id}).single(CaseNode, "/case_node")
         return Delete(Case, {"id": case_id}).single(Case, "/case")
 
-    @auth.login_required()
     @response_collect
     @swagger_adapt.api_schema_model_map({
         "__module__": get_testcase_tag.__module__,   # 获取当前接口所在模块
@@ -830,9 +821,10 @@ class TemplateCasesQuery(Resource):
 
 
 class CaseRecycleBin(Resource):
-    @auth.login_required()
+    @auth.login_check
     @response_collect
     @workspace_error_collect
+    @validate()
     @swagger_adapt.api_schema_model_map({
         "__module__": get_testcase_tag.__module__,   # 获取当前接口所在模块
         "resource_name": "CaseRecycleBin",  # 当前接口视图函数名
@@ -840,9 +832,11 @@ class CaseRecycleBin(Resource):
         "tag": get_testcase_tag(),  # 当前接口所对应的标签
         "summary": "用例回收站数据",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "query_schema_model": QueryBaseModel
+
     })
-    def get(self, workspace: str):
-        return GetAllByPermission(Case, workspace).precise({"deleted": 1})
+    def get(self, workspace: str, query: QueryBaseModel):
+        return GetAllByPermission(Case, workspace, org_id=query.org_id).precise({"deleted": 1})
 
 
 class SuiteRecycleBin(Resource):
@@ -977,186 +971,16 @@ class CaseCommit(Resource):
         "resource_name": "CaseCommit",  # 当前接口视图函数名
         "func_name": "post",   # 当前接口所对应的函数名
         "tag": get_testcase_tag(),  # 当前接口所对应的标签
-        "summary": "发起用例评审",  # 当前接口概述
+        "summary": "用例修改提交",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
         "request_schema_model": AddCaseCommitSchema
     })
     def post(self, body: AddCaseCommitSchema):
         """
-        发起用例评审
+        用例修改提交
         :return:
         """
         return HandlerCaseReview.create(body)
-
-    @auth.login_required()
-    @response_collect
-    @validate()
-    @casbin_enforcer.enforcer
-    @swagger_adapt.api_schema_model_map({
-        "__module__": get_testcase_tag.__module__,   # 获取当前接口所在模块
-        "resource_name": "CaseCommit",  # 当前接口视图函数名
-        "func_name": "put",   # 当前接口所对应的函数名
-        "tag": get_testcase_tag(),  # 当前接口所对应的标签
-        "summary": "修改用例评审信息",  # 当前接口概述
-        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
-        "request_schema_model": UpdateCaseCommitSchema
-    })
-    def put(self, commit_id, body: UpdateCaseCommitSchema):
-        return HandlerCaseReview.update(commit_id, body)
-
-    @auth.login_required()
-    @response_collect
-    @swagger_adapt.api_schema_model_map({
-        "__module__": get_testcase_tag.__module__,   # 获取当前接口所在模块
-        "resource_name": "CaseCommit",  # 当前接口视图函数名
-        "func_name": "get",   # 当前接口所对应的函数名
-        "tag": get_testcase_tag(),  # 当前接口所对应的标签
-        "summary": "获取用例评审信息",  # 当前接口概述
-        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
-    })
-    def get(self, commit_id):
-        return HandlerCaseReview.handler_case_detail(commit_id)
-
-    @auth.login_required()
-    @response_collect
-    @casbin_enforcer.enforcer
-    @swagger_adapt.api_schema_model_map({
-        "__module__": get_testcase_tag.__module__,   # 获取当前接口所在模块
-        "resource_name": "CaseCommit",  # 当前接口视图函数名
-        "func_name": "delete",   # 当前接口所对应的函数名
-        "tag": get_testcase_tag(),  # 当前接口所对应的标签
-        "summary": "删除用例评审",  # 当前接口概述
-        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
-    })
-    def delete(self, commit_id):
-        return HandlerCaseReview.delete(commit_id)
-
-
-class CommitHistory(Resource):
-    @auth.login_required()
-    @response_collect
-    @validate()
-    @swagger_adapt.api_schema_model_map({
-        "__module__": get_testcase_tag.__module__,   # 获取当前接口所在模块
-        "resource_name": "CommitHistory",  # 当前接口视图函数名
-        "func_name": "get",   # 当前接口所对应的函数名
-        "tag": get_testcase_tag(),  # 当前接口所对应的标签
-        "summary": "用例评审记录",  # 当前接口概述
-        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
-        "query_schema_model": QueryHistorySchema
-    })
-    def get(self, case_id, query: QueryHistorySchema):
-        return HandlerCaseReview.handler_get_history(case_id, query)
-
-
-class CaseCommitInfo(Resource):
-    @auth.login_required()
-    @response_collect
-    @validate()
-    @swagger_adapt.api_schema_model_map({
-        "__module__": get_testcase_tag.__module__,   # 获取当前接口所在模块
-        "resource_name": "CaseCommitInfo",  # 当前接口视图函数名
-        "func_name": "get",   # 当前接口所对应的函数名
-        "tag": get_testcase_tag(),  # 当前接口所对应的标签
-        "summary": "分页获取用例评审",  # 当前接口概述
-        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
-        "query_schema_model": CommitQuerySchema
-    })
-    def get(self, query: CommitQuerySchema):
-        return HandlerCaseReview.handler_get_all(query)
-
-
-class CaseCommitComment(Resource):
-    @auth.login_required()
-    @response_collect
-    @validate()
-    @swagger_adapt.api_schema_model_map({
-        "__module__": get_testcase_tag.__module__,   # 获取当前接口所在模块
-        "resource_name": "CaseCommitComment",  # 当前接口视图函数名
-        "func_name": "post",   # 当前接口所对应的函数名
-        "tag": get_testcase_tag(),  # 当前接口所对应的标签
-        "summary": "用例评审评论",  # 当前接口概述
-        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
-        "request_schema_model": AddCommitCommentSchema
-    })
-    def post(self, commit_id, body: AddCommitCommentSchema):
-        return HandlerCommitComment.add(commit_id, body)
-
-    @auth.login_required()
-    @response_collect
-    @swagger_adapt.api_schema_model_map({
-        "__module__": get_testcase_tag.__module__,   # 获取当前接口所在模块
-        "resource_name": "CaseCommitComment",  # 当前接口视图函数名
-        "func_name": "get",   # 当前接口所对应的函数名
-        "tag": get_testcase_tag(),  # 当前接口所对应的标签
-        "summary": "用例评审评论信息",  # 当前接口概述
-        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
-    })
-    def get(self, commit_id):
-        return HandlerCommitComment.get(commit_id)
-
-    @auth.login_required()
-    @response_collect
-    @swagger_adapt.api_schema_model_map({
-        "__module__": get_testcase_tag.__module__,   # 获取当前接口所在模块
-        "resource_name": "CaseCommitComment",  # 当前接口视图函数名
-        "func_name": "delete",   # 当前接口所对应的函数名
-        "tag": get_testcase_tag(),  # 当前接口所对应的标签
-        "summary": "删除用例评审评论",  # 当前接口概述
-        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
-    })
-    def delete(self, comment_id):
-        return HandlerCommitComment.delete(comment_id)
-
-    @auth.login_required()
-    @response_collect
-    @validate()
-    @swagger_adapt.api_schema_model_map({
-        "__module__": get_testcase_tag.__module__,   # 获取当前接口所在模块
-        "resource_name": "CaseCommitComment",  # 当前接口视图函数名
-        "func_name": "put",   # 当前接口所对应的函数名
-        "tag": get_testcase_tag(),  # 当前接口所对应的标签
-        "summary": "修改用例评审评论",  # 当前接口概述
-        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
-        "request_schema_model": UpdateCommitCommentSchema
-    })
-    def put(self, comment_id, body: UpdateCommitCommentSchema):
-        return HandlerCommitComment.update(comment_id, body)
-
-
-class CommitStatus(Resource):
-    @auth.login_required()
-    @response_collect
-    @validate()
-    @swagger_adapt.api_schema_model_map({
-        "__module__": get_testcase_tag.__module__,   # 获取当前接口所在模块
-        "resource_name": "CommitStatus",  # 当前接口视图函数名
-        "func_name": "get",   # 当前接口所对应的函数名
-        "tag": get_testcase_tag(),  # 当前接口所对应的标签
-        "summary": "分页获取待提交用例评审",  # 当前接口概述
-        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
-        "query_schema_model": PageBaseSchema
-    })
-    def get(self, query: PageBaseSchema):
-        return HandlerCommitComment.get_pending_status(query)
-
-    @auth.login_required()
-    @response_collect
-    @validate()
-    @swagger_adapt.api_schema_model_map({
-        "__module__": get_testcase_tag.__module__,   # 获取当前接口所在模块
-        "resource_name": "CommitStatus",  # 当前接口视图函数名
-        "func_name": "put",   # 当前接口所对应的函数名
-        "tag": get_testcase_tag(),  # 当前接口所对应的标签
-        "summary": "用例评审批量提交",  # 当前接口概述
-        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
-        "request_schema_model": CaseCommitBatch
-    })
-    def put(self, body: CaseCommitBatch):
-        """
-        用例评审批量提交
-        """
-        return HandlerCaseReview.update_batch(body)
 
 
 class CaseNodeTask(Resource):
@@ -1232,7 +1056,6 @@ class GroupNodeItem(Resource):
 
 
 class OrgNodeItem(Resource):
-    @auth.login_required()
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
@@ -1612,7 +1435,6 @@ class CaseSetItemEvent(Resource):
         url="/api/v1/case-node/<int:case_node_id>/resource", 
         methods=["GET"]
     """
-    @auth.login_required()
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({

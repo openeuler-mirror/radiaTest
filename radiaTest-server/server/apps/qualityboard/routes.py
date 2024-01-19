@@ -154,7 +154,6 @@ class QualityBoardEvent(Resource):
             data=qualityboard.to_json()
         )
 
-    @auth.login_required()
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
@@ -771,7 +770,6 @@ class ChecklistResultEvent(Resource):
 
 
 class ATOverview(Resource):
-    @auth.login_required()
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
@@ -788,7 +786,6 @@ class ATOverview(Resource):
 
 
 class QualityDefendEvent(Resource):
-    @auth.login_required()
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
@@ -932,7 +929,6 @@ class QualityDefendEvent(Resource):
 
 
 class DailyBuildOverview(Resource):
-    @auth.login_required()
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
@@ -999,7 +995,6 @@ class DailyBuildDetail(Resource):
 
 
 class RpmCheckOverview(Resource):
-    @auth.login_required()
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
@@ -1138,7 +1133,6 @@ class RpmCheckDetailEvent(Resource):
 
 
 class WeeklybuildHealthOverview(Resource):
-    @auth.login_required()
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
@@ -1233,7 +1227,6 @@ class WeeklybuildHealthEvent(Resource):
 
 
 class FeatureEvent(Resource):
-    @auth.login_required
     @response_collect
     @collect_sql_error
     @validate()
@@ -1307,7 +1300,6 @@ class FeatureEvent(Resource):
 
 
 class FeatureSummary(Resource):
-    @auth.login_required
     @response_collect
     @swagger_adapt.api_schema_model_map({
         "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
@@ -1358,7 +1350,6 @@ class FeatureSummary(Resource):
 
 
 class PackageListEvent(Resource):
-    @auth.login_required
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
@@ -1517,7 +1508,6 @@ class SamePackageListCompareEvent(Resource):
             error_msg="OK"
         )
 
-    @auth.login_required
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
@@ -1734,7 +1724,6 @@ class PackageListCompareEvent(Resource):
             error_msg="OK",
         )
 
-    @auth.login_required
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
@@ -2045,7 +2034,6 @@ class DailyBuildPkgEvent(Resource):
             error_msg="OK",
         )
 
-    @auth.login_required
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
@@ -2362,7 +2350,6 @@ class QualityResult(Resource):
 
 
 class RoundEvent(Resource):
-    @auth.login_required
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
@@ -2505,7 +2492,6 @@ class RoundIssueRateEvent(Resource):
 
 
 class RoundIssueEvent(Resource):
-    @auth.login_required
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
@@ -2535,7 +2521,7 @@ class RoundIssueEvent(Resource):
                 "milestone_id": m_ids,
             }
         )
-        return GiteeV8BaseIssueHandler().get_all(_body)
+        return GiteeV8BaseIssueHandler(org_id=query.org_id).get_all(_body)
 
 
 class RoundRepeatRpmEvent(Resource):
@@ -2613,7 +2599,6 @@ class ATReportEvent(Resource):
 
 
 class BranchEvent(Resource):
-    @auth.login_required
     @response_collect
     @swagger_adapt.api_schema_model_map({
         "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
@@ -2637,7 +2622,15 @@ class BranchEvent(Resource):
                 "style": "form",
                 "explode": True,
                 "description": "分支名称",
-                "schema": {"type": "string"}}],
+                "schema": {"type": "string"}},
+            {
+                "name": "org_id",
+                "in": "query",
+                "required": False,
+                "style": "form",
+                "explode": True,
+                "description": "org id",
+                "schema": {"type": "integer"}}]
     })
     def get(self, product_id):
         return ReportHandler(product_id, request.args).get_branch_list()

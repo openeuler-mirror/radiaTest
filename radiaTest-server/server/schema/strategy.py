@@ -119,6 +119,7 @@ class StrategyCaseNodeBodySchema(StrategyBodySchema, SuiteCreate):
 
 class StrategyQuerySchema(PageBaseSchema):
     type: Optional[str] = None
+    org_id: Optional[int] = None
 
 
 class StrategyPermissionBaseSchema(BaseModel):

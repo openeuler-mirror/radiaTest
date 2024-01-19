@@ -37,17 +37,13 @@ from server.utils.shell import add_escape
 from server import db
 from celeryservice import celeryconfig
 from celeryservice.lib.repo.handler import RepoTaskHandler
-from celeryservice.lib.monitor import LifecycleMonitor
 from celeryservice.lib.issuerate import UpdateIssueRate, UpdateIssueTypeState
 from celeryservice.lib.testcase import TestcaseHandler
 from celeryservice.lib.dailybuild import DailyBuildHandler
-from celeryservice.lib.message import VmachineReleaseNotice
 from celeryservice.lib.rpmcheck import RpmCheckHandler
 from celeryservice.lib.casenode import CaseNodeCreator
-from celeryservice.lib.template import TemplateCaseHandler
 from celeryservice.lib.task import TaskdistributeHandler, VersionTaskProgressHandler, AllVersionTaskProgressHandler
 from celeryservice.lib.baseline_template import ResolveBaseNodeHandler
-from celeryservice.lib.manualjob import ManualJobAsyncHandler
 
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -74,11 +70,6 @@ def setup_periodic_tasks(sender, **kwargs):
         10.0, async_update_celerytask_status.s(), name="update_celerytask_status"
     )
     sender.add_periodic_task(
-        crontab(minute="*/30"),
-        async_check_vmachine_lifecycle.s(),
-        name="check_vmachine_lifecycle",
-    )
-    sender.add_periodic_task(
         crontab(minute=0, hour=0), async_update_all_issue_rate.s(), name="update_all_issue_rate"
     )
     sender.add_periodic_task(
@@ -87,16 +78,7 @@ def setup_periodic_tasks(sender, **kwargs):
     sender.add_periodic_task(
         crontab(minute="*/60"), async_read_openqa_homepage.s(), name="read_openqa"
     )
-    sender.add_periodic_task(
-        crontab(minute="*/50"),
-        async_send_vmachine_release_message.s(),
-        name="send_vmachine_release_message",
-    )
-    sender.add_periodic_task(
-        crontab(minute="*/5"),
-        async_check_pmachine_lifecycle.s(),
-        name="check_pmachine_lifecycle",
-    )
+
     sender.add_periodic_task(
         crontab(minute="*/60"),
         async_update_all_task_progress.s(),
@@ -217,11 +199,6 @@ def update_task_progress(self, task_id):
 
 
 @celery.task
-def async_check_vmachine_lifecycle():
-    LifecycleMonitor(logger).check_vmachine_lifecycle()
-
-
-@celery.task
 def async_update_all_issue_rate(product_id=None):
     UpdateIssueRate.statistics(product_id)
 
@@ -281,20 +258,6 @@ def resolve_testcase_set(self, zip_filepath, unzip_filepath, user):
         zip_filepath,
         unzip_filepath,
     )
-
-
-@celery.task(bind=True)
-def resolve_template_testcase(self, filetype, filepath, body):
-    TemplateCaseHandler(logger, self).import_cases_to_template(
-        filetype=filetype,
-        filepath=filepath,
-        body=body,
-    )
-
-
-@celery.task(bind=True)
-def resolve_create_manualjob(self, body):
-    return ManualJobAsyncHandler(logger, self).create(body=body)
 
 
 @celery.task
@@ -489,16 +452,6 @@ def resolve_pkglist_from_url(repo_name, repo_url, store_path):
     lock_key = f"resolving_{repo_name}_pkglist"
     redis_client.delete(lock_key)
     logger.info(f"the lock of crawling has been removed")
-
-
-@celery.task
-def async_send_vmachine_release_message():
-    VmachineReleaseNotice(logger).main()
-
-
-@celery.task
-def async_check_pmachine_lifecycle():
-    LifecycleMonitor(logger).check_pmachine_lifecycle()
 
 
 @celery.task(bind=True)

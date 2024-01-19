@@ -19,7 +19,6 @@ import json
 from datetime import datetime
 import pytz
 import pandas as pd
-from server import db
 from server.model.task import (
     TaskDistributeTemplate,
     Task,

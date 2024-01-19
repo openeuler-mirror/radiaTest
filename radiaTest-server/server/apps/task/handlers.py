@@ -23,13 +23,12 @@ import pytz
 from celery import current_app
 
 from flask import jsonify, g, request, Response
-from sqlalchemy import or_, and_
+from sqlalchemy import or_
 
 from server import db, redis_client
 from server.model.task import TaskStatus, Task, TaskParticipant, TaskComment
 from server.model.task import TaskTag, TaskReportContent, TaskMilestone, TaskManualCase
 from server.model.group import ReUserGroup, GroupRole, Group
-from server.model.job import Job, Analyzed
 from server.model.user import User
 from server.model.organization import Organization
 from server.model.milestone import Milestone
@@ -61,17 +60,16 @@ from server.schema.task import (
     TaskJobResultSchema,
     QueryTaskStatisticsSchema,
     OutAddTaskSchema,
-    QueryTaskByTimeSchema,
+    QueryTaskByTimeSchema, RecycleBinSchema,
 )
 from server.schema import Frame
 from server.schema.issue import GiteeIssueQueryV8
 from server.schema.user import UserBaseSchema
 from server.schema.group import GroupInfoSchema
-from server.utils.db import collect_sql_error, Insert, Delete
+from server.utils.db import collect_sql_error, Insert
 from server.utils.redis_util import RedisKey
 from server.utils.response_util import RET
 from server.utils.page_util import PageUtil
-from server.utils.read_from_yaml import get_api
 from server.utils.permission_utils import PermissionManager, GetAllByPermission
 from server.apps.issue.handler import GiteeV8BaseIssueHandler
 from .services import (
@@ -314,7 +312,7 @@ class HandlerTask(object):
     def get_all(query, workspace=None):
         """获取任务列表"""
         join_params = []
-        filter_params = GetAllByPermission(Task, workspace).get_filter()
+        filter_params = GetAllByPermission(Task, workspace, org_id=query.org_id).get_filter()
         for key, value in query.dict().items():
             if not value and key != "is_delete":
                 continue
@@ -371,10 +369,14 @@ class HandlerTask(object):
     @collect_sql_error
     def get_all_gantt_tasks(query: QueryTaskByTimeSchema):
         """获取任务列表"""
-        current_org_id = redis_client.hget(
-            RedisKey.user(g.user_id), 
-            "current_org_id"
-        )
+        if hasattr(g, "user_id"):
+            current_org_id = redis_client.hget(
+                RedisKey.user(g.user_id),
+                "current_org_id"
+            )
+        else:
+            current_org_id = query.org_id
+
         return_data = list()
         if query.type in ["organization", "version", "all"]:
             filter_param = [
@@ -403,7 +405,7 @@ class HandlerTask(object):
                     }
                 )
 
-        if query.type in ["group", "all"]:
+        if hasattr(g, "user_id") and query.type in ["group", "all"]:
             filter_params = [
                 ReUserGroup.is_delete.is_(False),
                 ReUserGroup.user_add_group_flag.is_(True),
@@ -845,14 +847,18 @@ class HandlerTask(object):
 
     @staticmethod
     @collect_sql_error
-    def get_recycle_bin(query: PageBaseSchema):
+    def get_recycle_bin(query: RecycleBinSchema):
         """
         获取回收站中的任务列表
         @return:
         """
+        if hasattr(g, "user_id"):
+            org_id = redis_client.hget(RedisKey.user(g.user_id), "current_org_id")
+        else:
+            org_id = query.org_id
         query_filter = Task.query.filter_by(
             is_delete=True,
-            org_id=redis_client.hget(RedisKey.user(g.user_id), "current_org_id"),
+            org_id=org_id,
         ).order_by(Task.update_time.desc(), Task.id.asc())
 
         def page_func(item: Task):
@@ -1192,12 +1198,15 @@ class HandlerTaskFamily(object):
         @param query:
         @return:
         """
-        permission_filter = GetAllByPermission(Task).get_filter()
+        permission_filter = GetAllByPermission(Task, org_id=query.org_id).get_filter()
         if not task_id:
+            if hasattr(g, "user_id"):
+                org_id = redis_client.hget(RedisKey.user(g.user_id), "current_org_id")
+            else:
+                org_id = query.org_id
             _filter = [
                 Task.is_delete.is_(False),
-                Task.org_id
-                == redis_client.hget(RedisKey.user(g.user_id), "current_org_id"),
+                Task.org_id == org_id,
             ]
             _filter.extend(permission_filter)
             tasks = Task.query.filter(*_filter).all()
@@ -1475,18 +1484,9 @@ class HandlerTaskCase(object):
                 milestone = Milestone.query.get(milestone.id)
                 if not milestone:
                     continue
-                job = Job.query.get(milestone.job_id)
-                if not job:
-                    continue
-                job_data = job.to_json()
-                job_data["milestone"] = milestone.to_json()
+                job_data = {"milestone": milestone.to_json()}
                 cases = []
                 for case in milestone.cases:
-                    case_data = case.to_json()
-                    analysis = Analyzed.query.filter(
-                        Analyzed.case_id == case.id, Analyzed.job_id == job.id
-                    ).all()
-                    case_data["analysis"] = [item.to_json() for item in analysis]
                     cases.append(case)
                 job_data["cases"] = cases
                 job_list.append(job_data)

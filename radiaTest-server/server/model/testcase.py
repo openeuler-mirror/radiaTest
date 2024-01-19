@@ -15,16 +15,9 @@
 # 用例管理(Testcase)的model
 
 from sqlalchemy.dialects.mysql import LONGTEXT
-from sqlalchemy.orm import backref
-from flask import g
 
 from server import db
 from server.model.base import BaseModel, PermissionBaseModel
-from server.model.user import User
-from server.model.framework import Framework, GitRepo
-from server.model.group import Group
-from server.model.organization import Organization
-from server.model.baselinetemplate import BaselineTemplate
 
 case_node_family = db.Table(
     'case_node_family',
@@ -83,16 +76,6 @@ class CaseNode(BaseModel, PermissionBaseModel, db.Model):
             "is_root": self.is_root,
         }
         if self.type == 'case' and self.case_id:
-            _commit = Commit.query.filter_by(
-                case_detail_id=self.case_id,
-                creator_id = g.user_id,
-                ).order_by(
-                    Commit.create_time.desc(), Commit.id.asc()
-            ).first()
-            if _commit:
-                return_data['case_status'] = _commit.status
-                return_data['commit_id'] = _commit.id
-            
             _case = Case.query.filter_by(id=self.case_id).first()
             if _case:
                 return_data['case_automatic'] = _case.automatic
@@ -225,12 +208,9 @@ class Case(BaseModel, PermissionBaseModel, db.Model):
     usabled = db.Column(db.Boolean(), nullable=False, default=False)
     code = db.Column(LONGTEXT(), nullable=True)
     deleted = db.Column(db.Boolean(), nullable=False, default=False)
-    version = db.Column(db.String(32))
     group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
     org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
     creator_id = db.Column(db.String(512), db.ForeignKey("user.user_id"))
-
-    analyzeds = db.relationship('Analyzed', backref='case')
 
     case_nodes = db.relationship(
         "CaseNode", backref="case", cascade="all, delete, delete-orphan"
@@ -282,137 +262,6 @@ class Case(BaseModel, PermissionBaseModel, db.Model):
         }
 
 
-class Commit(BaseModel, PermissionBaseModel, db.Model):
-    __tablename__ = "commit"
-
-    id = db.Column(db.Integer(), primary_key=True)
-    title = db.Column(db.String(255), nullable=False)
-    reviewer_id = db.Column(db.String(512))
-    review_time = db.Column(db.DateTime())
-    description = db.Column(db.String(255), nullable=True)
-    machine_num = db.Column(db.Integer())
-    machine_type = db.Column(db.String(9))
-    case_description = db.Column(LONGTEXT(), nullable=False)
-    preset = db.Column(LONGTEXT(), nullable=True)
-    steps = db.Column(LONGTEXT(), nullable=False)
-    expectation = db.Column(LONGTEXT(), nullable=False)
-    remark = db.Column(LONGTEXT(), nullable=True)
-    version = db.Column(db.String(32))
-    status = db.Column(db.Enum("pending", "open", "accepted", "rejected"), default="pending", nullable=False)
-    case_detail_id = db.Column(db.Integer, db.ForeignKey("case.id"), nullable=False)  # 归属case
-    case_mod_type = db.Column(db.Enum("add", "edit"), default="edit", nullable=False)
-    source = db.Column(db.String(255))
-    creator_id = db.Column(db.String(512), db.ForeignKey("user.user_id"))
-    group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
-    org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
-
-    comments = db.relationship("CommitComment", backref="commit", cascade="all, delete, delete-orphan")  # 评论表关联
-
-    def to_json(self):
-        reviewer_name = None
-        if self.reviewer_id:
-            reviewer_name = User.query.get(self.reviewer_id).user_name
-        comment_count = CommitComment.query.filter_by(commit_id=self.id).count()
-        _review_time = None
-        if self.review_time:
-            _review_time = self.review_time.strftime("%Y-%m-%d %H:%M:%S")
-        return {
-            "id": self.id,
-            "title": self.title,
-            "create_time": self.create_time.strftime("%Y-%m-%d %H:%M:%S"),
-            "creator_id": self.creator_id,
-            "review_time": _review_time,
-            "creator": User.query.get(self.creator_id).to_dict(),
-            "reviewer": User.query.get(self.reviewer_id).to_dict() if self.reviewer_id else None,
-            "reviewer_name": reviewer_name,
-            "description": self.description,
-            "machine_num": self.machine_num,
-            "machine_type": self.machine_type,
-            "case_description": self.case_description,
-            "preset": self.preset,
-            "steps": self.steps,
-            "expectation": self.expectation,
-            "remark": self.remark,
-            "source": self.source,
-            "status": self.status,
-            "case_detail_id": self.case_detail_id,
-            "case_mod_type": self.case_mod_type,
-            "group_name": Group.query.get(self.group_id).name if self.group_id else None,
-            "org_id": self.org_id,
-            "group_id": self.group_id,
-            "comment_count": comment_count,
-            "org_name": Organization.query.get(self.org_id).name if self.org_id else None
-        }
-
-
-class CaseDetailHistory(BaseModel, PermissionBaseModel, db.Model):
-    __tablename__ = "case_detail_history"
-
-    id = db.Column(db.Integer(), primary_key=True)
-    creator_id = db.Column(db.String(512), db.ForeignKey("user.user_id"), nullable=False)
-    title = db.Column(db.String(255), nullable=False)
-    machine_num = db.Column(db.Integer())
-    machine_type = db.Column(db.String(9))
-    case_description = db.Column(LONGTEXT(), nullable=False)
-    preset = db.Column(LONGTEXT(), nullable=True)
-    steps = db.Column(LONGTEXT(), nullable=False)
-    expectation = db.Column(LONGTEXT(), nullable=False)
-    remark = db.Column(LONGTEXT(), nullable=True)
-    version = db.Column(db.String(32))
-    commit_id = db.Column(db.Integer, db.ForeignKey("commit.id"), nullable=False)  # 归属commit
-    case_id = db.Column(db.Integer, db.ForeignKey("case.id"), nullable=False)
-    group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
-    org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
-
-    def to_json(self):
-        return {
-            "id": self.id,
-            "title": self.title,
-            "creator_id": self.creator_id,
-            "create_time": self.create_time.strftime("%Y-%m-%d %H:%M:%S"),
-            "version": self.version,
-            "creator_name": User.query.get(self.creator_id).user_name,
-            "machine_num": self.machine_num,
-            "machine_type": self.machine_type,
-            "case_description": self.case_description,
-            "preset": self.preset,
-            "steps": self.steps,
-            "expectation": self.expectation,
-            "remark": self.remark
-        }
-
-
-class CommitComment(BaseModel, PermissionBaseModel, db.Model):
-    """用例评审评论"""
-    __tablename__ = "commit_comment"
-
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    content = db.Column(db.Text, nullable=True)  # 内容
-    creator_id = db.Column(db.String(512), db.ForeignKey("user.user_id"))
-    group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
-    org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
-    parent_id = db.Column(db.Integer(), default=0)
-    commit_id = db.Column(db.Integer, db.ForeignKey("commit.id"), nullable=False)
-
-    def to_json(self):
-        user_dict = User.query.get(self.creator_id).to_dict()
-        user_dict.pop('roles')
-        reply_dict = None
-        if self.parent_id and self.parent_id != 0:
-            reply_dict = User.query.get(CommitComment.query.get(self.parent_id).creator_id).to_dict()
-            reply_dict.pop('roles')
-        return {
-            'id': self.id,
-            'create_time': self.create_time.strftime("%Y-%m-%d %H:%M:%S"),
-            'content': self.content,
-            'creator_id': self.creator_id,
-            'creator': user_dict,
-            'parent_id': self.parent_id,
-            'reply': reply_dict,
-            'commit_id': self.commit_id,
-        }
-
-
 class SuiteDocument(BaseModel, db.Model):
     __tablename__ = "suite_document"
     id = db.Column(db.Integer(), primary_key=True, autoincrement=True)
@@ -424,7 +273,6 @@ class SuiteDocument(BaseModel, db.Model):
     org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
     baseline_id = db.Column(db.Integer(), db.ForeignKey("baseline.id"))
     permission_type = db.Column(db.String(50), nullable=False)
-
 
     def to_json(self):
         return {

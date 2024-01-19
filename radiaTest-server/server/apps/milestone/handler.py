@@ -32,8 +32,6 @@ from server.utils.response_util import RET
 from server.utils.math_util import calculate_rate
 from server.utils.open_api_util import BaseOpenApiHandler
 from server.model.milestone import Milestone, IssueSolvedRate, TestReport
-from server.model.mirroring import Repo
-from server.model.template import Template
 from server.model.task import TaskMilestone
 from server.schema.milestone import (
     GiteeMilestoneBase,
@@ -174,7 +172,6 @@ class CreateMilestone:
             })
 
 
-
 class DeleteMilestone:
     @staticmethod
     def single(milestone_id):
@@ -196,18 +193,13 @@ class DeleteMilestone:
                     error_code=RET.DATA_EXIST_ERR,
                     error_msg="Delete failed, Some tasks have been associated with this milestone"
                 )
-            return ResourceManager("milestone", "v2").del_cascade_single(
-                milestone_id, 
-                Template, 
-                [Template.milestone_id == milestone_id], 
-                False,
-            )
+            return ResourceManager("milestone", "v2").del_single(milestone_id)
 
 
 class MilestoneHandler:
     @staticmethod
     @collect_sql_error
-    def get_milestone(query, filter_params = None):
+    def get_milestone(query, filter_params=None):
         # 按筛选条件获取里程碑列表
         if not filter_params:
             filter_params = list()
@@ -224,6 +216,8 @@ class MilestoneHandler:
             filter_params.append(Milestone.round_id == query.round_id)
         if query.product_id:
             filter_params.append(Milestone.product_id == query.product_id)
+        if query.org_id:
+            filter_params.append(Milestone.org_id == query.org_id)
 
         query_filter = Milestone.query.filter(*filter_params).order_by(
             Milestone.product_id, Milestone.name, Milestone.create_time
@@ -271,10 +265,21 @@ class MilestoneHandler:
     def get_all_gantt_milestones(query: QueryMilestoneByTimeSchema):
         """获取里程碑列表"""
         from server.model.group import Group, ReUserGroup
-        current_org_id = redis_client.hget(
-            RedisKey.user(g.user_id), 
-            "current_org_id"
-        )
+        if hasattr(g, "user_id"):
+            current_org_id = redis_client.hget(
+                RedisKey.user(g.user_id),
+                "current_org_id"
+            )
+            re_user_groups = ReUserGroup.query.join(Group).filter(
+                ReUserGroup.is_delete.is_(False),
+                ReUserGroup.user_add_group_flag.is_(True),
+                Group.is_delete.is_(False),
+                ReUserGroup.org_id == int(current_org_id),
+                ReUserGroup.user_id == g.user_id
+            ).all()
+        else:
+            current_org_id = query.org_id
+            re_user_groups = []
         filter_params = [
             Milestone.permission_type == "org",
             Milestone.org_id == int(current_org_id),
@@ -283,14 +288,6 @@ class MilestoneHandler:
                 Milestone.end_time.between(query.milestone_time[0], query.milestone_time[1])
             )
         ]
-
-        re_user_groups = ReUserGroup.query.join(Group).filter(
-            ReUserGroup.is_delete.is_(False),
-            ReUserGroup.user_add_group_flag.is_(True),
-            Group.is_delete.is_(False),
-            ReUserGroup.org_id == int(current_org_id),
-            ReUserGroup.user_id == g.user_id
-        ).all()
         if re_user_groups:
             group_ids = [
                 re_user_group.group_id for re_user_group in re_user_groups
@@ -316,7 +313,7 @@ class MilestoneHandler:
         milestones = Milestone.query.filter(
             *filter_params
         ).all()
-        return_data = [ milestone.to_gantt_dict() for milestone in milestones ]
+        return_data = [milestone.to_gantt_dict() for milestone in milestones]
 
         return jsonify(
             error_code=RET.OK,
@@ -420,10 +417,7 @@ class MilestoneOpenApiHandler(BaseOpenApiHandler):
                     error_msg="you should delete this milestone in e.gitee.com first",
                 )
 
-        return ResourceManager("milestone", "v2").del_cascade_single(
-            milestone_id, Template, [
-                Template.milestone_id == milestone_id], False
-        )
+        return ResourceManager("milestone", "v2").del_single(milestone_id)
 
     def edit_state_event(self, milestone_id):
         # 调用接口于Gitee企业仓编辑里程碑状态
@@ -603,15 +597,6 @@ class GenerateVersionTestReport(GiteeV8BaseIssueHandler):
                 data.get('not_main_issue_rate'),
                 data.get('no_assign_issue_rate')
             )
-        repo_info = ""
-        repo_info_tmp = ""
-        repo = Repo.query.filter_by(milestone_id=milestone_id).first()
-        if repo:
-            repo_info = repo.content
-            for rp in repo_info.split("\n"):
-                if "baseurl" in rp:
-                    repo_info_tmp += rp.split("/")[4] + ":" + "/".join(
-                        rp.split("=")[1].split("/")[:-2]) + "\n"
         product_info = f"|{milestone.name}|{milestone.start_time}|{milestone.end_time}|"
 
         all_testcase_cnt = 0
@@ -639,7 +624,6 @@ class GenerateVersionTestReport(GiteeV8BaseIssueHandler):
                 line.replace("<product_name>", milestone.name)
                 .replace("<product_info>", product_info)
                 .replace("<accepted_result>", accepted_result)
-                .replace("<repo_info>", repo_info_tmp)
                 .replace("<issue_info>", issue_info)
                 .replace("<issue_rate>", issue_rate_info)
                 .replace("<issue_info2>", issue_info2)

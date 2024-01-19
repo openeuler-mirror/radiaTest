@@ -87,4 +87,5 @@ class GiteeIssueQueryV8(BaseModel):
     direction: Optional[str]
     page: int = 1
     per_page: int = 10
+    org_id: int = None
 

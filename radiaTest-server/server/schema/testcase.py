@@ -118,11 +118,13 @@ class CaseNodeQuerySchema(BaseModel):
 
 class CaseNodeItemQuerySchema(BaseModel):
     title: Optional[str]
+    org_id: int = None
 
 
 class CaseSetNodeQueryBySuiteSchema(BaseModel):
     title: Optional[str]
     suite_id: Optional[int]
+    org_id: int = None
 
     def validate_suite(cls, values):
         if not values["title"] and values["suite_id"]:
@@ -154,6 +156,7 @@ class SuiteQuery(PageBaseSchema):
     description: str = None
     deleted: bool = False
     git_repo_id: Optional[int]
+    org_id: int = None
 
 
 class SuiteBase(BaseModel):
@@ -240,6 +243,7 @@ class CaseQuery(PageBaseSchema):
     automatic: bool = None
     deleted: bool = False
     suite_id: int = None
+    org_id: int = None
 
 
 class CaseCreate(CaseBase):
@@ -305,68 +309,14 @@ class CaseUpdateSchemaWithSuiteId(SuiteBase, UpdateBaseModel, PermissionBaseSche
 
 
 class AddCaseCommitSchema(BaseModel):
-    title: str
-    creator_id: str = None
-    description: str = None  # 提交commit时的description
     case_description: str = None  # case本身的description
-    case_detail_id: int# = None
-    machine_type: str = None
-    machine_num: int = None
-    preset: str = None
-    steps: str = None
-    expectation: str = None
-    remark: str = None
-    status: str = None
-    permission_type: str = None
-    source: List
-    case_mod_type: str
-
-
-class UpdateCaseCommitSchema(BaseModel):
-    title: str = None
-    description: str = None
-    machine_type: str = None
-    machine_num: int = None
-    preset: str = None
-    steps: str = None
-    expectation: str = None
-    remark: str = None
-    status: str = None
-    open_edit: bool = False
-
-
-class CaseCommitBasic(AddCaseCommitSchema):
-    id: int
-    reviewer_id: int
-    reviewer_name: int
     case_detail_id: int
-    creator_name: str
-
-
-class CommitQuerySchema(PageBaseSchema):
-    title: str = None
-    user_type: Literal['creator', 'all']
-    user_type: str = None
-    query_type: str = None
-
-
-class AddCommitCommentSchema(BaseModel):
-    parent_id: int
-    content: str
-
-
-class UpdateCommitCommentSchema(BaseModel):
-    content: str
-
-
-class CaseCommitBatch(BaseModel):
-    commit_ids: List[int] = None
-
-
-class QueryHistorySchema(PageBaseSchema):
-    start_time: str = None
-    end_time: str = None
-    title: str = None
+    machine_type: str = None
+    machine_num: int = None
+    preset: str = None
+    steps: str = None
+    expectation: str = None
+    remark: str = None
 
 
 class SuiteDocumentBodySchema(BaseModel):

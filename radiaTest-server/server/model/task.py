@@ -18,7 +18,6 @@ import pandas as pd
 from server import db
 from server.model.base import BaseModel, PermissionBaseModel
 from server.model.group import Group
-from server.model.job import Analyzed
 from server.model.testcase import Suite
 from server.model.user import User
 
@@ -60,8 +59,6 @@ class TaskMilestone(db.Model, BaseModel):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     task_id = db.Column(db.Integer, db.ForeignKey('task.id'), nullable=False)
     milestone_id = db.Column(db.Integer, db.ForeignKey('milestone.id'), nullable=False)
-    template_id = db.Column(db.Integer, db.ForeignKey('template.id'), nullable=True)
-    job_id = db.Column(db.Integer, db.ForeignKey("job.id"), nullable=True)
     job_result = db.Column(db.Enum("block", "done", "running", "pending"), default="pending", nullable=False)
 
     cases = db.relationship('Case', secondary=task_case, backref=db.backref('task_milestone'),
@@ -75,15 +72,11 @@ class TaskMilestone(db.Model, BaseModel):
         for case in self.cases:
             if case.deleted:
                 continue
-            if case.usabled:
-                analyzed = Analyzed.query.filter_by(job_id=self.job_id, case_id=case.id).first()
-                case_result = analyzed.result if analyzed and analyzed.result else 'running'
-            else:
-                case_result = 'running'
-                if not manual_df.empty:
-                    case_result_se = manual_df[manual_df.case_id == case.id].case_result
-                    if not case_result_se.empty:
-                        case_result = case_result_se.to_list()[0]
+            case_result = 'running'
+            if not manual_df.empty:
+                case_result_se = manual_df[manual_df.case_id == case.id].case_result
+                if not case_result_se.empty:
+                    case_result = case_result_se.to_list()[0]
             if distribute_all_cases:
                 df_list.append((self.milestone_id, case.id, case.suite_id, case_result))
             else:
@@ -104,9 +97,6 @@ class TaskMilestone(db.Model, BaseModel):
                     case_result = 'failed'
                 elif self.job_result == 'done':
                     case_result = 'success'
-                analyzed = Analyzed.query.filter_by(job_id=self.job_id, case_id=case.id).first()
-                if analyzed:
-                    case_result = analyzed.result if analyzed.result else case_result
                 case_json['result'] = case_result
                 auto_cases.append(case_json)
             else:
@@ -122,7 +112,6 @@ class TaskMilestone(db.Model, BaseModel):
             'id': self.id,
             'task_id': self.task_id,
             'milestone_id': self.milestone_id,
-            'job_id': self.job_id,
             'job_result': self.job_result,
             'auto_cases': auto_cases,
             'manual_cases': manual_cases
@@ -325,5 +314,4 @@ class DistributeTemplateType(BaseModel, PermissionBaseModel, db.Model):
             'helpers': helpers,
             "suite_source": self.suite_source,
             'create_time': self.create_time.strftime("%Y-%m-%d %H:%M:%S")
-            # 'template': self.template.to_json()
         }

@@ -1,7 +1,0 @@
-template:
-  - uri: /api/v1/template/{template_id}
-    act: delete
-    alias: 删除Template
-  - uri: /api/v1/template/{template_id}
-    act: put
-    alias: 修改Template

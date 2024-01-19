@@ -44,7 +44,6 @@ from server.utils.page_util import PageUtil
 from server.utils.md_util import MdUtil
 from server.utils.rpm_util import RpmNameComparator, RpmNameLoader
 from celeryservice.tasks import resolve_pkglist_after_resolve_rc_name, resolve_pkglist_from_url
-from server.utils.shell import add_escape
 
 
 class ChecklistHandler:
@@ -970,7 +969,7 @@ class ReportHandler(object):
         self.round_id = params.get("round_id")
         self.branch = params.get("branch")
         self.params = params
-        self.gitee_v8_handler = GiteeV8IssueHandlerV2()
+        self.gitee_v8_handler = GiteeV8IssueHandlerV2(org_id=params.get("org_id"))
         self.max_overdue_days = 0
 
     @staticmethod

@@ -24,6 +24,7 @@ from .routes import (
     GitRepoItemSyncEvent,
 )
 
+
 def init_api(api: Api):
     api.add_resource(GitRepoEvent, "/api/v1/git-repo", "/api/v1/ws/<string:workspace>/git-repo")
     api.add_resource(GitRepoScopedEvent, "/api/v1/git-repo/scoped")

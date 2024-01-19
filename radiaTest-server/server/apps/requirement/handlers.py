@@ -396,10 +396,8 @@ class RequirementItemHandler:
         _publisher = self.requirement.publisher[0]
         if _publisher.type == "group":
             _publisher.group.influence += self.requirement.total_reward
-            _publisher.group.add_update_influence(Group, "rank")
         elif _publisher.type == "person":
             _publisher.user.influence += self.requirement.total_reward
-            _publisher.user.add_update_influence(User, "rank")
 
         self.requirement.delete(Requirement, "/requirement")
 
@@ -535,8 +533,7 @@ class RequirementItemHandler:
             self.requirement.dividable_reward = self.requirement.total_reward
             acceptor = Group.query.filter_by(id=self.requirement.acceptor[0].group_id).first()
             acceptor.influence += self.requirement.total_reward
-        acceptor.add_update_influence(User, '/rank')
-        
+
         self.requirement.statement_locked = True
         self.requirement.progress_locked = True
         self.requirement.validation_locked = True

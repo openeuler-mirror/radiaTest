@@ -36,18 +36,6 @@ class Milestone(BaseModel, PermissionBaseModel, db.Model):
     product_id = db.Column(db.Integer(), db.ForeignKey("product.id"))
     round_id = db.Column(db.Integer(), db.ForeignKey("round.id"), nullable=True)
 
-    imirroring = db.relationship(
-        "IMirroring", backref="milestone", cascade="all, delete, delete-orphan"
-    )
-    qmirroring = db.relationship(
-        "QMirroring", backref="milestone", cascade="all, delete, delete-orphan"
-    )
-    repo = db.relationship(
-        "Repo", backref="milestone", cascade="all, delete, delete-orphan"
-    )
-    template = db.relationship(
-        "Template", backref="milestone", cascade="all, delete, delete-orphan"
-    )
     tasks = db.relationship('TaskMilestone', backref='milestone')
     issue_solved_rate = db.relationship(
         "IssueSolvedRate", backref="milestone", cascade="all, delete, delete-orphan"
@@ -55,30 +43,12 @@ class Milestone(BaseModel, PermissionBaseModel, db.Model):
     test_report = db.relationship(
         "TestReport", backref="milestone", cascade="all, delete, delete-orphan"
     )
-
-    jobs = db.relationship('Job', backref='milestone')
     creator_id = db.Column(db.String(512), db.ForeignKey("user.user_id"))
     group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
     org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
 
     def to_json(self):
         from server.model.qualityboard import Round
-        tags = []
-        for mirroring in self.imirroring:
-            if mirroring.frame == "x86_64":
-                tags.append("x86_64-iso")
-            if mirroring.frame == "aarch64":
-                tags.append("aarch64-iso")
-        for mirroring in self.qmirroring:
-            if mirroring.frame == "x86_64":
-                tags.append("x86_64-qcow2")
-            if mirroring.frame == "aarch64":
-                tags.append("aarch64-qcow2")
-        for rep in self.repo:
-            if rep.frame == "x86_64":
-                tags.append("x86_64-repo")
-            if rep.frame == "aarch64":
-                tags.append("aarch64-repo")
         round_info = dict()
         if self.round_id is not None:
             _round = Round.query.filter_by(id=self.round_id).first()
@@ -96,7 +66,6 @@ class Milestone(BaseModel, PermissionBaseModel, db.Model):
             "product_version": self.product.version,
             "round_id": self.round_id,
             "round_info": round_info,
-            "tags": tags,
             "task_num": len(self.tasks),
             "state": self.state,
             "is_sync": self.is_sync,

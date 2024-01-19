@@ -43,21 +43,6 @@ class Cla(Resource):
     def get(self):
         return handler_show_org_cla_list()
 
-    @auth.login_required()
-    @response_collect
-    @validate()
-    @swagger_adapt.api_schema_model_map({
-        "__module__": get_organization_tag.__module__,  # 获取当前接口所在模块
-        "resource_name": "Cla",  # 当前接口视图函数名
-        "func_name": "post",  # 当前接口所对应的函数名
-        "tag": get_organization_tag(),  # 当前接口所对应的标签
-        "summary": "进行cla认证，通过则用户加入组织生成关系",  # 当前接口概述
-        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
-        "request_schema_model": ClaBaseSchema
-    })
-    def post(self, org_id, body: ClaBaseSchema):
-        return handler_org_cla(org_id, body)
-
 
 class Org(Resource):
     @auth.login_required()
@@ -92,57 +77,7 @@ class OrgStatistic(Resource):
         return handler_org_statistic(org_id)
 
 
-class User(Resource):
-    @auth.login_required()
-    @response_collect
-    @casbin_enforcer.enforcer
-    @swagger_adapt.api_schema_model_map({
-        "__module__": get_organization_tag.__module__,  # 获取当前接口所在模块
-        "resource_name": "User",  # 当前接口视图函数名
-        "func_name": "get",  # 当前接口所对应的函数名
-        "tag": get_organization_tag(),  # 当前接口所对应的标签
-        "summary": "获取组织下的所有用户",  # 当前接口概述
-        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
-        # 自定义请求参数
-        "query_schema_model": [{
-            "name": "name",
-            "in": "query",
-            "required": False,
-            "style": "form",
-            "explode": True,
-            "description": "用户名查询关键字",
-            "schema": {"type": "string"}},
-            {
-                "name": "group_id",
-                "in": "query",
-                "required": False,
-                "style": "form",
-                "explode": True,
-                "description": "用户组id",
-                "schema": {"type": "integer"}},
-            {
-                "name": "page_size",
-                "in": "query",
-                "required": False,
-                "style": "form",
-                "explode": True,
-                "description": "页大小",
-                "schema": {"type": "integer"}},
-            {
-                "name": "page_num",
-                "in": "query",
-                "required": False,
-                "style": "form",
-                "explode": True,
-                "description": "页码",
-                "schema": {"type": "integer"}}],
-    })
-    def get(self, org_id):
-        return handler_org_user_page(org_id)
-
-
 class Group(Resource):
-    @auth.login_required()
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({

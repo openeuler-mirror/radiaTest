@@ -14,7 +14,6 @@
 #####################################
 
 import json
-from celery import current_app as celery
 import sqlalchemy
 from server.utils.response_util import RET
 from server.utils.db import Insert

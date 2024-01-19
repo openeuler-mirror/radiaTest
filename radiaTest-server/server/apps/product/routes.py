@@ -127,7 +127,7 @@ class ProductEvent(Resource):
     def post(self, body: ProductBase):
         return ResourceManager("product").add("api_infos.yaml", body.__dict__)
 
-    @auth.login_required
+    @auth.login_check
     @response_collect
     @workspace_error_collect
     @validate()
@@ -141,7 +141,7 @@ class ProductEvent(Resource):
         "query_schema_model": ProductQueryBase
     })
     def get(self, workspace: str, query: ProductQueryBase):
-        _g = GetAllByPermission(Product, workspace)
+        _g = GetAllByPermission(Product, workspace, org_id=query.org_id)
         if query.permission_type is not None:
             _g.set_filter(Product.permission_type == query.permission_type)
             ords = [Product.name.asc(), Product.create_time.asc()]

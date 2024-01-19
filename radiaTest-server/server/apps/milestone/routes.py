@@ -109,7 +109,7 @@ class MilestoneEventV2(Resource):
     def post(self, body: MilestoneCreateSchema):
         return CreateMilestone.run(body.__dict__)
 
-    @auth.login_required()
+    @auth.login_check
     @response_collect
     @workspace_error_collect
     @validate()
@@ -123,12 +123,12 @@ class MilestoneEventV2(Resource):
         "query_schema_model": MilestoneQuerySchema,   # 当前接口查询参数schema校验器
     })
     def get(self, workspace: str, query: MilestoneQuerySchema):
-        filter_params = GetAllByPermission(Milestone, workspace).get_filter()
+
+        filter_params = GetAllByPermission(Milestone, workspace, query.org_id).get_filter()
         return MilestoneHandler.get_milestone(query, filter_params)
 
 
 class MilestoneGantt(Resource):
-    @auth.login_required()
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({

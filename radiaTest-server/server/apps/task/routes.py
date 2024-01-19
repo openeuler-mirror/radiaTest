@@ -13,15 +13,14 @@
 # @License : Mulan PSL v2
 #####################################
 
-from flask import g, jsonify
+from flask import jsonify
 from flask_restful import Resource
 from flask_pydantic import validate
-from server import socketio, casbin_enforcer, swagger_adapt
+from server import casbin_enforcer, swagger_adapt
 from server.utils.auth_util import auth
 from server.utils.response_util import response_collect, RET, workspace_error_collect
 from server.schema.base import PageBaseSchema
 from server.schema.task import (
-    AddTaskSchema,
     AddTaskStatusSchema,
     UpdateTaskStatusSchema,
     UpdateTaskStatusOrderSchema,
@@ -51,7 +50,7 @@ from server.schema.task import (
     DeleteTaskList,
     MilestoneTaskSchema,
     UpdateTaskPercentageSchema,
-    QueryTaskByTimeSchema,
+    QueryTaskByTimeSchema, RecycleBinSchema,
 )
 from server.apps.task.handlers import (
     HandlerTaskStatus,
@@ -84,8 +83,6 @@ def get_task_tag():
 
 
 class Status(Resource):
-
-    @auth.login_required()
     @response_collect
     @swagger_adapt.api_schema_model_map({
         "__module__": get_task_tag.__module__,  # 获取当前接口所在模块
@@ -165,7 +162,7 @@ class StatusOrder(Resource):
 
 
 class Task(Resource):
-    @auth.login_required()
+    @auth.login_check
     @response_collect
     @workspace_error_collect
     @validate()
@@ -198,7 +195,6 @@ class Task(Resource):
 
 
 class TaskItem(Resource):
-    @auth.login_required()
     @response_collect
     @swagger_adapt.api_schema_model_map({
         "__module__": get_task_tag.__module__,  # 获取当前接口所在模块
@@ -243,7 +239,6 @@ class TaskItem(Resource):
 
 
 class TaskGantt(Resource):
-    @auth.login_required()
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
@@ -278,7 +273,6 @@ class TaskPercentage(Resource):
 
 
 class ParticipantItem(Resource):
-    @auth.login_required()
     @response_collect
     @swagger_adapt.api_schema_model_map({
         "__module__": get_task_tag.__module__,  # 获取当前接口所在模块
@@ -343,7 +337,6 @@ class ExecutorItem(Resource):
 
 
 class Comment(Resource):
-    @auth.login_required()
     @response_collect
     @swagger_adapt.api_schema_model_map({
         "__module__": get_task_tag.__module__,  # 获取当前接口所在模块
@@ -388,7 +381,7 @@ class Comment(Resource):
 
 
 class RecycleBin(Resource):
-    @auth.login_required()
+    @auth.login_check
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
@@ -398,9 +391,9 @@ class RecycleBin(Resource):
         "tag": get_task_tag(),  # 当前接口所对应的标签
         "summary": "分页获取回收站中的任务列表",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
-        "query_schema_model": PageBaseSchema
+        "query_schema_model": RecycleBinSchema
     })
-    def get(self, query: PageBaseSchema):
+    def get(self, query: RecycleBinSchema):
         return HandlerTask.get_recycle_bin(query)
 
 
@@ -450,7 +443,7 @@ class Tag(Resource):
 
 
 class FamilyItem(Resource):
-    @auth.login_required()
+    @auth.login_check
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
@@ -465,7 +458,7 @@ class FamilyItem(Resource):
     def get(self, task_id, query: QueryFamilySchema):
         return HandlerTaskFamily.get(task_id, query)
 
-    @auth.login_required()
+    @auth.login_required
     @response_collect
     @validate()
     @casbin_enforcer.enforcer
@@ -481,7 +474,7 @@ class FamilyItem(Resource):
     def post(self, task_id, body: AddFamilyMemberSchema):
         return HandlerTaskFamily.add(task_id, body)
 
-    @auth.login_required()
+    @auth.login_required
     @response_collect
     @validate()
     @casbin_enforcer.enforcer
@@ -499,8 +492,9 @@ class FamilyItem(Resource):
 
 
 class Family(Resource):
-    @auth.login_required()
+    @auth.login_check
     @response_collect
+    @validate()
     @swagger_adapt.api_schema_model_map({
         "__module__": get_task_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "Family",  # 当前接口视图函数名
@@ -508,13 +502,14 @@ class Family(Resource):
         "tag": get_task_tag(),  # 当前接口所对应的标签
         "summary": "获取任务的关联任务",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "query_schema_model": QueryFamilySchema
     })
-    def get(self):
-        return HandlerTaskFamily.get(None, None)
+    def get(self, query: QueryFamilySchema):
+        return HandlerTaskFamily.get(None, query)
 
 
 class Report(Resource):
-    @auth.login_required()
+    @auth.login_check
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
@@ -546,7 +541,6 @@ class Report(Resource):
 
 
 class Cases(Resource):
-    @auth.login_required()
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
@@ -695,7 +689,7 @@ class TaskExecute(Resource):
 
 class TaskDistributeTemplate(Resource):
 
-    @auth.login_required()
+    @auth.login_check
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
@@ -873,7 +867,6 @@ class CaseTask(Resource):
 
 
 class TaskFrame(Resource):
-    @auth.login_required()
     @response_collect
     @swagger_adapt.api_schema_model_map({
         "__module__": get_task_tag.__module__,  # 获取当前接口所在模块
@@ -888,7 +881,6 @@ class TaskFrame(Resource):
 
 
 class MileStoneTask(Resource):
-    @auth.login_required()
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
@@ -905,7 +897,6 @@ class MileStoneTask(Resource):
 
 
 class MilestoneTaskProgress(Resource):
-    @auth.login_required()
     @response_collect
     @swagger_adapt.api_schema_model_map({
         "__module__": get_task_tag.__module__,  # 获取当前接口所在模块

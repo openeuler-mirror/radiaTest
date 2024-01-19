@@ -14,10 +14,10 @@
 #####################################
 
 import binascii
+import pytz
 from datetime import datetime
-import pytz
+from functools import wraps
 
-import pytz
 from flask import g, current_app
 from flask_httpauth import HTTPTokenAuth
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
@@ -28,7 +28,19 @@ from server.utils.aes_util import FileAES
 from server.utils.redis_util import RedisKey
 from pydantic import BaseModel
 
-auth = HTTPTokenAuth(scheme="JWT")
+
+class RadiaTestTokenAuth(HTTPTokenAuth):
+    # 仅检查token，不做拦截
+    def login_check(self, func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            _auth = self.get_auth()
+            self.authenticate(_auth, self.get_auth_password(_auth))
+            return func(*args, **kwargs)
+        return wrapper
+
+
+auth = RadiaTestTokenAuth(scheme="JWT")
 serializer = None
 messenger_serializer = None
 

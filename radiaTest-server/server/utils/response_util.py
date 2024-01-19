@@ -58,7 +58,8 @@ def response_collect(func):
     def wrapper(*args, **kwargs):
         func_result = func(*args, **kwargs)
         resp = make_response(func_result)
-        resp.headers['Authorization'] = g.token
+        if hasattr(g, "token"):
+            resp.headers['Authorization'] = g.token
         return resp
 
     return wrapper

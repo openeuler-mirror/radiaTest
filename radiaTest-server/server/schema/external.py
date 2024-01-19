@@ -32,8 +32,9 @@ class OpenEulerUpdateTaskBase(BaseModel):
     base_update_url: HttpUrl
     epol_update_url: Optional[HttpUrl]
 
+    @staticmethod
     @validator("base_update_url")
-    def check_base_url(cls, v):
+    def check_base_url(v):
         try:
             request.urlopen(os.path.join(v, 'aarch64/'))
             request.urlopen(os.path.join(v, 'x86_64/'))
@@ -43,8 +44,9 @@ class OpenEulerUpdateTaskBase(BaseModel):
 
         return v
 
+    @staticmethod
     @validator("epol_update_url")
-    def check_epol_url(cls, v):
+    def check_epol_url(v):
         if v:
             try:
                 request.urlopen(os.path.join(v, 'aarch64/'))
@@ -72,10 +74,6 @@ class LoginOrgListSchema(BaseModel):
     cla_sign_url: Optional[str]
     enterprise_join_url: Optional[str]
     authority: Optional[str]
-
-
-class VmachineExistSchema(BaseModel):
-    domain: str
 
 
 class DeleteCertifiSchema(BaseModel):

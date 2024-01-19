@@ -13,10 +13,10 @@
 # @License : Mulan PSL v2
 #####################################
 
-from pydantic import BaseModel
-from typing_extensions import Literal
+from pydantic import BaseModel, validator
 from typing import Optional
-from server.schema.base import PageBaseSchema
+
+from server.model import User
 
 
 class OauthLoginSchema(BaseModel):
@@ -31,24 +31,22 @@ class UserBaseSchema(BaseModel):
     user_id: str
     user_login: str
     user_name: str
-    phone: Optional[str]
     avatar_url: str
     cla_email: Optional[str]
+
+    @validator("cla_email")
+    def validator_cla_email(cls, value):
+        return User.mask_cla_email(value) if value else ""
 
 
 class UserQuerySchema(BaseModel):
     user_id: Optional[str]
     user_login: Optional[str]
     user_name: Optional[str]
-    phone: Optional[str]
     avatar_url: Optional[str]
     cla_email: Optional[str]
     page_num: int
     page_size: int
-
-
-class UpdateUserSchema(BaseModel):
-    phone: str
 
 
 class UserTaskSchema(BaseModel):
@@ -56,14 +54,6 @@ class UserTaskSchema(BaseModel):
     task_type: str
     page_num: int
     page_size: int
-
-
-class UserMachineSchema(BaseModel):
-    machine_name: str = None
-    machine_type: str
-    page_num: int
-    page_size: int
-    user_id: str = None
 
 
 class UserInfoSchema(UserBaseSchema):
@@ -78,8 +68,3 @@ class UserInfoSchema(UserBaseSchema):
 class JoinGroupSchema(BaseModel):
     msg_id: int
     access: bool
-
-
-class UserCaseCommitSchema(PageBaseSchema):
-    title: str = None
-    status: Literal['all', 'open', 'accepted', 'rejected']

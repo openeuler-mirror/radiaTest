@@ -56,3 +56,4 @@ class ProductQueryBase(PageBaseSchema):
     end_time: Optional[str]
     released_time: Optional[str]
     permission_type: Optional[PermissionType]
+    org_id: int = None

@@ -20,7 +20,6 @@ from flask_restful import Api
 from .routes import (
     UpdateTaskEvent,
     LoginOrgList,
-    VmachineExist,
     CaCert,
     DailyBuildEvent,
     RpmCheckEvent,
@@ -35,7 +34,6 @@ from .routes import (
 def init_api(api: Api):
     api.add_resource(UpdateTaskEvent, "/api/v1/openeuler/update-release/validate")
     api.add_resource(LoginOrgList, "/api/v1/login/org/list")
-    api.add_resource(VmachineExist, "/api/v1/vmachine/check-exist")
     api.add_resource(CaCert, "/api/v1/ca-cert")
     api.add_resource(DailyBuildEvent, "/api/v1/dailybuild")
     api.add_resource(RpmCheckEvent, "/api/v1/rpmcheck")

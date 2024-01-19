@@ -16,7 +16,7 @@
 import json
 from flask import request, g, jsonify
 from sqlalchemy import or_
-from server.model.organization import Organization, ReUserOrganization
+from server.model.organization import Organization
 from server.model.user import User
 from server.model.group import Group, ReUserGroup
 from server.model.permission import Role, ReUserRole
@@ -41,95 +41,6 @@ def handler_show_org_cla_list():
         if str(item.id) not in has_org_ids:
             cla_info_list.append(ClaShowUserSchema(**item.to_dict()).dict())
     return jsonify(error_code=RET.OK, error_msg="OK", data=cla_info_list)
-
-
-@collect_sql_error
-def handler_org_cla(org_id, body):
-    re = ReUserOrganization.query.filter_by(
-        is_delete=False,
-        user_id=g.user_id,
-        organization_id=org_id
-    ).first()
-    if re:
-        return jsonify(
-            error_code=RET.DATA_EXIST_ERR,
-            error_msg="relationship has already existed"
-        )
-
-    # 从数据库中获取cla信息
-    org = Organization.query.filter_by(id=org_id, is_delete=False).first()
-    if not org:
-        return jsonify(
-            error_code=RET.NO_DATA_ERR,
-            error_msg=f"the organization does not exist"
-        )
-
-    org_info = org.to_dict()
-
-    if org.cla_verify_url and not Cla.is_cla_signed(
-        ClaShowAdminSchema(**org_info).dict(),
-        body.cla_verify_params,
-        body.cla_verify_body
-    ):
-        return jsonify(
-            error_code=RET.CLA_VERIFY_ERR,
-            error_msg="the user does not pass cla verification, please retry",
-            data=g.user_id
-        )
-
-    # 生成用户和组织的关系
-    ReUserOrganization.create(
-        g.user_id,
-        org_id,
-        json.dumps({**body.cla_verify_params, **body.cla_verify_body}),
-        default=False
-    ).add_update()
-
-    # 绑定用户和组织基础角色
-    org_suffix = get_default_suffix('org')
-    filter_params = [
-        Role.org_id == org_id,
-        Role.type == 'org',
-        Role.name == org_suffix
-    ]
-    _role = Role.query.filter(*filter_params).first()
-    Insert(ReUserRole, {"user_id": g.user_id, "role_id": _role.id}).single()
-
-    return jsonify(error_code=RET.OK, error_msg="OK")
-
-
-@collect_sql_error
-def handler_org_user_page(org_id):
-    page_num = int(request.args.get('page_num', 1))
-    page_size = int(request.args.get('page_size', 10))
-    name = request.args.get('name')
-    group_id = request.args.get('group_id')
-
-    # 获取组织下的所有用户
-    filter_params = [
-        ReUserOrganization.is_delete.is_(False),
-        ReUserOrganization.organization_id == org_id,
-        Organization.is_delete.is_(False)
-    ]
-    if group_id:
-        re_u_g = ReUserGroup.query.filter_by(is_delete=False, group_id=group_id).all()
-        user_ids = [item.user.user_id for item in re_u_g]
-        filter_params.append(ReUserOrganization.user_id.notin_(user_ids))
-    if name:
-        filter_params.append(or_(User.user_name.like(f'%{name}%'), User.user_login.like(f'%{name}%')))
-
-    query_filter = ReUserOrganization.query.join(Organization).join(User).filter(*filter_params)
-
-    def page_func(item):
-        re_dict = ReUserOrgSchema(**item.to_dict()).dict()
-        user_dict = item.user.to_dict()
-        return {**user_dict, **re_dict}
-
-    # 返回结果
-    page_dict, e = PageUtil.get_page_dict(query_filter, page_num, page_size, func=page_func)
-    if e:
-        return jsonify(error_code=RET.SERVER_ERR, error_msg=f'get group page error {e}')
-    return jsonify(error_code=RET.OK, error_msg="OK", data=page_dict)
 
 
 @collect_sql_error
@@ -183,13 +94,11 @@ def handler_get_all_org(query):
 @collect_sql_error
 def handler_org_statistic(org_id: int):
     total_groups = Group.query.filter_by(org_id=org_id, is_delete=False).count()
-    total_users = ReUserOrganization.query.filter_by(organization_id=org_id, is_delete=False).count()
 
     return jsonify(
         error_code=RET.OK,
         error_msg="OK",
         data={
             "total_groups": total_groups,
-            "total_users": total_users,
         }
     ) 

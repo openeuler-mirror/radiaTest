@@ -63,8 +63,6 @@ class GitRepo(db.Model, PermissionBaseModel, BaseModel):
 
     suites = db.relationship('Suite', backref='git_repo')
 
-    templates = db.relationship('Template', backref='git_repo')
-
     def to_json(self):
         return {
             "id": self.id,

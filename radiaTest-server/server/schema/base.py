@@ -107,3 +107,7 @@ class PermissionBase(BaseModel):
                 if not re_user_group:
                     raise ValueError("The group does not exist or does not belong to current org.")
         return values
+
+
+class QueryBaseModel(BaseModel):
+    org_id: int = None

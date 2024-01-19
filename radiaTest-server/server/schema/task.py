@@ -124,6 +124,7 @@ class QueryTaskByTimeSchema(BaseModel):
     task_time: str
     type: Literal['organization', 'group', 'version', 'all'] = "all"
     group_id: int = None
+    org_id: int = None
 
     @validator('task_time')
     def validate(cls, v):
@@ -162,6 +163,7 @@ class QueryTaskSchema(PageBaseSchema):
     is_delete: bool = False
     milestone_id: str = None
     gantt: bool = False
+    org_id: int = False
 
     @validator('participant_id')
     def validate_participant_id(cls, v):
@@ -345,6 +347,7 @@ class QueryFamilySchema(BaseModel):
     title: str = None
     not_in: bool = True
     is_parent: bool = True
+    org_id: int = None
 
 
 class DelFamilyMemberSchema(BaseModel):
@@ -516,3 +519,6 @@ class DeleteTaskList(BaseModel):
 class MilestoneTaskSchema(PageBaseSchema):
     title: str = None
 
+
+class RecycleBinSchema(PageBaseSchema):
+    org_id: int = None
