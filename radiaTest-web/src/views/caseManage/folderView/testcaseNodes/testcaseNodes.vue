@@ -4,7 +4,6 @@
       <div style="display: flex; justify-content: space-between; margin: 10px 0">
         <n-tabs type="line" @update:value="tabChange" :value="activeTab">
           <n-tab name="details">详情</n-tab>
-          <n-tab name="historicalExec">历史执行</n-tab>
           <n-tab name="auto" :disabled="!caseInfo.code">自动化脚本</n-tab>
           <n-tab name="historicalVersion">历史版本</n-tab>
         </n-tabs>
@@ -23,9 +22,6 @@
         <n-spin stroke="rgba(0, 47, 167, 1)" :show="loading">
           <template v-if="activeTab === 'details'">
             <collapse-list :list="detailsList" @edit="edit" />
-          </template>
-          <template v-else-if="activeTab === 'historicalExec'">
-            <historical-exec :case="caseInfo" />
           </template>
           <template v-else-if="activeTab === 'auto'">
             <auto-script :code="caseInfo.code" />
@@ -67,7 +63,6 @@
 <script>
 import { modules } from './modules';
 import collapseList from '@/components/collapseList/collapseList.vue';
-import historicalExec from './tabview/historicalExec.vue';
 import autoScript from './tabview/autoScript.vue';
 // import createDrawer from '@/components/task/createDrawer.vue';
 import historicalVersion from './tabview/historicalVersion.vue';
@@ -80,7 +75,6 @@ import { previewWidth, previewHeight } from '@/views/taskManage/task/modules/mdF
 export default {
   components: {
     collapseList,
-    historicalExec,
     autoScript,
     // createDrawer,
     historicalVersion,
