@@ -1,5 +1,5 @@
 <template>
-  <n-card
+  <!-- <n-card
     :bordered="false"
     size="huge"
     :segmented="{
@@ -14,17 +14,28 @@
             background-color: rgb(242,242,242);
         "
     v-if="$route.params.workspace==='default'"
+  > -->
+  <n-card
+    :bordered="false"
+    size="huge"
+    :segmented="{
+      content: 'hard',
+    }"
+    style="height: 100%"
+    content-style="padding:0"
+    header-style="
+            font-size: 30px;
+            height: 80px;
+            font-family: 'v-sans';
+            background-color: rgb(242,242,242);
+        "
   >
     <template #header>
       <n-grid :cols="3">
         <n-gi class="nav-header"></n-gi>
         <n-gi class="nav-body">
           <ul class="nav-wrapper">
-            <li
-              v-for="(item, index) in menu"
-              :key="index"
-              @click="menuClick(item, index)"
-            >
+            <li v-for="(item, index) in menu" :key="index" @click="menuClick(item, index)">
               <a :class="{ active: isTabActive(item.name) }">{{ item.text }}</a>
             </li>
           </ul>
@@ -59,15 +70,10 @@
         </n-gi>
       </n-grid>
     </template>
-    <template #default  >
+    <template #default>
       <div class="recycleWrap">
         <n-modal v-model:show="showRecycleBinModal">
-          <n-card
-            style="width: 1200px"
-            title="用例回收站"
-            :bordered="false"
-            size="huge"
-          >
+          <n-card style="width: 1200px" title="用例回收站" :bordered="false" size="huge">
             <n-data-table
               remote
               ref="recycleBinCaseTable"
@@ -84,16 +90,16 @@
     </template>
   </n-card>
   <n-card
-      :bordered="false"
-      size="huge"
-      :segmented="{
+    :bordered="false"
+    size="huge"
+    :segmented="{
       content: 'hard',
     }"
-      style="height: 100%"
-      content-style="padding:0"
-      v-if="$route.params.workspace==='release'"
+    style="height: 100%"
+    content-style="padding:0"
+    v-if="$route.params.workspace === 'release'"
   >
-    <template #default  >
+    <template #default>
       <router-view></router-view>
     </template>
   </n-card>
@@ -101,7 +107,12 @@
 
 <script>
 import { defineComponent } from 'vue';
-import { QuestionCircle20Regular, Delete48Regular, Folder20Regular, Table24Regular } from '@vicons/fluent';
+import {
+  QuestionCircle20Regular,
+  Delete48Regular,
+  Folder20Regular,
+  Table24Regular,
+} from '@vicons/fluent';
 
 import manage from './modules/management.js';
 import view from './modules/view.js';

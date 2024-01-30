@@ -2,11 +2,9 @@ import store from '@/store/index';
 import router from '@/router/index';
 import axios from '@/axios';
 import { formatTime } from '@/assets/utils/dateFormatUtils.js';
-import { storage } from '@/assets/utils/storageUtils';
 import { NButton } from 'naive-ui';
 import { editTask } from '../task/modules/taskDetail.js';
-import { getGroup } from '@/api/get';
-// import { workspace } from '@/assets/config/menu.js';
+import { getGroup, getMilestones as getMilestoneList, getTaskStatus, getTaskRecycleBbin } from '@/api/get';
 
 const menuSelect = ref(null); // 当前页面索引值
 const isTask = ref(true); // 是否是任务看板页面
@@ -87,8 +85,7 @@ function typeNameTrans(type) {
 
 // 查询回收站任务
 function query(page) {
-  axios
-    .get('/v1/tasks/recycle-bin', { page_num: page })
+  getTaskRecycleBbin({ page_num: page })
     .then((res) => {
       recycleBinTaskLoading.value = false;
       if (res.data.items) {
@@ -213,7 +210,7 @@ const menu = ref([
 //获取里程碑列表
 function getMilestones() {
   // 需要后端适配
-  axios.get('/v2/ws/default/milestone', { page_num: 1, page_size: 999999 }).then((response) => {
+  getMilestoneList({ page_num: 1, page_size: 999999 }).then((response) => {
     if (response?.data) {
       milestones.value =
         response.data?.items?.map((item) => ({
@@ -223,15 +220,10 @@ function getMilestones() {
     }
   });
 }
-
 // 初始化
 function initCondition() {
   const allRequest = [
-    axios.get('/v1/task/status'),
-    axios.get(`/v1/org/${storage.getValue('loginOrgId')}/users`, {
-      page_num: 1,
-      page_size: 9999
-    }),
+    getTaskStatus(),
     getGroup({ page_size: 99999, page_num: 1 })
   ];
   getMilestones();
@@ -259,16 +251,16 @@ function initCondition() {
         participants.value.push(option);
       });
     }
-    if (responses[2].value?.data) {
-      responses[2].value.data?.items?.forEach((item) => {
-        const option = {
-          label: item.name,
-          value: item.id
-        };
-        executors.value.push(option);
-        participants.value.push(option);
-      });
-    }
+    // if (responses[2].value?.data) {
+    //   responses[2].value.data?.items?.forEach((item) => {
+    //     const option = {
+    //       label: item.name,
+    //       value: item.id
+    //     };
+    //     executors.value.push(option);
+    //     participants.value.push(option);
+    //   });
+    // }
   });
 }
 

@@ -6,7 +6,7 @@ import { storage } from '@/assets/utils/storageUtils';
 import { showLoading, detailTask, getDetailTask } from './taskDetail.js';
 import { personArray, initData } from './kanbanAndTable.js';
 import { NAvatar } from 'naive-ui';
-import { getGroup as getGroups, getAllMilestone } from '@/api/get.js';
+import { getGroup as getGroups, getAllMilestone, getRelationTaskList, getOrgGroup } from '@/api/get.js';
 
 const showVersionTaskModal = ref(false); // 显示创建版本任务窗口
 const groups = ref([]); // 执行团队选项数组
@@ -279,11 +279,10 @@ function orgSelect(value, { type }) {
 function handleLoad(option) {
   return new Promise((resolve, reject) => {
     if (option.value === 'GROUP') {
-      axios
-        .get(`/v1/org/${storage.getValue('loginOrgId')}/groups`, {
-          page_num: 1,
-          page_size: 99999
-        })
+      getOrgGroup(storage.getLocalValue('unLoginOrgId').id, {
+        page_num: 1,
+        page_size: 99999
+      })
         .then((res) => {
           option.children = [];
           for (const item of res.data.items) {
@@ -292,28 +291,6 @@ function handleLoad(option) {
               value: String(item.id),
               avatar_url: item.avatar_url,
               type: 'GROUP'
-            });
-          }
-          resolve();
-        })
-        .catch((err) => {
-          window.$message?.error(err.data.error_msg || '未知错误');
-          reject(new Error('error'));
-        });
-    } else {
-      axios
-        .get(`/v1/org/${storage.getValue('loginOrgId')}/users`, {
-          page_num: 1,
-          page_size: 99999
-        })
-        .then((res) => {
-          option.children = [];
-          for (const item of res.data.items) {
-            option.children.push({
-              label: item.user_name,
-              value: String(item.user_id),
-              avatar_url: item.avatar_url,
-              type: 'PERSON'
             });
           }
           resolve();
@@ -486,7 +463,7 @@ function renderLabel(option) {
 const relationTasks = ref([]);
 function getRelationTask() {
   relationTasks.value = [];
-  axios.get('/v1/tasks/family').then((res) => {
+  getRelationTaskList().then(res => {
     res.data.forEach((item) => {
       relationTasks.value.push({
         label: item.title,

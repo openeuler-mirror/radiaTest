@@ -14,7 +14,7 @@
         <div class="chart" id="distribution-pie"></div>
       </div>
     </div>
-    <div class="partMain">
+    <!-- <div class="partMain">
       <div class="count count1">
         <div class="txt">commit合入</div>
         <div class="num">{{ commitsCount }}</div>
@@ -24,7 +24,7 @@
         <n-select v-model:value="commitSelectedTime" :options="timeOptions" />
         <div id="commitCounts-line"></div>
       </div>
-    </div>
+    </div> -->
   </div>
 </template>
 <script>
@@ -33,7 +33,7 @@ import { Search } from '@vicons/ionicons5';
 export default {
   setup() {
     onMounted(() => {
-      modules.initData();
+      // modules.initData();
       nextTick(() => {
         modules.initData();
         setTimeout(() => {
@@ -46,78 +46,76 @@ export default {
     });
     return {
       Search,
-      ...modules
+      ...modules,
     };
-  }
+  },
 };
 </script>
 <style lang="less" scoped>
-.casesetNodes-container{
-  .topPart{
+.casesetNodes-container {
+  .topPart {
     width: 100%;
     display: flex;
     justify-content: space-between;
   }
-  .partMain{
+  .partMain {
     height: 250px;
     width: 100%;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border:1px solid #eee;
+    border: 1px solid #eee;
     border-radius: 4px;
-    padding-top:20px;
-    padding-bottom:20px;
+    padding-top: 20px;
+    padding-bottom: 20px;
     margin-bottom: 20px;
-    .count{
-      width:20%;
+    .count {
+      width: 20%;
       text-align: center;
       height: auto;
-      &.count1{
+      &.count1 {
         width: 20%;
       }
-      .txt{
+      .txt {
         font-size: 14px;
         margin-bottom: 15px;
       }
-      .num{
+      .num {
         font-family: Arial, Helvetica, sans-serif;
         font-size: 32px;
       }
     }
-    .chart{
+    .chart {
       height: 100%;
       width: 23%;
     }
-    .chart_1{
+    .chart_1 {
       height: 100%;
       width: 30%;
     }
-    .chart_2{
+    .chart_2 {
       height: 100%;
       width: 50%;
-      .n-select{
+      .n-select {
         float: right;
         width: 20%;
         z-index: 1;
         margin-right: 20px;
       }
-      #commitCounts-line{
+      #commitCounts-line {
         height: 100%;
       }
     }
   }
 }
-
 </style>
 <style lang="less">
-.casesetNodes-container{
-  .rh_center{
-    .n-progress .n-progress-graph .n-progress-graph-line .n-progress-graph-line-rail{
+.casesetNodes-container {
+  .rh_center {
+    .n-progress .n-progress-graph .n-progress-graph-line .n-progress-graph-line-rail {
       height: 12px;
       border-radius: 10px;
     }
   }
 }
 </style>
-

@@ -1,19 +1,11 @@
 <template>
   <div class="member-menu">
     <div class="search-content">
-      <n-input
-        v-model:value="inputValue"
-        type="text"
-        placeholder="搜索"
-        @input="search"
-      />
+      <n-input v-model:value="inputValue" type="text" placeholder="搜索" @input="search" />
     </div>
     <div class="selectable-selection">
-      <n-scrollbar style="max-height: 300px;">
-        <ul
-          class="member-list"
-          v-if="!multiple"
-        >
+      <n-scrollbar style="max-height: 300px">
+        <ul class="member-list" v-if="!multiple">
           <li class="select-option-group">
             <div class="option-group-label">里程碑</div>
             <ul v-if="milepostArray.length">
@@ -39,13 +31,9 @@
         </ul>
         <ul v-else>
           <n-checkbox-group v-model:value="groupValue">
-            <div
-              v-for="(value, index) in milepostArray"
-              :key="index"
-              class="member-menu-item"
-            >
+            <div v-for="(value, index) in milepostArray" :key="index" class="member-menu-item">
               <n-checkbox :value="value.id">
-                <div style="display:flex">
+                <div style="display: flex">
                   <div class="item-content-wrap">
                     <div class="item-content">
                       <div class="item-main">
@@ -61,25 +49,19 @@
       </n-scrollbar>
     </div>
     <n-divider style="margin: 4px 0" />
-    <div
-      class="footer"
-      v-show="multiple"
-    >
-      <n-button
-        type="info"
-        @click="selectMileposts"
-        class="btn"
-      >确定</n-button>
+    <div class="footer" v-show="multiple">
+      <n-button type="info" @click="selectMileposts" class="btn">确定</n-button>
     </div>
   </div>
 </template>
 
 <script>
 import { ref } from 'vue';
+import { getMilestones } from '@/api/get';
 
 export default {
   props: ['multiple', 'defaultValue'],
-  data () {
+  data() {
     return {
       milepostArray: [],
       milepostArrayTemp: [],
@@ -88,13 +70,13 @@ export default {
     };
   },
   methods: {
-    selectMilepost (value) {
+    selectMilepost(value) {
       this.$emit('getMilepost', value);
     },
-    selectMileposts () {
+    selectMileposts() {
       this.$emit('getMileposts', this.groupValue);
     },
-    search () {
+    search() {
       if (!this.inputValue) {
         this.milepostArray = this.milepostArrayTemp;
       }
@@ -103,20 +85,21 @@ export default {
       );
     },
   },
-  mounted () {
+  mounted() {
     const filterValue = ref({
-      paged: false
+      paged: false,
     });
     // this.$axios.get(`/v2/ws/${workspace.value}/milestone`, filterValue.value).then((res) => {
     //   this.milepostArray = res.data?.items||[];
     //   this.milepostArrayTemp = res.data?.items||[];
     // });
-    this.$axios.get('/v2/ws/default/milestone', filterValue.value).then((res) => {
-      this.milepostArray = res.data?.items||[];
-      this.milepostArrayTemp = res.data?.items||[];
+    // this.$axios.get('/v2/ws/default/milestone', filterValue.value).then((res) => {
+    getMilestones(filterValue.value).then((res) => {
+      this.milepostArray = res.data?.items || [];
+      this.milepostArrayTemp = res.data?.items || [];
     });
     if (this.defaultValue) {
-      this.groupValue = this.defaultValue.map(item => item.id);
+      this.groupValue = this.defaultValue.map((item) => item.id);
     }
   },
 };

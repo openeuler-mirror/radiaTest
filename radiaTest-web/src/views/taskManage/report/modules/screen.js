@@ -1,8 +1,7 @@
 import { ref, h } from 'vue';
 import { NAvatar } from 'naive-ui';
-import axios from '@/axios';
 import { storage } from '@/assets/utils/storageUtils';
-// import { workspace } from '@/assets/config/menu.js';
+import { getAllMilestone, getOrgGroup } from '@/api/get.js';
 
 const weekMS = 1000 * 60 * 60 * 24 * 7;
 const timeRange = ref([Date.now() - weekMS, Date.now()]);
@@ -26,9 +25,9 @@ function disablePreviousDate(ts) {
   return ts > Date.now();
 }
 
-function getMilestone () {
+function getMilestone() {
   // 需要后端适配
-  axios.get('/v2/ws/default/milestone').then(res => {
+  getAllMilestone().then(res => {
     milestoneOptions.value = [];
     for (const item of res.data.items) {
       milestoneOptions.value.push({
@@ -44,7 +43,7 @@ function getGroup() {
     group.value = [];
   }
   const requests = [];
-  requests.push(axios.get(`/v1/org/${storage.getValue('loginOrgId')}/groups`, { page_size: 99999, page_num: 1, }));
+  requests.push(getOrgGroup(storage.getValue('loginOrgId'), { page_size: 99999, page_num: 1, }));
   groupOptions.value = [];
   Promise.allSettled(requests).then(responses => {
     responses.forEach(item => {
@@ -66,7 +65,6 @@ function getOwner() {
     owner.value = [];
   }
   const requests = [];
-  requests.push(axios.get(`/v1/org/${storage.getValue('loginOrgId')}/users`, { page_size: 99999, page_num: 1, }));
   ownerOptions.value = [];
   Promise.allSettled(requests).then(responses => {
     responses.forEach(item => {

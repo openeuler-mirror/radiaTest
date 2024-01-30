@@ -1,5 +1,5 @@
 import axios from '@/axios';
-import { getRepo, getSuite, getPm, getVm, getMilestonesByName } from '@/api/get';
+import { getRepo, getMilestonesByName, getProduct } from '@/api/get';
 import { workspace } from '@/assets/config/menu.js';
 
 export async function createRepoOptions(filter) {
@@ -9,35 +9,6 @@ export async function createRepoOptions(filter) {
     value: String(item.id)
   }));
 }
-export async function createSuiteOptions(filter) {
-  const data = await getSuite(filter);
-  return data.data?.items.map((item) => ({
-    label: item.name,
-    value: String(item.id),
-    machineCount: item.machine_num,
-    machineType: item.machine_type
-  }));
-}
-export async function createCaseOptions(filter) {
-  const res = await axios.get(`v1/ws/${workspace.value}/case/preciseget`, filter);
-  return res?.data.map((v) => ({ label: v.name, value: v.id }));
-}
-
-export async function createPmOptions(filter) {
-  const data = await getPm(filter);
-  return data.data.map((item) => ({
-    label: item.ip,
-    value: String(item.id)
-  }));
-}
-export async function createVmOptions(filter) {
-  const data = await getVm(filter);
-  return data.data.map((item) => ({
-    label: item.ip,
-    value: String(item.id)
-  }));
-}
-
 const getProductOpts = (productOpts, loading) => {
   loading ? (loading.value = true) : 0;
   productOpts.value = [];
@@ -66,9 +37,8 @@ const getProductOpts = (productOpts, loading) => {
 const getProductVersionOpts = (productOpts, loading) => {
   loading ? (loading.value = true) : 0;
   productOpts.value = [];
-  axios
-    // .get(`/v1/ws/${workspace.value}/product`, { paged: false })
-    .get('/v1/ws/default/product', { paged: false })
+  getProduct({ paged: false })
+    // .get('/v1/ws/default/product', { paged: false })
     .then((res) => {
       loading ? (loading.value = false) : 0;
       productOpts.value = res.data.items.map((item) => {
@@ -84,12 +54,12 @@ const getProductVersionOpts = (productOpts, loading) => {
     });
 };
 
-const getProductVersionOrgOpts = (productOpts, loading) => {
+const getProductVersionOrgOpts = async (productOpts, loading) => {
   loading ? (loading.value = true) : 0;
   productOpts.value = [];
-  axios
-    .get(`/v1/ws/${workspace.value}/product`, { paged: false, permission_type: 'org' })
+  await getProduct({ paged: false, permission_type: 'org' })
     .then((res) => {
+      console.log('getOpts', res);
       loading ? (loading.value = false) : 0;
       productOpts.value = res.data?.items?.map((item) => {
         return {

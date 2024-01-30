@@ -6,12 +6,12 @@ import { renderTooltip } from '@/assets/render/tooltip';
 import { Delete24Regular as Delete } from '@vicons/fluent';
 import { registerModel, showRegisterOrgWindow, isCreate, fileList } from './registerOrg';
 import { organizationInfo } from '@/api/put';
+import { getAdminOrg } from '@/api/get';
 import textDialog from '@/assets/utils/dialog';
-import axios from '@/axios';
 
 const orgs = ref([]);
 function getData() {
-  axios.get('/v1/admin/org').then((res) => {
+  getAdminOrg().then((res) => {
     orgs.value = res.data;
   });
 }

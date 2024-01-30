@@ -1,54 +1,57 @@
 import { ref, reactive, computed } from 'vue';
 
 import axios from '@/axios';
-import { storage } from '@/assets/utils/storageUtils';
+// import { storage } from '@/assets/utils/storageUtils';
 import { changeLoadingStatus } from '@/assets/utils/loading';
 import { groupInfo, showAddUser } from './groupDrawer';
+// import { getOrgUser } from '@/api/get';
 
 let addUserInfo = reactive({
   name: '',
   value: ''
 });
 const usersList = ref([]);
-function deleteItems (index) {
+function deleteItems(index) {
   usersList.value.splice(index, 1);
 }
-function searchUser () {
-  changeLoadingStatus(true);
-  axios.get(`/v1/org/${storage.getValue('loginOrgId')}/users`, {
-    page_size: 9999,
-    page_num: 1,
-    name: addUserInfo.name,
-    group_id: groupInfo.id,
-  }).then(res => {
-    changeLoadingStatus(false);
-    let result = [];
-    let obj = {};
-    if (res.data?.items) {
-      usersList.value.push(...res.data.items);
-      for (let i of usersList.value) {
-        if (!obj[i.user_id]) {
-          result.push(i);
-          obj[i.user_id] = true;
-        }
-      }
-      usersList.value = result;
-    }
-  }).catch((err) => {
-    window.$message?.error(err.data.error_msg||'未知错误');
-    changeLoadingStatus(false);
-  });
+function searchUser() {
+  // changeLoadingStatus(true);
+
+  // axios.get(`/v1/org/${storage.getValue('loginOrgId')}/users`, {
+  // getOrgUser(storage.getLocalValue('unLoginOrgId').id, {
+  //   page_size: 9999,
+  //   page_num: 1,
+  //   name: addUserInfo.name,
+  //   group_id: groupInfo.id,
+  // }).then(res => {
+  //   changeLoadingStatus(false);
+  //   let result = [];
+  //   let obj = {};
+  //   if (res.data?.items) {
+  //     usersList.value.push(...res.data.items);
+  //     for (let i of usersList.value) {
+  //       if (!obj[i.user_id]) {
+  //         result.push(i);
+  //         obj[i.user_id] = true;
+  //       }
+  //     }
+  //     usersList.value = result;
+  //   }
+  // }).catch((err) => {
+  //   window.$message?.error(err.data.error_msg || '未知错误');
+  //   changeLoadingStatus(false);
+  // });
 }
-function initAddInfo () {
+function initAddInfo() {
   usersList.value = [];
   addUserInfo.name = '';
   addUserInfo.value = '';
 }
-function cancelAdd () {
+function cancelAdd() {
   showAddUser.value = !showAddUser.value;
   initAddInfo();
 }
-function handlePositiveClick () {
+function handlePositiveClick() {
   if (usersList.value.length) {
     changeLoadingStatus(true);
     const userIds = usersList.value.map(item => {
@@ -63,7 +66,7 @@ function handlePositiveClick () {
       }
       cancelAdd();
     }).catch((err) => {
-      window.$message?.error(err.data.error_msg||'未知错误');
+      window.$message?.error(err.data.error_msg || '未知错误');
       changeLoadingStatus(false);
     });
   } else {

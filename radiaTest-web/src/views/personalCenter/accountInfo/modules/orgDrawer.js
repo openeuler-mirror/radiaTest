@@ -1,7 +1,8 @@
 import { ref, h } from 'vue';
 import { NTag, NDropdown, NText, NAvatar } from 'naive-ui';
 import { setOrgUserRole } from '@/api/post';
-import { getAllRole, getOrgUser } from '@/api/get';
+// import { getAllRole, getOrgUser } from '@/api/get';
+import { getAllRole } from '@/api/get';
 import { deleteOrgUserRole } from '@/api/delete';
 import { createAvatar } from '@/assets/utils/createImg';
 const activeOrg = ref({});
@@ -14,7 +15,7 @@ const orgDrawerPagination = ref({
   pageSize: 10,
 });
 const orgUsers = ref([]);
-function getOrgRole () {
+function getOrgRole() {
   getAllRole().then(res => {
     res.data.forEach(item => {
       if (item.type === 'org') {
@@ -25,41 +26,42 @@ function getOrgRole () {
     });
   });
 }
-function getTableData () {
-  orgDrawerLoading.value = true;
-  getOrgUser(activeOrg.value.org_id, {
-    page_num: orgDrawerPagination.value.page,
-    page_size: orgDrawerPagination.value.pageSize
-  }).then(res => {
-    orgUsers.value = res.data?.items || [];
-    orgDrawerPagination.value.pageCount = res.data?.pages || 1;
-    orgDrawerLoading.value = false;
-  }).catch(() => {
-    orgDrawerLoading.value = false;
-  });
-}
-function setActiveOrgInfo (value) {
+// function getTableData() {
+//   orgDrawerLoading.value = true;
+//   getOrgUser(activeOrg.value.org_id, {
+//     page_num: orgDrawerPagination.value.page,
+//     page_size: orgDrawerPagination.value.pageSize
+//   }).then(res => {
+//     orgUsers.value = res.data?.items || [];
+//     orgDrawerPagination.value.pageCount = res.data?.pages || 1;
+//     orgDrawerLoading.value = false;
+//   }).catch(() => {
+//     orgDrawerLoading.value = false;
+//   });
+// }
+function setActiveOrgInfo(value) {
   showOrgDrawer.value = true;
   activeOrg.value = value;
   getOrgRole();
-  getTableData();
+  // getTableData();
 }
 
-function drawerUpdateShow (value) {
+function drawerUpdateShow(value) {
   showOrgDrawer.value = value;
 }
-function deleteRole (row) {
+function deleteRole(row) {
   deleteOrgUserRole(activeOrg.value.org_id, {
     user_id: row.user_id,
     role_id: row.role.id,
-  }).then(() => getTableData());
+    // }).then(() => getTableData());
+  });
 }
-function selectRole (row, item) {
+function selectRole(row, item) {
   setOrgUserRole(activeOrg.value.org_id, {
     user_id: row.user_id,
     role_id: Number(item.value),
   }).then(() => {
-    getTableData();
+    // getTableData();
   });
 }
 
@@ -68,8 +70,8 @@ const orgDrawerColumns = [
     title: '',
     key: 'avatar_url',
     align: 'center',
-    render (row) {
-      return h(NAvatar, { size: 'small', src: row.avatar_url, fallbackSrc: createAvatar(row.user_name.slice(0,1))});
+    render(row) {
+      return h(NAvatar, { size: 'small', src: row.avatar_url, fallbackSrc: createAvatar(row.user_name.slice(0, 1)) });
     }
   },
   {
@@ -86,7 +88,7 @@ const orgDrawerColumns = [
     title: '角色',
     key: 'role',
     align: 'center',
-    render (row) {
+    render(row) {
       const tag = h(
         NTag,
         {

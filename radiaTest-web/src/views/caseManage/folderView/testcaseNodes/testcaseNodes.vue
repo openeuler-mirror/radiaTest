@@ -5,7 +5,7 @@
         <n-tabs type="line" @update:value="tabChange" :value="activeTab">
           <n-tab name="details">详情</n-tab>
           <n-tab name="auto" :disabled="!caseInfo.code">自动化脚本</n-tab>
-          <n-tab name="historicalVersion">历史版本</n-tab>
+          <!-- <n-tab name="historicalVersion">历史版本</n-tab> -->
         </n-tabs>
         <!--存在未完成关联任务时disabled-->
         <!-- <n-button
@@ -56,7 +56,10 @@
       </div>
     </n-modal>
   </div>
-  <div v-else style="height: 100%; width: 100%; display: flex; justify-content: center; align-items: center">
+  <div
+    v-else
+    style="height: 100%; width: 100%; display: flex; justify-content: center; align-items: center"
+  >
     <n-empty description="开发中..."> </n-empty>
   </div>
 </template>
@@ -65,7 +68,6 @@ import { modules } from './modules';
 import collapseList from '@/components/collapseList/collapseList.vue';
 import autoScript from './tabview/autoScript.vue';
 // import createDrawer from '@/components/task/createDrawer.vue';
-import historicalVersion from './tabview/historicalVersion.vue';
 
 import { ref, provide } from 'vue';
 import { formatTime } from '@/assets/utils/dateFormatUtils';
@@ -77,8 +79,7 @@ export default {
     collapseList,
     autoScript,
     // createDrawer,
-    historicalVersion,
-    caseModifyForm
+    caseModifyForm,
   },
   mounted() {
     if (this.$route.params.taskId === 'development') {
@@ -91,7 +92,7 @@ export default {
           if (Number(sessionStorage.getItem('refresh')) === 1) {
             window.dispatchEvent(
               new CustomEvent('refreshEvent', {
-                detail: { caseNodeId: window.atob(this.$route.params.taskId) }
+                detail: { caseNodeId: window.atob(this.$route.params.taskId) },
               })
             );
             sessionStorage.setItem('refresh', 0);
@@ -108,9 +109,9 @@ export default {
       previewHeight,
       showDetail,
       formatTime,
-      ...modules
+      ...modules,
     };
-  }
+  },
 };
 </script>
 <style lang="less" scoped>

@@ -3,7 +3,8 @@ import store from '@/store/index';
 import { showLoading } from './taskDetail.js';
 import axios from '@/axios';
 import { storage } from '@/assets/utils/storageUtils';
-import { workspace } from '@/assets/config/menu.js';
+// import { workspace } from '@/assets/config/menu.js';
+import { getTasks, getTaskStatus } from '@/api/get.js';
 
 const listData = ref([]); // 看板数据
 const personArray = ref([]); // 执行者
@@ -26,7 +27,7 @@ const statusArray = computed(() => {
 // 获取任务信息
 function getTask() {
   const allRequest = listData.value.map((item) => {
-    return axios.get(`/v1/ws/${workspace.value}/tasks`, {
+    return getTasks({
       status_id: item.id,
       page_num: 1,
       page_size: 99999999
@@ -49,8 +50,7 @@ function getTask() {
 function initData(cb) {
   userId = String(storage.getValue('user_id'));
   showLoading.value = true;
-  axios
-    .get('/v1/task/status')
+  getTaskStatus()
     .then((res) => {
       showLoading.value = false;
       if (res.data) {

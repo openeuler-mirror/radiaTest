@@ -20,11 +20,7 @@
             :value="model.type"
           />
         </n-form-item>
-        <n-form-item
-          label="执行团队"
-          path="group_id"
-          v-if="model.type === 'GROUP'"
-        >
+        <n-form-item label="执行团队" path="group_id" v-if="model.type === 'GROUP'">
           <n-select
             placeholder="请选择"
             :options="groups"
@@ -56,8 +52,8 @@
           path="executor_id"
           v-if="
             model.type !== null &&
-              (model.type === 'GROUP' || model.type === 'PERSON') &&
-              model.group !== ''
+            (model.type === 'GROUP' || model.type === 'PERSON') &&
+            model.group !== ''
           "
         >
           <n-select
@@ -69,27 +65,16 @@
           />
         </n-form-item>
         <n-form-item label="里程碑" path="milestone_id">
-          <n-select
-            :options="milestones"
-            v-model:value="model.milestone_id"
-          ></n-select>
+          <n-select :options="milestones" v-model:value="model.milestone_id"></n-select>
         </n-form-item>
         <n-form-item label="截止日期" v-if="!isCase">
           <n-date-picker format="yyyy-MM-dd" v-model:value="model.deadline" />
         </n-form-item>
         <n-form-item label="关键词">
-          <n-input
-            placeholder="请输入关键词"
-            v-model:value="model.keywords"
-            type="textarea"
-          />
+          <n-input placeholder="请输入关键词" v-model:value="model.keywords" type="textarea" />
         </n-form-item>
         <n-form-item label="摘要">
-          <n-input
-            placeholder="请输入报告摘要"
-            v-model:value="model.abstract"
-            type="textarea"
-          />
+          <n-input placeholder="请输入报告摘要" v-model:value="model.abstract" type="textarea" />
         </n-form-item>
         <n-form-item label="缩略语清单">
           <n-input
@@ -99,12 +84,8 @@
           />
         </n-form-item>
         <div class="createButtonBox">
-          <n-button class="btn" type="error" ghost @click="close"
-            >取消</n-button
-          >
-          <n-button class="btn" type="info" ghost @click="submit"
-            >创建</n-button
-          >
+          <n-button class="btn" type="error" ghost @click="close">取消</n-button>
+          <n-button class="btn" type="info" ghost @click="submit">创建</n-button>
         </div>
       </n-form>
     </n-drawer-content>
@@ -119,14 +100,14 @@ import {
 } from '@/views/taskManage/task/modules/createTask';
 import { formatTime } from '@/assets/utils/dateFormatUtils';
 import { storage } from '@/assets/utils/storageUtils';
-import { getGroup } from '@/api/get';
+import { getGroup, getMilestones } from '@/api/get';
 
 export default {
-  props:{
-    isCase:{
-      default:false,
-      type:Boolean
-    }
+  props: {
+    isCase: {
+      default: false,
+      type: Boolean,
+    },
   },
   setup() {
     const taskTypes = [
@@ -198,10 +179,7 @@ export default {
         if (error) {
           window.$message?.error('信息有误，请检查');
         } else {
-          this.model.deadline = formatTime(
-            this.model.deadline,
-            'yyyy-MM-dd hh:mm:ss'
-          );
+          this.model.deadline = formatTime(this.model.deadline, 'yyyy-MM-dd hh:mm:ss');
           const formData = JSON.parse(JSON.stringify(this.model));
           formData.group_id = this.model.type === 'GROUP' ? Number(this.model.group) : null;
           this.$emit('submit', formData);
@@ -223,19 +201,17 @@ export default {
       };
     },
     getMilestone() {
-      this.$axios
-        // .get(`/v2/ws/${workspace.value}/milestone`)
-          .get('/v2/ws/default/milestone')
-          .then((res) => {
+      // this.$axios
+      // .get(`/v2/ws/${workspace.value}/milestone`)
+      getMilestones()
+        .then((res) => {
           this.milestones =
             res.data?.items?.map((item) => ({
               label: item.name,
               value: String(item.id),
             })) || [];
         })
-        .catch((err) =>
-          window.$message?.error(err.data.error_msg || '未知错误')
-        );
+        .catch((err) => window.$message?.error(err.data.error_msg || '未知错误'));
     },
     orgSelect(value, { type }) {
       this.model.executor_id = value;

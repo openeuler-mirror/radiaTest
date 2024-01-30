@@ -2,7 +2,7 @@ import { NButton } from 'naive-ui';
 import { ref, h, reactive } from 'vue';
 import axios from '@/axios';
 import { formatTime } from '@/assets/utils/dateFormatUtils.js';
-import { getGroup, getCaseSetNodes, getCaseNode } from '@/api/get';
+import { getGroup, getCaseSetNodes, getCaseNode, getDistributeTemplates, getDistributeTemplateSuites } from '@/api/get';
 import { storage } from '@/assets/utils/storageUtils';
 
 const showNewTemplateDrawer = ref(false);
@@ -298,11 +298,10 @@ function getTemplateTableRowsData(items) {
 // 获取模板表格数据
 function getTemplateTableData() {
   distributionLoading.value = true;
-  axios
-    .get('v1/tasks/distribute-templates', {
-      page_num: templatePagination.page,
-      page_size: templatePagination.pageSize
-    })
+  getDistributeTemplates({
+    page_num: templatePagination.page,
+    page_size: templatePagination.pageSize
+  })
     .then((res) => {
       distributionLoading.value = false;
       distributionTableData.value = [];
@@ -397,8 +396,12 @@ function getTemplateType(value) {
   drawerModel.value.suiteNames = [];
   drawerModel.value.executor = null;
   drawerModel.value.helpers = [];
-  axios
-    .get(`v1/tasks/distribute-templates/suites?page_num=1&page_size=99999999&type_id=${value}`)
+  let params = {
+    page_num: 1,
+    page_size: 99999999,
+    type_id: value,
+  };
+  getDistributeTemplateSuites(params)
     .then((res) => {
       drawerModel.value.executor = res.data.executor.user_id;
       if (res.data.helpers) {

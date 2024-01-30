@@ -1,7 +1,7 @@
 import { ref, computed } from 'vue';
-import axios from '@/axios';
-import { workspace } from '@/assets/config/menu.js';
-
+// import axios from '@/axios';
+// import { workspace } from '@/assets/config/menu.js';
+import { getSuite } from '@/api/get';
 const size = ref('medium');
 
 const tab = ref('basic');
@@ -35,8 +35,7 @@ const contentFormValue = ref({
 const suiteOptions = ref([]);
 
 const initSuiteOptions = () => {
-  axios
-    .get(`/v1/ws/${workspace.value}/suite`)
+  getSuite()
     .then((res) => {
       suiteOptions.value = res.data.map((item) => {
         return {
@@ -103,7 +102,7 @@ const infoRules = ref({
   },
   add_disk: {
     trigger: ['change', 'blur'],
-    validator (rule, value) {
+    validator(rule, value) {
       if (value && !value.every(item => item.match(/^[0-9]* GiB$/))) {
         return new Error('存在非法格式的磁盘');
       }

@@ -1,11 +1,23 @@
 import axios from '@/axios';
 import { any2standard } from '@/assets/utils/dateFormatUtils';
 import { unkonwnErrorMsg } from '@/assets/utils/description';
+import { storage } from '@/assets/utils/storageUtils';
+const addedOrg = (params) => {
+  let addedOrgData = {};
+  if (params) {
+    addedOrgData = params;
+    addedOrgData.org_id = storage.getLocalValue('unLoginOrgId').id;
+  } else {
+    addedOrgData.org_id = storage.getLocalValue('unLoginOrgId').id;
+  }
+  return addedOrgData;
+};
 
 const list = (url, data, loading, params, page) => {
   loading ? (loading.value = true) : 0;
+  let resultParams = addedOrg(params);
   axios
-    .get(url, params)
+    .get(url, resultParams)
     .then((res) => {
       let resData;
       if (Array.isArray(res.data)) {
@@ -42,8 +54,9 @@ const refresh = (url, data, loading, pramas) => {
 
 const filter = (url, data, loading, filters) => {
   loading.value = true;
+  let resultParams = addedOrg(filters);
   axios
-    .get(url, filters)
+    .get(url, resultParams)
     .then((res) => {
       res.data?.forEach((item) => {
         item.start_time ? (item.start_time = any2standard(item.start_time)) : 0;
@@ -66,8 +79,9 @@ const filter = (url, data, loading, filters) => {
 
 const filterItem = (url, data, loading, filters) => {
   loading.value = true;
+  let resultParams = addedOrg(filters);
   axios
-    .get(url, filters)
+    .get(url, resultParams)
     .then((res) => {
       res.data.items && res.data.items?.forEach((item) => {
         item.start_time ? (item.start_time = any2standard(item.start_time)) : 0;

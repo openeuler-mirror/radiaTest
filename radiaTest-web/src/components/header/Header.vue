@@ -8,12 +8,10 @@
         </span>
       </div>
     </n-space>
-    <div class="myMenu" v-if="showFunctionMenu">
+    <div class="myMenu">
       <header-menu />
     </div>
-    <div class="myMenu" v-else>
-      <HomeMenu></HomeMenu>
-    </div>
+
     <div class="myProfile">
       <profile-menu />
     </div>
@@ -24,12 +22,11 @@
 import ProfileMenu from './profileMenu/ProfileMenu.vue';
 import { useRouter } from 'vue-router';
 import HeaderMenu from './Menu.vue';
-import { showFunctionMenu } from '@/assets/config/menu.js';
 
 const router = useRouter();
 
 const clickLogo = () => {
-  router.push('/home');
+  router.push({ name: 'task' });
 };
 </script>
 

@@ -1,10 +1,9 @@
 import { ref, reactive } from 'vue';
 
-import axios from '@/axios';
 import { timeRange, type, milestone, group, owner } from './screen';
 import { formatTime } from '@/assets/utils/dateFormatUtils.js';
 import { setTableDate, pagination } from './issueTable';
-import { getIssueType } from '@/api/get';
+import { getIssueType, getTaskCount } from '@/api/get';
 
 const issueTypeOpts = ref([]);
 const stateType = ref('');
@@ -106,7 +105,7 @@ const barOptions = reactive({
     }
   ]
 });
-function setDataZoom (option, maxCount, dataLength) {
+function setDataZoom(option, maxCount, dataLength) {
   option.dataZoom = [
     {
       type: 'slider',
@@ -121,7 +120,7 @@ function setDataZoom (option, maxCount, dataLength) {
 }
 
 function requestData(option) {
-  axios.get('/v1/task/count/total', option).then(res => {
+  getTaskCount(option).then(res => {
     count.dueToday = res.data.count_today;
     count.overdue = res.data.overtime_count;
     count.completed = res.data.accomplish;
@@ -149,11 +148,11 @@ function requestData(option) {
     lineOptions.series[0].data = arr;
     setTableDate(res.data.issues);
   }).catch(err => {
-    window.$message.error(err.data.error_msg||'未知错误');
+    window.$message.error(err.data.error_msg || '未知错误');
   });
 }
 
-function getData () {
+function getData() {
   const executors = [];
   const groups = [];
   owner.value.forEach(item => {

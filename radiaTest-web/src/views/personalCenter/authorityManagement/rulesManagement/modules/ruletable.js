@@ -6,6 +6,7 @@ import { renderTooltip } from '@/assets/render/tooltip';
 import axios from '@/axios';
 import { changeLoadingStatus } from '@/assets/utils/loading';
 import { unkonwnErrorMsg } from '@/assets/utils/description';
+import { getRuleses } from '@/api/get';
 
 const data = ref();
 const filterOptions = ref({});
@@ -19,7 +20,7 @@ const pagination = ref({
 
 function getRules() {
   changeLoadingStatus(true);
-  axios.get('/v1/scope', {
+  getRuleses({
     ...filterOptions.value,
     page_num: pagination.value.page,
     page_size: pagination.value.pageSize,
@@ -158,13 +159,13 @@ watch(filterOptions, () => {
   getRules();
 }, { deep: true });
 
-export { 
-  filters, 
-  data, 
-  columns, 
+export {
+  filters,
+  data,
+  columns,
   pagination,
   pageChange,
   pageSizeChange,
-  getRules, 
-  filterChange 
+  getRules,
+  filterChange
 };

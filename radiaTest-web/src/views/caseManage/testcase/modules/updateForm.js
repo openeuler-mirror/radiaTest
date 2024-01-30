@@ -1,6 +1,7 @@
 import { ref, computed } from 'vue';
-import axios from '@/axios';
-import { workspace } from '@/assets/config/menu.js';
+// import axios from '@/axios';
+// import { workspace } from '@/assets/config/menu.js';
+import { getSuite } from '@/api/get';
 
 const size = ref('medium');
 
@@ -13,8 +14,7 @@ const infoFormValue = ref({});
 const suiteOptions = ref([]);
 
 const initSuiteOptions = () => {
-  axios
-    .get(`/v1/ws/${workspace.value}/suite`)
+  getSuite()
     .then((res) => {
       suiteOptions.value = res.data.map((item) => {
         return {

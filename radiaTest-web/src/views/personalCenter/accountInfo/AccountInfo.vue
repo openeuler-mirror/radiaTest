@@ -7,7 +7,7 @@
           circle
           :size="100"
           :src="state.userInfo.avatar_url"
-          :fallback-src="createAvatar(String(state.userInfo.user_name).slice(0,1))"
+          :fallback-src="createAvatar(String(state.userInfo.user_name).slice(0, 1))"
         />
       </div>
       <div class="container">
@@ -23,7 +23,7 @@
             <n-gi :span="9"> </n-gi>
           </n-grid>
         </div>
-        <div class="info-item">
+        <!-- <div class="info-item">
           <n-grid :cols="12" class="info-item-box">
             <n-gi :span="1">
               <p>手机号</p>
@@ -54,7 +54,7 @@
               >
             </n-gi>
           </n-grid>
-        </div>
+        </div> -->
         <div class="info-item">
           <n-grid :cols="12">
             <n-gi :span="1">
@@ -67,19 +67,8 @@
           </n-grid>
         </div>
         <n-divider />
-        <div
-          class="item-title"
-          style="justify-content: space-between; display: flex"
-        >
+        <!-- <div class="item-title" style="justify-content: space-between; display: flex">
           <h3>我的组织</h3>
-          <!-- <n-button type="primary" @click="handleAddOrg">
-            <template #icon>
-              <n-icon>
-                <add />
-              </n-icon>
-            </template>
-            添加组织
-          </n-button> -->
         </div>
         <n-data-table
           remote
@@ -87,7 +76,7 @@
           :data="state.userInfo.orgs"
           :pagination="pagination"
           :row-props="orgRowProps"
-        />
+        /> -->
       </div>
     </div>
     <n-drawer
@@ -108,12 +97,7 @@
         />
       </n-drawer-content>
     </n-drawer>
-    <n-modal
-      v-model:show="showAddModal"
-      preset="dialog"
-      title="Dialog"
-      :showIcon="false"
-    >
+    <n-modal v-model:show="showAddModal" preset="dialog" title="Dialog" :showIcon="false">
       <template #header>
         <div>添加组织</div>
       </template>
@@ -137,16 +121,8 @@
       </n-form-item>
       <template #action>
         <n-space style="width: 100%">
-          <n-button
-            @click="showAddModal = false"
-            ghost
-            size="large"
-            type="error"
-            >取消</n-button
-          >
-          <n-button @click="submitAddOrg" size="large" ghost type="primary"
-            >确认</n-button
-          >
+          <n-button @click="showAddModal = false" ghost size="large" type="error">取消</n-button>
+          <n-button @click="submitAddOrg" size="large" ghost type="primary">确认</n-button>
         </n-space>
       </template>
     </n-modal>
@@ -200,7 +176,7 @@ export default {
 .info-item {
   margin: 10px 0;
 
-  .info-item-box{
+  .info-item-box {
     align-items: center;
   }
 }

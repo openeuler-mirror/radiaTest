@@ -1,8 +1,8 @@
 import { ref } from 'vue';
 import { init } from 'echarts';
-import { 
-  automationRatePie, 
-  commitCountsLine 
+import {
+  automationRatePie,
+  commitCountsLine
 } from '../../modules/echartsOptions';
 import { getOrgNode } from '@/api/get.js';
 import router from '@/router';
@@ -30,7 +30,7 @@ const autoRatio = ref(0);
 const distribute = ref([]);
 
 function initEcharts() {
-  echartConfig('orgAutomationRate-pie', automationRatePie([{label:'用例自动化率', value: autoRatio.value}],'用例自动化率'));
+  echartConfig('orgAutomationRate-pie', automationRatePie([{ label: '用例自动化率', value: autoRatio.value }], '用例自动化率'));
   echartConfig('orgCommitCounts-line', commitCountsLine(distribute.value, '用例commit合入'));
 }
 
@@ -50,7 +50,7 @@ function formatObject(data, prop) {
 function initData() {
   currentId.value = window.atob(router.currentRoute.value.params.taskId);
   getOrgNode(
-    currentId.value, 
+    currentId.value,
     { commit_type: commitSelectedTime.value }
   )
     .then(res => {

@@ -21,7 +21,7 @@ import { Close } from '@vicons/ionicons5';
 export default {
   setup() {
     onMounted(() => {
-      modules.initData();
+      // modules.initData();
       nextTick(() => {
         modules.initData();
         setTimeout(() => {
@@ -34,45 +34,45 @@ export default {
     });
     return {
       Close,
-      ...modules
+      ...modules,
     };
-  }
+  },
 };
 </script>
 <style lang="less" scoped>
-.topPart{
+.topPart {
   width: 100%;
   display: flex;
   justify-content: space-between;
 }
-.partMain{
+.partMain {
   height: 250px;
   width: 100%;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border:1px solid #eee;
+  border: 1px solid #eee;
   border-radius: 4px;
-  padding-top:20px;
-  padding-bottom:20px;
+  padding-top: 20px;
+  padding-bottom: 20px;
   margin-bottom: 20px;
-  .count{
-    width:20%;
+  .count {
+    width: 20%;
     text-align: center;
     height: auto;
-    &.count1{
+    &.count1 {
       width: 10%;
     }
-    .txt{
+    .txt {
       font-size: 14px;
       margin-bottom: 15px;
     }
-    .num{
+    .num {
       font-family: Arial, Helvetica, sans-serif;
       font-size: 32px;
     }
   }
-  .chart{
+  .chart {
     height: 100%;
     width: 23%;
   }

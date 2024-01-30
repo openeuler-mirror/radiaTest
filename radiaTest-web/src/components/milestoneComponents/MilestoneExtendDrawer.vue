@@ -24,22 +24,11 @@
         </p>
       </template>
       <n-tabs animated type="segment">
-        <n-tab-pane name="image" tab="镜像信息">
-          <div
-            v-show="rowData.type !== 'update'"
-            style="margin-top: 20px; margin-bottom: 20px"
-          >
-            <milestone-image-card :form="rowData" />
-          </div>
-          <div style="margin-top: 20px; margin-bottom: 20px">
-            <milestone-repo-card :form="rowData" />
-          </div>
-        </n-tab-pane>
         <n-tab-pane name="issue" tab="Issues列表">
           <milestone-issues-card :milestone-id="rowData.id" />
         </n-tab-pane>
         <n-tab-pane name="task" tab="任务列表">
-          <MilestoneTaskTable :milestoneId="rowData.id"/>
+          <MilestoneTaskTable :milestoneId="rowData.id" />
         </n-tab-pane>
       </n-tabs>
     </n-drawer-content>
@@ -49,8 +38,6 @@
 <script>
 import { ref, defineComponent } from 'vue';
 
-import MilestoneImageCard from './MilestoneImageCard.vue';
-import MilestoneRepoCard from './MilestoneRepoCard.vue';
 import MilestoneTaskTable from './MilestoneTaskTable.vue';
 import MilestoneIssuesCard from './MilestoneIssuesCard.vue';
 import { ArrowLeft32Filled as ArrowLeft } from '@vicons/fluent';
@@ -59,8 +46,6 @@ import milestoneTable from '@/views/versionManagement/milestone/modules/mileston
 
 export default defineComponent({
   components: {
-    MilestoneRepoCard,
-    MilestoneImageCard,
     MilestoneIssuesCard,
     MilestoneTaskTable,
     ArrowLeft,

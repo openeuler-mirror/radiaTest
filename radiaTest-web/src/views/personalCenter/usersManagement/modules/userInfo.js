@@ -2,6 +2,8 @@ import axios from '@/axios';
 import { h, ref } from 'vue';
 import { NAvatar, NDropdown, NTag, NText } from 'naive-ui';
 import { selectdRole } from './roleMenu';
+import { getAllRole } from '@/api/get';
+
 const loading = ref(false);
 const usersData = ref([]);
 const roleList = ref([]);
@@ -33,8 +35,8 @@ function getUserTableData() {
       loading.value = false;
     });
 }
-function getRoleList () {
-  axios.get('/v1/role').then((res) => {
+function getRoleList() {
+  getAllRole().then((res) => {
     roleList.value = [];
     if (selectdRole.value === 'public') {
       res.data.forEach((item) => {
@@ -58,7 +60,7 @@ function getRoleList () {
     }
   });
 }
-function getUserInfo () {
+function getUserInfo() {
   if (selectdRole.value === 'public') {
     requestUrl = '/v1/user-role';
     actionUrl.value = '/v1/users';
@@ -132,7 +134,7 @@ const usersColumns = [
     title: '角色',
     key: 'role',
     align: 'center',
-    render (row) {
+    render(row) {
       const tag = h(
         NTag,
         {

@@ -1,10 +1,4 @@
-function openChildWindow (url, width = 800, height = 600) {
-  const left = (window.screen.width - width) / 2;
-  const top = (window.screen.height - height) / 2;
-  window.open(url, 'radiatestChildWindow', `width=${width},height=${height},top=${top},left=${left}`);
-}
-
-function urlArgs () {
+function urlArgs() {
   const args = {};
   const query = location.search.substring(1);
   const pairs = query.split('&');
@@ -19,6 +13,4 @@ function urlArgs () {
   return args;
 }
 
-export {
-  openChildWindow, urlArgs,
-};
+export { urlArgs, };

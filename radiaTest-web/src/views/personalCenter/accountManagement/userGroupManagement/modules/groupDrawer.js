@@ -5,7 +5,7 @@ import { changeLoadingStatus } from '@/assets/utils/loading';
 import { state } from './groupTable';
 import { storage } from '@/assets/utils/storageUtils';
 import axios from '@/axios';
-import { getAllRole } from '@/api/get';
+import { getAllRole, getGroupUser } from '@/api/get';
 import { setGroupUserRole } from '@/api/post';
 import { deleteGroupUserRole } from '@/api/delete';
 
@@ -28,9 +28,9 @@ const groupPagination = reactive({
 });
 
 // get table data
-function getGroupUsers () {
+function getGroupUsers() {
   tableLoading.value = true;
-  axios.get(`/v1/groups/${groupInfo.id}/users`, {
+  getGroupUser(groupInfo.id, {
     page_num: groupPagination.page,
     page_size: groupPagination.pageSize
   }).then(res => {
@@ -45,7 +45,7 @@ function getGroupUsers () {
   });
 }
 const allRole = ref({});
-function getGroupRole () {
+function getGroupRole() {
   getAllRole().then(res => {
     res.data.forEach(item => {
       if (item.type === 'group') {
@@ -57,17 +57,17 @@ function getGroupRole () {
   });
 }
 
-function editGroupUsers (rowIndex) {
+function editGroupUsers(rowIndex) {
   groupInfo.name = state.dataList[rowIndex].groupName;
   groupInfo.id = state.dataList[rowIndex].id;
   groupInfo.re_user_group_id = state.dataList[rowIndex].re_user_group_id;
   groupInfo.re_user_group_role_type = state.dataList[rowIndex].re_user_group_role_type;
   getGroupUsers();
 }
-function drawerUpdateShow (show) {
+function drawerUpdateShow(show) {
   groupInfo.show = show;
 }
-function groupUserDel (rowIndex) {
+function groupUserDel(rowIndex) {
   const d = window.$dialog?.warning({
     title: '提示',
     content: '是否要删除该用户?',
@@ -116,7 +116,7 @@ function groupUserDel (rowIndex) {
   });
 }
 
-function selectRole (row, item) {
+function selectRole(row, item) {
   setGroupUserRole(groupInfo.id, {
     role_id: Number(item.value),
     user_id: row.user_id
@@ -124,7 +124,7 @@ function selectRole (row, item) {
     getGroupUsers();
   });
 }
-function deleteRole (row) {
+function deleteRole(row) {
   deleteGroupUserRole(groupInfo.id, { user_id: row.user_id, role_id: row.role.id }).then(() => getGroupUsers());
 }
 //drawer-table columns
@@ -133,7 +133,7 @@ const usersColumns = [
     title: '',
     key: 'avatar_url',
     align: 'center',
-    render (row) {
+    render(row) {
       return h(NAvatar, { size: 'small', src: row.avatar_url });
     }
   },
@@ -141,7 +141,7 @@ const usersColumns = [
     title: '用户',
     key: 'user_name',
     align: 'center',
-    render (row) {
+    render(row) {
       return h('span', null, [row.user_name]);
     }
   },
@@ -154,7 +154,7 @@ const usersColumns = [
     title: '角色',
     key: 'role',
     align: 'center',
-    render (row) {
+    render(row) {
       const tag = h(
         NTag,
         {
@@ -186,7 +186,7 @@ const usersColumns = [
   {
     title: '操作',
     align: 'center',
-    render (row, rowIndex) {
+    render(row, rowIndex) {
       return h(
         NButton,
         {
@@ -207,13 +207,13 @@ const usersColumns = [
 ];
 
 // change table page
-function groupTurnPages (page) {
+function groupTurnPages(page) {
   groupPagination.page = page;
   getGroupUsers();
 }
 
 // change table pageSize
-function groupTurnPageSize (pageSize) {
+function groupTurnPageSize(pageSize) {
   groupPagination.pageSize = pageSize;
   groupPagination.page = 1;
   getGroupUsers();
@@ -221,7 +221,7 @@ function groupTurnPageSize (pageSize) {
 
 //add user
 const showAddUser = ref(false);
-function addUser () {
+function addUser() {
   showAddUser.value = true;
 }
 

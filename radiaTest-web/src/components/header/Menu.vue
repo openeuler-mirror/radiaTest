@@ -2,22 +2,27 @@
   <my-tab id="home" :has-arrow="false" @click="handleWorkbenchClick">
     <template #text>
       <div class="tab-wrap">
-        <div class="tab-text" :class="{ active: isActive('/workbench/') }">
-          <n-icon :size="14"> <Dashboard /> </n-icon><n-text class="text">工作台</n-text>
+        <div
+          class="tab-text"
+          :class="{
+            active: isActive('/task/') || isActive('/report/') || isActive('/distribution/'),
+          }"
+        >
+          <n-icon :size="14"> <Dashboard /> </n-icon><n-text class="text">任务看板</n-text>
         </div>
       </div>
     </template>
   </my-tab>
-  <my-tab :has-arrow="false" @click="handlePoolClick" v-if="showResourcePool">
+  <my-tab :has-arrow="false" @click="handleDesignClick">
     <template #text>
       <div class="tab-wrap">
-        <div class="tab-text" :class="{ active: isActive('/resource-pool/') }">
-          <n-icon :size="14"> <Server /> </n-icon><n-text class="text">资源池</n-text>
+        <div class="tab-text" :class="{ active: isActive('/design/') }">
+          <n-icon :size="14"> <Server /> </n-icon><n-text class="text">测试设计</n-text>
         </div>
       </div>
     </template>
   </my-tab>
-  <my-tab :has-arrow="false" @click="handlePvmClick" v-if="showVersionManagment">
+  <my-tab :has-arrow="false" @click="handlePvmClick">
     <template #text>
       <div class="tab-wrap">
         <div class="tab-text" :class="{ active: isActive('/version-management/') }">
@@ -26,7 +31,7 @@
       </div>
     </template>
   </my-tab>
-  <my-tab id="testcase" :has-arrow="false" @click="handleTcmClick" v-if="showCaseManagment">
+  <my-tab id="testcase" :has-arrow="false" @click="handleTcmClick">
     <template #text>
       <div class="tab-wrap">
         <div class="tab-text" :class="{ active: isActive('/tcm/') }">
@@ -38,35 +43,13 @@
 </template>
 
 <script setup>
-import { useRouter, useRoute } from 'vue-router';
+import { useRouter } from 'vue-router';
 import { Dashboard } from '@vicons/carbon';
 import { Server, Database } from '@vicons/fa';
 import { Versions } from '@vicons/tabler';
 import MyTab from './MyTab.vue';
 
 const router = useRouter();
-const route = useRoute();
-// console.log(route.params);
-const showResourcePool = computed(() => {
-  if (window.atob(route.params?.workspace).search('group') !== -1) {
-    return false;
-  }
-  return true;
-});
-
-const showVersionManagment = computed(() => {
-  if (window.atob(route.params?.workspace).search('group') !== -1||route.params.workspace==='release') {
-    return false;
-  }
-  return true;
-});
-
-const showCaseManagment = computed(() => {
-  if (window.atob(route.params?.workspace).search('group') !== -1) {
-    return false;
-  }
-  return true;
-});
 
 const isActive = (path) => {
   return router.currentRoute.value.fullPath.search(path) !== -1;
@@ -81,13 +64,11 @@ const handleTcmClick = () => {
 };
 
 const handleWorkbenchClick = () => {
-  router.push({ name: 'dashboard' });
+  router.push({ name: 'task' });
 };
 
-const handlePoolClick = () => {
-  if (router.currentRoute.value.name !== 'pmachine' && router.currentRoute.value.name !== 'vmachine') {
-    router.push({ name: 'resourcePool' });
-  }
+const handleDesignClick = () => {
+  router.push({ name: 'design' });
 };
 </script>
 
