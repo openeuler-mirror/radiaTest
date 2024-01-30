@@ -31,7 +31,6 @@ import versionManagement from '@/views/versionManagement/versionManagement.vue';
 import Product from '@/views/versionManagement/product/product.vue';
 import Milestone from '@/views/versionManagement/milestone/milestone.vue';
 import NotFound from '@/views/resultPage/NotFound.vue';
-import AtDetail from '@/views/atDetail/index.vue';
 import newLogin from '@/views/login/newLogin.vue';
 import frameWork from '@/views/caseManage/frameWork/frameWork.vue';
 
@@ -45,17 +44,10 @@ const router = createRouter({
       path: '/',
       redirect: '/home/version-management'
     },
-    {
-      path: '/at-detail',
-      component: AtDetail,
-      name: 'atDetail',
-      meta: {
-        title: 'EulerTest'
-      }
-    },
+
     {
       path: '/home/',
-      redirect: '/home/workbench',
+      redirect: { name: 'task' },
       component: Home,
       name: 'home',
       meta: {
@@ -65,7 +57,7 @@ const router = createRouter({
         {
           path: 'workbench/',
           component: Dashboard,
-          redirect: { name: 'dashboard' },
+          redirect: { name: 'task' },
           meta: {
             title: 'raidaTest测试平台'
           },
@@ -130,7 +122,6 @@ const router = createRouter({
             title: '用例管理'
           },
           children: [
-
 
             {
               path: 'testcase/',

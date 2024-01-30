@@ -30,7 +30,7 @@ import {
   getOrgMilestone,
   getOrphanGroupSuites,
   getOrphanOrgSuites,
-  getUserInfo,
+  // getUserInfo,
   getSuite,
   getCasesNode
 } from '@/api/get';
@@ -341,96 +341,74 @@ function getRootNodes() {
   });
   actions.unshift(createBaselineAction);
   menuList.value = [];
-  if (storage.getValue('token')) {
-    getUserInfo(storage.getValue('user_id')).then((res) => {
-      const { data } = res;
-      data.orgs.forEach((item) => {
-        if (item.org_name === 'openEuler') {
-          releaseMenu.value.push({
-            label: item.org_name,
-            key: `org-${item.org_id}`,
-            info: {
-              org_id: item.org_id
-            },
-            actions,
-            iconColor: 'rgba(0, 47, 167, 1)',
-            isLeaf: false,
-            type: 'org',
-            root: true,
-            icon: Organization20Regular
-          });
-        }
-        if (item.re_user_org_default) {
-          menuList.value.push({
-            label: item.org_name,
-            key: `org-${item.org_id}`,
-            info: {
-              org_id: item.org_id
-            },
-            actions,
-            iconColor: 'rgba(0, 47, 167, 1)',
-            isLeaf: false,
-            type: 'org',
-            root: true,
-            icon: Organization20Regular
-          });
-        }
-      });
-      // axios
-      //   .get(`/v1/org/${storage.getValue('loginOrgId')}/groups`, {
-      //     page_num: 1,
-      //     page_size: 99999
-      //   })
-      //   .then((_res) => {
-      //     for (const item of _res.data.items) {
-      //       if (item.name === 'openEuler') {
-      //         releaseMenu.value.push({
-      //           label: item.name,
-      //           key: `group-${item.id}`,
-      //           isLeaf: false,
-      //           root: true,
-      //           info: {
-      //             group_id: item.id
-      //           },
-      //           type: 'group',
-      //           iconColor: 'rgba(0, 47, 167, 1)',
-      //           icon: GroupsFilled,
-      //           actions
-      //         });
-      //       }
-      //       menuList.value.push({
-      //         label: item.name,
-      //         key: `group-${item.id}`,
-      //         isLeaf: false,
-      //         root: true,
-      //         info: {
-      //           group_id: item.id
-      //         },
-      //         type: 'group',
-      //         iconColor: 'rgba(0, 47, 167, 1)',
-      //         icon: GroupsFilled,
-      //         actions
-      //       });
-      //     }
-      //   });
-    });
-  } else {
-    let item = {
-      label: storage.getLocalValue('unLoginOrgId').name,
-      key: `org-${storage.getLocalValue('unLoginOrgId').id}`,
-      info: {
-        org_id: storage.getLocalValue('unLoginOrgId').id,
-      },
-      actions,
-      iconColor: 'rgba(0, 47, 167, 1)',
-      isLeaf: false,
-      type: 'org',
-      root: true,
-      icon: Organization20Regular,
-    };
-    releaseMenu.value.push(item);
-    menuList.value.push(item);
-  }
+  let item = {
+    label: storage.getLocalValue('unLoginOrgId').name,
+    key: `org-${storage.getLocalValue('unLoginOrgId').id}`,
+    info: {
+      org_id: storage.getLocalValue('unLoginOrgId').id,
+    },
+    actions,
+    iconColor: 'rgba(0, 47, 167, 1)',
+    isLeaf: false,
+    type: 'org',
+    root: true,
+    icon: Organization20Regular,
+  };
+  releaseMenu.value.push(item);
+  menuList.value.push(item);
+  // if (storage.getValue('token')) {
+  //   getUserInfo(storage.getValue('user_id')).then((res) => {
+  //     const { data } = res;
+  //     data.orgs.forEach((item) => {
+  //       if (item.org_name === 'openEuler') {
+  //         releaseMenu.value.push({
+  //           label: item.org_name,
+  //           key: `org-${item.org_id}`,
+  //           info: {
+  //             org_id: item.org_id
+  //           },
+  //           actions,
+  //           iconColor: 'rgba(0, 47, 167, 1)',
+  //           isLeaf: false,
+  //           type: 'org',
+  //           root: true,
+  //           icon: Organization20Regular
+  //         });
+  //       }
+  //       if (item.re_user_org_default) {
+  //         menuList.value.push({
+  //           label: item.org_name,
+  //           key: `org-${item.org_id}`,
+  //           info: {
+  //             org_id: item.org_id
+  //           },
+  //           actions,
+  //           iconColor: 'rgba(0, 47, 167, 1)',
+  //           isLeaf: false,
+  //           type: 'org',
+  //           root: true,
+  //           icon: Organization20Regular
+  //         });
+  //       }
+  //     });
+  //   });
+  // } else {
+  //   let item = {
+  //     label: storage.getLocalValue('unLoginOrgId').name,
+  //     key: `org-${storage.getLocalValue('unLoginOrgId').id}`,
+  //     info: {
+  //       org_id: storage.getLocalValue('unLoginOrgId').id,
+  //     },
+  //     actions,
+  //     iconColor: 'rgba(0, 47, 167, 1)',
+  //     isLeaf: false,
+  //     type: 'org',
+  //     root: true,
+  //     icon: Organization20Regular,
+  //   };
+  //   releaseMenu.value.push(item);
+  //   menuList.value.push(item);
+  // }
 
 }
 

@@ -160,7 +160,6 @@ export default defineComponent({
     ArrowBackCircleOutline,
   },
   setup() {
-    // console.log(1111, menu.value);
     const route = useRoute();
     const showMenuItem = (item) => {
       console.log('item', item);

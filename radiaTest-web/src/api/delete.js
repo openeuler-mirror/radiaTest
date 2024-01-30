@@ -19,21 +19,15 @@ function deleteRequest(url, data) {
       });
   });
 }
-export function deleteRepo(id) {
-  return deleteRequest(`/v1/git-repo/${id}`);
-}
-export function deleteVm(id) {
-  return deleteRequest(`/v1/vmachine/${id}/force`);
-}
+
+
 export function deleteCommit(id) {
   return deleteRequest(`/v1/case/commit/${id}`);
 }
 export function deleteComment(id) {
   return deleteRequest(`/v1/commit/comment/${id}`);
 }
-export function deleteMachineGroup(id) {
-  return deleteRequest(`/v1/machine-group/${id}`);
-}
+
 export function deleteGroupUserRole(id, data) {
   return deleteRequest(`/v1/user-role/group/${id}`, data);
 }
@@ -41,9 +35,6 @@ export function deleteOrgUserRole(id, data) {
   return deleteRequest(`/v1/user-role/org/${id}`, data);
 }
 
-export function deleteCheckListItem(id) {
-  return deleteRequest(`/v1/checklist/${id}`);
-}
 
 export function deleteCheckItem(id) {
   return deleteRequest(`/v1/checkitem/${id}`);
@@ -85,13 +76,7 @@ export function cleanBaselineTemplate(id) {
   return deleteRequest(`/v1/baseline-template/${id}/clean`);
 }
 
-export function deleteManualJob(id) {
-  return deleteRequest(`/v1/manual-job/${id}`);
-}
-// 删除手工任务
-export function deleteManualTask(manualJobGroupId) {
-  return deleteRequest(`/v1/manual-job-group/${manualJobGroupId}`);
-}
+
 
 // 删除测试策略模板
 export function deleteStrategyTemplate(strategyTemplateId) {

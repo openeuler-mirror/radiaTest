@@ -18,27 +18,8 @@ function putRequest(url, data, msg) {
       });
   });
 }
-export function modifyRepo(id, data) {
-  return putRequest(`/v1/git-repo/${id}`, data);
-}
-export function modifyVmachineIp(id, data) {
-  return putRequest(`/v1/vmachine/${id}/ipaddr`, data);
-}
-export function modifyVmachineSsh(id, data) {
-  return putRequest(`/v1/vmachine/${id}/ssh`, data);
-}
-export function modifyDelayTime(id, data) {
-  return putRequest(`/v1/vmachine/${id}/delay`, data);
-}
-export function modifyPmachineDelayTime(id, data) {
-  return putRequest(`/v1/pmachine/${id}/delay`, data);
-}
-export function modifyPmachineBmc(id, data) {
-  return putRequest(`/v1/pmachine/${id}/bmc`, data);
-}
-export function modifyPmachineSsh(id, data) {
-  return putRequest(`/v1/pmachine/${id}/ssh`, data);
-}
+
+
 export function modifyCommitStatus(id, data) {
   return putRequest(`/v1/case/commit/${id}`, data);
 }
@@ -48,12 +29,8 @@ export function modifyCommitStatusBatch(data) {
 export function modifyCommitInfo(id, data) {
   return putRequest(`/v1/case/commit/${id}`, data);
 }
-export function modifyMachineGroup(id, data) {
-  return putRequest(`/v1/machine-group/${id}`, data);
-}
-export function modifyGroupUserRole(id, data) {
-  return putRequest(`/v1/user-role/group/${id}`, data);
-}
+
+
 export function organizationInfo(id, data) {
   return putRequest(`/v1/admin/org/${id}`, data);
 }
@@ -140,13 +117,7 @@ export function updateCaseNodeParent(caseNodeId, nextParentId) {
   return putRequest(`/v1/case-node/${caseNodeId}/move-to/${nextParentId}`);
 }
 
-export function updateStepLogAxios(jobId, data) {
-  return putRequest(`/v1/manual-job/log/${jobId}`, data);
-}
-// 手工任务组状态变更
-export function updateTask(manualJobGroupId, data) {
-  return putRequest(`/v1/manual-job-group/${manualJobGroupId}`, data);
-}
+
 
 export function statisticsProduct(id) {
   return putRequest(`/v1/product/${id}/issue-rate`, {}, { successMsg: '统计成功' });
@@ -165,17 +136,11 @@ export function updateStrategyTemplate(strategyTemplateId, data) {
   return putRequest(`/v1/strategy-template/${strategyTemplateId}`, data);
 }
 
-// 修改特性
-export function changeProductFeature(featureId, data) {
-  return putRequest(`/v1/feature/${featureId}`, data);
-}
+
 
 // 修改任务完成度
 export function changeTaskPercentage(taskId, data) {
   return putRequest(`/v1/tasks/${taskId}/percentage`, data);
 }
 
-// 设置手工用例状态
-export function updateCase(manualJobId, data) {
-  return putRequest(`/v1/manual-job/${manualJobId}/submit`, data);
-}
+

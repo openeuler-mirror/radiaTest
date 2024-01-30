@@ -59,7 +59,6 @@ const getProductVersionOrgOpts = async (productOpts, loading) => {
   productOpts.value = [];
   await getProduct({ paged: false, permission_type: 'org' })
     .then((res) => {
-      console.log('getOpts', res);
       loading ? (loading.value = false) : 0;
       productOpts.value = res.data?.items?.map((item) => {
         return {

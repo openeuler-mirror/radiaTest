@@ -2,7 +2,6 @@ import { ref } from 'vue';
 import { init } from 'echarts';
 import {
   automationRatePie,
-  commitCountsLine
 } from '../../modules/echartsOptions';
 import { getOrgNode } from '@/api/get.js';
 import router from '@/router';
@@ -27,25 +26,12 @@ function echartConfig(chartId, options) {
 }
 
 const autoRatio = ref(0);
-const distribute = ref([]);
 
 function initEcharts() {
   echartConfig('orgAutomationRate-pie', automationRatePie([{ label: '用例自动化率', value: autoRatio.value }], '用例自动化率'));
-  echartConfig('orgCommitCounts-line', commitCountsLine(distribute.value, '用例commit合入'));
 }
 
-function formatObject(data, prop) {
-  let res = [];
-  const p = prop || 'label';
-  const keys = Object.keys(data);
-  keys.forEach(key => {
-    let item = {};
-    item[p] = key;
-    item.value = data[key];
-    res.push(item);
-  });
-  return res;
-}
+
 
 function initData() {
   currentId.value = window.atob(router.currentRoute.value.params.taskId);
@@ -57,9 +43,7 @@ function initData() {
       const { data } = res;
       suitesCount.value = data.suite_count;
       casesCount.value = data.case_count;
-      // commitsCount.value = data.commmit_count;
       autoRatio.value = parseInt(data.auto_ratio);
-      distribute.value = formatObject(data.distribute);
       initEcharts();
     });
 }
