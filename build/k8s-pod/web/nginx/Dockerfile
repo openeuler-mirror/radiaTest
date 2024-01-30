@@ -52,7 +52,7 @@ RUN cat ./deploy/nginx.conf > /etc/nginx/nginx.conf
 
 USER radiaTest
 RUN npm cache clean --force \
-    && npm install --force --registry=https://registry.npm.taobao.org \
+    && npm install --force --registry=https://registry.npmmirror.com \
     && npm run build
 
 ENTRYPOINT [ "nginx", "-c", "/etc/nginx/nginx.conf", "-g", "daemon off;" ]
