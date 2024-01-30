@@ -39,11 +39,11 @@ import { Construct } from '@vicons/ionicons5';
 import { Delete24Regular } from '@vicons/fluent';
 import testsuiteCreate from '@/components/testsuiteComponents/testsuiteCreate.vue';
 import { renderTooltip } from '@/assets/render/tooltip';
-import { workspace } from '@/assets/config/menu.js';
-import axios from '@/axios';
+// import { workspace } from '@/assets/config/menu.js';
+// import axios from '@/axios';
 import { deleteSuiteAxios } from '@/api/delete';
 import textDialog from '@/assets/utils/dialog';
-
+import { getSuite } from '@/api/get';
 const baseColumns = [
   {
     title: '测试套',
@@ -102,8 +102,7 @@ const getData = () => {
     page_size: pagination.value.pageSize,
   };
   loading.value = true;
-  axios
-    .get(`/v1/ws/${workspace.value}/suite`, param)
+  getSuite(param)
     .then((res) => {
       data.value = res.data.items;
       pagination.value.pageCount = res.data.pages;

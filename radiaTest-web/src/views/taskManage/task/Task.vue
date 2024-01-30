@@ -1,7 +1,12 @@
 <template>
   <n-spin :show="showLoading" stroke="rgba(0, 47, 167, 1)" :style="{ height: '100%' }">
     <div class="task-body">
-      <n-drawer v-model:show="showNewTaskDrawer" :maskClosable="false" width="324px" placement="left">
+      <n-drawer
+        v-model:show="showNewTaskDrawer"
+        :maskClosable="false"
+        width="324px"
+        placement="left"
+      >
         <n-drawer-content title="新建任务" closable>
           <n-form
             :model="model"
@@ -16,7 +21,12 @@
               <n-input placeholder="请输入任务名称" v-model:value="model.name" />
             </n-form-item>
             <n-form-item label="任务类型" path="type">
-              <n-select placeholder="请选择" :options="taskTypes" @update:value="taskTypeChange" :value="model.type" />
+              <n-select
+                placeholder="请选择"
+                :options="taskTypes"
+                @update:value="taskTypeChange"
+                :value="model.type"
+              />
             </n-form-item>
             <n-form-item label="执行团队" path="group" v-if="model.type === 'GROUP'">
               <n-select
@@ -44,7 +54,11 @@
             <n-form-item
               label="执行者"
               path="executor"
-              v-if="model.type !== null && (model.type === 'GROUP' || model.type === 'PERSON') && model.group !== ''"
+              v-if="
+                model.type !== null &&
+                (model.type === 'GROUP' || model.type === 'PERSON') &&
+                model.group !== ''
+              "
             >
               <n-select
                 placeholder="请选择"
@@ -64,17 +78,27 @@
               <n-input placeholder="请输入关键词" v-model:value="model.keyword" type="textarea" />
             </n-form-item>
             <n-form-item label="摘要" path="abstract">
-              <n-input placeholder="请输入报告摘要" v-model:value="model.abstract" type="textarea" />
+              <n-input
+                placeholder="请输入报告摘要"
+                v-model:value="model.abstract"
+                type="textarea"
+              />
             </n-form-item>
             <n-form-item label="缩略语清单" path="abbreviation">
-              <n-input placeholder="请输入缩略语清单" v-model:value="model.abbreviation" type="textarea" />
+              <n-input
+                placeholder="请输入缩略语清单"
+                v-model:value="model.abbreviation"
+                type="textarea"
+              />
             </n-form-item>
             <div class="createButtonBox">
               <n-button class="btn" type="error" ghost @click="cancelCreateTask">取消</n-button>
               <n-button class="btn" type="info" ghost @click="createTask">创建</n-button>
             </div>
             <div class="createButtonBox" style="margin-top: 20px">
-              <n-button class="versionTask" type="info" ghost @click="createVersionTask">创建版本任务</n-button>
+              <n-button class="versionTask" type="info" ghost @click="createVersionTask"
+                >创建版本任务</n-button
+              >
             </div>
           </n-form>
         </n-drawer-content>
@@ -143,28 +167,48 @@
             :bordered="false"
             size="huge"
             :segmented="{
-              content: 'hard'
+              content: 'hard',
             }"
           >
             <template #header-extra>
               <div class="headMenu">
                 <div title="返回">
-                  <n-icon size="24" class="menuItem" v-show="modalData.level > 1" @click="jumpBack(modalData)">
+                  <n-icon
+                    size="24"
+                    class="menuItem"
+                    v-show="modalData.level > 1"
+                    @click="jumpBack(modalData)"
+                  >
                     <KeyboardReturnOutlined />
                   </n-icon>
                 </div>
                 <div title="编辑">
-                  <n-icon size="24" class="menuItem" @click="editTaskDetail" v-show="showEditTaskDetailBtn">
+                  <n-icon
+                    size="24"
+                    class="menuItem"
+                    @click="editTaskDetail"
+                    v-show="showEditTaskDetailBtn"
+                  >
                     <Edit24Regular />
                   </n-icon>
                 </div>
                 <div title="退出编辑">
-                  <n-icon size="24" class="menuItem" @click="editTaskDetail" v-show="!showEditTaskDetailBtn">
+                  <n-icon
+                    size="24"
+                    class="menuItem"
+                    @click="editTaskDetail"
+                    v-show="!showEditTaskDetailBtn"
+                  >
                     <PlaylistAddCheckRound />
                   </n-icon>
                 </div>
                 <div title="菜单">
-                  <n-dropdown trigger="click" :options="menuOptions" size="large" @select="handleSelect">
+                  <n-dropdown
+                    trigger="click"
+                    :options="menuOptions"
+                    size="large"
+                    @select="handleSelect"
+                  >
                     <n-icon class="menuItem" size="24">
                       <Dots />
                     </n-icon>
@@ -219,7 +263,11 @@
                                 trigger="click"
                                 :disabled="!editStatus"
                               >
-                                {{ statusArray.find((item) => item.value === modalData.detail.status_id).label }}
+                                {{
+                                  statusArray.find(
+                                    (item) => item.value === modalData.detail.status_id
+                                  ).label
+                                }}
                               </n-popselect>
                             </div>
                           </div>
@@ -252,7 +300,9 @@
                               <span
                                 ><userInfo :userInfo="modalData.detail.originator">
                                   <template #username>
-                                    <span class="sub-content">{{ modalData.detail.originator?.user_name }}</span>
+                                    <span class="sub-content">{{
+                                      modalData.detail.originator?.user_name
+                                    }}</span>
                                   </template>
                                 </userInfo></span
                               >
@@ -292,7 +342,8 @@
                                 </template>
                                 <taskMemberMenu
                                   :type="
-                                    modalData.detail.type === 'ORGANIZATION' || modalData.detail.type === 'VERSION'
+                                    modalData.detail.type === 'ORGANIZATION' ||
+                                    modalData.detail.type === 'VERSION'
                                       ? 'ALL'
                                       : 'PERSON'
                                   "
@@ -321,7 +372,11 @@
                               >
                                 <template #trigger>
                                   <div @click="editStatus ? (showPopoverHelper = true) : ''">
-                                    <template v-if="Array.isArray(modalData.helper) && modalData.helper.length">
+                                    <template
+                                      v-if="
+                                        Array.isArray(modalData.helper) && modalData.helper.length
+                                      "
+                                    >
                                       <span v-for="item in modalData.helper" :key="item.id">
                                         <userInfo :userInfo="item">
                                           <template #username>
@@ -342,7 +397,8 @@
                                   :multiple="true"
                                   :originator="modalData.detail.originator.user_id"
                                   :type="
-                                    modalData.detail.type === 'ORGANIZATION' || modalData.detail.type === 'VERSION'
+                                    modalData.detail.type === 'ORGANIZATION' ||
+                                    modalData.detail.type === 'VERSION'
                                       ? 'ALL'
                                       : 'PERSON'
                                   "
@@ -372,14 +428,18 @@
                                     <p v-if="modalData.detail.type === 'VERSION'">
                                       {{
                                         modalData.detail.milestones
-                                          ? modalData.detail.milestones.map((item) => item.name).join(',')
+                                          ? modalData.detail.milestones
+                                              .map((item) => item.name)
+                                              .join(',')
                                           : '无'
                                       }}
                                     </p>
                                     <p v-else>
                                       {{
                                         modalData.detail.milestones
-                                          ? modalData.detail.milestones.map((item) => item.name).join(',')
+                                          ? modalData.detail.milestones
+                                              .map((item) => item.name)
+                                              .join(',')
                                           : modalData.detail.milestone
                                           ? modalData.detail.milestone
                                           : '无'
@@ -391,7 +451,10 @@
                                   @getMilepost="getMilepost"
                                   @getMileposts="getMileposts"
                                   :defaultValue="modalData.detail.milestones || 0"
-                                  :multiple="modalData.detail.type === 'VERSION' || modalData.detail.milestones"
+                                  :multiple="
+                                    modalData.detail.type === 'VERSION' ||
+                                    modalData.detail.milestones
+                                  "
                                 ></Milepost>
                               </n-popover>
                             </div>
@@ -407,7 +470,9 @@
                               <div
                                 v-show="!showStartTime && modalData.detail.start_time"
                                 :class="{ editable: editStatus }"
-                                @click="editStatus ? (showStartTime = true) : (showStartTime = false)"
+                                @click="
+                                  editStatus ? (showStartTime = true) : (showStartTime = false)
+                                "
                               >
                                 {{ formatTime(modalData.detail.start_time, 'yyyy-MM-dd') }}
                               </div>
@@ -433,7 +498,9 @@
                               <div
                                 v-show="!showClosingTime && modalData.detail.deadline"
                                 :class="{ editable: editStatus }"
-                                @click="editStatus ? (showClosingTime = true) : (showClosingTime = false)"
+                                @click="
+                                  editStatus ? (showClosingTime = true) : (showClosingTime = false)
+                                "
                               >
                                 {{ formatTime(modalData.detail.deadline, 'yyyy-MM-dd') }}
                               </div>
@@ -465,7 +532,11 @@
                             </div>
                           </div>
                           <div class="reportList">
-                            <div class="field-content" v-for="(v, i) in modalData.reportArray" :key="i">
+                            <div
+                              class="field-content"
+                              v-for="(v, i) in modalData.reportArray"
+                              :key="i"
+                            >
                               <div class="task-name" @click="showReport(v)">
                                 {{ v.title }}
                               </div>
@@ -486,7 +557,12 @@
                                 trigger="click"
                                 :disabled="!editStatus || modalData.detail.is_manage_task"
                               >
-                                <span :style="{ color: !editStatus || modalData.detail.is_manage_task ? 'grey' : '' }">
+                                <span
+                                  :style="{
+                                    color:
+                                      !editStatus || modalData.detail.is_manage_task ? 'grey' : '',
+                                  }"
+                                >
                                   {{ modalData.detail.frame || '请选择' }}
                                 </span>
                               </n-popselect>
@@ -497,7 +573,9 @@
                               <n-icon size="14" class="task-icon">
                                 <CheckSquareOutlined />
                               </n-icon>
-                              <span class="field-name" title="当关联子任务均'已完成'时,是否此任务自动完成"
+                              <span
+                                class="field-name"
+                                title="当关联子任务均'已完成'时,是否此任务自动完成"
                                 >自动关联完成</span
                               >
                             </div>
@@ -521,7 +599,9 @@
                               <span class="field-name">是否管理型任务</span>
                             </div>
                             <div class="field-right">
-                              <span v-show="!editStatus">{{ modalData.detail.is_manage_task ? '是' : '否' }}</span>
+                              <span v-show="!editStatus">{{
+                                modalData.detail.is_manage_task ? '是' : '否'
+                              }}</span>
                               <n-checkbox
                                 v-show="editStatus"
                                 @update:checked="changeManage"
@@ -570,10 +650,14 @@
                         @blur="showContent"
                         :autosize="{
                           minRows: 3,
-                          maxRows: 8
+                          maxRows: 8,
                         }"
                       />
-                      <div :class="{ editable: editStatus }" v-show="!showContentInput" @click="showContent">
+                      <div
+                        :class="{ editable: editStatus }"
+                        v-show="!showContentInput"
+                        @click="showContent"
+                      >
                         <n-scrollbar style="max-height: 250px">
                           {{ modalData.detail.content || '无' }}
                         </n-scrollbar>
@@ -588,16 +672,20 @@
                 title=""
                 :segmented="{
                   content: 'hard',
-                  footer: 'hard'
+                  footer: 'hard',
                 }"
                 style=""
               >
                 <template #header>
                   <div class="titleWrap">
-                    <span @click="toggleContent('comment')" :class="{ active: showFooterContent == 'comment' }"
+                    <span
+                      @click="toggleContent('comment')"
+                      :class="{ active: showFooterContent == 'comment' }"
                       >评论</span
                     >
-                    <span @click="toggleContent('task')" :class="{ active: showFooterContent == 'task' }"
+                    <span
+                      @click="toggleContent('task')"
+                      :class="{ active: showFooterContent == 'task' }"
                       >关联任务</span
                     >
                     <span
@@ -617,7 +705,9 @@
                             <span><img :src="v.avatar_url" class="avatar" /></span>
                             <div class="name">{{ v.user_name }}</div>
                           </div>
-                          <span class="time">{{ formatTime(v.create_time, 'yyyy-MM-dd hh:mm:ss') }}</span>
+                          <span class="time">{{
+                            formatTime(v.create_time, 'yyyy-MM-dd hh:mm:ss')
+                          }}</span>
                         </div>
                         <div class="log-txt">
                           <div class="m-t-xs" v-html="v.content"></div>
@@ -632,7 +722,9 @@
                       <editor v-model="commentInput" tag-name="div" :init="init" />
                     </div>
                     <div class="commentBtn">
-                      <n-button class="btn" type="info" @click="commentFn(commentInput)">评论</n-button>
+                      <n-button class="btn" type="info" @click="commentFn(commentInput)"
+                        >评论</n-button
+                      >
                     </div>
                   </div>
                 </template>
@@ -661,8 +753,12 @@
                           clearable
                         />
                         <div class="submit-set">
-                          <n-button type="error" ghost @click="showAssociatedCases = false">取消</n-button>
-                          <n-button type="info" ghost @click="addCase(associatedMilestone)">关联</n-button>
+                          <n-button type="error" ghost @click="showAssociatedCases = false"
+                            >取消</n-button
+                          >
+                          <n-button type="info" ghost @click="addCase(associatedMilestone)"
+                            >关联</n-button
+                          >
                         </div>
                       </div>
                     </div>
@@ -709,7 +805,9 @@
                       />
                       <div class="submit-set">
                         <n-button type="error" ghost @click="cancelAssociatedTask">取消</n-button>
-                        <n-button type="info" ghost @click="associatedTaskBtn(associatedTaskValue)">关联</n-button>
+                        <n-button type="info" ghost @click="associatedTaskBtn(associatedTaskValue)"
+                          >关联</n-button
+                        >
                       </div>
                     </div>
                   </div>
@@ -741,15 +839,24 @@
                         @search="handleSearchChildTask"
                       />
                       <div class="submit-set">
-                        <n-button type="error" ghost @click="cancelAssociatedChildTask">取消</n-button>
-                        <n-button type="info" ghost @click="associatedChildTaskBtn(associatedChildTaskValue)"
+                        <n-button type="error" ghost @click="cancelAssociatedChildTask"
+                          >取消</n-button
+                        >
+                        <n-button
+                          type="info"
+                          ghost
+                          @click="associatedChildTaskBtn(associatedChildTaskValue)"
                           >关联</n-button
                         >
                       </div>
                     </div>
                   </div>
                   <div style="margin-top: 20px">
-                    <n-data-table :columns="familyColumns" :data="modalData.relationTask" :row-props="familyRowProps" />
+                    <n-data-table
+                      :columns="familyColumns"
+                      :data="modalData.relationTask"
+                      :row-props="familyRowProps"
+                    />
                   </div>
                 </div>
               </n-card>
@@ -812,7 +919,9 @@
               />
               <div style="width: 30%; display: flex; justify-content: space-evenly">
                 <n-button type="error" ghost @click="cancelDistributeCase">取消</n-button>
-                <n-button type="info" ghost @click="distributeCaseBtn(distributeCaseTaskValue)">分配</n-button>
+                <n-button type="info" ghost @click="distributeCaseBtn(distributeCaseTaskValue)"
+                  >分配</n-button
+                >
               </div>
             </div>
           </n-card>
@@ -847,7 +956,9 @@
               </n-form>
               <n-space>
                 <n-button type="error" ghost @click="cancelDistributeTask">取消</n-button>
-                <n-button type="info" ghost @click="distributeTaskBtn(distributeTaskValue)">分配</n-button>
+                <n-button type="info" ghost @click="distributeTaskBtn(distributeTaskValue)"
+                  >分配</n-button
+                >
               </n-space>
             </n-card>
           </n-spin>
@@ -897,17 +1008,33 @@
                 <n-date-picker type="date" v-model:value="modelVersion.closingTime" />
               </n-form-item>
               <n-form-item label="关键词" path="keyword">
-                <n-input placeholder="请输入关键词" v-model:value="modelVersion.keyword" type="textarea" />
+                <n-input
+                  placeholder="请输入关键词"
+                  v-model:value="modelVersion.keyword"
+                  type="textarea"
+                />
               </n-form-item>
               <n-form-item label="摘要" path="abstract">
-                <n-input placeholder="请输入报告摘要" v-model:value="modelVersion.abstract" type="textarea" />
+                <n-input
+                  placeholder="请输入报告摘要"
+                  v-model:value="modelVersion.abstract"
+                  type="textarea"
+                />
               </n-form-item>
               <n-form-item label="缩略语清单" path="abbreviation">
-                <n-input placeholder="请输入缩略语清单" v-model:value="modelVersion.abbreviation" type="textarea" />
+                <n-input
+                  placeholder="请输入缩略语清单"
+                  v-model:value="modelVersion.abbreviation"
+                  type="textarea"
+                />
               </n-form-item>
               <div class="createButtonBox">
-                <n-button class="btn" type="error" ghost @click="cancelCreateVersionTask">取消</n-button>
-                <n-button class="btn" type="info" ghost @click="createVersionTaskBtn">创建</n-button>
+                <n-button class="btn" type="error" ghost @click="cancelCreateVersionTask"
+                  >取消</n-button
+                >
+                <n-button class="btn" type="info" ghost @click="createVersionTaskBtn"
+                  >创建</n-button
+                >
               </div>
             </n-form>
           </n-card>
@@ -965,6 +1092,7 @@ import { modules } from './modules/index';
 import Editor from '@tinymce/tinymce-vue';
 import CaseIssueModal from './CaseIssueModal.vue';
 import { workspace } from '@/assets/config/menu.js';
+import { storage } from '@/assets/utils/storageUtils';
 
 export default defineComponent({
   components: {
@@ -981,7 +1109,7 @@ export default defineComponent({
     Edit24Regular,
     PlaylistAddCheckRound,
     editor: Editor,
-    CaseIssueModal
+    CaseIssueModal,
   },
   setup() {
     const { proxy } = getCurrentInstance();
@@ -1011,7 +1139,8 @@ export default defineComponent({
       const allRequest = modules.listData.value.map((item) => {
         return proxy.$axios.get(`/v1/ws/${workspace.value}/tasks`, {
           ...temp,
-          status_id: item.id
+          status_id: item.id,
+          org_id: storage.getLocalValue('unLoginOrgId')?.id,
         });
       });
       Promise.allSettled(allRequest)
@@ -1030,9 +1159,9 @@ export default defineComponent({
         });
     });
     return {
-      ...modules
+      ...modules,
     };
-  }
+  },
 });
 </script>
 

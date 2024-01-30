@@ -2,11 +2,22 @@ import axios from '@/axios';
 import axios2 from 'axios';
 import { unkonwnErrorMsg } from '@/assets/utils/description';
 import { workspace } from '@/assets/config/menu.js';
+import { storage } from '@/assets/utils/storageUtils';
 
-function getRequest(url, data, config) {
+function getRequest(url, data, config, unLoginRquest) {
   return new Promise((resolve, reject) => {
+    if (!storage.getValue('token') && unLoginRquest) {
+      return;
+    }
+    let addedOrgData = {};
+    if (data && url !== '/v1/login/org/list') {
+      addedOrgData = data;
+      addedOrgData.org_id = storage.getLocalValue('unLoginOrgId')?.id;
+    } else {
+      addedOrgData.org_id = storage.getLocalValue('unLoginOrgId')?.id;
+    }
     axios
-      .get(url, data, config)
+      .get(url, addedOrgData, config)
       .then((res) => {
         resolve(res);
       })
@@ -79,8 +90,8 @@ export function getAllOrg(data) {
 export function loginByCode(data) {
   return getRequest('/v1/login', data);
 }
-export function getGroup(data) {
-  return getRequest('/v1/groups', data);
+export function getGroup(data, config = null, unLoginRquest = true) {
+  return getRequest('/v1/groups', data, config, unLoginRquest);
 }
 export function getMsgGroup(data) {
   return getRequest('/v1/msg/group', data);
@@ -260,8 +271,8 @@ export function getGroupAssetRank(params) {
   return getRequest('/v1/group/rank', params);
 }
 
-export function getUserInfo(userId, params) {
-  return getRequest(`/v1/users/${userId}`, params);
+export function getUserInfo(userId, params, config = null, unLoginRquest = true) {
+  return getRequest(`/v1/users/${userId}`, params, config, unLoginRquest);
 }
 
 export function getRequireList(params) {
@@ -511,4 +522,80 @@ export function getManualCaseBySearch(data) {
   return getRequest(`/v1/ws/${workspace.value}/caseV2`, data);
 }
 
+// 任务看板
+export function getRelationTaskList() {
+  return getRequest('/v1/tasks/family');
+}
+export function getTaskInfo(data, config = null, unLoginRquest = true) {
+  return getRequest('/v1/user/task/info', data, config, unLoginRquest);
+}
+export function getMachineInfo(data) {
+  return getRequest('/v1/user/machine/info', data);
+}
+export function getTaskFrame(data) {
+  return getRequest('/v1/task/frame', data);
+}
+export function getTasks(data) {
+  return getRequest(`/v1/ws/${workspace.value}/tasks`, data);
+}
+export function getTaskStatus(data) {
+  return getRequest('/v1/task/status', data);
+}
+export function getDistributeTemplates(data) {
+  return getRequest('/v1/tasks/distribute-templates', data);
+}
+export function getDistributeTemplateSuites(data) {
+  return getRequest('/v1/tasks/distribute-templates/suites', data);
+}
+export function getTaskRecycleBbin(data) {
+  return getRequest('/v1/tasks/recycle-bin', data);
+}
+export function getDetailTaskFamily(taskId, data) {
+  return getRequest(`/v1/tasks/${taskId}/family`, data);
+}
+export function getDetailTasks(taskId, data) {
+  return getRequest(`/v1/tasks/${taskId}`, data);
+}
+export function getDetailTaskCases(taskId, data) {
+  return getRequest(`/v1/tasks/${taskId}/cases`, data);
+}
+export function getTaskComments(taskId, data) {
+  return getRequest(`/v1/tasks/${taskId}/comment`, data);
+}
+export function getTaskParticipants(taskId, data) {
+  return getRequest(`/v1/tasks/${taskId}/participants`, data);
+}
+export function getTaskReports(taskId, data) {
+  return getRequest(`/v1/tasks/${taskId}/reports`, data);
+}
+export function getTaskCount(data) {
+  return getRequest('/v1/task/count/total', data);
+}
+// 用例管理
+export function getCaseRecycleBbin(data) {
+  return getRequest('/v1/ws/default/case/recycle-bin', data);
+}
+
+// 用户中心
+export function getOrgCla(data) {
+  return getRequest('/v1/org/cla', data);
+}
+export function getGroupUser(groupInfoId, data) {
+  return getRequest(`/v1/groups/${groupInfoId}/users`, data);
+}
+export function getRoleInfos(roleId, data) {
+  return getRequest(`/v1/role/${roleId}`, data);
+}
+export function getRuleses(data) {
+  return getRequest('/v1/scope', data);
+}
+export function getAdminOrg(data) {
+  return getRequest('/v1/admin/org', data);
+}
+export function getAllOrgList(data) {
+  return getRequest('/v1/orgs/all', data);
+}
+// export function getExchangedOrg(orgId, data) {
+//   return getRequest(`/v1/users/org?org_id=${orgId}`, data);
+// }
 

@@ -16,10 +16,7 @@
               @update:selected-keys="selectKey"
             />
           </n-layout-sider>
-          <n-layout-content
-            content-style="padding: 24px;height:100%"
-            :native-scrollbar="false"
-          >
+          <n-layout-content content-style="padding: 24px;height:100%" :native-scrollbar="false">
             <n-data-table
               remote
               :pagination="pagination"
@@ -41,15 +38,15 @@ import { showLoading } from '@/assets/utils/loading';
 import cardPage from '@/components/common/cardPage';
 export default {
   components: {
-    cardPage
+    cardPage,
   },
   setup() {
     modules.getUserInfo();
     modules.getMenu();
     return {
       showLoading,
-      ...modules
+      ...modules,
     };
-  }
+  },
 };
 </script>

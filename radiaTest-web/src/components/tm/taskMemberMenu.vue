@@ -1,12 +1,7 @@
 <template>
   <div class="member-menu">
     <div class="search-content">
-      <n-input
-        v-model:value="inputValue"
-        type="text"
-        placeholder="搜索"
-        @input="search"
-      />
+      <n-input v-model:value="inputValue" type="text" placeholder="搜索" @input="search" />
     </div>
     <div class="selectable-selection">
       <n-scrollbar style="max-height: 300px">
@@ -34,11 +29,7 @@
             </ul>
             <ul v-else>
               <n-checkbox-group v-model:value="groupValue">
-                <div
-                  v-for="(value, index) in personArray"
-                  :key="index"
-                  class="member-menu-item"
-                >
+                <div v-for="(value, index) in personArray" :key="index" class="member-menu-item">
                   <n-checkbox :value="JSON.stringify(value)">
                     <div style="display: flex">
                       <span><img :src="value.avatar" /></span>
@@ -66,17 +57,10 @@
 </template>
 
 <script>
+// import { getGroup, getOrgUser } from '@/api/get';
 import { getGroup } from '@/api/get';
 export default {
-  props: [
-    'multiple',
-    'defaultValue',
-    'id',
-    'type',
-    'executorType',
-    'groupId',
-    'originator',
-  ],
+  props: ['multiple', 'defaultValue', 'id', 'type', 'executorType', 'groupId', 'originator'],
   data() {
     return {
       personArray: [],
@@ -121,33 +105,33 @@ export default {
           });
       });
     },
-    getOrgUser() {
-      return new Promise((resolve, reject) => {
-        const id = this.$storage.getValue('loginOrgId');
-        this.$axios
-          .get(`/v1/org/${id}/users`, {
-            page_size: 99999,
-            page_num: 1,
-          })
-          .then((res) => {
-            for (const item of res.data.items) {
-              const element = {
-                id: item.user_id,
-                avatar: item.avatar_url,
-                name: item.user_name,
-                type: 'PERSON',
-              };
-              this.personArrayTemp.push(element);
-              this.personArray.push(element);
-            }
-            resolve();
-          })
-          .catch((err) => {
-            window.$message?.error(err.data.error_msg || '未知错误');
-            reject(Error('error'));
-          });
-      });
-    },
+    // getOrgUser() {
+    //   return new Promise((resolve, reject) => {
+    //     // const id = this.$storage.getValue('loginOrgId');
+    //     const id = this.$storage.getLocalValue('unLoginOrgId').id;
+    //     getOrgUser(id, {
+    //       page_size: 99999,
+    //       page_num: 1,
+    //     })
+    //       .then((res) => {
+    //         for (const item of res.data.items) {
+    //           const element = {
+    //             id: item.user_id,
+    //             avatar: item.avatar_url,
+    //             name: item.user_name,
+    //             type: 'PERSON',
+    //           };
+    //           this.personArrayTemp.push(element);
+    //           this.personArray.push(element);
+    //         }
+    //         resolve();
+    //       })
+    //       .catch((err) => {
+    //         window.$message?.error(err.data.error_msg || '未知错误');
+    //         reject(Error('error'));
+    //       });
+    //   });
+    // },
     getOrgGroup() {
       return new Promise((resolve, reject) => {
         getGroup({
@@ -197,9 +181,9 @@ export default {
       } else if (this.type === 'GROUP') {
         await this.getOrgGroup();
       } else if (this.type === 'ORGANIZATION') {
-        await this.getOrgUser();
+        // await this.getOrgUser();
       } else if (this.type === 'ALL') {
-        await this.getOrgUser();
+        // await this.getOrgUser();
         await this.getOrgGroup();
       }
       if (this.multiple) {

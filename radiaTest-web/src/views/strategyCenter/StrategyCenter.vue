@@ -36,7 +36,11 @@
             :currentFeature="currentFeature"
             @submitPullRequestCb="submitPullRequestCb"
           ></StrategyContent>
-          <FeatureSetDetail ref="FeatureSetDetailRef" :currentFeature="currentFeature" v-else></FeatureSetDetail>
+          <FeatureSetDetail
+            ref="FeatureSetDetailRef"
+            :currentFeature="currentFeature"
+            v-else
+          ></FeatureSetDetail>
         </n-layout-content>
       </n-layout>
       <n-modal v-model:show="showInputFeatureModal" :mask-closable="false">
@@ -45,7 +49,7 @@
           size="large"
           :bordered="false"
           :segmented="{
-            content: true
+            content: true,
           }"
           style="width: 1000px"
         >
@@ -65,7 +69,10 @@
                 <n-input v-model:value="inputFeatureFormValue.no" placeholder="请输入特性编号" />
               </n-form-item-gi>
               <n-form-item-gi :span="6" label="release to" path="release_to">
-                <n-input v-model:value="inputFeatureFormValue.release_to" placeholder="请输入特性release_to" />
+                <n-input
+                  v-model:value="inputFeatureFormValue.release_to"
+                  placeholder="请输入特性release_to"
+                />
               </n-form-item-gi>
               <n-form-item-gi :span="6" label="拥有者" path="owner">
                 <n-dynamic-tags v-model:value="inputFeatureFormValue.owner" />
@@ -77,7 +84,11 @@
                 <n-dynamic-tags v-model:value="inputFeatureFormValue.sig" />
               </n-form-item-gi>
               <n-form-item-gi :span="4" label="任务ID" path="task_id">
-                <n-input disabled v-model:value="inputFeatureFormValue.task_id" placeholder="请输入任务ID" />
+                <n-input
+                  disabled
+                  v-model:value="inputFeatureFormValue.task_id"
+                  placeholder="请输入任务ID"
+                />
               </n-form-item-gi>
               <n-form-item-gi :span="8" label="URL" path="url">
                 <n-input v-model:value="inputFeatureFormValue.url" placeholder="请输入URL" />
@@ -86,7 +97,9 @@
           </n-form>
           <n-space>
             <n-button size="medium" type="error" @click="cancelInputFeature" ghost> 取消 </n-button>
-            <n-button size="medium" type="primary" @click="submitInputFeature" ghost> 提交 </n-button>
+            <n-button size="medium" type="primary" @click="submitInputFeature" ghost>
+              提交
+            </n-button>
           </n-space>
         </n-card>
       </n-modal>
@@ -96,7 +109,7 @@
           size="large"
           :bordered="false"
           :segmented="{
-            content: true
+            content: true,
           }"
           style="width: 500px"
         >
@@ -121,8 +134,12 @@
             </n-grid>
           </n-form>
           <n-space>
-            <n-button size="medium" type="error" @click="cancelRelateFeature" ghost> 取消 </n-button>
-            <n-button size="medium" type="primary" @click="submitRelateFeature" ghost> 提交 </n-button>
+            <n-button size="medium" type="error" @click="cancelRelateFeature" ghost>
+              取消
+            </n-button>
+            <n-button size="medium" type="primary" @click="submitRelateFeature" ghost>
+              提交
+            </n-button>
           </n-space>
         </n-card>
       </n-modal>
@@ -183,7 +200,7 @@
           size="large"
           :bordered="false"
           :segmented="{
-            content: true
+            content: true,
           }"
           style="width: 500px"
         >
@@ -207,8 +224,12 @@
             </n-upload-dragger>
           </n-upload>
           <n-space>
-            <n-button size="medium" type="error" @click="cancelImportFeature" ghost> 取消 </n-button>
-            <n-button size="medium" type="primary" @click="submitImportFeature" ghost> 提交 </n-button>
+            <n-button size="medium" type="error" @click="cancelImportFeature" ghost>
+              取消
+            </n-button>
+            <n-button size="medium" type="primary" @click="submitImportFeature" ghost>
+              提交
+            </n-button>
           </n-space>
         </n-card>
       </n-modal>
@@ -218,7 +239,7 @@
           size="large"
           :bordered="false"
           :segmented="{
-            content: true
+            content: true,
           }"
           style="width: 500px"
         >
@@ -230,8 +251,12 @@
             </n-space>
           </n-radio-group>
           <n-space style="margin-top: 30px">
-            <n-button size="medium" type="error" @click="cancelExportFeature" ghost> 取消 </n-button>
-            <n-button size="medium" type="primary" @click="submitExportFeature" ghost> 提交 </n-button>
+            <n-button size="medium" type="error" @click="cancelExportFeature" ghost>
+              取消
+            </n-button>
+            <n-button size="medium" type="primary" @click="submitExportFeature" ghost>
+              提交
+            </n-button>
           </n-space>
         </n-card>
       </n-modal>
@@ -267,7 +292,7 @@ import DesignTemplate from '@/views/strategyCenter/DesignTemplate.vue';
 import { createTitle } from '@/assets/utils/createTitle';
 import { getProductVersionOrgOpts } from '@/assets/utils/getOpts';
 import { storage } from '@/assets/utils/storageUtils';
-import { getUserInfo, getAllFeature, getProductFeature } from '@/api/get';
+import { getAllFeature, getProductFeature } from '@/api/get';
 import { relateProductFeature, createProductFeature } from '@/api/post';
 import _ from 'lodash';
 
@@ -283,28 +308,24 @@ const FeatureSetDetailRef = ref(null); // 特性集页面
 
 // 获取组织节点
 const getOrgList = () => {
-  getUserInfo(storage.getValue('user_id')).then((res) => {
-    const { data } = res;
-    data.orgs.forEach((item) => {
-      if (item.re_user_org_default) {
-        treeData.value.push({
-          label: item.org_name,
-          key: `org-${item.org_id}`,
-          info: {
-            org_id: item.org_id
-          },
-          isLeaf: false,
-          type: 'org',
-          root: true,
-          icon: Organization20Regular,
-          children: createOrgChildren(item)
-        });
-        defaultExpandedKeys.value.push(`org-${item.org_id}`);
-      }
-    });
-    orgList.value = _.cloneDeep(treeData.value);
-    showLoading.value = false;
-  });
+  let item = {
+    label: storage.getLocalValue('unLoginOrgId').name,
+    key: storage.getLocalValue('unLoginOrgId').id,
+    info: {
+      org_id: storage.getLocalValue('unLoginOrgId').id,
+    },
+    isLeaf: false,
+    type: 'org',
+    root: true,
+    icon: Organization20Regular,
+  };
+  treeData.value = [
+    {
+      ...item,
+      children: createOrgChildren(item),
+    },
+  ];
+  defaultExpandedKeys.value.push(storage.getLocalValue('unLoginOrgId').id);
 };
 
 // 获取树根节点
@@ -323,8 +344,8 @@ const createOrgChildren = (orgItem) => {
     root: false,
     icon: Database,
     info: {
-      org_id: orgItem.org_id
-    }
+      org_id: orgItem.org_id,
+    },
   });
   productList.value.forEach((item) => {
     childrenArr.push({
@@ -336,8 +357,8 @@ const createOrgChildren = (orgItem) => {
       icon: Milestone,
       info: {
         org_id: orgItem.org_id,
-        productVersionId: item.value
-      }
+        productVersionId: item.value,
+      },
     });
   });
   return childrenArr;
@@ -358,8 +379,8 @@ const loadTreeData = (node) => {
           icon: Folder16Regular,
           info: {
             org_id: node.info.org_id,
-            productVersionId: node.info.productVersionId
-          }
+            productVersionId: node.info.productVersionId,
+          },
         },
         {
           label: '新增特性',
@@ -370,8 +391,8 @@ const loadTreeData = (node) => {
           icon: Folder16Regular,
           info: {
             org_id: node.info.org_id,
-            productVersionId: node.info.productVersionId
-          }
+            productVersionId: node.info.productVersionId,
+          },
         }
       );
       resolve();
@@ -391,8 +412,8 @@ const loadTreeData = (node) => {
               org_id: node.info.org_id,
               productVersionId: node.info.productVersionId,
               feature_id: item.id,
-              product_feature_id: item.product_feature_id
-            }
+              product_feature_id: item.product_feature_id,
+            },
           });
         });
       });
@@ -413,8 +434,8 @@ const loadTreeData = (node) => {
               org_id: node.info.org_id,
               productVersionId: node.info.productVersionId,
               feature_id: item.id,
-              product_feature_id: item.product_feature_id
-            }
+              product_feature_id: item.product_feature_id,
+            },
           });
         });
       });
@@ -445,7 +466,7 @@ const renderSuffix = ({ option }) => {
 const renderIcon = (icon) => {
   return () => {
     return h(NIcon, null, {
-      default: () => h(icon)
+      default: () => h(icon),
     });
   };
 };
@@ -489,85 +510,72 @@ const createMenu = (type) => {
       {
         label: '录入特性',
         key: 'inputFeature',
-        icon: renderIcon(DatabaseImport)
+        icon: renderIcon(DatabaseImport),
       },
       {
         label: '刷新',
         key: 'refresh',
-        icon: renderIcon(MdRefresh)
-      }
+        icon: renderIcon(MdRefresh),
+      },
     ];
   } else if (type === 'inherit') {
     return [
       {
         label: '关联特性',
         key: 'relateFeature',
-        icon: renderIcon(ChartRelationship)
+        icon: renderIcon(ChartRelationship),
       },
       {
         label: '刷新',
         key: 'refresh',
-        icon: renderIcon(MdRefresh)
-      }
+        icon: renderIcon(MdRefresh),
+      },
     ];
   } else if (type === 'increase') {
     return [
       {
         label: '刷新',
         key: 'refresh',
-        icon: renderIcon(MdRefresh)
-      }
+        icon: renderIcon(MdRefresh),
+      },
     ];
   } else if (type === 'feature' || type === 'inheritFeature') {
     return [
       {
         label: '导入',
         key: 'importFeature',
-        icon: renderIcon(FileImport)
+        icon: renderIcon(FileImport),
       },
       {
         label: '导出',
         key: 'exportFeature',
-        icon: renderIcon(FileExport)
+        icon: renderIcon(FileExport),
       },
-      // {
-      //   label: '修改',
-      //   key: 'updateFeature',
-      //   icon: renderIcon(DriveFileRenameOutlineFilled)
-      // },
-      // {
-      //   label: '删除',
-      //   key: 'deleteFeature',
-      //   icon: renderIcon(Delete28Regular)
-      // },
+
       {
         label: '刷新',
         key: 'refresh',
-        icon: renderIcon(MdRefresh)
-      }
+        icon: renderIcon(MdRefresh),
+      },
     ];
   } else if (type === 'increaseFeature') {
     return [
       {
         label: '导入',
         key: 'importFeature',
-        icon: renderIcon(FileImport)
+        icon: renderIcon(FileImport),
       },
       {
         label: '导出',
         key: 'exportFeature',
-        icon: renderIcon(FileExport)
+        icon: renderIcon(FileExport),
       },
-      // {
-      //   label: '删除',
-      //   key: 'deleteFeature',
-      //   icon: renderIcon(Delete28Regular)
-      // },
+
       {
         label: '刷新',
         key: 'refresh',
-        icon: renderIcon(MdRefresh)
-      }
+        icon: renderIcon(MdRefresh),
+      },
     ];
   }
   return [];
@@ -593,7 +601,7 @@ const nodeProps = ({ option }) => {
       dropdownX.value = e.clientX;
       dropdownY.value = e.clientY;
       dropdownOptions.value = createMenu(option.type);
-    }
+    },
   };
 };
 
@@ -607,19 +615,19 @@ const inputFeatureFormValue = ref({
   pkgs: null,
   sig: [],
   task_id: null,
-  url: null
+  url: null,
 });
 const inputFeatureFormRules = ref({
   feature: {
     required: true,
     trigger: ['blur', 'input'],
-    message: '请输入特性名'
+    message: '请输入特性名',
   },
   no: {
     required: true,
     trigger: ['blur', 'input'],
-    message: '请输入特性编号'
-  }
+    message: '请输入特性编号',
+  },
 });
 
 // 取消录入特性
@@ -633,7 +641,7 @@ const cancelInputFeature = () => {
     pkgs: null,
     sig: [],
     task_id: null,
-    url: null
+    url: null,
   };
 };
 
@@ -655,15 +663,15 @@ const submitInputFeature = (e) => {
 const showRelateFeatureModal = ref(false); // 显示关联特性弹框
 const relateFeatureFormRef = ref(null);
 const relateFeatureFormValue = ref({
-  featureName: null
+  featureName: null,
 });
 const relateFeatureFormRules = ref({
   featureName: {
     required: true,
     type: 'number',
     trigger: ['blur', 'change'],
-    message: '请输入特性名'
-  }
+    message: '请输入特性名',
+  },
 });
 const relateFeatureOptions = ref([]);
 
@@ -673,7 +681,7 @@ const getAllFeatureFn = (param) => {
     res.data?.forEach((item) => {
       relateFeatureOptions.value.push({
         label: item.feature,
-        value: item.id
+        value: item.id,
       });
     });
   });
@@ -683,7 +691,7 @@ const getAllFeatureFn = (param) => {
 const cancelRelateFeature = () => {
   showRelateFeatureModal.value = false;
   relateFeatureFormValue.value = {
-    featureName: null
+    featureName: null,
   };
 };
 
@@ -693,7 +701,7 @@ const submitRelateFeature = (e) => {
   relateFeatureFormRef.value?.validate((errors) => {
     if (!errors) {
       relateProductFeature(currentNode.value.info.productVersionId, {
-        feature_id: relateFeatureFormValue.value.featureName
+        feature_id: relateFeatureFormValue.value.featureName,
       }).then(() => {
         getRootNodes();
         cancelRelateFeature();
@@ -703,59 +711,6 @@ const submitRelateFeature = (e) => {
     }
   });
 };
-
-// const showUpdateFeatureModal = ref(false); // 显示修改特性弹框
-// const updateFeatureFormRef = ref(null);
-// const updateFeatureFormValue = ref({
-//   featureName: null,
-//   no: null,
-//   owner: null,
-//   release_to: null,
-//   pkgs: null,
-//   sig: null,
-//   task_id: null,
-//   url: null
-// });
-// const updateFeatureFormRules = ref({
-//   featureName: {
-//     required: true,
-//     trigger: ['blur', 'input'],
-//     message: '请输入特性名'
-//   }
-// });
-
-// // 取消修改特性
-// const cancelUpdateFeature = () => {
-//   showUpdateFeatureModal.value = false;
-//   updateFeatureFormValue.value = {
-//     featureName: null,
-//     no: null,
-//     owner: null,
-//     release_to: null,
-//     pkgs: null,
-//     sig: null,
-//     task_id: null,
-//     url: null
-//   };
-// };
-
-// // 提交修改特性
-// const submitUpdateFeature = (e) => {
-//   e.preventDefault();
-//   updateFeatureFormRef.value?.validate((errors) => {
-//     if (!errors) {
-//       changeProductFeature(currentNode.value.info.feature_id, {
-//         feature: updateFeatureFormValue.value.featureName
-//       }).then((res) => {
-//         console.log(res);
-//         getRootNodes();
-//         cancelUpdateFeature();
-//       });
-//     } else {
-//       console.log(errors);
-//     }
-//   });
-// };
 
 const showImportFeatureModal = ref(false); // 显示导入弹框
 const importFeatureRef = ref(null);
@@ -818,10 +773,10 @@ const submitPullRequestCb = () => {
   getRootNodes();
 };
 
-onMounted(() => {
+onMounted(async () => {
   isDesignTemplate.value = false;
+  await getProductVersionOrgOpts(productList); // 获取产品版本列表
   getOrgList();
-  getProductVersionOrgOpts(productList); // 获取产品版本列表
 });
 </script>
 

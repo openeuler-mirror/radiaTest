@@ -3,7 +3,7 @@
     :bordered="false"
     size="huge"
     :segmented="{
-      content: 'hard'
+      content: 'hard',
     }"
     header-style="
       font-size: 30px;
@@ -18,21 +18,21 @@
   >
     <template #header>
       <div class="nav-header">
-        <div class="nav-body" >
-          <ul class="nav-wrapper" >
+        <div class="nav-body">
+          <!-- <ul class="nav-wrapper">
             <li v-for="(item, index) in menu" :key="index" @click="menuClick(item)">
               <template v-if="showMenuItem(item)">
                 <a :class="{ active: menuSelect === item.id }">{{ item.text }}</a>
               </template>
             </li>
-          </ul>
-<!--          <ul class="nav-wrapper" v-if="$route.params.workspace==='release'">-->
-<!--            <li v-for="(item, index) in versionMenu" :key="index" @click="menuClick(item)">-->
-<!--              <template v-if="showMenuItem(item)">-->
-<!--                <a :class="{ active: menuSelect === item.id }">{{ item.text }}</a>-->
-<!--              </template>-->
-<!--            </li>-->
-<!--          </ul>-->
+          </ul> -->
+          <!--          <ul class="nav-wrapper" v-if="$route.params.workspace==='release'">-->
+          <!--            <li v-for="(item, index) in versionMenu" :key="index" @click="menuClick(item)">-->
+          <!--              <template v-if="showMenuItem(item)">-->
+          <!--                <a :class="{ active: menuSelect === item.id }">{{ item.text }}</a>-->
+          <!--              </template>-->
+          <!--            </li>-->
+          <!--          </ul>-->
         </div>
         <div class="nav-footer">
           <div v-show="isTask" class="footer-wrapper">
@@ -42,13 +42,25 @@
             <a class="footer-item" v-show="!kanban && isTask && !backable" @click="toggleView">
               <n-icon size="16"> <Table /> </n-icon>泳道视图
             </a>
-            <a class="footer-item" v-show="isTask && backable" @click="menuClick({ name: 'task' }, 0)">
+            <a
+              class="footer-item"
+              v-show="isTask && backable"
+              @click="menuClick({ name: 'task' }, 0)"
+            >
               <n-icon size="16"> <Table /> </n-icon>返回看板
             </a>
-            <a class="footer-item" v-show="isTask && !backable" @click="menuClick({ name: 'distribution' }, 0)">
+            <a
+              class="footer-item"
+              v-show="isTask && !backable"
+              @click="menuClick({ name: 'distribution' }, 0)"
+            >
               <n-icon size="16"> <TextAlignDistributed20Filled /> </n-icon>分配模板管理
             </a>
-            <a class="footer-item" v-show="isTask && !backable" @click="menuClick({ name: 'report' }, 0)">
+            <a
+              class="footer-item"
+              v-show="isTask && !backable"
+              @click="menuClick({ name: 'report' }, 0)"
+            >
               <n-icon size="16"> <BarChart /> </n-icon>可视化
             </a>
             <filterButton
@@ -126,7 +138,11 @@
 import { LayoutKanban, Table } from '@vicons/tabler';
 import { Template } from '@vicons/carbon';
 import { BarChart, ArrowBackCircleOutline } from '@vicons/ionicons5';
-import { QuestionCircle20Regular, Delete48Regular, TextAlignDistributed20Filled } from '@vicons/fluent';
+import {
+  QuestionCircle20Regular,
+  Delete48Regular,
+  TextAlignDistributed20Filled,
+} from '@vicons/fluent';
 import { modules } from './modules/index';
 import { useRoute } from 'vue-router';
 import filterButton from '@/components/filter/filterButton.vue';
@@ -141,11 +157,13 @@ export default defineComponent({
     TextAlignDistributed20Filled,
     BarChart,
     Template,
-    ArrowBackCircleOutline
+    ArrowBackCircleOutline,
   },
   setup() {
+    // console.log(1111, menu.value);
     const route = useRoute();
     const showMenuItem = (item) => {
+      console.log('item', item);
       if (item.name !== 'testing') {
         if (window.atob(route.params?.workspace).search('group') !== -1) {
           return false;
@@ -163,9 +181,9 @@ export default defineComponent({
 
     return {
       showMenuItem,
-      ...modules
+      ...modules,
     };
-  }
+  },
 });
 </script>
 

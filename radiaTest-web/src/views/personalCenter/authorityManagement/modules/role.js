@@ -6,14 +6,15 @@ import { Organization20Regular } from '@vicons/fluent';
 import { GroupsFilled } from '@vicons/material';
 import router from '@/router';
 import { storage } from '@/assets/utils/storageUtils';
+import { getAllRole } from '@/api/get';
 
 const roleList = ref([]);
 const activeRole = ref({});
 const expandRole = ref([]);
-function setActiveRole (value) {
+function setActiveRole(value) {
   activeRole.value = value;
 }
-function renderGroup (options) {
+function renderGroup(options) {
   const index = roleList.value.findIndex((item) => item.key === 'group');
   const group = roleList.value[index].children.find(
     (item) =>
@@ -45,7 +46,7 @@ function renderGroup (options) {
     });
   }
 }
-function renderOrg (options) {
+function renderOrg(options) {
   const index = roleList.value.findIndex((item) => item.key === 'org');
   const org = roleList.value[index].children.find(
     (item) =>
@@ -77,7 +78,7 @@ function renderOrg (options) {
     });
   }
 }
-function renderUser (options) {
+function renderUser(options) {
   const index = roleList.value.findIndex((item) => item.key === 'person');
   if (index !== -1) {
     roleList.value[index].children.push({
@@ -88,7 +89,7 @@ function renderUser (options) {
     });
   }
 }
-function initRoleList () {
+function initRoleList() {
   if (storage.getValue('role') === 1) {
     roleList.value = [
       {
@@ -134,7 +135,7 @@ function initRoleList () {
     item.children = [];
   });
 }
-function renderOptionByKey (key, isActive, item, renderFn) {
+function renderOptionByKey(key, isActive, item, renderFn) {
   if (isActive) {
     expandRole.value = [key, window.btoa(`${key}-${item[`${key}_id`]}`)];
     activeRole.value.scopeType = item.type;
@@ -142,8 +143,8 @@ function renderOptionByKey (key, isActive, item, renderFn) {
   }
   renderFn(item);
 }
-function renderRole () {
-  axios.get('/v1/role').then((res) => {
+function renderRole() {
+  getAllRole().then((res) => {
     initRoleList();
     res.data?.forEach((item) => {
       let isActive = false;
@@ -178,7 +179,7 @@ function renderRole () {
     });
   });
 }
-function getRoleList () {
+function getRoleList() {
   if (router.currentRoute.value.name === 'rolesManagement') {
     activeRole.value.roleId = router.currentRoute.value.params.roleId;
   } else {
@@ -187,7 +188,7 @@ function getRoleList () {
   renderRole();
 }
 
-function selectRole (key, options) {
+function selectRole(key, options) {
   if (options[0].children) {
     return;
   }
@@ -208,14 +209,14 @@ function selectRole (key, options) {
   });
 }
 
-function expandKey (keys) {
+function expandKey(keys) {
   expandRole.value = keys;
 }
 const roleCreateForm = ref();
-function createRole () {
+function createRole() {
   roleCreateForm.value.show();
 }
-function submitCreateFrom ({ data, type }) {
+function submitCreateFrom({ data, type }) {
   if (type === 'create') {
     axios
       .post('/v1/role', data)

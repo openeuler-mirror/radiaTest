@@ -4,7 +4,7 @@ import { createCaseReview } from '@/api/post';
 import { formatTime } from '@/assets/utils/dateFormatUtils.js';
 import router from '@/router';
 import { NButton, NFormItem, NInput, NSpace } from 'naive-ui';
-import { getCaseDetail } from '@/api/get';
+import { getCaseDetail, getTaskStatus, getCasesNode } from '@/api/get';
 import { expandNode } from '@/views/caseManage/folderView/modules/menu';
 const source = ref([]);
 const caseInfo = ref({});
@@ -75,8 +75,8 @@ const detailsList = ref([
   },
 ]);
 const status = ref([]);
-function getStatus () {
-  axios.get('/v1/task/status').then((res) => {
+function getStatus() {
+  getTaskStatus().then((res) => {
     status.value = res.data;
   });
 }
@@ -85,7 +85,7 @@ const report = ref({
   content: '',
 });
 // eslint-disable-next-line max-lines-per-function
-function setDataList (Info) {
+function setDataList(Info) {
   detailsList.value = [
     {
       title: '基础信息',
@@ -161,13 +161,12 @@ function setDataList (Info) {
   ];
 }
 const loading = ref(false);
-function getDetail (caseId) {
+function getDetail(caseId) {
   loading.value = true;
-  axios
-    .get(`/v1/case-node/${caseId}`)
+  getCasesNode(caseId)
     .then((res) => {
       source.value = res.data.source;
-      getCaseDetail(res.data.case_id) 
+      getCaseDetail(res.data.case_id)
         .then((response) => {
           caseInfo.value = response.data;
           caseInfo.value.title = res.data.title;
@@ -196,7 +195,7 @@ function getDetail (caseId) {
     });
   getStatus();
 }
-function setStatus (state) {
+function setStatus(state) {
   const index = status.value.findIndex((item) => item.id === state.id);
   const active = status.value.findIndex(
     (item) => item.id === task.value.status_id
@@ -237,7 +236,7 @@ const editInfo = {
     colsIndex: 0
   },
 };
-function getFormData (data) {
+function getFormData(data) {
   const result = {};
   const keys = Object.keys(editInfo);
   for (const key of keys) {
@@ -250,7 +249,7 @@ const caseReviewTitle = ref('');
 const titleRule = {
   trigger: ['input', 'blur'],
   message: '请填写标题',
-  validator () {
+  validator() {
     if (caseReviewTitle.value !== '') {
       return true;
     }
@@ -258,7 +257,7 @@ const titleRule = {
   }
 };
 const caseReviewDescription = ref('');
-function dialogContent () {
+function dialogContent() {
   return h('div', null, [
     h(NFormItem, {
       label: '标题',
@@ -279,7 +278,7 @@ function dialogContent () {
     }))
   ]);
 }
-function updateDetail ({ data }) {
+function updateDetail({ data }) {
   const d = window.$dialog?.info({
     title: '补充信息',
     content: dialogContent,
@@ -317,14 +316,14 @@ function updateDetail ({ data }) {
     }
   });
 }
-function cancelDetail () {
+function cancelDetail() {
   if (router.currentRoute.value.params.taskId !== 'development') {
     getDetail(window.atob(router.currentRoute.value.params.taskId));
   }
 }
 const editInfoValue = ref();
 const modifyModal = ref();
-function edit (index) {
+function edit(index) {
   editInfoValue.value = {
     ...getFormData(detailsList.value[index].rows),
     description: '',
@@ -333,7 +332,7 @@ function edit (index) {
   };
   modifyModal.value.show();
 }
-function editSubmit (formValue) {
+function editSubmit(formValue) {
   createCaseReview({
     ...formValue,
     source: source.value,

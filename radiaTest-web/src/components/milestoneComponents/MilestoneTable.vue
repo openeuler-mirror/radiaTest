@@ -30,7 +30,9 @@ import milestoneTableColumns from '@/views/versionManagement/milestone/modules/m
 export default defineComponent({
   setup(props, context) {
     const store = useStore();
-    const milestoneSocket = new Socket(`${settings.websocketProtocol}://${settings.serverPath}/milestone`);
+    const milestoneSocket = new Socket(
+      `${settings.websocketProtocol}://${settings.serverPath}/milestone`
+    );
     milestoneSocket.connect();
 
     onMounted(() => {
@@ -42,11 +44,11 @@ export default defineComponent({
       //   milestoneTable.pagination
       // );
       get.list(
-          '/v2/ws/default/milestone',
-          milestoneTable.totalData,
-          milestoneTable.loading,
-          milestoneTable.filter.value,
-          milestoneTable.pagination
+        '/v2/ws/default/milestone',
+        milestoneTable.totalData,
+        milestoneTable.loading,
+        milestoneTable.filter.value,
+        milestoneTable.pagination
       );
       milestoneSocket.listen('update', () => {
         // get.list(
@@ -57,11 +59,11 @@ export default defineComponent({
         //   milestoneTable.pagination
         // );
         get.list(
-            '/v2/ws/default/milestone',
-            milestoneTable.totalData,
-            milestoneTable.loading,
-            milestoneTable.filter.value,
-            milestoneTable.pagination
+          '/v2/ws/default/milestone',
+          milestoneTable.totalData,
+          milestoneTable.loading,
+          milestoneTable.filter.value,
+          milestoneTable.pagination
         );
       });
     });
@@ -89,9 +91,14 @@ export default defineComponent({
       offSelection: () => selection.off(columns),
       refreshData: () =>
         // get.refresh(`/v2/ws/${workspace.value}/milestone`, milestoneTable.data, milestoneTable.loading, milestoneTable.filter.value)
-          get.refresh('/v2/ws/default/milestone', milestoneTable.data, milestoneTable.loading, milestoneTable.filter.value)
+        get.refresh(
+          '/v2/ws/default/milestone',
+          milestoneTable.data,
+          milestoneTable.loading,
+          milestoneTable.filter.value
+        ),
     };
-  }
+  },
 });
 </script>
 

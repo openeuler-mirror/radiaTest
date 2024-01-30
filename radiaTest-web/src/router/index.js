@@ -32,7 +32,10 @@ import Product from '@/views/versionManagement/product/product.vue';
 import Milestone from '@/views/versionManagement/milestone/milestone.vue';
 import NotFound from '@/views/resultPage/NotFound.vue';
 import AtDetail from '@/views/atDetail/index.vue';
-import PersonalBoard from '@/views/taskManage/personalBoard/PersonalBoard';
+import newLogin from '@/views/login/newLogin.vue';
+import frameWork from '@/views/caseManage/frameWork/frameWork.vue';
+
+
 
 const routerHistory = createWebHistory();
 const router = createRouter({
@@ -40,7 +43,7 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      redirect: '/home'
+      redirect: '/home/version-management'
     },
     {
       path: '/at-detail',
@@ -52,26 +55,21 @@ const router = createRouter({
     },
     {
       path: '/home/',
-      redirect: '/home/workdesk',
+      redirect: '/home/workbench',
       component: Home,
       name: 'home',
       meta: {
-        title: 'EulerTest'
+        title: 'raidaTest测试平台'
       },
       children: [
         {
-          path: 'workdesk',
+          path: 'workbench/',
           component: Dashboard,
           redirect: { name: 'dashboard' },
           meta: {
-            title: 'EulerTest'
+            title: 'raidaTest测试平台'
           },
           children: [
-            {
-              path: 'dashboard/',
-              component: PersonalBoard,
-              name: 'dashboard'
-            },
             {
               path: 'task/',
               component: Task,
@@ -96,11 +94,12 @@ const router = createRouter({
               path: 'design/',
               component: StrategyCenter,
               name: 'design'
-            }
+            },
+
           ]
         },
         {
-          path: 'product-version',
+          path: 'version-management/',
           redirect: { name: 'vmProduct' },
           component: versionManagement,
           children: [
@@ -109,7 +108,7 @@ const router = createRouter({
               component: Product,
               name: 'vmProduct',
               meta: {
-                title: 'EulerTest'
+                title: '产品版本管理'
               }
             },
             {
@@ -117,19 +116,22 @@ const router = createRouter({
               component: Milestone,
               name: 'vmMilestone',
               meta: {
-                title: 'EulerTest'
+                title: '里程碑管理'
               }
             }
           ]
         },
+
         {
-          path: 'testcase',
+          path: 'tcm/',
           redirect: { name: 'folderview' },
           component: CaseManagement,
           meta: {
-            title: 'EulerTest'
+            title: '用例管理'
           },
           children: [
+
+
             {
               path: 'testcase/',
               component: Testcase,
@@ -176,10 +178,24 @@ const router = createRouter({
                   name: 'testcaseNodes'
                 }
               ]
+            },
+            {
+              path: 'framework',
+              component: frameWork,
+              name: 'frameWork'
             }
           ]
         }
       ]
+    },
+
+    {
+      path: '/login/',
+      component: newLogin,
+      name: 'login',
+      meta: {
+        title: '登录'
+      }
     },
     {
       path: '/personal-center/',

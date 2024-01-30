@@ -7,6 +7,7 @@ import { state } from './userInfo';
 import { changeLoadingStatus } from '@/assets/utils/loading';
 import { NTag } from 'naive-ui';
 import { setActiveOrgInfo } from './orgDrawer';
+import { getUserInfo, getOrgCla } from '@/api/get';
 
 const showAddModal = ref(false);
 const addInfo = reactive({ org: '', claEmail: '' });
@@ -15,7 +16,7 @@ const orgNameRule = {
   trigger: ['blur', 'change'],
   required: true,
   message: '组织不能为空',
-  validator () {
+  validator() {
     if (addInfo.org) {
       return true;
     }
@@ -26,7 +27,7 @@ const orgNameRule = {
 const claEmailRule = {
   trigger: ['blur'],
   required: true,
-  validator () {
+  validator() {
     if (addInfo.claEmail) {
       const emailReg = /^[A-Za-z0-9\u4e00-\u9fa5]+@[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)+$/;
       if (!emailReg.test(addInfo.claEmail)) {
@@ -38,15 +39,15 @@ const claEmailRule = {
 
   }
 };
-function init () {
+function init() {
   let hasOrg = '';
-  axios.get(`/v1/users/${storage.getValue('user_id')}`).then(res => {
+  getUserInfo(storage.getValue('user_id')).then(res => {
     const { data } = res;
     state.userInfo = data;
     data.orgs.forEach(item => {
       hasOrg += (`${item.org_id},`);
     });
-    axios.get('/v1/org/cla', { has_org_ids: hasOrg.slice(0, hasOrg.length) }).then(response => {
+    getOrgCla({ has_org_ids: hasOrg.slice(0, hasOrg.length) }).then(response => {
       changeLoadingStatus(false);
       if (response.error_code === '2000') {
         orgList.value = response.data.map(item => {
@@ -62,7 +63,7 @@ function init () {
     changeLoadingStatus(false);
   });
 }
-function submitAddOrg () {
+function submitAddOrg() {
   if (claEmailRule.validator() && typeof claEmailRule.validator() !== 'object' && orgNameRule.validator()) {
     axios.post(`/v1/org/${addInfo.org}/cla`, {
       cla_verify_params: JSON.stringify({ email: addInfo.claEmail, }),
@@ -79,7 +80,7 @@ function submitAddOrg () {
     window.$message?.error('请填写相关信息');
   }
 }
-function handleAddOrg () {
+function handleAddOrg() {
   init();
   showAddModal.value = true;
 }
@@ -98,7 +99,7 @@ const orgColumns = [
     title: '创建时间',
     key: 're_user_org_create_time',
     align: 'center',
-    render (row) {
+    render(row) {
       return h('span', null, [formatTime(new Date(row.re_user_org_create_time), 'yyyy-MM-dd hh:mm:ss')]);
     },
   },
@@ -106,7 +107,7 @@ const orgColumns = [
     title: 'cla邮箱',
     key: 'email',
     align: 'center',
-    render (row) {
+    render(row) {
       return h('span', null, [row.re_user_org_cla_info.email]);
     }
   },
@@ -114,7 +115,7 @@ const orgColumns = [
     title: '角色',
     key: 'role',
     align: 'center',
-    render (row) {
+    render(row) {
       const tag = h(
         NTag,
         {
@@ -129,7 +130,7 @@ const orgColumns = [
 const pagination = {
   pagesize: 5
 };
-function orgRowProps (row) {
+function orgRowProps(row) {
   return {
     style: row.re_user_org_role_type === 2 ? 'cursor: pointer;' : 'cursor: not-allowed;',
     onClick: () => {

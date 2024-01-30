@@ -4,6 +4,7 @@ import router from '@/router/index';
 import { NButton } from 'naive-ui';
 import { formatTime } from '@/assets/utils/dateFormatUtils.js';
 import { updateAjax } from '@/assets/CRUD/update';
+import { getCaseRecycleBbin } from '@/api/get';
 // import { workspace } from '@/assets/config/menu.js';
 
 const menuSelect = ref(0); // 当前页面索引值
@@ -59,8 +60,7 @@ const recycleBinCaseData = ref([]);
 // 查询回收站
 function query() {
   // 需要后端适配
-  axios
-    .get('/v1/ws/default/case/recycle-bin')
+  getCaseRecycleBbin()
     .then((res) => {
       recycleBinCaseLoading.value = false;
       recycleBinCaseData.value = res.data.map((_case, index) => {
@@ -175,11 +175,11 @@ const menu = ref([
     text: '用例仓库',
     name: 'folderview',
   },
-  {
-    id: 2,
-    text: '用例评审',
-    name: 'caseReview',
-  },
+  // {
+  //   id: 2,
+  //   text: '用例评审',
+  //   name: 'caseReview',
+  // },
   {
     id: 3,
     text: '测试框架',

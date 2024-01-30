@@ -39,17 +39,17 @@ function renderPrefix({ option }) {
       NIcon,
       { color: option.iconColor || '#0e7a0d' },
       {
-        default: () => h(option.icon)
+        default: () => h(option.icon),
       }
     );
   } else if (!option.info?.case_automatic) {
     return h(
       NIcon,
       {
-        color: '#505050'
+        color: '#505050',
       },
       {
-        default: () => h(option.icon)
+        default: () => h(option.icon),
       }
     );
   }
@@ -57,7 +57,7 @@ function renderPrefix({ option }) {
     NTooltip,
     {
       trigger: 'hover',
-      placement: 'left'
+      placement: 'left',
     },
     {
       default: () => '已自动化',
@@ -65,12 +65,12 @@ function renderPrefix({ option }) {
         h(
           NIcon,
           {
-            color: option.iconColor || '#0e7a0d'
+            color: option.iconColor || '#0e7a0d',
           },
           {
-            default: () => h(FileCodeRegular)
+            default: () => h(FileCodeRegular),
           }
-        )
+        ),
     }
   );
 }
@@ -78,10 +78,10 @@ export default {
   props: {
     data: {
       type: Object,
-      required: true
+      required: true,
     },
     expandKeys: Array,
-    selectKey: String
+    selectKey: String,
   },
   methods: {
     renderLabel({ option }) {
@@ -89,7 +89,7 @@ export default {
         pending: 'default',
         open: 'info',
         accepted: 'success',
-        rejected: 'error'
+        rejected: 'error',
       };
       if (option.type === 'case' && option.info.case_status) {
         return h('div', null, [
@@ -98,7 +98,7 @@ export default {
             NTooltip,
             {
               trigger: 'hover',
-              placement: 'right'
+              placement: 'right',
             },
             {
               default: () => option.info.case_status,
@@ -115,7 +115,7 @@ export default {
                       if (option.info.case_status === 'pending') {
                         textDialog('warning', '提示', '是否提交评审', () => {
                           modifyCommitStatus(option.info.commit_id, {
-                            status: 'open'
+                            status: 'open',
                           }).then(() => {
                             option.info.case_status = 'open';
                           });
@@ -124,16 +124,16 @@ export default {
                         this.$router.push({
                           name: 'caseReviewDetail',
                           params: {
-                            commitId: option.info.commit_id
-                          }
+                            commitId: option.info.commit_id,
+                          },
                         });
                       }
-                    }
+                    },
                   },
                   String(option.info.case_status[0]).toUpperCase()
-                )
+                ),
             }
-          )
+          ),
         ]);
       }
       return option.label;
@@ -142,12 +142,13 @@ export default {
       this.$emit('expand', str);
     },
     selectMenu(key, options) {
+      console.log('selectMenu', key, options);
       this.$emit('menuClick', { key, options });
     },
     handleSelect(key, options) {
       const result = {
         action: options,
-        contextmenu: this.activeItem
+        contextmenu: this.activeItem,
       };
       this.showDropdown = false;
       this.$emit('selectAction', result);
@@ -218,7 +219,7 @@ export default {
         this.x = e.clientX;
         this.y = e.clientY;
       });
-    }
+    },
   },
   setup() {
     const tree = ref(null);
@@ -235,9 +236,9 @@ export default {
       renderPrefix,
       onClickoutside() {
         showDropdown.value = false;
-      }
+      },
     };
-  }
+  },
 };
 </script>
 <style>

@@ -1,7 +1,7 @@
 /* eslint-disable max-lines-per-function */
 /* eslint-disable indent */
 import { h, ref } from 'vue';
-import { NIcon, NButton, NTag, NSpace, NPopselect } from 'naive-ui';
+import { NIcon, NButton, NSpace, NPopselect } from 'naive-ui';
 import { Construct } from '@vicons/ionicons5';
 import { renderTooltip } from '@/assets/render/tooltip';
 import { Delete24Regular as Delete } from '@vicons/fluent';
@@ -35,7 +35,7 @@ const searchMilestoneFn = () => {
       item.label = item.title;
       item.value = item.id;
     });
-    selectMilestoneOptions.value =  selectMilestoneOptions.value.concat(res.data.data);
+    selectMilestoneOptions.value = selectMilestoneOptions.value.concat(res.data.data);
     loading.value = false;
   });
 };
@@ -44,19 +44,19 @@ const syncMilestoneFn = () => {
     gitee_milestone_id: selectMilestoneValue.value
   }).then(() => {
     showSyncRepoModal.value = false;
-  }).catch(()=>{
+  }).catch(() => {
     showSyncRepoModal.value = false;
   });
 };
 
- const handleScroll = async (e) => {
-    const currentTarget = e.currentTarget;
-    if (currentTarget.scrollTop + currentTarget.offsetHeight >= currentTarget.scrollHeight) {
-      if(hasNext.value){
-        page.value = page.value + 1;
-        searchMilestoneFn();
-      }
+const handleScroll = async (e) => {
+  const currentTarget = e.currentTarget;
+  if (currentTarget.scrollTop + currentTarget.offsetHeight >= currentTarget.scrollHeight) {
+    if (hasNext.value) {
+      page.value = page.value + 1;
+      searchMilestoneFn();
     }
+  }
 };
 
 const changeState = (data) => {
@@ -102,22 +102,7 @@ const constColumns = [
       }
       return row.is_sync
         ? renderTooltip(
-            h(
-              NButton,
-              {
-                size: 'medium',
-                type: row.is_sync ? 'primary' : '',
-                circle: true,
-                onClick: (e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                }
-              },
-              h(NIcon, { size: '20' }, h(icon))
-            ),
-            text
-          )
-        : h(
+          h(
             NButton,
             {
               size: 'medium',
@@ -126,13 +111,28 @@ const constColumns = [
               onClick: (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                showSyncRepoModal.value = true;
-                searchName.value = row;
-                searchMilestoneFn();
               }
             },
             h(NIcon, { size: '20' }, h(icon))
-          );
+          ),
+          text
+        )
+        : h(
+          NButton,
+          {
+            size: 'medium',
+            type: row.is_sync ? 'primary' : '',
+            circle: true,
+            onClick: (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              showSyncRepoModal.value = true;
+              searchName.value = row;
+              searchMilestoneFn();
+            }
+          },
+          h(NIcon, { size: '20' }, h(icon))
+        );
     }
   },
   {
@@ -216,27 +216,6 @@ const constColumns = [
 const createColumns = (handler) => {
   return [
     ...constColumns,
-    {
-      title: '镜像标签',
-      key: 'tags',
-      align: 'center',
-      className: 'cols tags',
-      render: (row) => {
-        if (row.tags) {
-          const hTags = row.tags.map((item) => {
-            return h(
-              NTag,
-              {
-                type: 'success'
-              },
-              item
-            );
-          });
-          return h(NSpace, { justify: 'center' }, hTags);
-        }
-        return h();
-      }
-    },
     {
       title: '操作',
       key: 'action',

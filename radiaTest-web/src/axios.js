@@ -91,19 +91,13 @@ server.interceptors.response.use(
     return Promise.reject(response);
   },
   (error) => {
-    const isIframe = storage.getValue('isIframe');
     if (error.response?.status === 401) {
       window.$message?.destroyAll();
+      window.sessionStorage.clear();
       window.$message?.error('请重新登录');
-      if (isIframe && isIframe === '1') {
-        router.push({
-          name: 'home',
-        });
-      } else {
-        router.push({
-          name: 'login',
-        });
-      }
+      // router.push({
+      //   name: 'home',
+      // });
       error.response.data = {
         error_msg: '登录失效',
       };

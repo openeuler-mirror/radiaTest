@@ -13,23 +13,11 @@
         <div class="chart" id="termAutomationRate-pie"></div>
       </div>
     </div>
-    <div class="rightPart">
-      <div class="part1">
-        <div class="count count1">
-          <div class="txt">commit合入统计</div>
-          <div class="num">{{ commitsCount }}</div>
-        </div>
-        <div class="chart">
-          <n-select v-model:value="commitSelectedTime" :options="timeOptions" />
-          <div id="termCommitCounts-line"></div>
-        </div>
-      </div>
-    </div>  
   </div>
   <div class="bottomPart">
     <n-tabs type="line" animated>
       <n-tab-pane name="baseline template" tab="基线模板">
-        <baseline-template type="group"/>
+        <baseline-template type="group" />
       </n-tab-pane>
       <n-tab-pane name="codehub" tab="自动化脚本代码仓">
         <codehub type="group" />
@@ -46,7 +34,7 @@ export default {
   components: { baselineTemplate, codehub },
   setup() {
     onMounted(() => {
-      modules.initData();
+      // modules.initData();
       nextTick(() => {
         modules.initData();
         setTimeout(() => {
@@ -59,128 +47,108 @@ export default {
     });
     return {
       Search,
-      ...modules
+      ...modules,
     };
-  }
+  },
 };
 </script>
 <style lang="less" scoped>
-.termNodes-container{
+.termNodes-container {
   display: flex;
   justify-content: space-between;
   flex-wrap: nowrap;
-  .leftPart{
-    width:40%;
-    .part1{
-      .chart{
+  .leftPart {
+    width: 100%;
+    .part1 {
+      .chart {
         height: 100%;
         width: 50%;
       }
-      .count{
+      .count {
         width: 25%;
       }
     }
   }
-  .rightPart{
-    width:calc(60% - 20px);
-    .part1{
-      .chart{
-        height: 100%;
-        width: 70%;
-        .n-select{
-          float: right;
-          width: 20%;
-          z-index: 1;
-          margin-right: 20px;
-        }
-        #termCommitCounts-line{
-          height: 100%;
-        }
-      }
-      .count{
-        width: 30%;
-      }
-    }
-  }
-  .part1{
+
+  .part1 {
     height: 200px;
-    border:1px solid #eee;
+    border: 1px solid #eee;
     padding-top: 20px;
     padding-bottom: 20px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     border-radius: 4px;
-    .count{
+    .count {
       text-align: center;
       height: auto;
-      .txt{
+      .txt {
         font-size: 14px;
         margin-bottom: 15px;
       }
-      .num{
+      .num {
         font-family: Arial, Helvetica, sans-serif;
         font-size: 32px;
       }
     }
   }
 }
-.bottomPart{
-  padding:20px;
-  border:1px solid #eee;
+.bottomPart {
+  padding: 20px;
+  border: 1px solid #eee;
   border-radius: 4px;
-  margin-top:20px;
-  .codehub{
-    padding:20px;
-    border:1px solid #eee;
+  margin-top: 20px;
+  .codehub {
+    padding: 20px;
+    border: 1px solid #eee;
     border-radius: 4px;
-    margin-top:20px;
-    .title{
+    margin-top: 20px;
+    .title {
       color: #000000;
       font-size: 16px;
       margin-bottom: 10px;
     }
-    .search{
+    .search {
       overflow: hidden;
       margin-bottom: 15px;
-      .n-button{
+      .n-button {
         float: left;
       }
-      .n-input{
+      .n-input {
         float: right;
-        width:200px;
+        width: 200px;
         margin-right: 10px;
-        margin-top:3px;
+        margin-top: 3px;
       }
-      .n-icon.refreshIcon{
+      .n-icon.refreshIcon {
         float: right;
-        margin-top:6px;
+        margin-top: 6px;
         cursor: pointer;
       }
     }
   }
-  .baselineTemplate{
+  .baselineTemplate {
     display: flex;
-    border:1px solid #eee;
+    border: 1px solid #eee;
     border-radius: 4px;
-    margin-top:20px;
+    margin-top: 20px;
     justify-content: space-between;
     min-height: 600px;
-    .baselineTemplate-left{
-      width:20%;
-      padding:20px;
+    .baselineTemplate-left {
+      width: 20%;
+      padding: 20px;
       border-right: 1px solid #eee;
-      .title{
+      .title {
         font-size: 16px;
-        color:#000000;
+        color: #000000;
       }
-      .n-input{
-        margin:10px 0;
+      .n-input {
+        margin: 10px 0;
       }
     }
-    .baselineTemplate-right{
-      width:80%;
-      .top{
+    .baselineTemplate-right {
+      width: 80%;
+      .top {
         height: 56px;
         width: calc(100% - 40px);
         display: flex;
@@ -191,15 +159,15 @@ export default {
         border-bottom: 1px solid #eee;
         padding-left: 20px;
         padding-right: 20px;
-        .txts{
+        .txts {
           display: flex;
           align-items: center;
-          color:#666666;
-          i{
+          color: #666666;
+          i {
             margin-right: 5px;
           }
         }
-        .n-button{
+        .n-button {
           margin-left: 20px;
           height: 30px;
           padding-left: 24px;
@@ -212,22 +180,22 @@ export default {
 }
 </style>
 <style lang="less">
-.vue-kityminder{
+.vue-kityminder {
   width: 100%;
   height: 100%;
-  .vue-kityminder-toolbar-left{
-    margin-top:20px;
-    margin-left:20px;
-    top:0 !important;
-    left:0 !important;
-    .vue-kityminder-btn{
-      padding:8px 12px;
-      font-size:14px;
+  .vue-kityminder-toolbar-left {
+    margin-top: 20px;
+    margin-left: 20px;
+    top: 0 !important;
+    left: 0 !important;
+    .vue-kityminder-btn {
+      padding: 8px 12px;
+      font-size: 14px;
     }
-    .vue-kityminder-ml{
-      margin-left:8px;
+    .vue-kityminder-ml {
+      margin-left: 8px;
     }
-    .vue-kityminder-control{
+    .vue-kityminder-control {
       padding: 8px;
     }
   }

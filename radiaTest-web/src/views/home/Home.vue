@@ -12,7 +12,7 @@
 import { useMessage, useNotification, useDialog } from 'naive-ui';
 import MugenHeader from '@/components/header/Header';
 import { showFunctionMenu, workspace } from '@/assets/config/menu.js';
-import { iframeLogin }  from '../dashboard/modules/iframeLogin.js';
+import { iframeLogin } from '../dashboard/modules/iframeLogin.js';
 
 const message = useMessage();
 const notification = useNotification();
@@ -21,19 +21,21 @@ window.$message = message;
 window.$notification = notification;
 window.$dialog = dialog;
 
-const route = useRoute();
+// const route = useRoute();
 
 watchEffect(() => {
-  if (route.params.workspace) {
-    showFunctionMenu.value = true;
-    if (route.params.workspace !== 'default' && route.params.workspace !== 'release') {
-      workspace.value = window.atob(route.params.workspace);
-    } else {
-      workspace.value = route.params.workspace;
-    }
-  } else {
-    showFunctionMenu.value = false;
-  }
+  workspace.value = 'default';
+  showFunctionMenu.value = true;
+  // if (route.params.workspace) {
+  //   showFunctionMenu.value = true;
+  //   if (route.params.workspace !== 'default' && route.params.workspace !== 'release') {
+  //     workspace.value = window.atob(route.params.workspace);
+  //   } else {
+  //     workspace.value = route.params.workspace;
+  //   }
+  // } else {
+  //   showFunctionMenu.value = false;
+  // }
 });
 
 onMounted(() => {

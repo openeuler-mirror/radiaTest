@@ -17,7 +17,7 @@ import { Home } from '@vicons/carbon';
 const router = useRouter();
 
 const handleHomeMenuClick = () => {
-  router.push('/home/workspaces');
+  router.push({ name: 'task' });
 };
 
 const isActive = (path) => {

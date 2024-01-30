@@ -30,6 +30,7 @@
     "dayjs": "^1.11.7",
     "echarts": "^5.2.1",
     "highlight.js": "^11.2.0",
+    "js-message": "^2.1.0",
     "jsencrypt": "^3.2.1",
     "juejin-markdown-themes": "^1.32.1",
     "lodash": "^4.17.21",

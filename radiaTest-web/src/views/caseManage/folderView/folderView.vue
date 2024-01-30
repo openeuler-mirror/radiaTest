@@ -34,7 +34,13 @@
         />
       </template>
     </modal-card>
-    <modal-card :initY="100" :initX="300" title="修改测试套" ref="putModalRef" @validate="() => putFormRef.put()">
+    <modal-card
+      :initY="100"
+      :initX="300"
+      title="修改测试套"
+      ref="putModalRef"
+      @validate="() => putFormRef.put()"
+    >
       <template #form>
         <testsuite-create
           ref="putFormRef"
@@ -106,9 +112,10 @@
         :style="{ height: contentHeight + 'px' }"
       >
         <n-alert title="用例导入须知" type="warning" closable>
-          请确保文本用例格式与模板一致，否则导入时将会被跳过。点击<a :href="caseTemplateUrl">下载</a>文本用例模板文件
+          请确保文本用例格式与模板一致，否则导入时将会被跳过。点击<a :href="caseTemplateUrl">下载</a
+          >文本用例模板文件
         </n-alert>
-        <tree
+        <!-- <tree
             :expandKeys="expandKeys"
             :data="menuList"
             @load="loadData"
@@ -117,6 +124,15 @@
             :selectKey="selectKey"
             @expand="expand"
             v-if="$route.params.workspace==='default'"
+        /> -->
+        <tree
+          :expandKeys="expandKeys"
+          :data="menuList"
+          @load="loadData"
+          @selectAction="selectAction"
+          @menuClick="menuClick"
+          :selectKey="selectKey"
+          @expand="expand"
         />
         <tree
           :expandKeys="expandKeys"
@@ -126,9 +142,9 @@
           @menuClick="menuClick"
           :selectKey="selectKey"
           @expand="expand"
-          v-if="$route.params.workspace==='release'"
+          v-if="$route.params.workspace === 'release'"
         />
-<!--        TODO:匹配对应版本和阶段-->
+        <!--        TODO:匹配对应版本和阶段-->
       </n-layout-sider>
       <n-layout-content
         content-style="padding: 24px;"
@@ -146,12 +162,14 @@ import { modules } from './modules';
 import config from '@/assets/config/settings.js';
 import Common from '@/components/CRUD';
 import Essential from '@/components/testcaseComponents';
-import {ref} from 'vue';
+import { ref } from 'vue';
 import testsuiteCreate from '@/components/testsuiteComponents/testsuiteCreate.vue';
 import createDrawer from '@/components/task/createDrawer.vue';
 // import { workspace } from '@/assets/config/menu.js';
 import createSuites from './createSuites/CreateSuites';
-import {useRoute} from 'vue-router';
+import { useRoute } from 'vue-router';
+import { getFramework } from '@/api/get';
+
 export default {
   components: {
     ...Common,
@@ -164,7 +182,7 @@ export default {
   computed: {
     key() {
       return this.$route.path + new Date();
-    }
+    },
   },
   mounted() {
     // this.$axios.get(`/v1/ws/${workspace.value}/framework`).then((res) => {
@@ -175,25 +193,30 @@ export default {
     //   }));
     // });
     // console.log('folder');
-    this.$axios.get('/v1/ws/default/framework').then((res) => {
+    getFramework().then((res) => {
       this.frameworkList = res.data?.map((item) => ({
         label: item.name,
         value: item.id,
-        isLeaf: false
+        isLeaf: false,
       }));
     });
-    if(this.$route.params.workspace==='default'){
-      this.contentHeight =
-          document.body.clientHeight -
-          document.getElementById('header').clientHeight -
-          document.querySelector('.n-card-header').clientHeight -
-          10;
-      // console.log(this.contentHeight);
-    }else{
-      this.contentHeight = document.body.clientHeight-
-      document.getElementById('header').clientHeight - 10;
-      // console.log(this.contentHeight);
-    }
+    this.contentHeight =
+      document.body.clientHeight -
+      document.getElementById('header').clientHeight -
+      document.querySelector('.n-card-header').clientHeight -
+      10;
+    // if (this.$route.params.workspace === 'default') {
+    //   this.contentHeight =
+    //     document.body.clientHeight -
+    //     document.getElementById('header').clientHeight -
+    //     document.querySelector('.n-card-header').clientHeight -
+    //     10;
+    //   // console.log(this.contentHeight);
+    // } else {
+    //   this.contentHeight =
+    //     document.body.clientHeight - document.getElementById('header').clientHeight - 10;
+    //   // console.log(this.contentHeight);
+    // }
     this.$nextTick(() => {
       window.addEventListener('refreshEvent', ({ detail }) => {
         this.expandNode(detail.caseNodeId);
@@ -205,12 +228,12 @@ export default {
   },
   setup() {
     const caseTemplateUrl = `https://${config.serverPath}/static/case_template.xls`;
-    const route=useRoute();
+    const route = useRoute();
     modules.clearSelectKey();
     if (!modules.menuList.value) {
       modules.getRootNodes();
     }
-    if(route.params.workspace==='release' && modules.menuList.value){
+    if (route.params.workspace === 'release' && modules.menuList.value) {
       // console.log(currentRound.value.name);
       // console.log(modules.menuList.value);
       // if(modules.menuList.value[0].children){
@@ -225,9 +248,9 @@ export default {
     return {
       caseTemplateUrl,
       contentHeight,
-      ...modules
+      ...modules,
     };
-  }
+  },
 };
 </script>
 <style lang="less">

@@ -1,5 +1,12 @@
 <template>
-  <n-card style="width: 1000px" title="关联里程碑" :bordered="false" size="huge" role="dialog" aria-modal="true">
+  <n-card
+    style="width: 1000px"
+    title="关联里程碑"
+    :bordered="false"
+    size="huge"
+    role="dialog"
+    aria-modal="true"
+  >
     <div class="searchWrap">
       <n-input
         type="text"
@@ -43,7 +50,7 @@ const tablePagination = ref({
   pageSize: 10,
   pageCount: 1,
   showSizePicker: true,
-  pageSizes: [5, 10, 20, 50]
+  pageSizes: [5, 10, 20, 50],
 });
 const resData = ref([]);
 const milestoneSearchValue = ref('');
@@ -55,25 +62,25 @@ const getDataParams = ref({
   paged: true,
   page_num: toRef(tablePagination.value, 'page'),
   page_size: toRef(tablePagination.value, 'pageSize'),
-  name: searchName
+  name: searchName,
 });
 const tableData = computed(() => {
   return resData.value?.map((item) => ({
     id: item.id,
     milestone_name: item.name,
-    relate_round: item?.round_info?.name ? item?.round_info?.name : '无'
+    relate_round: item?.round_info?.name ? item?.round_info?.name : '无',
   }));
 });
 const tableColumns = ref([
   {
     key: 'milestone_name',
     title: '里程碑名',
-    align: 'center'
+    align: 'center',
   },
   {
     key: 'relate_round',
     title: '关联round',
-    align: 'center'
+    align: 'center',
   },
   {
     title: '操作',
@@ -82,7 +89,7 @@ const tableColumns = ref([
       return h(
         NSpace,
         {
-          style: 'justify-content: center'
+          style: 'justify-content: center',
         },
         {
           default: () => {
@@ -94,13 +101,20 @@ const tableColumns = ref([
                   onClick: async () => {
                     await roundRelateMilestonesAxios(currentRound.value.id, {
                       milestone_id: row.id,
-                      isbind: true
+                      isbind: true,
                     });
-                    useTable(`/v2/ws/${workspace.value}/milestone`, getDataParams.value, resData, tablePagination, tableLoading, true);
-                  }
+                    useTable(
+                      `/v2/ws/${workspace.value}/milestone`,
+                      getDataParams.value,
+                      resData,
+                      tablePagination,
+                      tableLoading,
+                      true
+                    );
+                  },
                 },
                 {
-                  default: () => '关联'
+                  default: () => '关联',
                 }
               ),
               h(
@@ -110,21 +124,28 @@ const tableColumns = ref([
                   onClick: async () => {
                     await roundRelateMilestonesAxios(currentRound.value.id, {
                       milestone_id: row.id,
-                      isbind: false
+                      isbind: false,
                     });
-                    useTable(`/v2/ws/${workspace.value}/milestone`, getDataParams.value, resData, tablePagination, tableLoading, true);
-                  }
+                    useTable(
+                      `/v2/ws/${workspace.value}/milestone`,
+                      getDataParams.value,
+                      resData,
+                      tablePagination,
+                      tableLoading,
+                      true
+                    );
+                  },
                 },
                 {
-                  default: () => '取消关联'
+                  default: () => '取消关联',
                 }
-              )
+              ),
             ];
-          }
+          },
         }
       );
-    }
-  }
+    },
+  },
 ]);
 
 const tablePageChange = (page) => {
@@ -141,7 +162,13 @@ const changeSearchValue = () => {
   tablePagination.value.page = 1;
 };
 
-useTable(`/v2/ws/${workspace.value}/milestone`, getDataParams.value, resData, tablePagination, tableLoading);
+useTable(
+  `/v2/ws/${workspace.value}/milestone`,
+  getDataParams.value,
+  resData,
+  tablePagination,
+  tableLoading
+);
 </script>
 
 <style lang="less">

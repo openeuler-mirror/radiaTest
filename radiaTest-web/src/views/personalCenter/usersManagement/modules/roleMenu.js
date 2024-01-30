@@ -1,10 +1,10 @@
-import axios from '@/axios';
 import { ref } from 'vue';
 import { renderIcon } from '@/assets/utils/icon';
 import { GroupsFilled } from '@vicons/material';
 import { Organization20Regular } from '@vicons/fluent';
 import { getUserInfo } from './userInfo';
 import { storage } from '@/assets/utils/storageUtils';
+import { getOrgGroup, getAllOrgList } from '@/api/get';
 
 const selectdRole = ref('');
 const expandKeys = ref([]);
@@ -28,7 +28,7 @@ function getGroups(orgs) {
   const groupIndex = roleMenu.value.findIndex((item) => item.key === 'group');
   roleMenu.value[groupIndex].children = [];
   const requests = orgs?.map((item) =>
-    axios.get(`/v1/org/${item}/groups`, { page_num: 1, page_size: 99999 })
+    getOrgGroup(item, { page_num: 1, page_size: 99999 })
   );
   Promise.allSettled(requests).then((values) => {
     values?.forEach((res) => {
@@ -56,11 +56,7 @@ function getOrgs() {
         key: 'group',
         children: [],
       },
-      {
-        label: '组织',
-        key: 'org',
-        children: [],
-      },
+
     ];
   } else {
     roleMenu.value = [
@@ -76,9 +72,9 @@ function getOrgs() {
       },
     ];
   }
-  axios.get('/v1/orgs/all', { page_num: 1, page_size: 99999 }).then((res) => {
+  getAllOrgList({ page_num: 1, page_size: 99999 }).then((res) => {
     const orgs = [];
-    const groupInext = roleMenu.value.findIndex((item) => item.key === 'org');
+    const groupInext = roleMenu.value.findIndex((item) => item.key === 'group');
     roleMenu.value[groupInext].children = res.data.items?.map((item) => {
       orgs.push(item.id);
       return {

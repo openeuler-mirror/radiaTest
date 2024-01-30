@@ -5,6 +5,8 @@ import { NAvatar, NButton } from 'naive-ui';
 import { setRuleData, setRoleInfo } from './rulestable';
 import { getRoleList } from '@/views/personalCenter/authorityManagement/modules/role';
 import { unkonwnErrorMsg } from '@/assets/utils/description';
+import { getRoleInfos } from '@/api/get';
+
 const roleId = ref();
 const titles = ref([]);
 const data = ref([]);
@@ -116,7 +118,7 @@ function getRoleInfo(options = {}) {
     .atob(router.currentRoute.value.params.roleId)
     .split('-')
     .pop();
-  axios.get(`/v1/role/${roleId.value}`, options).then((res) => {
+  getRoleInfos(roleId.value, options).then((res) => {
     renderTitles(res.data);
     description.value = res.data.description;
     data.value = res.data.users;

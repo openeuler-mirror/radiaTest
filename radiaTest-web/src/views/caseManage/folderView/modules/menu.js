@@ -29,7 +29,10 @@ import {
   getGroupMilestone,
   getOrgMilestone,
   getOrphanGroupSuites,
-  getOrphanOrgSuites
+  getOrphanOrgSuites,
+  getUserInfo,
+  getSuite,
+  getCasesNode
 } from '@/api/get';
 import { addBaseline, casenodeApplyTemplate } from '@/api/post';
 import { updateCaseNodeParent } from '@/api/put';
@@ -275,8 +278,7 @@ function createCaseNodeActions(item) {
 
 function getCaseNode(node, leafType) {
   return new Promise((resolve, reject) => {
-    axios
-      .get(`/v1/case-node/${node.info?.id}`)
+    getCasesNode(node.info?.id)
       .then((res) => {
         node.children = [];
         for (const item of res.data.children) {
@@ -339,78 +341,97 @@ function getRootNodes() {
   });
   actions.unshift(createBaselineAction);
   menuList.value = [];
-  axios.get(`/v1/users/${storage.getValue('user_id')}`).then((res) => {
-    const { data } = res;
-    data.orgs.forEach((item) => {
-      if (item.org_name === 'openEuler') {
-        releaseMenu.value.push({
-          label: item.org_name,
-          key: `org-${item.org_id}`,
-          info: {
-            org_id: item.org_id
-          },
-          actions,
-          iconColor: 'rgba(0, 47, 167, 1)',
-          isLeaf: false,
-          type: 'org',
-          root: true,
-          icon: Organization20Regular
-        });
-      }
-      if (item.re_user_org_default) {
-        menuList.value.push({
-          label: item.org_name,
-          key: `org-${item.org_id}`,
-          info: {
-            org_id: item.org_id
-          },
-          actions,
-          iconColor: 'rgba(0, 47, 167, 1)',
-          isLeaf: false,
-          type: 'org',
-          root: true,
-          icon: Organization20Regular
-        });
-      }
-    });
-    axios
-      .get(`/v1/org/${storage.getValue('loginOrgId')}/groups`, {
-        page_num: 1,
-        page_size: 99999
-      })
-      .then((_res) => {
-        for (const item of _res.data.items) {
-          if (item.name === 'openEuler') {
-            releaseMenu.value.push({
-              label: item.name,
-              key: `group-${item.id}`,
-              isLeaf: false,
-              root: true,
-              info: {
-                group_id: item.id
-              },
-              type: 'group',
-              iconColor: 'rgba(0, 47, 167, 1)',
-              icon: GroupsFilled,
-              actions
-            });
-          }
-          menuList.value.push({
-            label: item.name,
-            key: `group-${item.id}`,
-            isLeaf: false,
-            root: true,
+  if (storage.getValue('token')) {
+    getUserInfo(storage.getValue('user_id')).then((res) => {
+      const { data } = res;
+      data.orgs.forEach((item) => {
+        if (item.org_name === 'openEuler') {
+          releaseMenu.value.push({
+            label: item.org_name,
+            key: `org-${item.org_id}`,
             info: {
-              group_id: item.id
+              org_id: item.org_id
             },
-            type: 'group',
+            actions,
             iconColor: 'rgba(0, 47, 167, 1)',
-            icon: GroupsFilled,
-            actions
+            isLeaf: false,
+            type: 'org',
+            root: true,
+            icon: Organization20Regular
+          });
+        }
+        if (item.re_user_org_default) {
+          menuList.value.push({
+            label: item.org_name,
+            key: `org-${item.org_id}`,
+            info: {
+              org_id: item.org_id
+            },
+            actions,
+            iconColor: 'rgba(0, 47, 167, 1)',
+            isLeaf: false,
+            type: 'org',
+            root: true,
+            icon: Organization20Regular
           });
         }
       });
-  });
+      // axios
+      //   .get(`/v1/org/${storage.getValue('loginOrgId')}/groups`, {
+      //     page_num: 1,
+      //     page_size: 99999
+      //   })
+      //   .then((_res) => {
+      //     for (const item of _res.data.items) {
+      //       if (item.name === 'openEuler') {
+      //         releaseMenu.value.push({
+      //           label: item.name,
+      //           key: `group-${item.id}`,
+      //           isLeaf: false,
+      //           root: true,
+      //           info: {
+      //             group_id: item.id
+      //           },
+      //           type: 'group',
+      //           iconColor: 'rgba(0, 47, 167, 1)',
+      //           icon: GroupsFilled,
+      //           actions
+      //         });
+      //       }
+      //       menuList.value.push({
+      //         label: item.name,
+      //         key: `group-${item.id}`,
+      //         isLeaf: false,
+      //         root: true,
+      //         info: {
+      //           group_id: item.id
+      //         },
+      //         type: 'group',
+      //         iconColor: 'rgba(0, 47, 167, 1)',
+      //         icon: GroupsFilled,
+      //         actions
+      //       });
+      //     }
+      //   });
+    });
+  } else {
+    let item = {
+      label: storage.getLocalValue('unLoginOrgId').name,
+      key: `org-${storage.getLocalValue('unLoginOrgId').id}`,
+      info: {
+        org_id: storage.getLocalValue('unLoginOrgId').id,
+      },
+      actions,
+      iconColor: 'rgba(0, 47, 167, 1)',
+      isLeaf: false,
+      type: 'org',
+      root: true,
+      icon: Organization20Regular,
+    };
+    releaseMenu.value.push(item);
+    menuList.value.push(item);
+  }
+
 }
 
 const info = ref('');
@@ -1331,7 +1352,7 @@ const actionHandlder = {
       if (key === 'suite') {
         const id = contextmenu.info.suite_id;
         // 需要后端适配
-        axios.get('/v1/ws/default/suite', { id }).then((res) => {
+        getSuite({ id }).then((res) => {
           [suiteInfo.value] = res;
           putModalRef.value.show();
         });
@@ -1356,6 +1377,7 @@ const selectKey = ref();
 const selectOptions = ref();
 
 function menuClick({ key, options }) {
+  console.log('111menuClick', key, options);
   if (!key.length) {
     return;
   }
@@ -1415,7 +1437,7 @@ function findeItem(array, key, value) {
 }
 
 function getNode(caseNodeId) {
-  axios.get(`/v1/case-node/${caseNodeId}`).then((res) => {
+  getCasesNode(caseNodeId).then((res) => {
     const treePath = [];
     let rootType = null;
     if (res.data.group_id) {

@@ -4,10 +4,11 @@ import { getDetail } from '@/views/taskManage/task/modules/taskDetail.js';
 import { initData as initDataKanban } from '@/views/taskManage/task/modules/kanbanAndTable.js';
 import { NIcon } from 'naive-ui';
 import { Circle, CircleCheck, CircleMinus, CircleX } from '@vicons/tabler';
-import axios from '@/axios';
 import { formatTime } from '@/assets/utils/dateFormatUtils.js';
-import { getCaseCommit } from '@/api/get';
+// import { getCaseCommit } from '@/api/get';
 import userInfo from '@/components/user/userInfo.vue';
+// import { getTaskInfo, getMachineInfo } from '@/api/get.js';
+import { getTaskInfo } from '@/api/get.js';
 
 const workbench = ref(null); // 工作台DOM
 
@@ -37,8 +38,8 @@ const tasksPagination = ref({
 let taskType = 'not_accomplish';
 let taskTitle = '';
 
-let machineType = 'virtual';
-let machineName = '';
+// let machineType = 'virtual';
+// let machineName = '';
 
 const myTasksCol = ref([
   {
@@ -133,46 +134,47 @@ const tasksloading = ref(false);
 
 function getTaskData() {
   tasksloading.value = true;
-  axios
-    .get('/v1/user/task/info', {
+
+  getTaskInfo(
+    {
       task_type: taskType,
       task_title: taskTitle,
       page_num: tasksPagination.value.page,
       page_size: tasksPagination.value.pageSize
-    })
-    .then((res) => {
-      myTasksData.value = [];
-      tasksloading.value = false;
-      tasksPagination.value.pageCount = res.data.pages;
-      personalDataOverview.value = {
-        todayTasksCount: res.data.today_tasks_count,
-        weekTasksCount: res.data.week_tasks_count,
-        monthTasksCount: res.data.month_tasks_count,
-        todayCasesCount: 0,
-        weekCasesCount: 0,
-        monthCasesCount: 0
-      };
-      if (res.data.items) {
-        res.data.items.forEach((v, i) => {
-          let milestone = '无';
-          if (v.milestone) {
-            milestone = v.milestone.name;
-          } else if (v.milestones) {
-            milestone = v.milestones.map((v2) => v2.name).join(',');
-          }
+    }
+  ).then((res) => {
+    myTasksData.value = [];
+    tasksloading.value = false;
+    tasksPagination.value.pageCount = res.data.pages;
+    personalDataOverview.value = {
+      todayTasksCount: res.data.today_tasks_count,
+      weekTasksCount: res.data.week_tasks_count,
+      monthTasksCount: res.data.month_tasks_count,
+      todayCasesCount: 0,
+      weekCasesCount: 0,
+      monthCasesCount: 0
+    };
+    if (res.data.items) {
+      res.data.items.forEach((v, i) => {
+        let milestone = '无';
+        if (v.milestone) {
+          milestone = v.milestone.name;
+        } else if (v.milestones) {
+          milestone = v.milestones.map((v2) => v2.name).join(',');
+        }
 
-          myTasksData.value.push({
-            key: i,
-            id: v.id,
-            taskName: v.title,
-            taskType: v.type,
-            milestone,
-            endTime: formatTime(v.deadline, 'yyyy-MM-dd hh:mm:ss'),
-            status: v.status_id
-          });
+        myTasksData.value.push({
+          key: i,
+          id: v.id,
+          taskName: v.title,
+          taskType: v.type,
+          milestone,
+          endTime: formatTime(v.deadline, 'yyyy-MM-dd hh:mm:ss'),
+          status: v.status_id
         });
-      }
-    })
+      });
+    }
+  })
     .catch((err) => {
       tasksloading.value = false;
       window.$message?.error(err.data?.error_msg || err.message || '未知错误');
@@ -288,57 +290,56 @@ const machineActive = ref('0'); // 我的机器活动tab
 
 const myMachineData = ref([]);
 
-function getMachineData() {
-  axios
-    .get('/v1/user/machine/info', {
-      machine_type: machineType,
-      machine_name: machineName,
-      page_num: 1,
-      page_size: 999999999
-    })
-    .then((res) => {
-      myMachineData.value = [];
-      if (res.data.items) {
-        res.data.items.forEach((v, i) => {
-          myMachineData.value.push({
-            key: i,
-            status: v.status,
-            ip: v.ip,
-            bmc_ip: v.bmc_ip,
-            milestone: v.milestone,
-            description: v.description
-          });
-        });
-      }
-    })
-    .catch((err) => {
-      window.$message?.error(err.data?.error_msg || err.message || '未知错误');
-    });
-}
+// function getMachineData() {
+//   getMachineInfo({
+//     machine_type: machineType,
+//     machine_name: machineName,
+//     page_num: 1,
+//     page_size: 999999999
+//   })
+//     .then((res) => {
+//       myMachineData.value = [];
+//       if (res.data.items) {
+//         res.data.items.forEach((v, i) => {
+//           myMachineData.value.push({
+//             key: i,
+//             status: v.status,
+//             ip: v.ip,
+//             bmc_ip: v.bmc_ip,
+//             milestone: v.milestone,
+//             description: v.description
+//           });
+//         });
+//       }
+//     })
+//     .catch((err) => {
+//       window.$message?.error(err.data?.error_msg || err.message || '未知错误');
+//     });
+// }
 
-function machineWorkbenchClick(e) {
-  machineActive.value = e.target.dataset.index;
-  machineName = '';
+// function machineWorkbenchClick(e) {
+//   machineActive.value = e.target.dataset.index;
+//   machineName = '';
 
-  switch (machineActive.value) {
-    case '0':
-      machineType = 'virtual';
-      break;
-    case '1':
-      machineType = 'physics';
-      break;
-    default:
-      break;
-  }
-  getMachineData();
-}
+//   switch (machineActive.value) {
+//     case '0':
+//       machineType = 'virtual';
+//       break;
+//     case '1':
+//       machineType = 'physics';
+//       break;
+//     default:
+//       break;
+//   }
+//   getMachineData();
+// }
 
 const machineSearchValue = ref(null);
 
-function machineSearch() {
-  machineName = machineSearchValue.value;
-  getMachineData();
-}
+// function machineSearch() {
+//   machineName = machineSearchValue.value;
+//   getMachineData();
+// }
 
 const myMachineColVirtual = ref([
   {
@@ -443,43 +444,43 @@ let angleMachine = 0;
 function machineRefreshClick() {
   angleMachine -= 360;
   machineRefresh.value.style.transform = `rotate(${angleMachine}deg)`;
-  getMachineData();
+  // getMachineData();
 }
 const caseLoading = ref(false);
-function getMyCase(status = 'open') {
-  caseLoading.value = true;
-  getCaseCommit({
-    page_num: myCasePagination.value.page,
-    page_size: myCasePagination.value.pageSize,
-    status
-  })
-    .then((res) => {
-      caseLoading.value = false;
-      myCasesData.value = res.data?.items || [];
-      myCasePagination.value.pageCount = res.data.pages;
-      personalDataOverview.value.todayCasesCount = res.data.today_case_count;
-      personalDataOverview.value.weekCasesCount = res.data.week_case_count;
-      personalDataOverview.value.monthCasesCount = res.data.month_case_count;
-    })
-    .catch(() => {
-      caseLoading.value = false;
-    });
-}
+// function getMyCase(status = 'open') {
+//   caseLoading.value = true;
+//   getCaseCommit({
+//     page_num: myCasePagination.value.page,
+//     page_size: myCasePagination.value.pageSize,
+//     status
+//   })
+//     .then((res) => {
+//       caseLoading.value = false;
+//       myCasesData.value = res.data?.items || [];
+//       myCasePagination.value.pageCount = res.data.pages;
+//       personalDataOverview.value.todayCasesCount = res.data.today_case_count;
+//       personalDataOverview.value.weekCasesCount = res.data.week_case_count;
+//       personalDataOverview.value.monthCasesCount = res.data.month_case_count;
+//     })
+//     .catch(() => {
+//       caseLoading.value = false;
+//     });
+// }
 const caseActive = ref('0');
 function caseWorkbenchClick(e) {
   myCasePagination.value.page = 1;
   caseActive.value = e.target.dataset.index;
-  const typeArr = ['open', 'accepted', 'rejected', 'all'];
-  getMyCase(typeArr[caseActive.value]);
+  // const typeArr = ['open', 'accepted', 'rejected', 'all'];
+  // getMyCase(typeArr[caseActive.value]);
 }
 function handleCasePageChange(page) {
   myCasePagination.value.page = page;
-  getMyCase();
+  // getMyCase();
 }
 function initData() {
   getTaskData();
-  getMachineData();
-  getMyCase();
+  // getMachineData();
+  // getMyCase();
 }
 
 function resizedEvent(i, newH, newW, newHPx) {
@@ -495,9 +496,9 @@ export {
   handleTasksPageChange,
   tasksPagination,
   resizedEvent,
-  machineSearch,
+  // machineSearch,
   machineSearchValue,
-  getMachineData,
+  // getMachineData,
   workbench,
   layout,
   personalDataOverview,
@@ -517,7 +518,7 @@ export {
   myCasesCol,
   myCasesData,
   machineActive,
-  machineWorkbenchClick,
+  // machineWorkbenchClick,
   myMachineColVirtual,
   myMachineColPhysics,
   myMachineData,
@@ -527,7 +528,7 @@ export {
   myCasePagination,
   handleCasePageChange,
   caseLoading,
-  getMyCase,
+  // getMyCase,
   caseActive,
   caseWorkbenchClick
 };

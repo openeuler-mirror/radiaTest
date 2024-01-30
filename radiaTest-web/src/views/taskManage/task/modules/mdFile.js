@@ -4,6 +4,7 @@ import axios from '@/axios';
 import { generateMDByTemplate } from './utils/generateMD';
 import { showReportModal, getMdFiles } from './taskDetail';
 import { NButton, NInput } from 'naive-ui';
+import { getTaskReports } from '@/api/get';
 
 const tools =
   'undo redo clear | h bold italic strikethrough quote | ul ol table hr | link image code | todo-list tip | save';
@@ -22,7 +23,7 @@ const md = reactive({
 async function generateMdFile(taskId, isVersionTask) {
   try {
     md.taskId = taskId;
-    const data = await axios.get(`/v1/tasks/${taskId}/reports`);
+    const data = await getTaskReports(taskId);
     md.content = await generateMDByTemplate(isVersionTask);
     md.name = data.data?.title ? `${data.data.title}.md` : '';
     showReportModal.value = true;

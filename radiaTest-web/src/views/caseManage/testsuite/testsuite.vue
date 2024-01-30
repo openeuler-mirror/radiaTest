@@ -29,7 +29,11 @@
       </n-gi>
       <n-gi :span="2">
         <div class="titleBtnWrap">
-          <filterButton class="item" :filterRule="filterRule" @filterchange="filterchange"></filterButton>
+          <filterButton
+            class="item"
+            :filterRule="filterRule"
+            @filterchange="filterchange"
+          ></filterButton>
           <refresh-button @refresh="tableRef.getData()"> 刷新测试套列表 </refresh-button>
         </div>
       </n-gi>
@@ -44,8 +48,9 @@
 import testsuiteCreate from '@/components/testsuiteComponents/testsuiteCreate.vue';
 import testsuiteTable from '@/components/testsuiteComponents/testsuiteTable.vue';
 import filterButton from '@/components/filter/filterButton.vue';
-import { workspace } from '@/assets/config/menu.js';
-import axios from '@/axios';
+// import { workspace } from '@/assets/config/menu.js';
+// import axios from '@/axios';
+import { getSuite } from '@/api/get';
 
 const tableRef = ref(null);
 const createFormRef = ref(null);
@@ -56,18 +61,18 @@ const filterValue = ref({
   machine_num: '',
   machine_type: null,
   remark: '',
-  owner: ''
+  owner: '',
 });
 const filterRule = ref([
   {
     path: 'name',
     name: '测试套',
-    type: 'input'
+    type: 'input',
   },
   {
     path: 'machine_num',
     name: '节点数',
-    type: 'input'
+    type: 'input',
   },
   {
     path: 'machine_type',
@@ -75,19 +80,19 @@ const filterRule = ref([
     type: 'select',
     options: [
       { label: '虚拟机', value: 'kvm' },
-      { label: '物理机', value: 'physical' }
-    ]
+      { label: '物理机', value: 'physical' },
+    ],
   },
   {
     path: 'remark',
     name: '备注',
-    type: 'input'
+    type: 'input',
   },
   {
     path: 'owner',
     name: '责任人',
-    type: 'input'
-  }
+    type: 'input',
+  },
 ]);
 
 const filterchange = (filterArray) => {
@@ -96,12 +101,12 @@ const filterchange = (filterArray) => {
     machine_num: null,
     machine_type: null,
     remark: null,
-    owner: null
+    owner: null,
   };
   filterArray.forEach((v) => {
     filterValue.value[v.path] = v.value;
   });
-  axios.get(`/v1/ws/${workspace.value}/suite`, filterValue.value).then((res) => {
+  getSuite(filterValue.value).then((res) => {
     tableRef.value.data = res.data;
     tableRef.value.pagination.page = 1;
   });

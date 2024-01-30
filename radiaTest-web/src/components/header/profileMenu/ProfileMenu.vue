@@ -1,10 +1,31 @@
 <template>
-  <n-grid :cols="13">
-    <n-gi :span="7" v-if="isIframe && isIframe === '1'"></n-gi>
-    <n-gi :span="7" v-else style="display: flex; align-items: center">
-      <n-gradient-text type="primary">{{ currentOrg }}</n-gradient-text>
-      <n-divider vertical />
-      <n-gradient-text type="info">{{ accountName }}</n-gradient-text>
+  <n-grid :cols="token ? 13 : 9">
+    <n-gi :span="7" v-if="token" style="display: flex; align-items: center">
+      <div>
+        <n-popselect
+          v-model:value="selectedOrg"
+          @update:value="handleUpdateLoginedOrg"
+          :options="orgListoptions"
+          trigger="click"
+        >
+          <n-button quaternary type="info">{{ selectedOrg.name || '请选择登录方式' }}</n-button>
+        </n-popselect>
+
+        <n-divider vertical />
+        <n-gradient-text type="info">{{ accountName }}</n-gradient-text>
+      </div>
+    </n-gi>
+    <n-gi :span="3" v-else style="display: flex; align-items: center">
+      <div>
+        <n-popselect
+          v-model:value="selectedOrg"
+          @update:value="handleUpdateOrgValue"
+          :options="orgListoptions"
+          trigger="click"
+        >
+          <n-button quaternary type="info">{{ selectedOrg.name || '请选择登录方式' }}</n-button>
+        </n-popselect>
+      </div>
     </n-gi>
     <n-gi :span="2">
       <div class="msg-box">
@@ -19,7 +40,7 @@
       <n-dropdown
         trigger="hover"
         @select="handleSelect"
-        :options="isIframe && isIframe === '1' ? iframeOptions : options"
+        :options="token ? optionsLogined : optionsUnLogin"
         size="huge"
         :show-arrow="true"
         placement="bottom-end"
@@ -34,6 +55,50 @@
       </n-dropdown>
     </n-gi>
   </n-grid>
+  <n-modal v-model:show="showLoginModal" preset="dialog" :showIcon="false" :mask-closable="false">
+    <div style="text-align: center; font-size: 24px">
+      <span id="radiaTest">
+        <n-gradient-text type="primary">radiaTest登录</n-gradient-text>
+      </span>
+    </div>
+    <div>
+      <n-form :rules="loginFormRules" :model="loginForm" ref="loginFormRef">
+        <n-form-item style="--label-height: 6px" path="userName">
+          <n-input
+            round
+            size="large"
+            placeholder="请输入用户名"
+            v-model:value="loginForm.userName"
+            type="text"
+          >
+            <template #prefix>
+              <n-icon size="20">
+                <user />
+              </n-icon>
+            </template>
+          </n-input>
+        </n-form-item>
+        <n-form-item style="--label-height: 6px; margin-top: -20px" path="passWord">
+          <n-input
+            round
+            size="large"
+            placeholder="请输入密码"
+            type="password"
+            v-model:value="loginForm.passWord"
+          >
+            <template #prefix>
+              <n-icon size="20">
+                <lock />
+              </n-icon>
+            </template>
+          </n-input>
+        </n-form-item>
+      </n-form>
+      <n-button type="primary" block round style="margin-top: 10px" @click="handleLoginByForm"
+        >登录</n-button
+      >
+    </div>
+  </n-modal>
 </template>
 
 <script>
@@ -42,15 +107,20 @@ import { BellOutlined } from '@vicons/antd';
 import { modules } from './modules/index.js';
 import { createAvatar } from '@/assets/utils/createImg';
 import { storage } from '@/assets/utils/storageUtils';
+import { User, Lock } from '@vicons/fa';
+
 export default defineComponent({
   components: {
-    BellOutlined
+    BellOutlined,
+    User,
+    Lock,
   },
   setup() {
     const { proxy } = getCurrentInstance();
     modules.getOrg();
+    modules.getOrgList();
     const msgCount = inject('msgCount');
-    const isIframe = storage.getValue('isIframe');
+    const token = storage.getValue('token');
     watch(
       msgCount,
       () => {
@@ -63,17 +133,17 @@ export default defineComponent({
         });
       },
       {
-        deep: true
+        deep: true,
       }
     );
 
     return {
       msgCount,
-      isIframe,
       createAvatar,
-      ...modules
+      token,
+      ...modules,
     };
-  }
+  },
 });
 </script>
 
@@ -88,5 +158,6 @@ export default defineComponent({
   cursor: pointer;
   display: flex;
   align-items: center;
+  background: rgba(204, 204, 204, 1);
 }
 </style>

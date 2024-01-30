@@ -33,9 +33,7 @@
         <n-form-item
           label="所属团队"
           path="group_id"
-          v-if="
-            formValue.type && formValue.type === 'group' && formValue.org_id
-          "
+          v-if="formValue.type && formValue.type === 'group' && formValue.org_id"
         >
           <n-select
             v-model:value="formValue.group_id"
@@ -47,22 +45,14 @@
         <n-form-item label="继承已有角色" v-if="roles.length">
           <n-radio-group v-model:value="formValue.role_id" name="radiogroup">
             <n-space>
-              <n-radio
-                v-for="role in roles"
-                :key="role.value"
-                :value="role.value"
-              >
+              <n-radio v-for="role in roles" :key="role.value" :value="role.value">
                 {{ role.label }}
               </n-radio>
             </n-space>
           </n-radio-group>
         </n-form-item>
         <n-form-item label="描述">
-          <n-input
-            v-model:value="formValue.description"
-            type="textarea"
-            placeholder="请输入"
-          />
+          <n-input v-model:value="formValue.description" type="textarea" placeholder="请输入" />
         </n-form-item>
       </n-form>
     </template>
@@ -70,7 +60,7 @@
 </template>
 <script>
 import modalCard from '@/components/CRUD/ModalCard.vue';
-import { getExtendRole } from '@/api/get';
+import { getExtendRole, getOrgGroup } from '@/api/get';
 export default {
   components: {
     modalCard,
@@ -115,21 +105,21 @@ export default {
         this.formValue.org_id = value;
         this.getGroups();
         if (this.formValue.type === 'organization') {
-          getExtendRole({ type: 'org', org_id: this.formValue.org_id }).then(
-            (res) => {
-              this.setRoles(res.data);
-            }
-          );
+          getExtendRole({ type: 'org', org_id: this.formValue.org_id }).then((res) => {
+            this.setRoles(res.data);
+          });
         }
       }
     },
     groupChange(value) {
       if (value && this.formValue.type === 'group') {
-        getExtendRole({ type: 'group', group_id: this.formValue.group_id, org_id:this.formValue.org_id }).then(
-          (res) => {
-            this.setRoles(res.data);
-          }
-        );
+        getExtendRole({
+          type: 'group',
+          group_id: this.formValue.group_id,
+          org_id: this.formValue.org_id,
+        }).then((res) => {
+          this.setRoles(res.data);
+        });
       }
     },
     getOrg() {
@@ -141,25 +131,20 @@ export default {
             value: String(item.id),
           }));
         })
-        .catch((err) =>
-          window.message?.error(err.data.error_msg || '未知错误')
-        );
+        .catch((err) => window.message?.error(err.data.error_msg || '未知错误'));
     },
     getGroups() {
-      this.$axios
-        .get(`/v1/org/${this.formValue.org_id}/groups`, {
-          page_num: 1,
-          page_size: 99999,
-        })
+      getOrgGroup(this.formValue.org_id, {
+        page_num: 1,
+        page_size: 99999,
+      })
         .then((res) => {
           this.groups = res.data.items.map((item) => ({
             label: item.name,
             value: String(item.id),
           }));
         })
-        .catch((err) =>
-          window.message?.error(err.data.error_msg || '未知错误')
-        );
+        .catch((err) => window.message?.error(err.data.error_msg || '未知错误'));
     },
     initFormValue() {
       this.formValue = {

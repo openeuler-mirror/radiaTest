@@ -16,9 +16,13 @@ import 'tinymce/icons/default'; // 引用图标文件
 import 'tinymce/plugins/image'; //图片
 import 'tinymce/plugins/imagetools'; //图片工具
 import 'tinymce/plugins/nonbreaking';
-import { workspace } from '@/assets/config/menu.js';
+// import { workspace } from '@/assets/config/menu.js';
 import { changeTaskPercentage } from '@/api/put.js';
-
+import {
+  getTaskFrame, getSuite, getDistributeTemplates, getDetailTaskFamily,
+  getDetailTasks, getDetailTaskCases, getTaskComments, getTaskParticipants,
+  getTaskReports
+} from '@/api/get.js';
 const showModal = ref(false); // 显示任务详情页
 const showCaseModal = ref(false); // 显示关联测试用例表格
 const modalData = ref({}); // 任务详情页数据
@@ -109,8 +113,7 @@ const detailTask = reactive({
 // 父子任务关联、查询
 function familyTaskOperator(option) {
   return new Promise((resolve, reject) => {
-    axios
-      .get(`/v1/tasks/${detailTask.taskId}/family`, option)
+    getDetailTaskFamily(detailTask.taskId, option)
       .then((res) => {
         fatherTaskLoading.value = false;
         childTaskLoading.value = false;
@@ -128,8 +131,7 @@ function familyTaskOperator(option) {
 //用例查询操作
 function caseOperator(option) {
   return new Promise((resolve, reject) => {
-    axios
-      .get(`/v1/tasks/${detailTask.taskId}/cases`, option)
+    getDetailTaskCases(detailTask.taskId, option)
       .then((res) => {
         resolve(res);
       })
@@ -141,8 +143,7 @@ function caseOperator(option) {
 
 //获取评论
 function getTaskComment() {
-  axios
-    .get(`/v1/tasks/${detailTask.taskId}/comment`)
+  getTaskComments(detailTask.taskId)
     .then((res) => {
       modalData.value.comments = res.data;
     })
@@ -153,8 +154,7 @@ function getTaskComment() {
 
 //获取协助人
 function getTaskHelper() {
-  axios
-    .get(`/v1/tasks/${detailTask.taskId}/participants`)
+  getTaskParticipants(detailTask.taskId)
     .then((res) => {
       modalData.value.helper = res.data;
     })
@@ -195,8 +195,7 @@ const editRole = computed(() => {
 function getDetailTask() {
   return new Promise((resolve, reject) => {
     showLoading.value = true;
-    axios
-      .get(`/v1/tasks/${detailTask.taskId}`)
+    getDetailTasks(detailTask.taskId)
       .then((res) => {
         showLoading.value = false;
         modalData.value.detail = res.data;
@@ -365,8 +364,7 @@ let tempSuiteId;
 
 // 获取测试套
 function getCaseSuite() {
-  axios
-    .get(`/v1/ws/${workspace.value}/suite`)
+  getSuite()
     .then((res) => {
       suiteOptions.value = [];
       if (Array.isArray(res.data)) {
@@ -829,8 +827,7 @@ const fatherTaskArray = ref([
 ]);
 
 function getMdFiles() {
-  axios
-    .get(`/v1/tasks/${detailTask.taskId}/reports`)
+  getTaskReports(detailTask.taskId)
     .then((res) => {
       if (res.data?.title || res.data?.content) {
         modalData.value.reportArray = [{ title: res.data.title || '', content: res.data.content || '' }];
@@ -1270,11 +1267,10 @@ function changeStatus($event, status) {
 function getTemplateName() {
   distributeTaskValue.value = null;
   distributeTaskOption.value = [];
-  axios
-    .get('v1/tasks/distribute-templates', {
-      group_id: modalData.value.detail.group_id,
-      simple: true
-    })
+  getDistributeTemplates({
+    group_id: modalData.value.detail.group_id,
+    simple: true
+  })
     .then((res) => {
       if (res.data.items) {
         res.data.items.forEach((item) => {
@@ -1559,7 +1555,7 @@ function changeManage(value) {
   editTask(modalData.value.detail.id, { is_manage_task: value });
 }
 function getFrame() {
-  axios.get('/v1/task/frame').then((res) => {
+  getTaskFrame().then((res) => {
     frameArray.value = res.data.map((item) => ({ label: item, value: item }));
   });
 }
