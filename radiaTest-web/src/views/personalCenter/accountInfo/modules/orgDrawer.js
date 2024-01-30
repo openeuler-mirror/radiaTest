@@ -1,7 +1,6 @@
 import { ref, h } from 'vue';
 import { NTag, NDropdown, NText, NAvatar } from 'naive-ui';
 import { setOrgUserRole } from '@/api/post';
-// import { getAllRole, getOrgUser } from '@/api/get';
 import { getAllRole } from '@/api/get';
 import { deleteOrgUserRole } from '@/api/delete';
 import { createAvatar } from '@/assets/utils/createImg';
@@ -26,24 +25,11 @@ function getOrgRole() {
     });
   });
 }
-// function getTableData() {
-//   orgDrawerLoading.value = true;
-//   getOrgUser(activeOrg.value.org_id, {
-//     page_num: orgDrawerPagination.value.page,
-//     page_size: orgDrawerPagination.value.pageSize
-//   }).then(res => {
-//     orgUsers.value = res.data?.items || [];
-//     orgDrawerPagination.value.pageCount = res.data?.pages || 1;
-//     orgDrawerLoading.value = false;
-//   }).catch(() => {
-//     orgDrawerLoading.value = false;
-//   });
-// }
+
 function setActiveOrgInfo(value) {
   showOrgDrawer.value = true;
   activeOrg.value = value;
   getOrgRole();
-  // getTableData();
 }
 
 function drawerUpdateShow(value) {
@@ -53,7 +39,6 @@ function deleteRole(row) {
   deleteOrgUserRole(activeOrg.value.org_id, {
     user_id: row.user_id,
     role_id: row.role.id,
-    // }).then(() => getTableData());
   });
 }
 function selectRole(row, item) {

@@ -42,8 +42,8 @@ function initEcharts() {
 function formatObject(data, prop) {
   let res = [];
   const p = prop || 'label';
-  const keys = Object.keys(data);
-  keys.forEach(key => {
+  const keys = data ? Object.keys(data) : null;
+  keys?.forEach(key => {
     let item = {};
     item[p] = key;
     item.value = data[key];

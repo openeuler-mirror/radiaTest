@@ -63,12 +63,7 @@ export function getVm(data) {
     ...data
   });
 }
-export function getChildrenJob(id, data) {
-  return getRequest(`/v1/job/${id}/children`, data);
-}
-export function getJob(data) {
-  return getRequest(`/v1/ws/${workspace.value}/job`, data);
-}
+
 export function getTemplateInfo(id, data) {
   return getRequest(`/v1/template/${id}`, data);
 }
@@ -96,9 +91,7 @@ export function getGroup(data, config = null, unLoginRquest = true) {
 export function getMsgGroup(data) {
   return getRequest('/v1/msg/group', data);
 }
-export function getCaseReview(data) {
-  return getRequest('/v1/case/commit/query', data);
-}
+
 
 // 需要后端适配
 export function getMachineGroup(data) {
@@ -117,36 +110,12 @@ export function getRootCert(data) {
       });
   });
 }
-export function getCommitHistory(caseId, data) {
-  return getRequest(`/v1/commit/history/${caseId}`, data);
-}
-export function getPmachine(data) {
-  return getRequest(`/v1/ws/${workspace.value}/pmachine`, data);
-}
-export function getPmachineBmc(pmachineId, data) {
-  return getRequest(`/v1/pmachine/${pmachineId}/bmc`, data);
-}
-export function getPmachineSsh(pmachineId, data) {
-  return getRequest(`/v1/pmachine/${pmachineId}/ssh`, data);
-}
-export function getVmachine(data) {
-  return getRequest(`/v1/ws/${workspace.value}/vmachine`, data);
-}
-export function getVmachineSsh(vmachineId, data) {
-  return getRequest(`/v1/vmachine/${vmachineId}/ssh`, data);
-}
-export function getCaseReviewDetails(id, data) {
-  return getRequest(`/v1/case/commit/${id}`, data);
-}
-export function getCaseReviewComment(id, data) {
-  return getRequest(`/v1/case/${id}/comment`, data);
-}
+
+
 export function getCaseDetail(id, data) {
   return getRequest(`/v1/case/${id}`, data);
 }
-export function getCasePrecise(data) {
-  return getRequest(`/v1/ws/${workspace.value}/case`, data);
-}
+
 export function getExtendRole(data) {
   return getRequest('/v1/role/default', data);
 }
@@ -167,24 +136,15 @@ export function getProductMessage(productId, data) {
 export function getMilestoneRate(milestoneId, data) {
   return getRequest(`/v2/milestone/${milestoneId}/issue-rate`, data);
 }
-export function getMachineGroupDetails(id, data) {
-  return getRequest(`/v1/machine-group/${id}`, data);
-}
-export function getCaseCommit(data) {
-  return getRequest('/v1/user/case/commit', data);
-}
 export function getIssueDetails(id, data) {
   return getRequest(`/v1/gitee-issues/${id}`, data);
-}
-export function getPendingReview(data) {
-  return getRequest('/v1/case/commit/status', data);
 }
 export function getAllRole(data) {
   return getRequest('/v1/role', data);
 }
-export function getOrgUser(id, data) {
-  return getRequest(`/v1/org/${id}/users`, data);
-}
+// export function getOrgUser(id, data) {
+//   return getRequest(`/v1/org/${id}/users`, data);
+// }
 export function getOrgGroup(id, data) {
   return getRequest(`/v1/org/${id}/groups`, data);
 }
@@ -202,10 +162,6 @@ export function getOrgNode(id, data) {
 
 export function getTermNode(id, data) {
   return getRequest(`/v1/group/${id}/resource`, data);
-}
-
-export function getGroupRepo(id) {
-  return getRequest(`/v1/git-repo/${id}`);
 }
 
 export function getAtOverview(id, params) {
@@ -316,9 +272,7 @@ export function getHomonymousIsomerismPkgcompare(qualityboardId, roundId, params
   return getRequestWithoutCatch(`/v1/qualityboard/${qualityboardId}/round/${roundId}/pkg-compare`, params);
 }
 
-export function examplesNodes(id, data) {
-  return getRequest(`/v1/org/${id}/resource`, data);
-}
+
 
 export function getCaseNodeResource(id, data) {
   return getRequest(`/v1/case-node/${id}/resource`, data);
@@ -372,19 +326,7 @@ export function getSuiteItem(suiteId) {
   return getRequest(`/v1/suite/${suiteId}`);
 }
 
-export function getManualJob(data) {
-  return getRequest(`/v1/ws/${workspace.value}/manual-job`, data);
-}
-export function getManualJobGroup(data) {
-  return getRequest(`/v1/ws/${workspace.value}/manual-job-group`, data);
-}
-export function getManualJobGroupDetail(manualJobGroupId) {
-  return getRequest(`/v1/manual-job-group/${manualJobGroupId}`);
-}
 
-export function getManualJobLog(jobId, stepId) {
-  return getRequest(`/v1/manual-job/${jobId}/step/${stepId}`);
-}
 
 export function getChecklistResult(roundId) {
   return getRequest(`/v1/round/${roundId}/checklist-result`);
@@ -442,10 +384,7 @@ export function getGiteeProject() {
   return getRequest('/v1/gitee-project');
 }
 
-// 查询组织用户组与用户总数统计
-export function getOrgStat(orgId) {
-  return getRequest(`/v1/org/${orgId}/statistic`);
-}
+
 
 // 查询组织游离测试套列表
 export function getOrphanOrgSuites(param) {
@@ -487,10 +426,7 @@ export function getDailyBuildCompare(roundId, data) {
   return getRequest(`/v1/qualityboard/daily-build/with/round/${roundId}/pkg-compare`, data);
 }
 
-// 根据测试脚本代码仓查询测试套、测试用例
-export function getCasesByRepo(repoId, data, config) {
-  return getRequest(`/v1/template/cases/${repoId}`, data, config);
-}
+
 
 // 对于组织下的suite类型节点，根据选择的导出文件格式按测试套导出文本用例
 export function exportTestsuite(orgId, caseNodeId, data) {
@@ -513,14 +449,7 @@ export function getCases(data) {
 export function getCasesNode(nodeId, data) {
   return getRequest(`/v1/case-node/${nodeId}`, data);
 }
-// 根据里程碑查询版本基线信息及其对应节点信息
-export function getBaselineByMilestone(data) {
-  return getRequest('/v1/baseline', data);
-}
-// 在某个基线下查询手工用例
-export function getManualCaseBySearch(data) {
-  return getRequest(`/v1/ws/${workspace.value}/caseV2`, data);
-}
+
 
 // 任务看板
 export function getRelationTaskList() {

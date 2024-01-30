@@ -23,9 +23,7 @@ function postRequest(url, data) {
       });
   });
 }
-export function createRepo(data) {
-  return postRequest('/v1/git-repo', data);
-}
+
 export function implementTemplate(data) {
   return postRequest('/v1/job/template', data);
 }
@@ -43,12 +41,8 @@ export function createProductMessage(productId) {
     product_id: productId
   });
 }
-export function createMachineGroup(data) {
-  return postRequest('/v1/machine-group', data);
-}
-export function cloneTemplate(data) {
-  return postRequest('/v1/template/clone', data);
-}
+
+
 export function setGroupUserRole(id, data) {
   return postRequest(`/v1/user-role/group/${id}`, {
     webMessage: 'manual',
@@ -152,23 +146,13 @@ export function casenodeApplyTemplate(caseNodeId, baselineTemplateId) {
   return postRequest(`/v1/case-node/${caseNodeId}/apply/baseline-template/${baselineTemplateId}`);
 }
 
-export function createManualJob(data) {
-  return postRequest('/v1/manual-job', data);
-}
-
-export function submitManualJob(jobId) {
-  return postRequest(`/v1/manual-job/${jobId}/submit`);
-}
 
 // 录入特性
 export function createProductFeature(data) {
   return postRequest('/v1/feature', data);
 }
 
-// 继承特性
-export function productInheritFeature(productId) {
-  return postRequest(`/v1/product/${productId}/inherit-feature`);
-}
+
 
 // 创建策略
 export function createStrategy(productFeatureId, data) {
@@ -225,15 +209,3 @@ export function createTemplate(data) {
   return postRequest('/v1/template', data);
 }
 
-// 设置手工用例状态
-export function updateCase(manualJobId, data) {
-  return postRequest(`/v1/manual-job/${manualJobId}/submit`, data);
-}
-// 手工任务组富文本报告保存
-export function saveManualText(manualJobId, data) {
-  return postRequest(`/v1/manual-job-group/${manualJobId}`, data);
-}
-// 复制手工任务
-export function copyManualTask(data) {
-  return postRequest('/v1/manual-job-group/copy', data);
-}

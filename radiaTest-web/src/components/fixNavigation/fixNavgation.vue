@@ -570,7 +570,7 @@ const jumpToGitee = () => {
       .btn-box {
         margin-top: 8px;
         display: flex;
-        justify-content: end;
+        justify-content: flex-end;
         .o-button {
           font-size: 14px;
           border: none;

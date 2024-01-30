@@ -1,20 +1,4 @@
 <template>
-  <!-- <n-card
-    :bordered="false"
-    size="huge"
-    :segmented="{
-      content: 'hard',
-    }"
-    style="height: 100%"
-    content-style="padding:0"
-    header-style="
-            font-size: 30px;
-            height: 80px;
-            font-family: 'v-sans';
-            background-color: rgb(242,242,242);
-        "
-    v-if="$route.params.workspace==='default'"
-  > -->
   <n-card
     :bordered="false"
     size="huge"
