@@ -23,21 +23,15 @@ from . import (
     organization,
     message,
     task,
-    job,
     milestone,
-    mirroring,
-    pmachine,
     product,
-    template,
     testcase,
-    vmachine,
     external,
     framework,
     permission,
     celerytask,
     qualityboard,
     requirement,
-    manualjob,
     baseline_template,
     issue,
     strategy,
@@ -54,15 +48,10 @@ def init_api(app: Flask):
     organization.init_api(api)
     message.init_api(api)
     task.init_api(api)
-    job.init_api(api)
     milestone.init_api(api)
     issue.init_api(api)
-    mirroring.init_api(api)
-    pmachine.init_api(api)
     product.init_api(api)
-    template.init_api(api)
     testcase.init_api(api)
-    vmachine.init_api(api)
     external.init_api(api)
     framework.init_api(api)
     git_repo.init_api(api)
@@ -70,6 +59,5 @@ def init_api(app: Flask):
     celerytask.init_api(api)
     qualityboard.init_api(api)
     requirement.init_api(api)
-    manualjob.init_api(api)  # 手工测试任务(ManualJob)相关接口
     baseline_template.init_api(api)
     strategy.init_api(api)

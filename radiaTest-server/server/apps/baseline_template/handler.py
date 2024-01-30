@@ -13,10 +13,7 @@
 # License : Mulan PSL v2
 #####################################
 # 基线模板(Baseline_template)相关接口的handler层
-
-from copy import deepcopy
-
-from flask import jsonify, g, current_app
+from flask import jsonify, g
 import sqlalchemy
 from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
@@ -24,8 +21,7 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from server import db, redis_client
 from server.utils.redis_util import RedisKey
 from server.utils.response_util import RET
-from server.utils.db import Insert, collect_sql_error
-from server.utils.permission_utils import GetAllByPermission
+from server.utils.db import collect_sql_error
 from server.model.testcase import CaseNode
 from server.model.baselinetemplate import BaselineTemplate, BaseNode
 from server.utils.permission_utils import GetAllByPermission
@@ -73,11 +69,10 @@ class BaselineTemplateHandler:
             return_data["children"].append(BaselineTemplateHandler.get_all_children(child))
         return return_data
 
-
     @staticmethod
     @collect_sql_error
     def get_all(query, workspace=None):
-        filter_params = GetAllByPermission(BaselineTemplate, workspace).get_filter()
+        filter_params = GetAllByPermission(BaselineTemplate, workspace, org_id=query.org_id).get_filter()
         
         for key, value in query.dict().items():
             if not value:
@@ -90,12 +85,13 @@ class BaselineTemplateHandler:
             elif key == 'org_id':
                 filter_params.append(BaselineTemplate.org_id == value)
                 filter_params.append(BaselineTemplate.permission_type == 'org')
-        filter_params.append(
-            or_(
-                BaselineTemplate.creator_id == g.user_id,
-                BaselineTemplate.openable.is_(True)
+        if hasattr(g, "user_id"):
+            filter_params.append(
+                or_(
+                    BaselineTemplate.creator_id == g.user_id,
+                    BaselineTemplate.openable.is_(True)
+                )
             )
-        ) 
         baselinetemps = BaselineTemplate.query.filter(*filter_params).all()
         
         return_data = [baseline_template.to_json() for baseline_template in baselinetemps]

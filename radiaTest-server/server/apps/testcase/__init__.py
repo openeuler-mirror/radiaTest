@@ -34,10 +34,6 @@ from server.apps.testcase.routes import (
     PreciseCaseEvent,
     PreciseSuiteEvent,
     CaseCommit,
-    CaseCommitInfo,
-    CaseCommitComment,
-    CommitStatus,
-    CommitHistory,
     CaseNodeTask,
     MileStoneCaseNode,
     ProductCaseNode,
@@ -187,37 +183,13 @@ def init_api(api: Api):
         "/api/v1/template/cases/<int:git_repo_id>",
         methods=["GET"]
     )
-    api.add_resource(CaseCommit, 
-        '/api/v1/case/commit', 
-        '/api/v1/case/commit/<int:commit_id>',
-        endpoint='commit',
-        methods=["GET", "POST", "PUT", "DELETE"]
-     )
-    api.add_resource(
-        CommitHistory, 
-        '/api/v1/commit/history/<int:case_id>', 
-        endpoint='commit_history',
-        methods=["GET"]
-    )
-    api.add_resource(
-        CommitStatus, 
-        '/api/v1/case/commit/status', 
-        endpoint='commit_status',
-        methods=["GET", "PUT"]
-    )
-    api.add_resource(
-        CaseCommitInfo, 
-        '/api/v1/case/commit/query', '/api/v1/case/commit/count/<query_type>', 
-        endpoint='commit_query',
-        methods=["GET"]
-    )
-    api.add_resource(
-        CaseCommitComment, 
-        '/api/v1/case/<int:commit_id>/comment',
-        '/api/v1/commit/comment/<int:comment_id>', 
-        endpoint='commit_comment',
-        methods=["GET", "POST", "PUT", "DELETE"]
-    )
+    api.add_resource(CaseCommit,
+                     '/api/v1/case/commit',
+                     '/api/v1/case/commit/<int:commit_id>',
+                     endpoint='commit',
+                     methods=["GET", "POST", "PUT", "DELETE"]
+                     )
+
     api.add_resource(
         CaseNodeTask, 
         '/api/v1/case-node/<int:case_node_id>/task', 

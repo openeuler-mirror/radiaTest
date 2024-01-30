@@ -27,7 +27,6 @@ base_node_family = db.Table(
 )
 
 
-
 class BaselineTemplate(BaseModel, PermissionBaseModel, db.Model):
     __tablename__ = "baseline_template"
 

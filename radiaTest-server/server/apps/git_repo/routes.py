@@ -26,7 +26,6 @@ from server.utils.db import Insert, Edit
 from server.utils.response_util import response_collect
 from server.model.celerytask import CeleryTask
 from server.model.framework import GitRepo
-from server.model.template import Template
 from server.schema.framework import GitRepoBase, GitRepoQuery, GitRepoScopedQuery
 from server.apps.git_repo.handlers import GitRepoHandler
 from server.utils.resource_utils import ResourceManager
@@ -113,12 +112,7 @@ class GitRepoItemEvent(Resource):
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
     })
     def delete(self, git_repo_id):
-        return ResourceManager("git_repo").del_cascade_single(
-            git_repo_id, 
-            Template,
-            [Template.git_repo_id == git_repo_id], 
-            False
-        )
+        return ResourceManager("git_repo").del_single(git_repo_id)
 
     @auth.login_required
     @response_collect

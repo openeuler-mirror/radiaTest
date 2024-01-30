@@ -357,15 +357,21 @@ class GetAllByPermission:
 
     PATTERN = r'^group_\d+$'
 
-    def __init__(self, _table, workspace=None) -> None:
+    def __init__(self, _table, workspace=None, org_id=None) -> None:
         self._table = _table
-        self.current_org_id = redis_client.hget(
-            RedisKey.user(g.user_id), 
-            "current_org_id"
-        )
-        self.re_user_groups = ReUserGroup.query.filter_by(
-            user_id=g.user_id, org_id=int(self.current_org_id), user_add_group_flag=True
-        ).all()
+        if hasattr(g, "user_id"):
+            self.current_org_id = redis_client.hget(
+                RedisKey.user(g.user_id),
+                "current_org_id"
+            )
+            self.re_user_groups = ReUserGroup.query.filter_by(
+                user_id=g.user_id, org_id=int(self.current_org_id), user_add_group_flag=True
+            ).all()
+        else:
+            if not org_id:
+                raise RuntimeError(f"need org_id")
+            self.current_org_id = org_id
+            self.re_user_groups = []
 
         self.filter_params = self._get_filter_params(workspace)
 
@@ -416,21 +422,31 @@ class GetAllByPermission:
                     ),
                 )
             ]
-
-        return [
-            or_(
-                self._table.permission_type == "public",
-                and_(
-                    self._table.permission_type == "org",
-                    self._table.org_id == int(self.current_org_id),
-                ),
-                and_(
-                    self._table.permission_type == "person",
-                    self._table.org_id == int(self.current_org_id),
-                    self._table.creator_id == g.user_id,
-                ),
-            )
-        ]
+        if hasattr(g, "user_id"):
+            return [
+                or_(
+                    self._table.permission_type == "public",
+                    and_(
+                        self._table.permission_type == "org",
+                        self._table.org_id == int(self.current_org_id),
+                    ),
+                    and_(
+                        self._table.permission_type == "person",
+                        self._table.org_id == int(self.current_org_id),
+                        self._table.creator_id == g.user_id,
+                    ),
+                )
+            ]
+        else:
+            return [
+                or_(
+                    self._table.permission_type == "public",
+                    and_(
+                        self._table.permission_type == "org",
+                        self._table.org_id == int(self.current_org_id),
+                    )
+                )
+            ]
 
     @property
     def _org_ws_filter_params(self):

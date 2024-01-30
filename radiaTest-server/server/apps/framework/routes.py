@@ -53,7 +53,7 @@ class FrameworkEvent(Resource):
     def post(self, body: FrameworkBase):
         return ResourceManager("framework").add("api_infos.yaml", body.__dict__)
 
-    @auth.login_required()
+    @auth.login_check
     @response_collect
     @workspace_error_collect
     @validate()
@@ -67,7 +67,7 @@ class FrameworkEvent(Resource):
         "query_schema_model": FrameworkQuery
     })
     def get(self, workspace: str, query: FrameworkQuery):
-        filter_params = GetAllByPermission(Framework, workspace).get_filter()
+        filter_params = GetAllByPermission(Framework, workspace, org_id=query.org_id).get_filter()
         if query.name:
             filter_params.append(
                 Framework.name.like(f'%{query.name}%')
@@ -132,10 +132,8 @@ class FrameworkItemEvent(Resource):
 
         return Edit(Framework, _body).single(Framework, "/framework")
 
-    @auth.login_required
     @response_collect
     @validate()
-    @casbin_enforcer.enforcer
     @swagger_adapt.api_schema_model_map({
         "__module__": get_framework_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "FrameworkItemEvent",  # 当前接口视图函数名

@@ -26,25 +26,17 @@ from server.utils.oauth_util import LoginApi
 from server.utils.auth_util import generate_token
 from server.utils.redis_util import RedisKey
 from server.utils.db import collect_sql_error, Insert
-from server.utils.cla_util import Cla, ClaShowAdminSchema
 from server.utils.read_from_yaml import get_default_suffix
-from server.utils.page_util import PageUtil
 from server.model.user import User
 from server.model.message import Message
 from server.model.task import Task
-from server.model.vmachine import Vmachine
-from server.model.pmachine import Pmachine
 from server.model.milestone import Milestone
-from server.model.organization import Organization, ReUserOrganization
+from server.model.organization import Organization
 from server.model.group import ReUserGroup, GroupRole
-from server.model.testcase import Commit
 from server.model.permission import Role, ReUserRole
 from server.schema.group import ReUserGroupSchema, GroupInfoSchema
-from server.schema.organization import OrgUserInfoSchema, ReUserOrgSchema
-from server.schema.user import UserInfoSchema, UserTaskSchema, UserMachineSchema, UserCaseCommitSchema
+from server.schema.user import UserInfoSchema, UserTaskSchema
 from server.schema.task import TaskInfoSchema
-from server.schema.vmachine import VmachineBriefSchema
-from server.schema.pmachine import PmachineBriefSchema
 from server.utils.page_util import PageUtil
 from server.utils.requests_util import do_request
 from server.utils.scope_util import ScopeKey
@@ -65,10 +57,10 @@ def handler_oauth_login(query):
 def handler_oauth_login_url(org: Organization):
     deal_scope = getattr(ScopeKey, org.authority)
     oauth_login_url = "{}?client_id={}&redirect_uri={}&response_type=code&scope={}".format(
-        org.oauth_login_url,
-        org.oauth_client_id,
+        current_app.config.get("OAUTH_LOGIN_URL"),
+        current_app.config.get("OAUTH_CLIENT_ID"),
         current_app.config.get("OAUTH_REDIRECT_URI"),
-        deal_scope(org.oauth_scope)
+        deal_scope(current_app.config.get("OAUTH_SCOPE"))
     )
     return jsonify(
         error_code=RET.OK,
@@ -136,11 +128,11 @@ def handler_login_callback(query):
         )
 
     oauth_flag, oauth_token = LoginApi.Oauth.callback(
-        org.oauth_get_token_url,
+        current_app.config.get("OAUTH_GET_TOKEN_URL"),
         query.code,
-        org.oauth_client_id,
+        current_app.config.get("OAUTH_CLIENT_ID"),
         current_app.config.get("OAUTH_REDIRECT_URI"),
-        org.oauth_client_secret
+        current_app.config.get("OAUTH_CLIENT_SECRET")
     )
 
     if not oauth_flag:
@@ -149,7 +141,13 @@ def handler_login_callback(query):
             error_msg="oauth request error"
         )
 
-    result = handler_login(oauth_token, org.id, org.oauth_get_user_info_url, org.authority)
+    result = handler_login(
+        oauth_token,
+        org.id,
+        current_app.config.get("OAUTH_GET_USER_INFO_URL"),
+        current_app.config.get("AUTHORITY"),
+        org.name
+    )
     if not isinstance(result, tuple) or not isinstance(result[0], bool):
         return result
     if result[0]:
@@ -162,7 +160,9 @@ def handler_login_callback(query):
                     "data": {
                         "url": f'{current_app.config["OAUTH_HOME_URL"]}?isSuccess=True',
                         "user_id": result[1],
-                        "token": result[2]
+                        "token": result[2],
+                        "current_org_id": result[3],
+                        "current_org_name": result[4]
                     }
                 }
             )
@@ -171,21 +171,18 @@ def handler_login_callback(query):
         return resp
     else:
         return jsonify(
-            error_code=RET.OK,
+            error_code=result[1],
             error_msg="OK",
             data={
-                "url": '{}?isSuccess=False&user_id={}&org_id={}&require_cla={}'.format(
-                    current_app.config["OAUTH_HOME_URL"],
-                    result[1],
-                    org.id,
-                    org.cla_verify_url is not None
+                "url": '{}?isSuccess=False'.format(
+                    current_app.config["OAUTH_HOME_URL"]
                 )
             }
         )
 
 
 @collect_sql_error
-def handler_login(oauth_token, org_id, oauth_user_info_url, authority):
+def handler_login(oauth_token, org_id, oauth_user_info_url, authority, org_name):
     """
     处理用户登录
     :param oauth_token: oauth_token
@@ -209,143 +206,54 @@ def handler_login(oauth_token, org_id, oauth_user_info_url, authority):
 
     profile_map = getattr(ProfileMap, authority)
     profile = profile_map(oauth_user)
-    # 先将token缓存到redis中, 有效期为10min，这段时间主要用来是验证cla签名
-    profile["access_token"] = oauth_token.get("access_token")
-    profile["refresh_token"] = oauth_token.get("refresh_token")
     redis_client.hmset(
         RedisKey.oauth_user(profile.get("user_id")),
         profile,
-        ex=60 * 60 * 2,
+        ex=int(current_app.config.get("LOGIN_EXPIRES_TIME")),
     )
 
     # 从数据库中获取用户信息
     user = User.query.filter_by(user_id=profile.get("user_id")).first()
     # 判断用户是否存在
     if user:
+        current_org_id = user.org_id
+        current_org = Organization.query.filter_by(id=current_org_id).first()
+        if not current_org:
+            current_org_name = ""
+        else:
+            current_org_name = current_org.name
         user = User.synchronize_oauth_info(profile, user)
+    else:
+        user = User.create_commit(oauth_user, org_id)
+        current_org_id = org_id
+        current_org_name = org_name
 
-        # 生成token值
-        token = generate_token(
-            user.user_id,
-            user.user_login,
-            int(current_app.config.get("LOGIN_EXPIRES_TIME"))
-        )
+    _resp = handler_select_default_org(current_org_id, current_org_name, user.user_id)
+    _r = None
+    try:
+        _r = _resp.json
+    except (AttributeError, TypeError) as e:
+        raise RuntimeError(str(e)) from e
+    if _r.get("error_code") != RET.OK:
+        return False, _r.get("error_msg")
+    handler_register(user.user_id, org_id)
+    # 生成token值
+    token = generate_token(
+        user.user_id,
+        user.user_login,
+        int(current_app.config.get("LOGIN_EXPIRES_TIME"))
+    )
 
-        if org_id is not None and isinstance(org_id, int):
-            re = ReUserOrganization.query.filter_by(
-                user_id=profile.get("user_id"),
-                organization_id=org_id,
-                is_delete=False,
-            ).first()
-            if not re:
-                return False, profile.get("user_id")
-
-            redis_client.hset(
-                RedisKey.user(profile.get("user_id")),
-                'current_org_id',
-                org_id
-            )
-            redis_client.hset(
-                RedisKey.user(profile.get("user_id")),
-                'current_org_name',
-                re.organization.name
-            )
-
-            if re.default is False:
-                _resp = handler_select_default_org(org_id, profile.get("user_id"))
-                _r = None
-                try:
-                    _r = _resp.json
-                except (AttributeError, TypeError) as e:
-                    raise RuntimeError(str(e)) from e
-                if _r.get("error_code") != RET.OK:
-                    return False, profile.get("user_id")
-
-        return True, user.user_id, token
-
-    # 返回结果
-    return False, profile.get("user_id")
+    return True, user.user_id, token, current_org_id, current_org_name
 
 
 @collect_sql_error
-def handler_register(user_id, body):
-    # 从redis中获取之前的用户信息
-    oauth_user = redis_client.hgetall(RedisKey.oauth_user(user_id))
-    if not oauth_user:
-        return jsonify(
-            error_code=RET.VERIFY_ERR,
-            error_msg="user info expired"
-        )
-
-    # 从数据库中获取cla信息
-    org = Organization.query.filter_by(
-        id=body.organization_id,
-        is_delete=False
-    ).first()
-    if not org:
-        return jsonify(
-            error_code=RET.NO_DATA_ERR,
-            error_msg=f"the organization does not exist"
-        )
-
-    # 若组织需要CLA签署验证，则判断是否已签署CLA
-    if org.cla_verify_url and not Cla.is_cla_signed(
-            ClaShowAdminSchema(**org.to_dict()).dict(),
-            body.cla_verify_params,
-            body.cla_verify_body
-    ):
-        return jsonify(
-            error_code=RET.CLA_VERIFY_ERR,
-            error_msg="user is not pass cla verification, please retry",
-            data=oauth_user.get("user_id")
-        )
-
-    # 提取cla邮箱
-    cla_email = None
-    for key, value in {
-        **body.cla_verify_params,
-        **body.cla_verify_body
-    }.items():
-        if 'email' in key:
-            cla_email = value
-            break
-
-    user = User.query.filter(or_(User.user_id == oauth_user.get("user_id"), User.cla_email == cla_email)).first()
-    if not user:
-        # 用户注册成功保存用户信息、生成token
-        user = User.create_commit(
-            oauth_user,
-            cla_email,
-        )
-    else:
-        return jsonify(
-            error_code=RET.DATA_EXIST_ERR,
-            error_msg="user already exists"
-        )
-
-    # 查询用户和组织是否已存在关系
-    re = ReUserOrganization.query.filter_by(
-        is_delete=False,
-        user_id=user.user_id,
-        organization_id=org.id,
-    ).first()
-    if not re:
-        # 生成用户和组织的关系
-        _ = ReUserOrganization.create(
-            user.user_id,
-            org.id,
-            json.dumps({
-                **body.cla_verify_params,
-                **body.cla_verify_body
-            }),
-            default=False
-        )
-
-    _role = Role.query.filter_by(name=user.user_id, type='person').first()
+def handler_register(user_id, org_id):
+    _role = Role.query.filter_by(name=user_id, type='person').first()
     if not _role:
-        role = Role(name=user.user_id, type='person')
+        role = Role(name=user_id, type='person')
         role_id = role.add_flush_commit_id()
-        Insert(ReUserRole, {"user_id": user.user_id, "role_id": role_id}).single()
+        Insert(ReUserRole, {"user_id": user_id, "role_id": role_id}).single()
 
     # 绑定用户和组织基础角色、公共基础角色的关系
     org_suffix = get_default_suffix('org')
@@ -353,7 +261,7 @@ def handler_register(user_id, body):
     filter_params = [
         or_(
             and_(
-                Role.org_id == org.id,
+                Role.org_id == org_id,
                 Role.type == 'org',
                 Role.name == org_suffix
             ),
@@ -365,60 +273,9 @@ def handler_register(user_id, body):
     ]
     roles = Role.query.filter(*filter_params).all()
     for _role in roles:
-        Insert(ReUserRole, {"user_id": user.user_id, "role_id": _role.id}).single()
-
-    # 用户缓存到redis中
-    redis_client.hset(
-        RedisKey.user(oauth_user.get("user_id")),
-        'current_org_name',
-        org.name
-    )
-
-    # 生成token值
-    token = generate_token(
-        user.user_id,
-        user.user_login,
-        int(current_app.config.get("LOGIN_EXPIRES_TIME"))
-    )
-    return_data = {
-        'token': token,
-    }
-
-    # 将当前组织设为注册组织
-    _resp = handler_select_default_org(org.id, oauth_user.get("user_id"))
-    _r = None
-    try:
-        _r = _resp.json
-    except (AttributeError, RuntimeError) as e:
-        return jsonify(
-            error_code=RET.SERVER_ERR,
-            error_msg=f"SERVER ERROR: {str(e)}"
-        )
-    if _r.get("error_code") != RET.OK:
-        raise RuntimeError(_r.get("error_msg"))
-
-    return jsonify(error_code=RET.OK, error_msg="OK", data=return_data)
-
-
-@collect_sql_error
-def handler_update_user(user_id, body):
-    if g.user_id != user_id:
-        return jsonify(
-            error_code=RET.VERIFY_ERR,
-            error_msg="user token and user id do not match"
-        )
-
-    # 从数据库中获取用户信息
-    user = User.query.filter_by(user_id=user_id).first()
-    if not user:
-        return jsonify(error_code=RET.NO_DATA_ERR, error_msg=f"user is no find")
-
-    # 修改数据保存到数据库
-    user.phone = body.phone
-    user.add_update()
-    # 修改缓存中的数据
-    redis_client.hset(RedisKey.user(user_id), 'phone', body.phone)
-    return jsonify(error_code=RET.OK, error_msg="OK")
+        re_user_role = ReUserRole.query.filter_by(user_id=user_id, role_id=_role.id).first()
+        if not re_user_role:
+            Insert(ReUserRole, {"user_id": user_id, "role_id": _role.id}).single()
 
 
 @collect_sql_error
@@ -435,7 +292,6 @@ def handler_user_info(user_id):
     user_dict = user.to_json()
     # 用户自查信息无需隐私处理
     user_dict.update({
-        "phone": user.phone,
         "cla_email": user.cla_email,
     })
     # 用户组信息
@@ -451,13 +307,6 @@ def handler_user_info(user_id):
 
     # 组织信息
     org_list = []
-    orgs = user.re_user_organization
-    if orgs:
-        for item in orgs:
-            re_user_organization = ReUserOrgSchema(**item.to_dict())
-            org = OrgUserInfoSchema(**item.organization.to_dict())
-            if not org.is_delete:
-                org_list.append({**re_user_organization.dict(), **org.dict()})
     user_dict["orgs"] = org_list
     user_dict = UserInfoSchema(**user_dict).dict()
     return jsonify(error_code=RET.OK, error_msg="OK", data=user_dict)
@@ -471,45 +320,12 @@ def handler_logout():
 
 
 @collect_sql_error
-def handler_select_default_org(org_id, user_id=None):
+def handler_select_default_org(org_id, org_name, user_id=None):
     if user_id is None:
         user_oauth_id = g.user_id
     else:
         user_oauth_id = user_id
 
-    re = ReUserOrganization.query.filter_by(
-        user_id=user_oauth_id,
-        organization_id=org_id,
-        is_delete=False
-    ).first()
-
-    if not re:
-        return jsonify(
-            error_code=RET.NO_DATA_ERR,
-            error_msg="relationship no find"
-        )
-
-    # 切换数据
-    re_old = ReUserOrganization.query.filter_by(
-        user_id=user_oauth_id,
-        default=True,
-        is_delete=False
-    ).first()
-
-    if re_old:
-        re_old.default = False
-        re_old.add_update()
-
-    re.default = True
-    cla_email = None
-    for key, value in json.loads(re.cla_info).items():
-        if 'email' in key:
-            cla_email = value
-            break
-    user = re.user
-    user.cla_email = cla_email
-    re.add_update()
-    user.add_update()
     redis_client.hset(
         RedisKey.user(user_oauth_id),
         'current_org_id',
@@ -518,7 +334,7 @@ def handler_select_default_org(org_id, user_id=None):
     redis_client.hset(
         RedisKey.user(user_oauth_id),
         'current_org_name',
-        re.organization.name
+        org_name
     )
     return jsonify(error_code=RET.OK, error_msg="OK")
 
@@ -690,205 +506,6 @@ def handler_get_user_task(query: UserTaskSchema):
     return jsonify(error_code=RET.OK, error_msg="OK", data=page_dict)
 
 
-@collect_sql_error
-def handler_get_user_machine(query: UserMachineSchema):
-    current_org_id = int(redis_client.hget(
-        RedisKey.user(g.user_id),
-        'current_org_id'
-    ))
-    page_dict = None
-    if query.machine_type == 'physics':
-        def page_func(item: Pmachine):
-            item_dict = PmachineBriefSchema(**item.__dict__).dict()
-            return item_dict
-
-        filter_params = [
-            or_(
-                Pmachine.occupier == User.query.get(g.user_id).user_name,
-                Pmachine.creator_id == g.user_id,
-            ),
-            Pmachine.org_id == current_org_id
-        ]
-        if query.machine_name:
-            filter_params.append(or_(
-                Pmachine.ip.like(f'%{query.machine_name}%'),
-                Pmachine.description.like(f'%{query.machine_name}%'),
-                Pmachine.bmc_ip.like(f'%{query.machine_name}%')
-            ))
-        filter_chain = Pmachine.query.filter(*filter_params).order_by(Pmachine.create_time.desc(), Pmachine.id.asc())
-        page_dict, e = PageUtil.get_page_dict(filter_chain, query.page_num, query.page_size, func=page_func)
-        if e:
-            return jsonify(error_code=RET.SERVER_ERR, error_msg=f'get pmachine page error {e}')
-    elif query.machine_type == 'virtual':
-        def page_func(item: Vmachine):
-            item_dict = VmachineBriefSchema(**item.__dict__).dict()
-            return item_dict
-
-        filter_params = [
-            Vmachine.creator_id == g.user_id,
-            Vmachine.org_id == current_org_id
-        ]
-        if query.machine_name:
-            filter_params.append(or_(
-                Vmachine.ip.like(f'%{query.machine_name}%'),
-                Vmachine.description.like(f'%{query.machine_name}%'),
-                Vmachine.milestone.like(f'%{query.machine_name}%')
-            ))
-        filter_chain = Vmachine.query.filter(*filter_params).order_by(Vmachine.create_time.desc(), Vmachine.id.asc())
-        page_dict, e = PageUtil.get_page_dict(filter_chain, query.page_num, query.page_size, func=page_func)
-        if e:
-            return jsonify(error_code=RET.SERVER_ERR, error_msg=f'get vmachine page error {e}')
-    return jsonify(error_code=RET.OK, error_msg="OK", data=page_dict)
-
-
-@collect_sql_error
-def handler_get_user_case_commit(query: UserCaseCommitSchema):
-    current_org_id = int(redis_client.hget(
-        RedisKey.user(g.user_id),
-        'current_org_id'
-    ))
-    now = datetime.now(tz=pytz.timezone('Asia/Shanghai'))
-    # 全部
-    basic_filter_params = [
-        Commit.creator_id == g.user_id,
-        Commit.status == 'accepted',
-        Commit.org_id == current_org_id
-    ]
-
-    # 今日贡献
-    today_filter_params = [extract('year', Commit.create_time) == now.year,
-                           extract('month', Commit.create_time) == now.month,
-                           extract('day', Commit.create_time) == now.day]
-    today_filter_params.extend(basic_filter_params)
-    today_count = Commit.query.filter(*today_filter_params).count()
-
-    # 本周贡献
-    today = datetime(now.year, now.month, now.day, 0, 0, 0)
-    this_week_start = today - timedelta(days=now.weekday())
-    this_week_end = today + timedelta(days=7 - now.weekday())
-    week_filter_params = [Commit.create_time >= this_week_start,
-                          Commit.create_time < this_week_end]
-    week_filter_params.extend(basic_filter_params)
-    week_count = Commit.query.filter(*week_filter_params).count()
-
-    # 本月贡献
-    this_month_start = datetime(now.year, now.month, 1)
-    if now.month < 12:
-        next_month_start = datetime(now.year, now.month + 1, 1)
-    else:
-        next_month_start = datetime(now.year + 1, 1, 1)
-
-    month_filter_params = [Commit.create_time >= this_month_start,
-                           Commit.create_time < next_month_start]
-    month_filter_params.extend(basic_filter_params)
-    month_count = Commit.query.filter(*month_filter_params).count()
-
-    filter_params = [Commit.creator_id == g.user_id]
-    if query.title:
-        filter_params.append(Commit.title.like(f'%{query.title}%'))
-
-    if query.status != 'all':
-        filter_params.append(Commit.status == query.status)
-    else:
-        filter_params.append(Commit.status != 'pending')
-    filter_chain = Commit.query.filter(*filter_params).order_by(Commit.create_time.desc(), Commit.id.asc())
-    page_dict, e = PageUtil.get_page_dict(filter_chain, query.page_num, query.page_size, func=lambda x: x.to_json())
-    if e:
-        return jsonify(error_code=RET.SERVER_ERR, error_msg=f'get case commit page error {e}')
-
-    page_dict["today_case_count"] = today_count
-    page_dict["week_case_count"] = week_count
-    page_dict["month_case_count"] = month_count
-    return jsonify(error_code=RET.OK, error_msg="OK", data=page_dict)
-
-
-@collect_sql_error
-def handler_get_user_case_commit(query: UserCaseCommitSchema):
-    now = datetime.now(tz=pytz.timezone('Asia/Shanghai'))
-    # 全部
-    basic_filter_params = [Commit.creator_id == g.user_id, Commit.status == 'accepted']
-
-    # 今日贡献
-    today_filter_params = [extract('year', Commit.create_time) == now.year,
-                           extract('month', Commit.create_time) == now.month,
-                           extract('day', Commit.create_time) == now.day]
-    today_filter_params.extend(basic_filter_params)
-    today_count = Commit.query.filter(*today_filter_params).count()
-
-    # 本周贡献
-    today = datetime(now.year, now.month, now.day, 0, 0, 0)
-    this_week_start = today - timedelta(days=now.weekday())
-    this_week_end = today + timedelta(days=7 - now.weekday())
-    week_filter_params = [Commit.create_time >= this_week_start,
-                          Commit.create_time < this_week_end]
-    week_filter_params.extend(basic_filter_params)
-    week_count = Commit.query.filter(*week_filter_params).count()
-
-    # 本月贡献
-    this_month_start = datetime(now.year, now.month, 1)
-    if now.month < 12:
-        next_month_start = datetime(now.year, now.month + 1, 1)
-    else:
-        next_month_start = datetime(now.year + 1, 1, 1)
-
-    month_filter_params = [Commit.create_time >= this_month_start,
-                           Commit.create_time < next_month_start]
-    month_filter_params.extend(basic_filter_params)
-    month_count = Commit.query.filter(*month_filter_params).count()
-
-    filter_params = [Commit.creator_id == g.user_id]
-    if query.title:
-        filter_params.append(Commit.title.like(f'%{query.title}%'))
-
-    if query.status != 'all':
-        filter_params.append(Commit.status == query.status)
-    else:
-        filter_params.append(Commit.status != 'pending')
-    filter_chain = Commit.query.filter(*filter_params).order_by(Commit.create_time.desc(), Commit.id.asc())
-    page_dict, e = PageUtil.get_page_dict(filter_chain, query.page_num, query.page_size, func=lambda x: x.to_json())
-    if e:
-        return jsonify(error_code=RET.SERVER_ERR, error_msg=f'get case commit page error {e}')
-
-    page_dict["today_case_count"] = today_count
-    page_dict["week_case_count"] = week_count
-    page_dict["month_case_count"] = month_count
-    return jsonify(error_code=RET.OK, error_msg="OK", data=page_dict)
-
-
-def handler_get_user_asset_rank(query):
-    ranked_user = User.query.join(
-        ReUserOrganization
-    ).filter(
-        ReUserOrganization.rank != sqlalchemy.null(),
-        ReUserOrganization.is_delete == False,
-        ReUserOrganization.organization_id == redis_client.hget(
-            RedisKey.user(g.user_id),
-            "current_org_id"
-        )
-    ).order_by(
-        ReUserOrganization.rank.asc(),
-        User.create_time.asc()
-    )
-
-    def page_func(item):
-        user_dict = item.to_summary()
-        return user_dict
-
-    page_dict, e = PageUtil.get_page_dict(
-        ranked_user, query.page_num, query.page_size, func=page_func
-    )
-    if e:
-        return jsonify(
-            error_code=RET.SERVER_ERR,
-            error_msg=f'get user rank page error {e}'
-        )
-    return jsonify(
-        error_code=RET.OK,
-        error_msg="OK",
-        data=page_dict
-    )
-
-
 def handler_private(user_id):
     user = User.query.filter_by(user_id=user_id).first()
     if not user:
@@ -899,7 +516,6 @@ def handler_private(user_id):
         data={
             "user_id": user.user_id,
             "user_name": user.user_name,
-            "phone": user.phone,
             "cla_email": user.cla_email,
         }
     )

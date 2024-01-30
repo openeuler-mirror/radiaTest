@@ -33,7 +33,7 @@ from server.schema.permission import (
     ScopeRoleBaseSchema,
     AllRoleQuerySchema
 )
-from .handler import AccessableMachinesHandler, RoleHandler, ScopeHandler, UserRoleLimitedHandler, \
+from .handler import RoleHandler, ScopeHandler, UserRoleLimitedHandler, \
     ScopeRoleLimitedHandler
 
 
@@ -556,20 +556,3 @@ class ScopeRolePersonEvent(Resource):
             _type='person',
             body=body
         ).unbind_scope()
-
-
-class AccessableMachinesEvent(Resource):
-    @auth.login_required
-    @response_collect
-    @validate()
-    @swagger_adapt.api_schema_model_map({
-        "__module__": get_permission_tag.__module__,  # 获取当前接口所在模块
-        "resource_name": "AccessableMachinesEvent",  # 当前接口视图函数名
-        "func_name": "get",  # 当前接口所对应的函数名
-        "tag": get_permission_tag(),  # 当前接口所对应的标签
-        "summary": "获取所有可用机器",  # 当前接口概述
-        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
-        "query_schema_model": AccessableMachinesQuery
-    })
-    def get(self, query: AccessableMachinesQuery):
-        return AccessableMachinesHandler.get_all(query)

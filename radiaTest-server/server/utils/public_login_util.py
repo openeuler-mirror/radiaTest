@@ -14,7 +14,7 @@
 #####################################
 
 from server.model.user import User
-from server.model.organization import Organization, ReUserOrganization
+from server.model.organization import Organization
 from server.model.group import Group, ReUserGroup
 from server.utils.auth_util import generate_token
 from server.utils.redis_util import RedisKey
@@ -55,19 +55,6 @@ def init_public_login(app, redis_client):
                     user.user_login = user_dict.get("user_login")
                     user.user_name = user_dict.get("user_name")
                     user.add_update()
-
-                re_user_org = ReUserOrganization.query.filter_by(
-                    user_id=user_dict.get("user_id"),
-                    organization_id=org.id,
-                    is_delete=False
-                ).first()
-                if not re_user_org:
-                    re_user_org = ReUserOrganization()
-                    re_user_org.user_id = user_dict.get("user_id")
-                    re_user_org.organization_id = org.id
-                    re_user_org.is_delete = False
-                    re_user_org.default = True
-                    re_user_org.add_update()
 
                 group_name = app.config.get("PUBLIC_USER_GROUP")
                 if group_name:

@@ -18,4 +18,4 @@ LABEL maintainer="ethanzhang55@outlook.com"
 
 USER radiaTest
 
-CMD celery -A manage.my_celery worker --loglevel=info --hostname=celery_periodic_worker --queues=queue_update_celerytask_status,queue_check_vmachine_lifecycle,queue_read_openqa_homepage,queue_update_issue_type_state,queue_update_all_issue_rate,queue_send_vmachine_release_message,queue_update_all_task_progress,queue_check_pmachine_lifecycle --pool=gevent --concurrency=40
+CMD celery -A manage.my_celery worker --loglevel=info --hostname=celery_periodic_worker --queues=queue_update_celerytask_status,queue_read_openqa_homepage,queue_update_issue_type_state,queue_update_all_issue_rate,queue_update_all_task_progress --pool=gevent --concurrency=40

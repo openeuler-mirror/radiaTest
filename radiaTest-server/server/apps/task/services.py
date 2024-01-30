@@ -20,13 +20,11 @@ from flask import g, current_app, url_for, jsonify
 from typing import List
 from server.utils.response_util import ssl_cert_verify_error_collect
 from server import redis_client, db
-from server.model.template import Template
 from server.model.task import Task, TaskStatus, TaskManualCase, TaskMilestone
 from server.model.testcase import Case
 from server.model.group import Group, ReUserGroup
 from server.model.user import User
 from server.model.message import Message, MsgLevel
-from server.utils.db import Insert
 from server.utils.redis_util import RedisKey
 from server.utils.requests_util import do_request
 from server.utils.response_util import RET
@@ -151,39 +149,8 @@ class UpdateTaskStatusService(object):
                 if not auto_cases:
                     task.status_id = self.status.id
                     continue
-                template_id = milestone.template_id
+
                 template_name = f"{task.title}_{uuid1().hex}"
-                old_cases = None
-                if template_id:
-                    template = Template.query.get(template_id)
-                    template_name = template.name
-                    old_cases = template.cases
-                    old_cases.sort(key=lambda x: x.id)
-                    auto_cases.sort(key=lambda x: x.id)
-                if not template_id or old_cases != auto_cases:
-                    template = Template()
-                    template.name = template_name
-                    template.creator_id = g.user_id
-                    template.org_id = int(
-                        redis_client.hget(RedisKey.user(g.user_id), "current_org_id")
-                    )
-                    template.milestone_id = milestone.milestone_id
-                    template.permission_type = "person"
-                    template.cases = auto_cases
-                    template.git_repo_id = auto_cases[0].suite.git_repo_id
-                    template_id = template.add_flush_commit_id()
-                    ResourceManager("template").add_permission(
-                        "api_infos.yaml",
-                        {
-                            "creator_id": template.creator_id,
-                            "org_id": template.org_id,
-                            "permission_type": template.permission_type,
-                        },
-                        template_id,
-                    )
-                    milestone.template_id = template_id
-                    milestone.job_result = "pending"
-                    milestone.add_update()
 
                 if (
                         milestone.job_result in ["pending", "block"]
@@ -198,7 +165,6 @@ class UpdateTaskStatusService(object):
                     headers = {"content-type": "application/json"}
 
                     body = {
-                        "id": template_id,
                         "taskmilestone_id": milestone.id,
                         "frame": task.frame,
                         "name": f"{template_name[:-15]}_{uuid1().hex}",

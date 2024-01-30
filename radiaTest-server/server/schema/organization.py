@@ -21,6 +21,7 @@ from pydantic import BaseModel, Field, root_validator, validator
 
 from .base import PageBaseSchema
 from server.schema import Authority
+from server.model import User
 
 
 class OrgUserInfoSchema(BaseModel):
@@ -127,7 +128,10 @@ class ReUserOrgSchema(BaseModel):
     @validator("re_user_org_cla_info")
     def validator_cla_info(cls, v):
         try:
-            return json.loads(v)
+            data = json.loads(v)
+            if "email" in data:
+                data["email"] = User.mask_cla_email(data["email"])
+            return data
         except:
             return None
 

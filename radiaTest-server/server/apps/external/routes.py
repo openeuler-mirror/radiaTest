@@ -19,7 +19,6 @@ import os
 import re
 import shlex
 from subprocess import getstatusoutput
-import json
 import pytz
 
 import yaml
@@ -32,34 +31,27 @@ from server.utils.auth_util import auth
 from server.schema.external import (
     LoginOrgListSchema,
     OpenEulerUpdateTaskBase,
-    VmachineExistSchema,
     DeleteCertifiSchema,
     QueryTestReportFileSchema,
 )
 from server.model.group import Group
-from server.model.mirroring import Repo
-from server.model.vmachine import Vmachine
 from server.model.organization import Organization
 from server.model.product import Product
 from server.model.qualityboard import DailyBuild, WeeklyHealth
-from server.model.milestone import Milestone, TestReport
+from server.model.milestone import TestReport
 from server.utils.db import Insert, Edit
 from server.utils.response_util import RET
 from server.utils.file_util import ImportFile
 from celeryservice.tasks import resolve_dailybuild_detail, resolve_rpmcheck_detail
-from server.model.pmachine import Pmachine, MachineGroup
 from server.model.milestone import Milestone
 from server.utils.response_util import response_collect
 from server.apps.external.handler import (
     UpdateRepo,
     UpdateTaskHandler,
     UpdateTaskForm,
-    AtMessenger,
     AtHandler,
     MajunLoginHandler,
 )
-from server.model.job import AtJob
-from server import redis_client
 
 
 def get_external_tag():
@@ -67,26 +59,6 @@ def get_external_tag():
         "name": "对外相关",
         "description": "对外相关接口",
     }
-
-
-def get_at_messenger(body):
-    pmachine_info = Pmachine.query.filter_by(
-        description=current_app.config.get("OPENQA_SERVER"), state="occupied"
-    ).first()
-    if not pmachine_info:
-        return {
-            "error_code": RET.NO_DATA_ERR,
-            "error_msg": "the openqa server machine does not exist"
-        }
-
-    machine_group = MachineGroup.query.filter_by(id=pmachine_info.machine_group_id).first()
-    body.update({
-        "user": pmachine_info.user,
-        "password": pmachine_info.password,
-        "port": pmachine_info.port,
-        "ip": pmachine_info.ip
-    })
-    return AtMessenger(body, machine_group)
 
 
 class UpdateTaskEvent(Resource):
@@ -140,30 +112,6 @@ class UpdateTaskEvent(Resource):
         update_repo = UpdateRepo(body)
         update_repo.create_repo_config()
 
-        # insert or update repo config and use internal task execute api
-        for frame in ["aarch64", "x86_64"]:
-            repo = Repo.query.filter_by(
-                milestone_id=form.milestone_id,
-                frame=frame
-            ).first()
-
-            if not repo:
-                Insert(
-                    Repo,
-                    {
-                        "content": update_repo.content,
-                        "frame": frame,
-                        "milestone_id": form.milestone_id
-                    }
-                ).single(Repo, "/repo")
-            else:
-                Edit(
-                    Repo,
-                    {
-                        "id": repo.id,
-                        "content": update_repo.content,
-                    }
-                ).single(Repo, "/repo")
         milstone_info = Milestone.query.filter_by(id=form.milestone_id).first()
         if not milstone_info:
             return {"error_code": RET.NO_DATA_ERR, "error_msg": "invalid milstone id"}
@@ -201,33 +149,6 @@ class LoginOrgList(Resource):
             error_code=RET.OK,
             error_msg="OK",
             data=return_data
-        )
-
-
-class VmachineExist(Resource):
-    @validate()
-    @swagger_adapt.api_schema_model_map({
-        "__module__": get_external_tag.__module__,
-        "resource_name": "VmachineExist",
-        "func_name": "get",
-        "tag": get_external_tag(),
-        "summary": "查询虚拟机是否存在",
-        "externalDocs": {"description": "", "url": ""},
-        "query_schema_model": VmachineExistSchema
-
-    })
-    def get(self, query: VmachineExistSchema):
-        vmachine = Vmachine.query.filter_by(name=query.domain).first()
-        if not vmachine:
-            return jsonify(
-                error_code=RET.NO_DATA_ERR,
-                error_msg="vmachine does not exist"
-            )
-
-        return jsonify(
-            error_code=RET.OK,
-            error_msg="OK",
-            data=vmachine.name
         )
 
 
@@ -556,34 +477,6 @@ class RpmCheckEvent(Resource):
 
 
 class AtEvent(Resource):
-    @validate()
-    @swagger_adapt.api_schema_model_map({
-        "__module__": get_external_tag.__module__,
-        "resource_name": "AtEvent",
-        "func_name": "post",
-        "tag": get_external_tag(),
-        "summary": "At任务创建",
-        "externalDocs": {"description": "", "url": ""},
-    })
-    def post(self):
-        body = request.get_json()
-        messenger = get_at_messenger(body)
-
-        resp = messenger.send_request("/api/v1/openeuler/at")
-        resp = json.loads(resp.data.decode('UTF-8'))
-        _id = int(0)
-        if resp.get("error_code") == RET.OK:
-            at_job = AtJob.query.filter_by(build_name=body.get("release_url")).first()
-            if at_job:
-                _id = at_job.id
-            else:
-                _id = Insert(AtJob, {"build_name": body.get("release_url")}).insert_id(AtJob, "/at")
-        redis_client.set(body.get("release_url"), _id, ex=current_app.config.get("STORE_AT_MAX_TIME"))
-        return {
-            "error_code": resp.get("error_code"),
-            "error_msg": resp.get("error_msg")
-        }
-
     @swagger_adapt.api_schema_model_map({
         "__module__": get_external_tag.__module__,
         "resource_name": "AtEvent",
@@ -612,7 +505,7 @@ class AtEvent(Resource):
         buildname_x86 = request.values.get("release_url_x86_64")
         buildname_aarch64 = request.values.get("release_url_aarch64")
 
-        at = AtHandler(get_at_messenger({}), buildname_x86, buildname_aarch64)
+        at = AtHandler(buildname_x86, buildname_aarch64)
         result = at.get_result()
         if result[0]:
             return {
@@ -625,46 +518,6 @@ class AtEvent(Resource):
                 "error_code": RET.PARMA_ERR,
                 "error_msg": "unknown arch"
             }
-
-    @swagger_adapt.api_schema_model_map({
-        "__module__": get_external_tag.__module__,
-        "resource_name": "AtEvent",
-        "func_name": "put",
-        "tag": get_external_tag(),
-        "summary": "At任务更新",
-        "externalDocs": {"description": "", "url": ""},
-        "request_schema_model": {
-            "description": "",
-            "content": {
-                "application/json":
-                    {"schema": {
-                        "properties": {
-                            "build_name": {
-                                "title": "构建名",
-                                "type": "string"
-                            }
-
-                        },
-                        "required": ["build_name"],
-                        "title": "ATSchema",
-                        "type": "object"
-                    }}
-            },
-            "required": True
-        }
-    })
-    def put(self):
-        body = request.get_json()
-        _id = redis_client.get(body.get("build_name"))
-        if not _id:
-            return jsonify(
-                error_code=RET.NO_DATA_ERR,
-                error_msg="we couldn't decide update which at job info",
-            )
-        body.update({
-            "id": _id
-        })
-        return Edit(AtJob, body).single(AtJob, "/at")
 
 
 class AtDetailEvent(Resource):
@@ -695,7 +548,7 @@ class AtDetailEvent(Resource):
     def get(self):
         buildname_x86 = request.values.get("release_url_x86_64")
         buildname_aarch64 = request.values.get("release_url_aarch64")
-        at = AtHandler(get_at_messenger({}), buildname_x86, buildname_aarch64)
+        at = AtHandler(buildname_x86, buildname_aarch64)
         return {
             "error_code": RET.OK,
             "error_msg": "OK",

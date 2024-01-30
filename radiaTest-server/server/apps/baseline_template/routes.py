@@ -19,6 +19,7 @@ from flask_pydantic import validate
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 
 from server import redis_client, db, swagger_adapt
+from server.schema.base import QueryBaseModel
 from server.utils.redis_util import RedisKey
 from server.utils.auth_util import auth
 from server.utils.response_util import RET, response_collect, workspace_error_collect
@@ -132,7 +133,7 @@ class BaselineTemplateEvent(Resource):
             error_msg="OK."
         )
 
-    @auth.login_required()
+    @auth.login_check
     @response_collect
     @workspace_error_collect
     @validate()
@@ -310,7 +311,7 @@ class BaselineTemplateItemEvent(Resource):
             error_msg="OK."
         )
 
-    @auth.login_required()
+    @auth.login_check
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
@@ -320,8 +321,9 @@ class BaselineTemplateItemEvent(Resource):
         "tag": get_baseline_template_tag(),  # 当前接口所对应的标签
         "summary": "获取基线模板信息",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "query_schema_model": QueryBaseModel
     })
-    def get(self, baseline_template_id):
+    def get(self, baseline_template_id, query: QueryBaseModel):
         """
             在数据库中查询Baseline_template数据.
             API:/api/v1/baseline-template/<int:baseline_template_id>
@@ -346,7 +348,7 @@ class BaselineTemplateItemEvent(Resource):
             "error_msg": "OK"
             }
         """
-        filter_params = GetAllByPermission(BaselineTemplate).get_filter()
+        filter_params = GetAllByPermission(BaselineTemplate, org_id=query.org_id).get_filter()
         filter_params.append(BaselineTemplate.id == baseline_template_id)
         baseline_template = BaselineTemplate.query.filter(
             *filter_params
@@ -356,19 +358,25 @@ class BaselineTemplateItemEvent(Resource):
                 error_code=RET.NO_DATA_ERR,
                 error_msg="The baseline template does not exist."
             )
-   
-        if baseline_template.creator_id != g.user_id and baseline_template.openable is False:
-            return jsonify(
-                error_code=RET.DB_DATA_ERR,
-                error_msg="have no right.",
-            )
+        if not hasattr(g, "user_id"):
+            if baseline_template.openable is False:
+                return jsonify(
+                    error_code=RET.DB_DATA_ERR,
+                    error_msg="have no right.",
+                )
         else:
-            return_data = BaselineTemplateHandler().get(baseline_template_id)
-            return jsonify(
-                error_code=RET.OK,
-                error_msg="OK.",
-                data=return_data
-            )           
+            if baseline_template.creator_id != g.user_id and baseline_template.openable is False:
+                return jsonify(
+                    error_code=RET.DB_DATA_ERR,
+                    error_msg="have no right.",
+                )
+
+        return_data = BaselineTemplateHandler().get(baseline_template_id)
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK.",
+            data=return_data
+        )
 
 
 class BaseNodeEvent(Resource):

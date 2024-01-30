@@ -41,7 +41,6 @@ from server.schema.strategy import (
     StrategyRelateSchema,
     StrategyCommitBodySchema,
     StrategyCommitUpdateSchema,
-    CommitBodySchema,
     StrategyQuerySchema,
     StrategyPermissionBaseSchema,
 )
@@ -130,7 +129,7 @@ class FeatureSetEvent(Resource):
         methods=["Get"]
     """
 
-    @auth.login_required()
+    @auth.login_check
     @response_collect
     @value_error_collect
     @validate()
@@ -788,7 +787,7 @@ class StrategyTemplateEvent(Resource):
         methods=["Get"]
     """
 
-    @auth.login_required()
+    @auth.login_check
     @response_collect
     @validate()
     @value_error_collect

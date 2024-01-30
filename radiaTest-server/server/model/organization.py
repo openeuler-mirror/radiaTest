@@ -12,7 +12,7 @@
 # @Date    :
 # @License : Mulan PSL v2
 #####################################
-
+import json
 from enum import Enum
 
 from server import db
@@ -50,9 +50,6 @@ class Organization(db.Model, PermissionBaseModel, BaseModel):
     cla_sign_url = db.Column(db.String(512), nullable=True)
     cla_request_type = db.Column(db.String(8), nullable=True)
     cla_pass_flag = db.Column(db.String(512), nullable=True)
-
-    re_user_org = db.relationship("ReUserOrganization", cascade="all, delete", backref="organization")
-
     roles = db.relationship("Role", cascade="all, delete", backref="organization")
 
     re_org_publisher = db.relationship("RequirementPublisher", backref="org")
@@ -134,40 +131,3 @@ class Organization(db.Model, PermissionBaseModel, BaseModel):
         new_recode.id = new_id
         return new_recode
 
-
-class ReUserOrganization(db.Model, BaseModel):
-    __tablename__ = "re_user_organization"
-    id = db.Column(db.Integer(), primary_key=True, autoincrement=True)
-    is_delete = db.Column(db.Boolean, default=False, nullable=False)
-    # 0 普通用户
-    role_type = db.Column(db.Integer(), default=0, nullable=False)
-    cla_info = db.Column(db.String(1024), nullable=True)
-    default = db.Column(db.Boolean, default=False, nullable=False)
-    rank = db.Column(db.Integer())
-
-    user_id = db.Column(db.String(512), db.ForeignKey('user.user_id'))
-    organization_id = db.Column(db.Integer, db.ForeignKey('organization.id'))
-
-    def to_dict(self):
-        _dict = self.__dict__
-        _filter = [ReUserRole.user_id == self.user_id, Role.type == 'org', Role.org_id == self.organization_id]
-        _role = Role.query.join(ReUserRole).filter(*_filter).first()
-
-        _dict.update({
-            "create_time": self.create_time.strftime("%Y-%m-%d %H:%M:%S"),
-            "update_time": self.update_time.strftime("%Y-%m-%d %H:%M:%S"),
-            "role": _role.to_json() if _role else None
-        })
-
-        return _dict
-
-    @staticmethod
-    def create(user_id, organization_id, cla_info, role_type=0, default=False):
-        new_record = ReUserOrganization()
-        new_record.user_id = user_id
-        new_record.organization_id = organization_id
-        new_record.role_type = role_type
-        new_record.cla_info = cla_info
-        new_record.default = default
-        new_record.add_update()
-        return new_record

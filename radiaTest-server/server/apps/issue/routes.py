@@ -14,11 +14,12 @@
 #####################################
 
 import json
-from flask import request, jsonify
+from flask import jsonify
 from flask_restful import Resource
 from flask_pydantic import validate
 
 from server import swagger_adapt
+from server.schema.base import QueryBaseModel
 from server.utils.auth_util import auth
 from server.utils.response_util import response_collect, RET
 from server.model.milestone import Milestone
@@ -117,8 +118,8 @@ class GiteeIssuesItem(Resource):
 
 
 class GiteeIssuesType(Resource):
-    @auth.login_required
     @response_collect
+    @validate()
     @swagger_adapt.api_schema_model_map({
         "__module__": get_issue_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "GiteeIssuesType",  # 当前接口视图函数名
@@ -126,9 +127,10 @@ class GiteeIssuesType(Resource):
         "tag": get_issue_tag(),  # 当前接口所对应的标签
         "summary": "当前用户所属组织的issue类型(gitee平台redis缓存数据)",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "query_schema_model": QueryBaseModel
     })
-    def get(self):
-        return GiteeV8IssueHandler.get_issue_type()
+    def get(self, query: QueryBaseModel):
+        return GiteeV8IssueHandler.get_issue_type(query.org_id)
 
 
 class GiteeIssuesState(Resource):
@@ -168,7 +170,6 @@ class GiteeProjectEvent(Resource):
 
 
 class GiteeIssuesV8(Resource):
-    @auth.login_required()
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
@@ -194,7 +195,7 @@ class GiteeIssuesV8(Resource):
                 "milestone_id": milestone.gitee_milestone_id,
             }
         )
-        return GiteeV8BaseIssueHandler().get_all(_body)
+        return GiteeV8BaseIssueHandler(org_id=query.org_id).get_all(_body)
 
 
 class UpdateGiteeIssuesTypeState(Resource):

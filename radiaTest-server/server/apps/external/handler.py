@@ -33,8 +33,6 @@ from server.utils.db import Insert, Precise
 from server.utils.resource_utils import ResourceManager
 from server.utils.response_util import ssl_cert_verify_error_collect, RET
 from server.utils.requests_util import do_request
-from server.utils.auth_util import generate_messenger_token
-from server.schema.job import PayLoad
 from server.apps.user.handlers import handler_login
 from server.model.organization import Organization
 
@@ -222,8 +220,7 @@ class AtMessenger:
     @ssl_cert_verify_error_collect
     def send_request(self, api, method="post"):
         _resp = dict()
-        payload = PayLoad(1, "at")
-        token = generate_messenger_token(payload)
+
         _r = do_request(
             method=method,
             url="https://{}:{}{}".format(
@@ -255,8 +252,7 @@ class AtMessenger:
 
 
 class AtHandler:
-    def __init__(self, at_messenger, buildname_x86=None, buildname_aarch64=None):
-        self.at_messenger = at_messenger
+    def __init__(self, buildname_x86=None, buildname_aarch64=None):
         self.buildname_x86 = buildname_x86 if buildname_x86 else ""
         self.buildname_aarch64 = buildname_aarch64 if buildname_aarch64 else ""
         self.openqa_url = current_app.config.get("OPENQA_URL")
@@ -516,7 +512,8 @@ class MajunLoginHandler:
             self._oauth_token,
             self._org_id,
             self._authorty.get("get_user_info_url"),
-            self._authorty.get("authority")
+            self._authorty.get("authority"),
+            org.name
         )
 
         if not isinstance(result, tuple) or not isinstance(result[0], bool):

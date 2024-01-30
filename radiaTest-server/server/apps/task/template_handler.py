@@ -38,14 +38,18 @@ class HandlerTemplate:
     @staticmethod
     @collect_sql_error
     def get(query):
-        org_id = redis_client.hget(RedisKey.user(g.user_id), "current_org_id")
-        rugs = ReUserGroup.query.filter_by(
-            user_id=g.user_id,
-            org_id=org_id,
-            is_delete=False,
-            user_add_group_flag=True,
-        ).all()
-        groups = [item.group_id for item in rugs]
+        if hasattr(g, "user_id"):
+            org_id = redis_client.hget(RedisKey.user(g.user_id), "current_org_id")
+            rugs = ReUserGroup.query.filter_by(
+                user_id=g.user_id,
+                org_id=org_id,
+                is_delete=False,
+                user_add_group_flag=True,
+            ).all()
+            groups = [item.group_id for item in rugs]
+        else:
+            groups = []
+
         filter_params = [TaskDistributeTemplate.group_id.in_(groups)]
         if query.name:
             filter_params.append(TaskDistributeTemplate.name.like(f"%{query.name}%"))

@@ -14,16 +14,14 @@
 #####################################
 
 import yaml
-from flask import jsonify, g, current_app
+from flask import jsonify, g
 from sqlalchemy import or_, and_
 
 from server import db, redis_client
 from server.model.administrator import Admin
-from server.model.organization import Organization, ReUserOrganization, OrganizationRole
+from server.model.organization import Organization
 from server.model.group import Group, ReUserGroup, GroupRole
 from server.model.user import User
-from server.model.pmachine import Pmachine
-from server.model.vmachine import Vmachine
 from server.model.permission import ReScopeRole, ReUserRole, Role, Scope
 from server.utils.response_util import RET, ssl_cert_verify_error_collect
 from server.utils.db import Insert, Delete, collect_sql_error
@@ -81,11 +79,6 @@ class RoleHandler:
             filter_params = [
                 or_(
                     and_(
-                        ReUserOrganization.organization_id == redis_client.hget(RedisKey.user(g.user_id),
-                                                                                'current_org_id'),
-                        Role.type == 'org',
-                    ),
-                    and_(
                         ReUserGroup.org_id == redis_client.hget(RedisKey.user(g.user_id), 'current_org_id'),
                         ReUserGroup.user_id == g.user_id,
                         ReUserGroup.user_add_group_flag == True,
@@ -103,8 +96,6 @@ class RoleHandler:
                 filter_params.append(Role.description.like(f'%{value}%'))
 
         roles = Role.query.outerjoin(
-            ReUserOrganization, Role.org_id == ReUserOrganization.organization_id
-        ).outerjoin(
             ReUserGroup, Role.group_id == ReUserGroup.group_id
         ).filter(*filter_params).all()
 
@@ -401,14 +392,6 @@ class UserRoleLimitedHandler(RoleLimitedHandler):
             else:
                 rug.role_type = GroupRole.user.value
             rug.add_update()
-        elif _role.type == 'org':
-            ruo = ReUserOrganization.query.filter_by(organization_id=self.org_id,
-                                                     user_id=self.user_id).first()
-            if _role.name == 'admin':
-                ruo.role_type = OrganizationRole.admin.value
-            else:
-                ruo.role_type = OrganizationRole.user.value
-            ruo.add_update()
 
         return Insert(
             ReUserRole,
@@ -433,11 +416,6 @@ class UserRoleLimitedHandler(RoleLimitedHandler):
             if re.role.name == 'admin' and rug.role_type == GroupRole.create_user.value:
                 return jsonify(error_code=RET.VERIFY_ERR,
                                error_msg="group creator user-role bind is not allowed to untie")
-        elif re.role.type == 'org':
-            rug = ReUserOrganization.query.filter_by(user_id=self.user_id, organization_id=re.role.org_id).first()
-            if not rug:
-                return jsonify(error_code=RET.VERIFY_ERR,
-                               error_msg="user-organization binding not exist")
 
         return Delete(
             ReUserRole,
@@ -481,66 +459,3 @@ class ScopeRoleLimitedHandler(RoleLimitedHandler):
                 "id": re.id,
             }
         ).single()
-
-
-class AccessableMachinesHandler:
-    @staticmethod
-    @collect_sql_error
-    @ssl_cert_verify_error_collect
-    def get_all(query):
-        namespace, machine_pool = None, []
-
-        user = User.query.filter_by(user_id=g.user_id).first()
-        if query.machine_type == "physical":
-            pmachine_filter = GetAllByPermission(Pmachine).get_filter()
-            namespace = "pmachine"
-            if query.machine_purpose != "create_vmachine":
-                filter_params = [Pmachine.machine_group_id == query.machine_group_id,
-                                 Pmachine.frame == query.frame,
-                                 Pmachine.state == "occupied",
-                                 Pmachine.locked.is_(False),
-                                 Pmachine.status == "on",
-                                 or_(
-                                     Pmachine.description == current_app.config.get(
-                                         "CI_PURPOSE"
-                                     ),
-                                     and_(
-                                         Pmachine.occupier == user.user_name,
-                                         Pmachine.description != current_app.config.get(
-                                             "CI_HOST"
-                                         )
-                                     )
-                                 )]
-                pmachine_filter.extend(filter_params)
-                machine_pool = Pmachine.query.filter(*pmachine_filter).all()
-            else:
-                filter_params = [Pmachine.machine_group_id == query.machine_group_id,
-                                 Pmachine.frame == query.frame,
-                                 Pmachine.state == "occupied",
-                                 Pmachine.locked.is_(False),
-                                 Pmachine.status == "on",
-                                 Pmachine.description == current_app.config.get(
-                                     "CI_HOST"
-                                 )]
-                pmachine_filter.extend(filter_params)
-                machine_pool = Pmachine.query.filter(*pmachine_filter).all()
-        elif query.machine_type == "kvm":
-            vmachine_filter = GetAllByPermission(Vmachine).get_filter()
-            namespace = "vmachine"
-            filter_params = [Pmachine.machine_group_id == query.machine_group_id,
-                             Vmachine.frame == query.frame,
-                             Vmachine.status == "running"]
-            vmachine_filter.extend(filter_params)
-            machine_pool = Vmachine.query.join(Pmachine).filter(*vmachine_filter).all()
-
-        if not namespace:
-            return jsonify(
-                error_code=RET.PARMA_ERR,
-                error_msg="unsupported machine type"
-            )
-
-        return jsonify(
-            error_code=RET.OK,
-            error_msg="OK",
-            data=[_m.to_json() for _m in machine_pool]
-        )

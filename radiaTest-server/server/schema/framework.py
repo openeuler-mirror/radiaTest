@@ -40,6 +40,7 @@ class FrameworkQuery(BaseModel):
     url: Optional[HttpUrl]
     logs_path: Optional[str]
     adaptive: Optional[bool]
+    org_id: int = None
 
 
 class GitRepoBase(PermissionBase):

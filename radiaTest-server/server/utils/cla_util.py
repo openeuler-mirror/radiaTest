@@ -92,10 +92,6 @@ class ClaBaseSchema(BaseModel):
             return {}
 
 
-class ClaSignSchema(ClaBaseSchema):
-    organization_id: int
-
-
 class ClaShowUserSchema(ClaBaseSchema):
     organization_id: int = Field(alias='id')
     organization_name: str = Field(alias="name")

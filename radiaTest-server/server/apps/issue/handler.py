@@ -433,8 +433,8 @@ class GiteeV8IssueHandler:
         return PageUtil.get_data(query_filter=query_filter, query=query)
 
     @staticmethod
-    def get_issue_type():
-        data = GiteeV8BaseIssueHandler().issue_types
+    def get_issue_type(org_id=None):
+        data = GiteeV8BaseIssueHandler(org_id=org_id).issue_types
         if len(data) > 0:
             return jsonify(
                 error_code=RET.OK,

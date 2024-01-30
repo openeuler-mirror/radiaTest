@@ -16,7 +16,6 @@
 #####################################
 
 from flask import jsonify, g
-from sqlalchemy import or_
 
 from server.utils.db import collect_sql_error, Insert
 from server.model.celerytask import CeleryTask

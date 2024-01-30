@@ -18,7 +18,7 @@ from collections import OrderedDict
 from pathlib import Path
 
 from openpyxl import Workbook
-from openpyxl.chart import Reference, PieChart, BarChart3D
+from openpyxl.chart import Reference, BarChart3D
 from openpyxl.chart.series_factory import SeriesFactory
 from openpyxl.styles import PatternFill, Side, Border, Font, Alignment
 from flask import current_app
