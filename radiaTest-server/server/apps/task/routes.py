@@ -605,7 +605,6 @@ class Cases(Resource):
 
 
 class CasesResult(Resource):
-    @auth.login_required()
     @response_collect
     @swagger_adapt.api_schema_model_map({
         "__module__": get_task_tag.__module__,  # 获取当前接口所在模块
@@ -620,7 +619,6 @@ class CasesResult(Resource):
 
 
 class TaskStatistics(Resource):
-    @auth.login_required()
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
@@ -852,7 +850,6 @@ class TaskList(Resource):
 
 
 class CaseTask(Resource):
-    @auth.login_required()
     @response_collect
     @swagger_adapt.api_schema_model_map({
         "__module__": get_task_tag.__module__,  # 获取当前接口所在模块
@@ -918,7 +915,6 @@ class MilestoneTaskProgress(Resource):
 
 
 class CaseNodeTaskProgress(Resource):
-    @auth.login_required()
     @response_collect
     @swagger_adapt.api_schema_model_map({
         "__module__": get_task_tag.__module__,  # 获取当前接口所在模块
@@ -940,7 +936,6 @@ class CaseNodeTaskProgress(Resource):
 
 
 class SubTaskProgress(Resource):
-    @auth.login_required()
     @response_collect
     @swagger_adapt.api_schema_model_map({
         "__module__": get_task_tag.__module__,  # 获取当前接口所在模块

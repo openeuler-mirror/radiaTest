@@ -204,7 +204,6 @@ class MilestoneItemEventV2(Resource):
     def delete(self, milestone_id):
         return DeleteMilestone.single(milestone_id)
 
-    @auth.login_required()
     @response_collect
     @validate()
     @casbin_enforcer.enforcer
@@ -261,7 +260,6 @@ class GenerateTestReportEvent(Resource):
 
 
 class TestReportFileEvent(Resource):
-    @auth.login_required()
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
@@ -292,7 +290,6 @@ class TestReportFileEvent(Resource):
 
 
 class TestReportEvent(Resource):
-    @auth.login_required()
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
@@ -333,7 +330,6 @@ class MilestoneIssueRateEvent(Resource):
     def put(self, milestone_id):
         return IssueStatisticsHandlerV8.update_milestone_issue_rate(milestone_id)
 
-    @auth.login_required
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
@@ -349,7 +345,6 @@ class MilestoneIssueRateEvent(Resource):
 
 
 class GiteeMilestoneEventV2(Resource):
-    @auth.login_required
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
@@ -442,7 +437,6 @@ class MilestoneItemStateEventV2(Resource):
 
 
 class MilestoneGiteeIds(Resource):
-    @auth.login_required
     @response_collect
     @swagger_adapt.api_schema_model_map({
         "__module__": get_milestone_tag.__module__,  # 获取当前接口所在模块
@@ -474,7 +468,6 @@ class BatchSyncGiteeMilestone(Resource):
 
 
 class VerifyMilestoneName(Resource):
-    @auth.login_required
     @response_collect
     @swagger_adapt.api_schema_model_map({
         "__module__": get_milestone_tag.__module__,  # 获取当前接口所在模块

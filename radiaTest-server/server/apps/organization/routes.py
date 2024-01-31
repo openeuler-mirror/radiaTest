@@ -16,9 +16,8 @@
 from flask_pydantic import validate
 from flask_restful import Resource
 
-from server import casbin_enforcer, swagger_adapt
+from server import swagger_adapt
 from server.schema.organization import OrgQuerySchema
-from server.utils.cla_util import ClaBaseSchema
 from server.utils.auth_util import auth
 from server.utils.response_util import response_collect
 from .handlers import *
@@ -92,3 +91,50 @@ class Group(Resource):
     })
     def get(self, org_id, query: PageBaseSchema):
         return handler_org_group_page(org_id, query)
+
+
+class User(Resource):
+    @response_collect
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_organization_tag.__module__,  # 获取当前接口所在模块
+        "resource_name": "User",  # 当前接口视图函数名
+        "func_name": "get",  # 当前接口所对应的函数名
+        "tag": get_organization_tag(),  # 当前接口所对应的标签
+        "summary": "获取组织下的所有用户",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        # 自定义请求参数
+        "query_schema_model": [{
+            "name": "name",
+            "in": "query",
+            "required": False,
+            "style": "form",
+            "explode": True,
+            "description": "用户名查询关键字",
+            "schema": {"type": "string"}},
+            {
+                "name": "group_id",
+                "in": "query",
+                "required": False,
+                "style": "form",
+                "explode": True,
+                "description": "用户组id",
+                "schema": {"type": "integer"}},
+            {
+                "name": "page_size",
+                "in": "query",
+                "required": False,
+                "style": "form",
+                "explode": True,
+                "description": "页大小",
+                "schema": {"type": "integer"}},
+            {
+                "name": "page_num",
+                "in": "query",
+                "required": False,
+                "style": "form",
+                "explode": True,
+                "description": "页码",
+                "schema": {"type": "integer"}}],
+    })
+    def get(self, org_id):
+        return handler_org_user_page(org_id)

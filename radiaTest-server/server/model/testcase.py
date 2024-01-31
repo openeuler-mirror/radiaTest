@@ -45,9 +45,9 @@ class CaseNode(BaseModel, PermissionBaseModel, db.Model):
 
     case_id = db.Column(db.Integer(), db.ForeignKey("case.id"))
     case_result = db.Column(db.Enum('success', 'failed', 'running', "pending"), default="pending", nullable=True)
-    baseline_id = db.Column(db.Integer(), db.ForeignKey("baseline.id"))
+    baseline_id = db.Column(db.Integer(), db.ForeignKey("baseline.id", ondelete='CASCADE'))
 
-    milestone_id = db.Column(db.Integer(), db.ForeignKey("milestone.id"))
+    milestone_id = db.Column(db.Integer(), db.ForeignKey("milestone.id", ondelete='CASCADE'))
 
     base_nodes = db.relationship("BaseNode", backref="case_node", cascade="all, delete")
 
@@ -99,8 +99,7 @@ class Baseline(PermissionBaseModel, BaseModel, db.Model):
     group_id = db.Column(db.Integer(), db.ForeignKey("group.id"))
     org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
     creator_id = db.Column(db.String(512), db.ForeignKey("user.user_id"))
-
-    milestone_id = db.Column(db.Integer(), db.ForeignKey("milestone.id"))
+    milestone_id = db.Column(db.Integer(), db.ForeignKey("milestone.id", ondelete='CASCADE'))
     suite_document = db.relationship(
         "SuiteDocument", backref="baseline", cascade="all, delete, delete-orphan"
     )

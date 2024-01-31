@@ -2475,8 +2475,7 @@ class RoundIssueRateEvent(Resource):
     })
     def put(self, round_id):
         return RoundHandler.update_round_issue_rate(round_id)
-    
-    @auth.login_required
+
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
@@ -2525,7 +2524,6 @@ class RoundIssueEvent(Resource):
 
 
 class RoundRepeatRpmEvent(Resource):
-    @auth.login_required
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({

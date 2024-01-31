@@ -13,19 +13,16 @@
 # @License : Mulan PSL v2
 #####################################
 
-import json
-from flask import request, g, jsonify
+from flask import request, jsonify
 from sqlalchemy import or_
 from server.model.organization import Organization
 from server.model.user import User
 from server.model.group import Group, ReUserGroup
-from server.model.permission import Role, ReUserRole
 from server.utils.response_util import RET
 from server.utils.page_util import PageUtil
-from server.utils.db import collect_sql_error, Insert
-from server.utils.cla_util import ClaShowUserSchema, Cla, ClaShowAdminSchema
-from server.utils.read_from_yaml import get_default_suffix
-from server.schema.organization import OrgBaseSchema, ReUserOrgSchema
+from server.utils.db import collect_sql_error
+from server.utils.cla_util import ClaShowUserSchema
+from server.schema.organization import OrgBaseSchema
 from server.schema.base import PageBaseSchema
 from server.schema.group import GroupInfoSchema
 
@@ -101,4 +98,35 @@ def handler_org_statistic(org_id: int):
         data={
             "total_groups": total_groups,
         }
-    ) 
+    )
+
+
+@collect_sql_error
+def handler_org_user_page(org_id):
+    page_num = int(request.args.get('page_num', 1))
+    page_size = int(request.args.get('page_size', 10))
+    name = request.args.get('name')
+    group_id = request.args.get('group_id')
+
+    # 获取组织下的所有用户
+    filter_params = []
+    if group_id:
+        re_u_g = ReUserGroup.query.filter_by(is_delete=False, group_id=group_id).all()
+        user_ids = [item.user.user_id for item in re_u_g]
+        filter_params.append(User.user_id.in_(user_ids))
+    if name:
+        filter_params.append(or_(User.user_name.like(f'%{name}%'), User.user_login.like(f'%{name}%')))
+    if not group_id and not name:
+        filter_params.append(User.org_id == org_id)
+
+    query_filter = User.query.filter(*filter_params)
+
+    def page_func(item):
+        user_dict = item.to_summary()
+        return user_dict
+
+    # 返回结果
+    page_dict, e = PageUtil.get_page_dict(query_filter, page_num, page_size, func=page_func)
+    if e:
+        return jsonify(error_code=RET.SERVER_ERR, error_msg=f'get group page error {e}')
+    return jsonify(error_code=RET.OK, error_msg="OK", data=page_dict)

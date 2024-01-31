@@ -110,10 +110,10 @@ class IssueSolvedRate(BaseModel, db.Model):
     previous_left_resolved_rate = db.Column(db.String(6), nullable=True)
     gitee_milestone_id = db.Column(db.Integer())
     milestone_id = db.Column(
-        db.Integer(), db.ForeignKey("milestone.id")
+        db.Integer(), db.ForeignKey("milestone.id", ondelete='CASCADE')
     )
     round_id = db.Column(
-        db.Integer(), db.ForeignKey("round.id")
+        db.Integer(), db.ForeignKey("round.id", ondelete='CASCADE')
     )
 
     def to_json(self):
@@ -150,7 +150,7 @@ class TestReport(BaseModel, db.Model):
     md_file = db.Column(db.String(255))
     html_file = db.Column(db.String(255))
     milestone_id = db.Column(
-        db.Integer(), db.ForeignKey("milestone.id")
+        db.Integer(), db.ForeignKey("milestone.id", ondelete='CASCADE')
     )
 
     def to_json(self):
