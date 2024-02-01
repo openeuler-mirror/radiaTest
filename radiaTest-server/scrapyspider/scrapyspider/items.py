@@ -53,12 +53,3 @@ class OpenqaTestsOverviewItem(scrapy.Item):
     x86_64_start_time = scrapy.Field()
     x86_64_end_name = scrapy.Field()
     x86_64_test_duration = scrapy.Field()
-    
-
-class OpeneulerPkgsListItem(scrapy.Item):
-    rpm_file_name = scrapy.Field()
-    build = scrapy.Field()
-    product = scrapy.Field()
-    repo_path = scrapy.Field()
-    arch = scrapy.Field()
-    round = scrapy.Field()

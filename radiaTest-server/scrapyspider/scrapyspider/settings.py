@@ -82,7 +82,6 @@ SERVER_INI_PATH = "/etc/radiaTest/server.ini"
 ITEM_PIPELINES = {
     'scrapyspider.pipelines.RedisPipeline': 300,
     'scrapyspider.pipelines.ScrapyspiderPipeline': 400,
-    'scrapyspider.pipelines.FilePipeline': 500,
 }
 
 LOG_ENABLED = True

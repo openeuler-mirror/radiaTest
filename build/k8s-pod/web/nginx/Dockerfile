@@ -50,6 +50,8 @@ RUN chown -R radiaTest:radiaTest /var/log/nginx
 RUN chmod -R 740 /opt/radiaTest
 RUN cat ./deploy/nginx.conf > /etc/nginx/nginx.conf
 
+COPY ./deploy/ /etc/nginx/
+
 USER radiaTest
 RUN npm cache clean --force \
     && npm install --force --registry=https://registry.npmmirror.com \
