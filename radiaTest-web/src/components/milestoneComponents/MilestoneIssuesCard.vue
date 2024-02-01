@@ -47,7 +47,7 @@
           <n-tag
             :color="{
               color: 'rgba(245,246,248,1)',
-              textColor: 'rgba(150,161,175,1)'
+              textColor: 'rgba(150,161,175,1)',
             }"
             :bordered="false"
           >
@@ -59,7 +59,7 @@
             v-if="details?.priority === 1"
             :color="{
               textColor: 'rgba(72,168,68,1)',
-              borderColor: 'rgba(72,168,68,1)'
+              borderColor: 'rgba(72,168,68,1)',
             }"
           >
             可选
@@ -68,7 +68,7 @@
             v-else-if="details?.priority === 2"
             :color="{
               textColor: 'rgba(0,138,255,1)',
-              borderColor: 'rgba(0,138,255,1)'
+              borderColor: 'rgba(0,138,255,1)',
             }"
           >
             次要
@@ -77,7 +77,7 @@
             v-else-if="details?.priority === 3"
             :color="{
               textColor: 'rgba(255,143,0,1)',
-              borderColor: 'rgba(255,143,0,1)'
+              borderColor: 'rgba(255,143,0,1)',
             }"
           >
             主要
@@ -86,7 +86,7 @@
             v-else
             :color="{
               textColor: 'rgba(239,0,22,1)',
-              borderColor: 'rgba(239,0,22,1)'
+              borderColor: 'rgba(239,0,22,1)',
             }"
           >
             严重
@@ -98,7 +98,9 @@
           </n-icon>
           <userInfo :userInfo="details?.creatorInfo || {}"> </userInfo>
         </span>
-        <span class="item"> 创建于 {{ formatTime(details?.created_at, 'yyyy-MM-dd hh:mm:ss') }} </span>
+        <span class="item">
+          创建于 {{ formatTime(details?.created_at, 'yyyy-MM-dd hh:mm:ss') }}
+        </span>
       </div>
       <div class="content" v-html="details?.description_html"></div>
       <template #footer>
@@ -118,7 +120,9 @@
 <script setup>
 import { SyncCircle, ArrowForwardOutline } from '@vicons/ionicons5';
 import { User } from '@vicons/tabler';
-import issuesColumns, { issueStateDict } from '@/views/versionManagement/milestone/modules/issueTableColumns.js';
+import issuesColumns, {
+  issueStateDict,
+} from '@/views/versionManagement/milestone/modules/issueTableColumns.js';
 import IssueState from '@/components/public/IssueState.vue';
 import userInfo from '@/components/user/userInfo.vue';
 import { formatTime } from '@/assets/utils/dateFormatUtils';
@@ -127,7 +131,7 @@ import _ from 'lodash';
 
 const props = defineProps({
   milestoneId: Number,
-  cardType: String
+  cardType: String,
 });
 const { milestoneId, cardType } = toRefs(props);
 const details = ref({});
@@ -143,7 +147,7 @@ const pagination = ref({
   page: 1,
   pageCount: 1,
   showSizePicker: true,
-  pageSizes: [5, 10, 20, 50]
+  pageSizes: [5, 10, 20, 50],
 });
 
 const getData = () => {
@@ -152,16 +156,17 @@ const getData = () => {
     getRoundIssue(milestoneId.value, {
       page: pagination.value.page,
       per_page: pagination.value.pageSize,
-      issue_type_id: stateType.value
+      issue_type_id: stateType.value,
     })
       .then((res) => {
-        const resData = JSON.parse(res.data);
-        resData.data.forEach((item) => {
+        const resData = res.data.length ? JSON.parse(res.data) : [];
+        resData?.data.forEach((item) => {
           item.milestoneTitle = item.milestone?.title || '无';
         });
-        rawData.value = resData.data;
-        total.value = resData.total_count;
-        pagination.value.pageCount = Math.ceil(Number(total.value) / pagination.value.pageSize) || 1;
+        rawData.value = resData?.data;
+        total.value = resData?.total_count;
+        pagination.value.pageCount =
+          Math.ceil(Number(total.value) / pagination.value.pageSize) || 1;
       })
       .finally(() => {
         loading.value = false;
@@ -171,13 +176,14 @@ const getData = () => {
       page: pagination.value.page,
       per_page: pagination.value.pageSize,
       milestone_id: milestoneId.value,
-      issue_type_id: stateType.value
+      issue_type_id: stateType.value,
     })
       .then((res) => {
-        const resData = JSON.parse(res.data);
-        rawData.value = resData.data;
-        total.value = resData.total_count;
-        pagination.value.pageCount = Math.ceil(Number(total.value) / pagination.value.pageSize) || 1;
+        const resData = res.data.length ? JSON.parse(res.data) : [];
+        rawData.value = resData?.data;
+        total.value = resData?.total_count;
+        pagination.value.pageCount =
+          Math.ceil(Number(total.value) / pagination.value.pageSize) || 1;
       })
       .finally(() => {
         loading.value = false;
@@ -215,7 +221,7 @@ const getIssueStateType = () => {
 const rowProps = (row) => {
   return {
     style: {
-      cursor: 'pointer'
+      cursor: 'pointer',
     },
     onClick: () => {
       active.value = true;
@@ -225,10 +231,10 @@ const rowProps = (row) => {
           avatar_url: JSON.parse(res.data).author?.avatar_url,
           user_name: JSON.parse(res.data).author?.username,
           phone: JSON.parse(res.data).author?.phone,
-          cla_email: JSON.parse(res.data).author?.email
+          cla_email: JSON.parse(res.data).author?.email,
         };
       });
-    }
+    },
   };
 };
 
@@ -238,7 +244,7 @@ onMounted(() => {
     columns.value.splice(2, 0, {
       title: '里程碑',
       key: 'milestoneTitle',
-      className: 'cols'
+      className: 'cols',
     });
   } else {
     columns.value = issuesColumns;

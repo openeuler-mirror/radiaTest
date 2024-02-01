@@ -230,9 +230,7 @@ export default {
     const caseTemplateUrl = `https://${config.serverPath}/static/case_template.xls`;
     const route = useRoute();
     modules.clearSelectKey();
-    if (!modules.menuList.value) {
-      modules.getRootNodes();
-    }
+    modules.getRootNodes();
     if (route.params.workspace === 'release' && modules.menuList.value) {
       // console.log(currentRound.value.name);
       // console.log(modules.menuList.value);
