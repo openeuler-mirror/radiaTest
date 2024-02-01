@@ -860,12 +860,14 @@ async function createChildNode() {
       case_node_ids: suiteIds.value,
       title: null,
     };
+    let childCaseNode = nodeCreateForm.value.case_node_ids;
+
     await submitCases(checkedItem.value.id, suitParams, true);
     let caseParam = {
       is_root: false,
-      parent_id: selectedNode.value.id,
+      parent_id: childParentId.value,
       type: 'case',
-      case_node_ids: nodeCreateForm.value.case_node_ids,
+      case_node_ids: childCaseNode,
       title: null,
     };
     nodeCreateForm.value.type = 'case';
@@ -879,27 +881,29 @@ async function createChildNode() {
     submitCases(checkedItem.value.id, params);
   }
 }
-function submitCases(id, param, tag) {
-  addBaseNode(checkedItem.value.id, param)
-    .then(() => {
-      !tag && message.success('创建中……如未更新请稍后刷新页面');
-      nodeCreateForm.value = {
-        title: undefined,
-        case_node_ids: undefined,
-        type: 'directory',
-      };
-    })
-    .finally(() => {
-      createChildNodeLoading.value = false;
-      showNodeCreateModal.value = false;
-      getBaselineTemplateItem(checkedItem.value.id)
-        .then((res) => {
-          templateDetail.value = res.data;
-        })
-        .catch(() => {
-          templateDetail.value = undefined;
-        });
-    });
+let childParentId = ref(null);
+async function submitCases(id, param, tag) {
+  await addBaseNode(checkedItem.value.id, param).then(async () => {
+    !tag && message.success('创建中……如未更新请稍后刷新页面');
+    nodeCreateForm.value = {
+      title: undefined,
+      case_node_ids: undefined,
+      type: 'directory',
+    };
+    createChildNodeLoading.value = false;
+    showNodeCreateModal.value = false;
+    await getBaselineTemplateItem(checkedItem.value.id)
+      .then((res) => {
+        templateDetail.value = res.data;
+        if (tag) {
+          let parent = res?.data?.children?.find((item) => item.case_node_id === suiteIds.value[0]);
+          childParentId.value = parent?.id;
+        }
+      })
+      .catch(() => {
+        templateDetail.value = undefined;
+      });
+  });
 }
 function handleCleanButtonClick() {
   showCleanModal.value = true;

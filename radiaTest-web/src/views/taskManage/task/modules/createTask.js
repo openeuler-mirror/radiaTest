@@ -6,7 +6,7 @@ import { storage } from '@/assets/utils/storageUtils';
 import { showLoading, detailTask, getDetailTask } from './taskDetail.js';
 import { personArray, initData } from './kanbanAndTable.js';
 import { NAvatar } from 'naive-ui';
-import { getGroup as getGroups, getAllMilestone, getRelationTaskList, getOrgGroup } from '@/api/get.js';
+import { getGroup as getGroups, getAllMilestone, getRelationTaskList, getOrgGroup, getOrgUser } from '@/api/get.js';
 
 const showVersionTaskModal = ref(false); // 显示创建版本任务窗口
 const groups = ref([]); // 执行团队选项数组
@@ -299,6 +299,27 @@ function handleLoad(option) {
           window.$message?.error(err.data.error_msg || '未知错误');
           reject(new Error('error'));
         });
+    } else {
+      getOrgUser(storage.getLocalValue('unLoginOrgId').id, {
+        page_num: 1,
+        page_size: 99999
+      })
+        .then((res) => {
+          option.children = [];
+          for (const item of res.data.items) {
+            option.children.push({
+              label: item.user_name,
+              value: String(item.user_id),
+              avatar_url: item.avatar_url,
+              type: 'PERSON'
+            });
+          }
+          resolve();
+        })
+        .catch((err) => {
+          window.$message?.error(err.data.error_msg || '未知错误');
+          reject(new Error('error'));
+        });
     }
   });
 }
@@ -420,7 +441,7 @@ function createTask(e, versionTask = false) {
         })
         .catch((err) => {
           showLoading.value = false;
-          window.$message?.error(err.data.error_msg || '未知错误');
+          window.$message?.error(err?.data?.error_msg || '未知错误');
         });
     } else {
       window.$message?.error('请填写相关信息');

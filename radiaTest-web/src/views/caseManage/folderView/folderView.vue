@@ -253,8 +253,15 @@ export default {
   },
 };
 </script>
-<style lang="less">
+<style lang="less" scope>
 .n-layout-sider-scroll-container::-webkit-scrollbar {
   display: none;
+}
+.n-tree {
+  width: 100%;
+  overflow-x: scroll;
+}
+.n-tree .n-tree-node {
+  word-break: initial;
 }
 </style>
