@@ -8,7 +8,14 @@
           :options="orgListoptions"
           trigger="click"
         >
-          <n-button quaternary type="info">{{ selectedOrg.name || '请选择登录方式' }}</n-button>
+          <n-button quaternary icon-placement="right" strong secondary type="info"
+            >{{ selectedOrg.name || '请选择登录' }}
+            <template #icon>
+              <n-icon>
+                <cash-icon />
+              </n-icon>
+            </template>
+          </n-button>
         </n-popselect>
 
         <n-divider vertical />
@@ -23,11 +30,18 @@
           :options="orgListoptions"
           trigger="click"
         >
-          <n-button quaternary type="info">{{ selectedOrg.name || '请选择登录方式' }}</n-button>
+          <n-button quaternary icon-placement="right" strong secondary type="info"
+            >{{ selectedOrg.name || '请选择登录' }}
+            <template #icon>
+              <n-icon>
+                <cash-icon />
+              </n-icon>
+            </template>
+          </n-button>
         </n-popselect>
       </div>
     </n-gi>
-    <n-gi :span="2">
+    <n-gi :span="token ? 2 : 1">
       <div class="msg-box">
         <n-badge :value="msgCount" style="cursor: pointer" @click="gotoNews">
           <n-icon :size="30" :color="msgCount ? '' : '#9b9b9b'">
@@ -46,12 +60,14 @@
         placement="bottom-end"
       >
         <n-avatar
+          v-if="token"
           class="profile-avatar"
           circle
           :fallback-src="createAvatar(accountName.slice(0, 1))"
           :size="40"
           :src="avatarUrl"
         />
+        <div v-else class="text-login">登录</div>
       </n-dropdown>
     </n-gi>
   </n-grid>
@@ -108,12 +124,13 @@ import { modules } from './modules/index.js';
 import { createAvatar } from '@/assets/utils/createImg';
 import { storage } from '@/assets/utils/storageUtils';
 import { User, Lock } from '@vicons/fa';
-
+import { CaretDownOutline as CashIcon } from '@vicons/ionicons5';
 export default defineComponent({
   components: {
     BellOutlined,
     User,
     Lock,
+    CashIcon,
   },
   setup() {
     const { proxy } = getCurrentInstance();
@@ -159,5 +176,12 @@ export default defineComponent({
   display: flex;
   align-items: center;
   background: rgba(204, 204, 204, 1);
+}
+.text-login {
+  height: 100%;
+  width: 40px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
 }
 </style>
