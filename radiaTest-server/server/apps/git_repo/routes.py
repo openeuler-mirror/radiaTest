@@ -135,7 +135,6 @@ class GitRepoItemEvent(Resource):
 
         return Edit(GitRepo, _body).single(GitRepo, "/git_repo")
 
-    @auth.login_required
     @response_collect
     @casbin_enforcer.enforcer
     @swagger_adapt.api_schema_model_map({
@@ -162,7 +161,6 @@ class GitRepoItemEvent(Resource):
 
 
 class GitRepoItemSyncEvent(Resource):
-    @auth.login_required
     @response_collect
     @validate()
     @casbin_enforcer.enforcer

@@ -56,7 +56,6 @@ class ProductEventItem(Resource):
             product_id, Milestone, [Milestone.product_id == product_id], False
         )
 
-    @auth.login_required
     @validate()
     @casbin_enforcer.enforcer
     @response_collect
@@ -214,7 +213,6 @@ class UpdateProductIssueRate(Resource):
 
 
 class ProductTestReportEvent(Resource):
-    @auth.login_required()
     @response_collect
     @swagger_adapt.api_schema_model_map({
         "__module__": get_product_tag.__module__,  # 获取当前接口所在模块

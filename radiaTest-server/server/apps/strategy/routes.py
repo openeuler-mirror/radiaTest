@@ -246,8 +246,6 @@ class FeatureSetItemEvent(Resource):
         url="/api/v1/feature/<int:feature_id>", 
         methods=["Get"]
     """
-
-    @auth.login_required()
     @response_collect
     @validate()
     @value_error_collect
@@ -405,8 +403,6 @@ class ProductFeatureEvent(Resource):
         查询指定产品下所有特性，包括新特性以及继承特性(Feature).
         url="/api/v1/product/<int:product_id>/feature", methods=["GET"]
     """
-
-    @auth.login_required()
     @response_collect
     @validate()
     @value_error_collect
@@ -488,7 +484,6 @@ class StrategyCommitEvent(Resource):
         methods=["Get"]
     """
 
-    @auth.login_required()
     @response_collect
     @validate()
     @value_error_collect
@@ -691,7 +686,6 @@ class StrategyItemEvent(Resource):
         methods=["Get"]
     """
 
-    @auth.login_required()
     @response_collect
     @validate()
     @value_error_collect
@@ -897,8 +891,6 @@ class StrategyTemplateItemEvent(Resource):
         url="/api/v1/strategy-template/<int:strategy_template_id>", 
         methods=["Get"]
     """
-
-    @auth.login_required()
     @response_collect
     @validate()
     @value_error_collect
@@ -1348,7 +1340,6 @@ class StrategyCommitItemEvent(Resource):
         methods=["Get"]
     """
 
-    @auth.login_required()
     @response_collect
     @validate()
     @value_error_collect

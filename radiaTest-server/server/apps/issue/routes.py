@@ -58,7 +58,6 @@ class IssueEvent(Resource):
     def post(self, body: CreateIssueSchema):
         return GiteeV8IssueHandler.create_issue(body=body)
 
-    @auth.login_required()
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
@@ -75,7 +74,6 @@ class IssueEvent(Resource):
 
 
 class IssueItemEvent(Resource):
-    @auth.login_required()
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
@@ -102,7 +100,6 @@ class IssueItemEvent(Resource):
 
 
 class GiteeIssuesItem(Resource):
-    @auth.login_required()
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({

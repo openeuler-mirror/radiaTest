@@ -615,9 +615,6 @@ class CaseNodeHandler:
     @staticmethod
     @collect_sql_error
     def get_caseset_children(_type, _table, _id):
-        current_org_id = redis_client.hget(
-            RedisKey.user(g.user_id), 'current_org_id'
-        )
 
         if _type not in ["org", "group"]:
             return jsonify(
@@ -642,11 +639,11 @@ class CaseNodeHandler:
         filters = CaseNodeHandler.get_caseset_filter(
             _type, 
             _id,
-            current_org_id
+            _id
         )
         
         return_data = CaseNodeHandler.get_caseset_return_data(
-            current_org_id,
+            _id,
             filters[0],
             filters[1], 
             filters[2], 

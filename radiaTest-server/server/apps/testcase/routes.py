@@ -219,7 +219,6 @@ class CaseNodeImportEvent(Resource):
             request.form.get("group_id"),
         )
 
-    @auth.login_required()
     @response_collect
     @swagger_adapt.api_schema_model_map({
         "__module__": get_testcase_tag.__module__,   # 获取当前接口所在模块
@@ -342,7 +341,6 @@ class OrphanOrgSuitesEvent(Resource):
 
 
 class OrphanGroupSuitesEvent(Resource):
-    @auth.login_required()
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
@@ -805,7 +803,6 @@ class CaseItemEvent(Resource):
 
 
 class TemplateCasesQuery(Resource):
-    @auth.login_required()
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
@@ -984,7 +981,6 @@ class CaseCommit(Resource):
 
 
 class CaseNodeTask(Resource):
-    @auth.login_required()
     @response_collect
     @swagger_adapt.api_schema_model_map({
         "__module__": get_testcase_tag.__module__,   # 获取当前接口所在模块
@@ -999,7 +995,6 @@ class CaseNodeTask(Resource):
 
 
 class MileStoneCaseNode(Resource):
-    @auth.login_required()
     @response_collect
     @swagger_adapt.api_schema_model_map({
         "__module__": get_testcase_tag.__module__,   # 获取当前接口所在模块
@@ -1014,7 +1009,6 @@ class MileStoneCaseNode(Resource):
 
 
 class ProductCaseNode(Resource):
-    @auth.login_required()
     @response_collect
     @swagger_adapt.api_schema_model_map({
         "__module__": get_testcase_tag.__module__,   # 获取当前接口所在模块
@@ -1117,7 +1111,6 @@ class SuiteDocumentEvent(Resource):
         """
         return SuiteDocumentHandler.post(suite_id, body)
 
-    @auth.login_required()
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
@@ -1175,7 +1168,6 @@ class SuiteDocumentItemEvent(Resource):
         url="/api/v1/suite-document/<int:document_id>", 
         methods=["GET"]
     """
-    @auth.login_required()
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
@@ -1277,7 +1269,6 @@ class CaseNodeDocumentsItemEvent(Resource):
         url="/api/v1/case-node/<int:case_node_id>/documents", 
         methods=["GET"]
     """
-    @auth.login_required()
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
@@ -1384,7 +1375,6 @@ class CaseNodeGetRootEvent(Resource):
         url="/api/v1/case-node/<int:case_node_id>/get-root", 
         methods=["GET"]
     """
-    @auth.login_required()
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
@@ -1586,7 +1576,6 @@ class BaselineEvent(Resource):
         return_data["case_node_id"] = _resp.get("data")
         return jsonify(error_code=RET.OK, error_msg="OK", data=return_data)
 
-    @auth.login_required()
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
@@ -1626,7 +1615,6 @@ class BaselineEvent(Resource):
 
 
 class OrgCasesetEvent(Resource):
-    @auth.login_required()
     @response_collect
     @swagger_adapt.api_schema_model_map({
         "__module__": get_testcase_tag.__module__,   # 获取当前接口所在模块

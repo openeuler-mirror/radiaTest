@@ -449,7 +449,6 @@ class BaseNodeItemEvent(Resource):
         url="/api/v1/base-node/<int:base_node_id>", 
         methods=["POST", "GET"]
     """
-    @auth.login_required()
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
