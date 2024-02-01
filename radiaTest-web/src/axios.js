@@ -94,13 +94,17 @@ server.interceptors.response.use(
     if (error.response?.status === 401) {
       window.$message?.destroyAll();
       window.sessionStorage.clear();
-      window.$message?.error('请重新登录');
-      // router.push({
-      //   name: 'home',
-      // });
       error.response.data = {
         error_msg: '登录失效',
       };
+      // window.$message?.error('请重新登录');
+      window.$message?.info(
+        '请点击右上角头像进行重新登录',
+        {
+          closable: true,
+          duration: 10000
+        }
+      );
     } else if (error.response?.status === 500) {
       window.$message?.destroyAll();
       error.response.data = {

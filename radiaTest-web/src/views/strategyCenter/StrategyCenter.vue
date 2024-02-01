@@ -10,7 +10,7 @@
           show-trigger="arrow-circle"
         >
           <n-tree
-            style="height: 550px"
+            style="height: 100%"
             block-line
             :data="treeData"
             :default-expanded-keys="defaultExpandedKeys"

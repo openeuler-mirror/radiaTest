@@ -142,9 +142,9 @@ export function getIssueDetails(id, data) {
 export function getAllRole(data) {
   return getRequest('/v1/role', data);
 }
-// export function getOrgUser(id, data) {
-//   return getRequest(`/v1/org/${id}/users`, data);
-// }
+export function getOrgUser(id, data) {
+  return getRequest(`/v1/org/${id}/users`, data);
+}
 export function getOrgGroup(id, data) {
   return getRequest(`/v1/org/${id}/groups`, data);
 }

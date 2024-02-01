@@ -13,7 +13,6 @@ declare module '@vue/runtime-core' {
     BatchButton: typeof import('./src/components/CRUD/BatchButton.vue')['default']
     Breadcrumb: typeof import('./src/components/breadcrumb/breadcrumb.vue')['default']
     CardPage: typeof import('./src/components/common/cardPage.vue')['default']
-    Carousel: typeof import('./src/components/carousel/carousel.vue')['default']
     CaseModifyForm: typeof import('./src/components/testcaseComponents/caseModifyForm.vue')['default']
     CaseReviewList: typeof import('./src/components/testcaseComponents/caseReviewList.vue')['default']
     CircleButton: typeof import('./src/components/public/CircleButton.vue')['default']
