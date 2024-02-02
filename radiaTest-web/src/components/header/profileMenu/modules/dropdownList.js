@@ -99,7 +99,7 @@ function handleSelect(key) {
         window.sessionStorage.clear();
         location.reload();
         router.replace({
-          name: 'vmProduct'
+          name: 'task'
         });
       }
     });
