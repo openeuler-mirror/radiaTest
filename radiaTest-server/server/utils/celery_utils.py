@@ -46,11 +46,6 @@ def make_celery(app_name):
                 'routing_key': 'celerytask_status',
                 'delivery_mode': 1,
             },
-            'celeryservice.tasks.async_check_vmachine_lifecycle': {
-                'queue': 'queue_check_vmachine_lifecycle',
-                'routing_key': 'vmachine_lifecycle',
-                'delivery_mode': 1,
-            },
             'celeryservice.tasks.async_update_all_issue_rate': {
                 'queue': 'queue_update_all_issue_rate',
                 'routing_key': 'update_all_issue_rate',
@@ -99,11 +94,6 @@ def make_celery(app_name):
             'celeryservice.tasks.resolve_distribute_template': {
                 'queue': 'queue_resolve_distribute_template',
                 'routing_key': 'distribute_template',
-                'delivery_mode': 1,
-            },
-            'celeryservice.tasks.resolve_create_manualjob': {
-                'queue': 'queue_resolve_create_manualjob',
-                'routing_key': 'create_manualjob',
                 'delivery_mode': 1,
             },
             'celeryservice.tasks.resolve_base_node': {
@@ -156,10 +146,6 @@ def make_celery(app_name):
                 'routing_key': 'daily_compare_result',
                 'delivery_mode': 1,
             },
-            'celeryservice.tasks.async_send_vmachine_release_message': {
-                'queue': 'queue_send_vmachine_release_message',
-                'routing_key': 'send_vmachine_release_message',
-            },
             'celeryservice.sub_tasks.update_samerpm_compare_result': {
                 'queue': 'queue_update_samerpm_compare_result',
                 'routing_key': 'samerpm_compare_result',
@@ -168,11 +154,6 @@ def make_celery(app_name):
             'celeryservice.sub_tasks.create_case_node_multi_select': {
                 'queue': 'queue_create_case_node_multi_select',
                 'routing_key': 'create_case_node',
-                'delivery_mode': 1,
-            },
-            'celeryservice.tasks.async_check_pmachine_lifecycle': {
-                'queue': 'queue_check_pmachine_lifecycle',
-                'routing_key': 'pmachine_lifecycle',
                 'delivery_mode': 1,
             },
             'celeryservice.tasks.async_create_testsuite_node': {

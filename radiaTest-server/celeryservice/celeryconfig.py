@@ -97,11 +97,6 @@ task_queues = (
         routing_key="celerytask_status",
     ),
     Queue(
-        "queue_check_vmachine_lifecycle",
-        exchange=Exchange("server_exchange", type="direct"),
-        routing_key="vmachine_lifecycle",
-    ),
-    Queue(
         "queue_update_all_issue_rate",
         exchange=Exchange("server_exchange", type="direct"),
         routing_key="update_all_issue_rate",
@@ -167,11 +162,6 @@ task_queues = (
         routing_key="distribute_template",
     ),
     Queue(
-        "queue_resolve_create_manualjob",
-        exchange=Exchange("server_exchange", type="direct"),
-        routing_key="create_manualjob",
-    ),
-    Queue(
         "queue_resolve_base_node",
         exchange=Exchange("server_exchange", type="direct"),
         routing_key="base_node",
@@ -192,11 +182,6 @@ task_queues = (
         routing_key="daily_compare_result",
     ),
     Queue(
-        "queue_send_vmachine_release_message",
-        exchange=Exchange("server_exchange", type="direct"),
-        routing_key="send_vmachine_release_message",
-    ),
-    Queue(
         "queue_update_samerpm_compare_result",
         exchange=Exchange("server_exchange", type="direct"),
         routing_key="samerpm_compare_result",
@@ -205,11 +190,6 @@ task_queues = (
         "queue_create_case_node_multi_select",
         exchange=Exchange("server_exchange", type="direct"),
         routing_key="create_case_node",
-    ),
-    Queue(
-        "queue_check_pmachine_lifecycle",
-        exchange=Exchange("server_exchange", type="direct"),
-        routing_key="pmachine_lifecycle",
     ),
     Queue(
         "queue_update_case_node",
