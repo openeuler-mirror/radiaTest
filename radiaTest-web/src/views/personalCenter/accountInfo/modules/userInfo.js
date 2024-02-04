@@ -9,7 +9,7 @@ const state = reactive({
 });
 const isEditPhone = ref(false);
 const phone = ref('');
-function editUserPhone () {
+function editUserPhone() {
   if (isEditPhone.value === true) {
     const phoneReg = /^[1]([3-9])[0-9]{9}$/;
     if (phoneReg.test(phone.value)) {
@@ -24,7 +24,7 @@ function editUserPhone () {
         state.userInfo.phone = phone.value;
         changeLoadingStatus(false);
       }).catch((err) => {
-        window.$message?.error(err.data.error_msg||'未知错误');
+        window.$message?.error(err.data.error_msg || '未知错误');
         changeLoadingStatus(false);
       });
     } else {
@@ -34,7 +34,7 @@ function editUserPhone () {
     isEditPhone.value = !isEditPhone.value;
   }
 }
-function cancelEditPhone () {
+function cancelEditPhone() {
   phone.value = '';
   isEditPhone.value = false;
 }

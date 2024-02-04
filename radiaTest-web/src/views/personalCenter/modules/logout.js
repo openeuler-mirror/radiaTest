@@ -7,9 +7,11 @@ function logout() {
   axios.delete('/v1/logout').then(res => {
     changeLoadingStatus(false);
     if (res.error_code === '2000') {
+      window.sessionStorage.clear();
       router.replace({
-        name: 'vmProduct'
+        name: 'task'
       });
+
     }
   });
 }

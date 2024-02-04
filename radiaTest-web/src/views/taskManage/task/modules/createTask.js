@@ -188,12 +188,14 @@ function getGroup() {
   })
     .then((res) => {
       showLoading.value = false;
-      for (const item of res.data?.items) {
-        groups.value.push({
-          label: item.name,
-          value: String(item.id),
-          avatar_url: item.avatar_url
-        });
+      if (res?.data?.items) {
+        for (const item of res.data?.items) {
+          groups.value.push({
+            label: item.name,
+            value: String(item.id),
+            avatar_url: item.avatar_url
+          });
+        }
       }
     })
     .catch((err) => {
