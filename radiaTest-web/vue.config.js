@@ -11,7 +11,7 @@ module.exports = {
     }
   },
   chainWebpack: (config) => {
-    config.mode='production';
+    config.mode = 'production';
     config.plugin('html').tap((args) => {
       args[0].title = 'radiaTest测试平台';
       return args;
@@ -41,7 +41,7 @@ module.exports = {
           enabled: true
         }
       }),
-      require('unplugin-vue-components/webpack')({dts: true}),
+      require('unplugin-vue-components/webpack')({ dts: true }),
     ],
     resolve: {
       // 配置路径别名
@@ -57,7 +57,7 @@ module.exports = {
     //   key: '/etc/radiaTest/server_ssl/private/cakey.pem',
     //   cert: '/etc/radiaTest/server_ssl/cacert.pem'
     // },
-    allowedHosts:'all',
+    allowedHosts: 'all',
     open: true,
     hot: false,
     compress: true,
@@ -69,12 +69,12 @@ module.exports = {
         secure: false
       },
       '/static': {
-         target: 'http://0.0.0.0:21500/',
+        target: 'https://116.204.98.119:8080/',
         changeOrigin: true,
         secure: false
       },
       '/socket.io': {
-         target: 'http://0.0.0.0:21500/',
+        target: 'https://116.204.98.119:8080/',
         changeOrigin: true,
         // ws: true,
       },

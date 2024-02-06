@@ -2,7 +2,7 @@ import { h, ref } from 'vue';
 
 import axios from '@/axios.js';
 import { storage } from '@/assets/utils/storageUtils';
-import { Box16Regular, Delete28Regular, Folder16Regular, Organization20Regular } from '@vicons/fluent';
+import { Box16Regular, Delete28Regular, Folder16Regular, Organization20Regular, ClipboardTaskAdd24Regular } from '@vicons/fluent';
 import {
   CreateNewFolderOutlined,
   DriveFileMoveRound,
@@ -29,12 +29,14 @@ import {
   getGroupMilestone,
   getOrgMilestone,
   getOrphanGroupSuites,
-  getOrphanOrgSuites
+  getOrphanOrgSuites,
+  getMilestoneList
 } from '@/api/get';
 import { addBaseline, casenodeApplyTemplate } from '@/api/post';
 import { updateCaseNodeParent } from '@/api/put';
 import {
   NButton,
+  // NForm,
   NFormItem,
   NIcon,
   NInput,
@@ -44,12 +46,12 @@ import {
   NText,
   NTreeSelect,
   NUpload,
-  NUploadDragger
+  NUploadDragger,
+
 } from 'naive-ui';
 import router from '@/router';
 import { createFormRef, createModalRef, importModalRef } from './createRef';
 
-// import { workspace } from '@/assets/config/menu.js';
 
 function renderIcon(icon) {
   return () =>
@@ -113,6 +115,11 @@ const relateSuiteAction = {
   label: '关联测试套',
   key: 'relateSuite',
   icon: renderIcon(Box16Regular)
+};
+const createAutoTask = {
+  label: '自动创建任务',
+  key: 'createTask',
+  icon: renderIcon(ClipboardTaskAdd24Regular)
 };
 const exportTestsuiteInXlsxAction = {
   label: '导出为Excel文件',
@@ -207,6 +214,7 @@ function getDirectory(node) {
             actions.unshift(exportCasesetAction);
             actions.unshift(createChildrenAction);
           } else {
+            actions.unshift(createAutoTask);
             actions.unshift(renameAction);
             actions.unshift(relateSuiteAction);
             actions.unshift(createChildrenDirectoryAction);
@@ -519,6 +527,9 @@ function handleNormalDialogConfirm(confirmFn, node, d, contentType) {
   } else if (infoRules.validator() === true) {
     confirmFn(node);
     d.destroy();
+  } if (contentType === 'createTask') {
+    // confirmFn(node);
+    // d.destroy();
   } else {
     window.$message?.error('信息有误，请检查!');
   }
@@ -702,7 +713,6 @@ function applyTemplateContent(node) {
   ]);
   return form;
 }
-
 function moveCaseNodeContent(node) {
   const form = h('div', null, [
     h(
@@ -995,6 +1005,8 @@ function dialogView(confirmFn, node, contentType = 'directory') {
           return relateSuiteCaseContent(node, 'case');
         case 'caseSet':
           return uploadContent();
+        // case 'createTask':
+        //   return createTaskContent();
         default:
           return newDectoryContent();
       }
@@ -1069,15 +1081,7 @@ function applyTemplate(node) {
     .catch(() => {
       changeLoadingStatus(false);
     });
-  // casenodeApplyTemplate(node.info.id, templateId.value)
-  //   .then((res) => {
-  //     const length = res.data?.length;
-  //     window.$message?.info(`${node.info.title}已成功增量应用该模板, 新建${length}个节点`);
-  //     getCaseNode(node);
-  //   })
-  //   .finally(() => {
-  //     changeLoadingStatus(false);
-  //   });
+
 }
 
 function moveCaseNode(node) {
@@ -1167,6 +1171,38 @@ function newCase(node, caseId, title) {
       window.$message?.error(err.data.error_msg || '未知错误');
     });
 }
+function createTask(node) {
+  console.log('nodeeee', node.info, storage.getValue('orgId'), storage.getLocalValue('unLoginOrgId')?.id);
+  let startTime;
+  let endTime;
+  getMilestoneList({ name: node.info.title, page_num: 1, page_size: 10 }).then(res => {
+    startTime = res.data?.items[0]?.start_time;
+    endTime = res.data?.items[0]?.end_time;
+  }).then(() => {
+    axios
+      .post('/v1/tasks', {
+        is_version_task: true,
+        type: 'VERSION',
+        title: node.info.title,
+        status_id: 1,
+        executor_type: 'GROUP',
+        executor_id: storage.getValue('orgId') || storage.getLocalValue('unLoginOrgId')?.id,
+        start_time: startTime,
+        deadline: endTime,
+        // keywords: null,
+        // abstract: null,
+        // abbreviation: null,
+        milestone_id: node.info.id,
+      })
+      .then(() => {
+        window.$message?.success('任务创建成功!');
+      })
+      .catch((err) => {
+        window.$message?.error(err.data.error_msg || '未知错误');
+      });
+  });
+
+}
 
 function getOrphanSuitesReq() {
   if (createSuitesTargetNode.value.group_id) {
@@ -1202,6 +1238,7 @@ function initDialogViewData() {
   nextParentId.value = undefined;
   moveOptions.value = [];
   moveLoading.value = false;
+
 }
 
 function refreshNode(node) {
@@ -1344,7 +1381,12 @@ const actionHandlder = {
         });
       }
     }
-  }
+  },
+  createTask: {
+    handler(contextmenu) {
+      createTask(contextmenu);
+    }
+  },
 };
 
 // 点击右键菜单

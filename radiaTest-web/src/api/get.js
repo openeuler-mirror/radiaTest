@@ -510,5 +510,7 @@ export function getBaselineByMilestone(data) {
 export function getManualCaseBySearch(data) {
   return getRequest(`/v1/ws/${workspace.value}/caseV2`, data);
 }
-
-
+// 查询里程碑
+export function getMilestoneList(data) {
+  return getRequest(`/v2/ws/${workspace.value}/milestone`, data);
+}
