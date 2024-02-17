@@ -224,7 +224,7 @@ def handler_login(oauth_token, org_id, oauth_user_info_url, authority, org_name)
             current_org_name = current_org.name
         user = User.synchronize_oauth_info(profile, user)
     else:
-        user = User.create_commit(oauth_user, org_id)
+        user = User.create_commit(profile, org_id)
         current_org_id = org_id
         current_org_name = org_name
 
