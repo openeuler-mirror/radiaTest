@@ -21,18 +21,12 @@
 
 # useful for handling different item types with a single interface
 import configparser
-from datetime import datetime
-import re
-import os
-import subprocess
 import time
 from pathlib import Path
-import pytz
 
 import redis
 
 from scrapyspider.items import (
-    OpeneulerPkgsListItem,
     OpenqaHomeItem,
     OpenqaGroupOverviewItem,
     OpenqaTestsOverviewItem
@@ -42,76 +36,6 @@ from scrapyspider.items import (
 class ScrapyspiderPipeline:
     def process_item(self, item, spider):
         return item
-
-
-class FilePipeline:
-    def __init__(self) -> None:
-        self.product = None
-        self.build = None
-        self.repo_path = None
-        self.arch = None
-        self.round = None
-        self.pkglist_storage_path = None
-        self.timestamp = None
-
-    def open_spider(self, spider):
-        server_config_ini = Path(spider.settings.get("SERVER_INI_PATH"))
-        cfg = configparser.ConfigParser()
-        cfg.read(server_config_ini)
-
-        self.pkglist_storage_path = cfg.get("pkglist", "PRODUCT_PKGLIST_PATH")
-        if not os.path.isdir(self.pkglist_storage_path):
-            os.mkdir(self.pkglist_storage_path)
-
-        self.timestamp = datetime.now(
-            tz=pytz.timezone('Asia/Shanghai')
-        ).strftime('%Y%m%d%H%M%S')
-
-    def process_item(self, item, spider):
-        if isinstance(item, OpeneulerPkgsListItem):
-            self.product = item["product"]
-            self.build = item["build"]
-            self.repo_path = item["repo_path"]
-            self.arch = item["arch"]
-            self.round = item["round"]
-
-            exitcode, output = subprocess.getstatusoutput(
-                f"echo {item['rpm_file_name']} >> {self.pkglist_storage_path}/"\
-                    f"{self.build}-{self.repo_path}-{self.arch}-{self.timestamp}.pkgs"
-            )
-            if exitcode != 0:
-                raise RuntimeError(output)
-
-    def close_spider(self, spider):
-        if not self.product or not self.build:
-            return
-
-        if self.round != "None":
-            if os.path.isfile(f"{self.pkglist_storage_path}/{self.product}"\
-                f"-round-{self.round}-{self.repo_path}-{self.arch}.pkgs"):
-                os.remove(
-                    f"{self.pkglist_storage_path}/{self.product}-"\
-                        f"round-{self.round}-{self.repo_path}-{self.arch}.pkgs"
-                )
-            os.rename(
-                f"{self.pkglist_storage_path}/{self.build}-"\
-                    f"{self.repo_path}-{self.arch}-{self.timestamp}.pkgs",
-                f"{self.pkglist_storage_path}/{self.product}-"\
-                    f"round-{self.round}-{self.repo_path}-{self.arch}.pkgs"
-            )
-        else:
-            if os.path.isfile(f"{self.pkglist_storage_path}/"\
-                f"{self.product}-{self.repo_path}-{self.arch}.pkgs"):
-                os.remove(
-                    f"{self.pkglist_storage_path}/{self.product}"\
-                        f"-{self.repo_path}-{self.arch}.pkgs"
-                )
-            os.rename(
-                f"{self.pkglist_storage_path}/{self.build}-"\
-                    f"{self.repo_path}-{self.arch}-{self.timestamp}.pkgs",
-                f"{self.pkglist_storage_path}/{self.product}-"\
-                    f"{self.repo_path}-{self.arch}.pkgs"
-            )
 
 
 class RedisPipeline:
