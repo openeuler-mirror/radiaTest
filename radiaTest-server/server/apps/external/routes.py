@@ -52,6 +52,7 @@ from server.apps.external.handler import (
     AtHandler,
     MajunLoginHandler,
 )
+from server.utils.external_auth_util import external_auth
 
 
 def get_external_tag():
@@ -62,6 +63,7 @@ def get_external_tag():
 
 
 class UpdateTaskEvent(Resource):
+    @external_auth
     @validate()
     @swagger_adapt.api_schema_model_map({
         "__module__": get_external_tag.__module__,
@@ -310,6 +312,7 @@ class CaCert(Resource):
 
 
 class DailyBuildEvent(Resource):
+    @external_auth
     @swagger_adapt.api_schema_model_map({
         "__module__": get_external_tag.__module__,
         "resource_name": "DailyBuildEvent",
@@ -412,6 +415,7 @@ class DailyBuildEvent(Resource):
 
 
 class RpmCheckEvent(Resource):
+    @external_auth
     @swagger_adapt.api_schema_model_map({
         "__module__": get_external_tag.__module__,
         "resource_name": "RpmCheckEvent",
@@ -477,6 +481,7 @@ class RpmCheckEvent(Resource):
 
 
 class AtEvent(Resource):
+    @external_auth
     @swagger_adapt.api_schema_model_map({
         "__module__": get_external_tag.__module__,
         "resource_name": "AtEvent",
@@ -521,6 +526,7 @@ class AtEvent(Resource):
 
 
 class AtDetailEvent(Resource):
+    @external_auth
     @swagger_adapt.api_schema_model_map({
         "__module__": get_external_tag.__module__,
         "resource_name": "AtDetailEvent",
@@ -557,6 +563,7 @@ class AtDetailEvent(Resource):
 
 
 class GetTestReportFileEvent(Resource):
+    @external_auth
     @validate()
     @swagger_adapt.api_schema_model_map({
         "__module__": get_external_tag.__module__,

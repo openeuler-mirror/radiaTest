@@ -28,7 +28,7 @@ class Hmacsha256:
         if not key:
             self.key = str(uuid.uuid4())
         else:
-            self.key = key
+            self.key = str(key)
 
     def encrypt(self, string_to_sign):
         """Hmacsha256 encryption method.
