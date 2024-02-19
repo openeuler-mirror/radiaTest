@@ -24,9 +24,9 @@ function getOrg() {
     activeOrg.value = defaultOrg.org_id;
     currentOrg.value = defaultOrg.org_name;
     storage.setValue('role', defaultOrg.re_user_org_role_type);
-    // storage.setValue('orgId', defaultOrg.org_id);
+    storage.setValue('orgId', defaultOrg.org_id);
     storage.setValue('user_name', data.user_name);
-    storage.setValue('enterpriseId',defaultOrg.org_enterprise);
+    storage.setValue('enterpriseId', defaultOrg.org_enterprise);
     avatarUrl.value = data.avatar_url;
   });
 }
