@@ -962,6 +962,14 @@ function renderUpload() {
       onUpdateFileList: (file) => {
         files.value = file;
       },
+      onBeforeUpload: (file) => {
+        let fileSize = file?.file?.file?.size / 1024 / 1024;
+        if (fileSize > 100) {
+          window.$message?.error('解压后不允许超过100M，目录深度小于20、文件总数小于1000');
+          return false;
+        }
+        return true;
+      },
       defaultUpload: false
     },
     h(NUploadDragger, [icon, tip, description])
