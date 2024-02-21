@@ -25,7 +25,6 @@ class RET(object):
     OTHER_REQ_TIMEOUT = "3504"
     PARMA_ERR = "4000"
     VERIFY_ERR = "4001"
-    CLA_VERIFY_ERR = "4010"
     # unauthorized request to api
     UNAUTHORIZE_ERR = "4020"
     # unauthorized access to workspaces

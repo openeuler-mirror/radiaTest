@@ -51,10 +51,11 @@ RUN echo "radiatest ALL=(uncompress) NOPASSWD: ALL" >> /etc/sudoers
 RUN chown -R radiaTest:radiaTest /opt/radiaTest
 RUN chown -R radiaTest:radiaTest /etc/radiaTest_ssl
 
-RUN chmod -R 740 /opt/radiaTest
+RUN chmod -R 755 /opt/radiaTest
 RUN chmod -R 740 /etc/radiaTest_ssl
-# 解压脚本增加执行权限
-RUN chmod +x /opt/radiaTest/radiaTest-server/server/utils/safe_uncompress.py
+
+# uncompress用户解压需要rarfile库
+RUN sudo -u uncompress pip3 install rarfile==4.0
 
 USER radiaTest
 ENV PATH="/home/radiaTest/.local/bin:${PATH}"

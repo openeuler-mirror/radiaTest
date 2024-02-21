@@ -17,16 +17,22 @@ import os
 import re
 import socket
 import datetime
+import time
+import uuid
+from contextlib import contextmanager
 from pathlib import Path
 from uuid import uuid1
 from shlex import quote
 from functools import lru_cache
 from werkzeug.utils import secure_filename
 
-from flask import current_app
+import magic
+from flask import current_app, jsonify
 from pypinyin import lazy_pinyin
 
+from server.utils.response_util import RET
 from server.utils.shell import local_cmd
+from server import redis_client
 
 
 class FileUtil(object):
@@ -138,13 +144,27 @@ class ZipImportFile(ImportFile):
         self.macos_cache = "__MACOSX"
         self.filename, self.filetype = self._validate_filetype()
 
-    def uncompress(self, dist_dir):
+    def uncompress(self, uncompressed_filepath):
         # 赋予uncompress解压目录权限
-        local_cmd("chmod 777 '{}'".format(dist_dir))
+        local_cmd("mkdir -p '{}'".format(uncompressed_filepath))
+        local_cmd("chmod 777 '{}'".format(uncompressed_filepath))
         # 使用uncompress普通用户,安全解压
         safe_uncompress = Path(__file__).parent.joinpath("safe_uncompress.py")
-        local_cmd("sudo -u uncompress python3 '{}' -t '{}' -f '{}' -d '{}'".format(
-            safe_uncompress, self.filetype, self.filepath, dist_dir))
+        _, data = local_cmd("sudo -u uncompress python3 '{}' -t '{}' -f '{}' -d '{}'".format(
+            safe_uncompress, self.filetype, self.filepath, uncompressed_filepath))
+        if "uncompress success!" in data:
+            local_cmd("sudo -u uncompress chmod -R 755 '{}'".format(uncompressed_filepath))
+            return True
+        else:
+            current_app.logger.error(f"{data}")
+            self.clean_and_delete(uncompressed_filepath)
+            return False
+
+    def clean_and_delete(self, uncompressed_filepath=None):
+        if os.path.exists(self.filepath):
+            self.file_remove()
+        if uncompressed_filepath and os.path.exists(uncompressed_filepath):
+            local_cmd("sudo -u uncompress rm -rf '{}'".format(uncompressed_filepath))
 
 
 class ExcelImportFile(ImportFile):
@@ -175,3 +195,62 @@ class JsonImportFile(ImportFile):
             "json"
         ]
         self.filename, self.filetype = self._validate_filetype()
+
+
+@contextmanager
+def file_concurrency_lock(lock_name, max_concurrency=2):
+    current_key = str(uuid.uuid4())
+    try:
+        # 扫描过期key并删除
+        current_timestamp = int(time.time())
+        expired_members = redis_client.zrangebyscore(lock_name, 0, current_timestamp)
+        for member in expired_members:
+            redis_client.zrem(lock_name, member)
+
+        concurrency = redis_client.zcard(lock_name)
+        if concurrency and concurrency >= max_concurrency:
+            yield False, jsonify(error_code=RET.BAD_REQ_ERR, error_msg='禁止连续请求文件接口，请稍后重试！')
+        else:
+
+            expire_time_in_seconds = 3 * 60
+            timestamp = int(time.time()) + expire_time_in_seconds
+            redis_client.zadd(lock_name, {current_key: timestamp})
+            yield True, None
+    finally:
+        redis_client.zrem(lock_name, current_key)
+
+
+def identify_file_type(file, need_type):
+    try:
+        # 禁止上传超大文件，文件头校验同时，保证文件在200M以内
+        if file.content_length > 200 * 1024 * 1024:
+            return jsonify(
+                error_code=RET.BAD_REQ_ERR,
+                error_msg="The file is too big, must be less than 500M!"
+            )
+        file_header = file.read(1024)
+        # 文件指针恢复开始位置
+        file.seek(0)
+        file_type = magic.from_buffer(file_header, mime=True)
+    except magic.MagicException as e:
+        current_app.logger.error(f"无法识别文件类型: {e}")
+        file_type = None
+
+    if file_type in need_type:
+        return True, None
+    else:
+        return False, jsonify(
+                    error_code=RET.BAD_REQ_ERR,
+                    error_msg="File header is not supported!"
+                )
+
+
+class FileTypeMapping(object):
+    case_set_type = ["application/zip", "application/gzip", "application/x-gzip", "application/x-tar",
+                     "application/x-rar-compressed", "application/x-rar"]
+    test_case_type = ["text/plain", "text/markdown", "application/vnd.ms-excel", "text/csv",
+                      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"]
+
+    image_type = ["image/jpeg", "image/png", "image/gif", "image/bmp", "image/x-ms-bmp", "image/x-windows-bmp",
+                  "image/svg+xml", "image/vnd.microsoft.icon", "image/x-icon"]
+    yaml_type = ["text/plain", "text/x-yaml", "application/yaml"]

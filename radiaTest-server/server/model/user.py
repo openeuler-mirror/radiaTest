@@ -25,7 +25,6 @@ class User(db.Model, BaseModel):
     user_login = db.Column(db.String(50), nullable=False)
     user_name = db.Column(db.String(50), nullable=False)
     avatar_url = db.Column(db.String(512), nullable=True, default=None)
-    cla_email = db.Column(db.String(128), nullable=True, default=None)
 
     like = db.Column(db.Integer(), nullable=False, default=0)
     influence = db.Column(db.Integer(), nullable=False, default=0)
@@ -38,23 +37,12 @@ class User(db.Model, BaseModel):
     re_user_requirement_publisher = db.relationship("RequirementPublisher", backref="user")
     re_user_requirement_acceptor = db.relationship("RequirementAcceptor", backref="user")
 
-    # 邮箱隐私处理
-    @staticmethod
-    def mask_cla_email(cla_email):
-        if isinstance(cla_email, str):
-            ret = re.match(r"^[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)*@[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)+$", cla_email)
-            if ret:
-                left, right = cla_email.split("@")
-                return cla_email[0] + "*" * (len(left) - 1) + right
-        return ""
-
     def _get_basic_info(self):
         return {
             "user_id": self.user_id,
             "user_login": self.user_login,
             "user_name": self.user_name,
-            "avatar_url": self.avatar_url,
-            "cla_email": self.mask_cla_email(self.cla_email)
+            "avatar_url": self.avatar_url
         }
 
     def _get_roles(self):
@@ -110,13 +98,12 @@ class User(db.Model, BaseModel):
         return user
 
     @staticmethod
-    def create_commit(oauth_user, org_id, cla_email=None):
+    def create_commit(oauth_user, org_id):
         new_user = User()
         new_user.user_id = oauth_user.get("user_id")
         new_user.user_login = oauth_user.get("user_login")
         new_user.user_name = oauth_user.get("user_name")
         new_user.avatar_url = oauth_user.get("avatar_url")
-        new_user.cla_email = cla_email
         new_user.org_id = org_id
         new_user.add_update()
         return new_user

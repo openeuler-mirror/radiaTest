@@ -21,23 +21,9 @@ from server.model.group import Group, ReUserGroup
 from server.utils.response_util import RET
 from server.utils.page_util import PageUtil
 from server.utils.db import collect_sql_error
-from server.utils.cla_util import ClaShowUserSchema
 from server.schema.organization import OrgBaseSchema
 from server.schema.base import PageBaseSchema
 from server.schema.group import GroupInfoSchema
-
-
-@collect_sql_error
-def handler_show_org_cla_list():
-    has_org_ids = [item.strip() for item in request.args.get('has_org_ids', '').split(',') if item]
-    # 从数据库中获取数据
-    org_list = Organization.query.filter_by(is_delete=False).all()
-    # 提取cla信息
-    cla_info_list = list()
-    for item in org_list:
-        if str(item.id) not in has_org_ids:
-            cla_info_list.append(ClaShowUserSchema(**item.to_dict()).dict())
-    return jsonify(error_code=RET.OK, error_msg="OK", data=cla_info_list)
 
 
 @collect_sql_error

@@ -43,13 +43,6 @@ class Organization(db.Model, PermissionBaseModel, BaseModel):
     oauth_client_id = db.Column(db.String(512), nullable=False)
     oauth_client_secret = db.Column(db.String(512), nullable=False)
     oauth_scope = db.Column(db.String(512), nullable=False)
-
-    cla_verify_url = db.Column(db.String(512), nullable=True)
-    cla_verify_params = db.Column(db.String(512), nullable=True)
-    cla_verify_body = db.Column(db.String(512), nullable=True)
-    cla_sign_url = db.Column(db.String(512), nullable=True)
-    cla_request_type = db.Column(db.String(8), nullable=True)
-    cla_pass_flag = db.Column(db.String(512), nullable=True)
     roles = db.relationship("Role", cascade="all, delete", backref="organization")
 
     re_org_publisher = db.relationship("RequirementPublisher", backref="org")
@@ -81,12 +74,6 @@ class Organization(db.Model, PermissionBaseModel, BaseModel):
             "oauth_client_id": self.oauth_client_id,
             "oauth_scope": self.oauth_scope,
             "oauth_client_secret": self.oauth_client_secret,
-            "cla_verify_url": self.cla_verify_url,
-            "cla_verify_params": self.cla_verify_params,
-            "cla_verify_body": self.cla_verify_body,
-            "cla_sign_url": self.cla_sign_url,
-            "cla_request_type": self.cla_request_type,
-            "cla_pass_flag": self.cla_pass_flag,
             "create_time": self.create_time.strftime("%Y-%m-%d %H:%M:%S"),
             "update_time": self.update_time.strftime("%Y-%m-%d %H:%M:%S"),
             "authority": self.authority,
@@ -109,12 +96,6 @@ class Organization(db.Model, PermissionBaseModel, BaseModel):
         new_recode = Organization()
         new_recode.name = model.name
         new_recode.avatar_url = model.avatar_url
-        new_recode.cla_sign_url = model.cla_sign_url
-        new_recode.cla_verify_url = model.cla_verify_url
-        new_recode.cla_verify_body = model.cla_verify_body
-        new_recode.cla_pass_flag = model.cla_pass_flag
-        new_recode.cla_verify_params = model.cla_verify_params
-        new_recode.cla_request_type = model.cla_request_type
         new_recode.description = model.description
         new_recode.enterprise_id = model.enterprise_id
         new_recode.enterprise_join_url = model.enterprise_join_url

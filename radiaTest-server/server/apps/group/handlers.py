@@ -24,7 +24,7 @@ from server import redis_client, db
 from server.utils.response_util import RET
 from server.utils.redis_util import RedisKey
 from server.utils.db import collect_sql_error, Insert, Delete
-from server.utils.file_util import FileUtil
+from server.utils.file_util import FileUtil, identify_file_type, FileTypeMapping
 from server.utils.page_util import PageUtil
 from server.utils.permission_utils import PermissionManager
 from server.utils.read_from_yaml import create_role, get_api
@@ -54,6 +54,11 @@ def handler_add_group():
     if re:
         return jsonify(error_code=RET.DATA_EXIST_ERR, error_msg="group has exists")
     avatar = request.files.get('avatar_url')
+    if avatar:
+        # 文件头检查
+        verify_flag, res = identify_file_type(avatar, FileTypeMapping.image_type)
+        if verify_flag is False:
+            return res
     avatar_url = FileUtil.flask_save_file(avatar, FileUtil.generate_filepath('avatar'))
     description = request.form.get('description')
     # 创建一个group
@@ -109,6 +114,10 @@ def handler_update_group(group_id):
     group.name = name
     group.description = description
     if avatar:
+        # 文件头检查
+        verify_flag, res = identify_file_type(avatar, FileTypeMapping.image_type)
+        if verify_flag is False:
+            return res
         group.avatar_url = FileUtil.flask_save_file(avatar, group.avatar_url)
     group.add_update()
     return jsonify(error_code=RET.OK, error_msg="OK")

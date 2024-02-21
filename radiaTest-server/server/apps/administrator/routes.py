@@ -22,6 +22,7 @@ from server import casbin_enforcer, swagger_adapt
 from server.schema.administrator import LoginSchema, RegisterSchema, ChangePasswdSchema
 from server.schema.organization import AddSchema, UpdateSchema
 from server.utils.auth_util import auth
+from server.utils.file_util import identify_file_type, FileTypeMapping
 from server.utils.response_util import response_collect
 from server.apps.administrator.handlers import (
     handler_login,
@@ -109,6 +110,11 @@ class Org(Resource):
             return form
         body = AddSchema(**form)
         avatar = request.files.get("avatar_url")
+        if avatar:
+            # 文件头检查
+            verify_flag, res = identify_file_type(avatar, FileTypeMapping.image_type)
+            if verify_flag is False:
+                return res
         return handler_save_org(body, avatar)
 
 

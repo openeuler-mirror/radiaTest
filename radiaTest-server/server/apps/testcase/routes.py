@@ -24,6 +24,7 @@ from sqlalchemy import or_
 
 from server import redis_client, casbin_enforcer, swagger_adapt
 from server.schema.base import QueryBaseModel
+from server.utils.file_util import identify_file_type, FileTypeMapping, file_concurrency_lock
 from server.utils.redis_util import RedisKey
 from server.utils.auth_util import auth
 from server.utils.response_util import RET, response_collect, workspace_error_collect
@@ -214,10 +215,29 @@ class CaseNodeImportEvent(Resource):
             }}
     })
     def post(self):
-        return CaseNodeHandler.import_case_set(
-            request.files.get("file"),
-            request.form.get("group_id"),
-        )
+        file = request.files.get("file")
+        if not file:
+            return jsonify(
+                error_code=RET.PARMA_ERR,
+                error_msg="The file is must!"
+            )
+        with file_concurrency_lock("import_case_set", 2) as lock_info:
+            if lock_info[0] is False:
+                return lock_info[1]
+            # 文件头检查
+            verify_flag, res = identify_file_type(file, FileTypeMapping.case_set_type)
+            if verify_flag is False:
+                return res
+            # 限制文件小于100M
+            if file.content_length > 100 * 1024 * 1024:
+                return jsonify(
+                    error_code=RET.BAD_REQ_ERR,
+                    error_msg="The file is too big!"
+                )
+            return CaseNodeHandler.import_case_set(
+                file,
+                request.form.get("group_id"),
+            )
 
     @response_collect
     @swagger_adapt.api_schema_model_map({
@@ -882,19 +902,33 @@ class CaseImport(Resource):
                 error_code=RET.PARMA_ERR,
                 error_msg="The file being uploaded is not exist"
             )
+        with file_concurrency_lock("import_test_case", 5) as lock_info:
+            if lock_info[0] is False:
+                return lock_info[1]
+            try:
 
-        try:
-            import_handler = CaseImportHandler(request.files.get("file"))
-        except RuntimeError as e:
-            return jsonify(
-                error_code=RET.RUNTIME_ERROR,
-                error_msg=str(e),
+                file = request.files.get("file")
+                # 文件头检查
+                verify_flag, res = identify_file_type(file, FileTypeMapping.test_case_type)
+                if verify_flag is False:
+                    return res
+                # 限制文件小于20M
+                if file.content_length > 20 * 1024 * 1024:
+                    return jsonify(
+                        error_code=RET.BAD_REQ_ERR,
+                        error_msg="The file is too big!"
+                    )
+                import_handler = CaseImportHandler(file)
+            except RuntimeError as e:
+                return jsonify(
+                    error_code=RET.RUNTIME_ERROR,
+                    error_msg=str(e),
+                )
+
+            return import_handler.import_case(
+                request.form.get("group_id"),
+                request.form.get("case_node_id"),
             )
-
-        return import_handler.import_case(
-            request.form.get("group_id"),
-            request.form.get("case_node_id"),
-        )
 
 
 class ResolveTestcaseByFilepath(Resource):
@@ -1690,7 +1724,10 @@ class CasefileConvertEvent(Resource):
         """
         file = request.files.get("file")
         to = request.form.get("to")
-
+        # 文件头检查
+        verify_flag, res = identify_file_type(file, FileTypeMapping.test_case_type)
+        if verify_flag is False:
+            return res
         if file.headers.get("Content-Type") == "text/markdown" and to != "xlsx" or to != "md":
             return jsonify(
                 error_code=RET.BAD_REQ_ERR,

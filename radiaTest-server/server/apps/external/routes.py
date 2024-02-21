@@ -39,9 +39,9 @@ from server.model.organization import Organization
 from server.model.product import Product
 from server.model.qualityboard import DailyBuild, WeeklyHealth
 from server.model.milestone import TestReport
-from server.utils.db import Insert, Edit
+from server.utils.db import Insert
 from server.utils.response_util import RET
-from server.utils.file_util import ImportFile
+from server.utils.file_util import ImportFile, identify_file_type, FileTypeMapping
 from celeryservice.tasks import resolve_dailybuild_detail, resolve_rpmcheck_detail
 from server.model.milestone import Milestone
 from server.utils.response_util import response_collect
@@ -142,7 +142,6 @@ class LoginOrgList(Resource):
         for org in orgs:
             org_dict = LoginOrgListSchema(**org.__dict__).__dict__
             org_dict.update({
-                "cla": True if org.cla_verify_url else False,
                 "enterprise": True if org.enterprise_id else False,
             })
             return_data.append(org_dict)
@@ -212,7 +211,10 @@ class CaCert(Resource):
                 ),
                 current_app.config.get("FLASK_PYDANTIC_VALIDATION_ERROR_STATUS_CODE", 400)
             )
-
+        # 文件头检查
+        verify_flag, res = identify_file_type(_csr_file, ["text/plain"])
+        if verify_flag is False:
+            return res
         csr_file = ImportFile(
             _csr_file,
             filename=request.form.get("ip"),
@@ -351,6 +353,10 @@ class DailyBuildEvent(Resource):
                 error_code=RET.PARMA_ERR,
                 error_msg="params invalid"
             )
+        # 文件头检查
+        verify_flag, res = identify_file_type(_file, FileTypeMapping.yaml_type)
+        if verify_flag is False:
+            return res
 
         _name, _version = _product.split("-")
         product = Product.query.filter_by(name=_name, version=_version).first()
@@ -453,7 +459,10 @@ class RpmCheckEvent(Resource):
                 error_code=RET.PARMA_ERR,
                 error_msg="params invalid"
             )
-
+        # 文件头检查
+        verify_flag, res = identify_file_type(_file, FileTypeMapping.yaml_type)
+        if verify_flag is False:
+            return res
         _name, _version = _product.split("-")
         product = Product.query.filter_by(name=_name, version=_version).first()
         if not product:

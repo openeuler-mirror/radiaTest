@@ -30,19 +30,6 @@ def get_organization_tag():
     }
 
 
-class Cla(Resource):
-    @swagger_adapt.api_schema_model_map({
-        "__module__": get_organization_tag.__module__,  # 获取当前接口所在模块
-        "resource_name": "Cla",  # 当前接口视图函数名
-        "func_name": "get",  # 当前接口所对应的函数名
-        "tag": get_organization_tag(),  # 当前接口所对应的标签
-        "summary": "获取组织cla证书列表",  # 当前接口概述
-        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
-    })
-    def get(self):
-        return handler_show_org_cla_list()
-
-
 class Org(Resource):
     @auth.login_required()
     @response_collect

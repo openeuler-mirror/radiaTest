@@ -23,8 +23,7 @@ from server.utils.response_util import RET
 from server.utils.redis_util import RedisKey
 from server.utils.auth_util import generate_token
 from server.utils.db import collect_sql_error, Delete
-from server.utils.file_util import FileUtil
-from server.utils.cla_util import ClaShowAdminSchema
+from server.utils.file_util import FileUtil, identify_file_type, FileTypeMapping
 from server.utils.permission_utils import PermissionManager
 from server.utils.read_from_yaml import create_role, get_api, get_default_suffix
 from server.model.administrator import Admin
@@ -126,13 +125,13 @@ def handler_read_org_list():
     if not admin:
         return jsonify(error_code=RET.VERIFY_ERR, error_msg='no right')
     org_list = Organization.query.filter_by(is_delete=False).all()
-    cla_info_list = list()
+    org_info_list = list()
     for item in org_list:
-        cla_info_list.append(ClaShowAdminSchema(**item.to_dict()).dict())
+        org_info_list.append(**item.to_dict())
     return jsonify(
         error_code=RET.OK,
         error_msg="OK",
-        data=cla_info_list
+        data=org_info_list
     )
 
 
@@ -222,6 +221,10 @@ def handler_update_org(org_id):
         avatar = request.files.get("avatar_url")
 
         if avatar:
+            # 文件头检查
+            verify_flag, res = identify_file_type(avatar, FileTypeMapping.image_type)
+            if verify_flag is False:
+                return res
             org.avatar_url = FileUtil.flask_save_file(
                 avatar, org.avatar_url if org.avatar_url else FileUtil.generate_filepath('avatar'))
         else:

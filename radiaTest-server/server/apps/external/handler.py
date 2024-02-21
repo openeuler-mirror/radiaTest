@@ -522,9 +522,5 @@ class MajunLoginHandler:
         if result[0]:
             return result[0], result[1], result[2], f'{current_app.config["OAUTH_HOME_URL"]}?isSuccess=True'
         else:
-            return True, result[1], "", '{}?isSuccess=False&user_id={}&org_id={}&require_cla={}'.format(
-                current_app.config["OAUTH_HOME_URL"],
-                result[1],
-                org.id,
-                org.cla_verify_url is not None,
-            )
+            return True, result[1], "", '{}?isSuccess=False&user_id={}&org_id={}'.format(
+                current_app.config["OAUTH_HOME_URL"], result[1], org.id)

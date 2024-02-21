@@ -35,6 +35,7 @@ RUN dnf install -y git \
     && dnf install -y logrotate \
     && dnf install -y python3-pip \
     && dnf install -y python3-devel \
+    && dnf install -y sudo \
     && dnf install -y shadow
 
 WORKDIR /opt/radiaTest/radiaTest-server/
@@ -60,13 +61,12 @@ RUN chown -R radiaTest:radiaTest /opt/radiaTest
 RUN chown -R radiaTest:radiaTest /etc/supervisord.d
 RUN chown -R radiaTest:radiaTest /etc/supervisord.conf
 
-RUN chmod -R 740 /opt/radiaTest
-RUN chmod -R 740 /etc/radiaTest_ssl
+RUN chmod -R 755 /opt/radiaTest
+RUN mkdir /etc/radiaTest
 RUN chmod -R 740 /etc/radiaTest
 
-# 解压脚本增加执行权限
-RUN chmod +x /opt/radiaTest/radiaTest-server/server/utils/safe_uncompress.py
-
+# uncompress用户解压需要rarfile库
+RUN sudo -u uncompress pip3 install rarfile==4.0
 
 # 授予启动supervisord的相应用户的权限
 RUN chmod 777 /run
