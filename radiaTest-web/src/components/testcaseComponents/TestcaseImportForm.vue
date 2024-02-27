@@ -8,12 +8,7 @@
     ref="formRef"
   >
     <n-grid :cols="18" :x-gap="24">
-      <n-form-item-gi
-        :span="18"
-        v-if="showGroup"
-        label="归属团队"
-        path="group_id"
-      >
+      <n-form-item-gi :span="18" v-if="showGroup" label="归属团队" path="group_id">
         <n-select
           v-model:value="model.group_id"
           placeholder="选择团队"
@@ -37,7 +32,7 @@
   </n-form>
   <n-upload
     ref="uploadRef"
-    multiple
+    max="1"
     :data="model"
     v-model:file-list="fileListRef"
     @change="handleUploadChange"
@@ -72,7 +67,7 @@ export default defineComponent({
     showGroup: {
       type: Boolean,
       default: true,
-    }
+    },
   },
   components: {
     ArchiveIcon,
@@ -90,7 +85,10 @@ export default defineComponent({
           importForm.uploadRef.value.submit();
           context.emit('close');
         } else {
-          context.emit('submitForm', { data: importForm.model.value, file: importForm.fileListRef.value });
+          context.emit('submitForm', {
+            data: importForm.model.value,
+            file: importForm.fileListRef.value,
+          });
         }
       },
     };

@@ -1,8 +1,5 @@
 import { ref } from 'vue';
-import axios from '@/axios';
-import { getGroup } from '@/api/get';
-import { workspace } from '@/assets/config/menu.js';
-
+import { getGroup, getFramework } from '@/api/get';
 const size = ref('medium');
 
 const model = ref({
@@ -37,16 +34,14 @@ const rules = {
 };
 
 const getFrameworkOptions = () => {
-  axios
-    .get(`/v1/ws/${workspace.value}/framework`)
-    .then((res) => {
-      frameworkOptions.value = res.data?.map((item) => {
-        return {
-          label: item.name,
-          value: String(item.id),
-        };
-      });
-    })
+  getFramework().then((res) => {
+    frameworkOptions.value = res.data?.map((item) => {
+      return {
+        label: item.name,
+        value: String(item.id),
+      };
+    });
+  })
     .catch(() => {
       window.$message?.error('获取框架数据失败，请检查网络或联系管理员处理');
     });
@@ -78,11 +73,16 @@ const initOptions = () => {
 };
 
 async function beforeUpload({ file }) {
+  let fileSize = file?.file?.size / 1024 / 1024;
   let matchList = file.file.name.split('.');
   let fileType = matchList[matchList.length - 1];
   const supportedFiletypes = ['xlsx', 'xls', 'csv', 'md', 'markdown'];
   if (!supportedFiletypes.includes(fileType)) {
     window.$message?.error('只能上传xlsx、xls、csv、md、markdown格式的文件，请重新上传');
+    return false;
+  }
+  if (fileSize > 20) {
+    window.$message?.error('文件不允许超过20M');
     return false;
   }
   return true;
