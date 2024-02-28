@@ -10,12 +10,7 @@
       <n-form-item-gi :span="10" label="测试套名" path="name">
         <n-input v-model:value="infoFormValue.name" placeholder="请设置测试套名" />
       </n-form-item-gi>
-      <!-- <n-form-item-gi :span="6" label="责任人" path="owner">
-        <n-input
-          v-model:value="infoFormValue.owner"
-          placeholder="请输入已在平台注册用户的用户名"
-        />
-      </n-form-item-gi> -->
+
       <n-form-item-gi v-show="!data" :span="8" label="测试框架" path="framework">
         <n-select v-model:value="infoFormValue.framework_id" :options="frameworkList" />
       </n-form-item-gi>
@@ -157,9 +152,7 @@ export default defineComponent({
       ];
     });
     const frameworkList = ref();
-    // axios.get(`/v1/ws/${workspace.value}/framework`).then((res) => {
-    //   frameworkList.value = res.data?.map((item) => ({ label: item.name, value: item.id }));
-    // });
+
     getFramework().then((res) => {
       frameworkList.value = res.data?.map((item) => ({ label: item.name, value: item.id }));
     });

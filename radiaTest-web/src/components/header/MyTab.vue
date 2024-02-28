@@ -35,19 +35,19 @@ import { KeyboardArrowUpSharp as ArrowUp } from '@vicons/material';
 
 export default defineComponent({
   components: {
-    ArrowUp
+    ArrowUp,
   },
   props: {
     hasArrow: {
       type: Boolean,
-      default: true
+      default: true,
     },
     url: {
       type: String,
-      default: '/none'
+      default: '/none',
     },
     disabled: Boolean,
-    id: String
+    id: String,
   },
   setup(props) {
     const popover = ref(null);
@@ -65,25 +65,33 @@ export default defineComponent({
       isLeave,
       popover,
       arrow,
-      tab
+      tab,
     };
   },
   methods: {
     handleTabChoose() {
       if (!this.disabled) {
         this.$emit('choose');
-        this.tab.style.color = 'rgba(0, 47, 167, 1)';
-        this.tab.style.cursor = 'pointer';
-        this.arrow.cssVars.transform = 'rotateX(180deg)';
+        if (this.tab && this.tab.style) {
+          this.tab.style.color = 'rgba(0, 47, 167, 1)';
+          this.tab.style.cursor = 'pointer';
+        }
+        if (this.arrow && this.arrow.cssVars && this.arrow.cssVars.transform) {
+          this.arrow.cssVars.transform = 'rotateX(180deg)';
+        }
       } else {
         this.tab.style.cursor = 'not-allowed';
       }
     },
     handleTabLeave() {
       if (this.isLeave && !this.disabled) {
-        this.tab.style.color = 'black';
-        this.tab.style.cursor = '';
-        this.arrow.cssVars.transform = '';
+        if (this.tab && this.tab.style) {
+          this.tab.style.color = 'black';
+          this.tab.style.cursor = '';
+        }
+        if (this.arrow && this.arrow.cssVars && this.arrow.cssVars.transform) {
+          this.arrow.cssVars.transform = '';
+        }
         this.isLeave = true;
       }
     },
@@ -92,15 +100,21 @@ export default defineComponent({
       this.tab.style.color = 'rgba(0, 47, 167, 1)';
     },
     handleLeave() {
-      this.isLeave = true;
-      this.tab.style.color = 'black';
-      this.tab.style.cursor = '';
-      this.arrow.cssVars.transform = '';
+      if (this.isLeave) {
+        this.isLeave = true;
+      }
+      if (this.tab && this.tab.style) {
+        this.tab.style.color = 'black';
+        this.tab.style.cursor = '';
+      }
+      if (this.arrow && this.arrow.cssVars && this.arrow.cssVars.transform) {
+        this.arrow.cssVars.transform = '';
+      }
     },
     handleClick() {
       this.$emit('click');
-    }
-  }
+    },
+  },
 });
 </script>
 

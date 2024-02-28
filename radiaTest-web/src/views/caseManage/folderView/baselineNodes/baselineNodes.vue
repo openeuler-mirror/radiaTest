@@ -21,7 +21,6 @@ import { Close } from '@vicons/ionicons5';
 export default {
   setup() {
     onMounted(() => {
-      // modules.initData();
       nextTick(() => {
         modules.initData();
         setTimeout(() => {

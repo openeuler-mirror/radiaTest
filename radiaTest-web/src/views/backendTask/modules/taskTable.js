@@ -61,19 +61,7 @@ const taskColumns = [
       );
     },
   },
-  // {
-  //   title: '预估进度',
-  //   align: 'center',
-  //   width:200,
-  //   render() {
-  //     return h(NProgress, {
-  //       type: 'line',
-  //       processing: true,
-  //       indicatorPlacement: 'inside',
-  //       percentage: 60,
-  //     });
-  //   },
-  // },
+
 ];
 const taskData = ref([]);
 const pagination = ref({
@@ -105,7 +93,6 @@ function handlePageChange(page) {
 function handlePageSizeChange(pageSize) {
   pagination.value.pageSize = pageSize;
   pagination.value.page = 1;
-  // console.log(pageSize);
   getTask();
 }
 

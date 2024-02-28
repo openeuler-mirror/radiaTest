@@ -201,8 +201,6 @@ export default {
       };
     },
     getMilestone() {
-      // this.$axios
-      // .get(`/v2/ws/${workspace.value}/milestone`)
       getMilestones()
         .then((res) => {
           this.milestones =

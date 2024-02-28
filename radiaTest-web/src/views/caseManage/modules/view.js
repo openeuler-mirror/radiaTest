@@ -15,11 +15,7 @@ function setMenu() {
         text: '用例仓库',
         name: 'testcase',
       },
-      // {
-      //   id: 2,
-      //   text: '用例评审',
-      //   name: 'caseReview',
-      // },
+
       {
         id: 3,
         text: '测试框架',
@@ -33,11 +29,7 @@ function setMenu() {
         text: '用例仓库',
         name: 'folderview',
       },
-      // {
-      //   id: 2,
-      //   text: '用例评审',
-      //   name: 'caseReview',
-      // },
+
       {
         id: 3,
         text: '测试框架',

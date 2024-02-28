@@ -39,8 +39,6 @@ import { Construct } from '@vicons/ionicons5';
 import { Delete24Regular } from '@vicons/fluent';
 import testsuiteCreate from '@/components/testsuiteComponents/testsuiteCreate.vue';
 import { renderTooltip } from '@/assets/render/tooltip';
-// import { workspace } from '@/assets/config/menu.js';
-// import axios from '@/axios';
 import { deleteSuiteAxios } from '@/api/delete';
 import textDialog from '@/assets/utils/dialog';
 import { getSuite } from '@/api/get';

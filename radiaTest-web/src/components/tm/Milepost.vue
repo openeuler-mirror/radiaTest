@@ -89,11 +89,7 @@ export default {
     const filterValue = ref({
       paged: false,
     });
-    // this.$axios.get(`/v2/ws/${workspace.value}/milestone`, filterValue.value).then((res) => {
-    //   this.milepostArray = res.data?.items||[];
-    //   this.milepostArrayTemp = res.data?.items||[];
-    // });
-    // this.$axios.get('/v2/ws/default/milestone', filterValue.value).then((res) => {
+
     getMilestones(filterValue.value).then((res) => {
       this.milepostArray = res.data?.items || [];
       this.milepostArrayTemp = res.data?.items || [];

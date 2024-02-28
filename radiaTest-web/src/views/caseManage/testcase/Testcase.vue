@@ -3,18 +3,6 @@
     <n-grid x-gap="24" y-gap="6">
       <n-gi :span="12">
         <n-space>
-          <!-- <n-button
-            @click="createModalRef.show()"
-            size="large"
-            type="primary"
-            strong
-            round
-          >
-            <template #icon>
-              <file-plus />
-            </template>
-            创建用例
-          </n-button> -->
           <modal-card
             :initY="100"
             :initX="300"
@@ -24,7 +12,13 @@
             @submit="createFormRef.post()"
           >
             <template #form>
-              <n-tabs animated type="line" size="large" :tab-padding="20" @update:value="(value) => createFormRef.changeTabs(value)">
+              <n-tabs
+                animated
+                type="line"
+                size="large"
+                :tab-padding="20"
+                @update:value="(value) => createFormRef.changeTabs(value)"
+              >
                 <n-tab-pane tab="基本信息" name="basic">
                   <div></div>
                 </n-tab-pane>
@@ -43,18 +37,7 @@
               />
             </template>
           </modal-card>
-          <!-- <n-button
-            @click="importModalRef.show()"
-            size="large"
-            type="info"
-            strong
-            round
-          >
-            <template #icon>
-              <file-import />
-            </template>
-            导入用例
-          </n-button> -->
+
           <modal-card
             :initY="200"
             :initX="600"
@@ -77,20 +60,16 @@
           </modal-card>
         </n-space>
       </n-gi>
-      <n-gi :span="12">
-        <!-- <n-space justify="end">
-          <refresh-button @refresh="tableRef.refreshData()">
-            刷新版本列表
-          </refresh-button>
-        </n-space> -->
-      </n-gi>
+      <n-gi :span="12"> </n-gi>
       <n-gi :span="22"> </n-gi>
       <n-gi :span="2">
         <div class="titleBtnWrap">
-          <filterButton class="item" :filterRule="filterRule" @filterchange="filterchange"></filterButton>
-          <refresh-button @refresh="tableRef.refreshData()">
-            刷新版本列表
-          </refresh-button>
+          <filterButton
+            class="item"
+            :filterRule="filterRule"
+            @filterchange="filterchange"
+          ></filterButton>
+          <refresh-button @refresh="tableRef.refreshData()"> 刷新版本列表 </refresh-button>
         </div>
       </n-gi>
       <n-gi :span="24">
@@ -126,7 +105,6 @@ import { ref, defineComponent } from 'vue';
 import settings from '@/assets/config/settings.js';
 import Common from '@/components/CRUD';
 import Essential from '@/components/testcaseComponents';
-// import { FileImport, FilePlus } from '@vicons/tabler';
 import filterButton from '@/components/filter/filterButton.vue';
 import { useStore } from 'vuex';
 
@@ -134,7 +112,7 @@ export default defineComponent({
   components: {
     ...Common,
     ...Essential,
-    filterButton
+    filterButton,
   },
   // eslint-disable-next-line max-lines-per-function
   setup() {
@@ -150,12 +128,12 @@ export default defineComponent({
       {
         path: 'suite',
         name: '测试套',
-        type: 'input'
+        type: 'input',
       },
       {
         path: 'name',
         name: '用例名',
-        type: 'input'
+        type: 'input',
       },
       {
         path: 'test_level',
@@ -164,17 +142,17 @@ export default defineComponent({
         options: [
           {
             label: '系统测试',
-            value: '系统测试'
+            value: '系统测试',
           },
           {
             label: '集成测试',
-            value: '集成测试'
+            value: '集成测试',
           },
           {
             label: '单元测试',
-            value: '单元测试'
-          }
-        ]
+            value: '单元测试',
+          },
+        ],
       },
       {
         path: 'test_type',
@@ -183,30 +161,30 @@ export default defineComponent({
         options: [
           {
             label: '功能测试',
-            value: '功能测试'
+            value: '功能测试',
           },
           {
             label: '安全测试',
-            value: '安全测试'
+            value: '安全测试',
           },
           {
             label: '性能测试',
-            value: '性能测试'
+            value: '性能测试',
           },
           {
             label: '压力测试',
-            value: '压力测试'
+            value: '压力测试',
           },
           {
             label: '可靠性测试',
-            value: '可靠性测试'
-          }
-        ]
+            value: '可靠性测试',
+          },
+        ],
       },
       {
         path: 'machine_num',
         name: '节点数',
-        type: 'input'
+        type: 'input',
       },
       {
         path: 'machine_type',
@@ -214,8 +192,8 @@ export default defineComponent({
         type: 'select',
         options: [
           { label: '虚拟机', value: 'kvm' },
-          { label: '物理机', value: 'physical' }
-        ]
+          { label: '物理机', value: 'physical' },
+        ],
       },
       {
         path: 'automatic',
@@ -223,19 +201,19 @@ export default defineComponent({
         type: 'select',
         options: [
           { label: '是', value: true },
-          { label: '否', value: false }
-        ]
+          { label: '否', value: false },
+        ],
       },
       {
         path: 'remark',
         name: '备注',
-        type: 'input'
+        type: 'input',
       },
       {
         path: 'owner',
         name: '责任人',
-        type: 'input'
-      }
+        type: 'input',
+      },
     ]);
     const filterValue = ref({
       suite: '',
@@ -246,7 +224,7 @@ export default defineComponent({
       machine_type: null,
       automatic: null,
       remark: '',
-      owner: ''
+      owner: '',
     });
 
     const filterchange = (filterArray) => {
@@ -259,7 +237,7 @@ export default defineComponent({
         machine_type: null,
         automatic: null,
         remark: null,
-        owner: null
+        owner: null,
       };
       filterArray.forEach((v) => {
         filterValue.value[v.path] = v.value;
@@ -277,9 +255,9 @@ export default defineComponent({
       importModalRef,
       updateModalRef,
       filterRule,
-      filterchange
+      filterchange,
     };
-  }
+  },
 });
 </script>
 

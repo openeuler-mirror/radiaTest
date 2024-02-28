@@ -143,57 +143,7 @@
           </n-space>
         </n-card>
       </n-modal>
-      <!-- <n-modal v-model:show="showUpdateFeatureModal" :mask-closable="false">
-        <n-card
-          :title="createTitle('修改特性')"
-          size="large"
-          :bordered="false"
-          :segmented="{
-            content: true
-          }"
-          style="width: 1000px"
-        >
-          <n-form
-            label-placement="left"
-            :label-width="80"
-            :model="updateFeatureFormValue"
-            :rules="updateFeatureFormRules"
-            size="medium"
-            ref="updateFeatureFormRef"
-          >
-            <n-grid :cols="12">
-              <n-form-item-gi :span="8" label="特性名" path="featureName">
-                <n-input v-model:value="updateFeatureFormValue.featureName" placeholder="请输入特性名" />
-              </n-form-item-gi>
-              <n-form-item-gi :span="4" label="特性编号" path="no">
-                <n-input v-model:value="updateFeatureFormValue.no" placeholder="请输入特性编号" />
-              </n-form-item-gi>
-              <n-form-item-gi :span="8" label="拥有者" path="owner">
-                <n-input v-model:value="updateFeatureFormValue.owner" placeholder="请输入特性拥有者" />
-              </n-form-item-gi>
-              <n-form-item-gi :span="4" label="release to" path="release_to">
-                <n-input v-model:value="updateFeatureFormValue.release_to" placeholder="请输入特性release_to" />
-              </n-form-item-gi>
-              <n-form-item-gi :span="6" label="特性包" path="pkgs">
-                <n-input v-model:value="updateFeatureFormValue.pkgs" placeholder="请输入特性包" />
-              </n-form-item-gi>
-              <n-form-item-gi :span="6" label="sig组" path="sig">
-                <n-input v-model:value="updateFeatureFormValue.sig" placeholder="请输入sig组" />
-              </n-form-item-gi>
-              <n-form-item-gi :span="4" label="任务ID" path="task_id">
-                <n-input v-model:value="updateFeatureFormValue.task_id" placeholder="请输入任务ID" />
-              </n-form-item-gi>
-              <n-form-item-gi :span="8" label="URL" path="url">
-                <n-input v-model:value="updateFeatureFormValue.url" placeholder="请输入URL" />
-              </n-form-item-gi>
-            </n-grid>
-          </n-form>
-          <n-space>
-            <n-button size="medium" type="error" @click="cancelUpdateFeature" ghost> 取消 </n-button>
-            <n-button size="medium" type="primary" @click="submitUpdateFeature" ghost> 提交 </n-button>
-          </n-space>
-        </n-card>
-      </n-modal> -->
+
       <n-modal v-model:show="showImportFeatureModal" :mask-closable="false">
         <n-card
           :title="createTitle(`导入测试策略：${currentNode.label}`)"
@@ -260,17 +210,6 @@
           </n-space>
         </n-card>
       </n-modal>
-      <!-- <n-modal
-        v-model:show="showDeleteFeatureModal"
-        type="warning"
-        preset="dialog"
-        :title="`删除：${currentNode?.label}`"
-        content="确认删除此特性吗?"
-        positive-text="确认"
-        negative-text="放弃"
-        @positive-click="submitDeleteFeatureCallback"
-        @negative-click="cancelDeleteFeatureCallback"
-      /> -->
     </n-spin>
   </div>
   <DesignTemplate v-show="isDesignTemplate"></DesignTemplate>
@@ -756,17 +695,6 @@ const cancelExportFeature = () => {
 const submitExportFeature = () => {
   console.log(exportType.value);
 };
-
-// const showDeleteFeatureModal = ref(false); // 显示删除弹框
-
-// const cancelDeleteFeatureCallback = () => {
-//   showDeleteFeatureModal.value = false;
-// };
-
-// const submitDeleteFeatureCallback = () => {
-//   console.log('删除特性');
-//   console.log(currentNode.value);
-// };
 
 // 提交PR回调
 const submitPullRequestCb = () => {

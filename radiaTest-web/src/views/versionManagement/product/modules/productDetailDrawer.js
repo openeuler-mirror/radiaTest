@@ -467,7 +467,7 @@ function cleanFeatureListData() {
 
 watch(showList, () => {
   nextTick(() => {
-    boxWidth.value = requestCard.value.$el.clientWidth;
+    boxWidth.value = requestCard?.value?.$el.clientWidth;
   });
 });
 

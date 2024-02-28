@@ -1,5 +1,4 @@
 import axios from 'axios';
-// import router from './router/index';
 import { storage } from './assets/utils/storageUtils';
 import router from './router';
 
@@ -11,14 +10,7 @@ const server = axios.create({
     'Content-Type': 'application/json;charset=UTF-8',
   },
 });
-// axios.defaults.baseURL = '/api';
 
-//post请求头
-// axios.defaults.headers.post['Content-Type'] = 'application/json;charset=UTF-8';
-//设置超时
-//axios.defaults.timeout = 10000
-
-// axios.defaults.withCredentials = true;
 
 function getValueByKey(data, key) {
   if (!data) {
@@ -97,7 +89,6 @@ server.interceptors.response.use(
       error.response.data = {
         error_msg: '登录失效',
       };
-      // window.$message?.error('请重新登录');
       window.$message?.info(
         '请点击右上角头像进行重新登录',
         {

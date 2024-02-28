@@ -3,7 +3,11 @@
     <n-gi>
       <div class="menuItem">
         <div class="itemTitle">日期范围</div>
-        <n-date-picker v-model:formattedValue="dateRange" type="daterange" @update:formatted-value="updateDateRange" />
+        <n-date-picker
+          v-model:formattedValue="dateRange"
+          type="daterange"
+          @update:formatted-value="updateDateRange"
+        />
       </div>
     </n-gi>
     <n-gi>
@@ -15,7 +19,11 @@
     <n-gi>
       <div class="menuItem">
         <div class="itemTitle">任务类型</div>
-        <n-select v-model:value="taskType" :options="taskTypeOptions" @update:value="changeTaskType" />
+        <n-select
+          v-model:value="taskType"
+          :options="taskTypeOptions"
+          @update:value="changeTaskType"
+        />
       </div>
     </n-gi>
     <n-gi>
@@ -37,7 +45,7 @@
         :key="i"
         :style="{
           height: getRowHeight(v.tasks) + 'px',
-          lineHeight: getRowHeight(v.tasks) + 'px'
+          lineHeight: getRowHeight(v.tasks) + 'px',
         }"
       >
         <div class="gstc-list-rows-item">
@@ -89,7 +97,7 @@
             :key="i"
             :style="{
               height: getRowHeight(v.tasks) + 'px',
-              lineHeight: getRowHeight(v.tasks) + 'px'
+              lineHeight: getRowHeight(v.tasks) + 'px',
             }"
           >
             <GanttItem
@@ -109,7 +117,11 @@
               <div class="gstc-chart-timeline-row-cell" v-for="(v, i) in totalDays" :key="i"></div>
             </div>
             <div v-show="zoomValue === 'month'" class="cellWrap">
-              <div class="gstc-chart-timeline-row-cell" v-for="(v, i) in totalMonths" :key="i"></div>
+              <div
+                class="gstc-chart-timeline-row-cell"
+                v-for="(v, i) in totalMonths"
+                :key="i"
+              ></div>
             </div>
           </div>
         </div>
@@ -131,7 +143,10 @@ import { showModal } from '@/views/taskManage/task/modules/taskDetail.js';
 
 dayjs.extend(customParseFormat); // 拓展支持的自定义时间格式
 
-const dateRange = ref([dayjs().startOf('month').format('YYYY-MM-DD'), dayjs().endOf('month').format('YYYY-MM-DD')]); // 时间范围
+const dateRange = ref([
+  dayjs().startOf('month').format('YYYY-MM-DD'),
+  dayjs().endOf('month').format('YYYY-MM-DD'),
+]); // 时间范围
 const monthNum = ref(1); // 月份数量
 const monthArray = ref([]); // 月份数组
 const yearArray = ref([]); // 年份数组
@@ -151,18 +166,18 @@ const monthNameArray = [
   { name: 'Sep', num: '09' },
   { name: 'Oct', num: '10' },
   { name: 'Nov', num: '11' },
-  { name: 'Dec', num: '12' }
+  { name: 'Dec', num: '12' },
 ];
 const zoomValue = ref('day'); // 显示模式
 const zoomOptions = [
   {
     label: '按日显示',
-    value: 'day'
+    value: 'day',
   },
   {
     label: '按月显示',
-    value: 'month'
-  }
+    value: 'month',
+  },
 ];
 const scrollLeft = ref(0);
 
@@ -170,20 +185,20 @@ const taskType = ref('all');
 const taskTypeOptions = [
   {
     label: '全部任务',
-    value: 'all'
+    value: 'all',
   },
   {
     label: '版本任务',
-    value: 'version'
+    value: 'version',
   },
   {
     label: '组织任务',
-    value: 'organization'
+    value: 'organization',
   },
   {
     label: '团队任务',
-    value: 'group'
-  }
+    value: 'group',
+  },
 ];
 const changeTaskType = (typeValue) => {
   if (typeValue !== 'group') {
@@ -202,7 +217,8 @@ const changeGroup = () => {
 const initDate = (dateArray) => {
   showSpin.value = true;
   scrollLeft.value = 0;
-  monthNum.value = dayjs(dateArray[1]).startOf('month').diff(dayjs(dateArray[0]).startOf('month'), 'month') + 1;
+  monthNum.value =
+    dayjs(dateArray[1]).startOf('month').diff(dayjs(dateArray[0]).startOf('month'), 'month') + 1;
   monthArray.value = [];
   yearArray.value = [];
   totalDays.value = dayjs(dateArray[1]).diff(dateArray[0], 'day') + 1;
@@ -220,8 +236,12 @@ const initDate = (dateArray) => {
     startDateCalendar.value = dateArray[0]; // 日历开始日期
     endDateCalendar.value = dateArray[1]; // 日历结束日期
   } else {
-    startDateCalendar.value = dayjs(yearArray.value[0], 'YYYY年').startOf('year').format('YYYY-MM-DD'); // 日历开始日期
-    endDateCalendar.value = dayjs(yearArray.value.at(-1), 'YYYY年').endOf('year').format('YYYY-MM-DD'); // 日历结束日期
+    startDateCalendar.value = dayjs(yearArray.value[0], 'YYYY年')
+      .startOf('year')
+      .format('YYYY-MM-DD'); // 日历开始日期
+    endDateCalendar.value = dayjs(yearArray.value.at(-1), 'YYYY年')
+      .endOf('year')
+      .format('YYYY-MM-DD'); // 日历结束日期
   }
   getData();
 };
@@ -245,7 +265,10 @@ const getLevel0 = (date) => {
 
 // 按日显示日历每月天数
 const getDays = (date) => {
-  if (dayjs(date).isSame(startDateCalendar.value, 'month') && dayjs(date).isSame(endDateCalendar.value, 'month')) {
+  if (
+    dayjs(date).isSame(startDateCalendar.value, 'month') &&
+    dayjs(date).isSame(endDateCalendar.value, 'month')
+  ) {
     let length = dayjs(endDateCalendar.value).diff(dayjs(startDateCalendar.value), 'day') + 1;
     let arr = [];
     for (let i = 0; i < length; i++) {
@@ -253,10 +276,12 @@ const getDays = (date) => {
     }
     return arr;
   } else if (dayjs(date).isSame(endDateCalendar.value, 'month')) {
-    let length = dayjs(endDateCalendar.value).diff(dayjs(endDateCalendar.value).startOf('month'), 'day') + 1;
+    let length =
+      dayjs(endDateCalendar.value).diff(dayjs(endDateCalendar.value).startOf('month'), 'day') + 1;
     return length;
   } else if (dayjs(date).isSame(startDateCalendar.value, 'month')) {
-    let length = dayjs(startDateCalendar.value).endOf('month').diff(dayjs(startDateCalendar.value), 'day') + 1;
+    let length =
+      dayjs(startDateCalendar.value).endOf('month').diff(dayjs(startDateCalendar.value), 'day') + 1;
     let arr = [];
     for (let i = 0; i < length; i++) {
       arr.push(dayjs(startDateCalendar.value).date() + i);
@@ -292,11 +317,11 @@ const calcHeightLine = () => {
         if (v.tasks[i].heightLine === v.tasks[j].heightLine) {
           let obj1 = {
             start_time: v.tasks[i].start_time,
-            end_time: v.tasks[i].end_time
+            end_time: v.tasks[i].end_time,
           };
           let obj2 = {
             start_time: v.tasks[j].start_time,
-            end_time: v.tasks[j].end_time
+            end_time: v.tasks[j].end_time,
           };
           if (dayjs(v.tasks[i].start_time).isBefore(dayjs(startDateCalendar.value))) {
             obj1.start_time = startDateCalendar.value;
@@ -336,7 +361,11 @@ const getData = () => {
   dataList.value = [];
   milestonesList.value = [];
   showSpin.value = true;
-  getTasksGantt({ task_time: JSON.stringify(dateRange.value), type: taskType.value, group_id: groupValue.value })
+  getTasksGantt({
+    task_time: JSON.stringify(dateRange.value),
+    type: taskType.value,
+    group_id: groupValue.value,
+  })
     .then((res) => {
       dataList.value = res.data;
       calcHeightLine();
@@ -353,14 +382,14 @@ const getData = () => {
             {
               name: item.name,
               startTime: item.start_time,
-              height: 0
-            }
+              height: 0,
+            },
           ];
         } else {
           tempObj[item.start_time].push({
             name: item.name,
             startTime: item.start_time,
-            height: tempObj[item.start_time].length * 20
+            height: tempObj[item.start_time].length * 20,
           });
         }
       });
@@ -371,14 +400,14 @@ const getData = () => {
             {
               name: item.name,
               startTime: item.start_time,
-              height: 0
-            }
+              height: 0,
+            },
           ];
         } else {
           tempObj[dayjs(item.start_time).format('YYYY-MM')].push({
             name: item.name,
             startTime: item.start_time,
-            height: tempObj[dayjs(item.start_time).format('YYYY-MM')].length * 20
+            height: tempObj[dayjs(item.start_time).format('YYYY-MM')].length * 20,
           });
         }
       });
@@ -394,12 +423,12 @@ const getGroupOptions = () => {
   groupOptions.value = [];
   getGroup({
     page_num: 1,
-    page_size: 999999
+    page_size: 999999,
   }).then((res) => {
     res.data?.items?.forEach((item) => {
       groupOptions.value.push({
         label: item.name,
-        value: item.id
+        value: item.id,
       });
     });
   });
@@ -445,7 +474,6 @@ onMounted(() => {
 .gstc {
   display: flex;
   padding: 30px 50px;
-  // overflow: scroll;
   --height: 72px;
   --width: 80px;
 

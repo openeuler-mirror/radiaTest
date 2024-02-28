@@ -575,7 +575,7 @@ const baselineTreeNodeProps = ({ option }) => {
       e.preventDefault();
       selectedNode.value = option.info.data;
       getBaseNode(selectedNode.value.id).then((res) => {
-        selectedNode.value.type = res.data.type;
+        selectedNode.value.type = res.data?.type;
         options.value = renderOptions(res.data);
         currentCaseNodeId.value = res.data.case_node_id;
         nextTick(() => {

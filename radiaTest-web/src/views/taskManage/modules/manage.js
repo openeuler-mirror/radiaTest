@@ -186,11 +186,6 @@ const menu = ref([
     text: 'Dashboard',
     name: 'dashboard'
   },
-  // {
-  //   id: 1,
-  //   text: '需求中心',
-  //   name: 'require'
-  // },
   {
     id: 2,
     text: '任务看板',
@@ -251,16 +246,7 @@ function initCondition() {
         participants.value.push(option);
       });
     }
-    // if (responses[2].value?.data) {
-    //   responses[2].value.data?.items?.forEach((item) => {
-    //     const option = {
-    //       label: item.name,
-    //       value: item.id
-    //     };
-    //     executors.value.push(option);
-    //     participants.value.push(option);
-    //   });
-    // }
+
   });
 }
 
@@ -430,7 +416,6 @@ export {
   participants,
   statusOptions,
   menu,
-  // versionMenu,
   milestones,
   initCondition,
   menuClick,

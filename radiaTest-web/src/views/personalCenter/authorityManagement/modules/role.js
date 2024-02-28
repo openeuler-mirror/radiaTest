@@ -16,7 +16,7 @@ function setActiveRole(value) {
 }
 function renderGroup(options) {
   const index = roleList.value.findIndex((item) => item.key === 'group');
-  const group = roleList.value[index].children.find(
+  const group = roleList?.value[index]?.children.find(
     (item) =>
       window
         .atob(item.key)
@@ -31,7 +31,7 @@ function renderGroup(options) {
       label: options.name,
     });
   } else {
-    roleList.value[index].children.push({
+    roleList?.value[index]?.children.push({
       key: window.btoa(`group-${options.group_id}`),
       label: options.group_name,
       prefix: renderIcon(GroupsFilled),
@@ -101,11 +101,7 @@ function initRoleList() {
         key: 'org',
         children: [],
       },
-      {
-        label: '团队',
-        key: 'group',
-        children: [],
-      },
+
       {
         label: '个人',
         key: 'person',
@@ -124,11 +120,7 @@ function initRoleList() {
         key: 'org',
         children: [],
       },
-      {
-        label: '团队',
-        key: 'group',
-        children: [],
-      },
+
     ];
   }
   roleList.value.forEach((item) => {
@@ -189,11 +181,11 @@ function getRoleList() {
 }
 
 function selectRole(key, options) {
-  if (options[0].children) {
+  if (options[0]?.children) {
     return;
   }
   let _ownerId = null;
-  if (options[0].info.type === 'org') {
+  if (options[0]?.info.type === 'org') {
     _ownerId = options[0].info.org_id;
   } else if (options[0].info.type === 'group') {
     _ownerId = options[0].info.group_id;

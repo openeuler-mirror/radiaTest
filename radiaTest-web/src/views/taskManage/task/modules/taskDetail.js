@@ -5,7 +5,6 @@ import { ReportAnalytics, ArrowsSplit } from '@vicons/tabler';
 import { NIcon, NButton, NDropdown } from 'naive-ui';
 import axios from '@/axios';
 import { formatTime } from '@/assets/utils/dateFormatUtils.js';
-// import { storage } from '@/assets/utils/storageUtils';
 import { initData, getTask } from './kanbanAndTable.js';
 import { createTask, model, showRelation } from './createTask';
 import { generateMdFile, md } from './mdFile';
@@ -16,7 +15,6 @@ import 'tinymce/icons/default'; // 引用图标文件
 import 'tinymce/plugins/image'; //图片
 import 'tinymce/plugins/imagetools'; //图片工具
 import 'tinymce/plugins/nonbreaking';
-// import { workspace } from '@/assets/config/menu.js';
 import { changeTaskPercentage } from '@/api/put.js';
 import {
   getTaskFrame, getSuite, getDistributeTemplates, getDetailTaskFamily,
@@ -185,10 +183,7 @@ const menuOptions = ref([
 
 const editRole = computed(() => {
   return true;
-  // return (
-  //   modalData.value.detail?.originator?.user_id ===
-  //   String(storage.getValue('user_id'))
-  // );
+
 });
 
 // 获取任务详情数据
@@ -212,10 +207,7 @@ function getDetailTask() {
   });
 }
 const caseLoading = ref(false);
-// let expandMilestoneId = '';
-// function expandChange ({ name }) {
-//   expandMilestoneId = name;
-// }
+
 
 // 关联测试用例表格分页选项
 const casePagination = reactive({
@@ -344,17 +336,7 @@ function getTaskCases() {
     });
 }
 
-// 设置里程碑栏所占行数
-// function caseRowSpan (rowData, rowIndex) {
-//   let count = 0;
-//   tempArray.reduce((total, current) => {
-//     if (rowIndex === total) {
-//       count = current;
-//     }
-//     return total + current;
-//   }, 0);
-//   return count;
-// }
+
 
 let tempSearchStr = '';
 const suiteId = ref('');

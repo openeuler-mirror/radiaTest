@@ -5,7 +5,6 @@ import { NButton } from 'naive-ui';
 import { formatTime } from '@/assets/utils/dateFormatUtils.js';
 import { updateAjax } from '@/assets/CRUD/update';
 import { getCaseRecycleBbin } from '@/api/get';
-// import { workspace } from '@/assets/config/menu.js';
 
 const menuSelect = ref(0); // 当前页面索引值
 
@@ -175,11 +174,7 @@ const menu = ref([
     text: '用例仓库',
     name: 'folderview',
   },
-  // {
-  //   id: 2,
-  //   text: '用例评审',
-  //   name: 'caseReview',
-  // },
+
   {
     id: 3,
     text: '测试框架',

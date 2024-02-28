@@ -416,7 +416,6 @@
                             update
                           </n-tab>
                         </n-tabs>
-                        <!-- <div class="packageCard" v-show="packageTabValueFirst !== 'homonymousIsomerism'"> -->
                         <div class="packageCard">
                           <div class="package-left">
                             <n-h3>

@@ -1,6 +1,5 @@
 import { ref, computed } from 'vue';
-// import axios from '@/axios';
-// import { workspace } from '@/assets/config/menu.js';
+
 import { getSuite } from '@/api/get';
 const size = ref('medium');
 

@@ -428,7 +428,7 @@ export function getDailyBuildCompare(roundId, data) {
 
 
 
-// 对于组织下的suite类型节点，根据选择的导出文件格式按测试套导出文本用例
+// 对于组织下的测试套类型节点，根据选择的导出文件格式按测试套导出文本用例
 export function exportTestsuite(orgId, caseNodeId, data) {
   return getRequest(`/v1/org/${orgId}/case-node/${caseNodeId}/export`, data);
 }
@@ -506,9 +506,7 @@ export function getCaseRecycleBbin(data) {
 }
 
 // 用户中心
-export function getOrgCla(data) {
-  return getRequest('/v1/org/cla', data);
-}
+
 export function getGroupUser(groupInfoId, data) {
   return getRequest(`/v1/groups/${groupInfoId}/users`, data);
 }
@@ -524,7 +522,5 @@ export function getAdminOrg(data) {
 export function getAllOrgList(data) {
   return getRequest('/v1/orgs/all', data);
 }
-// export function getExchangedOrg(orgId, data) {
-//   return getRequest(`/v1/users/org?org_id=${orgId}`, data);
-// }
+
 

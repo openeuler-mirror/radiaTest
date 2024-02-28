@@ -57,7 +57,6 @@
 </template>
 
 <script>
-// import { getGroup, getOrgUser } from '@/api/get';
 import { getGroup } from '@/api/get';
 export default {
   props: ['multiple', 'defaultValue', 'id', 'type', 'executorType', 'groupId', 'originator'],
@@ -105,33 +104,7 @@ export default {
           });
       });
     },
-    // getOrgUser() {
-    //   return new Promise((resolve, reject) => {
-    //     // const id = this.$storage.getValue('loginOrgId');
-    //     const id = this.$storage.getLocalValue('unLoginOrgId').id;
-    //     getOrgUser(id, {
-    //       page_size: 99999,
-    //       page_num: 1,
-    //     })
-    //       .then((res) => {
-    //         for (const item of res.data.items) {
-    //           const element = {
-    //             id: item.user_id,
-    //             avatar: item.avatar_url,
-    //             name: item.user_name,
-    //             type: 'PERSON',
-    //           };
-    //           this.personArrayTemp.push(element);
-    //           this.personArray.push(element);
-    //         }
-    //         resolve();
-    //       })
-    //       .catch((err) => {
-    //         window.$message?.error(err.data.error_msg || '未知错误');
-    //         reject(Error('error'));
-    //       });
-    //   });
-    // },
+
     getOrgGroup() {
       return new Promise((resolve, reject) => {
         getGroup({
@@ -180,10 +153,7 @@ export default {
         await this.getGroupUser();
       } else if (this.type === 'GROUP') {
         await this.getOrgGroup();
-      } else if (this.type === 'ORGANIZATION') {
-        // await this.getOrgUser();
       } else if (this.type === 'ALL') {
-        // await this.getOrgUser();
         await this.getOrgGroup();
       }
       if (this.multiple) {
@@ -194,7 +164,6 @@ export default {
             }
             return i.id === item.user_id && i.name === item.user_name;
           });
-          // console.log(element);
           return JSON.stringify(element);
         });
         const index = this.personArray.findIndex((item) => {

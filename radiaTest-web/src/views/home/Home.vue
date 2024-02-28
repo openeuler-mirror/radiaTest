@@ -53,9 +53,4 @@ watchEffect(() => {
   transition: height 1s ease-in-out;
   display: flex;
 }
-
-/* .body {
-  position: absolute;
-  padding-top: 100px;
-} */
 </style>
