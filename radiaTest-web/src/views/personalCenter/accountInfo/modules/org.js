@@ -1,13 +1,12 @@
 import { ref, reactive, h } from 'vue';
 
-import axios from '@/axios';
 import { formatTime } from '@/assets/utils/dateFormatUtils.js';
 import { storage } from '@/assets/utils/storageUtils';
 import { state } from './userInfo';
 import { changeLoadingStatus } from '@/assets/utils/loading';
 import { NTag } from 'naive-ui';
 import { setActiveOrgInfo } from './orgDrawer';
-import { getUserInfo, getOrgCla } from '@/api/get';
+import { getUserInfo } from '@/api/get';
 
 const showAddModal = ref(false);
 const addInfo = reactive({ org: '', claEmail: '' });
@@ -40,45 +39,14 @@ const claEmailRule = {
   }
 };
 function init() {
-  let hasOrg = '';
   getUserInfo(storage.getValue('user_id')).then(res => {
     const { data } = res;
     state.userInfo = data;
-    data.orgs.forEach(item => {
-      hasOrg += (`${item.org_id},`);
-    });
-    getOrgCla({ has_org_ids: hasOrg.slice(0, hasOrg.length) }).then(response => {
-      changeLoadingStatus(false);
-      if (response.error_code === '2000') {
-        orgList.value = response.data.map(item => {
-          return {
-            label: item.organization_name,
-            value: item.organization_id
-          };
-        });
-      }
-    });
+
   }).catch((err) => {
     window.$message?.error(err.data.error_msg || '未知错误');
     changeLoadingStatus(false);
   });
-}
-function submitAddOrg() {
-  if (claEmailRule.validator() && typeof claEmailRule.validator() !== 'object' && orgNameRule.validator()) {
-    axios.post(`/v1/org/${addInfo.org}/cla`, {
-      cla_verify_params: JSON.stringify({ email: addInfo.claEmail, }),
-    }).then(res => {
-      if (res.error_code === '4010') {
-        window.$message?.warning('请先签署CLA');
-      } else if (res.error_code === '2000') {
-        window.$message?.success('添加成功');
-        showAddModal.value = false;
-        init();
-      }
-    });
-  } else {
-    window.$message?.error('请填写相关信息');
-  }
 }
 function handleAddOrg() {
   init();
@@ -149,7 +117,6 @@ export {
   addInfo,
   orgNameRule,
   claEmailRule,
-  submitAddOrg,
   init,
   handleAddOrg,
   orgRowProps

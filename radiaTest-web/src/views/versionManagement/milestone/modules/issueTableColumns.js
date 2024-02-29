@@ -60,39 +60,7 @@ const columns = [
         h(issueStateDict[row.issue_state.title]?.icon || SyncCircle, null)
       );
     }
-    // filterOptions: [
-    //   {
-    //     label: '修复中',
-    //     value: '修复中',
-    //   },
-    //   {
-    //     label: '待办的',
-    //     value: '待办的',
-    //   },
-    //   {
-    //     label: '已验收',
-    //     value: '已验收',
-    //   },
-    //   {
-    //     label: '已挂起',
-    //     value: '已挂起',
-    //   },
-    //   {
-    //     label: '已确认',
-    //     value: '已确认',
-    //   },
-    //   {
-    //     label: '已完成',
-    //     value: '已完成',
-    //   },
-    //   {
-    //     label: '已取消',
-    //     value: '已取消',
-    //   },
-    // ],
-    // filter(value, row) {
-    //   return ~row.issue_state.indexOf(value);
-    // },
+
   },
   {
     title: '编号',

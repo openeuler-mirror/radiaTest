@@ -16,18 +16,6 @@
           filterable
         />
       </n-form-item-gi>
-      <!-- <n-form-item-gi
-        :span="showGroup ? 9 : 18"
-        label="测试框架"
-        path="framework_id"
-      >
-        <n-select
-          v-model:value="model.framework_id"
-          placeholder="选择框架"
-          :options="frameworkOptions"
-          filterable
-        />
-      </n-form-item-gi> -->
     </n-grid>
   </n-form>
   <n-upload

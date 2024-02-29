@@ -1,7 +1,7 @@
 import axios from '@/axios';
 import router from '@/router';
 import { ref, h } from 'vue';
-import { NAvatar, NButton } from 'naive-ui';
+import { NAvatar } from 'naive-ui';
 import { setRuleData, setRoleInfo } from './rulestable';
 import { getRoleList } from '@/views/personalCenter/authorityManagement/modules/role';
 import { unkonwnErrorMsg } from '@/assets/utils/description';
@@ -28,75 +28,7 @@ const columns = [
       return h('span', null, [row.user_name]);
     },
   },
-  {
-    title: '手机号',
-    key: 'phone',
-    align: 'center',
-    render(row) {
-      return row.phone ? h(
-        'span',
-        null,
-        {
-          default: () => {
-            return [
-              h(
-                'span',
-                null,
-                (columnIndex.value === row.user_id && !visablePhone.value) ? row.phone : '*****'
-              ),
-              h(
-                NButton,
-                {
-                  text: true,
-                  type: 'success',
-                  style: 'margin-left:10px',
-                  onClick: () => handleShowClick(row, 'phone')
-                },
-                {
-                  default: () => (columnIndex.value === row.user_id && !visablePhone.value) ? '隐藏手机号' : '显示手机号'
-                }
-              )
-            ];
-          }
-        }
-      ) : '';
-    },
-  },
-  {
-    title: '邮箱',
-    key: 'cla_email',
-    align: 'center',
-    render(row) {
-      return row.cla_email ? h(
-        'span',
-        null,
-        {
-          default: () => {
-            return [
-              h(
-                'span',
-                null,
-                (columnIndex.value === row.user_id && !visableEmail.value) ? row.cla_email : '*****'
-              ),
-              h(
-                NButton,
-                {
-                  text: true,
-                  type: 'success',
-                  style: 'margin-left:10px',
-                  onClick: () => handleShowClick(row)
-                },
-                {
-                  default: () => (columnIndex.value === row.user_id && !visableEmail.value) ? '隐藏邮箱' : '显示邮箱'
-                }
-              )
-            ];
-          }
-        }
-      ) : '';
-    },
 
-  },
 ];
 const pagination = {
   pageSize: 5,
@@ -137,17 +69,7 @@ function deleteRole() {
     window.$message?.error(err.data?.error_msg || err.message || unkonwnErrorMsg);
   });
 }
-const visableEmail = ref(true);
-const visablePhone = ref(true);
-const columnIndex = ref(null);
-const handleShowClick = (row, tag) => {
-  if (tag && tag === 'phone') {
-    visablePhone.value = !visablePhone.value;
-  } else {
-    visableEmail.value = !visableEmail.value;
-  }
-  columnIndex.value = row.user_id;
-};
+
 export {
   description,
   titles,

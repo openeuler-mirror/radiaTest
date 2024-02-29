@@ -77,9 +77,6 @@ export default {
       this.roles = [];
       data.forEach((item) => {
         this.roles.push({ label: item.name, value: item.id });
-        // if (item.default) {
-        //   this.formValue.role_id = item.id;
-        // }
       });
     },
     changeType(value) {

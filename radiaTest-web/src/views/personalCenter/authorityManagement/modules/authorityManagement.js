@@ -1,5 +1,3 @@
-// import axios from '@/axios';
-// import router from '@/router';
 
 import { ref } from 'vue';
 
@@ -139,8 +137,6 @@ const authorityData = ref([
 ]);
 
 const authorityPagination = ref({
-  // page: 1,
-  // pageCount: 1,
   pageSizes: [10, 20, 30, 40],
   showQuickJumper: true,
   showSizePicker: true,
@@ -182,7 +178,6 @@ function authorityRowProps(rowData) {
     onClick: () => {
       showAuthorityModal.value = true;
       roleValue.value = rowData.roleID;
-      // console.log(rowData);
     },
   };
 }

@@ -40,10 +40,6 @@
             <n-avatar :src="roleInfo.avatar_url"> </n-avatar>
           </template>
           <template #header> {{ roleInfo.user_name }} </template>
-          <template #description>
-            <p>手机号:{{ roleInfo.phone }}</p>
-            <p>邮箱:{{ roleInfo.cla_email }}</p>
-          </template>
         </n-thing>
         <n-data-table :columns="ruleColumns" :data="ruleData" :pagination="rulePagination" />
       </n-drawer-content>
@@ -96,7 +92,6 @@
 import { computed } from 'vue';
 import { modules } from './modules';
 import breadcrumb from '@/components/breadcrumb/breadcrumb.vue';
-// import { UserAddOutlined } from '@vicons/antd';
 import { Search } from '@vicons/ionicons5';
 import { Settings, Delete } from '@vicons/carbon';
 import modalCard from '@/components/CRUD/ModalCard.vue';
@@ -109,7 +104,7 @@ export default {
     Settings,
     Delete,
     modalCard,
-    tableFilter
+    tableFilter,
   },
   setup() {
     modules.getRoleInfo();
@@ -121,7 +116,7 @@ export default {
       return true;
     });
     return { ...modules, Search, isPermitted };
-  }
+  },
 };
 </script>
 <style lang="less" scoped>

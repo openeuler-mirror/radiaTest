@@ -216,9 +216,6 @@ function getAtData(id, params) {
       if (!params.build_name) {
         atGroupOverviewData.value = res?.data;
         totalNum.value = res?.total_num;
-        // if (atGroupOverviewData.value) {
-        //   totalNum.value = res.total_num;
-        // }
       } else {
         atTestsOverviewData.value = res?.data;
         totalNum.value = res?.total_num;

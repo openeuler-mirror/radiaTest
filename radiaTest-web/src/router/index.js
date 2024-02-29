@@ -33,6 +33,7 @@ import Milestone from '@/views/versionManagement/milestone/milestone.vue';
 import NotFound from '@/views/resultPage/NotFound.vue';
 import newLogin from '@/views/login/newLogin.vue';
 import frameWork from '@/views/caseManage/frameWork/frameWork.vue';
+import Blank from '@/views/resultPage/Blank.vue';
 
 
 
@@ -274,6 +275,11 @@ const router = createRouter({
           }
         }
       ]
+    },
+    {
+      path: '/blank',
+      component: Blank,
+      name: 'blank'
     },
     {
       path: '/:catchAll(.*)',

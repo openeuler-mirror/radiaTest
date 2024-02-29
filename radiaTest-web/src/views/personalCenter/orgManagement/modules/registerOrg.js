@@ -13,10 +13,7 @@ function openRegisterOrgWindow() {
 const requireCla = ref(false);
 const registerModel = reactive({
   name: null,
-  claVerifyUrl: null,
-  claSignUrl: null,
-  claRequestMethod: null,
-  claPassFlag: null,
+
   enterpriseId: null,
   enterpriseToken: null,
   enterpriseJoinUrl: null,
@@ -41,36 +38,13 @@ const rules = {
     trigger: ['blur', 'input'],
     message: '请输入组织名'
   },
-  claVerifyUrl: {
-    required: true,
-    trigger: ['blur', 'input'],
-    message: '请输入cla验证地址'
-  },
-  claSignUrl: {
-    required: true,
-    trigger: ['blur', 'input'],
-    message: '请输入cla签署地址'
-  },
-  claRequestMethod: {
-    required: true,
-    trigger: ['blur', 'change'],
-    message: '请选择验证地址的请求方式'
-  },
+
   enterpriseId: {
     required: true,
     trigger: ['blur', 'input'],
     message: '请输入'
   },
-  claPassFlag: {
-    required: true,
-    trigger: ['blur', 'input'],
-    message: '请输入cla验证通过的标志'
-  },
-  oauthLoginUrl: {
-    required: true,
-    trigger: ['blur', 'input'],
-    message: '请输入'
-  },
+
   oauthClientId: {
     required: true,
     trigger: ['blur', 'input'],
@@ -151,10 +125,7 @@ function closeOrgFrom() {
   fileList.value = [];
   registerModel.name = null;
   registerModel.description = null;
-  registerModel.claVerifyUrl = null;
-  registerModel.claSignUrl = null;
-  registerModel.claPassFlag = null;
-  registerModel.claRequestMethod = null;
+
   registerModel.urlParams = [];
   registerModel.bodyParams = [];
   registerModel.authorityType = 'gitee';

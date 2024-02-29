@@ -14,17 +14,6 @@
         <div class="chart" id="distribution-pie"></div>
       </div>
     </div>
-    <!-- <div class="partMain">
-      <div class="count count1">
-        <div class="txt">commit合入</div>
-        <div class="num">{{ commitsCount }}</div>
-      </div>
-      <div class="chart_1" id="commitCounts-bar"></div>
-      <div class="chart_2">
-        <n-select v-model:value="commitSelectedTime" :options="timeOptions" />
-        <div id="commitCounts-line"></div>
-      </div>
-    </div> -->
   </div>
 </template>
 <script>
@@ -33,7 +22,6 @@ import { Search } from '@vicons/ionicons5';
 export default {
   setup() {
     onMounted(() => {
-      // modules.initData();
       nextTick(() => {
         modules.initData();
         setTimeout(() => {

@@ -145,11 +145,7 @@ const usersColumns = [
       return h('span', null, [row.user_name]);
     }
   },
-  {
-    title: '手机号',
-    key: 'phone',
-    align: 'center'
-  },
+
   {
     title: '角色',
     key: 'role',

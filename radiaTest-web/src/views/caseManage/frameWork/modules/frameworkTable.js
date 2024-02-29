@@ -138,7 +138,7 @@ const frameworkColumns = [
 function frameRowProps(row) {
   return {
     onClick: (e) => {
-      const isTrigger = e.path.some((item) => item?.classList?.contains('n-data-table-expand-trigger'));
+      const isTrigger = e?.path?.some((item) => item?.classList?.contains('n-data-table-expand-trigger'));
       if (!row.expand && isTrigger) {
         frameLoading.value = true;
         getRepo(row, frameLoading);
@@ -146,7 +146,6 @@ function frameRowProps(row) {
     }
   };
 }
-// let frameworkId ;
 function getFramework() {
   getFrameworkList().then((res) => {
     frameworkData.value = res.data.map((item) => {

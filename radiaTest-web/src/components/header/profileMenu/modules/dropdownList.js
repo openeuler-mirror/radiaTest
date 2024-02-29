@@ -54,15 +54,6 @@ const optionsUnLogin = [
       });
     },
   },
-  // {
-  //   label: '用户中心',
-  //   key: 'accountInfo',
-  //   icon() {
-  //     return h(NIcon, null, {
-  //       default: () => h(HomeOutlined)
-  //     });
-  //   }
-  // },
 
 ];
 
@@ -179,16 +170,14 @@ function handleLoginByForm() {
 function handleUpdateOrgValue(value) {
   selectedOrg.value = value;
   storage.setLocalValue('unLoginOrgId', value);
-  // location.reload();
 }
 
 function handleUpdateLoginedOrg(value) {
-  //  调用接口---接口返回的值就是model要绑定的值，然后将其存入localstorage中，更新，currentOrg和activeOrg然后刷新页面
   axios.put(`/v1/users/org/${value.id}/${value.name}`).then((res) => {
     if (res.error_msg === 'OK') {
       selectedOrg.value = value;
       storage.setLocalValue('unLoginOrgId', value);
-      // location.reload();
+      router.replace(`/blank?redirect=${router.currentRoute.value.fullPath}`);
     }
   }).catch((err) => {
     selectedOrg.value = {

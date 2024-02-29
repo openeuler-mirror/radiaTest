@@ -5,18 +5,7 @@
         <n-tabs type="line" @update:value="tabChange" :value="activeTab">
           <n-tab name="details">详情</n-tab>
           <n-tab name="auto" :disabled="!caseInfo.code">自动化脚本</n-tab>
-          <!-- <n-tab name="historicalVersion">历史版本</n-tab> -->
         </n-tabs>
-        <!--存在未完成关联任务时disabled-->
-        <!-- <n-button
-          strong
-          secondary
-          round
-          type="primary"
-          :disabled="task.accomplish_time === null"
-          @click="showCreateForm"
-          >创建关联任务</n-button
-        > -->
       </div>
       <n-card size="large">
         <n-spin stroke="rgba(0, 47, 167, 1)" :show="loading">
@@ -32,7 +21,6 @@
         </n-spin>
       </n-card>
     </div>
-    <!-- <create-drawer ref="createForm" @submit="createRelationTask" /> -->
     <caseModifyForm ref="modifyModal" :formValue="editInfoValue" @submit="editSubmit" />
     <n-modal
       v-model:show="showReportModal"
@@ -67,7 +55,6 @@
 import { modules } from './modules';
 import collapseList from '@/components/collapseList/collapseList.vue';
 import autoScript from './tabview/autoScript.vue';
-// import createDrawer from '@/components/task/createDrawer.vue';
 
 import { ref, provide } from 'vue';
 import { formatTime } from '@/assets/utils/dateFormatUtils';
@@ -78,7 +65,6 @@ export default {
   components: {
     collapseList,
     autoScript,
-    // createDrawer,
     caseModifyForm,
   },
   mounted() {

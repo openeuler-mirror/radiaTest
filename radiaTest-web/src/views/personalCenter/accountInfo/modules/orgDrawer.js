@@ -78,11 +78,7 @@ const orgDrawerColumns = [
     key: 'user_name',
     align: 'center',
   },
-  {
-    title: '手机号',
-    key: 'phone',
-    align: 'center'
-  },
+
   {
     title: '角色',
     key: 'role',

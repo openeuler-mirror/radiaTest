@@ -48,8 +48,6 @@
 import testsuiteCreate from '@/components/testsuiteComponents/testsuiteCreate.vue';
 import testsuiteTable from '@/components/testsuiteComponents/testsuiteTable.vue';
 import filterButton from '@/components/filter/filterButton.vue';
-// import { workspace } from '@/assets/config/menu.js';
-// import axios from '@/axios';
 import { getSuite } from '@/api/get';
 
 const tableRef = ref(null);

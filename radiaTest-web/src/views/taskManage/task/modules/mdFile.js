@@ -116,20 +116,7 @@ const toolbar = {
       }
     },
   },
-  // save: {
-  //   title: '保存',
-  //   icon: 'v-md-icon-save',
-  //   action () {
-  //     if (md.name) {
-  //       saveFile();
-  //     } else {
-  //       generateDailog().then(() => {
-  //         saveFile();
-  //       });
-  //     }
 
-  //   }
-  // }
 };
 
 export {

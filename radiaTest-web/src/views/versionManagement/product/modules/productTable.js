@@ -1334,14 +1334,11 @@ function handlePackageCardClick() {
 
 // 软件范围获取对比卡片数据
 const getPackageCardData = () => {
-  // const getPackageCardData = (type) => {
-  // if (type === 'softwarescope') {
   getPackageListComparationSummary(dashboardId.value, {
     refresh: false,
     repoPath: packageTabValueSecond.value,
     arch: 'all'
   });
-  // }
 };
 
 // 切换软件范围/同名异构

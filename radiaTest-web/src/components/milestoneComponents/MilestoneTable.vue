@@ -36,13 +36,6 @@ export default defineComponent({
     milestoneSocket.connect();
 
     onMounted(() => {
-      // get.list(
-      //   `/v2/ws/${workspace.value}/milestone`,
-      //   milestoneTable.totalData,
-      //   milestoneTable.loading,
-      //   milestoneTable.filter.value,
-      //   milestoneTable.pagination
-      // );
       get.list(
         '/v2/ws/default/milestone',
         milestoneTable.totalData,
@@ -51,13 +44,6 @@ export default defineComponent({
         milestoneTable.pagination
       );
       milestoneSocket.listen('update', () => {
-        // get.list(
-        //   `/v2/ws/${workspace.value}/milestone`,
-        //   milestoneTable.totalData,
-        //   milestoneTable.loading,
-        //   milestoneTable.filter.value,
-        //   milestoneTable.pagination
-        // );
         get.list(
           '/v2/ws/default/milestone',
           milestoneTable.totalData,
@@ -90,7 +76,6 @@ export default defineComponent({
       showSelection: () => selection.show(columns),
       offSelection: () => selection.off(columns),
       refreshData: () =>
-        // get.refresh(`/v2/ws/${workspace.value}/milestone`, milestoneTable.data, milestoneTable.loading, milestoneTable.filter.value)
         get.refresh(
           '/v2/ws/default/milestone',
           milestoneTable.data,

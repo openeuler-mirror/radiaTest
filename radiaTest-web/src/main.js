@@ -11,7 +11,6 @@ import { newsSocket } from '@/assets/utils/socketUtils';
 import VMdEditor from '@kangc/v-md-editor';
 import githubTheme from '@kangc/v-md-editor/lib/theme/github';
 import createTodoListPlugin from '@kangc/v-md-editor/lib/plugins/todo-list/index';
-// import createMermaidPlugin from '@kangc/v-md-editor/lib/plugins/mermaid/cdn'
 import createTipPlugin from '@kangc/v-md-editor/lib/plugins/tip/index';
 import '@kangc/v-md-editor/lib/plugins/tip/tip.css';
 import '@kangc/v-md-editor/lib/style/base-editor.css';
@@ -23,7 +22,6 @@ import 'vfonts/FiraCode.css';
 import 'animate.css';
 import 'xterm/css/xterm.css';
 import VueKityminder from '@orh/vue-kityminder';
-// highlightjs
 import hljs from 'highlight.js';
 import VueGridLayout from 'vue-grid-layout';
 //前端应用由vue框架定义

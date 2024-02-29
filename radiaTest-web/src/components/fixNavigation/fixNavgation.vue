@@ -149,7 +149,6 @@ function postScore() {
     return;
   }
   const params = {
-    // userName: guardAuthClient.value.username,
     feedbackPageUrl: window.location.href,
     feedbackText: inputText.value,
     feedbackValue: score.value,
@@ -544,12 +543,9 @@ const jumpToGitee = () => {
     }
   }
   .float-wrap {
-    // position: fixed;
     display: flex;
     flex-direction: column;
-    // bottom: 200px;
-    // right: 80px;
-    // z-index: 10;
+
     .float-tip {
       position: absolute;
       width: 200px;

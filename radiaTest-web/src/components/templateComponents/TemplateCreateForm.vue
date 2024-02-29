@@ -71,15 +71,7 @@
                 filterable
               />
             </n-form-item-gi>
-            <!-- <n-form-item-gi :span="8" label="测试脚本代码仓" path="git_repo_id">
-              <n-select
-                :options="gitRepoOpts"
-                v-model:value="formValue.git_repo_id"
-                placeholder="选择模板绑定的测试脚本代码仓"
-                @update:value="changeRepo"
-                filterable
-              />
-            </n-form-item-gi> -->
+
             <n-form-item-gi :span="16" label="模板描述" path="description">
               <n-input v-model:value="formValue.description" />
             </n-form-item-gi>
@@ -320,7 +312,6 @@ const renderSourceList = ({ onCheck }) => {
           checkable: true,
           selectable: false,
           blockLine: true,
-          // checkOnClick: true,
           cascade: true,
           checkStrategy: 'child',
           showIrrelevantNodes: false,
@@ -538,7 +529,6 @@ onMounted(async () => {
       (item) => item.label === versionResultValue.value
     )[0].value;
     // 获取里程碑列表
-    // await getMilestoneOpts(milestoneOpts, formValue.value.version);
     formValue.value.milestone_id = modalData.value.milestone_id.toString();
   }
 });

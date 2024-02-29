@@ -45,7 +45,6 @@ const handleCheck = (rowKeys) => {
   store.commit('selected/setSelectedData', rowKeys);
 };
 function getTableData() {
-  // get.list(`/v2/ws/${workspace.value}/milestone`, totalData, loading, filter.value, pagination);
   get.list('/v2/ws/default/milestone', totalData, loading, filter.value, pagination);
 }
 function changePage(page) {

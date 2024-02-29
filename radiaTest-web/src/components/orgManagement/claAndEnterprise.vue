@@ -1,31 +1,5 @@
 <template>
-  <n-tabs animated default-value="cla" size="large" justify-content="space-evenly">
-    <n-tab-pane name="cla" tab="CLA">
-      <n-table :single-line="false">
-        <tbody>
-          <tr>
-            <td>cla签署地址</td>
-            <td>{{ info.cla_sign_url }}</td>
-          </tr>
-          <tr>
-            <td>cla验证地址</td>
-            <td>{{ info.cla_verify_url }}</td>
-          </tr>
-          <tr>
-            <td>验证地址的请求方式</td>
-            <td>{{ info.cla_request_type }}</td>
-            <td>验证通过的标志</td>
-            <td>{{ info.cla_pass_flag }}</td>
-          </tr>
-          <tr>
-            <td>cla验证参数</td>
-            <td>{{ info.cla_verify_params }}</td>
-            <td>body中的参数</td>
-            <td>{{ info.cla_verify_body }}</td>
-          </tr>
-        </tbody>
-      </n-table>
-    </n-tab-pane>
+  <n-tabs animated default-value="type" size="large" justify-content="space-evenly">
     <n-tab-pane name="type" :tab="tabName">
       <n-table :single-line="false">
         <tbody>

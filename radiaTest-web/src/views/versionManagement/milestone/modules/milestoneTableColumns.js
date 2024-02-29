@@ -5,7 +5,6 @@ import { NIcon, NButton, NSpace, NPopselect } from 'naive-ui';
 import { Construct } from '@vicons/ionicons5';
 import { renderTooltip } from '@/assets/render/tooltip';
 import { Delete24Regular as Delete } from '@vicons/fluent';
-// import { PlugDisconnected20Filled, Connector20Filled } from '@vicons/fluent';
 import { Link, Unlink } from '@vicons/carbon';
 import milestoneTable from '@/views/versionManagement/milestone/modules/milestoneTable.js';
 import textDialog from '@/assets/utils/dialog';

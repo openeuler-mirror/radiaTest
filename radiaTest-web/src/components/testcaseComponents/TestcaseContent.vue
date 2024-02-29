@@ -10,28 +10,6 @@
             </template>
           </n-button>
           <caseModifyForm @submit="submit" ref="updateModalRef" :formValue="formValue" />
-          <!-- <modal-card
-            :initY="100"
-            :initX="300"
-            title="编辑文本用例内容"
-            ref="updateModalRef"
-            @validate="() => updateFormRef.handlePropsButtonClick()"
-            @submit="updateFormRef.put()"
-          >
-            <template #form>
-              <testcase-update-content-form
-                ref="updateFormRef"
-                :rowData="form"
-                @valid="() => updateModalRef.submitCreateForm()"
-                @close="
-                  () => {
-                    updateModalRef.close();
-                    emitUpdateEvent();
-                  }
-                "
-              />
-            </template>
-          </modal-card> -->
         </template>
         <pre>{{ form.description }}</pre>
       </n-thing>
@@ -60,16 +38,11 @@
 <script>
 import { ref, defineComponent } from 'vue';
 
-// import ModalCard from '@/components/CRUD/ModalCard.vue';
-// import TestcaseUpdateContentForm from './TestcaseUpdateContentForm.vue';
 import { Edit } from '@vicons/fa';
 import caseModifyForm from '@/components/testcaseComponents/caseModifyForm.vue';
-// import { createCaseReview } from '@/api/post';
 
 export default defineComponent({
   components: {
-    // TestcaseUpdateContentForm,
-    // ModalCard,
     Edit,
     caseModifyForm,
   },
@@ -93,13 +66,7 @@ export default defineComponent({
       deep: true,
     },
   },
-  methods: {
-    // submit(value){
-    //   createCaseReview({...value,case_detail_id:this.form.id}).then(()=>{
-    //     this.$refs.updateModalRef.close();
-    //   });
-    // }
-  },
+  methods: {},
   setup(props, context) {
     const updateFormRef = ref(null);
     const updateModalRef = ref(null);

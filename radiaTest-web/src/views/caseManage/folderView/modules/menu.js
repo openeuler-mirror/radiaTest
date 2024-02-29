@@ -30,7 +30,6 @@ import {
   getOrgMilestone,
   getOrphanGroupSuites,
   getOrphanOrgSuites,
-  // getUserInfo,
   getSuite,
   getCasesNode
 } from '@/api/get';
@@ -51,8 +50,7 @@ import {
 } from 'naive-ui';
 import router from '@/router';
 import { createFormRef, createModalRef, importModalRef } from './createRef';
-
-// import { workspace } from '@/assets/config/menu.js';
+import textDialog from '@/assets/utils/dialog';
 
 function renderIcon(icon) {
   return () =>
@@ -356,59 +354,7 @@ function getRootNodes() {
   };
   releaseMenu.value.push(item);
   menuList.value.push(item);
-  // if (storage.getValue('token')) {
-  //   getUserInfo(storage.getValue('user_id')).then((res) => {
-  //     const { data } = res;
-  //     data.orgs.forEach((item) => {
-  //       if (item.org_name === 'openEuler') {
-  //         releaseMenu.value.push({
-  //           label: item.org_name,
-  //           key: `org-${item.org_id}`,
-  //           info: {
-  //             org_id: item.org_id
-  //           },
-  //           actions,
-  //           iconColor: 'rgba(0, 47, 167, 1)',
-  //           isLeaf: false,
-  //           type: 'org',
-  //           root: true,
-  //           icon: Organization20Regular
-  //         });
-  //       }
-  //       if (item.re_user_org_default) {
-  //         menuList.value.push({
-  //           label: item.org_name,
-  //           key: `org-${item.org_id}`,
-  //           info: {
-  //             org_id: item.org_id
-  //           },
-  //           actions,
-  //           iconColor: 'rgba(0, 47, 167, 1)',
-  //           isLeaf: false,
-  //           type: 'org',
-  //           root: true,
-  //           icon: Organization20Regular
-  //         });
-  //       }
-  //     });
-  //   });
-  // } else {
-  //   let item = {
-  //     label: storage.getLocalValue('unLoginOrgId').name,
-  //     key: `org-${storage.getLocalValue('unLoginOrgId').id}`,
-  //     info: {
-  //       org_id: storage.getLocalValue('unLoginOrgId').id,
-  //     },
-  //     actions,
-  //     iconColor: 'rgba(0, 47, 167, 1)',
-  //     isLeaf: false,
-  //     type: 'org',
-  //     root: true,
-  //     icon: Organization20Regular,
-  //   };
-  //   releaseMenu.value.push(item);
-  //   menuList.value.push(item);
-  // }
+
 
 }
 
@@ -470,10 +416,7 @@ const moveRules = {
 const files = ref();
 
 function validateUploadInfo() {
-  // if (!info.value) {
-  //   window.$message?.error('请选择测试框架');
-  //   return false;
-  // }
+
   const suffix = files.value[0].name.split('.').pop();
   const vaildSuffix = ['rar', 'zip', 'gz', 'xz', 'bz2', 'tar'];
   if (!vaildSuffix.includes(suffix)) {
@@ -1076,15 +1019,6 @@ function applyTemplate(node) {
     .catch(() => {
       changeLoadingStatus(false);
     });
-  // casenodeApplyTemplate(node.info.id, templateId.value)
-  //   .then((res) => {
-  //     const length = res.data?.length;
-  //     window.$message?.info(`${node.info.title}已成功增量应用该模板, 新建${length}个节点`);
-  //     getCaseNode(node);
-  //   })
-  //   .finally(() => {
-  //     changeLoadingStatus(false);
-  //   });
 }
 
 function moveCaseNode(node) {
@@ -1123,24 +1057,37 @@ function relateSuiteCase(node, nodeType) {
 }
 
 function deleteCaseNode(node) {
-  changeLoadingStatus(true);
-  axios
-    .delete(`/v1/case-node/${node.info.id}`)
-    .then(() => {
-      changeLoadingStatus(false);
-      const index = node.parent.children.findIndex((item) => item.info.id === node.info.id);
-      node.parent.children.splice(index, 1);
-      if (
-        router.currentRoute.value.name === 'testcaseNodes' &&
-        router.currentRoute.value.params.taskId !== 'development'
-      ) {
-        getDetail(window.atob(router.currentRoute.value.params.taskId));
-      }
-    })
-    .catch((err) => {
-      changeLoadingStatus(false);
-      window.$message.error(err.data.error_msg || '未知错误');
-    });
+  let deleteInfo;
+  if (node?.type === 'baseline') {
+    deleteInfo = '基线';
+  } else if (node?.type === 'directory') {
+    deleteInfo = '子目录';
+  } else if (node?.type === 'suite') {
+    deleteInfo = '测试套';
+  } else {
+    deleteInfo = '测试用例';
+  }
+  textDialog('warning', '警告', `确认删除此${deleteInfo}吗？`, () => {
+    changeLoadingStatus(true);
+    axios
+      .delete(`/v1/case-node/${node.info.id}`)
+      .then(() => {
+        changeLoadingStatus(false);
+        const index = node.parent.children.findIndex((item) => item.info.id === node.info.id);
+        node.parent.children.splice(index, 1);
+        if (
+          router.currentRoute.value.name === 'testcaseNodes' &&
+          router.currentRoute.value.params.taskId !== 'development'
+        ) {
+          getDetail(window.atob(router.currentRoute.value.params.taskId));
+        }
+      })
+      .catch((err) => {
+        changeLoadingStatus(false);
+        window.$message.error(err.data.error_msg || '未知错误');
+      });
+  });
+
 }
 
 function renameCaseNode(node) {

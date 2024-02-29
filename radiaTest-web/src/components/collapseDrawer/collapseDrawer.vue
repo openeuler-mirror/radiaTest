@@ -6,28 +6,13 @@
         <n-tooltip trigger="hover">
           <template #trigger>
             <slot name="armrest">
-              <n-icon
-                size="40"
-                color="#000"
-                :depth="5"
-                v-if="placement === 'right'"
-              >
+              <n-icon size="40" color="#000" :depth="5" v-if="placement === 'right'">
                 <caret-back />
               </n-icon>
-              <n-icon
-                size="40"
-                color="#000"
-                :depth="5"
-                v-else-if="placement === 'left'"
-              >
+              <n-icon size="40" color="#000" :depth="5" v-else-if="placement === 'left'">
                 <caret-forward />
               </n-icon>
-              <n-icon
-                size="40"
-                color="#000"
-                :depth="5"
-                v-else-if="placement === 'top'"
-              >
+              <n-icon size="40" color="#000" :depth="5" v-else-if="placement === 'top'">
                 <caret-down-outline />
               </n-icon>
               <n-icon size="40" color="#000" :depth="5" v-else>
@@ -53,29 +38,27 @@ export default {
   props: {
     placement: {
       type: String,
-      default: 'right'
+      default: 'right',
     },
     contentWidth: {
       type: String,
-      default: '200px'
+      default: '200px',
     },
     outClickHide: {
       type: Boolean,
-      default: false
-    }
+      default: false,
+    },
   },
   data() {
     return {
-      show: false
+      show: false,
     };
   },
   mounted() {
     if (this.placement === 'left' || this.placement === 'right') {
-      // this.$refs.content.style.width = this.contentWidth;
       this.$refs.content.style.width = 0;
       this.$refs.content.style.height = '100%';
     } else {
-      // this.$refs.content.style.height = this.contentWidth;
       this.$refs.content.style.height = 0;
       this.$refs.content.style.width = '100%';
     }
@@ -135,19 +118,18 @@ export default {
     getContainerPosition() {
       if (this.placement === 'left' || this.placement === 'right') {
         this.$refs.container.style.height = '100%';
-        // this.$refs.container.style.transform = `translateX(${this.contentWidth})`;
         if (this.placement === 'left') {
           this.$refs.container.style.flexDirection = 'row-reverse';
         }
       } else {
         this.$refs.container.style.width = '100%';
-        // this.$refs.container.style.transform = `translateY(${this.contentWidth})`;
-        this.placement === 'top' ? this.$refs.container.style.flexDirection = 'column-reverse' : this.$refs.container.style.flexDirection = 'column';
+        this.placement === 'top'
+          ? (this.$refs.container.style.flexDirection = 'column-reverse')
+          : (this.$refs.container.style.flexDirection = 'column');
       }
     },
     getPosition() {
       this.$refs.body.style[this.placement] = 0;
-      // console.log(this.$refs.armrest.style.clientWidth);
       if (this.placement === 'left' || this.placement === 'right') {
         this.$refs.body.style.height = '100%';
         this.$refs.body.style.top = 0;
@@ -157,10 +139,12 @@ export default {
       } else {
         this.$refs.body.style.width = '100%';
         this.$refs.body.style.left = 0;
-        this.placement === 'top' ? this.$refs.body.style.flexDirection = 'column-reverse' : this.$refs.body.style.flexDirection = 'column';
+        this.placement === 'top'
+          ? (this.$refs.body.style.flexDirection = 'column-reverse')
+          : (this.$refs.body.style.flexDirection = 'column');
       }
-    }
-  }
+    },
+  },
 };
 </script>
 <style scoped lang="less">
