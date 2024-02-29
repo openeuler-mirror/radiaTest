@@ -32,6 +32,7 @@ from server.schema.requirement import (
     AttachmentFilenameSchema,
     AttachmentLockSchema
 )
+from server.utils.file_util import identify_file_type, FileTypeMapping
 
 
 def get_requirement_tag():
@@ -297,6 +298,10 @@ class RequirementItemAttachmentEvent(Resource):
 
         try:
             _handler = RequirementItemHandler(requirement_id)
+            # 文件头检查 支持大多数类型文件压缩包、execl、markdown等
+            verify_flag, res = identify_file_type(_file, FileTypeMapping.case_set_type + FileTypeMapping.test_case_type)
+            if verify_flag is False:
+                return res
             return _handler.upload_attachment(_type, _file)
         except RuntimeError as e:
             return jsonify(

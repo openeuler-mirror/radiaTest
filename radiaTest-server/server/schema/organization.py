@@ -49,13 +49,6 @@ class AddSchema(BaseModel):
     oauth_client_secret: Optional[str]
     oauth_scope: Optional[str]
 
-    cla_verify_url: Optional[str]
-    cla_verify_params: Optional[str]
-    cla_verify_body: Optional[str]
-    cla_sign_url: Optional[str]
-    cla_request_type: Optional[str]
-    cla_pass_flag: Optional[str]
-
     @root_validator
     def validate_enterpise(cls, values):
         if not values["oauth_client_id"] or not values["oauth_client_secret"] or not values["oauth_login_url"] \
@@ -76,15 +69,7 @@ class AddSchema(BaseModel):
             except AttributeError as e:
                 raise TypeError(str(e)) from e
 
-        if values.get("cla_verify_url"):
-            if not values["cla_sign_url"] or not values["cla_request_type"] or not values["cla_pass_flag"]:
-                raise TypeError("lack of cla info to create this organization")
-
         return values
-
-
-class UpdateSchema(AddSchema):
-    name: Optional[str]
 
 
 class OrgBaseSchema(AddSchema):
@@ -107,33 +92,16 @@ class UpdateSchema(BaseModel):
     oauth_client_secret: Optional[str]
     oauth_scope: Optional[str]
 
-    cla_verify_url: Optional[str]
-    cla_verify_params: Optional[str]
-    cla_verify_body: Optional[str]
-    cla_sign_url: Optional[str]
-    cla_request_type: Optional[str]
-    cla_pass_flag: Optional[str]
     is_delete: bool = None
 
 
 class ReUserOrgSchema(BaseModel):
     re_user_org_id: int = Field(alias='id')
-    re_user_org_cla_info: str = Field(alias="cla_info")
     re_user_org_is_delete: bool = Field(alias="is_delete")
     re_user_org_role_type: int = Field(alias="role_type")
     re_user_org_create_time: datetime = Field(alias="create_time")
     re_user_org_default: bool = Field(alias="default")
     role: dict = None
-
-    @validator("re_user_org_cla_info")
-    def validator_cla_info(cls, v):
-        try:
-            data = json.loads(v)
-            if "email" in data:
-                data["email"] = User.mask_cla_email(data["email"])
-            return data
-        except:
-            return None
 
 
 class OrgQuerySchema(PageBaseSchema):

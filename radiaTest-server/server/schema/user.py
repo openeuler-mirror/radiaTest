@@ -32,11 +32,6 @@ class UserBaseSchema(BaseModel):
     user_login: str
     user_name: str
     avatar_url: str
-    cla_email: Optional[str]
-
-    @validator("cla_email")
-    def validator_cla_email(cls, value):
-        return User.mask_cla_email(value) if value else ""
 
 
 class UserQuerySchema(BaseModel):
@@ -44,7 +39,6 @@ class UserQuerySchema(BaseModel):
     user_login: Optional[str]
     user_name: Optional[str]
     avatar_url: Optional[str]
-    cla_email: Optional[str]
     page_num: int
     page_size: int
 

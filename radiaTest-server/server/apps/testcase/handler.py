@@ -17,16 +17,13 @@
 import abc
 import math
 import os
-import shutil
 import time
 import datetime
 from typing import List
 import openpyxl
 from openpyxl.styles import Alignment
-import pytz
 
 from flask import jsonify, g, current_app, request
-from sqlalchemy import func
 import sqlalchemy
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
@@ -46,7 +43,6 @@ from server.model.testcase import (
 from server.model.framework import GitRepo
 from server.model.task import Task, TaskMilestone, TaskManualCase
 from server.model.celerytask import CeleryTask
-from server.model.user import User
 from server.model.organization import Organization
 from server.model.milestone import Milestone
 from server.schema.testcase import (
@@ -68,7 +64,7 @@ class CaseImportHandler:
         "md": MdUtil.df2md,
         "xlsx": MdUtil.md2wb,
     }
-    
+
     def __init__(self, file):
         try:
             try:
@@ -422,21 +418,22 @@ class CaseNodeHandler:
     @staticmethod
     @collect_sql_error
     def import_case_set(file, group_id):
+        zip_case_set = ZipImportFile(file)
         uncompressed_filepath = None
         try:
-            zip_case_set = ZipImportFile(file)
-
             if zip_case_set.filetype:
                 zip_case_set.file_save(
                     current_app.config.get("TMP_FILE_SAVE_PATH")
                 )
-
                 uncompressed_filepath = "{}/{}".format(
                     os.path.dirname(zip_case_set.filepath),
-                    zip_case_set.filename
+                    f"{zip_case_set.filename}_" + datetime.datetime.now().strftime("%Y%m%d%H%M%S")
                 )
-
-                zip_case_set.uncompress(os.path.dirname(zip_case_set.filepath))
+                uncompress_flag = zip_case_set.uncompress(uncompressed_filepath)
+                # 清理压缩包
+                zip_case_set.clean_and_delete()
+                if uncompress_flag is False:
+                    return jsonify(error_code=RET.BAD_REQ_ERR, error_msg="解压失败，请检查压缩文件是否符合规范！")
 
                 permission_type = "org"
                 if group_id:
@@ -447,7 +444,6 @@ class CaseNodeHandler:
                         group_id = None
                 else:
                     group_id = None
-
                 _task = resolve_testcase_set.delay(
                     zip_case_set.filepath,
                     uncompressed_filepath,
@@ -477,20 +473,14 @@ class CaseNodeHandler:
                 return jsonify(error_code=RET.OK, error_msg="OK")
 
             else:
-                if os.path.exists(zip_case_set.filepath):
-                    zip_case_set.file_remove()
-                if uncompressed_filepath and os.path.exists(uncompressed_filepath):
-                    shutil.rmtree(uncompressed_filepath)
-
+                # 清理压缩包
+                zip_case_set.clean_and_delete()
                 return jsonify(error_code=RET.FILE_ERR, error_msg="filetype is not supported")
 
         except RuntimeError as e:
             current_app.logger.error(str(e))
-
-            if os.path.exists(zip_case_set.filepath):
-                zip_case_set.file_remove()
-            if uncompressed_filepath and os.path.exists(uncompressed_filepath):
-                shutil.rmtree(uncompressed_filepath)
+            # 清理压缩包和解压目录
+            zip_case_set.clean_and_delete(uncompressed_filepath)
 
             return jsonify(error_code=RET.SERVER_ERR, error_msg=str(e))
 

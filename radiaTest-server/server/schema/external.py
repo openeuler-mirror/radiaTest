@@ -71,7 +71,6 @@ class LoginOrgListSchema(BaseModel):
     org_id: int = Field(alias="id")
     org_name: str = Field(alias="name")
     org_avatar: Optional[str] = Field(alias="avatar_url")
-    cla_sign_url: Optional[str]
     enterprise_join_url: Optional[str]
     authority: Optional[str]
 

@@ -101,6 +101,18 @@ class RedisClient(object):
     def ttl(self, name):
         return self.connection.ttl(name)
 
+    def zrangebyscore(self, name, min_value, max_value):
+        return self.connection.zrangebyscore(name, min_value, max_value)
+
+    def zadd(self, name, mapping):
+        return self.connection.zadd(name, mapping)
+
+    def zrem(self, name, member):
+        return self.connection.zrem(name, member)
+
+    def zcard(self, name):
+        return self.connection.zcard(name)
+
 
 def format_str_wrapper(str_prefix=None, str_suffix=None):
     def get_str_func(value):

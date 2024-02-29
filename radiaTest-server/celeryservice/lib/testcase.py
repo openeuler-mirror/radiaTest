@@ -30,6 +30,7 @@ from server.schema.testcase import CaseNodeBodyInternalSchema
 from server.model.testcase import Suite, Case, CaseNode
 from server.utils.md_util import MdUtil
 from server import db
+from server.utils.shell import local_cmd
 
 
 class TestcaseHandler(TaskAuthHandler):
@@ -381,7 +382,7 @@ class TestcaseHandler(TaskAuthHandler):
                         "running_time": self.running_time,
                     }
                 )
-
+                self.clean_file(filepath)
                 return jsonify(
                     error_code=RET.OK,
                     error_msg=mesg,
@@ -403,7 +404,8 @@ class TestcaseHandler(TaskAuthHandler):
                         "running_time": self.running_time,
                     }
                 )
-
+                # 清理解析文件
+                self.clean_file(filepath)
                 return jsonify(error_code=RET.OK, error_msg=mesg)
 
         except RuntimeError as e:
@@ -417,7 +419,8 @@ class TestcaseHandler(TaskAuthHandler):
                     "running_time": self.running_time,
                 }
             )
-
+            # 清理解析文件
+            self.clean_file(filepath)
             return jsonify(error_code=RET.SERVER_ERR, error_msg=str(e))
 
     def resolve_case_set(self, zip_filepath, unzip_filepath):
@@ -459,3 +462,15 @@ class TestcaseHandler(TaskAuthHandler):
             )
 
             return jsonify(error_code=RET.SERVER_ERR, error_msg=str(e))
+
+    @staticmethod
+    def clean_file(filepath):
+        if os.path.exists(filepath):
+            try:
+                os.remove(filepath)
+            except Exception as error:
+                # 用例集导入文件为uncompress用户权限
+                current_app.logger.error(str(error))
+                local_cmd("sudo -u uncompress rm -rf '{}'".format(filepath))
+
+
