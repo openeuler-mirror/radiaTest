@@ -68,10 +68,7 @@ class TestcaseHandler(TaskAuthHandler):
         return case_node.id
 
     def md2xlsx(self, file):
-        _wb_path = "{}{}.xlsx".format(
-            current_app.config.get("TMP_FILE_SAVE_PATH"),
-            file.name.split('/')[-1],
-        )
+        _wb_path = os.path.join(current_app.config.get("TMP_FILE_SAVE_PATH"), "testcase", file.name.split('/')[-1])
         
         wb = openpyxl.Workbook()
         wb.create_sheet(file.name.split('/')[-1])

@@ -86,10 +86,10 @@ class ImportFile:
             return None
         return result[1], result[2]
     
-    def file_save(self, dir, timestamp=True):
+    def file_save(self, tmp_path, timestamp=True):
         if timestamp:
             self.filepath = os.path.join(
-                dir, 
+                tmp_path,
                 secure_filename(
                     ''.join(
                         lazy_pinyin(
@@ -104,7 +104,7 @@ class ImportFile:
             )
         else:
             self.filepath = os.path.join(
-                dir, 
+                tmp_path,
                 secure_filename(
                     ''.join(
                         lazy_pinyin(

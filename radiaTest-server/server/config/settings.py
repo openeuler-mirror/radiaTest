@@ -96,7 +96,7 @@ class Config(object):
     ]
 
     # 上传服务端文件的暂存地址
-    TMP_FILE_SAVE_PATH = "/tmp/"
+    TMP_FILE_SAVE_PATH = "/opt/radiaTest/tmp/"
 
     # openEuler-QA团队配置
     # openEuler-QA团队名
@@ -123,8 +123,6 @@ class Config(object):
     }
 
     # 执行任务
-    # 服务端框架存放路径
-    SERVER_DOWNLOAD_PATH = "/tmp"
 
     # 每组测试环境，最大执行时长
     MAX_RUN_TIME = 3600
@@ -151,6 +149,12 @@ class Config(object):
     SWAGGER_SWITCH = "off"  # 生产环境必须关闭
     SWAGGER_URL = "/static/api_docs"  # nginx代理原因, 必须以/static路径开头才能访问
     SWAGGER_YAML_FILE = "swagger.yaml"  # 实际api文件, 将文件放入
+
+    # sqlalchemy
+    SQLALCHEMY_POOL_SIZE = 20
+    SQLALCHEMY_POOL_TIMEOUT = 300
+    SQLALCHEMY_MAX_OVERFLOW = 10
+    SQLALCHEMY_POOL_RECYCLE = 5400
 
 
 class TestingConfig(Config):

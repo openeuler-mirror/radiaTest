@@ -56,6 +56,10 @@ RUN useradd -ms /bin/bash uncompress
 # 配置radiaTest免密操作uncompress
 RUN echo "radiatest ALL=(uncompress) NOPASSWD: ALL" >> /etc/sudoers
 
+# 创建文件存放目录
+RUN mkdir -p /opt/radiaTest/tmp/export
+RUN mkdir -p /opt/radiaTest/tmp/testcase
+
 # /opt/radiaTest增加权限
 RUN chown -R radiaTest:radiaTest /opt/radiaTest
 RUN chown -R radiaTest:radiaTest /etc/supervisord.d
