@@ -30,7 +30,7 @@ from server.schema.testcase import CaseNodeBodyInternalSchema
 from server.model.testcase import Suite, Case, CaseNode
 from server.utils.md_util import MdUtil
 from server import db
-from server.utils.shell import local_cmd
+from server.utils.shell import run_cmd
 
 
 class TestcaseHandler(TaskAuthHandler):
@@ -468,6 +468,6 @@ class TestcaseHandler(TaskAuthHandler):
             except Exception as error:
                 # 用例集导入文件为uncompress用户权限
                 current_app.logger.error(str(error))
-                local_cmd("sudo -u uncompress rm -rf '{}'".format(filepath))
+                _, _, _ =run_cmd("sudo -u uncompress rm -rf '{}'".format(filepath))
 
 
