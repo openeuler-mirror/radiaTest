@@ -64,6 +64,8 @@ class GiteeV8BaseIssueHandler(IssueOpenApiHandler):
             self.body = body
         if org_id is None:
             org_id = redis_client.hget(RedisKey.user(g.user_id), 'current_org_id')
+        else:
+            org_id = int(org_id)
         super().__init__(Issue, "/issue", org_id=org_id)
 
     @property

@@ -60,12 +60,6 @@ def init_asr():
     init_public_login(app, redis_client)
 
 
-@app.cli.command("prepare_recv_id")
-def prepare_recv_id():
-    from server.utils.read_from_yaml import get_recv_id
-    get_recv_id(db, app)
-
-
 @app.cli.command("swagger_init")
 def swagger_init():
     # 批量添加路由地址和请求方式

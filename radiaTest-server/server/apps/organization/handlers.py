@@ -12,6 +12,7 @@
 # @Date    :
 # @License : Mulan PSL v2
 #####################################
+import re
 
 from flask import request, jsonify
 from sqlalchemy import or_
@@ -97,10 +98,12 @@ def handler_org_user_page(org_id):
     # 获取组织下的所有用户
     filter_params = []
     if group_id:
+        group_id = int(group_id)
         re_u_g = ReUserGroup.query.filter_by(is_delete=False, group_id=group_id).all()
         user_ids = [item.user.user_id for item in re_u_g]
         filter_params.append(User.user_id.in_(user_ids))
-    if name:
+    if name and len(str(name)) <= 255:
+        name = re.escape(str(name))
         filter_params.append(or_(User.user_name.like(f'%{name}%'), User.user_login.like(f'%{name}%')))
     if not group_id and not name:
         filter_params.append(User.org_id == org_id)

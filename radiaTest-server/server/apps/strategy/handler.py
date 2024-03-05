@@ -15,11 +15,9 @@
 
 import json
 import os
-import subprocess
 
 from flask import current_app, g, jsonify
 import requests
-
 
 from celeryservice import celeryconfig
 from server import db, redis_client
@@ -31,6 +29,7 @@ from server.model.product import Product
 from server.model.user import User
 from server.model.strategy import ReProductFeature, Strategy
 from server.utils.db import Insert, collect_sql_error
+from server.utils.shell import run_cmd
 
 
 class FeatureHandler:
@@ -310,18 +309,15 @@ class CommitHandler:
             os.mkdir(file_path)
         try:
             if os.path.isdir(f'{file_path}/QA'):
-                exitcode, _ = subprocess.getstatusoutput(
-                    "pushd {}/QA && git pull && popd".format(
-                        file_path
-                    )
-                )
+                exitcode, _, _ = run_cmd("pushd {}/QA && git pull && popd".format(file_path))
             else:
-                exitcode, _ = subprocess.getstatusoutput(
-                    "pushd {} && git clone https://gitee.com/radiaTest_bot/QA -b {} && popd".format(
-                        file_path,
-                        self.user_params.get("branch_name")
-                    )
+                exitcode, _, _ = run_cmd("pushd {} " \
+                                         "&& git clone https://gitee.com/radiaTest_bot/QA -b {} && popd".format(
+                    file_path,
+                    self.user_params.get("branch_name")
                 )
+                )
+
             if exitcode != 0:
                 return None
 
@@ -330,39 +326,21 @@ class CommitHandler:
             export_file = self.put_feature_strategy(file_path, md_content)
 
             # git commit
-            exitcode, msg = subprocess.getstatusoutput(
-                "cd {}/QA && git config user.name {} && git config user.email {}".format(
-                    file_path,
-                    self.user_params.get("branch_name"),
-                    self.user_params.get("email"),
+            exitcode, out, msg = run_cmd("cd {}/QA && git config user.name {} && git config user.email {} " \
+                                         "&& git add . && git commit -m {}".format(
+                file_path,
+                self.user_params.get("branch_name"),
+                self.user_params.get("email"),
+                self.title,
                 )
             )
+
             if exitcode != 0:
-                raise RuntimeError(f'Git-config Error: {msg}')
-
-            exitcode, msg = subprocess.getstatusoutput(
-                "cd {}/QA && git add . && git commit -m {} ".format(
-                    file_path,
-                    self.title,
-                )
-            )
-            if exitcode != 0:
-                raise RuntimeError(f'Git-command Error: {msg}')
-
-            exitcode, msg = subprocess.getstatusoutput(
-                "cd {}/QA ".format(
-                    file_path,
-                )
-            )
-
-            exitcode1, msg = subprocess.getstatusoutput(
-                "sh /opt/radiaTest/radiaTest-server/server/apps/strategy/push.sh {}/QA".format(
+                raise RuntimeError(f'Git operate Error: {msg}')
+            _, _, _ = run_cmd("sh /opt/radiaTest/radiaTest-server/server/apps/strategy/push.sh {}/QA".format(
                     file_path
-                ))
+                )
+            )
         except (RuntimeError, ValueError) as e:
             if os.path.exists(file_path):
-                exitcode, _ = subprocess.getstatusoutput(
-                    "rm -rf {}".format(file_path)
-                )
-            raise ValueError(str(e))
-
+                _, _, _ = run_cmd("rm -rf {}".format(file_path))

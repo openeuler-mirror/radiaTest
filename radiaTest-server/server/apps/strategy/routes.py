@@ -16,7 +16,7 @@
 
 import json
 
-from flask import g, jsonify, current_app, request
+from flask import g, jsonify
 from flask_restful import Resource
 from flask_pydantic import validate
 from sqlalchemy import not_
@@ -25,12 +25,11 @@ from server import redis_client, db, swagger_adapt
 from server.utils.page_util import PageUtil
 from server.utils.redis_util import RedisKey
 from server.utils.auth_util import auth
-from server.utils.file_util import FileUtil
 from server.utils.response_util import RET, response_collect
 from server.model.product import Product
 from server.model.qualityboard import Feature
 from server.model.strategy import ReProductFeature, Strategy, StrategyTemplate, StrategyCommit
-from server.utils.db import Insert, Edit, Delete, Precise, collect_sql_error
+from server.utils.db import Insert, Edit, collect_sql_error
 from server.schema.strategy import (
     FeatureQuerySchema,
     FeatureSetBodySchema,

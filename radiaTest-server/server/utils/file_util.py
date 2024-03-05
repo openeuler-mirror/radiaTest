@@ -31,8 +31,8 @@ from flask import current_app, jsonify
 from pypinyin import lazy_pinyin
 
 from server.utils.response_util import RET
-from server.utils.shell import local_cmd
 from server import redis_client
+from server.utils.shell import run_cmd
 
 
 class FileUtil(object):
@@ -47,7 +47,7 @@ class FileUtil(object):
             file_storage.save(f'{current_app.static_folder}{file_path_temp}{file_suffix}')
 
             return f'https://{current_app.config.get("SERVER_ADDR")}' \
-                f'{current_app.static_url_path}{file_path_temp}{file_suffix}'.replace(os.path.sep, '/')
+                   f'{current_app.static_url_path}{file_path_temp}{file_suffix}'.replace(os.path.sep, '/')
 
         except Exception as e:
             current_app.logger.error(f'file save error{e}')
@@ -74,8 +74,8 @@ class ImportFile:
         self.file = file
         self.filepath = None
         self.valid_types = [".+"]
-        self.filename=filename
-        self.filetype=filetype
+        self.filename = filename
+        self.filetype = filetype
         if not filename and not filetype:
             self.filename, self.filetype = self._validate_filetype()
 
@@ -85,7 +85,7 @@ class ImportFile:
         if not result:
             return None
         return result[1], result[2]
-    
+
     def file_save(self, tmp_path, timestamp=True):
         if timestamp:
             self.filepath = os.path.join(
@@ -94,8 +94,8 @@ class ImportFile:
                     ''.join(
                         lazy_pinyin(
                             "{}.{}.{}".format(
-                                self.filename, 
-                                datetime.datetime.now().strftime("%Y%m%d%H%M%S"), 
+                                self.filename,
+                                datetime.datetime.now().strftime("%Y%m%d%H%M%S"),
                                 self.filetype
                             )
                         )
@@ -109,7 +109,7 @@ class ImportFile:
                     ''.join(
                         lazy_pinyin(
                             "{}.{}".format(
-                                self.filename, 
+                                self.filename,
                                 self.filetype
                             )
                         )
@@ -119,7 +119,7 @@ class ImportFile:
 
         if os.path.exists(self.filepath):
             raise RuntimeError("Filepath is already exist: {}".format(self.filepath))
-    
+
         self.file.save(self.filepath)
 
     def file_remove(self):
@@ -127,17 +127,17 @@ class ImportFile:
             raise RuntimeError("This file could not be removed, due to not exist")
 
         cmd = "rm -rf {}".format(quote(self.filepath))
-        local_cmd(cmd)
+        _, _, _ = run_cmd(cmd)
 
 
 class ZipImportFile(ImportFile):
     def __init__(self, file) -> None:
         super().__init__(file)
         self.valid_types = [
-            "rar", 
-            "zip", 
-            "tar", 
-            "tar.gz", 
+            "rar",
+            "zip",
+            "tar",
+            "tar.gz",
             "tar.xz",
             "tar.bz2"
         ]
@@ -146,14 +146,13 @@ class ZipImportFile(ImportFile):
 
     def uncompress(self, uncompressed_filepath):
         # 赋予uncompress解压目录权限
-        local_cmd("mkdir -p '{}'".format(uncompressed_filepath))
-        local_cmd("chmod 777 '{}'".format(uncompressed_filepath))
+        _, _, _ = run_cmd("mkdir -p '{}' && chmod 777 '{}'".format(uncompressed_filepath, uncompressed_filepath))
         # 使用uncompress普通用户,安全解压
         safe_uncompress = Path(__file__).parent.joinpath("safe_uncompress.py")
-        _, data = local_cmd("sudo -u uncompress python3 '{}' -t '{}' -f '{}' -d '{}'".format(
+        _, data, _ = run_cmd("sudo -u uncompress python3 '{}' -t '{}' -f '{}' -d '{}'".format(
             safe_uncompress, self.filetype, self.filepath, uncompressed_filepath))
         if "uncompress success!" in data:
-            local_cmd("sudo -u uncompress chmod -R 755 '{}'".format(uncompressed_filepath))
+            _, _, _ = run_cmd("sudo -u uncompress chmod -R 755 '{}'".format(uncompressed_filepath))
             return True
         else:
             current_app.logger.error(f"{data}")
@@ -164,16 +163,16 @@ class ZipImportFile(ImportFile):
         if os.path.exists(self.filepath):
             self.file_remove()
         if uncompressed_filepath and os.path.exists(uncompressed_filepath):
-            local_cmd("sudo -u uncompress rm -rf '{}'".format(uncompressed_filepath))
+            _, _, _ = run_cmd("sudo -u uncompress rm -rf '{}'".format(uncompressed_filepath))
 
 
 class ExcelImportFile(ImportFile):
     def __init__(self, file) -> None:
         super().__init__(file)
         self.valid_types = [
-            "csv", 
-            "xlsx", 
-            "xls", 
+            "csv",
+            "xlsx",
+            "xls",
         ]
         self.filename, self.filetype = self._validate_filetype()
 
@@ -240,9 +239,9 @@ def identify_file_type(file, need_type):
         return True, None
     else:
         return False, jsonify(
-                    error_code=RET.BAD_REQ_ERR,
-                    error_msg="File header is not supported!"
-                )
+            error_code=RET.BAD_REQ_ERR,
+            error_msg="File header is not supported!"
+        )
 
 
 class FileTypeMapping(object):

@@ -22,7 +22,6 @@ from server.model.group import Group
 from server.utils.auth_util import auth
 from server.utils.response_util import response_collect
 from server.schema.permission import (
-    AccessableMachinesQuery,
     RoleBaseSchema,
     RoleUpdateSchema,
     RoleQuerySchema,

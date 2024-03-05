@@ -40,14 +40,10 @@ class CheckRound(BaseModel):
     @validator("rounds")
     def check_rounds(cls, rounds):
         if rounds:
-            pattern = re.compile(r"[0,1]*")
+            pattern = re.compile(r"^[0]*1[0]*$")
             if not pattern.findall(rounds):
                 raise ValueError(
-                    "rounds can only contain 1 and 0."
-                )
-            if rounds.count("1") != 1:
-                raise ValueError(
-                    "rounds must contain one digit 1."
+                    "rounds can only contain 1 and 0.also rounds must contain one digit 1."
                 )
         return rounds
 

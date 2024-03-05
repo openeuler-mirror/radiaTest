@@ -15,23 +15,18 @@
 
 #####################################
 from datetime import datetime, timedelta
-import os
 import re
-import shlex
-from subprocess import getstatusoutput
 import pytz
 
 import yaml
-from flask import current_app, jsonify, request, make_response, send_file, render_template
+from flask import current_app, jsonify, request, make_response, render_template
 from flask_restful import Resource
 from flask_pydantic import validate
 
-from server import casbin_enforcer, swagger_adapt
-from server.utils.auth_util import auth
+from server import swagger_adapt
 from server.schema.external import (
     LoginOrgListSchema,
     OpenEulerUpdateTaskBase,
-    DeleteCertifiSchema,
     QueryTestReportFileSchema,
 )
 from server.model.group import Group
@@ -41,16 +36,14 @@ from server.model.qualityboard import DailyBuild, WeeklyHealth
 from server.model.milestone import TestReport
 from server.utils.db import Insert
 from server.utils.response_util import RET
-from server.utils.file_util import ImportFile, identify_file_type, FileTypeMapping
+from server.utils.file_util import identify_file_type, FileTypeMapping
 from celeryservice.tasks import resolve_dailybuild_detail, resolve_rpmcheck_detail
 from server.model.milestone import Milestone
-from server.utils.response_util import response_collect
 from server.apps.external.handler import (
     UpdateRepo,
     UpdateTaskHandler,
     UpdateTaskForm,
     AtHandler,
-    MajunLoginHandler,
 )
 from server.utils.external_auth_util import external_auth
 
@@ -150,166 +143,6 @@ class LoginOrgList(Resource):
             error_code=RET.OK,
             error_msg="OK",
             data=return_data
-        )
-
-
-class CaCert(Resource):
-    @auth.login_required()
-    @response_collect
-    @swagger_adapt.api_schema_model_map({
-        "__module__": get_external_tag.__module__,
-        "resource_name": "CaCert",
-        "func_name": "get",
-        "tag": get_external_tag(),
-        "summary": "获取ca证书",
-        "externalDocs": {"description": "", "url": ""},
-
-    })
-    def get(self):
-        return send_file(
-            current_app.config.get("CA_CERT"),
-            as_attachment=True
-        )
-
-    @swagger_adapt.api_schema_model_map({
-        "__module__": get_external_tag.__module__,
-        "resource_name": "CaCert",
-        "func_name": "post",
-        "tag": get_external_tag(),
-        "summary": "机器组ca证书更新",
-        "externalDocs": {"description": "", "url": ""},
-        "request_schema_model": {
-            "description": "",
-            "content": {
-                "multipart/form-data": {
-                    "schema": {
-                            "type": "object",
-                            "properties": {
-                                        "san": {
-                                            "title": "签名字符串",
-                                            "type": "string"
-                                        },
-                                        "ip": {
-                                            "title": "messenger ip",
-                                            "type": "string"
-                                        },
-                                        "csr": {
-                                            "type": "string",
-                                            "format": "binary"}},
-                            "required": ["san", "ip", "csr"]
-                    }}}}
-    })
-    def post(self):
-        _san = request.form.get("san")
-        _messenger_ip = request.form.get("ip")
-        _csr_file = request.files.get("csr")
-
-        if not _messenger_ip or not _csr_file or not _san:
-            return make_response(
-                jsonify(
-                    validation_error="lack of ip address/csr file/subject alternative name"
-                ),
-                current_app.config.get("FLASK_PYDANTIC_VALIDATION_ERROR_STATUS_CODE", 400)
-            )
-        # 文件头检查
-        verify_flag, res = identify_file_type(_csr_file, ["text/plain"])
-        if verify_flag is False:
-            return res
-        csr_file = ImportFile(
-            _csr_file,
-            filename=request.form.get("ip"),
-            filetype="csr"
-        )
-
-        try:
-            csr_file.file_save(
-                "{}/csr".format(
-                    current_app.config.get("CA_DIR")
-                ),
-                timestamp=True,
-            )
-        except RuntimeError as e:
-            return make_response(
-                jsonify(
-                    message=str(e)
-                ),
-                500
-            )
-
-        certs_dir = "{}/certs".format(
-            current_app.config.get("CA_DIR")
-        )
-        if not os.path.exists(certs_dir):
-            csr_file.file_remove()
-            return make_response(
-                jsonify(
-                    message="the directory to storage certfile does not exist"
-                ),
-                500
-            )
-
-        certs_path = f"{certs_dir}/{_messenger_ip}.crt"
-
-        caconf_path = "{}/conf/ca.cnf".format(current_app.config.get("CA_DIR"))
-
-        exitcode, output = getstatusoutput(
-            "bash server/apps/external/certs_sign.sh {} {} {} {}".format(
-                shlex.quote(csr_file.filepath),
-                shlex.quote(certs_path),
-                caconf_path,
-                shlex.quote(_san)
-            )
-        )
-
-        if exitcode != 0:
-            csr_file.file_remove()
-            return make_response(
-                jsonify(
-                    message=f"fail to create certfile for machine group of messenger ip {_messenger_ip}: {output}"
-                ),
-                500
-            )
-        else:
-            return send_file(certs_path, as_attachment=True)
-
-    @auth.login_required()
-    @response_collect
-    @casbin_enforcer.enforcer
-    @validate()
-    @swagger_adapt.api_schema_model_map({
-        "__module__": get_external_tag.__module__,
-        "resource_name": "CaCert",
-        "func_name": "delete",
-        "tag": get_external_tag(),
-        "summary": "删除机器组ca证书",
-        "externalDocs": {"description": "", "url": ""},
-        "query_schema_model": DeleteCertifiSchema
-    })
-    def delete(self, body: DeleteCertifiSchema):
-        
-        _cert_file = "{0}/certs/{1}.crt".format(
-            current_app.config.get("CA_DIR"),
-            body.ip,
-        )
-        _openssl_cfg = "{0}/openssl.cnf".format(
-            current_app.config.get("CA_DIR"),
-        )
-
-        exitcode, output = getstatusoutput(
-            "openssl ca -revoke {0} -config {1}".format(
-                shlex.quote(_cert_file),
-                shlex.quote(_openssl_cfg),
-            )
-        )
-
-        if exitcode != 0:
-            raise RuntimeError(
-                f"fail to delete certfile for machine group of messenger ip {body.ip}: {output}"
-            )
-
-        return jsonify(
-            error_code=RET.OK,
-            error_msg="OK"
         )
 
 
@@ -618,71 +451,3 @@ class GetTestReportFileEvent(Resource):
         current_app.template_folder = tmp_folder
         return resp
 
-
-class MajunCheckTokenEvent(Resource):
-    @auth.login_required()
-    @swagger_adapt.api_schema_model_map({
-        "__module__": get_external_tag.__module__,
-        "resource_name": "MajunCheckTokenEvent",
-        "func_name": "post",
-        "tag": get_external_tag(),
-        "summary": "Majun token 检查",
-        "externalDocs": {"description": "", "url": ""},
-    })
-    def post(self):
-        return jsonify(
-            error_code=RET.OK,
-            error_msg="success"
-        )
-
-
-class MajunLoginEvent(Resource):
-    @swagger_adapt.api_schema_model_map({
-        "__module__": get_external_tag.__module__,
-        "resource_name": "MajunLoginEvent",
-        "func_name": "get",
-        "tag": get_external_tag(),
-        "summary": "Majun登录",
-        "externalDocs": {"description": "", "url": ""},
-        "query_schema_model": [{
-            "name": "type",
-            "in": "query",
-            "required": True,
-            "style": "form",
-            "explode": True,
-            "description": "登录类型",
-            "schema": {"type": "string", "enum": ["openeuler", "gitee"]}},
-            {
-                "name": "org_id",
-                "in": "query",
-                "required": True,
-                "style": "form",
-                "explode": True,
-                "description": "组织id",
-                "schema": {"type": "string"}},
-            {
-                "name": "access_token",
-                "in": "query",
-                "required": True,
-                "style": "form",
-                "explode": True,
-                "description": "令牌",
-                "schema": {"type": "string"}}],
-    })
-    def get(self):
-        majun = MajunLoginHandler(
-            request.values.get("type"), request.values.get("org_id"), request.values.get("access_token")
-        )
-        result = majun.login()
-
-        if result[0]:
-            return jsonify(
-                error_code=RET.OK,
-                error_msg="success",
-                data={"user_id": result[1], "token": result[2], "url": result[3]}
-            )
-        else:
-            return jsonify(
-                error_code=RET.RUNTIME_ERROR,
-                error_msg=result[1],
-            )

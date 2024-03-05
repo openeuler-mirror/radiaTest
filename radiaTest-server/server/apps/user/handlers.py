@@ -18,7 +18,6 @@ from datetime import datetime, timedelta
 import pytz
 from flask import current_app, request, Response, redirect, g, jsonify
 from sqlalchemy import or_, and_, extract
-import sqlalchemy
 
 from server import redis_client
 from server.utils.response_util import RET

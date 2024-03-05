@@ -18,6 +18,7 @@ from flask import current_app
 from server import redis_client
 from server.utils.math_util import calculate_rate
 from celeryservice.lib import TaskHandlerBase
+from server.utils.shell import run_cmd
 
 
 class RpmCheckHandler(TaskHandlerBase):
@@ -83,15 +84,12 @@ class RpmCheckHandler(TaskHandlerBase):
         )
 
         rpmcheck_path = current_app.config.get("RPMCHECK_FILE_PATH")
-        exitcode, file_list = subprocess.getstatusoutput(
-            f"ls -l {rpmcheck_path} | sed '1d' " + " | awk '{print $9}'"
-        )
+        exitcode, file_list, _ = run_cmd(f"ls -l {rpmcheck_path} | sed '1d' " + " | awk '{print $9}'")
+
         if exitcode != 0:
             current_app.logger.info(file_list)
             return
         for _file in file_list.split("\n"):
             if _file.replace(".yaml", "") not in _rpmchecks:
-                exitcode, output = subprocess.getstatusoutput(
-                    f"rm -f {rpmcheck_path}/{_file}"
-                )
+                _, _, _ = run_cmd(f"rm -f {rpmcheck_path}/{_file}")
 

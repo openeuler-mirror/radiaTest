@@ -19,7 +19,6 @@ from flask_pydantic import validate
 from server import casbin_enforcer, swagger_adapt
 from server.utils.auth_util import auth
 from server.utils.response_util import response_collect, RET, workspace_error_collect
-from server.schema.base import PageBaseSchema
 from server.schema.task import (
     AddTaskStatusSchema,
     UpdateTaskStatusSchema,

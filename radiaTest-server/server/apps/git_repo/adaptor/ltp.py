@@ -17,6 +17,7 @@ import shlex
 import subprocess
 
 from server.apps.git_repo.adaptor import GitRepoAdaptor
+from server.utils.shell import run_cmd
 
 
 class Ltp(GitRepoAdaptor):
@@ -29,12 +30,8 @@ class Ltp(GitRepoAdaptor):
         _work_dir = self._get_work_dir(f"{self.oet_path}/runtest")
         if not _work_dir:
             return None
+        exitcode, output, _ = run_cmd("cd {} && ls | grep -v Makefile".format(shlex.quote(_work_dir)))
 
-        exitcode, output = subprocess.getstatusoutput(
-            "cd {} && ls | grep -v Makefile".format(
-                shlex.quote(_work_dir)
-            )
-        )
         if exitcode:
             return None
 

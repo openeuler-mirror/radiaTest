@@ -16,44 +16,9 @@
 #####################################
 
 import re
-import shlex
 
 
 class Mugen:
-    @staticmethod
-    def deploy_main_cmd(path, machine):
-        return "cd {}/mugen && \
-                bash mugen.sh -c --ip {} --password {} --port {} --user {}".format(
-        path,
-        shlex.quote(machine.ip),
-        shlex.quote(machine.password),
-        shlex.quote(str(machine.port)),
-        shlex.quote(machine.user),
-    )
-
-    @staticmethod
-    def deploy_init_cmd(path):
-        return "cd %s/mugen && mkdir -p ~/.pip && echo -e '[global]\\nindex-url = https://repo.huaweicloud.com/repository/pypi/simple\\ntrusted-host = repo.huaweicloud.com\\ntimeout = 120\\n' > ~/.pip/pip.conf && bash dep_install.sh" % (path)
-
-    @staticmethod
-    def run_all_cmd(path):
-        return "cd %s/mugen && bash mugen.sh -a -x" % (path)
-
-    @staticmethod
-    def run_suite_cmd(path, testsuite):
-        return 'cd {}/mugen && bash mugen.sh -f "{}" -x'.format(
-            path,
-            testsuite,
-        )
-
-    @staticmethod
-    def run_case_cmd(path, testsuite, testcase):
-        return 'cd {}/mugen && bash mugen.sh -f "{}" -r "{}" -x'.format(
-            path,
-            testsuite,
-            testcase,
-        )
-
     @staticmethod
     def loads_logs(logs_lines):
         """Loading text of logs file, stratifying data to store

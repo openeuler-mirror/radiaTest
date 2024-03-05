@@ -44,7 +44,6 @@ from server.schema.task import (
     TaskBaseSchema,
     TaskInfoSchema,
     TagInfoSchema,
-    PageBaseSchema,
     TaskCaseResultSchema,
     TaskRecycleBinInfo,
     DeleteTaskList,

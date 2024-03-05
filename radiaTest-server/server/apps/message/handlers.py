@@ -14,6 +14,7 @@
 #####################################
 
 import json
+import re
 
 from flask import g, jsonify, request
 from flask_socketio import emit
@@ -203,7 +204,8 @@ def handler_group_page():
         ReUserGroup.is_delete.is_(False),
         ReUserGroup.org_id == redis_client.hget(RedisKey.user(g.user_id), 'current_org_id')
     ]
-    if name:
+    if name and len(str(name)) <= 255:
+        name = re.escape(str(name))
         filter_group.append(Group.name.like(f"%{name}%"))
 
     re_user_group_sub = ReUserGroup.query.filter(*filter_re_user_group).subquery()
