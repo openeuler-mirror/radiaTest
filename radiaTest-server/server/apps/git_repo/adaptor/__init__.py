@@ -19,6 +19,8 @@ import subprocess
 import shlex
 from typing import List
 
+from server.utils.shell import run_cmd
+
 
 class GitRepoAdaptor:
     # the kinds of filetype to be recognized as a testcase 
@@ -58,13 +60,12 @@ class GitRepoAdaptor:
                 - exitcode(int): when exitcode is not equal to 0, download failed
                 - output(str): the output of executing the download command
         """
-        exitcode, output = subprocess.getstatusoutput(
-            "git config http.version HTTP/1.1 & git clone -b {} {} {}".format(
-                shlex.quote(self.branch),
-                shlex.quote(self.git_url),
-                shlex.quote(self.oet_path),
-            )
-        )
+        exitcode, output, _ = run_cmd("git config http.version HTTP/1.1 & git clone -b {} {} {}".format(
+            shlex.quote(self.branch),
+            shlex.quote(self.git_url),
+            shlex.quote(self.oet_path),
+        ))
+
         return exitcode, output
 
     @abc.abstractmethod
@@ -75,7 +76,7 @@ class GitRepoAdaptor:
             :params git_repo_id(int)
             :returns [tuple], [(testsuite data，[testcase data])]
         """
-    
+
     def _get_work_dir(self, work_dir: str) -> str:
         """
         Determine whether the root path of the test case resolution is 
@@ -89,8 +90,8 @@ class GitRepoAdaptor:
         return work_dir
 
     def _get_suites(self,
-        git_repo_id: int, dir: str, 
-        prefix: str = "", pass_through: bool = False) -> List[tuple]:
+                    git_repo_id: int, dir: str,
+                    prefix: str = "", pass_through: bool = False) -> List[tuple]:
         """
         Retrieve all projects within the specified directory, 
         with each project treated as a test suite.
@@ -110,17 +111,17 @@ class GitRepoAdaptor:
             file_path = os.path.join(dir, filename)
             if not os.path.isdir(file_path):
                 continue
-            
+
             suite_data = self.default_suite_dict
             suite_data.update({
                 "name": f"{prefix}{filename}",
-                "git_repo_id": git_repo_id,                                                                                                                                                                                                                                                                                                                                                                                                                           
+                "git_repo_id": git_repo_id,
             })
             suite2cases.append(
                 (
-                    suite_data, 
+                    suite_data,
                     self._get_cases(
-                        suite=filename, 
+                        suite=filename,
                         dir=file_path,
                         prefix="" if not pass_through else prefix,
                     )
@@ -159,7 +160,7 @@ class GitRepoAdaptor:
         for filename in os.listdir(dir):
             _file_path = os.path.join(dir, filename)
 
-            if (os.path.isfile(_file_path)): 
+            if (os.path.isfile(_file_path)):
                 _case_name, _case_ext = os.path.splitext(filename)
                 if not _case_name or not _case_ext:
                     continue
@@ -168,11 +169,11 @@ class GitRepoAdaptor:
                     case = self.default_case_dict
                     case.update({
                         "suite": f"{prefix}{suite}",
-                        "name": f"{prefix}{os.path.splitext(filename)[0]}",                                                                                                                                                                                                                                                                                                                                                                                                                               
+                        "name": f"{prefix}{os.path.splitext(filename)[0]}",
                     })
                     cases.append(case)
 
             elif os.path.isdir(_file_path):
                 cases += self._get_cases(suite, _file_path, prefix)
-        
+
         return cases

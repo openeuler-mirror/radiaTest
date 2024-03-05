@@ -26,3 +26,4 @@ from server.model.message import Message, MsgLevel, MsgType
 from server.model.baselinetemplate import BaselineTemplate, BaseNode
 from server.model.strategy import Strategy, StrategyCommit, StrategyTemplate
 from server.model.testcase import SuiteDocument
+from server.model.requirement import Requirement, RequirementPackage, RequirementAcceptor, RequirementProgress, RequirementPublisher

@@ -68,25 +68,6 @@ class Group(db.Model, PermissionBaseModel, BaseModel):
             super().add_update(table, namespace, broadcast)
             return True
 
-    def add_update_influence(self, table=None, namespace=None, broadcast=False):
-        groups = aliased(Group)
-        sub_query = db.session.query(
-            func.count(groups.id)
-        ).filter(
-            groups.is_delete == False,
-            groups.org_id == int(self.org_id),
-            Group.is_delete == False,
-            Group.org_id == int(self.org_id),
-            groups.influence > Group.influence,
-        ).as_scalar()
-        db.session.query(Group).filter(
-            Group.is_delete.is_(False), Group.org_id == int(self.org_id)
-        ).update(
-            {"rank": sub_query + 1}, synchronize_session=False
-        )
-
-        return super().add_update(table, namespace, broadcast)
-
     def to_summary(self):
         return {
             'id': self.id,

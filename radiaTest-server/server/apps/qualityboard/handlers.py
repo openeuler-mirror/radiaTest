@@ -44,6 +44,7 @@ from server.utils.page_util import PageUtil
 from server.utils.md_util import MdUtil
 from server.utils.rpm_util import RpmNameComparator, RpmNameLoader
 from celeryservice.tasks import resolve_pkglist_after_resolve_rc_name, resolve_pkglist_from_url
+from server.utils.shell import run_cmd
 
 
 class ChecklistHandler:
@@ -115,24 +116,24 @@ class ChecklistResultHandler:
         round_num = int(_round.round_num)
         if round_num == 100:
             round_num = 0
-        
+
         _cls = Checklist.query.join(CheckItem).filter(
             Checklist.product_id == _round.product.id,
             Checklist.checkitem_id == CheckItem.id,
             CheckItem.type == "issue",
         ).all()
-        
+
         for _cl in _cls:
             if _cl.rounds[round_num] == "1":
                 fns = _cl.checkitem.field_name.split("_")
                 passed = "_".join(fns[:-1] + ["passed"])
                 data.append(
                     {
-                       "title": _cl.checkitem.title,
-                       "baseline": _cl.baseline.split(",")[round_num],
-                       "operation": _cl.operation.split(",")[round_num],
-                       "current_value": issue_rate_dict.get(_cl.checkitem.field_name),
-                       "compare_result": issue_rate_dict.get(passed),
+                        "title": _cl.checkitem.title,
+                        "baseline": _cl.baseline.split(",")[round_num],
+                        "operation": _cl.operation.split(",")[round_num],
+                        "current_value": issue_rate_dict.get(_cl.checkitem.field_name),
+                        "compare_result": issue_rate_dict.get(passed),
                     }
                 )
         return data
@@ -150,11 +151,11 @@ class QualityResultCompareHandler:
         field_val = str(field_val).replace("%", "")
         baseline = baseline.replace("%", "")
 
-        lt =  lambda x, y: x < y
-        gt =  lambda x, y: x > y
-        le =  lambda x, y: x <= y
-        ge =  lambda x, y: x >= y
-        eq =  lambda x, y: x == y
+        lt = lambda x, y: x < y
+        gt = lambda x, y: x > y
+        le = lambda x, y: x <= y
+        ge = lambda x, y: x >= y
+        eq = lambda x, y: x == y
         operation_dict = {
             "<": lt,
             ">": gt,
@@ -191,7 +192,7 @@ class QualityResultCompareHandler:
     @collect_sql_error
     def get_baseline(self, field):
         p = None
-        if self.obj_type == "product": 
+        if self.obj_type == "product":
             p = Product.query.filter_by(id=self.obj_id).first()
             iter_num = 0
         elif self.obj_type == "round":
@@ -228,7 +229,7 @@ class QualityResultCompareHandler:
         if r_flag == "1":
             return cl.baseline.split(",")[iter_num], cl.operation.split(",")[iter_num]
         else:
-            return None, None 
+            return None, None
 
 
 class CheckItemHandler:
@@ -258,7 +259,7 @@ class CheckItemHandler:
                 error_msg='OK',
                 data=data
             )
-        
+
         page_dict, e = PageUtil.get_page_dict(
             filter_chain, query.page_num, query.page_size, func=lambda x: x.to_json())
         if e:
@@ -369,7 +370,6 @@ class FeatureHandler:
         if kwargs.get("product_id"):
             self.product_id = kwargs.get("product_id")
 
-
     @abc.abstractmethod
     def get_md_content(self, product_version) -> str:
         pass
@@ -400,7 +400,7 @@ class FeatureHandler:
             rows[i] = dict(zip(colnames, row))
 
         return rows
-    
+
     @abc.abstractmethod
     def store(self, socket_namespace=None):
         pass
@@ -415,17 +415,12 @@ class OpenEulerReleasePlanHandler(FeatureHandler):
         "涉及软件包列表": "pkgs",
     }
 
-
     def get_md_content(self, product_version) -> str:
         if os.path.isdir("/tmp/release-management"):
-            exitcode, _ = subprocess.getstatusoutput(
-                "pushd /tmp/release-management && git pull && popd"
-            )
+            exitcode, _, _ = run_cmd("pushd /tmp/release-management && git pull && popd")
         else:
-            exitcode, _ = subprocess.getstatusoutput(
-                "pushd /tmp && git clone \
-                    https://gitee.com/openeuler/release-management && popd"
-            )
+            exitcode, _, _ = run_cmd("pushd /tmp && git clone https://gitee.com/openeuler/release-management && popd")
+
         if exitcode != 0:
             return None
 
@@ -437,13 +432,12 @@ class OpenEulerReleasePlanHandler(FeatureHandler):
             md_content = f.read()
 
         return md_content
-    
 
-    def store(self, socket_namespace=None):       
+    def store(self, socket_namespace=None):
         for data in self.rows:
             if data.get("status") == "discussion":
                 continue
-            
+
             _is_done, _is_testing, _is_developing = False, False, False
             if isinstance(data.get("status"), str):
                 _is_done = data.get("status").lower() == "accepted"
@@ -486,24 +480,22 @@ class OpenEulerReleasePlanHandler(FeatureHandler):
                     db.session.rollback()
                     raise e
 
-
     def statistic(self, _is_new: bool):
         result = defaultdict(int)
         result["developing_count"] = self._stat_status(_is_new, "Developing")
         result["testing_count"] = self._stat_status(_is_new, "Testing")
         result["accepted_count"] = self._stat_status(_is_new, "Accepted")
-        
+
         accepted_count = result["developing_count"] + \
-            result["testing_count"] + result["accepted_count"]
-         
+                         result["testing_count"] + result["accepted_count"]
+
         result["accepted_rate"] = 100
         if accepted_count != 0:
             result["accepted_rate"] = floor(
                 result["accepted_count"] / accepted_count * 100
             )
-        
-        return result
 
+        return result
 
     def _stat_status(self, _is_new, _status):
         _query = db.session.query(func.count(self.table.id))
@@ -539,7 +531,7 @@ class PackageListHandler:
         org = Organization.query.filter_by(id=org_id).first()
         if not org:
             raise ValueError(f"this api only serves for milestones of organizations")
-        
+
         if self._round.type == "round":
             self.pkgs_repo_url = current_app.config.get(f"{org.name.upper()}_DAILYBUILD_REPO_URL")
             if not self.pkgs_repo_url:
@@ -624,7 +616,7 @@ class PackageListHandler:
     def compare(self, packages):
         if not self.packages or not packages:
             return None
-        
+
         rpm_name_dict_comparer, repeat_rpm_list_comparer = RpmNameLoader.rpmlist2rpmdict(self.packages)
         rpm_name_dict_comparee, repeat_rpm_list_comparee = RpmNameLoader.rpmlist2rpmdict(packages)
 
@@ -636,7 +628,7 @@ class PackageListHandler:
     def compare2(self, packages):
         if not self.packages or not packages:
             return None
-        
+
         rpm_name_dict_comparer = RpmNameLoader.rpmlist2rpmdict_by_name(self.packages)
         rpm_name_dict_comparee = RpmNameLoader.rpmlist2rpmdict_by_name(packages)
 
@@ -651,7 +643,7 @@ class DailyBuildPackageListHandler(PackageListHandler):
         self.repo_name = repo_name
         self.repo_path = f"{repo_name}-{repo_path}-{arch}"
         self.repo_url = repo_url
-        self.packages = self.get_packages() 
+        self.packages = self.get_packages()
 
     def get_packages(self):
         _path = current_app.config.get("PRODUCT_PKGLIST_PATH")
@@ -733,7 +725,7 @@ class RoundHandler:
                 error_code=RET.NO_DATA_ERR,
                 error_msg="round or milstone does not exist",
             )
-        
+
         for m_id in milestone_ids.split(","):
             m = Milestone.query.filter_by(id=m_id).first()
             if not m:
@@ -774,7 +766,7 @@ class RoundHandler:
 
     @staticmethod
     def get_rounds(product_id):
-        return Select(Round, {"product_id":product_id}).precise()
+        return Select(Round, {"product_id": product_id}).precise()
 
     @staticmethod
     def update_round_issue_rate(round_id):
@@ -795,7 +787,7 @@ class RoundHandler:
             ).single()
 
         uird = UpdateIssueRateData(
-           {"product_id": _round.product_id, "org_id": _round.product.org_id} 
+            {"product_id": _round.product_id, "org_id": _round.product.org_id}
         )
         uird.update_issue_resolved_rate_round(round_id)
         return jsonify(
@@ -1003,7 +995,7 @@ class ReportHandler(object):
         # 获取issue_type为type_name所有issue
         filter_param = [Milestone.product_id == self.product_id, Milestone.is_sync.is_(True)]
         if self.round_id:
-            filter_param.append(Milestone.round_id == self.round_id)
+            filter_param.append(Milestone.round_id == int(self.round_id))
         milestones = Milestone.query.filter(*filter_param).all()
         issue_list = []
         if not milestones:
@@ -1011,9 +1003,9 @@ class ReportHandler(object):
         m_ids = ",".join([str(i.gitee_milestone_id) for i in milestones])
         query_dict = self.params.__dict__
         update_params = {
-                "milestone_id": m_ids,
-                "per_page": 100  # 接口最大条数100
-            }
+            "milestone_id": m_ids,
+            "per_page": 100  # 接口最大条数100
+        }
         if type_name:
             update_params["issue_type_id"] = self.gitee_v8_handler.get_bug_issue_type_id(type_name)
         query_dict.update(update_params)
@@ -1136,7 +1128,7 @@ class ReportHandler(object):
         for issue in issue_list:
             # 分支过滤
             branch = issue["branch"] if issue.get("branch") else ""
-            if self.branch and self.branch != branch:
+            if self.branch and str(self.branch) != branch:
                 continue
             label_dict, all_label_str = self.parse_lables(issue["labels"])
             status = issue["issue_state"]["title"]
@@ -1213,7 +1205,7 @@ class ReportHandler(object):
                 "issue_type": issue["issue_type"]["title"],
                 "priority": issue["priority"],
                 "priority_human": issue["priority_human"],
-                "branch":  branch,
+                "branch": branch,
                 "status": status,
                 "SIG": sig_name,
                 "is_block": is_block,
@@ -1265,7 +1257,7 @@ class ReportHandler(object):
             )
         product_name = f"{product.name}_{product.version}"
         if self.round_id:
-            _round = Round.query.filter_by(id=self.round_id).first()
+            _round = Round.query.filter_by(id=int(self.round_id)).first()
             if not _round:
                 return jsonify(
                     error_code=RET.NO_DATA_ERR,

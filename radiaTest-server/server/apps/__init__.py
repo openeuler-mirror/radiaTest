@@ -31,7 +31,6 @@ from . import (
     permission,
     celerytask,
     qualityboard,
-    requirement,
     baseline_template,
     issue,
     strategy,
@@ -58,6 +57,5 @@ def init_api(app: Flask):
     permission.init_api(api)
     celerytask.init_api(api)
     qualityboard.init_api(api)
-    requirement.init_api(api)
     baseline_template.init_api(api)
     strategy.init_api(api)

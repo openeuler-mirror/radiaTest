@@ -15,9 +15,10 @@
 
 from glob import escape
 import io
+import html
 from bcrypt import re
-from flask import current_app
 
+from flask import current_app
 import openpyxl
 import markdown
 from lxml import etree
@@ -51,6 +52,8 @@ class MdUtil:
         
         if not html_content:
             return []
+
+        html_content = html.escape(html_content)
         html_etree = etree.HTML(html_content, parser=etree.HTMLParser(encoding="utf-8"))
         table_list = html_etree.xpath("//table")
         return table_list
@@ -75,6 +78,8 @@ class MdUtil:
         
         if not html_content:
             return
+        html_content = html.escape(html_content)
+
         fhtml = io.open(file_path, "w", encoding="utf-8")
         fhtml.write(html_content)
         fhtml.close()
@@ -176,7 +181,7 @@ class MdUtil:
         
         # 搜索有效表行
         row_pattern = r"^" + "".join([
-            '(?:\|((?!\s*(?:grep|awk|sed|tee|sort|uniq|tail|more|less)).*[^\\\])?)' for _ in range(cols_num)
+            '(?:\|((?!\s*(?:grep|awk|sed|tee|sort|uniq|tail|more|less)).*?[^\\\]{1,50})?)' for _ in range(cols_num)
         ]) + "\|$"
         row_index = 2
 

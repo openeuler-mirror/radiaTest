@@ -13,8 +13,6 @@
 # @License : Mulan PSL v2
 #####################################
 
-from flask import current_app
-
 from server.utils.requests_util import do_request
 
 
@@ -80,7 +78,6 @@ class LoginApi(object):
                 return False, {}
 
             if authority == "oneid":
-                current_app.logger.info("oneid info:{}".format(resp.get("data")))
                 return True, resp.get("data")
-            current_app.logger.info("gitee info:{}".format(resp))
+
             return True, resp

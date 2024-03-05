@@ -75,10 +75,6 @@ class LoginOrgListSchema(BaseModel):
     authority: Optional[str]
 
 
-class DeleteCertifiSchema(BaseModel):
-    ip: str
-
-
 class QueryTestReportFileSchema(BaseModel):
     file_type: Literal["md", "html"]
     milestone_name: str

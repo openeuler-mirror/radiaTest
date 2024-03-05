@@ -22,6 +22,7 @@ from copy import deepcopy
 from typing import List
 
 from server.apps.git_repo.adaptor import GitRepoAdaptor
+from server.utils.shell import run_cmd
 
 
 class Mugen(GitRepoAdaptor):
@@ -58,14 +59,10 @@ class Mugen(GitRepoAdaptor):
         _work_dir = self._get_work_dir(f"{self.oet_path}/suite2cases")
         if not _work_dir:
             return None
-
-        exitcode, output = subprocess.getstatusoutput(
-            'cd {} && \
-            export SUITE=(*.json) && \
-            echo "${{SUITE[@]%.*}}"'.format(
-                shlex.quote(_work_dir)
-            )
+        exitcode, output, _ = run_cmd('cd {} && export SUITE=(*.json) && echo "${{SUITE[@]%.*}}"'.format(
+            shlex.quote(_work_dir))
         )
+
         if exitcode:
             return None
 
@@ -174,12 +171,9 @@ class Mugen(GitRepoAdaptor):
             _raw_path = suite_data.pop("path")
 
             suite_path = None
-            result = re.search(r'^(\$OET_PATH\/)(.+)$', _raw_path)
-            if result is not None:
-                suite_path = '{}/{}'.format(
-                    self.oet_path,
-                    result[2]
-                )
+            if _raw_path:
+                suite_path = _raw_path.repalce("$OET_PATH", self.oet_path)
+
                 if suite_path[-1] == '/':
                     suite_path = suite_path[:-1]
             

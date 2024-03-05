@@ -33,7 +33,7 @@ from server.model.milestone import IssueSolvedRate
 from server.model.strategy import ReProductFeature
 from server.model.qualityboard import (
     RpmCompare,
-    SameRpmCompare, 
+    SameRpmCompare,
     QualityBoard,
     Checklist,
     DailyBuild,
@@ -91,11 +91,12 @@ from server.apps.qualityboard.handlers import (
     ReportHandler, ATOverviewHandler, ATReportHandler
 )
 from server.apps.issue.handler import GiteeV8BaseIssueHandler
-from server.utils.shell import add_escape
 from server.utils.at_utils import OpenqaATStatistic
 from server.utils.page_util import PageUtil, Paginate
 from server.utils.rpm_util import RpmNameLoader
 from celeryservice.sub_tasks import update_compare_result, update_samerpm_compare_result, update_daily_compare_result
+from celeryservice.tasks import read_openqa_tests_overview
+from server.utils.shell import run_cmd
 
 
 def get_quality_board_tag():
@@ -110,9 +111,9 @@ class QualityBoardEvent(Resource):
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_quality_board_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "QualityBoardEvent",  # 当前接口视图函数名
-        "func_name": "post",   # 当前接口所对应的函数名
+        "func_name": "post",  # 当前接口所对应的函数名
         "tag": get_quality_board_tag(),  # 当前接口所对应的标签
         "summary": "创建质量看板",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -157,9 +158,9 @@ class QualityBoardEvent(Resource):
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_quality_board_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "QualityBoardEvent",  # 当前接口视图函数名
-        "func_name": "get",   # 当前接口所对应的函数名
+        "func_name": "get",  # 当前接口所对应的函数名
         "tag": get_quality_board_tag(),  # 当前接口所对应的标签
         "summary": "获取质量看板信息",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -172,9 +173,9 @@ class QualityBoardEvent(Resource):
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_quality_board_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "QualityBoardEvent",  # 当前接口视图函数名
-        "func_name": "delete",   # 当前接口所对应的函数名
+        "func_name": "delete",  # 当前接口所对应的函数名
         "tag": get_quality_board_tag(),  # 当前接口所对应的标签
         "summary": "删除质量看板",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -189,9 +190,9 @@ class QualityBoardItemEvent(Resource):
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_quality_board_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "QualityBoardItemEvent",  # 当前接口视图函数名
-        "func_name": "put",   # 当前接口所对应的函数名
+        "func_name": "put",  # 当前接口所对应的函数名
         "tag": get_quality_board_tag(),  # 当前接口所对应的标签
         "summary": "质量看板发布",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -247,7 +248,7 @@ class QualityBoardItemEvent(Resource):
             iteration_version = str(round_id)
         else:
             iteration_version = qualityboard.iteration_version + \
-                "->" + str(round_id)
+                                "->" + str(round_id)
 
         qualityboard.iteration_version = iteration_version
         qualityboard.add_update()
@@ -264,9 +265,9 @@ class QualityBoardDeleteVersionEvent(Resource):
     @auth.login_required()
     @response_collect
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_quality_board_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "QualityBoardDeleteVersionEvent",  # 当前接口视图函数名
-        "func_name": "put",   # 当前接口所对应的函数名
+        "func_name": "put",  # 当前接口所对应的函数名
         "tag": get_quality_board_tag(),  # 当前接口所对应的标签
         "summary": "返回上一迭代版本",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -288,7 +289,7 @@ class QualityBoardDeleteVersionEvent(Resource):
         _versions = qualityboard.iteration_version.split("->")
         if len(_versions) > 1:
             iteration_version = qualityboard.iteration_version.replace(
-                "->"+_versions[-1], "")
+                "->" + _versions[-1], "")
         if iteration_version == "":
             return Delete(QualityBoard, {"id": qualityboard_id}).single()
         qualityboard.iteration_version = iteration_version
@@ -304,9 +305,9 @@ class DeselectChecklistItem(Resource):
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_quality_board_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "DeselectChecklistItem",  # 当前接口视图函数名
-        "func_name": "put",   # 当前接口所对应的函数名
+        "func_name": "put",  # 当前接口所对应的函数名
         "tag": get_quality_board_tag(),  # 当前接口所对应的标签
         "summary": "取消选中checklist",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -354,7 +355,7 @@ class DeselectChecklistItem(Resource):
         else:
             return jsonify(
                 error_code=RET.DB_DATA_ERR,
-                error_msg="rounds '{}' error".format( body.rounds)
+                error_msg="rounds '{}' error".format(body.rounds)
             )
         _cl.add_update(Checklist, "/checklist")
         return jsonify(
@@ -368,9 +369,9 @@ class ChecklistItem(Resource):
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_quality_board_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "ChecklistItem",  # 当前接口视图函数名
-        "func_name": "get",   # 当前接口所对应的函数名
+        "func_name": "get",  # 当前接口所对应的函数名
         "tag": get_quality_board_tag(),  # 当前接口所对应的标签
         "summary": "获取checklist",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -382,9 +383,9 @@ class ChecklistItem(Resource):
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_quality_board_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "ChecklistItem",  # 当前接口视图函数名
-        "func_name": "put",   # 当前接口所对应的函数名
+        "func_name": "put",  # 当前接口所对应的函数名
         "tag": get_quality_board_tag(),  # 当前接口所对应的标签
         "summary": "编辑checklist",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -457,7 +458,7 @@ class ChecklistItem(Resource):
             rounds = _cl.rounds[:idx] + "1" + _cl.rounds[idx + 1:]
             baseline = _cl.baseline
             operation = _cl.operation
-            
+
             if body.baseline:
                 bls = _cl.baseline.split(",")
                 bls[idx] = body.baseline
@@ -484,7 +485,7 @@ class ChecklistItem(Resource):
             rounds = _cl.rounds.ljust(idx, "0") + "1"
             baseline = _cl.baseline + "," * (idx + 1 - len(_cl.rounds)) + body.baseline
             operation = _cl.operation + "," * (idx + 1 - len(_cl.rounds)) + body.operation
-        
+
         _body = body.__dict__
         _body.update({
             "rounds": rounds,
@@ -504,9 +505,9 @@ class ChecklistItem(Resource):
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_quality_board_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "ChecklistItem",  # 当前接口视图函数名
-        "func_name": "delete",   # 当前接口所对应的函数名
+        "func_name": "delete",  # 当前接口所对应的函数名
         "tag": get_quality_board_tag(),  # 当前接口所对应的标签
         "summary": "删除checklist",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -520,9 +521,9 @@ class ChecklistEvent(Resource):
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_quality_board_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "ChecklistEvent",  # 当前接口视图函数名
-        "func_name": "get",   # 当前接口所对应的函数名
+        "func_name": "get",  # 当前接口所对应的函数名
         "tag": get_quality_board_tag(),  # 当前接口所对应的标签
         "summary": "分页获取checklist",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -535,9 +536,9 @@ class ChecklistEvent(Resource):
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_quality_board_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "ChecklistEvent",  # 当前接口视图函数名
-        "func_name": "post",   # 当前接口所对应的函数名
+        "func_name": "post",  # 当前接口所对应的函数名
         "tag": get_quality_board_tag(),  # 当前接口所对应的标签
         "summary": "创建checklist",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -557,7 +558,7 @@ class ChecklistEvent(Resource):
                 error_code=RET.NO_DATA_ERR,
                 error_msg="product {} doesn't exist, or doesn't need to be checked".format(body.product_id)
             )
-        
+
         _cl = Checklist.query.filter(
             Checklist.checkitem_id == body.checkitem_id,
             Checklist.product_id == _p.id,
@@ -579,9 +580,9 @@ class ChecklistRoundsCountEvent(Resource):
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_quality_board_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "ChecklistRoundsCountEvent",  # 当前接口视图函数名
-        "func_name": "get",   # 当前接口所对应的函数名
+        "func_name": "get",  # 当前接口所对应的函数名
         "tag": get_quality_board_tag(),  # 当前接口所对应的标签
         "summary": "获取checklist最大rounds数",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -609,9 +610,9 @@ class CheckItemEvent(Resource):
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_quality_board_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "CheckItemEvent",  # 当前接口视图函数名
-        "func_name": "get",   # 当前接口所对应的函数名
+        "func_name": "get",  # 当前接口所对应的函数名
         "tag": get_quality_board_tag(),  # 当前接口所对应的标签
         "summary": "分页查询check检查项",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -624,9 +625,9 @@ class CheckItemEvent(Resource):
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_quality_board_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "CheckItemEvent",  # 当前接口视图函数名
-        "func_name": "post",   # 当前接口所对应的函数名
+        "func_name": "post",  # 当前接口所对应的函数名
         "tag": get_quality_board_tag(),  # 当前接口所对应的标签
         "summary": "创建check检查项",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -651,9 +652,9 @@ class CheckItemSingleEvent(Resource):
     @auth.login_required()
     @response_collect
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_quality_board_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "CheckItemSingleEvent",  # 当前接口视图函数名
-        "func_name": "get",   # 当前接口所对应的函数名
+        "func_name": "get",  # 当前接口所对应的函数名
         "tag": get_quality_board_tag(),  # 当前接口所对应的标签
         "summary": "check检查项详情",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -672,9 +673,9 @@ class CheckItemSingleEvent(Resource):
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_quality_board_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "CheckItemSingleEvent",  # 当前接口视图函数名
-        "func_name": "put",   # 当前接口所对应的函数名
+        "func_name": "put",  # 当前接口所对应的函数名
         "tag": get_quality_board_tag(),  # 当前接口所对应的标签
         "summary": "编辑check检查项",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -714,9 +715,9 @@ class CheckItemSingleEvent(Resource):
     @auth.login_required()
     @response_collect
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_quality_board_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "CheckItemSingleEvent",  # 当前接口视图函数名
-        "func_name": "delete",   # 当前接口所对应的函数名
+        "func_name": "delete",  # 当前接口所对应的函数名
         "tag": get_quality_board_tag(),  # 当前接口所对应的标签
         "summary": "删除check检查项",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -742,9 +743,9 @@ class ChecklistResultEvent(Resource):
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_quality_board_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "ChecklistResultEvent",  # 当前接口视图函数名
-        "func_name": "get",   # 当前接口所对应的函数名
+        "func_name": "get",  # 当前接口所对应的函数名
         "tag": get_quality_board_tag(),  # 当前接口所对应的标签
         "summary": "获取当前round版本的checklist结果",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -773,9 +774,9 @@ class ATOverview(Resource):
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_quality_board_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "ATOverview",  # 当前接口视图函数名
-        "func_name": "get",   # 当前接口所对应的函数名
+        "func_name": "get",  # 当前接口所对应的函数名
         "tag": get_quality_board_tag(),  # 当前接口所对应的标签
         "summary": "AT总览",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -789,9 +790,9 @@ class QualityDefendEvent(Resource):
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_quality_board_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "QualityDefendEvent",  # 当前接口视图函数名
-        "func_name": "get",   # 当前接口所对应的函数名
+        "func_name": "get",  # 当前接口所对应的函数名
         "tag": get_quality_board_tag(),  # 当前接口所对应的标签
         "summary": "获取质量防护数据",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -804,7 +805,7 @@ class QualityDefendEvent(Resource):
                 error_msg="qualityboard {} not exitst".format(qualityboard_id)
             )
         product = qualityboard.product
-        
+
         product_name = f"{product.name}-{product.version}"
         _arches = current_app.config.get(
             "SUPPORTED_ARCHES", ["aarch64", "x86_64"]
@@ -816,9 +817,8 @@ class QualityDefendEvent(Resource):
         )
         scrapyspider_redis_client = redis.StrictRedis(
             connection_pool=scrapyspider_pool
-            )
+        )
         qrsh = QualityResultCompareHandler("product", product.id)
-        
 
         latest_dailybuild = DailyBuild.query.filter(
             DailyBuild.product_id == product.id
@@ -868,16 +868,10 @@ class QualityDefendEvent(Resource):
             )
 
             # positively sync crawl latest data from openqa of latest build
-            exitcode, output = subprocess.getstatusoutput(
-                "pushd scrapyspider && scrapy crawl openqa_tests_overview_spider "
-                f"-a product_build={product_name}_{latest_build} "
-                f"-a openqa_url={openqa_url} "
-                f"-a tests_overview_url={add_escape(_tests_overview_url)}"
+            read_openqa_tests_overview.delay(
+                product_build=f"{product_name}_{latest_build}",
+                tests_overview_url=_tests_overview_url
             )
-            if exitcode != 0:
-                current_app.logger.error(
-                    f"crawl latest tests overview data of {product_name}_{latest_build} fail. Because {output}"
-                )
 
             _at_statistic = OpenqaATStatistic(
                 arches=_arches,
@@ -901,7 +895,7 @@ class QualityDefendEvent(Resource):
             )
 
         scrapyspider_pool.disconnect()
-        
+
         latest_rpmcheck__data = dict()
         rpmcheck_latest_key = f"rpmcheck_{product.name}-{product.version}_latest"
         _rpmcheck_latest = redis_client.keys(
@@ -932,9 +926,9 @@ class DailyBuildOverview(Resource):
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_quality_board_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "DailyBuildOverview",  # 当前接口视图函数名
-        "func_name": "get",   # 当前接口所对应的函数名
+        "func_name": "get",  # 当前接口所对应的函数名
         "tag": get_quality_board_tag(),  # 当前接口所对应的标签
         "summary": "分页展示每日构建总览",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -969,9 +963,9 @@ class DailyBuildDetail(Resource):
     @auth.login_required()
     @response_collect
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_quality_board_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "DailyBuildDetail",  # 当前接口视图函数名
-        "func_name": "get",   # 当前接口所对应的函数名
+        "func_name": "get",  # 当前接口所对应的函数名
         "tag": get_quality_board_tag(),  # 当前接口所对应的标签
         "summary": "每日构建详情",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -998,9 +992,9 @@ class RpmCheckOverview(Resource):
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_quality_board_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "RpmCheckOverview",  # 当前接口视图函数名
-        "func_name": "get",   # 当前接口所对应的函数名
+        "func_name": "get",  # 当前接口所对应的函数名
         "tag": get_quality_board_tag(),  # 当前接口所对应的标签
         "summary": "rpm检查总览",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -1063,9 +1057,9 @@ class RpmCheckDetailEvent(Resource):
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_quality_board_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "RpmCheckDetailEvent",  # 当前接口视图函数名
-        "func_name": "get",   # 当前接口所对应的函数名
+        "func_name": "get",  # 当前接口所对应的函数名
         "tag": get_quality_board_tag(),  # 当前接口所对应的标签
         "summary": "rpm检查详情",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -1087,12 +1081,10 @@ class RpmCheckDetailEvent(Resource):
                 error_code=RET.SYS_CONF_ERR,
                 error_msg=f"the value of RPMCHECK_RESULT_ROWS_NUM must be greater than 0."
             )
-            
+
         file_name = f"{rpmcheck_path}/{query.name}.yaml"
-        exitcode, total = subprocess.getstatusoutput(
-            f"wc -l {file_name}" + " | awk '{print $1}'"
-        )
-        
+        exitcode, total, _ = run_cmd(f"wc -l {file_name}" + " | awk '{print $1}'")
+
         if exitcode != 0:
             return jsonify(
                 error_code=RET.FILE_ERR,
@@ -1100,11 +1092,9 @@ class RpmCheckDetailEvent(Resource):
             )
 
         def get_part_file_data(start, end, file_name):
-            exitcode, content = subprocess.getstatusoutput(
-                f"sed -n '{start},{end}p' {file_name}"
-            )
+            exitcode, content, _ = run_cmd(f"sed -n '{start},{end}p' {file_name}")
             return exitcode, content
-  
+
         exitcode, content = get_part_file_data(
             (query.page_num - 1) * query.page_size * row_num + 1,
             query.page_num * query.page_size * row_num,
@@ -1136,9 +1126,9 @@ class WeeklybuildHealthOverview(Resource):
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_quality_board_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "WeeklybuildHealthOverview",  # 当前接口视图函数名
-        "func_name": "get",   # 当前接口所对应的函数名
+        "func_name": "get",  # 当前接口所对应的函数名
         "tag": get_quality_board_tag(),  # 当前接口所对应的标签
         "summary": "每周构建健康度总览",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -1182,9 +1172,9 @@ class WeeklybuildHealthEvent(Resource):
     @auth.login_required()
     @response_collect
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_quality_board_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "WeeklybuildHealthEvent",  # 当前接口视图函数名
-        "func_name": "get",   # 当前接口所对应的函数名
+        "func_name": "get",  # 当前接口所对应的函数名
         "tag": get_quality_board_tag(),  # 当前接口所对应的标签
         "summary": "每周构建健康度详情",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -1231,9 +1221,9 @@ class FeatureEvent(Resource):
     @collect_sql_error
     @validate()
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_quality_board_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "FeatureEvent",  # 当前接口视图函数名
-        "func_name": "get",   # 当前接口所对应的函数名
+        "func_name": "get",  # 当前接口所对应的函数名
         "tag": get_quality_board_tag(),  # 当前接口所对应的标签
         "summary": "获取特性",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -1258,9 +1248,9 @@ class FeatureEvent(Resource):
                 )
 
             handler = feature_handler(
-                Feature, 
-                ReProductFeature, 
-                product_id = qualityboard.product_id
+                Feature,
+                ReProductFeature,
+                product_id=qualityboard.product_id
             )
             if query.new:
                 md_content = handler.get_md_content(
@@ -1287,7 +1277,7 @@ class FeatureEvent(Resource):
                 # 社区暂未统一继承特性的定义
                 pass
 
-        features = Feature.query.join(ReProductFeature).filter( 
+        features = Feature.query.join(ReProductFeature).filter(
             ReProductFeature.product_id == qualityboard.product_id,
             ReProductFeature.is_new == query.new,
             ReProductFeature.feature_id == Feature.id
@@ -1302,9 +1292,9 @@ class FeatureEvent(Resource):
 class FeatureSummary(Resource):
     @response_collect
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_quality_board_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "FeatureSummary",  # 当前接口视图函数名
-        "func_name": "get",   # 当前接口所对应的函数名
+        "func_name": "get",  # 当前接口所对应的函数名
         "tag": get_quality_board_tag(),  # 当前接口所对应的标签
         "summary": "特性总览",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -1332,9 +1322,9 @@ class FeatureSummary(Resource):
                 )
 
             handler = feature_handler(
-                Feature, 
-                ReProductFeature, 
-                product_id = qualityboard.product_id
+                Feature,
+                ReProductFeature,
+                product_id=qualityboard.product_id
             )
             addition_feature_summary = handler.statistic(_is_new=True)
             inherit_feature_summary = handler.statistic(_is_new=False)
@@ -1353,9 +1343,9 @@ class PackageListEvent(Resource):
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_quality_board_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "PackageListEvent",  # 当前接口视图函数名
-        "func_name": "get",   # 当前接口所对应的函数名
+        "func_name": "get",  # 当前接口所对应的函数名
         "tag": get_quality_board_tag(),  # 当前接口所对应的标签
         "summary": "获取软件包列表",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -1397,7 +1387,7 @@ class PackageListEvent(Resource):
             return jsonify(
                 error_code=RET.OK,
                 error_msg=f"the packages of {_round.name} " \
-                f"start resolving, please wait for several minutes"
+                          f"start resolving, please wait for several minutes"
             )
         arch = "" if query.repo_path == "source" else "all"
         try:
@@ -1434,11 +1424,11 @@ class PackageListEvent(Resource):
                     "repeat_rpm_cnt": cnt,
                 },
             )
-        
+
         return jsonify(
-           error_code=RET.OK,
-           error_msg="OK",
-           data=[ pkg[0].to_dict() for pkg in pkgs_dict.values() ],
+            error_code=RET.OK,
+            error_msg="OK",
+            data=[pkg[0].to_dict() for pkg in pkgs_dict.values()],
         )
 
 
@@ -1447,9 +1437,9 @@ class SamePackageListCompareEvent(Resource):
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_quality_board_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "SamePackageListCompareEvent",  # 当前接口视图函数名
-        "func_name": "post",   # 当前接口所对应的函数名
+        "func_name": "post",  # 当前接口所对应的函数名
         "tag": get_quality_board_tag(),  # 当前接口所对应的标签
         "summary": "同名软件包对比",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -1462,7 +1452,7 @@ class SamePackageListCompareEvent(Resource):
                 error_code=RET.NO_DATA_ERR,
                 error_msg="round does not exist.",
             )
- 
+
         if body.repo_path == "update" and _round.type == "round":
             return jsonify(
                 error_code=RET.RUNTIME_ERROR,
@@ -1473,7 +1463,7 @@ class SamePackageListCompareEvent(Resource):
             return jsonify(
                 error_code=RET.RUNTIME_ERROR,
                 error_msg=f"same pkg compare of round {round_id} is in progress,"
-                " please be patient and wait."
+                          " please be patient and wait."
             )
         try:
             comparer = PackageListHandler(
@@ -1497,7 +1487,7 @@ class SamePackageListCompareEvent(Resource):
                 error_msg=str(e),
             )
 
-        #设置锁，避免在比对未完成前，重复触发比对， 比对完成后删除锁
+        # 设置锁，避免在比对未完成前，重复触发比对， 比对完成后删除锁
         redis_client.set(compare_key, 1, 2400)
 
         compare_results = comparer.compare2(comparee.packages)
@@ -1511,9 +1501,9 @@ class SamePackageListCompareEvent(Resource):
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_quality_board_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "SamePackageListCompareEvent",  # 当前接口视图函数名
-        "func_name": "get",   # 当前接口所对应的函数名
+        "func_name": "get",  # 当前接口所对应的函数名
         "tag": get_quality_board_tag(),  # 当前接口所对应的标签
         "summary": "分页获取同名软件包对比结果",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -1552,7 +1542,7 @@ class SamePackageListCompareEvent(Resource):
                 error_msg="OK",
                 data={
                     "lack_pkgs_num": _lack_num,
-                    "different_pkgs_num": _different_num, 
+                    "different_pkgs_num": _different_num,
                 }
             )
 
@@ -1575,13 +1565,13 @@ class SamePackageListCompareEvent(Resource):
                     SameRpmCompare.compare_result == result
                 )
             filter_params.append(or_(*status_filter_params))
-        
+
         _order = None
         if query.desc:
             _order = [SameRpmCompare.rpm_x86.desc(), SameRpmCompare.rpm_arm.desc()]
         else:
             _order = [SameRpmCompare.rpm_x86.asc(), SameRpmCompare.rpm_arm.asc()]
-        
+
         query_filter = SameRpmCompare.query.filter(*filter_params).order_by(*_order)
 
         def page_func(item):
@@ -1597,7 +1587,7 @@ class SamePackageListCompareEvent(Resource):
             )
         return jsonify(error_code=RET.OK, error_msg="OK", data={
             "lack_pkgs_num": _lack_num,
-            "different_pkgs_num": _different_num, 
+            "different_pkgs_num": _different_num,
             **page_dict
         })
 
@@ -1607,9 +1597,9 @@ class PackageListCompareEvent(Resource):
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_quality_board_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "PackageListCompareEvent",  # 当前接口视图函数名
-        "func_name": "post",   # 当前接口所对应的函数名
+        "func_name": "post",  # 当前接口所对应的函数名
         "tag": get_quality_board_tag(),  # 当前接口所对应的标签
         "summary": "软件包对比",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -1645,7 +1635,7 @@ class PackageListCompareEvent(Resource):
             return jsonify(
                 error_code=RET.RUNTIME_ERROR,
                 error_msg=f"pkg compare between round {comparee_round_id} and "
-                f"round {comparer_round_id} is in progress, please be patient and wait."
+                          f"round {comparer_round_id} is in progress, please be patient and wait."
             )
 
         arch = "" if body.repo_path == "source" else "all"
@@ -1671,7 +1661,7 @@ class PackageListCompareEvent(Resource):
                 error_msg=str(e),
             )
 
-        #设置锁时长两个小时，避免在比对未完成前，重复触发比对， 比对完成后删除锁
+        # 设置锁时长两个小时，避免在比对未完成前，重复触发比对， 比对完成后删除锁
         redis_client.set(compare_key, 1, 7200)
 
         (
@@ -1679,7 +1669,7 @@ class PackageListCompareEvent(Resource):
             repeat_rpm_list_comparer,
             repeat_rpm_list_comparee,
         ) = comparer.compare(comparee.packages)
-        
+
         round_group = RoundGroup.query.filter_by(
             round_1_id=comparee_round_id,
             round_2_id=comparer_round_id,
@@ -1714,6 +1704,7 @@ class PackageListCompareEvent(Resource):
                     )
                     db.session.add(_repeat_rpm)
                     db.session.commit()
+
         if body.repo_path in ["everything", "EPOL"]:
             add_repeat_rpm(body.repo_path, comparer_round_id, repeat_rpm_list_comparer)
             add_repeat_rpm(body.repo_path, comparee_round_id, repeat_rpm_list_comparee)
@@ -1727,9 +1718,9 @@ class PackageListCompareEvent(Resource):
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_quality_board_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "PackageListCompareEvent",  # 当前接口视图函数名
-        "func_name": "get",   # 当前接口所对应的函数名
+        "func_name": "get",  # 当前接口所对应的函数名
         "tag": get_quality_board_tag(),  # 当前接口所对应的标签
         "summary": "分页获取软件包对比结果",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -1777,7 +1768,7 @@ class PackageListCompareEvent(Resource):
                 error_msg="OK",
                 data={
                     "add_pkgs_num": _add_num,
-                    "del_pkgs_num": _del_num, 
+                    "del_pkgs_num": _del_num,
                 }
             )
 
@@ -1807,13 +1798,13 @@ class PackageListCompareEvent(Resource):
                     RpmCompare.compare_result == result
                 )
             filter_params.append(or_(*status_filter_params))
-        
+
         _order = None
         if query.desc:
             _order = [RpmCompare.rpm_comparee.desc(), RpmCompare.rpm_comparer.desc()]
         else:
             _order = [RpmCompare.rpm_comparee.asc(), RpmCompare.rpm_comparer.asc()]
-        
+
         query_filter = RpmCompare.query.filter(*filter_params).order_by(*_order)
 
         def page_func(item):
@@ -1829,7 +1820,7 @@ class PackageListCompareEvent(Resource):
             )
         return jsonify(error_code=RET.OK, error_msg="OK", data={
             "add_pkgs_num": _add_num,
-            "del_pkgs_num": _del_num, 
+            "del_pkgs_num": _del_num,
             **page_dict
         })
 
@@ -1839,9 +1830,9 @@ class DailyBuildPackageListCompareEvent(Resource):
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_quality_board_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "DailyBuildPackageListCompareEvent",  # 当前接口视图函数名
-        "func_name": "post",   # 当前接口所对应的函数名
+        "func_name": "post",  # 当前接口所对应的函数名
         "tag": get_quality_board_tag(),  # 当前接口所对应的标签
         "summary": "每日构建软件包对比",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -1859,7 +1850,7 @@ class DailyBuildPackageListCompareEvent(Resource):
             return jsonify(
                 error_code=RET.RUNTIME_ERROR,
                 error_msg=f"pkg compare between {body.daily_name} and "
-                f"{comparer_round.name} is in progress, please be patient and wait."
+                          f"{comparer_round.name} is in progress, please be patient and wait."
             )
 
         try:
@@ -1895,7 +1886,7 @@ class DailyBuildPackageListCompareEvent(Resource):
                 error_msg=str(e),
             )
 
-        #设置锁，避免在比对未完成前，重复触发比对， 比对完成后删除锁
+        # 设置锁，避免在比对未完成前，重复触发比对， 比对完成后删除锁
         redis_client.set(compare_key, 1, 2400)
 
         (
@@ -1928,9 +1919,9 @@ class DailyBuildPackageListCompareEvent(Resource):
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_quality_board_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "DailyBuildPackageListCompareEvent",  # 当前接口视图函数名
-        "func_name": "get",   # 当前接口所对应的函数名
+        "func_name": "get",  # 当前接口所对应的函数名
         "tag": get_quality_board_tag(),  # 当前接口所对应的标签
         "summary": "分页获取每日构建软件包对比结果",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -1986,10 +1977,7 @@ class DailyBuildPackageListCompareEvent(Resource):
                 error_msg=f"compre result {body.compare_name} has been deleted",
             )
         _path = current_app.config.get("PRODUCT_PKGLIST_PATH")
-        _, _ = subprocess.getstatusoutput(
-            f"rm -f {_path}/{file_name}"
-        )
-
+        _, _, _ = run_cmd(f"rm -f {_path}/{file_name}")
         redis_client.hdel(
             f"daily_build_compare_{comparer_round.name}",
             body.compare_name,
@@ -2006,9 +1994,9 @@ class DailyBuildPkgEvent(Resource):
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_quality_board_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "DailyBuildPkgEvent",  # 当前接口视图函数名
-        "func_name": "post",   # 当前接口所对应的函数名
+        "func_name": "post",  # 当前接口所对应的函数名
         "tag": get_quality_board_tag(),  # 当前接口所对应的标签
         "summary": "创建每日构建信息，并获取所有软件包",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -2037,9 +2025,9 @@ class DailyBuildPkgEvent(Resource):
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_quality_board_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "DailyBuildPkgEvent",  # 当前接口视图函数名
-        "func_name": "get",   # 当前接口所对应的函数名
+        "func_name": "get",  # 当前接口所对应的函数名
         "tag": get_quality_board_tag(),  # 当前接口所对应的标签
         "summary": "分页获取每日构建信息",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -2057,7 +2045,7 @@ class DailyBuildPkgEvent(Resource):
                         "repo_url": repo_url
                     }
                 )
-        
+
         if query.paged:
             content, e = Paginate.get_page_dict(
                 total=len(data),
@@ -2083,9 +2071,9 @@ class DailyBuildPkgEvent(Resource):
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_quality_board_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "DailyBuildPkgEvent",  # 当前接口视图函数名
-        "func_name": "delete",   # 当前接口所对应的函数名
+        "func_name": "delete",  # 当前接口所对应的函数名
         "tag": get_quality_board_tag(),  # 当前接口所对应的标签
         "summary": "删除每日构建信息",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -2098,10 +2086,7 @@ class DailyBuildPkgEvent(Resource):
             body.daily_name,
         )
         _path = current_app.config.get("PRODUCT_PKGLIST_PATH")
-        _, _ = subprocess.getstatusoutput(
-            f"rm -f {_path}/{body.daily_name}*.pkgs"
-        )
-
+        _, _, _ = run_cmd(f"rm -f {_path}/{body.daily_name}*.pkgs")
         return jsonify(
             error_code=RET.OK,
             error_msg="OK",
@@ -2113,9 +2098,9 @@ class DailyPackagCompareResultExportEvent(Resource):
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_quality_board_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "DailyPackagCompareResultExportEvent",  # 当前接口视图函数名
-        "func_name": "get",   # 当前接口所对应的函数名
+        "func_name": "get",  # 当前接口所对应的函数名
         "tag": get_quality_board_tag(),  # 当前接口所对应的标签
         "summary": "每日构建软件包对比结果导出",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -2137,7 +2122,7 @@ class DailyPackagCompareResultExportEvent(Resource):
             return jsonify(
                 error_code=RET.RUNTIME_ERROR,
                 error_msg=f"pkg compare between {daily_name} and "
-                f"{comparer_round.name} is in progress, please be patient and wait."
+                          f"{comparer_round.name} is in progress, please be patient and wait."
             )
 
         _path = current_app.config.get("PRODUCT_PKGLIST_PATH")
@@ -2153,9 +2138,9 @@ class PackagCompareResultExportEvent(Resource):
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_quality_board_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "PackagCompareResultExportEvent",  # 当前接口视图函数名
-        "func_name": "get",   # 当前接口所对应的函数名
+        "func_name": "get",  # 当前接口所对应的函数名
         "tag": get_quality_board_tag(),  # 当前接口所对应的标签
         "summary": "软件包对比结果导出",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -2183,7 +2168,7 @@ class PackagCompareResultExportEvent(Resource):
             return jsonify(
                 error_code=RET.RUNTIME_ERROR,
                 error_msg=f"pkg compare between round {comparee_round_id} and "
-                f"round {comparer_round_id} is in progress, please be patient and wait."
+                          f"round {comparer_round_id} is in progress, please be patient and wait."
             )
         _path = current_app.config.get("PRODUCT_PKGLIST_PATH")
         file_path = f"{_path}/{comparer_round.name}-{comparee_round.name}-{query.repo_path}.xls"
@@ -2200,9 +2185,9 @@ class SamePackagCompareResultExportEvent(Resource):
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_quality_board_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "SamePackagCompareResultExportEvent",  # 当前接口视图函数名
-        "func_name": "get",   # 当前接口所对应的函数名
+        "func_name": "get",  # 当前接口所对应的函数名
         "tag": get_quality_board_tag(),  # 当前接口所对应的标签
         "summary": "同名软件包对比结果导出",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -2227,7 +2212,7 @@ class SamePackagCompareResultExportEvent(Resource):
             return jsonify(
                 error_code=RET.RUNTIME_ERROR,
                 error_msg=f"same pkg compare of round {round_id} is in progress, "
-                "please be patient and wait."
+                          "please be patient and wait."
             )
         _path = current_app.config.get("PRODUCT_PKGLIST_PATH")
         file_path = f"{_path}/{_round.name}-{query.repo_path}.xls"
@@ -2243,9 +2228,9 @@ class QualityResultCompare(Resource):
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_quality_board_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "QualityResultCompare",  # 当前接口视图函数名
-        "func_name": "get",   # 当前接口所对应的函数名
+        "func_name": "get",  # 当前接口所对应的函数名
         "tag": get_quality_board_tag(),  # 当前接口所对应的标签
         "summary": "获取issue对比比率",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -2256,13 +2241,13 @@ class QualityResultCompare(Resource):
             qrsh = QualityResultCompareHandler(query.obj_type, query.obj_id)
             ret = qrsh.compare_issue_rate(query.field)
         else:
-            #预留接口
+            # 预留接口
             ret = None
             pass
         return jsonify(
             error_code=RET.OK,
             error_msg="OK",
-            data = ret
+            data=ret
         )
 
 
@@ -2271,9 +2256,9 @@ class QualityResult(Resource):
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_quality_board_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "QualityResult",  # 当前接口视图函数名
-        "func_name": "get",   # 当前接口所对应的函数名
+        "func_name": "get",  # 当前接口所对应的函数名
         "tag": get_quality_board_tag(),  # 当前接口所对应的标签
         "summary": "获取质量结果",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -2294,7 +2279,7 @@ class QualityResult(Resource):
         param = {
             "serious_resolved_rate": {
                 "result": "serious_resolved_rate",
-                "passed":"serious_resolved_passed"
+                "passed": "serious_resolved_passed"
             },
             "main_resolved_rate": {
                 "result": "main_resolved_rate",
@@ -2340,12 +2325,12 @@ class QualityResult(Resource):
                 "total": len(cls),
                 "items": items
             }
-        ) 
+        )
 
         return jsonify(
             error_code=RET.OK,
             error_msg="OK",
-            data = data
+            data=data
         )
 
 
@@ -2353,9 +2338,9 @@ class RoundEvent(Resource):
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_quality_board_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "RoundEvent",  # 当前接口视图函数名
-        "func_name": "get",   # 当前接口所对应的函数名
+        "func_name": "get",  # 当前接口所对应的函数名
         "tag": get_quality_board_tag(),  # 当前接口所对应的标签
         "summary": "通过product_id获取所有round",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -2370,9 +2355,9 @@ class RoundItemEvent(Resource):
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_quality_board_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "RoundItemEvent",  # 当前接口视图函数名
-        "func_name": "put",   # 当前接口所对应的函数名
+        "func_name": "put",  # 当前接口所对应的函数名
         "tag": get_quality_board_tag(),  # 当前接口所对应的标签
         "summary": "编辑round名称",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -2385,7 +2370,7 @@ class RoundItemEvent(Resource):
                 error_code=RET.NO_DATA_ERR,
                 error_msg="the round does not exist"
             )
-        
+
         _edit_body = body.__dict__
         for key, value in _edit_body.items():
             if value is not None:
@@ -2400,9 +2385,9 @@ class RoundItemEvent(Resource):
     @response_collect
     @collect_sql_error
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_quality_board_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "RoundItemEvent",  # 当前接口视图函数名
-        "func_name": "get",   # 当前接口所对应的函数名
+        "func_name": "get",  # 当前接口所对应的函数名
         "tag": get_quality_board_tag(),  # 当前接口所对应的标签
         "summary": "获取round详情",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -2427,9 +2412,9 @@ class CompareRoundEvent(Resource):
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_quality_board_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "CompareRoundEvent",  # 当前接口视图函数名
-        "func_name": "put",   # 当前接口所对应的函数名
+        "func_name": "put",  # 当前接口所对应的函数名
         "tag": get_quality_board_tag(),  # 当前接口所对应的标签
         "summary": "修改当前round的比对round项",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -2449,9 +2434,9 @@ class RoundMilestoneEvent(Resource):
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_quality_board_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "RoundMilestoneEvent",  # 当前接口视图函数名
-        "func_name": "put",   # 当前接口所对应的函数名
+        "func_name": "put",  # 当前接口所对应的函数名
         "tag": get_quality_board_tag(),  # 当前接口所对应的标签
         "summary": "里程碑绑定round",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -2466,9 +2451,9 @@ class RoundIssueRateEvent(Resource):
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_quality_board_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "RoundIssueRateEvent",  # 当前接口视图函数名
-        "func_name": "put",   # 当前接口所对应的函数名
+        "func_name": "put",  # 当前接口所对应的函数名
         "tag": get_quality_board_tag(),  # 当前接口所对应的标签
         "summary": "更新round issue比率",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -2479,9 +2464,9 @@ class RoundIssueRateEvent(Resource):
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_quality_board_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "RoundIssueRateEvent",  # 当前接口视图函数名
-        "func_name": "get",   # 当前接口所对应的函数名
+        "func_name": "get",  # 当前接口所对应的函数名
         "tag": get_quality_board_tag(),  # 当前接口所对应的标签
         "summary": "获取round issue比率",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -2494,9 +2479,9 @@ class RoundIssueEvent(Resource):
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_quality_board_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "RoundIssueEvent",  # 当前接口视图函数名
-        "func_name": "get",   # 当前接口所对应的函数名
+        "func_name": "get",  # 当前接口所对应的函数名
         "tag": get_quality_board_tag(),  # 当前接口所对应的标签
         "summary": "获取当前round版本的所有issue",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -2527,9 +2512,9 @@ class RoundRepeatRpmEvent(Resource):
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_quality_board_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "RoundRepeatRpmEvent",  # 当前接口视图函数名
-        "func_name": "get",   # 当前接口所对应的函数名
+        "func_name": "get",  # 当前接口所对应的函数名
         "tag": get_quality_board_tag(),  # 当前接口所对应的标签
         "summary": "分页获取当前round版本的所有重复软件包",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -2554,9 +2539,9 @@ class ReportEvent(Resource):
     @auth.login_required
     @response_collect
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_quality_board_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "ReportEvent",  # 当前接口视图函数名
-        "func_name": "get",   # 当前接口所对应的函数名
+        "func_name": "get",  # 当前接口所对应的函数名
         "tag": get_quality_board_tag(),  # 当前接口所对应的标签
         "summary": "获取质量报告",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -2569,13 +2554,13 @@ class ReportEvent(Resource):
             "description": "round id",
             "schema": {"type": "integer"}},
             {
-            "name": "branch",
-            "in": "query",
-            "required": False,
-            "style": "form",
-            "explode": True,
-            "description": "分支名称",
-            "schema": {"type": "string"}}],
+                "name": "branch",
+                "in": "query",
+                "required": False,
+                "style": "form",
+                "explode": True,
+                "description": "分支名称",
+                "schema": {"type": "string"}}],
     })
     def get(self, product_id):
         return ReportHandler(product_id, request.args).get_quality_report()
@@ -2585,9 +2570,9 @@ class ATReportEvent(Resource):
     @auth.login_required
     @response_collect
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_quality_board_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "ATReportEvent",  # 当前接口视图函数名
-        "func_name": "get",   # 当前接口所对应的函数名
+        "func_name": "get",  # 当前接口所对应的函数名
         "tag": get_quality_board_tag(),  # 当前接口所对应的标签
         "summary": "获取AT报告",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -2599,9 +2584,9 @@ class ATReportEvent(Resource):
 class BranchEvent(Resource):
     @response_collect
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_quality_board_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_quality_board_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "BranchEvent",  # 当前接口视图函数名
-        "func_name": "get",   # 当前接口所对应的函数名
+        "func_name": "get",  # 当前接口所对应的函数名
         "tag": get_quality_board_tag(),  # 当前接口所对应的标签
         "summary": "当前产品下issue关联的所有分支",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义

@@ -23,16 +23,6 @@ from server.model.organization import Organization
 from server.schema import CaseNodeType, PermissionType, BaselineTemplateType
 
 
-
-class BaselineTemplateBaseSchema(BaseModel):
-    title: str
-    type: BaselineTemplateType
-    group_id: int = None
-    org_id: int = None
-    openable: bool = True
-
-
-
 class BaseNodeBaseSchema(BaseModel):
     title: str
     type: BaselineTemplateType
@@ -41,31 +31,6 @@ class BaseNodeBaseSchema(BaseModel):
     is_root: bool = False
     baseline_template_id: int = None
     case_node_id: int = None
-
-
-
-class BaselineTemplateBodySchema(BaselineTemplateBaseSchema):
-    permission_type: Optional[PermissionType] = "group"
-
-    @root_validator
-    def validate_type(cls, values):
-        if values["type"] == 'org':
-            values["permission_type"] = "org"
-            if not values["org_id"]:
-                raise ValueError("The base_node should relate to one org")
-            org = Organization.query.filter_by(id=values["org_id"]).first()
-            if not org:
-                raise ValueError("The org to be related is not exist")
-
-        elif values["type"] == 'group':
-            if not values["group_id"]:
-                raise ValueError("The base_node should relate to one group")
-            group = Group.query.filter_by(id=values["group_id"]).first()
-            if not group:
-                raise ValueError("The group to be related is not exist")
-
-        return values
-
 
 
 class BaseNodeBodySchema(BaseModel):
@@ -102,7 +67,6 @@ class BaselineTemplateBodySchema(BaseModel):
         return values
 
 
-
 class BaselineTemplateQuerySchema(BaseModel):
     org_id: Optional[int]
     group_id: Optional[int]
@@ -115,7 +79,6 @@ class BaselineTemplateQuerySchema(BaseModel):
                 "org_id and group_id should not be provided in same request"
             )
         return values
-
 
 
 class BaselineTemplateItemQuerySchema(BaseModel):
@@ -131,7 +94,6 @@ class BaselineTemplateCreateSchema(BaseModel):
     group_id: int = None
     permission_type: Optional[PermissionType] = "group"
     openable: bool = True
-
 
 
 class BaselineTemplateUpdateSchema(BaseModel):
