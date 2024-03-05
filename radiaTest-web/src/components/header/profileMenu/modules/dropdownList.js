@@ -170,6 +170,7 @@ function handleLoginByForm() {
 function handleUpdateOrgValue(value) {
   selectedOrg.value = value;
   storage.setLocalValue('unLoginOrgId', value);
+  router.replace(`/blank?redirect=${router.currentRoute.value.fullPath}`);
 }
 
 function handleUpdateLoginedOrg(value) {
