@@ -73,9 +73,8 @@ class CaseImportHandler:
                 self.case_file = MarkdownImportFile(file)
             
             if self.case_file.filetype:
-                self.case_file.file_save(
-                    current_app.config.get("TMP_FILE_SAVE_PATH")
-                )
+                testcase_file_path = os.path.join(current_app.config.get("TMP_FILE_SAVE_PATH"), "testcase")
+                self.case_file.file_save(testcase_file_path)
             else:
                 mesg = "Filetype of {}.{} is not supported".format(
                         self.case_file.filename,
@@ -144,19 +143,21 @@ class CaseImportHandler:
             filepath (str): the convert file save path 
 
         """
+        testcase_file_path = os.path.join(current_app.config.get("TMP_FILE_SAVE_PATH"), "export")
+        os.makedirs(testcase_file_path, exist_ok=True)
         try:                       
             if to == "md":
                 kwargs = {
                     "df": Excel(self.case_file.filetype).load(self.case_file.filepath),
                     "md_path": "{}{}.md".format(
-                        current_app.config.get("TMP_FILE_SAVE_PATH"),
+                        testcase_file_path,
                         self.case_file.filename,
                     )
                 }
             elif to == "xlsx":
                 with open(self.case_file.filepath, "r") as f:
                     _wb_path = "{}{}.xlsx".format(
-                        current_app.config.get("TMP_FILE_SAVE_PATH"),
+                        testcase_file_path,
                         self.case_file.filename,
                     )
 
@@ -401,12 +402,23 @@ class CaseNodeHandler:
 
         # 解决级联删除未生效问题
         _baseline_id = case_node.baseline_id
+
+        case_id_list = []
+        if case_node.in_set:
+            if case_node.type == "case" and case_node.case_id:
+                case_id_list.append(case_node.case_id)
+            else:
+                for child in case_node.children:
+                    if child.case_id:
+                        case_id_list.append(child.case_id)
         db.session.delete(case_node)
-        
         if case_node.type == "baseline" and _baseline_id:
             baseline = Baseline.query.filter_by(id=_baseline_id).first()
             db.session.delete(baseline)
-            
+        # 级联删除所有未关联用例
+        for case_id in case_id_list:
+            if CaseNode.query.filter_by(in_set=False, case_id=case_id).count() == 0:
+                Case.query.filter_by(id=case_id).delete()
         try:
             db.session.commit()
         except (IntegrityError, SQLAlchemyError) as e:
@@ -422,9 +434,8 @@ class CaseNodeHandler:
         uncompressed_filepath = None
         try:
             if zip_case_set.filetype:
-                zip_case_set.file_save(
-                    current_app.config.get("TMP_FILE_SAVE_PATH")
-                )
+                testcase_file_path = os.path.join(current_app.config.get("TMP_FILE_SAVE_PATH"), "testcase")
+                zip_case_set.file_save(testcase_file_path)
                 uncompressed_filepath = "{}/{}".format(
                     os.path.dirname(zip_case_set.filepath),
                     f"{zip_case_set.filename}_" + datetime.datetime.now().strftime("%Y%m%d%H%M%S")
@@ -1281,6 +1292,7 @@ class ExcelExportUtil(CasefileExportUtil):
     def __init__(self, filename: str, cases: List[dict]):
         self.next_row = 1
         super().__init__(filename, cases)
+        self.casefile = os.path.join(current_app.config.get("TMP_FILE_SAVE_PATH"), "export", f"{self.filename}.xlsx")
 
     def create_casefile(self):
         wb = openpyxl.Workbook()
@@ -1288,10 +1300,8 @@ class ExcelExportUtil(CasefileExportUtil):
         sheet.title = self.filename
         for i, col_name in enumerate(self.COL_NAMES):
             sheet.cell(self.next_row, i+1).value = col_name
-        
-        wb.save(os.path.join(current_app.config.get("TMP_FILE_SAVE_PATH"), f"{self.filename}.xlsx"))
+        wb.save(self.casefile)
         self.next_row += 1
-        self.casefile = os.path.join(current_app.config.get("TMP_FILE_SAVE_PATH"), f"{self.filename}.xlsx")
     
     def add_row(self, row_data: list):
         wb = openpyxl.load_workbook(self.casefile)
@@ -1309,19 +1319,15 @@ class ExcelExportUtil(CasefileExportUtil):
 
 
 class MdExportUtil(CasefileExportUtil):
+    def __init__(self, filename: str, cases: List[dict]):
+        super().__init__(filename, cases)
+        self.casefile = os.path.join(current_app.config.get("TMP_FILE_SAVE_PATH"), "export", f"{self.filename}.md")
+
     def create_casefile(self):
-        with open(
-            os.path.join(
-                current_app.config.get("TMP_FILE_SAVE_PATH"), 
-                f"{self.filename}.md"
-            ), 
-            "a",
-        ) as f:
+        with open(self.casefile,  "a") as f:
             f.write(f"|{'|'.join(self.COL_NAMES)}|\n")
             split_row = "|---"*len(self.COL_NAMES) + "|\n"
             f.write(split_row)
-        
-        self.casefile = os.path.join(current_app.config.get("TMP_FILE_SAVE_PATH"), f"{self.filename}.md")
     
     def add_row(self, row_data: list):
         with open(self.casefile, "a+") as f:
