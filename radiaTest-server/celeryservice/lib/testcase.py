@@ -69,11 +69,11 @@ class TestcaseHandler(TaskAuthHandler):
 
     def md2xlsx(self, file):
         _wb_path = os.path.join(current_app.config.get("TMP_FILE_SAVE_PATH"), "testcase", file.name.split('/')[-1])
-        
+
         wb = openpyxl.Workbook()
         wb.create_sheet(file.name.split('/')[-1])
         wb.save(_wb_path)
-        
+
         return MdUtil.md2wb(
             md_content=file.read(),
             wb_path=_wb_path,
@@ -110,7 +110,7 @@ class TestcaseHandler(TaskAuthHandler):
             _case = Case.query.filter_by(name=case.get("name")).first()
             if _case and _case.permission_type != self.user.get("permission_type"):
                 continue
-            
+
             _suite = Suite.query.filter_by(
                 name=case.get("suite")
             ).first()
@@ -252,7 +252,7 @@ class TestcaseHandler(TaskAuthHandler):
             _title = "用例集"
         else:
             _title = os.path.basename(_filepath)
-        
+
         _name = os.path.basename(_filepath).split('.')[0]
         _ext = os.path.basename(_filepath).split('.')[-1]
 
@@ -271,7 +271,7 @@ class TestcaseHandler(TaskAuthHandler):
             }
 
             _verify = True if current_app.config.get("CA_VERIFY") == "True" \
-            else current_app.config.get("CA_CERT")
+                else current_app.config.get("CA_CERT")
 
             _resp = requests.post(
                 url="https://{}/api/v1/testcase/resolve-by-filepath".format(
@@ -468,6 +468,4 @@ class TestcaseHandler(TaskAuthHandler):
             except Exception as error:
                 # 用例集导入文件为uncompress用户权限
                 current_app.logger.error(str(error))
-                _, _, _ =run_cmd("sudo -u uncompress rm -rf '{}'".format(filepath))
-
-
+                _, _, _ = run_cmd("sudo -u uncompress rm -rf '{}'".format(filepath))
