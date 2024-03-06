@@ -56,8 +56,9 @@ scrapyspider_backend = loads_config_ini("celery", "SCRAPYSPIDER_BACKEND")
 socketio_pubsub = loads_config_ini("celery", "SOCKETIO_PUBSUB")
 
 # 频次限制配置
-worker_disable_rate_limits = True
-# task_default_rate_limit = '10000/m' (10000 times per minute)
+worker_disable_rate_limits = False
+task_default_rate_limit = '20/s'
+task_prefetch_multiplier = 4
 
 # 一般配置
 task_serializer = "json"
