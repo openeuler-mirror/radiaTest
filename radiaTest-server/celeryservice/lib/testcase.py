@@ -97,9 +97,11 @@ class TestcaseHandler(TaskAuthHandler):
 
         suites = set()
         caseids = set()
+        skip_cases = []
 
         for case in cases:
             if not case.get("name") or not case.get("suite"):
+                skip_cases.append(case)
                 continue
 
             if case.get("automatic") == '是' or case.get("automatic") == 'Y' or case.get("automatic") == 'True':
@@ -109,12 +111,14 @@ class TestcaseHandler(TaskAuthHandler):
 
             _case = Case.query.filter_by(name=case.get("name")).first()
             if _case and _case.permission_type != self.user.get("permission_type"):
+                skip_cases.append(case)
                 continue
 
             _suite = Suite.query.filter_by(
                 name=case.get("suite")
             ).first()
             if _suite and _suite.permission_type != self.user.get("permission_type"):
+                skip_cases.append(case)
                 continue
 
             try:
@@ -151,13 +155,17 @@ class TestcaseHandler(TaskAuthHandler):
                     db.session.flush()
 
                 db.session.commit()
-                caseids.add(_case.id)
+                if _case.id in caseids:
+                    self.logger.warning(f'testcase  duplication: {case}')
+                else:
+                    caseids.add(_case.id)
             except (IntegrityError, SQLAlchemyError) as e:
                 self.logger.error(f'database operate error -> {e}')
                 db.session.rollback()
+                skip_cases.append(case)
                 continue
 
-        return suites, caseids
+        return suites, caseids, skip_cases
 
     def get_case_node_id(self, _title, _type, _parent_id, _suite_id=None, _case_id=None):
         """已存在节点则直接获取id，不存在的节点新增后获取"""
@@ -347,17 +355,15 @@ class TestcaseHandler(TaskAuthHandler):
 
             pattern = r'^([^(\.|~)].*)\.(xls|xlsx|csv|md|markdown)$'
             if re.match(pattern, os.path.basename(filepath)) is not None:
-                suites, cases = self.loads_data(
+                suites, cases, skip_cases = self.loads_data(
                     filetype[1:],
                     filepath,
                 )
 
-                mesg = "File {} has been import".format(
-                    os.path.basename(filepath),
-                    filetype,
-                )
-
+                mesg = "File {}, {} has been import".format(os.path.basename(filepath), filetype)
                 current_app.logger.warning(mesg)
+                if skip_cases:
+                    current_app.logger.warning(f"skip_cases: {skip_cases}")
 
                 self.next_period()
                 self.promise.update_state(
