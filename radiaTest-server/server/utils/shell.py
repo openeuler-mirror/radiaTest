@@ -14,18 +14,44 @@
 #####################################
 
 import subprocess
+import shlex
+from itertools import groupby
 
 
-def run_cmd(cmd):
-    process = subprocess.Popen(
-        cmd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        shell=False
-    )
-    process.wait()
-    output, error = process.communicate()
-    return process.returncode, output.decode("utf-8"), error.decode("utf-8")
+def standard_cmd(input):
+    if isinstance(input, str):
+        command_list = shlex.split(input)
+        cmds = [list(group) for key, group in groupby(command_list, lambda x: x != '&&') if key]
+        return cmds
+    elif isinstance(input, list):
+        if all(isinstance(item, str) for item in input):
+            return [input]
+        elif all(isinstance(item, list) and all(isinstance(subitem, str) for subitem in item) for item in input):
+            return input
+        else:
+            return []
+    else:
+        return []
+
+
+def run_cmd(input):
+    cmds = standard_cmd(input)
+    returncode = 1
+    output = ""
+    error = ""
+    if not cmds:
+        return returncode, output, "unsupported input type"
+    for item in cmds:
+        process = subprocess.Popen(
+            item,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            shell=False
+        )
+        process.wait()
+        output, error = process.communicate()
+        returncode = process.returncode
+    return returncode, output.decode("utf-8"), error.decode("utf-8")
 
 
 def add_escape(value):
