@@ -101,7 +101,7 @@ class TestcaseHandler(TaskAuthHandler):
 
         for case in cases:
             if not case.get("name") or not case.get("suite"):
-                skip_cases.append(case)
+                skip_cases.append({"case_name": case.get("name"), "suite_name": case.get("suite")})
                 continue
 
             if case.get("automatic") == '是' or case.get("automatic") == 'Y' or case.get("automatic") == 'True':
@@ -111,14 +111,14 @@ class TestcaseHandler(TaskAuthHandler):
 
             _case = Case.query.filter_by(name=case.get("name")).first()
             if _case and _case.permission_type != self.user.get("permission_type"):
-                skip_cases.append(case)
+                skip_cases.append({"case_name": case.get("name"), "suite_name": case.get("suite")})
                 continue
 
             _suite = Suite.query.filter_by(
                 name=case.get("suite")
             ).first()
             if _suite and _suite.permission_type != self.user.get("permission_type"):
-                skip_cases.append(case)
+                skip_cases.append({"case_name": case.get("name"), "suite_name": case.get("suite")})
                 continue
 
             try:
@@ -162,7 +162,7 @@ class TestcaseHandler(TaskAuthHandler):
             except (IntegrityError, SQLAlchemyError) as e:
                 self.logger.error(f'database operate error -> {e}')
                 db.session.rollback()
-                skip_cases.append(case)
+                skip_cases.append({"case_name": case.get("name"), "suite_name": case.get("suite")})
                 continue
 
         return suites, caseids, skip_cases
@@ -363,7 +363,7 @@ class TestcaseHandler(TaskAuthHandler):
                 mesg = "File {}, {} has been import".format(os.path.basename(filepath), filetype)
                 current_app.logger.warning(mesg)
                 if skip_cases:
-                    current_app.logger.warning(f"skip_cases: {skip_cases}")
+                    current_app.logger.warning(f"{os.path.basename(filepath)}, skip_cases: {skip_cases}")
 
                 self.next_period()
                 self.promise.update_state(
