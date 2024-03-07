@@ -20,7 +20,7 @@ import os
 import sys
 import json
 import requests
-from lxml import html
+from lxml import html, etree
 
 import redis
 from flask_socketio import SocketIO
@@ -568,8 +568,8 @@ def test_overview_parse(tree, product_build):
             continue
 
         aarch64_selector = res_selectors[0]
-
-        if aarch64_selector != "<td>-</td>":
+        tmp = etree.tostring(aarch64_selector, encoding="unicode", method="xml")
+        if tmp.strip() != "<td>-</td>":
             aarch64_res = aarch64_selector.xpath('./span[starts-with(@id, "res-")]/a')
             if not aarch64_res:
                 res = aarch64_selector.xpath('./a')[0]
@@ -580,8 +580,9 @@ def test_overview_parse(tree, product_build):
             aarch64_res_log = res.xpath('./@href')[0]
             item["aarch64_res_log"] = f"{celeryconfig.openqa_url}{aarch64_res_log}"
 
-            item["aarch64_start_time"], item["aarch64_end_name"], item["aarch64_test_duration"] = \
-                get_test_time_by_res_log(aarch64_res_log)
+            if item["aarch64_res_status"] != "cancelled":
+                item["aarch64_start_time"], item["aarch64_end_name"], item["aarch64_test_duration"] = \
+                    get_test_time_by_res_log(aarch64_res_log)
 
             aarch64_failedmodule = aarch64_selector.xpath('./span[@class="failedmodule"]')
             if aarch64_failedmodule:
@@ -596,7 +597,8 @@ def test_overview_parse(tree, product_build):
             _redis_pipeline.process_item(test_overview_data)
             continue
 
-        if x86_64_selector != "<td>-</td>":
+        tmp = etree.tostring(x86_64_selector, encoding="unicode", method="xml")
+        if tmp.strip() != "<td>-</td>":
             x86_res = x86_64_selector.xpath('./span[starts-with(@id, "res-")]/a')
             if not x86_res:
                 res = x86_64_selector.xpath('./a')[0]
@@ -606,9 +608,9 @@ def test_overview_parse(tree, product_build):
             item["x86_64_res_status"] = res.xpath('./i/@title')[0]
             x86_64_res_log = res.xpath('./@href')[0]
             item["x86_64_res_log"] = f"{celeryconfig.openqa_url}{x86_64_res_log}"
-
-            item["x86_64_start_time"], item["x86_64_end_name"], item["x86_64_test_duration"] = \
-                get_test_time_by_res_log(x86_64_res_log)
+            if item["x86_64_res_status"] != "cancelled":
+                item["x86_64_start_time"], item["x86_64_end_name"], item["x86_64_test_duration"] = \
+                    get_test_time_by_res_log(x86_64_res_log)
 
             x86_failedmodule = x86_64_selector.xpath('./span[@class="failedmodule"]')
             if x86_failedmodule:
