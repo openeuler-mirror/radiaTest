@@ -78,3 +78,15 @@ class LoginOrgListSchema(BaseModel):
 class QueryTestReportFileSchema(BaseModel):
     file_type: Literal["md", "html"]
     milestone_name: str
+
+
+class TestResultEventSchema(BaseModel):
+    org: str
+    baseline: str
+    testsuite: str
+    testcase: str
+    result: str
+    log_url: Optional[str]
+    fail_type: Optional[str]
+    details: Optional[str]
+    running_time: Optional[int]

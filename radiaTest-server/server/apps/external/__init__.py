@@ -24,7 +24,8 @@ from .routes import (
     RpmCheckEvent,
     AtEvent,
     GetTestReportFileEvent,
-    AtDetailEvent
+    AtDetailEvent,
+    TestResultEvent
 )
 
 
@@ -36,3 +37,4 @@ def init_api(api: Api):
     api.add_resource(AtEvent, "/api/v1/openeuler/at")
     api.add_resource(AtDetailEvent, "/api/v1/openeuler/at-detail")
     api.add_resource(GetTestReportFileEvent, "/api/v1/test-report/file")
+    api.add_resource(TestResultEvent, "/api/v1/test-result")

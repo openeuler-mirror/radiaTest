@@ -381,3 +381,19 @@ class CaseV2Query(PageBaseSchema):
     baseline_id: int = None
     description: str = None
     automatic: bool = None
+
+
+class TestResultEventSchemaV2(BaseModel):
+    org_id: int
+    milestone_id: int
+    case_id: int
+    result: str
+    log_url: Optional[str]
+    fail_type: Optional[str]
+    details: Optional[str]
+    running_time: Optional[int]
+
+
+class TestResultQuerySchema(BaseModel):
+    milestone_id: int
+    case_id: int

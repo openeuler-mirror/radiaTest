@@ -127,7 +127,7 @@ def handler_read_org_list():
     org_list = Organization.query.filter_by(is_delete=False).all()
     org_info_list = list()
     for item in org_list:
-        org_info_list.append(**item.to_dict())
+        org_info_list.append(item.to_dict())
     return jsonify(
         error_code=RET.OK,
         error_msg="OK",

@@ -24,10 +24,12 @@ from flask_restful import Resource
 from flask_pydantic import validate
 
 from server import swagger_adapt
+from server.apps.testcase.handler import TestResultEventHandler
 from server.schema.external import (
     LoginOrgListSchema,
     OpenEulerUpdateTaskBase,
     QueryTestReportFileSchema,
+    TestResultEventSchema
 )
 from server.model.group import Group
 from server.model.organization import Organization
@@ -451,3 +453,18 @@ class GetTestReportFileEvent(Resource):
         current_app.template_folder = tmp_folder
         return resp
 
+
+class TestResultEvent(Resource):
+    @external_auth
+    @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_external_tag.__module__,
+        "resource_name": "TestResultEvent",
+        "func_name": "post",
+        "tag": get_external_tag(),
+        "summary": "设置自动化用例执行结果",
+        "externalDocs": {"description": "", "url": ""},
+        "request_schema_model": TestResultEventSchema,
+    })
+    def post(self, body: TestResultEventSchema):
+        return TestResultEventHandler.post_test_result(body)

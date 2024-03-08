@@ -31,14 +31,15 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from server import db, redis_client
 from server.utils.redis_util import RedisKey
 from server.utils.response_util import RET
-from server.utils.db import Insert, collect_sql_error
+from server.utils.db import Insert, collect_sql_error, Edit
 from server.utils.page_util import PageUtil
 from server.model.testcase import (
-    CaseNode, 
-    Suite, 
+    CaseNode,
+    Suite,
     Case,
     SuiteDocument,
     Baseline,
+    CaseResult
 )
 from server.model.framework import GitRepo
 from server.model.task import Task, TaskMilestone, TaskManualCase
@@ -1337,3 +1338,138 @@ class MdExportUtil(CasefileExportUtil):
                 _row = _row + str(cell) + '|'
             _row += '\n'
             f.write(_row)
+
+
+class TestResultEventHandler:
+    @staticmethod
+    def post_test_result(body):
+        # 校验
+        if not body.result:
+            return jsonify(
+                error_code=RET.PARMA_ERR,
+                error_msg="Organization is not existed!",
+            )
+        org = Organization.query.filter_by(name=body.org).first()
+        if not org:
+            return jsonify(
+                error_code=RET.PARMA_ERR,
+                error_msg="Organization is not existed!",
+            )
+        suite = Suite.query.filter_by(name=body.testsuite).first()
+        if not suite:
+            return jsonify(
+                error_code=RET.PARMA_ERR,
+                error_msg="suite is not existed!",
+            )
+
+        case = Case.query.filter_by(name=body.testcase).first()
+        if not case:
+            return jsonify(
+                error_code=RET.PARMA_ERR,
+                error_msg="case is not existed!",
+            )
+
+        baseline_node = CaseNode.query.filter_by(org_id=org.id, type="baseline", is_root=True, in_set=False,
+                                                 title=body.baseline, permission_type="org").first()
+        if not baseline_node:
+            return jsonify(
+                error_code=RET.PARMA_ERR,
+                error_msg="baseline is not existed!",
+            )
+        case_node = CaseNode.query.filter_by(org_id=org.id, type="case", is_root=False, in_set=False, case_id=case.id,
+                                             baseline_id=baseline_node.baseline_id, permission_type="org").first()
+        if not case_node:
+            return jsonify(
+                error_code=RET.PARMA_ERR,
+                error_msg="case node is not existed!",
+            )
+        result_data = {
+            "case_id": case.id,
+            "baseline_id": baseline_node.baseline_id,
+            "result": body.result,
+            "details": body.details,
+            "log_url": body.log_url,
+            "fail_type": body.fail_type,
+            "running_time": body.running_time,
+        }
+        case_result = CaseResult.query.filter_by(baseline_id=baseline_node.baseline_id, case_id=case.id).first()
+        if case_result:
+            result_data.update({"id": case_result.id})
+            Edit(CaseResult, result_data).single(CaseResult, "/case_result")
+        else:
+            Insert(CaseResult, result_data).single()
+
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+        )
+
+    @staticmethod
+    def get_test_result(query):
+        baseline = Baseline.query.filter_by(milestone_id=query.milestone_id).first()
+        data = {}
+        if baseline:
+            case_result = CaseResult.query.filter_by(case_id=query.case_id, baseline_id=baseline.id).first()
+            if case_result:
+                data = case_result.to_json()
+
+        return jsonify(
+            data=data,
+            error_code=RET.OK,
+            error_msg="OK",
+        )
+
+    @staticmethod
+    def test_result(body):
+        if not body.result:
+            return jsonify(
+                error_code=RET.PARMA_ERR,
+                error_msg="Organization is not existed!",
+            )
+        org = Organization.query.filter_by(id=body.org_id).first()
+        if not org:
+            return jsonify(
+                error_code=RET.PARMA_ERR,
+                error_msg="Organization is not existed!",
+            )
+
+        case = Case.query.filter_by(id=body.case_id).first()
+        if not case:
+            return jsonify(
+                error_code=RET.PARMA_ERR,
+                error_msg="case is not existed!",
+            )
+
+        baseline = Baseline.query.filter_by(milestone_id=body.milestone_id).first()
+        if not baseline:
+            return jsonify(
+                error_code=RET.PARMA_ERR,
+                error_msg="baseline is not existed!",
+            )
+
+        case_node = CaseNode.query.filter_by(org_id=org.id, type="case", is_root=False, in_set=False,
+                                             baseline_id=baseline.id, permission_type="org", case_id=case.id).first()
+        if not case_node:
+            return jsonify(
+                error_code=RET.PARMA_ERR,
+                error_msg="case node is not existed!",
+            )
+        result_data = {
+            "case_id": case.id,
+            "baseline_id": baseline.id,
+            "result": body.result,
+            "details": body.details,
+            "log_url": body.log_url,
+            "fail_type": body.fail_type,
+            "running_time": body.running_time,
+        }
+        case_result = CaseResult.query.filter_by(baseline_id=baseline.id, case_id=case.id).first()
+        if case_result:
+            result_data.update({"id": case_result.id})
+            Edit(CaseResult, result_data).single(CaseResult, "/case_result")
+        else:
+            Insert(CaseResult, result_data).single()
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="OK",
+        )

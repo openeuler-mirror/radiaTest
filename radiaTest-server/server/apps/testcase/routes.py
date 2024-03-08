@@ -62,7 +62,9 @@ from server.schema.testcase import (
     CaseQuery,
     SuiteQuery,
     CaseNodeBodyQuerySchema,
-    CaseV2Query
+    CaseV2Query,
+    TestResultEventSchemaV2,
+    TestResultQuerySchema
 )
 from server.apps.testcase.handler import (
     CaseImportHandler,
@@ -75,7 +77,7 @@ from server.apps.testcase.handler import (
     HandlerCaseReview,
     ResourceItemHandler,
     SuiteDocumentHandler,
-    CaseSetHandler,
+    CaseSetHandler, TestResultEventHandler,
 )
 from server.utils.resource_utils import ResourceManager
 from server.utils.page_util import PageUtil
@@ -1841,3 +1843,33 @@ class CaseEventV2(Resource):
         query_filter = Case.query.join(CaseNode).filter(*filter_params)
 
         return PageUtil.get_data(query_filter, query)
+
+
+class TestResultEventV2(Resource):
+    @auth.login_required()
+    @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_testcase_tag.__module__,
+        "resource_name": "TestResultEventV2",
+        "func_name": "post",
+        "tag": get_testcase_tag(),
+        "summary": "设置用例执行结果",
+        "externalDocs": {"description": "", "url": ""},
+        "request_schema_model": TestResultEventSchemaV2,
+    })
+    def post(self, body: TestResultEventSchemaV2):
+
+        return TestResultEventHandler.test_result(body)
+
+    @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_testcase_tag.__module__,
+        "resource_name": "TestResultEventV2",
+        "func_name": "get",
+        "tag": get_testcase_tag(),
+        "summary": "获取用例执行结果",
+        "externalDocs": {"description": "", "url": ""},
+        "query_schema_model": TestResultQuerySchema,
+    })
+    def get(self, query: TestResultQuerySchema):
+        return TestResultEventHandler.get_test_result(query)

@@ -49,11 +49,8 @@ class TestcaseHandler(TaskAuthHandler):
 
         for child in parent.children:
             if body.title == child.title:
-                raise RuntimeError(
-                    "case_node {} is already exist".format(
-                        body.title
-                    )
-                )
+                self.logger.warning("case_node {} is already exist".format(body.title))
+                return child.id
 
         case_node = CaseNode.query.filter_by(
             id=Insert(
@@ -101,7 +98,8 @@ class TestcaseHandler(TaskAuthHandler):
 
         for case in cases:
             if not case.get("name") or not case.get("suite"):
-                skip_cases.append({"case_name": case.get("name"), "suite_name": case.get("suite")})
+                skip_cases.append({"case_name": case.get("name"), "suite_name": case.get("suite"),
+                                   "filepath": _filepath})
                 continue
 
             if case.get("automatic") == '是' or case.get("automatic") == 'Y' or case.get("automatic") == 'True':
@@ -111,16 +109,18 @@ class TestcaseHandler(TaskAuthHandler):
 
             _case = Case.query.filter_by(name=case.get("name")).first()
             if _case and _case.permission_type != self.user.get("permission_type"):
-                skip_cases.append({"case_name": case.get("name"), "suite_name": case.get("suite")})
+                skip_cases.append({"case_name": case.get("name"), "suite_name": case.get("suite"),
+                                   "filepath": _filepath})
                 continue
 
             _suite = Suite.query.filter_by(
                 name=case.get("suite")
             ).first()
             if _suite and _suite.permission_type != self.user.get("permission_type"):
-                skip_cases.append({"case_name": case.get("name"), "suite_name": case.get("suite")})
+                skip_cases.append({"case_name": case.get("name"), "suite_name": case.get("suite"),
+                                   "filepath": _filepath})
                 continue
-
+            suite_name = ''
             try:
                 if not _suite:
                     _suite = Suite(
@@ -137,7 +137,7 @@ class TestcaseHandler(TaskAuthHandler):
 
                 suites.add(_suite.id)
 
-                del case["suite"]
+                suite_name = case.pop("suite")
 
                 if not _case:
                     case["group_id"] = self.user.get("group_id")
@@ -149,20 +149,19 @@ class TestcaseHandler(TaskAuthHandler):
                     db.session.add(_case)
                     db.session.flush()
                 else:
+                    self.logger.warning('testcase  duplication: {}, {}, '.format(suite_name,
+                                                                                 case.get("name"), _filepath))
                     for key, value in case.items():
                         setattr(_case, key, value)
                     db.session.add(_case)
                     db.session.flush()
 
                 db.session.commit()
-                if _case.id in caseids:
-                    self.logger.warning(f'testcase  duplication: {case}')
-                else:
-                    caseids.add(_case.id)
+                caseids.add(_case.id)
             except (IntegrityError, SQLAlchemyError) as e:
                 self.logger.error(f'database operate error -> {e}')
                 db.session.rollback()
-                skip_cases.append({"case_name": case.get("name"), "suite_name": case.get("suite")})
+                skip_cases.append({"case_name": case.get("name"), "suite_name": suite_name, "filepath": _filepath})
                 continue
 
         return suites, caseids, skip_cases
@@ -360,7 +359,7 @@ class TestcaseHandler(TaskAuthHandler):
                     filepath,
                 )
 
-                mesg = "File {}, {} has been import".format(os.path.basename(filepath), filetype)
+                mesg = "File {} has been import".format(os.path.basename(filepath))
                 current_app.logger.warning(mesg)
                 if skip_cases:
                     current_app.logger.warning(f"{os.path.basename(filepath)}, skip_cases: {skip_cases}")
@@ -411,7 +410,7 @@ class TestcaseHandler(TaskAuthHandler):
                 self.clean_file(filepath)
                 return jsonify(error_code=RET.OK, error_msg=mesg)
 
-        except RuntimeError as e:
+        except Exception as e:
             current_app.logger.error(str(e))
 
             self.next_period()

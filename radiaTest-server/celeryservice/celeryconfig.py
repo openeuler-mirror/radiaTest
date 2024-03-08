@@ -57,7 +57,7 @@ socketio_pubsub = loads_config_ini("celery", "SOCKETIO_PUBSUB")
 
 # 频次限制配置
 worker_disable_rate_limits = False
-task_default_rate_limit = '20/s'
+task_default_rate_limit = '100/s'
 task_prefetch_multiplier = 4
 
 # 一般配置
