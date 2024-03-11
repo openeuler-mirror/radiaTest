@@ -21,16 +21,6 @@ class LoginSchema(BaseModel):
     password: str
 
 
-class RegisterSchema(LoginSchema):
-    password2: str
-
-    @validator('password2')
-    def v_password(cls, v):
-        if len(v) < 8:
-            raise ValueError('password2 length >= 8')
-        return v
-
-
 class ChangePasswdSchema(BaseModel):
     account: str
     old_password: str

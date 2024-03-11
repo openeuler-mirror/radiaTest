@@ -156,6 +156,9 @@ class Config(object):
     SQLALCHEMY_MAX_OVERFLOW = 10
     SQLALCHEMY_POOL_RECYCLE = 5400
 
+    # 三方平台的信息
+    YAML_PATH = "/etc/radiaTest/app.yaml"
+
 
 class TestingConfig(Config):
     TESTING = True

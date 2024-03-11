@@ -31,7 +31,7 @@ from .utils.redis_util import RedisClient
 from importlib import import_module
 from .plugins.flask_authz import CasbinEnforcer
 from server.config.settings import Config
-from server.utils.config_util import loads_config_ini
+from server.utils.config_util import loads_config_ini, loads_app_yaml
 from server.utils.celery_utils import init_celery
 from server.plugins.swagger.adapt_swagger import SwaggerJsonAdapt
 
@@ -78,6 +78,8 @@ def create_app(**kwargs):
     ini_result = loads_config_ini(app)
     if not ini_result:
         raise RuntimeError("There is no valid config files for this flask app.")
+
+    loads_app_yaml(app)
 
     init_logging(
         default_level=app.config.get("LOG_LEVEL", logging.INFO),

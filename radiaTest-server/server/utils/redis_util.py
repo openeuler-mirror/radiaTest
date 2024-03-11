@@ -28,7 +28,9 @@ class RedisClient(object):
             port=app.config.get("REDIS_PORT", 6379),
             password=app.config.get("REDIS_SECRET", None),
             db=app.config.get("REDIS_DB", 0),
-            decode_responses=True
+            decode_responses=True,
+            ssl=app.config.get("REDIS_USE_SSL", False),
+            ssl_ca_certs=app.config.get("REDIS_CA_CERTS", None)
         )
 
     def connect(self):

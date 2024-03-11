@@ -82,44 +82,6 @@ def handler_login(body):
 
 
 @collect_sql_error
-def handler_register(body):
-    if body.password != body.password2:
-        return jsonify(
-            error_code=RET.PARMA_ERR,
-            error_msg='two passwords are inconsistent'
-        )
-
-    admin = Admin()
-    admin.account = body.account
-    admin.password = body.password
-    admin_id = admin.add_flush_commit_id()
-    if not admin_id:
-        return jsonify(
-            error_code=RET.DB_ERR,
-            error_msg=f'database add error'
-        )
-
-    user_dict = {
-        'user_id': f'admin_{admin_id}',
-        'user_login': admin.account
-    }
-    redis_client.hmset(RedisKey.user(user_dict.get('user_id')), user_dict)
-    token = generate_token(
-        user_dict.get('user_id'),
-        admin.account,
-        int(current_app.config.get("LOGIN_EXPIRES_TIME"))
-    )
-    return_dict = {
-        'token': token,
-    }
-    return jsonify(
-        error_code=RET.OK,
-        error_msg='OK',
-        data=return_dict
-    )
-
-
-@collect_sql_error
 def handler_read_org_list():
     admin = Admin.query.filter_by(account=g.user_login).first()
     if not admin:

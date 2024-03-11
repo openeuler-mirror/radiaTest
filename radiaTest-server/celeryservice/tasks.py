@@ -14,6 +14,7 @@
 
 
 #####################################
+import ssl
 import re
 from datetime import datetime
 import os
@@ -57,11 +58,23 @@ sys.path.append(BASE_DIR)
 
 logger = get_task_logger("manage")
 socketio = SocketIO(message_queue=celeryconfig.socketio_pubsub)
+if not celeryconfig.redis_use_ssl:
+    ssl_config = {}
+else:
+    ssl_config = {
+        'ssl_ca_certs': celeryconfig.redis_cacert_path,
+        'ssl_cert_reqs': ssl.CERT_REQUIRED,
+        'ssl': celeryconfig.redis_use_ssl
+    }
 
 # 建立redis backend连接池
-pool = redis.ConnectionPool.from_url(celeryconfig.result_backend, decode_responses=True)
+pool = redis.ConnectionPool.from_url(celeryconfig.result_backend, decode_responses=True, **ssl_config)
 # 建立scrapyspider的存储redis池
-scrapyspider_pool = redis.ConnectionPool.from_url(celeryconfig.scrapyspider_backend, decode_responses=True)
+scrapyspider_pool = redis.ConnectionPool.from_url(
+    celeryconfig.scrapyspider_backend,
+    decode_responses=True,
+    **ssl_config
+)
 
 
 @task_postrun.connect
