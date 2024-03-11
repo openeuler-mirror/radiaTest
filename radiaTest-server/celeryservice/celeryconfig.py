@@ -214,3 +214,6 @@ smtp_passwd = loads_config_ini("mail", "SMTP_PASSWD")
 
 # access_token of radiaTest-bot(make sure gitee v5 api is reachable)
 v5_access_token = loads_config_ini("token", "V5_ACCESS_TOKEN")
+
+redis_cacert_path = loads_config_ini("redis", "REDIS_CA_CERTS")
+redis_use_ssl = loads_config_ini("redis", "REDIS_USE_SSL")

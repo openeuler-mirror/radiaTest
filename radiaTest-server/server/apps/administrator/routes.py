@@ -19,14 +19,13 @@ from flask import request, current_app
 from flask_restful import Resource
 from flask_pydantic import validate
 from server import casbin_enforcer, swagger_adapt
-from server.schema.administrator import LoginSchema, RegisterSchema, ChangePasswdSchema
+from server.schema.administrator import LoginSchema, ChangePasswdSchema
 from server.schema.organization import AddSchema, UpdateSchema
 from server.utils.auth_util import auth
 from server.utils.file_util import identify_file_type, FileTypeMapping
 from server.utils.response_util import response_collect
 from server.apps.administrator.handlers import (
     handler_login,
-    handler_register,
     handler_read_org_list,
     handler_save_org,
     handler_update_org,
@@ -55,21 +54,6 @@ class Login(Resource):
     })
     def post(self, body: LoginSchema):
         return handler_login(body)
-
-
-class Register(Resource):
-    @validate()
-    @swagger_adapt.api_schema_model_map({
-        "__module__": get_admin_tag.__module__,
-        "resource_name": "Register",
-        "func_name": "post",
-        "tag": get_admin_tag(),
-        "summary": "管理员注册",
-        "externalDocs": {"description": "", "url": ""},
-        "request_schema_model": RegisterSchema,
-    })
-    def post(self, body: RegisterSchema):
-        return handler_register(body)
 
 
 class Org(Resource):
