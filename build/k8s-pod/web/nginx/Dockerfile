@@ -56,5 +56,3 @@ RUN npm cache clean --force \
     && npm run build
 
 ENTRYPOINT [ "nginx", "-c", "/etc/nginx/nginx.conf", "-g", "daemon off;" ]
-
-RUN rm -rf /etc/nginx/ssl/server.crt && rm -rf /etc/nginx/ssl/server.key
