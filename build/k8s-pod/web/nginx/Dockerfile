@@ -43,12 +43,12 @@ RUN useradd -ms /bin/bash radiaTest
 # 增加权限
 RUN mkdir -p /opt/radiaTest/radiaTest-web/nginx_log
 RUN chown -R radiaTest:radiaTest /opt/radiaTest
-RUN chown -R radiaTest:radiaTest /etc/nginx
 RUN chown -R radiaTest:radiaTest /usr/share/nginx
 RUN chown -R radiaTest:radiaTest /var/lib/nginx
 RUN chown -R radiaTest:radiaTest /var/log/nginx
 RUN chmod -R 740 /opt/radiaTest
 RUN \cp ./deploy/nginx.conf ./deploy/server.conf /etc/nginx/
+RUN chown -R radiaTest:radiaTest /etc/nginx
 
 USER radiaTest
 RUN npm cache clean --force \
