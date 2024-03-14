@@ -65,3 +65,7 @@ RUN pip3 install -r requirements.txt -i $PIP_REPO || pip3 install -r requirement
 
 CMD bash /opt/radiaTest/build/k8s-pod/web/gunicorn/init_db.sh \
     && gunicorn -c /etc/radiaTest/gunicorn.conf.py manage:app
+
+RUN sleep 10
+
+RUN rm -rf /etc/radiaTest/server.ini
