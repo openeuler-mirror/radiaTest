@@ -29,8 +29,6 @@ RUN dnf install -y git \
     && git clone -b $BRANCH $GIT_REPO \
     && dnf install -y make \
     && dnf install -y openssl \
-    && dnf install -y expect \
-    && dnf install -y iputils \
     && dnf install -y python3-pip \
     && dnf install -y python3-devel \
     && dnf install -y sudo \
@@ -39,7 +37,6 @@ RUN dnf install -y git \
 WORKDIR /opt/radiaTest/radiaTest-server/
 
 RUN bash ./install_rar.sh 
-RUN bash /opt/radiaTest/build/k8s-pod/web/gunicorn/init_ca.sh
 
 # 切换到radiaTest用户
 # 增加radiaTest、 uncompress(文件解压专用)
@@ -54,10 +51,10 @@ RUN mkdir -p /opt/radiaTest/tmp/testcase
 
 # /opt/radiaTest增加权限
 RUN chown -R radiaTest:radiaTest /opt/radiaTest
-RUN chown -R radiaTest:radiaTest /etc/radiaTest_ssl
 
 RUN chmod -R 755 /opt/radiaTest
-RUN chmod -R 740 /etc/radiaTest_ssl
+
+RUN dnf remove make -y
 
 # uncompress用户解压需要rarfile库
 RUN sudo -u uncompress pip3 install rarfile==4.0
@@ -67,4 +64,4 @@ ENV PATH="/home/radiaTest/.local/bin:${PATH}"
 RUN pip3 install -r requirements.txt -i $PIP_REPO || pip3 install -r requirements.txt
 
 CMD bash /opt/radiaTest/build/k8s-pod/web/gunicorn/init_db.sh \
-    && gunicorn -c gunicorn/gunicorn.conf.py manage:app
+    && gunicorn -c /etc/radiaTest/gunicorn.conf.py manage:app

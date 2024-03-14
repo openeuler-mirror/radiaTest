@@ -303,44 +303,4 @@ class CommitHandler:
             f.writelines(md_content)
         return export_file
 
-    def git_operate(self, md_content):
-        file_path = f'/tmp/{self.user_params.get("branch_name")}'
-        if not os.path.exists(file_path):
-            os.mkdir(file_path)
-        try:
-            if os.path.isdir(f'{file_path}/QA'):
-                exitcode, _, _ = run_cmd("pushd {}/QA && git pull && popd".format(file_path))
-            else:
-                exitcode, _, _ = run_cmd("pushd {} " \
-                                         "&& git clone https://gitee.com/radiaTest_bot/QA -b {} && popd".format(
-                    file_path,
-                    self.user_params.get("branch_name")
-                )
-                )
 
-            if exitcode != 0:
-                return None
-
-            # modify content写入文件
-
-            export_file = self.put_feature_strategy(file_path, md_content)
-
-            # git commit
-            exitcode, out, msg = run_cmd("cd {}/QA && git config user.name {} && git config user.email {} " \
-                                         "&& git add . && git commit -m {}".format(
-                file_path,
-                self.user_params.get("branch_name"),
-                self.user_params.get("email"),
-                self.title,
-                )
-            )
-
-            if exitcode != 0:
-                raise RuntimeError(f'Git operate Error: {msg}')
-            _, _, _ = run_cmd("sh /opt/radiaTest/radiaTest-server/server/apps/strategy/push.sh {}/QA".format(
-                    file_path
-                )
-            )
-        except (RuntimeError, ValueError) as e:
-            if os.path.exists(file_path):
-                _, _, _ = run_cmd("rm -rf {}".format(file_path))

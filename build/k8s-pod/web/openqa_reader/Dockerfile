@@ -19,3 +19,5 @@ LABEL maintainer="ethanzhang55@outlook.com"
 USER radiaTest
 
 CMD celery -A manage.my_celery worker --loglevel=info --hostname=celery_openqa_reader@%h --queues=queue_read_openqa_group_overview,queue_read_openqa_tests_overview --pool=gevent -O fair
+
+RUN rm -rf /etc/radiaTest/server.ini
