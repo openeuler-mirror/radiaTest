@@ -25,7 +25,6 @@ from server.apps.strategy.routes import (
     StrategyCommitEvent,
     StrategyItemEvent,
     StrategyRelateEvent,
-    StrategySubmmitEvent,
     StrategyCommitReductEvent,
     StrategyTemplateEvent,
     StrategyTemplateItemEvent,
@@ -73,11 +72,7 @@ def init_api(api: Api):
         "/api/v1/product/<int:product_id>/relate",
         methods=["Post"]
     )
-    api.add_resource(
-        StrategySubmmitEvent,
-        "/api/v1/strategy/<int:strategy_id>/submmit",
-        methods=["Post"]
-    )
+
     api.add_resource(
         StrategyCommitItemEvent,
         "/api/v1/product-feature/<int:product_feature_id>/strategy-commit",

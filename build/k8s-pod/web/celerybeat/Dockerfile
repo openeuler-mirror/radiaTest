@@ -19,3 +19,5 @@ LABEL maintainer="ethanzhang55@outlook.com"
 USER radiaTest
 
 CMD celery -A manage.my_celery beat -s celeryservice/celerybeat/celerybeat-schedule -l info
+
+RUN rm -rf /etc/radiaTest/server.ini

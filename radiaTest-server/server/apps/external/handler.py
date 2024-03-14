@@ -207,48 +207,6 @@ class UpdateRepo:
                 format(rs, rs, self._epol_url)
 
 
-class AtMessenger:
-    def __init__(self, body, machine_group):
-        self._body = body
-        self._body.update({
-            "user_id": 1,
-        })
-        self.machine_group = machine_group
-
-    @ssl_cert_verify_error_collect
-    def send_request(self, api, method="post"):
-        _resp = dict()
-
-        _r = do_request(
-            method=method,
-            url="https://{}:{}{}".format(
-                self.machine_group.messenger_ip,
-                self.machine_group.messenger_listen,
-                api
-            ),
-            body=self._body,
-            headers={
-                "content-type": "application/json;charset=utf-8",
-                "authorization": request.headers.get("authorization")
-            },
-            obj=_resp,
-            verify=current_app.config.get("CA_CERT"),
-        )
-
-        if _r != 0:
-            return jsonify(
-                error_code=RET.RUNTIME_ERROR,
-                error_msg="could not reach messenger of this machine group"
-            )
-
-        return jsonify(_resp)
-
-    def get_job_detail(self, job_id):
-        self._body["job_id"] = job_id
-        res = self.send_request(f"/api/v1/openeuler/at_job")
-        return json.loads(res.get_data(as_text=True)).get("data", {})
-
-
 class AtHandler:
     def __init__(self, buildname_x86=None, buildname_aarch64=None):
         self.buildname_x86 = buildname_x86 if buildname_x86 else ""
