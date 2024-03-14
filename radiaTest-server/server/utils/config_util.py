@@ -39,7 +39,7 @@ def loads_config_ini(app):
                 _value = value
             
             app.config[key.upper()] = _value
-    os.remove(app.config.get("INI_PATH"))
+    # server_config_ini.unlink()
     return True
 
 
