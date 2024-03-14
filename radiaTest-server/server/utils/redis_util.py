@@ -12,6 +12,7 @@
 # @Date    :
 # @License : Mulan PSL v2
 #####################################
+import ssl
 
 import redis
 from flask import _app_ctx_stack
@@ -21,20 +22,22 @@ class RedisClient(object):
 
     def __init__(self):
         self.redis_params = dict()
+        self.ssl_context = None
 
     def init_app(self, app=None):
+        self.ssl_context = ssl.create_default_context(cafile=app.config.get("REDIS_CA_CERTS", None))
+
         self.redis_params = dict(
             host=app.config.get("REDIS_HOST", "localhost"),
             port=app.config.get("REDIS_PORT", 6379),
             password=app.config.get("REDIS_SECRET", None),
             db=app.config.get("REDIS_DB", 0),
-            decode_responses=True,
-            ssl=app.config.get("REDIS_USE_SSL", False),
-            ssl_ca_certs=app.config.get("REDIS_CA_CERTS", None)
+            decode_responses=True
         )
 
     def connect(self):
         pool = redis.ConnectionPool(
+            ssl_context=self.ssl_context,
             **self.redis_params
         )
         return redis.StrictRedis(connection_pool=pool)
