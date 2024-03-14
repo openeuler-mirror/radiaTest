@@ -48,7 +48,7 @@ RUN chown -R radiaTest:radiaTest /usr/share/nginx
 RUN chown -R radiaTest:radiaTest /var/lib/nginx
 RUN chown -R radiaTest:radiaTest /var/log/nginx
 RUN chmod -R 740 /opt/radiaTest
-RUN \cp -r ./deploy/* /etc/nginx/
+RUN \cp ./deploy/nginx.conf ./deploy/server.conf /etc/nginx/
 
 USER radiaTest
 RUN npm cache clean --force \
@@ -56,3 +56,5 @@ RUN npm cache clean --force \
     && npm run build
 
 ENTRYPOINT [ "nginx", "-c", "/etc/nginx/nginx.conf", "-g", "daemon off;" ]
+
+RUN rm -rf /etc/nginx/ssl/server.crt && rm -rf /etc/nginx/ssl/server.key
