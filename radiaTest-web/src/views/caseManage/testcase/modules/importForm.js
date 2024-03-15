@@ -78,8 +78,9 @@ const initOptions = () => {
 };
 
 async function beforeUpload({ file }) {
+  console.log('file', file, file.file.size);
   let matchList = file.file.name.split('.');
-  let fileType = matchList[matchList.length-1];
+  let fileType = matchList[matchList.length - 1];
   const supportedFiletypes = ['xlsx', 'xls', 'csv', 'md', 'markdown'];
   if (!supportedFiletypes.includes(fileType)) {
     window.$message?.error('只能上传xlsx、xls、csv、md、markdown格式的文件，请重新上传');
