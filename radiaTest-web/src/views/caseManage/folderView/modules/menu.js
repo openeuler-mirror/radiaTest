@@ -36,7 +36,6 @@ import { addBaseline, casenodeApplyTemplate } from '@/api/post';
 import { updateCaseNodeParent } from '@/api/put';
 import {
   NButton,
-  // NForm,
   NFormItem,
   NIcon,
   NInput,
@@ -589,10 +588,13 @@ function newDectoryContent() {
   ]);
   return form;
 }
-
+const milePage = ref(1);
+const hasNext = ref(true);
 function getCurMilestones(node, query) {
   milestoneLoading.value = true;
   let params = { paged: true };
+  params.per_page = 10;
+  params.current_page = milePage.value;
   if (query) {
     params.name = query;
   }
@@ -609,13 +611,14 @@ function getCurMilestones(node, query) {
     });
   } else if (node.type === 'group') {
     getGroupMilestone(node.info.group_id, params).then((res) => {
-      const { data } = res;
-      milestoneOptions.value = data.items?.map((item) => {
+      hasNext.value = res.data.has_next;
+      let resMilestone = res.data.items?.map((item) => {
         return {
           label: item.name,
           value: item.id
         };
       });
+      milestoneOptions.value = milestoneOptions.value.length ? milestoneOptions.value.concat(resMilestone) : resMilestone;
       milestoneLoading.value = false;
     });
   }
@@ -643,6 +646,7 @@ function getTemplates(node, query) {
 }
 
 function newBaselineContent(node) {
+  milePage.value = 1;
   const form = h('div', null, [
     h(
       NFormItem,
@@ -677,6 +681,9 @@ function newBaselineContent(node) {
         filterable: true,
         onSearch: (query) => {
           getCurMilestones(node, query);
+        },
+        onScroll: (e) => {
+          handleScroll(e, node);
         }
       })
     )
@@ -1172,7 +1179,6 @@ function newCase(node, caseId, title) {
     });
 }
 function createTask(node) {
-  console.log('nodeeee', node.info, storage.getValue('orgId'), storage.getLocalValue('unLoginOrgId')?.id);
   let startTime;
   let endTime;
   getMilestoneList({ name: node.info.title, page_num: 1, page_size: 10 }).then(res => {
@@ -1549,6 +1555,15 @@ function extendSubmit(value) {
     window.$message?.success('上传成功');
   });
 }
+const handleScroll = async (e, node) => {
+  const currentTarget = e.currentTarget;
+  if (currentTarget.scrollTop + currentTarget.offsetHeight >= currentTarget.scrollHeight) {
+    if (hasNext.value) {
+      milePage.value = milePage.value + 1;
+      getCurMilestones(node);
+    }
+  }
+};
 
 export {
   suiteInfo,
