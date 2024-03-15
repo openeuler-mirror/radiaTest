@@ -24,11 +24,11 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_migrate import Migrate, MigrateCommand
 
 from server.utils.celery_utils import make_celery
-from server import create_app, db, redis_client, swagger_adapt
+from server import create_app, db, redis_client, swagger_adapt, loads_config_ini
 
 my_celery = make_celery(__name__)
-
-app = create_app(celery=my_celery)
+init_config = loads_config_ini()
+app = create_app(celery=my_celery, init_config=init_config)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1)
 
 migrate = Migrate(app, db)

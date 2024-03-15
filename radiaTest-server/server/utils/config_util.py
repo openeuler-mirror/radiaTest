@@ -15,21 +15,15 @@
 
 import os
 import configparser
-from pathlib import Path
 
-from flask import Flask
 import yaml
 
 
-def loads_config_ini(app):
-    if not isinstance(app, Flask) or not app.config.get("INI_PATH"):
-        return False
-
-    server_config_ini = Path(app.config.get("INI_PATH"))
-
+def loads_config_ini():
+    server_config_ini = "/etc/radiaTest/server.ini"
     cfg = configparser.ConfigParser()
     cfg.read(server_config_ini)
-
+    config = {}
     for section, _ in cfg.items():
         for key, value in cfg.items(section):
             try:
@@ -38,14 +32,14 @@ def loads_config_ini(app):
             except ValueError as e:
                 _value = value
             
-            app.config[key.upper()] = _value
+            config[key.upper()] = _value
     # clean up config file if exists
     if os.path.isfile(server_config_ini):
         try:
             os.remove(server_config_ini)
         except Exception as err:
             print(f"Could not remove {server_config_ini}: {str(err)}")
-    return True
+    return config
 
 
 def loads_app_yaml(app):
