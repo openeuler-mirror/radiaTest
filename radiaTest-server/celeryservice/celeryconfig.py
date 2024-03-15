@@ -57,7 +57,7 @@ result_backend = "{}?ssl_cert_reqs=CERT_REQUIRED&ssl_ca_certs=/etc/radiaTest/red
     loads_config_ini("celery", "RESULT_BACKEND"))
 
 # Using redis to store data of spiders
-result_backend = "{}?ssl_cert_reqs=CERT_REQUIRED&ssl_ca_certs=/etc/radiaTest/redis.crt".format(
+scrapyspider_backend = "{}?ssl_cert_reqs=CERT_REQUIRED&ssl_ca_certs=/etc/radiaTest/redis.crt".format(
     loads_config_ini("celery", "SCRAPYSPIDER_BACKEND"))
 
 # socketio pubsub redis url
