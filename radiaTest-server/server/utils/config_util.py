@@ -39,7 +39,12 @@ def loads_config_ini(app):
                 _value = value
             
             app.config[key.upper()] = _value
-    # server_config_ini.unlink()
+    # clean up config file if exists
+    if os.path.isfile(server_config_ini):
+        try:
+            os.remove(server_config_ini)
+        except Exception as err:
+            print(f"Could not remove {server_config_ini}: {str(err)}")
     return True
 
 

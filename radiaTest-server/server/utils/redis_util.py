@@ -32,12 +32,13 @@ class RedisClient(object):
             port=app.config.get("REDIS_PORT", 6379),
             password=app.config.get("REDIS_SECRET", None),
             db=app.config.get("REDIS_DB", 0),
-            decode_responses=True
+            decode_responses=True,
+            ssl_ca_certs=app.config.get("REDIS_CA_CERTS", None),
+            connection_class=redis.connection.SSLConnection,
         )
 
     def connect(self):
         pool = redis.ConnectionPool(
-            ssl_context=self.ssl_context,
             **self.redis_params
         )
         return redis.StrictRedis(connection_pool=pool)
