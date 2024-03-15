@@ -22,11 +22,8 @@ class RedisClient(object):
 
     def __init__(self):
         self.redis_params = dict()
-        self.ssl_context = None
 
     def init_app(self, app=None):
-        self.ssl_context = ssl.create_default_context(cafile=app.config.get("REDIS_CA_CERTS", None))
-
         self.redis_params = dict(
             host=app.config.get("REDIS_HOST", "localhost"),
             port=app.config.get("REDIS_PORT", 6379),
