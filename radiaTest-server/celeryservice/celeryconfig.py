@@ -15,6 +15,8 @@
 
 #####################################
 
+import ssl
+
 from configparser import NoOptionError, NoSectionError, ConfigParser
 from pathlib import Path
 
@@ -37,6 +39,10 @@ def loads_config_ini(section, option):
 
 # Broker settings
 broker_url = loads_config_ini("celery", "BROKER_URL")
+broker_use_ssl = {
+    'ssl_version': ssl.PROTOCOL_TLSv1_2,
+    'cert_reqs': ssl.CERT_NONE,
+}
 broker_pool_limit = 10
 
 imports = ("manage",)
@@ -47,10 +53,12 @@ worker_state_db = "celeryservice/celerymain/celery_revokes_state_db"
 task_ignore_result = False
 
 # Using redis to store state and results
-result_backend = loads_config_ini("celery", "RESULT_BACKEND")
+result_backend = "{}?ssl_cert_reqs=CERT_REQUIRED&ssl_ca_certs=/etc/radiaTest/redis.crt".format(
+    loads_config_ini("celery", "RESULT_BACKEND"))
 
 # Using redis to store data of spiders
-scrapyspider_backend = loads_config_ini("celery", "SCRAPYSPIDER_BACKEND")
+result_backend = "{}?ssl_cert_reqs=CERT_REQUIRED&ssl_ca_certs=/etc/radiaTest/redis.crt".format(
+    loads_config_ini("celery", "SCRAPYSPIDER_BACKEND"))
 
 # socketio pubsub redis url
 socketio_pubsub = loads_config_ini("celery", "SOCKETIO_PUBSUB")
