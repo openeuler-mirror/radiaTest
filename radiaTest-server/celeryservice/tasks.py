@@ -59,22 +59,13 @@ sys.path.append(BASE_DIR)
 
 logger = get_task_logger("manage")
 socketio = SocketIO(message_queue=celeryconfig.socketio_pubsub, ssl={"ssl": {"cert_reqs": ssl.CERT_NONE}})
-if not celeryconfig.redis_use_ssl:
-    ssl_config = {}
-else:
-    ssl_config = {
-        'ssl_ca_certs': celeryconfig.redis_cacert_path,
-        'ssl_cert_reqs': ssl.CERT_REQUIRED,
-        'ssl': celeryconfig.redis_use_ssl
-    }
 
 # 建立redis backend连接池
-pool = redis.ConnectionPool.from_url(celeryconfig.result_backend, decode_responses=True, **ssl_config)
+pool = redis.ConnectionPool.from_url(celeryconfig.result_backend, decode_responses=True)
 # 建立scrapyspider的存储redis池
 scrapyspider_pool = redis.ConnectionPool.from_url(
     celeryconfig.scrapyspider_backend,
-    decode_responses=True,
-    **ssl_config
+    decode_responses=True
 )
 
 
