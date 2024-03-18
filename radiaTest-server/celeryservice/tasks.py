@@ -52,12 +52,13 @@ from server.schema.openqa import (
     OpenqaGroupOverviewItem,
     OpenqaTestsOverviewItem
 )
+from server.plugins.flask_socketio import SocketIO
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(BASE_DIR)
 
 logger = get_task_logger("manage")
-socketio = SocketIO(message_queue=celeryconfig.socketio_pubsub)
+socketio = SocketIO(message_queue=celeryconfig.socketio_pubsub, ssl={"ssl": {"cert_reqs": ssl.CERT_NONE}})
 if not celeryconfig.redis_use_ssl:
     ssl_config = {}
 else:
@@ -439,16 +440,16 @@ def resolve_pkglist_from_url(repo_name, repo_url, store_path):
                 f.close()
 
             exitcode, _, error = run_cmd(f"cat {tmp_file_name} | "
-                + "grep 'title=' | awk -F 'title=\"' '{print $2}' | awk -F '\">' '{print $1}' | grep '.rpm' | uniq >"
-                + f"{store_path}/{_repo_path}-{arch}.pkgs"
-            )
+                                         + "grep 'title=' | awk -F 'title=\"' '{print $2}' | awk -F '\">' '{print $1}' | grep '.rpm' | uniq >"
+                                         + f"{store_path}/{_repo_path}-{arch}.pkgs"
+                                         )
 
             if exitcode != 0:
                 logger.error(error)
                 return
         exitcode, _, error = run_cmd(f"sort {store_path}/{_repo_path}-aarch64.pkgs"
-            + f" {store_path}/{_repo_path}-x86_64.pkgs | uniq >{store_path}/{_repo_path}-all.pkgs"
-        )
+                                     + f" {store_path}/{_repo_path}-x86_64.pkgs | uniq >{store_path}/{_repo_path}-all.pkgs"
+                                     )
 
         if exitcode != 0:
             logger.error(error)
