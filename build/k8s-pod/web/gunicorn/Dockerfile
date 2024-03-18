@@ -63,5 +63,4 @@ USER radiaTest
 ENV PATH="/home/radiaTest/.local/bin:${PATH}"
 RUN pip3 install -r requirements.txt -i $PIP_REPO || pip3 install -r requirements.txt
 
-CMD bash /opt/radiaTest/build/k8s-pod/web/gunicorn/init_db.sh \
-    && gunicorn --preload -c /etc/radiaTest/gunicorn.conf.py manage:app
+CMD gunicorn --preload -c /etc/radiaTest/gunicorn.conf.py manage:app
