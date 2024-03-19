@@ -294,7 +294,7 @@ class CaseResult(BaseModel, db.Model):
     details = db.Column(db.Text())
     running_time = db.Column(db.Integer())
     case_id = db.Column(db.Integer(), db.ForeignKey("case.id"))
-    baseline_id = db.Column(db.Integer(), db.ForeignKey("baseline.id"))
+    milestone_id = db.Column(db.Integer(), db.ForeignKey("milestone.id"))
 
     def to_json(self):
         return {
@@ -305,6 +305,6 @@ class CaseResult(BaseModel, db.Model):
             'details': self.details,
             'running_time': self.running_time,
             "case_id": self.case_id,
-            "baseline_id": self.baseline_id,
-            "update_time": self.update_time,
+            "milestone_id": self.milestone_id,
+            "update_time": self.update_time.strftime("%Y-%m-%d %H:%M:%S")
         }

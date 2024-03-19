@@ -18,7 +18,7 @@ import pandas as pd
 from server import db
 from server.model.base import BaseModel, PermissionBaseModel
 from server.model.group import Group
-from server.model.testcase import Suite
+from server.model.testcase import Suite, CaseResult
 from server.model.user import User
 
 re_task_tag = db.Table('re_task_tag',
@@ -86,27 +86,18 @@ class TaskMilestone(db.Model, BaseModel):
 
     def to_json(self):
         auto_cases, manual_cases = [], []
-        manual_df = pd.DataFrame([item.to_json() for item in self.manual_cases])
         for case in self.cases:
             if case.deleted:
                 continue
             case_json = case.to_json()
+            case_json['result'] = "pending"
             if case.usabled:
-                case_result = self.job_result
-                if self.job_result == 'block':
-                    case_result = 'failed'
-                elif self.job_result == 'done':
-                    case_result = 'success'
-                case_json['result'] = case_result
                 auto_cases.append(case_json)
             else:
-                case_result = 'running'
-                if not manual_df.empty:
-                    case_result_se = manual_df[manual_df.case_id == case.id].case_result
-                    if not case_result_se.empty:
-                        case_result = case_result_se.to_list()[0]
-                case_json['result'] = case_result
                 manual_cases.append(case_json)
+            case_result = CaseResult.query.filter_by(milestone_id=self.milestone_id, case_id=case.id).first()
+            if case_result:
+                case_json['result'] = case_result.result
 
         return {
             'id': self.id,

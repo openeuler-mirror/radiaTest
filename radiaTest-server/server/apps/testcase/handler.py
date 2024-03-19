@@ -1385,14 +1385,14 @@ class TestResultEventHandler:
             )
         result_data = {
             "case_id": case.id,
-            "baseline_id": baseline_node.baseline_id,
+            "milestone_id": baseline_node.milestone_id,
             "result": body.result,
             "details": body.details,
             "log_url": body.log_url,
             "fail_type": body.fail_type,
             "running_time": body.running_time,
         }
-        case_result = CaseResult.query.filter_by(baseline_id=baseline_node.baseline_id, case_id=case.id).first()
+        case_result = CaseResult.query.filter_by(milestone_id=baseline_node.milestone_id, case_id=case.id).first()
         if case_result:
             result_data.update({"id": case_result.id})
             Edit(CaseResult, result_data).single(CaseResult, "/case_result")
@@ -1406,12 +1406,11 @@ class TestResultEventHandler:
 
     @staticmethod
     def get_test_result(query):
-        baseline = Baseline.query.filter_by(milestone_id=query.milestone_id).first()
-        data = {}
-        if baseline:
-            case_result = CaseResult.query.filter_by(case_id=query.case_id, baseline_id=baseline.id).first()
-            if case_result:
-                data = case_result.to_json()
+        case_result = CaseResult.query.filter_by(case_id=query.case_id, milestone_id=query.milestone_id).first()
+        if case_result:
+            data = case_result.to_json()
+        else:
+            data = {}
 
         return jsonify(
             data=data,
@@ -1440,30 +1439,23 @@ class TestResultEventHandler:
                 error_msg="case is not existed!",
             )
 
-        baseline = Baseline.query.filter_by(milestone_id=body.milestone_id).first()
-        if not baseline:
+        milestone = Milestone.query.filter_by(id=body.milestone_id).first()
+        if not milestone:
             return jsonify(
                 error_code=RET.PARMA_ERR,
-                error_msg="baseline is not existed!",
+                error_msg="milestone is not existed!",
             )
 
-        case_node = CaseNode.query.filter_by(org_id=org.id, type="case", is_root=False, in_set=False,
-                                             baseline_id=baseline.id, permission_type="org", case_id=case.id).first()
-        if not case_node:
-            return jsonify(
-                error_code=RET.PARMA_ERR,
-                error_msg="case node is not existed!",
-            )
         result_data = {
             "case_id": case.id,
-            "baseline_id": baseline.id,
+            "milestone_id": milestone.id,
             "result": body.result,
             "details": body.details,
             "log_url": body.log_url,
             "fail_type": body.fail_type,
             "running_time": body.running_time,
         }
-        case_result = CaseResult.query.filter_by(baseline_id=baseline.id, case_id=case.id).first()
+        case_result = CaseResult.query.filter_by(milestone_id=milestone.id, case_id=case.id).first()
         if case_result:
             result_data.update({"id": case_result.id})
             Edit(CaseResult, result_data).single(CaseResult, "/case_result")
