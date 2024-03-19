@@ -24,7 +24,6 @@ import requests
 from lxml import html, etree
 
 import redis
-from flask_socketio import SocketIO
 from celery import current_app as celery
 from celery.utils.log import get_task_logger
 from celery.signals import task_postrun

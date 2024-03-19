@@ -53,11 +53,11 @@ worker_state_db = "celeryservice/celerymain/celery_revokes_state_db"
 task_ignore_result = False
 
 # Using redis to store state and results
-result_backend = "{}?ssl_cert_reqs=CERT_REQUIRED&ssl_ca_certs=/etc/radiaTest/redis.crt".format(
+result_backend = "{}?ssl_cert_reqs=required&ssl_ca_certs=/etc/radiaTest/redis.crt".format(
     loads_config_ini("celery", "RESULT_BACKEND"))
 
 # Using redis to store data of spiders
-scrapyspider_backend = "{}?ssl_cert_reqs=CERT_REQUIRED&ssl_ca_certs=/etc/radiaTest/redis.crt".format(
+scrapyspider_backend = "{}?ssl_cert_reqs=required&ssl_ca_certs=/etc/radiaTest/redis.crt".format(
     loads_config_ini("celery", "SCRAPYSPIDER_BACKEND"))
 
 # socketio pubsub redis url
