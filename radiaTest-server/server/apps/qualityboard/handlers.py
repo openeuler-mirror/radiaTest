@@ -1301,7 +1301,11 @@ class ATOverviewHandler:
         self.product_name = f"{product.name}-{product.version}"
 
         self.scrapyspider_pool = redis.ConnectionPool.from_url(
-            current_app.config.get("SCRAPYSPIDER_BACKEND"), decode_responses=True)
+            "{}?ssl_cert_reqs=required&ssl_ca_certs=/etc/radiaTest/redis.crt".format(
+                current_app.config.get("SCRAPYSPIDER_BACKEND")
+            ),
+            decode_responses=True
+        )
         self.redis_client = redis.StrictRedis(connection_pool=self.scrapyspider_pool)
 
     def close(self):

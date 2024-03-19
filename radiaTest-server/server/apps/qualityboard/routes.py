@@ -812,7 +812,9 @@ class QualityDefendEvent(Resource):
         )
 
         scrapyspider_pool = redis.ConnectionPool.from_url(
-            current_app.config.get("SCRAPYSPIDER_BACKEND"),
+            "{}?ssl_cert_reqs=required&ssl_ca_certs=/etc/radiaTest/redis.crt".format(
+                current_app.config.get("SCRAPYSPIDER_BACKEND")
+            ),
             decode_responses=True
         )
         scrapyspider_redis_client = redis.StrictRedis(
@@ -1148,7 +1150,9 @@ class WeeklybuildHealthOverview(Resource):
         )
 
         _pool = redis.ConnectionPool.from_url(
-            current_app.config.get("SCRAPYSPIDER_BACKEND"),
+            "{}?ssl_cert_reqs=required&ssl_ca_certs=/etc/radiaTest/redis.crt".format(
+                current_app.config.get("SCRAPYSPIDER_BACKEND")
+            ),
             decode_responses=True
         )
         arches = current_app.config.get(
@@ -1195,7 +1199,9 @@ class WeeklybuildHealthEvent(Resource):
             )
 
         scrapyspider_pool = redis.ConnectionPool.from_url(
-            current_app.config.get("SCRAPYSPIDER_BACKEND"),
+            "{}?ssl_cert_reqs=required&ssl_ca_certs=/etc/radiaTest/redis.crt".format(
+                current_app.config.get("SCRAPYSPIDER_BACKEND")
+            ),
             decode_responses=True
         )
         arches = current_app.config.get(
