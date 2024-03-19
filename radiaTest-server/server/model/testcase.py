@@ -282,3 +282,29 @@ class SuiteDocument(BaseModel, db.Model):
             'creator_id': self.creator_id,
             "permission_type": self.permission_type,
         }
+
+
+class CaseResult(BaseModel, db.Model):
+    __tablename__ = "case_result"
+
+    id = db.Column(db.Integer(), primary_key=True)
+    result = db.Column(db.String(32))
+    log_url = db.Column(db.Text())
+    fail_type = db.Column(db.String(32))
+    details = db.Column(db.Text())
+    running_time = db.Column(db.Integer())
+    case_id = db.Column(db.Integer(), db.ForeignKey("case.id"))
+    baseline_id = db.Column(db.Integer(), db.ForeignKey("baseline.id"))
+
+    def to_json(self):
+        return {
+            'id': self.id,
+            'result': self.result,
+            'log_url': self.log_url,
+            'fail_type': self.fail_type,
+            'details': self.details,
+            'running_time': self.running_time,
+            "case_id": self.case_id,
+            "baseline_id": self.baseline_id,
+            "update_time": self.update_time,
+        }

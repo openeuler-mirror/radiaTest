@@ -54,7 +54,7 @@ from server.apps.testcase.routes import (
     OrphanGroupSuitesEvent,
     CaseNodeSuitesEvent,
     QueryCaseSetNodeEvent,
-    CaseEventV2
+    CaseEventV2, TestResultEventV2
 )
 
 
@@ -252,4 +252,8 @@ def init_api(api: Api):
     api.add_resource(
         CaseEventV2,
         "/api/v1/ws/<string:workspace>/caseV2",
+    )
+    api.add_resource(
+        TestResultEventV2,
+        "/api/v1/testcase/test-result",
     )

@@ -147,15 +147,17 @@ class ZipImportFile(ImportFile):
     def uncompress(self, uncompressed_filepath):
         # 赋予uncompress解压目录权限
         _, _, _ = run_cmd("mkdir -p '{}' && chmod 777 '{}'".format(uncompressed_filepath, uncompressed_filepath))
+        # 赋予解压文件可读权限
+        _, _, _ = run_cmd("chmod 755 '{}'".format(self.filepath))
         # 使用uncompress普通用户,安全解压
         safe_uncompress = Path(__file__).parent.joinpath("safe_uncompress.py")
-        _, data, _ = run_cmd("sudo -u uncompress python3 '{}' -t '{}' -f '{}' -d '{}'".format(
+        _, data, error = run_cmd("sudo -u uncompress python3 '{}' -t '{}' -f '{}' -d '{}'".format(
             safe_uncompress, self.filetype, self.filepath, uncompressed_filepath))
         if "uncompress success!" in data:
             _, _, _ = run_cmd("sudo -u uncompress chmod -R 755 '{}'".format(uncompressed_filepath))
             return True
         else:
-            current_app.logger.error(f"{data}")
+            current_app.logger.error(f"data: {data}, error: {error}")
             self.clean_and_delete(uncompressed_filepath)
             return False
 
