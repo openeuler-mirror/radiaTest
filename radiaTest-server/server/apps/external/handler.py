@@ -232,7 +232,9 @@ class AtHandler:
     @contextmanager
     def get_scrapy_redis_cli(self):
         scrapyspider_pool = redis.ConnectionPool.from_url(
-            current_app.config.get("SCRAPYSPIDER_BACKEND"),
+            "{}?ssl_cert_reqs=required&ssl_ca_certs=/etc/radiaTest/redis.crt".format(
+                current_app.config.get("SCRAPYSPIDER_BACKEND")
+            ),
             decode_responses=True
         )
         scrapy_redis_cli = redis.StrictRedis(connection_pool=scrapyspider_pool)
