@@ -20,6 +20,7 @@ import zipfile
 from shutil import move
 from pathlib import Path
 
+from flask import current_app
 import rarfile
 
 
@@ -71,7 +72,7 @@ class SafeUncompress(object):
         zip_file = zipfile.ZipFile(self.filepath)
         # 校验最大文件数
         if len(zip_file.namelist()) > self.max_number:
-            print("uncompress failed, files too many!")
+            current_app.logger.error("uncompress failed, files too many!")
             exit(1)
         safe_file_list = []
         total_size = 0
@@ -96,18 +97,17 @@ class SafeUncompress(object):
             total_size += info.file_size
             safe_file_list.append(name)
         if total_size > self.max_total_size:
-            print("uncompress failed, total size too big!")
+            current_app.logger.error("uncompress failed, total size too big!")
             exit(1)
         for safe_file in safe_file_list:
             zip_file.extract(safe_file, dist_dir)
 
         zip_file.close()
-        print("uncompress success!")
 
     def uncompress_rar(self, dist_dir):
         rar = rarfile.RarFile(self.filepath)
         if len(rar.namelist()) > self.max_number:
-            print("uncompress failed, files too many!")
+            current_app.logger.error("uncompress failed, files too many!")
             exit(1)
         safe_file_list = []
         total_size = 0
@@ -122,17 +122,16 @@ class SafeUncompress(object):
             total_size += rar.getinfo(name).file_size
             safe_file_list.append(name)
         if total_size > self.max_total_size:
-            print("uncompress failed, total size too big!")
+            current_app.logger.error("uncompress failed, total size too big!")
             exit(1)
         for safe_file in safe_file_list:
             rar.extract(safe_file, dist_dir)
         rar.close()
-        print("uncompress success!")
 
     def uncompress_tar(self, dist_dir):
         tar = tarfile.open(name=self.filepath, mode="r:*")
         if len(tar.getnames()) > self.max_number:
-            print("uncompress failed, files too many!")
+            current_app.logger.error("uncompress failed, files too many!")
             exit(1)
         safe_file_list = []
         total_size = 0
@@ -153,12 +152,11 @@ class SafeUncompress(object):
             safe_file_list.append(name)
 
         if total_size > self.max_total_size:
-            print("uncompress failed, total size too big!")
+            current_app.logger.error("uncompress failed, total size too big!")
             exit(1)
         for safe_file in safe_file_list:
             tar.extract(safe_file, dist_dir)
         tar.close()
-        print("uncompress success!")
 
     def uncompress(self, dist_dir):
         dist_dir = Path(dist_dir).absolute()
