@@ -15,23 +15,24 @@
 
 import datetime
 import json
+import pytz
 from uuid import uuid1
-from flask import g, current_app, url_for, jsonify
 from typing import List
+
+from flask import g, current_app, url_for, jsonify
+
 from server.utils.response_util import ssl_cert_verify_error_collect
-from server import redis_client, db
+from server import db
 from server.model.task import Task, TaskStatus, TaskManualCase, TaskMilestone
 from server.model.testcase import Case
 from server.model.group import Group, ReUserGroup
 from server.model.user import User
 from server.model.message import Message, MsgLevel
-from server.utils.redis_util import RedisKey
-from server.utils.requests_util import do_request
+from server.utils.requests_util import do_request, HttpRequestParam
 from server.utils.response_util import RET
 from server.schema.user import UserBaseSchema
 from server.schema.group import GroupInfoSchema
 from server.schema.task import TaskInfoSchema
-from server.utils.resource_utils import ResourceManager
 
 
 class UpdateTaskStatusService(object):
@@ -43,6 +44,46 @@ class UpdateTaskStatusService(object):
             self.status = TaskStatus.query.filter_by(name=status_name).first()
         else:
             self.status = None
+
+    @staticmethod
+    def split_cases(cases: List[Case]):
+        auto_cases, manual_cases = [], []
+        for case in cases:
+            if case.deleted:
+                continue
+            if case.usabled:
+                auto_cases.append(case)
+            else:
+                manual_cases.append(case)
+        return auto_cases, manual_cases
+
+    @staticmethod
+    def _create_manual_cases(new_cases: List[Case], milestone: TaskMilestone):
+        old_cases = milestone.manual_cases
+        if not old_cases:
+            _ = [
+                db.session.add(
+                    TaskManualCase(task_milestone_id=milestone.id, case_id=item.id)
+                )
+                for item in new_cases
+            ]
+            db.session.commit()
+        else:
+            old_cases = set([item.case_id for item in milestone.manual_cases])
+            new_cases = set([item.id for item in new_cases])
+            _ = [
+                db.session.delete(item)
+                for item in milestone.manual_cases
+                if item in list(old_cases - new_cases)
+            ]
+            db.session.commit()
+            _ = [
+                db.session.add(
+                    TaskManualCase(task_milestone_id=milestone.id, case_id=item)
+                )
+                for item in list(new_cases - old_cases)
+            ]
+            db.session.commit()
 
     def operate(self):
         if not self.status:
@@ -86,55 +127,15 @@ class UpdateTaskStatusService(object):
                             all_accomplish = False
                             break
                     if all_accomplish:
-                        item.accomplish_time = datetime.datetime.now()
+                        item.accomplish_time = datetime.datetime.now(tz=pytz.timezone('Asia/Shanghai'))
                         item.status_id = self.status.id
 
-            self.task.accomplish_time = datetime.datetime.now()
-            self.update_task_status()
+            self.task.accomplish_time = datetime.datetime.now(tz=pytz.timezone('Asia/Shanghai'))
+            return self.update_task_status()
         else:
             return jsonify(
                 error_code=RET.SERVER_ERR, error_msg="task have child not accomplish"
             )
-
-    @staticmethod
-    def split_cases(cases: List[Case]):
-        auto_cases, manual_cases = [], []
-        for case in cases:
-            if case.deleted:
-                continue
-            if case.usabled:
-                auto_cases.append(case)
-            else:
-                manual_cases.append(case)
-        return auto_cases, manual_cases
-
-    @staticmethod
-    def _create_manual_cases(new_cases: List[Case], milestone: TaskMilestone):
-        old_cases = milestone.manual_cases
-        if not old_cases:
-            _ = [
-                db.session.add(
-                    TaskManualCase(task_milestone_id=milestone.id, case_id=item.id)
-                )
-                for item in new_cases
-            ]
-            db.session.commit()
-        else:
-            old_cases = set([item.case_id for item in milestone.manual_cases])
-            new_cases = set([item.id for item in new_cases])
-            _ = [
-                db.session.delete(item)
-                for item in milestone.manual_cases
-                if item in list(old_cases - new_cases)
-            ]
-            db.session.commit()
-            _ = [
-                db.session.add(
-                    TaskManualCase(task_milestone_id=milestone.id, case_id=item)
-                )
-                for item in list(new_cases - old_cases)
-            ]
-            db.session.commit()
 
     @ssl_cert_verify_error_collect
     def execute(self):
@@ -173,7 +174,7 @@ class UpdateTaskStatusService(object):
                     verify = current_app.config.get("CA_CERT")
                     if current_app.config.get("CA_VERIFY") == "True":
                         verify = True
-                    r = do_request(
+                    http_request_param = HttpRequestParam(
                         "post",
                         get_job_url,
                         body=body_json,
@@ -181,6 +182,7 @@ class UpdateTaskStatusService(object):
                         timeout=0.5,
                         verify=verify,
                     )
+                    r = do_request(http_request_param)
 
                     if r != 0 and r != 4:
                         current_app.logger.error("trigger job failed")
@@ -201,7 +203,9 @@ class UpdateTaskStatusService(object):
             db.session.add(task)
         if result:
             return result
-        db.session.commit()
+        else:
+            db.session.commit()
+            return result
 
     def executed(self):
         job_done = True
@@ -209,14 +213,12 @@ class UpdateTaskStatusService(object):
             if item.to_json().get("auto_cases", []) and item.job_result != "done":
                 job_done = False
                 break
-            manual_cases_result = [
-                case.case_result in ["success", "failed"] for case in item.manual_cases
-            ]
+            manual_cases_result = [case.case_result in ["success", "failed"] for case in item.manual_cases]
             if not all(manual_cases_result):
                 job_done = False
                 break
         if not self.task.automatic and job_done:
-            self.update_task_status()
+            return self.update_task_status()
         else:
             return jsonify(
                 error_code=RET.SERVER_ERR,
@@ -252,8 +254,8 @@ def get_family_member(member_id: set, return_set: set, is_parent=True) -> set:
         else:
             members = task.children.filter(Task.is_delete.is_(False)).all()
         member_id = [item.id for item in members]
-        member_id = set(member_id)
-        return get_family_member(member_id, return_set, is_parent)
+        unique_member_id = set(member_id)
+        return get_family_member(unique_member_id, return_set, is_parent)
 
 
 def update_task_display(task: Task):
@@ -275,10 +277,8 @@ class AnalysisTaskInfo(object):
 
     def get_belong(self):
         task = self.task
-        if (
-                (task.type in ["VERSION", "ORGANIZATION"] and task.executor_type == "GROUP")
-                or task.type == "GROUP"
-        ) and task.group_id:
+        check_task_type = (task.type in ["VERSION", "ORGANIZATION"] and task.executor_type == "GROUP")
+        if (check_task_type or task.type == "GROUP") and task.group_id:
             group = Group.query.get(task.group_id)
             return GroupInfoSchema(**group.to_dict()).dict() if group else {}
         else:
@@ -309,8 +309,8 @@ def send_message(task: Task, msg, from_id=1):
                 to_id.append(re.user_id)
     to_id.append(task.executor_id)
     to_id.append(task.creator_id)
-    to_id = set(to_id)
-    Message.create_instance(json.dumps({"info": msg}), from_id, to_id, task.org_id, level=MsgLevel.system.value)
+    unique_to_id = set(to_id)
+    Message.create_instance(json.dumps({"info": msg}), from_id, unique_to_id, task.org_id, level=MsgLevel.system.value)
 
 
 def judge_task_automatic(task_milestone: TaskMilestone):

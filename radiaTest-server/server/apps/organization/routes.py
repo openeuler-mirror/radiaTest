@@ -16,11 +16,17 @@
 from flask_pydantic import validate
 from flask_restful import Resource
 
+from server.schema.base import PageBaseSchema
 from server import swagger_adapt
 from server.schema.organization import OrgQuerySchema
 from server.utils.auth_util import auth
 from server.utils.response_util import response_collect
-from .handlers import *
+from .handlers import (
+    handler_get_all_org,
+    handler_org_statistic,
+    handler_org_group_page,
+    handler_org_user_page,
+)
 
 
 def get_organization_tag():

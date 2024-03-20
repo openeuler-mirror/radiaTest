@@ -17,12 +17,12 @@
 
 import re
 import datetime
-import json
+import pytz
 from contextlib import contextmanager
 
 import redis
 import requests
-from flask import current_app, jsonify, request
+from flask import current_app
 
 
 from celeryservice.tasks import read_openqa_tests_overview
@@ -31,8 +31,6 @@ from server.model.milestone import Milestone
 from server.model.testcase import Suite, CaseNode, Baseline
 from server.utils.db import Insert, Precise
 from server.utils.resource_utils import ResourceManager
-from server.utils.response_util import ssl_cert_verify_error_collect, RET
-from server.utils.requests_util import do_request
 
 
 class UpdateTaskForm:
@@ -96,8 +94,8 @@ class UpdateTaskHandler:
                 "product_id": form.product_id,
                 "type": "update",
                 "is_sync": False,
-                "start_time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "end_time": (datetime.datetime.now() + datetime.timedelta(
+                "start_time": datetime.datetime.now(tz=pytz.timezone('Asia/Shanghai')).strftime("%Y-%m-%d %H:%M:%S"),
+                "end_time": (datetime.datetime.now(tz=pytz.timezone('Asia/Shanghai')) + datetime.timedelta(
                     days=current_app.config.get("OE_QA_UPDATE_TASK_PERIOD")
                 )).strftime("%Y-%m-%d %H:%M:%S"),
                 "permission_type": "org",

@@ -12,10 +12,9 @@
 # @Date    :
 # @License : Mulan PSL v2
 #####################################
-import re
 
 from server.model.base import BaseModel
-from server.model.permission import Role
+from server.model.permission import Role, ReUserRole
 from server import db
 
 
@@ -37,31 +36,29 @@ class User(db.Model, BaseModel):
     re_user_requirement_publisher = db.relationship("RequirementPublisher", backref="user")
     re_user_requirement_acceptor = db.relationship("RequirementAcceptor", backref="user")
 
-    def _get_basic_info(self):
-        return {
-            "user_id": self.user_id,
-            "user_login": self.user_login,
-            "user_name": self.user_name,
-            "avatar_url": self.avatar_url
-        }
-
-    def _get_roles(self):
-        roles = []
-        for re in self.re_user_role:
-            role = Role.query.filter_by(id=re.role_id).first()
-            roles.append(role.to_json())
-        return roles
-
-    def _get_public_role(self):
-        from server.model.permission import Role, ReUserRole
-        _filter = [ReUserRole.user_id == self.user_id, Role.type == 'public']
-        _role = Role.query.join(ReUserRole).filter(*_filter).first()
-        return _role.to_json() if _role else None
-
     @property
     def rank(self):
         _rank = None
         return _rank
+
+    @staticmethod
+    def synchronize_oauth_info(oauth_user, user=None):
+        user.user_login = oauth_user.get("user_login")
+        user.user_name = oauth_user.get("user_name")
+        user.avatar_url = oauth_user.get("avatar_url")
+        user.add_update()
+        return user
+
+    @staticmethod
+    def create_commit(oauth_user, org_id):
+        new_user = User()
+        new_user.user_id = oauth_user.get("user_id")
+        new_user.user_login = oauth_user.get("user_login")
+        new_user.user_name = oauth_user.get("user_name")
+        new_user.avatar_url = oauth_user.get("avatar_url")
+        new_user.org_id = org_id
+        new_user.add_update()
+        return new_user
 
     def to_summary(self):
         return {
@@ -89,21 +86,22 @@ class User(db.Model, BaseModel):
             "rank": self.rank,
         }
 
-    @staticmethod
-    def synchronize_oauth_info(oauth_user, user=None):
-        user.user_login = oauth_user.get("user_login")
-        user.user_name = oauth_user.get("user_name")
-        user.avatar_url = oauth_user.get("avatar_url")
-        user.add_update()
-        return user
+    def _get_basic_info(self):
+        return {
+            "user_id": self.user_id,
+            "user_login": self.user_login,
+            "user_name": self.user_name,
+            "avatar_url": self.avatar_url
+        }
 
-    @staticmethod
-    def create_commit(oauth_user, org_id):
-        new_user = User()
-        new_user.user_id = oauth_user.get("user_id")
-        new_user.user_login = oauth_user.get("user_login")
-        new_user.user_name = oauth_user.get("user_name")
-        new_user.avatar_url = oauth_user.get("avatar_url")
-        new_user.org_id = org_id
-        new_user.add_update()
-        return new_user
+    def _get_roles(self):
+        roles = []
+        for re in self.re_user_role:
+            role = Role.query.filter_by(id=re.role_id).first()
+            roles.append(role.to_json())
+        return roles
+
+    def _get_public_role(self):
+        _filter = [ReUserRole.user_id == self.user_id, Role.type == 'public']
+        _role = Role.query.join(ReUserRole).filter(*_filter).first()
+        return _role.to_json() if _role else None

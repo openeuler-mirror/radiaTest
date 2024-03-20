@@ -13,9 +13,9 @@
 # @License : Mulan PSL v2
 #####################################
 
-from pydantic import BaseModel, Field, validator
 from datetime import datetime
 from typing import Optional
+from pydantic import BaseModel, Field, validator
 from .base import PageBaseSchema
 
 
@@ -31,8 +31,8 @@ class ReUserGroupSchema(BaseModel):
     def check_time_format(cls, v):
         try:
             v = datetime.strptime(v, "%Y-%m-%d %H:%M:%S")
-        except:
-            raise ValueError("the format of create_time is not valid, the valid type is: %Y-%m-%d %H:%M:%S")
+        except ValueError as e:
+            raise RuntimeError("the format of create_time is not valid, the valid type is: %Y-%m-%d %H:%M:%S") from e
 
         return v
 

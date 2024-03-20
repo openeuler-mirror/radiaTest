@@ -99,7 +99,6 @@ def init_api(api: Api):
         FamilyItem, "/api/v1/tasks/<int:task_id>/family", endpoint="task_family_item"
     )
     api.add_resource(Family, "/api/v1/tasks/family", endpoint="task_family")
-    # api.add_resource(ReportModel, '/api/v1/tasks/reports/models', endpoint='task_report_model')
     api.add_resource(
         Report, "/api/v1/tasks/<int:task_id>/reports", endpoint="task_report"
     )

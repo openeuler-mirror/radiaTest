@@ -7,8 +7,8 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 ####################################
-# @Author  : Ethan-Zhang
-# @email   : ethanzhang55@outlook.com
+# @Author  :
+# @email   :
 # @Date    : 2023/05/09
 # @License : Mulan PSL v2
 #####################################
@@ -27,11 +27,11 @@ class OssFuzz(GitRepoAdaptor):
         """
         work_dir = self._get_work_dir(f"{self.oet_path}/projects")
         if not work_dir:
-            return None
+            return []
         
         return self._get_suites(
-            dir=work_dir, 
-            git_repo_id=git_repo_id, 
+            git_repo_id=git_repo_id,
+            local_dir=work_dir,
             prefix='oss-fuzz-', 
             pass_through=False,
         )

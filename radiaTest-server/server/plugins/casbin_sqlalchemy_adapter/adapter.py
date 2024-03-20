@@ -53,29 +53,23 @@ class Adapter(persist.Adapter, persist.adapters.UpdateAdapter):
     def is_filtered(self):
         return self._filtered
 
-    def load_filtered_policy(self, model, filter) -> None:
+    def load_filtered_policy(self, model, req_filter) -> None:
         """loads all policy rules from the storage."""
         query = CasbinRule.query
-        filters = self.filter_query(query, filter)
+        filters = self.filter_query(query, req_filter)
         filters = filters.all()
 
         for line in filters:
             persist.load_policy_line(str(line), model)
         self._filtered = True
 
-    def filter_query(self, querydb, filter):
+    def filter_query(self, querydb, filters):
         for attr in ("ptype", "v0", "v1", "v2", "v3", "v4", "v5"):
-            if len(getattr(filter, attr)) > 0:
+            if len(getattr(filters, attr)) > 0:
                 querydb = querydb.filter(
-                    getattr(CasbinRule, attr).in_(getattr(filter, attr))
+                    getattr(CasbinRule, attr).in_(getattr(filters, attr))
                 )
         return querydb.order_by(CasbinRule.id)
-
-    def _save_policy_line(self, ptype, rule):
-        line = CasbinRule(ptype=ptype)
-        for i, v in enumerate(rule):
-            setattr(line, "v{}".format(i), v)
-        line.add_update()
 
     def save_policy(self, model):
         """saves all policy rules to the storage."""
@@ -200,5 +194,11 @@ class Adapter(persist.Adapter, persist.adapters.UpdateAdapter):
 
         :return: None
         """
-        for i in range(len(old_rules)):
+        for i, _ in enumerate(old_rules):
             self.update_policy(sec, ptype, old_rules[i], new_rules[i])
+
+    def _save_policy_line(self, ptype, rule):
+        line = CasbinRule(ptype=ptype)
+        for i, v in enumerate(rule):
+            setattr(line, "v{}".format(i), v)
+        line.add_update()

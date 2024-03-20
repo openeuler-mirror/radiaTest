@@ -33,14 +33,6 @@ class BaseOpenApiHandler:
         self.namespace = namespace
         self.org_id = org_id
 
-    @abc.abstractmethod
-    def gitee_2_radia(self):
-        pass
-
-    @abc.abstractmethod
-    def radia_2_gitee(self):
-        pass
-
     @property
     def headers(self):
         return current_app.config.get("HEADERS")
@@ -54,6 +46,14 @@ class BaseOpenApiHandler:
         org = Organization.query.filter_by(id=self.org_id).first()
         return org
 
+    @abc.abstractmethod
+    def gitee_2_radia(self):
+        pass
+
+    @abc.abstractmethod
+    def radia_2_gitee(self):
+        pass
+
     @collect_sql_error
     def add_update(self, act, url, data, schema, handler):
         data.update({"access_token": self.access_token})
@@ -66,10 +66,9 @@ class BaseOpenApiHandler:
         )
 
         _resp.encoding = _resp.apparent_encoding
-
-        if (_resp.status_code != 200 and act == "PUT") or (
-            _resp.status_code != 201 and act == "POST"
-        ):
+        put_res = (_resp.status_code != 200 and act == "PUT")
+        post_res = (_resp.status_code != 201 and act == "POST")
+        if put_res or post_res:
             current_app.logger.error(_resp.text)
             return jsonify(
                 error_code=RET.BAD_REQ_ERR,

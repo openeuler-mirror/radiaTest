@@ -7,16 +7,14 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 ####################################
-# @Author  : Ethan-Zhang,凹凸曼打小怪兽
-# @email   : 15710801006@163.com
 # @Date    : 2023/01/29
 # @License : Mulan PSL v2
 #####################################
 
 import json
 from datetime import datetime
-from typing_extensions import Literal
 from typing import Optional
+from typing_extensions import Literal
 import pytz
 
 from pydantic import BaseModel, Field, constr, root_validator, validator
@@ -73,27 +71,23 @@ class MilestoneUpdateSchema(UpdateBaseModel, TimeBaseSchema):
             .all()
         )
         for milestone in milestones:
-            if (
-                start_time >= milestone.start_time.strftime("%Y-%m-%d")
-                and
-                start_time <= milestone.end_time.strftime("%Y-%m-%d")
-            ) or (
-                end_time >= milestone.start_time.strftime("%Y-%m-%d")
-                and
-                end_time <= milestone.end_time.strftime("%Y-%m-%d")
-            ):
+            check_starttime_res = (
+                    milestone.start_time.strftime("%Y-%m-%d") <= start_time <= milestone.end_time.strftime("%Y-%m-%d")
+            )
+            check_endtime_res = (
+                    milestone.start_time.strftime("%Y-%m-%d") <= end_time <= milestone.end_time.strftime("%Y-%m-%d")
+            )
+            if check_starttime_res or check_endtime_res:
                 raise ValueError(
                     "the period  of milestone overlaps period of milestone existed."
                 )
-            if (
-                milestone.start_time.strftime("%Y-%m-%d") >= start_time
-                and
-                milestone.start_time.strftime("%Y-%m-%d") <= end_time
-            ) or (
-                milestone.end_time.strftime("%Y-%m-%d") >= start_time
-                and
-                milestone.end_time.strftime("%Y-%m-%d") <= end_time
-            ):
+            check_starttime_res = (
+                    start_time <= milestone.start_time.strftime("%Y-%m-%d") <= end_time
+            )
+            check_endtime_res = (
+                    start_time <= milestone.end_time.strftime("%Y-%m-%d") <= end_time
+            )
+            if check_starttime_res or check_endtime_res:
                 raise ValueError(
                     "the period  of milestone overlaps period of milestone existed."
                 )
@@ -135,35 +129,27 @@ class MilestoneCreateSchema(MilestoneBaseSchema, PermissionBase):
             .all()
         )
         for milestone in milestones:
-            if (
-                values.get("start_time") >= milestone.start_time.strftime(
-                    "%Y-%m-%d")
-                and
-                values.get("start_time") <= milestone.end_time.strftime(
-                    "%Y-%m-%d")
-            ) or (
-                values.get("end_time") >= milestone.start_time.strftime(
-                    "%Y-%m-%d")
-                and
-                values.get("end_time") <= milestone.end_time.strftime(
-                    "%Y-%m-%d")
-            ):
+            check_starttime_res = (
+                    milestone.start_time.strftime("%Y-%m-%d")
+                    <= values.get("start_time")
+                    <= milestone.end_time.strftime("%Y-%m-%d")
+            )
+            check_endtime_res = (
+                    milestone.start_time.strftime("%Y-%m-%d")
+                    <= values.get("end_time")
+                    <= milestone.end_time.strftime("%Y-%m-%d")
+            )
+            if check_starttime_res or check_endtime_res:
                 raise ValueError(
                     "the period  of new milestone overlaps period of milestone existed."
                 )
-            if (
-                milestone.start_time.strftime(
-                    "%Y-%m-%d") >= values.get("start_time")
-                and
-                milestone.start_time.strftime(
-                    "%Y-%m-%d") <= values.get("end_time")
-            ) or (
-                milestone.end_time.strftime(
-                    "%Y-%m-%d") >= values.get("start_time")
-                and
-                milestone.end_time.strftime(
-                    "%Y-%m-%d") <= values.get("end_time")
-            ):
+            check_starttime_res = (
+                    values.get("start_time") <= milestone.start_time.strftime("%Y-%m-%d") <= values.get("end_time")
+            )
+            check_endtime_res = (
+                    values.get("start_time") <= milestone.end_time.strftime("%Y-%m-%d") <= values.get("end_time")
+            )
+            if check_starttime_res or check_endtime_res:
                 raise ValueError(
                     "the period  of milestone overlaps period of milestone existed."
                 )
@@ -221,10 +207,8 @@ class QueryMilestoneByTimeSchema(BaseModel):
                     v[1],
                     "%Y-%m-%d"
                 )  
-            except:
-                raise ValueError(
-                    "the format of time is not valid, the valid type is: %Y-%m-%d"
-                )
+            except ValueError as e:
+                raise RuntimeError("the format of time is not valid, the valid type is: %Y-%m-%d") from e
 
             v[0] = v[0].strftime("%Y-%m-%d")
             v[1] = v[1].strftime("%Y-%m-%d")

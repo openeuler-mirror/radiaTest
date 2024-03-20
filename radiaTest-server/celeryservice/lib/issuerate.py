@@ -34,19 +34,19 @@ class UpdateIssueRateData:
         self.bug_issue_type_id = self.issue_v8.get_bug_issue_type_id("缺陷")
 
         self.all_state_ids = self.issue_v8.get_state_ids_inversion(
-            set(["已挂起", "已取消", "已拒绝"])
+            ["已挂起", "已取消", "已拒绝"]
         )
         self.serious_state_ids = self.issue_v8.get_state_ids(
-            set(["已完成", "已验收", "已挂起", "已取消", "已拒绝"])
+            ["已完成", "已验收", "已挂起", "已取消", "已拒绝"]
         )
         self.current_resolved_state_ids = self.issue_v8.get_state_ids(
-            set(["已完成", "已验收"])
+            ["已完成", "已验收"]
         )
         self.left_state_ids = self.issue_v8.get_state_ids(
-            set(["已挂起"])
+            ["已挂起"]
         )
         self.invalid_state_ids = self.issue_v8.get_state_ids(
-            set(["已取消", "已拒绝"])
+            ["已取消", "已拒绝"]
         )
         self.issue_query_param = {
             "milestone_id": "",
@@ -61,7 +61,7 @@ class UpdateIssueRateData:
         if not milestones:
             return 0, []
         param = self.issue_query_param
- 
+
         milestone_ids = ""
         for _milestone in milestones:
             milestone_ids = ",".join(
@@ -87,7 +87,7 @@ class UpdateIssueRateData:
             all_issues = all_issues + per_issues[:]
 
         return total, all_issues
-    
+
     def update_issue_resolved_rate_product(self):
         from server.apps.qualityboard.handlers import QualityResultCompareHandler
         serious_main_cnt = 0
@@ -96,17 +96,17 @@ class UpdateIssueRateData:
         current_cnt = 0
         current_resolved_cnt = 0
         current_resolved_rate = "100%"
-         
+
         for issue in self.all_issues:
             if issue.get("priority") in [3, 4]:
                 serious_main_cnt += 1
                 if str(issue.get("issue_state_id")) in self.serious_state_ids:
                     serious_main_resolved_cnt += 1
             if str(issue.get("issue_state_id")) in self.all_state_ids:
-                    current_cnt += 1
+                current_cnt += 1
             if str(issue.get("issue_state_id")) in self.current_resolved_state_ids:
-                    current_resolved_cnt += 1
-                    
+                current_resolved_cnt += 1
+
         if serious_main_cnt == 0:
             serious_main_resolved_rate = "100%"
         else:
@@ -186,14 +186,14 @@ class UpdateIssueRateData:
                         serious_resolved_cnt += 1
                         serious_main_resolved_cnt += 1
                 if str(issue.get("issue_state_id")) in self.all_state_ids:
-                        current_cnt += 1
+                    current_cnt += 1
                 if str(issue.get("issue_state_id")) in self.current_resolved_state_ids:
-                        current_resolved_cnt += 1
+                    current_resolved_cnt += 1
                 if str(issue.get("issue_state_id")) in self.left_state_ids:
-                        left_issues_cnt += 1
+                    left_issues_cnt += 1
                 if str(issue.get("issue_state_id")) in self.invalid_state_ids:
-                        invalid_issues_cnt += 1
- 
+                    invalid_issues_cnt += 1
+
         if serious_main_cnt == 0:
             serious_main_resolved_rate = "100%"
         else:
@@ -262,9 +262,9 @@ class UpdateIssueRateData:
 class UpdateIssueRate(TaskHandlerBase):
     @staticmethod
     def statistics(product_id=None):
-        filter_param = [ Product.is_forced_check.is_(True) ]
+        filter_param = [Product.is_forced_check.is_(True)]
         if product_id is not None:
-            filter_param.append(Product.id == product_id) 
+            filter_param.append(Product.id == product_id)
 
         products = Product.query.filter(
             *filter_param
@@ -277,7 +277,7 @@ class UpdateIssueRate(TaskHandlerBase):
             }
             uird = UpdateIssueRateData(products_dict)
             uird.update_issue_resolved_rate_product()
-            
+
             rounds = Round.query.filter_by(
                 product_id=product.id
             ).all()
@@ -316,7 +316,7 @@ class UpdateIssueRate(TaskHandlerBase):
                         }
                     ).single(IssueSolvedRate, "/issue_solved_rate")
                 uird.update_issue_resolved_rate_milestone(
-                    milestone_ids=[ _m.gitee_milestone_id ]
+                    milestone_ids=[_m.gitee_milestone_id]
                 )
 
 

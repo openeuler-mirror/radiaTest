@@ -13,7 +13,7 @@
 # @License : Mulan PSL v2
 #####################################
 
-def calculate_rate(num, total, decimal = 0):
+def calculate_rate(num, total, decimal=0):
     """
     :description: Calculate the percentage with two given numbers and specify the number of decimal places
     :param: num: int, Calculated number

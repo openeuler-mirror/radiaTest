@@ -15,8 +15,9 @@
 
 import os
 import argparse
-from flask import current_app
 from enum import Enum
+
+from flask import current_app
 
 
 class RpmCompareStatus(Enum):
@@ -30,6 +31,7 @@ class RpmCompareStatus(Enum):
     LACK = 7 # lack of rpm packages
     DIFFERENT = 8 # name, version, release, one or more of them are diffrent
     ERROR = 200 # unexpected compare
+
 
 class RpmName():
     
@@ -74,14 +76,28 @@ class RpmName():
             self.release,
             self.arch
         )
-    
+
+    @property
+    def is_parsed(self):
+        """parse rpm file name
+
+        Args:
+            self : example of RpmName
+        
+        return:
+            Boolean: result of RpmName is parsed
+        """
+        if not self.name or not self.version or not self.release:
+            return False
+        return True
+
     @staticmethod
     def parse_rpm_file_name(rpm_file_name: str):
         """parse rpm file name
 
         Args:
             rpm_file_name (str): <name>-<version>-<release>.<arch>.rpm
-        
+
         return:
             list: [<name>, <version>, <release>, <arch>]
         """
@@ -98,23 +114,9 @@ class RpmName():
         if len(rpm_split_l2) != 3:
             current_app.logger.warning(f"{rpm_file_name} is unsupported name format")
             return ["", "", "", ""]
-        
+
         rpm_split_l2.append(arch)
         return rpm_split_l2
-
-    @property
-    def is_parsed(self):
-        """parse rpm file name
-
-        Args:
-            self : example of RpmName
-        
-        return:
-            Boolean: result of RpmName is parsed
-        """
-        if not self.name or not self.version or not self.release:
-            return False
-        return True
 
     def to_dict(self):
         return {
@@ -124,7 +126,6 @@ class RpmName():
             "arch": self.arch,
             "rpm_file_name": self.file_name,
         }
-
 
 
 class RpmNameLoader():
@@ -314,7 +315,6 @@ class RpmNameComparator():
                 current_app.logger.error("unsuported rpm name format")
                 return RpmCompareStatus.ERROR
             if rpm_info_1.version == rpm_info_2.version:
-                # todo for compare dist diff
                 if rpm_info_1.release == rpm_info_2.release:
                     return RpmCompareStatus.SAME
                 else:
@@ -485,4 +485,3 @@ def load_compare_rpm_name_args():
 if __name__ == "__main__":
     args = load_compare_rpm_name_args()
     compare_result = args.func(args)
-    print(compare_result)

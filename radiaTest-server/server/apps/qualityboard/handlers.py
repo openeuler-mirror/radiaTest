@@ -7,8 +7,8 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 ####################################
-# @Author  : Ethan-Zhang, disnight
-# @email   : ethanzhang55@outlook.com fjc837005411@outlook.com
+# @Author  :
+# @email   :
 # @Date    : 2022/09/04
 # @License : Mulan PSL v2
 #####################################
@@ -19,7 +19,6 @@ from collections import defaultdict
 from datetime import datetime
 from math import floor
 import os
-import subprocess
 import io
 
 from flask import jsonify, current_app, g, make_response, send_file
@@ -144,6 +143,26 @@ class QualityResultCompareHandler:
         self.obj_type = obj_type
         self.obj_id = obj_id
 
+    @staticmethod
+    def compare_gt(x, y):
+        return x > y
+
+    @staticmethod
+    def compare_lt(x, y):
+        return x < y
+
+    @staticmethod
+    def compare_le(x, y):
+        return x <= y
+
+    @staticmethod
+    def compare_ge(x, y):
+        return x >= y
+
+    @staticmethod
+    def compare_eq(x, y):
+        return x == y
+
     def compare_result_baseline(self, field: str, field_val):
         baseline, operation = self.get_baseline(field)
         if baseline is None:
@@ -151,11 +170,11 @@ class QualityResultCompareHandler:
         field_val = str(field_val).replace("%", "")
         baseline = baseline.replace("%", "")
 
-        lt = lambda x, y: x < y
-        gt = lambda x, y: x > y
-        le = lambda x, y: x <= y
-        ge = lambda x, y: x >= y
-        eq = lambda x, y: x == y
+        lt = self.compare_lt
+        gt = self.compare_gt
+        le = self.compare_le
+        ge = self.compare_ge
+        eq = self.compare_eq
         operation_dict = {
             "<": lt,
             ">": gt,
@@ -333,7 +352,7 @@ class OpenEulerFeatureResolver(FeatureResolver):
             table_result.append(td_content_list)
         return table_result
 
-    def parse_td_text(self, td_content):
+    def parse_td_text(self, td_content=None):
         """parse td’s text and chile nodes' text
 
         Args:
@@ -369,6 +388,7 @@ class FeatureHandler:
         self.re_table = re_table
         if kwargs.get("product_id"):
             self.product_id = kwargs.get("product_id")
+        self.rows = None
 
     @abc.abstractmethod
     def get_md_content(self, product_version) -> str:
@@ -519,7 +539,7 @@ feature_handlers = {
 
 
 class PackageListHandler:
-    def __init__(self, round_id, repo_path, arch) -> None:
+    def __init__(self, round_id=None, repo_path=None, arch=None) -> None:
         self.repo_path = repo_path
         self.arch = arch
 
@@ -547,27 +567,6 @@ class PackageListHandler:
 
         self.packages = self.get_packages()
 
-    def get_packages(self):
-        _path = current_app.config.get("PRODUCT_PKGLIST_PATH")
-        _product_version = f"{self._round.product.name}-{self._round.product.version}"
-        _filename = f"{_product_version}-{self.repo_path}"
-        _round = None
-        if self._round.type == "round":
-            _round = self._round.round_num
-            _filename = f"{_product_version}-round-{_round}-{self.repo_path}"
-        if self.arch != "":
-            _filename = f"{_filename}-{self.arch}"
-
-        try:
-            return RpmNameLoader.load_rpmlist_from_file(
-                f"{_path}/{_filename}.pkgs",
-            )
-        except FileNotFoundError as e:
-            raise ValueError(
-                f"resolve packages of {_filename} failed, " \
-                f"please refetch data manually or check whether it exists in {self.pkgs_repo_url}"
-            ) from e
-
     @staticmethod
     def get_all_packages_file(round_id):
         _round = Round.query.filter_by(id=round_id).first()
@@ -591,8 +590,8 @@ class PackageListHandler:
         _keys = redis_client.keys(key_val)
         if len(_keys) > 0:
             raise RuntimeError(
-                f"LOCKED: the packages of {_round.name} " \
-                f"has been in resolving process, " \
+                f"LOCKED: the packages of {_round.name} "
+                f"has been in resolving process, "
                 "please wait in patient or try again after a half hour"
             )
         redis_client.hmset(
@@ -613,6 +612,27 @@ class PackageListHandler:
             round_num=round_num,
         )
 
+    def get_packages(self):
+        _path = current_app.config.get("PRODUCT_PKGLIST_PATH")
+        _product_version = f"{self._round.product.name}-{self._round.product.version}"
+        _filename = f"{_product_version}-{self.repo_path}"
+        _round = None
+        if self._round.type == "round":
+            _round = self._round.round_num
+            _filename = f"{_product_version}-round-{_round}-{self.repo_path}"
+        if self.arch != "":
+            _filename = f"{_filename}-{self.arch}"
+
+        try:
+            return RpmNameLoader.load_rpmlist_from_file(
+                f"{_path}/{_filename}.pkgs",
+            )
+        except FileNotFoundError as e:
+            raise RuntimeError(
+                f"resolve packages of {_filename} failed, "
+                f"please refetch data manually or check whether it exists in {self.pkgs_repo_url}"
+            ) from e
+
     def compare(self, packages):
         if not self.packages or not packages:
             return None
@@ -627,7 +647,7 @@ class PackageListHandler:
 
     def compare2(self, packages):
         if not self.packages or not packages:
-            return None
+            return []
 
         rpm_name_dict_comparer = RpmNameLoader.rpmlist2rpmdict_by_name(self.packages)
         rpm_name_dict_comparee = RpmNameLoader.rpmlist2rpmdict_by_name(packages)
@@ -640,32 +660,20 @@ class PackageListHandler:
 
 class DailyBuildPackageListHandler(PackageListHandler):
     def __init__(self, repo_name, repo_path, arch, repo_url) -> None:
+        super().__init__()
         self.repo_name = repo_name
         self.repo_path = f"{repo_name}-{repo_path}-{arch}"
         self.repo_url = repo_url
         self.packages = self.get_packages()
 
-    def get_packages(self):
-        _path = current_app.config.get("PRODUCT_PKGLIST_PATH")
-
-        try:
-            return RpmNameLoader.load_rpmlist_from_file(
-                f"{_path}/{self.repo_path}.pkgs",
-            )
-        except FileNotFoundError as e:
-            raise ValueError(
-                f"resolve packages of {self.repo_name} failed, " \
-                f"please refetch data manually or check whether it exists in {self.repo_url}"
-            ) from e
-
     @staticmethod
-    def get_all_packages_file(repo_name, repo_url):
+    def get_all_packages_file(repo_name=None, repo_url=None):
         key_val = f"resolving_{repo_name}_pkglist"
         _keys = redis_client.keys(key_val)
         if len(_keys) > 0:
             raise RuntimeError(
-                f"LOCKED: the packages of {repo_name} " \
-                f"has been in resolving process, " \
+                f"LOCKED: the packages of {repo_name} "
+                f"has been in resolving process, "
                 "please wait in patient or try again after a half hour"
             )
         redis_client.hmset(
@@ -684,6 +692,19 @@ class DailyBuildPackageListHandler(PackageListHandler):
             repo_url=repo_url,
             store_path=_path,
         )
+
+    def get_packages(self):
+        _path = current_app.config.get("PRODUCT_PKGLIST_PATH")
+
+        try:
+            return RpmNameLoader.load_rpmlist_from_file(
+                f"{_path}/{self.repo_path}.pkgs",
+            )
+        except FileNotFoundError as e:
+            raise RuntimeError(
+                f"resolve packages of {self.repo_name} failed, "
+                f"please refetch data manually or check whether it exists in {self.repo_url}"
+            ) from e
 
 
 class RoundHandler:
@@ -971,67 +992,6 @@ class ReportHandler(object):
         else:
             return True
 
-    def format_date(self, date_str):
-        if not date_str:
-            return ""
-        if self.verify_date_str(date_str) is True:
-            return datetime.strptime(date_str, "%Y-%m-%dT%H:%M:%S%z").strftime("%Y/%m/%d")
-        else:
-            return "日期解析失败"
-
-    def get_all_issue(self, params):
-        # 递归获取所有issue
-        res = self.gitee_v8_handler.get_all(params)
-        total = res.get("total_count")
-        page = params.get("page")
-        per_page = params.get("per_page")
-        data = res.get("data")
-        if int(total) > int(page) * int(per_page):
-            params["page"] = page + 1
-            data.extend(self.get_all_issue(params))
-        return data
-
-    def get_all_issue_by_type_name(self, type_name=None):
-        # 获取issue_type为type_name所有issue
-        filter_param = [Milestone.product_id == self.product_id, Milestone.is_sync.is_(True)]
-        if self.round_id:
-            filter_param.append(Milestone.round_id == int(self.round_id))
-        milestones = Milestone.query.filter(*filter_param).all()
-        issue_list = []
-        if not milestones:
-            return issue_list
-        m_ids = ",".join([str(i.gitee_milestone_id) for i in milestones])
-        query_dict = self.params.__dict__
-        update_params = {
-            "milestone_id": m_ids,
-            "per_page": 100  # 接口最大条数100
-        }
-        if type_name:
-            update_params["issue_type_id"] = self.gitee_v8_handler.get_bug_issue_type_id(type_name)
-        query_dict.update(update_params)
-        # 从第一页开始递归获取当前条件下的所有issue
-        query_dict["page"] = 1
-        return self.get_all_issue(query_dict)
-
-    def get_overdue_days(self, deadline, finished_at):
-        if not deadline:
-            return '无截止日期'
-        if self.verify_date_str(deadline) is False:
-            return '截止日期格式错误'
-        # 获取逾期日期
-        deadline_date = datetime.strptime(deadline, "%Y-%m-%dT%H:%M:%S%z").replace(hour=23, minute=59, second=59)
-        if finished_at and self.verify_date_str(finished_at):
-            finished_date = datetime.strptime(finished_at, "%Y-%m-%dT%H:%M:%S%z").replace(hour=23, minute=59, second=59)
-            if finished_date > deadline_date:
-                return str((finished_date - deadline_date).days)
-            else:
-                return '未逾期'
-        now_date = datetime.now(tz=pytz.timezone('Asia/Shanghai')).astimezone(
-            deadline_date.tzinfo).replace(hour=23, minute=59, second=59)
-        if deadline_date >= now_date:
-            return '未逾期'
-        return str((now_date - deadline_date).days)
-
     @staticmethod
     def parse_lables(labels):
         label_dict = {}
@@ -1085,6 +1045,73 @@ class ReportHandler(object):
             return "{:.2%}".format(part / total)
         else:
             return "NAN"
+
+    def format_date(self, date_str):
+        if not date_str:
+            return ""
+        if self.verify_date_str(date_str) is True:
+            return datetime.strptime(date_str, "%Y-%m-%dT%H:%M:%S%z").strftime("%Y/%m/%d")
+        else:
+            return "日期解析失败"
+
+    def get_all_issue(self, params):
+        # 递归获取所有issue
+        res = self.gitee_v8_handler.get_all(params)
+        total = res.get("total_count")
+        page = params.get("page")
+        per_page = params.get("per_page")
+        data = res.get("data")
+        if int(total) > int(page) * int(per_page):
+            params["page"] = page + 1
+            data.extend(self.get_all_issue(params))
+        return data
+
+    def get_all_issue_by_type_name(self, type_name=None):
+        # 获取issue_type为type_name所有issue
+        filter_param = [Milestone.product_id == self.product_id, Milestone.is_sync.is_(True)]
+        if self.round_id:
+            filter_param.append(Milestone.round_id == int(self.round_id))
+        milestones = Milestone.query.filter(*filter_param).all()
+        issue_list = []
+        if not milestones:
+            return issue_list
+        m_ids = ",".join([str(i.gitee_milestone_id) for i in milestones])
+        query_dict = self.params.__dict__
+        update_params = {
+            "milestone_id": m_ids,
+            "per_page": 100  # 接口最大条数100
+        }
+        if type_name:
+            update_params["issue_type_id"] = self.gitee_v8_handler.get_bug_issue_type_id(type_name)
+        query_dict.update(update_params)
+        # 从第一页开始递归获取当前条件下的所有issue
+        query_dict["page"] = 1
+        return self.get_all_issue(query_dict)
+
+    def get_overdue_days(self, deadline, finished_at):
+        if not deadline:
+            return '无截止日期'
+        if self.verify_date_str(deadline) is False:
+            return '截止日期格式错误'
+        # 获取逾期日期
+        deadline_date = datetime.strptime(
+            deadline,
+            "%Y-%m-%dT%H:%M:%S%z"
+        ).replace(hour=23, minute=59, second=59)
+        if finished_at and self.verify_date_str(finished_at):
+            finished_date = datetime.strptime(
+                finished_at,
+                "%Y-%m-%dT%H:%M:%S%z"
+            ).replace(hour=23, minute=59, second=59)
+            if finished_date > deadline_date:
+                return str((finished_date - deadline_date).days)
+            else:
+                return '未逾期'
+        now_date = datetime.now(tz=pytz.timezone('Asia/Shanghai')).astimezone(
+            deadline_date.tzinfo).replace(hour=23, minute=59, second=59)
+        if deadline_date >= now_date:
+            return '未逾期'
+        return str((now_date - deadline_date).days)
 
     def issue_sort_compare(self, issue):
         """
@@ -1222,11 +1249,11 @@ class ReportHandler(object):
 
         # 汇总计算
         closed_rate = self.get_ratio(issue_count["closed"], issue_count["total"])
-        for sig_name, sig_info in sig_count.items():
+        for _, sig_info in sig_count.items():
             # DI值计算
             sig_info["DI"] = self.get_di(sig_info["priority"])
 
-        for milestone, milestone_info in milestone_count.items():
+        for _, milestone_info in milestone_count.items():
             milestone_info["closed_rate"] = self.get_ratio(milestone_info["closed"], milestone_info["total"])
         # 完成率、验收率
         completed_rate = self.get_ratio(issue_count["status"].get("已完成", 0) + issue_count["status"].get("已验收", 0),

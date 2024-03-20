@@ -7,8 +7,6 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 ####################################
-# @Author  :
-# @email   :
 # @Date    :
 # @License : Mulan PSL v2
 #####################################
@@ -89,10 +87,11 @@ class AddTaskSchema(BaseModel):
 
     @root_validator
     def check(cls, values):
-        if (values.get("type") == "VERSION" and not values.get("milestone_id")
-            ) or (
+        check_version_res = (values.get("type") == "VERSION" and not values.get("milestone_id"))
+        check_not_version_res = (
                 values.get("milestone_id") and (not values.get("type") or values.get("type") != "VERSION")
-            ):
+        )
+        if check_version_res or check_not_version_res:
             raise ValueError("when type of task is VERSION, milestone_id must be not None.")
         try:
             datetime.strptime(
@@ -103,10 +102,8 @@ class AddTaskSchema(BaseModel):
                 values.get("deadline"),
                 "%Y-%m-%d"
             )  
-        except:
-            raise ValueError(
-                "the format of time is not valid, the valid type is: %Y-%m-%d"
-            )
+        except ValueError as e:
+            raise RuntimeError("the format of time is not valid, the valid type is: %Y-%m-%d") from e
         if values.get("deadline") < values.get("start_time"):
             raise ValueError("start time must be earlier than deadline.")
         return values
@@ -139,10 +136,8 @@ class QueryTaskByTimeSchema(BaseModel):
                     v[1],
                     "%Y-%m-%d"
                 )  
-            except:
-                raise ValueError(
-                    "the format of time is not valid, the valid type is: %Y-%m-%d"
-                )
+            except ValueError as e:
+                raise RuntimeError("the format of time is not valid, the valid type is: %Y-%m-%d") from e
 
             v[0] = v[0].strftime("%Y-%m-%d")
             v[1] = v[1].strftime("%Y-%m-%d")
@@ -163,7 +158,7 @@ class QueryTaskSchema(PageBaseSchema):
     is_delete: bool = False
     milestone_id: str = None
     gantt: bool = False
-    org_id: int = False
+    org_id: int = None
 
     @validator('participant_id')
     def validate_participant_id(cls, v):
@@ -190,6 +185,8 @@ class TaskBaseSchema(BaseModel):
     def validate(cls, v):
         if v:
             return v.strftime("%Y-%m-%d")
+        else:
+            return str()
 
 
 class TaskInfoSchema(TaskBaseSchema):
@@ -220,11 +217,15 @@ class TaskInfoSchema(TaskBaseSchema):
     def validate_start_time(cls, v):
         if v:
             return v.strftime("%Y-%m-%d")
+        else:
+            return str()
 
     @validator('accomplish_time')
     def validate_accomplish_time(cls, v):
         if v:
             return v.strftime("%Y-%m-%d")
+        else:
+            return str()
 
 
 class TaskRecycleBinInfo(TaskInfoSchema):
@@ -234,6 +235,8 @@ class TaskRecycleBinInfo(TaskInfoSchema):
     def validate_update_time(cls, v):
         if v:
             return v.strftime("%Y-%m-%d %H:%M:%S")
+        else:
+            return str()
 
 
 class ParticipantSchema(BaseModel):
@@ -477,14 +480,14 @@ class DistributeTemplateTypeSchema(object):
             if v is not None:
                 return ','.join(v)
             else:
-                return None
+                return str()
 
         @validator('helpers')
         def v_helpers(cls, v):
             if v is not None:
                 return ','.join(v)
             else:
-                return None
+                return str()
 
     class Query(PageBaseSchema):
         template_id: int = None

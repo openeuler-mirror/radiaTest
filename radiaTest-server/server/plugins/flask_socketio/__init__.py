@@ -201,17 +201,22 @@ class SocketIO(object):
             url = self.server_options.pop('message_queue', None)
             channel = self.server_options.pop('channel', 'flask-socketio')
             write_only = app is None
+            ssl = kwargs.get("ssl", None)
+            manager_kwargs = {
+                "url": url,
+                "channel": channel,
+                "wirte_only": write_only
+            }
             if url:
                 if url.startswith(('redis://', "rediss://")):
-                    queue_class = socketio.RedisManager
+                    queue = socketio.RedisManager(**manager_kwargs, redis_options=ssl)
                 elif url.startswith(('kafka://')):
-                    queue_class = socketio.KafkaManager
+                    queue = socketio.KafkaManager(**manager_kwargs)
                 elif url.startswith('zmq'):
-                    queue_class = socketio.ZmqManager
+                    queue = socketio.ZmqManager(**manager_kwargs)
                 else:
-                    queue_class = socketio.KombuManager
-                queue = queue_class(url, channel=channel,
-                                    write_only=write_only, connection_options=kwargs["ssl"])
+                    queue = socketio.KombuManager(**manager_kwargs, connection_options=ssl)
+
                 self.server_options['client_manager'] = queue
 
         if 'json' in self.server_options and \

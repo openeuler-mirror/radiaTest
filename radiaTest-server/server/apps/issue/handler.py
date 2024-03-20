@@ -50,14 +50,6 @@ class IssueOpenApiHandler(BaseOpenApiHandler):
         pass
 
 
-class QuickIssueBaseHandler(IssueOpenApiHandler):
-    pass
-
-
-class IssueV5BaseHandler(IssueOpenApiHandler):
-    pass
-
-
 class GiteeV8BaseIssueHandler(IssueOpenApiHandler):
     def __init__(self, body=None, org_id=None):
         if body is not None:
@@ -127,7 +119,7 @@ class GiteeV8BaseIssueHandler(IssueOpenApiHandler):
             else:
                 return []
 
-    def gitee_2_radia(self, body):
+    def gitee_2_radia(self, body=None):
         radia_body = self.body
         radia_body.update(
             {
@@ -139,7 +131,7 @@ class GiteeV8BaseIssueHandler(IssueOpenApiHandler):
         )
         return radia_body
 
-    def radia_2_gitee(self, body):
+    def radia_2_gitee(self, body=None):
         gitee_body = dict()
         gitee_body.update({
             "title": body.get("title"),
@@ -259,7 +251,7 @@ class GiteeV8BaseIssueHandler(IssueOpenApiHandler):
             state_ids = state_ids[:-1]
         return state_ids
 
-    def get_state_ids_inversion(self, inversion_solved_state: set):
+    def get_state_ids_inversion(self, inversion_solved_state: list):
         state_ids = ""
         for _type in self.issue_states:
             if _type.get("title") not in inversion_solved_state:

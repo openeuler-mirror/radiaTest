@@ -63,6 +63,18 @@ class Role(db.Model, CasbinRoleModel):
             "org_name": self.organization.name if self.organization else None,
         }
 
+    def add_update(self, table=None, namespace=None, broadcast=False, difference=None):
+        super().add_update(table, namespace)
+        if difference:
+            _update = self._get_update(difference)
+            for group in _update:
+                casbin_enforcer.adapter.add_policy("g", "g", group)
+
+    def delete(self, table=None, namespace=None, broadcast=False):
+        for group in self._generate_groups():
+            casbin_enforcer.adapter.remove_policy("g", "g", group)
+        super().delete(table, namespace, broadcast)
+
     def _generate_groups(self):
         groups = []
         for child in self.children:
@@ -80,18 +92,6 @@ class Role(db.Model, CasbinRoleModel):
             groups.append([_sub, _role])
 
         return groups
-
-    def add_update(self, table=None, namespace=None, broadcast=False, difference=None):
-        super().add_update(table, namespace)
-        if difference:
-            _update = self._get_update(difference)
-            for group in _update:
-                casbin_enforcer.adapter.add_policy("g", "g", group)
-
-    def delete(self, table=None, namespace=None, broadcast=False):
-        for group in self._generate_groups():
-            casbin_enforcer.adapter.remove_policy("g", "g", group)
-        super().delete(table, namespace, broadcast)
 
 
 class Scope(db.Model, BaseModel):
@@ -122,22 +122,14 @@ class ReScopeRole(db.Model, CasbinRoleModel):
     scope_id = db.Column(db.Integer(), db.ForeignKey("scope.id"))
     role_id = db.Column(db.Integer(), db.ForeignKey("role.id"))
 
-    def _generate_policy(self):
-        _sub = self._get_subject(self.role.type, self.role.name)
-        _obj = self.scope.uri
-        _act = self.scope.act.upper()
-        _eft = self.scope.eft
-        _dom = self._get_dom(self.scope.uri)
-        return [_sub, _obj, _act, _eft, _dom]
-
     def add_update(self, table=None, namespace=None, broadcast=False):
         super().add_update(table, namespace, broadcast)
         casbin_enforcer.adapter.add_policy("p", "p", self._generate_policy())
 
     def add_flush_commit_id(self, table=None, namespace=None, broadcast=False):
-        id = super().add_update(table, namespace, broadcast)
+        record_id = super().add_flush_commit_id(table, namespace, broadcast)
         casbin_enforcer.adapter.add_policy("p", "p", self._generate_policy())
-        return id
+        return record_id
 
     def delete(self, table, namespace, broadcast=False):
         _policy = self._generate_policy()
@@ -155,6 +147,14 @@ class ReScopeRole(db.Model, CasbinRoleModel):
             "role_org": self.role.org_id,
         }
 
+    def _generate_policy(self):
+        _sub = self._get_subject(self.role.type, self.role.name)
+        _obj = self.scope.uri
+        _act = self.scope.act.upper()
+        _eft = self.scope.eft
+        _dom = self._get_dom(self.scope.uri)
+        return [_sub, _obj, _act, _eft, _dom]
+
 
 class ReUserRole(db.Model, CasbinRoleModel):
     __tablename__ = "re_user_role"
@@ -163,20 +163,14 @@ class ReUserRole(db.Model, CasbinRoleModel):
     user_id = db.Column(db.String(512), db.ForeignKey("user.user_id"))
     role_id = db.Column(db.Integer(), db.ForeignKey("role.id"))
 
-    def _generate_group(self):
-        _sub = str(self.user_id)
-        _role = self._get_subject(self.role.type, self.role.name)
-
-        return [_sub, _role]
-
     def add_update(self, table=None, namespace=None, broadcast=False):
         super().add_update(table, namespace, broadcast)
         casbin_enforcer.adapter.add_policy("g", "g", self._generate_group())
 
     def add_flush_commit_id(self, table=None, namespace=None, broadcast=False):
-        id = super().add_update(table, namespace, broadcast)
+        record_id = super().add_flush_commit_id(table, namespace, broadcast)
         casbin_enforcer.adapter.add_policy("g", "g", self._generate_group())
-        return id
+        return record_id
 
     def delete(self, table, namespace, broadcast=False):
         _policy = self._generate_group()
@@ -194,3 +188,9 @@ class ReUserRole(db.Model, CasbinRoleModel):
             "role_group": self.role.group_id,
             "role_org": self.role.org_id,
         }
+
+    def _generate_group(self):
+        _sub = str(self.user_id)
+        _role = self._get_subject(self.role.type, self.role.name)
+
+        return [_sub, _role]

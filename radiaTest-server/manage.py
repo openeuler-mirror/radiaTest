@@ -79,16 +79,16 @@ def swagger_init():
             if view_func:
                 if not hasattr(view_func, "view_class"):
                     continue
-                __module__ = view_func.view_class.__module__
-                if __module__ in api_info_map:
+                module = view_func.view_class.__module__
+                if module in api_info_map:
                     resource_name = view_func.view_class.__name__
-                    if resource_name in api_info_map[__module__]:
-                        if method in api_info_map[__module__][resource_name]:
+                    if resource_name in api_info_map[module]:
+                        if method in api_info_map[module][resource_name]:
                             # 接口存在多路径
-                            if "url" in api_info_map[__module__][resource_name][method]:
-                                api_info_map[__module__][resource_name][method]["url"].append(url)
+                            if "url" in api_info_map[module][resource_name][method]:
+                                api_info_map[module][resource_name][method]["url"].append(url)
                             else:
-                                api_info_map[__module__][resource_name][method].update({
+                                api_info_map[module][resource_name][method].update({
                                     "url": [url],
                                     "method": method,
                                 })

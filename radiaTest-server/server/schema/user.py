@@ -13,10 +13,8 @@
 # @License : Mulan PSL v2
 #####################################
 
-from pydantic import BaseModel, validator
 from typing import Optional
-
-from server.model import User
+from pydantic import BaseModel
 
 
 class OauthLoginSchema(BaseModel):

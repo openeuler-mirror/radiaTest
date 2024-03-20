@@ -47,14 +47,13 @@ from server.utils.redis_util import RedisKey
 from server.apps.issue.handler import GiteeV8BaseIssueHandler
 
 
-# TODO 淘汰Insert，Edit和Delte
 class CreateMilestone:
     @staticmethod
     def bind_scope(milestone_id, body, api_info_file):
         # 按配置为创建的里程碑绑定权限
         cur_file_dir = os.path.abspath(__file__)
         cur_dir = cur_file_dir.replace(cur_file_dir.split("/")[-1], "")
-        allow_list, deny_list = PermissionManager().get_api_list(
+        allow_list, deny_list = PermissionManager.get_api_list(
             "milestone", cur_dir + api_info_file, milestone_id
         )
         PermissionManager().generate(allow_list, deny_list, body)
@@ -289,9 +288,7 @@ class MilestoneHandler:
             )
         ]
         if re_user_groups:
-            group_ids = [
-                re_user_group.group_id for re_user_group in re_user_groups
-            ]
+            group_ids = [re_user_group.group_id for re_user_group in re_user_groups]
             filter_params = [
                 or_(
                     and_(
@@ -331,7 +328,7 @@ class MilestoneOpenApiHandler(BaseOpenApiHandler):
         org_id = redis_client.hget(RedisKey.user(g.user_id), 'current_org_id')
         super().__init__(table=Milestone, namespace="/milestone", org_id=org_id)
 
-    def gitee_2_radia(self, body):
+    def gitee_2_radia(self, body=None):
         # gitee数据格式转换为radiaTest数据格式
         _body = self.body
         if isinstance(body.get("start_date"), str):
@@ -352,7 +349,7 @@ class MilestoneOpenApiHandler(BaseOpenApiHandler):
 
         return _body
 
-    def radia_2_gitee(self, body):
+    def radia_2_gitee(self, body=None):
         # radiaTest数据格式转换为gitee数据格式
         if isinstance(body.get("start_time"), str):
             body["start_time"] = body.get("start_time")
@@ -521,11 +518,11 @@ class GenerateVersionTestReport(GiteeV8BaseIssueHandler):
             }
         return _data
 
-    def generate_update_test_report(self, milestone_id, uri):
+    def generate_update_test_report(self, milestone_id):
         # 生成update测试报告
         milestone = Milestone.query.filter_by(id=milestone_id).first()
         state_ids = self.get_state_ids_inversion(
-            set(["已完成", "已验收", "已取消", "已拒绝", "已修复"])
+            ["已完成", "已验收", "已取消", "已拒绝", "已修复"]
         )
         data = self.get_issues(milestone.gitee_milestone_id, state_ids)
         if data is None:
@@ -535,7 +532,7 @@ class GenerateVersionTestReport(GiteeV8BaseIssueHandler):
             )
 
         state_ids = self.get_state_ids_inversion(
-            set(["已取消", "已拒绝"])
+            ["已取消", "已拒绝"]
         )
         param = {
             "milestone_id": milestone.gitee_milestone_id,
@@ -549,7 +546,7 @@ class GenerateVersionTestReport(GiteeV8BaseIssueHandler):
                 error_msg="fail to get data through gitee openAPI",
             )
         state_ids = self.get_state_ids(
-            set(["已验收"])
+            ["已验收"]
         )
         param = {
             "milestone_id": milestone.gitee_milestone_id,
@@ -656,11 +653,12 @@ class GenerateVersionTestReport(GiteeV8BaseIssueHandler):
         )
 
 
-class IssueStatisticsHandlerV8():
+class IssueStatisticsHandlerV8:
     @staticmethod
     def get_rate_by_milestone(milestone_id):
         _milestones = Milestone.query.filter_by(
-            is_sync=True, id=milestone_id).first()
+            is_sync=True, id=milestone_id
+        ).first()
         if not _milestones:
             return jsonify(
                 error_code=RET.NO_DATA_ERR,
@@ -672,7 +670,6 @@ class IssueStatisticsHandlerV8():
         if isr:
             data = isr.to_json()
         return jsonify(error_code=RET.OK, error_msg="OK", data=data)
-
 
     @staticmethod
     def update_milestone_issue_rate(milestone_id):
@@ -698,7 +695,7 @@ class IssueStatisticsHandlerV8():
             {"product_id": milestone.product_id, "org_id": milestone.product.org_id}
         )
         uird.update_issue_resolved_rate_milestone(
-            milestone_ids=[ milestone.gitee_milestone_id ]
+            milestone_ids=[milestone.gitee_milestone_id]
         )
         return jsonify(
             error_code=RET.OK,

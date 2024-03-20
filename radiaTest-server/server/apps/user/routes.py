@@ -21,6 +21,7 @@ from server.utils.auth_util import auth
 from server.utils.response_util import response_collect
 from server.schema.user import UserTaskSchema, UserInfoSchema
 from server.schema.user import OauthLoginSchema, LoginSchema, JoinGroupSchema, UserQuerySchema
+from server.model.user import User
 from .handlers import handler_oauth_callback
 from .handlers import handler_oauth_login
 from .handlers import handler_user_info
@@ -32,7 +33,6 @@ from .handlers import handler_get_user_task
 from .handlers import handler_login_callback
 from .handlers import handler_private
 from .handlers import handler_register
-from server.model.user import User
 
 oauth = Blueprint('oauth', __name__)
 

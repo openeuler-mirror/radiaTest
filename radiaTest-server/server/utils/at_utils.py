@@ -28,15 +28,6 @@ class ATStatistic:
     @property
     def stats(self):
         return self._stats
-
-    def _init_stats(self):
-        self._stats = {
-            "total": 0,
-            "success": 0,
-            "failure": 0,
-            "block": 0,
-            "running": 0
-        }
     
     @property
     @abc.abstractmethod
@@ -47,6 +38,15 @@ class ATStatistic:
     @abc.abstractmethod
     def tests_overview(self):
         pass
+
+    def _init_stats(self):
+        self._stats = {
+            "total": 0,
+            "success": 0,
+            "failure": 0,
+            "block": 0,
+            "running": 0
+        }
 
 
 class OpenqaATStatistic(ATStatistic):
@@ -65,38 +65,6 @@ class OpenqaATStatistic(ATStatistic):
     @property
     def _tests(self):
         return self.redis_client.keys(f"{self._keys_prefix}*")
-
-    def calc_stats(self):
-        self._init_stats()
-
-        for test in self._tests:
-            if test.endswith(self._pass_suffix):
-                continue
-
-            for arch in self.arches:
-                _res_status = self.redis_client.hget(test, f"{arch}_res_status")
-                if _res_status == "-":
-                    continue
-                self.stats["total"] += 1
-
-                _failedmodule_name = self.redis_client.hget(test, f"{arch}_failedmodule_name")
-                
-                if _res_status == "Done: passed" and _failedmodule_name == "-":
-                    self.stats["success"] += 1
-                elif _res_status.endswith("skipped"):
-                    self.stats["block"] += 1
-                elif _res_status == "running" or _res_status.startswith("schedule"):
-                    self.stats["running"] += 1
-                else:
-                    self.stats["failure"] += 1
-
-    @staticmethod
-    def format_test_duration(test_duration):
-        try:
-            test_duration = int(test_duration)
-            return str(datetime.timedelta(seconds=test_duration))
-        except ValueError:
-            return "-"
 
     @property
     def test_duration(self):
@@ -143,3 +111,35 @@ class OpenqaATStatistic(ATStatistic):
             return_data.append(overview)
     
         return return_data
+
+    @staticmethod
+    def format_test_duration(test_duration):
+        try:
+            test_duration = int(test_duration)
+            return str(datetime.timedelta(seconds=test_duration))
+        except ValueError:
+            return "-"
+
+    def calc_stats(self):
+        self._init_stats()
+
+        for test in self._tests:
+            if test.endswith(self._pass_suffix):
+                continue
+
+            for arch in self.arches:
+                _res_status = self.redis_client.hget(test, f"{arch}_res_status")
+                if _res_status == "-":
+                    continue
+                self.stats["total"] += 1
+
+                _failedmodule_name = self.redis_client.hget(test, f"{arch}_failedmodule_name")
+
+                if _res_status == "Done: passed" and _failedmodule_name == "-":
+                    self.stats["success"] += 1
+                elif _res_status.endswith("skipped"):
+                    self.stats["block"] += 1
+                elif _res_status == "running" or _res_status.startswith("schedule"):
+                    self.stats["running"] += 1
+                else:
+                    self.stats["failure"] += 1

@@ -7,8 +7,8 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 ####################################
-# @Author  : Ethan-Zhang,凹凸曼打小怪兽
-# @email   : 15710801006@163.com
+# @Author  :
+# @email   :
 # @Date    : 2022/09/20
 # @License : Mulan PSL v2
 #####################################
@@ -45,9 +45,6 @@ class Config(object):
 
     # 物理机默认占用时间(days)
     DEFAULT_OCUPY_TIME = 1
-
-    # tftp-server 文件存储路径
-    # TFTP_PATH = "/var/lib/tftpboot"
 
     # HTTP请求头
     HEADERS = {"Content-Type": "application/json;charset=utf8"}

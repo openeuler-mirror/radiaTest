@@ -38,7 +38,7 @@ def loads_config_ini():
         try:
             os.remove(server_config_ini)
         except Exception as err:
-            print(f"Could not remove {server_config_ini}: {str(err)}")
+            raise RuntimeError(f"Could not remove {server_config_ini}: {str(err)}") from err
     return config
 
 

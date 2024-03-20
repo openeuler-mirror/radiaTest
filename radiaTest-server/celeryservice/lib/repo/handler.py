@@ -45,24 +45,6 @@ class RepoTaskHandler(TaskHandlerBase):
         self.promise = promise
         super().__init__(logger)
 
-    def _download_repo(self, resolver, repo_url, repo_branch):
-        # try limit times trying to download the repo 
-        count = RepoTaskHandler.RETRY_LIMIT
-        while count > 0:
-            exitcode, output = resolver.download()
-            self.logger.info(output)
-        
-            if exitcode == 0:
-                break
-        
-            count -= 1
-            sleep(RepoTaskHandler.RETRY_INTERVAL)
-        
-        if count == 0:
-            raise RuntimeError(
-                f"download exceed retry limitation, git clone {repo_url}@{repo_branch} failed"
-            )
-
     def main(self, repo_id: int, repo_name: str, repo_url: str, repo_branch: str):
         """start resolve target repo, and get all testcases data
             :params repo_id(int), the ID of the target testcase repo to resolve
@@ -92,13 +74,13 @@ class RepoTaskHandler(TaskHandlerBase):
                     repo_name
                 )
             )
-        
+
         # instantiating
         resolver = repo_adaptor(repo_url, repo_branch, oet_path)
 
         self._download_repo(resolver, repo_url, repo_branch)
 
-        # change the state of task to RESOLVING, record the clock 
+        # change the state of task to RESOLVING, record the clock
         self.next_period()
         self.promise.update_state(
             state="RESOLVING",
@@ -128,14 +110,14 @@ class RepoTaskHandler(TaskHandlerBase):
 
         radia_suites = set()
         suites = Suite.query.filter_by(git_repo_id=repo_id).all()
-        [ radia_suites.add(suite.name) for suite in suites ]
-        
+        [radia_suites.add(suite.name) for suite in suites]
+
         git_suites = set()
         # update suites and cases data of the target repo to database by celery task
         for (suite_data, cases_data) in suite2cases:
             git_suites.add(suite_data.get('name'))
             update_suite.delay(suite_data, cases_data)
-        
+
         rm_suites = radia_suites - git_suites
         for rm_suite in rm_suites:
             suite = Suite.query.filter_by(git_repo_id=repo_id, name=rm_suite).first()
@@ -152,3 +134,22 @@ class RepoTaskHandler(TaskHandlerBase):
                 "running_time": self.running_time,
             }
         )
+
+    def _download_repo(self, resolver, repo_url, repo_branch):
+        # try limit times trying to download the repo 
+        count = RepoTaskHandler.RETRY_LIMIT
+        while count > 0:
+            exitcode, output = resolver.download()
+            self.logger.info(output)
+
+            if exitcode == 0:
+                break
+
+            count -= 1
+            sleep(RepoTaskHandler.RETRY_INTERVAL)
+
+        if count == 0:
+            raise RuntimeError(
+                f"download exceed retry limitation, git clone {repo_url}@{repo_branch} failed"
+            )
+

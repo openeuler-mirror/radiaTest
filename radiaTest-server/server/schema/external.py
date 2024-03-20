@@ -14,9 +14,9 @@
 #####################################
 
 import os
-from typing_extensions import Literal
-from typing import List, Optional
 from urllib import request, error
+from typing import List, Optional
+from typing_extensions import Literal
 
 from pydantic import BaseModel, Field, validator
 from pydantic.networks import HttpUrl
@@ -39,8 +39,8 @@ class OpenEulerUpdateTaskBase(BaseModel):
             request.urlopen(os.path.join(v, 'aarch64/'))
             request.urlopen(os.path.join(v, 'x86_64/'))
 
-        except (error.HTTPError, error.URLError):
-            raise ValueError("base_update_url:%s is not available." % v)
+        except (error.HTTPError, error.URLError) as e:
+            raise ValueError("base_update_url:%s is not available." % v) from e
 
         return v
 
@@ -52,10 +52,10 @@ class OpenEulerUpdateTaskBase(BaseModel):
                 request.urlopen(os.path.join(v, 'aarch64/'))
                 request.urlopen(os.path.join(v, 'x86_64/'))
 
-            except (error.HTTPError, error.URLError):
-                raise ValueError("epol_update_url:%s is not available." % v)
+            except (error.HTTPError, error.URLError) as e:
+                raise ValueError("epol_update_url:%s is not available." % v) from e
 
-            return v
+        return v
 
 
 class RepoCaseUpdateBase(UpdateBaseModel):

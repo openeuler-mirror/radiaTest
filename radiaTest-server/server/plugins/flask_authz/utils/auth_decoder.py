@@ -37,7 +37,7 @@ class UnSupportedAuthType(Exception):
     status_code = 501
 
     def __init__(self, message, status_code=None, payload=None, errors=None):
-        Exception.__init__(self)
+        super().__init__(self)
         self.message = message
         if status_code is not None:
             self.status_code = status_code

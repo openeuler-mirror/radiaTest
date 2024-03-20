@@ -7,8 +7,8 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 ####################################
-# @Author  : hukun66
-# @email   : hu_kun@hoperun.com
+# @Author  :
+# @email   :
 # @Date    : 2023/09/04
 # @License : Mulan PSL v2
 #####################################
@@ -63,7 +63,10 @@ def handler_msg_list():
 
     query_filter = Message.query.join(MessageUsers).filter(*filter_params).order_by(
         Message.create_time.desc(), Message.id.asc())
-    page_func = lambda item: MessageModel(**item.to_dict()).dict()
+
+    def page_func(item):
+        return MessageModel(**item.to_dict()).dict()
+
     page_data, e = PageUtil.get_page_dict(query_filter, page_num=page_num, page_size=page_size, func=page_func)
     if e:
         return jsonify(error_code=RET.SERVER_ERR, error_msg=f'get group page error {e}')
@@ -106,7 +109,8 @@ def handler_update_msg():
 
     if lock_err_ids:
         release_message_lock(lock_success_ids)
-        return jsonify(error_code=RET.OK, error_msg=f"部分消息正在被处理请重试,无法处理的消息id{','.join(lock_err_ids)}!")
+        return jsonify(error_code=RET.OK,
+                       error_msg=f"部分消息正在被处理请重试,无法处理的消息id{','.join(lock_err_ids)}!")
 
     Message.query.filter(
         Message.id.in_([message.id for message in message_list])).update(update_dict, synchronize_session=False)
@@ -159,7 +163,7 @@ def handler_addgroup_msg_callback(body):
 
     _data = json.loads(msg.data) if isinstance(msg.data, str) else msg.data
     info = f'您请求加入<b>{org_name}</b>组织下的<b>{_data.get("group_name")}</b>组已经被<b>{{}}</b>。'
-    re = ReUserGroup.query.filter_by(
+    res = ReUserGroup.query.filter_by(
         user_id=msg.from_id,
         group_id=_data.get("group_id"),
         org_id=msg.org_id,
@@ -170,21 +174,21 @@ def handler_addgroup_msg_callback(body):
     msg.add_update()
     group = Group.query.filter_by(id=_data.get("group_id"), is_delete=False).first()
     if not group:
-        re.delete()
+        res.delete()
         return jsonify(error_code=RET.OK, error_msg="群组已被解散")
     if not re:
         return jsonify(error_code=RET.OK, error_msg="申请已被其他管理员拒绝")
-    if re.role_type != 0:
+    if res.role_type != 0:
         return jsonify(error_code=RET.OK, error_msg="申请已被其他管理员处理")
     else:
         if body.access:
             info = info.format('管理员处理')
-            re.role_type = 3
-            re.user_add_group_flag = 1
-            re.add_update()
+            res.role_type = 3
+            res.user_add_group_flag = 1
+            res.add_update()
         else:
             info = info.format('管理员拒绝')
-            re.delete()
+            res.delete()
     Message.create_instance(dict(info=info), g.user_id, [msg.from_id], msg.org_id)
     return jsonify(error_code=RET.OK, error_msg="OK")
 

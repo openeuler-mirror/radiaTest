@@ -28,7 +28,6 @@ from flask_sqlalchemy.model import Model as sqlalchemyModel
 from sqlalchemy.sql.sqltypes import DateTime, Integer, String, Boolean, Float
 from pydantic import BaseModel
 
-
 from server.plugins.swagger.swagger_schema import BaseResponse, SchemaType
 
 
@@ -55,6 +54,51 @@ class SwaggerJsonAdapt(object):
         self.root_path = Path(__file__).parent
         self.openai_yaml = self.root_path.joinpath("openapi.yaml")
         self.swagger_json = {}
+
+    @staticmethod
+    def get_default_responses():
+        return {
+            "200": {
+                "description": "success",
+                "content": {
+                    "application/json":
+                        {"schema": {"$ref": "#/components/schemas/default_responses"}}
+                },
+            }
+        }
+
+    @staticmethod
+    def adapt_ref_address(schema_dict):
+        # 多重引用地址适配
+        if "properties" in schema_dict and isinstance(schema_dict.get("properties"), dict):
+            for _, info in schema_dict["properties"].items():
+                if info.get("type") == "array":
+                    if "$ref" in info["items"]:
+                        info["items"]["$ref"] = info["items"]["$ref"].replace("definitions", "components/schemas")
+                else:
+                    if "$ref" in info:
+                        info["$ref"] = info["$ref"].replace("definitions", "components/schemas")
+
+    @staticmethod
+    def get_db_model_fields(db_model):
+        if not isinstance(db_model, type) or not issubclass(db_model, sqlalchemyModel):
+            return {}
+        return {col.name: col.type for col in db_model.__table__.columns}
+
+    @staticmethod
+    def get_schema_type(field_type):
+        if isinstance(field_type, Integer):
+            return getattr(SchemaType, "int").value
+        elif isinstance(field_type, Float):
+            return getattr(SchemaType, "float").value
+        elif isinstance(field_type, Boolean):
+            return getattr(SchemaType, "bool").value
+        elif isinstance(field_type, DateTime):
+            return getattr(SchemaType, "datetime").value
+        elif isinstance(field_type, String):
+            return getattr(SchemaType, "string").value
+        else:
+            return getattr(SchemaType, "string").value
 
     def add_query_parameters(self, schema_model):
         if not isinstance(schema_model, type) or not issubclass(schema_model, BaseModel):
@@ -114,22 +158,13 @@ class SwaggerJsonAdapt(object):
             str(code): {
                 "description": "",
                 "content": {
-                  "application/json": {
-                    "schema": default_schema
-                  }}}}
-        return data
-
-    @staticmethod
-    def get_default_responses():
-        return {
-            "200": {
-                "description": "success",
-                "content": {
-                    "application/json":
-                        {"schema": {"$ref": "#/components/schemas/default_responses"}}
-                },
+                    "application/json": {
+                        "schema": default_schema
+                    }
+                }
             }
         }
+        return data
 
     def add_api(self, api_json):
         tag = api_json.get("tag")
@@ -157,7 +192,7 @@ class SwaggerJsonAdapt(object):
                 if not api_swagger_info.get("parameters"):
                     api_swagger_info["parameters"] = []
                 if field_type not in ["string", "int", "float", "bool"]:
-                    logging.warning(f"[warning]不支持{field_type}类型的路径参数解析,{origin_url}已忽略！")
+                    logging.warning("[warning]不支持%s类型的路径参数解析,%s已忽略！", field_type, origin_url)
                     continue
                 url = url.replace(f"<{field_type}:{field_name}>", "{%s}" % field_name)
                 api_swagger_info["parameters"].append({
@@ -185,7 +220,7 @@ class SwaggerJsonAdapt(object):
                 })
             method = api_json["method"].lower()
             api_swagger_info["operationId"] = url.replace("/", "_").replace("{", "").replace("}", "") + f"_{method}"
-            if url in self.swagger_json["paths"]:
+            if url in self.swagger_json.get("paths"):
                 self.swagger_json["paths"][url][method] = api_swagger_info
             else:
                 self.swagger_json["paths"][url] = {
@@ -201,18 +236,6 @@ class SwaggerJsonAdapt(object):
         with open(self.openai_yaml, "r", encoding="utf-8") as f:
             swagger_json.update(yaml.safe_load(f))
         self.swagger_json = swagger_json
-
-    @staticmethod
-    def adapt_ref_address(schema_dict):
-        # 多重引用地址适配
-        if "properties" in schema_dict and isinstance(schema_dict.get("properties"), dict):
-            for name, info in schema_dict["properties"].items():
-                if info.get("type") == "array":
-                    if "$ref" in info["items"]:
-                        info["items"]["$ref"] = info["items"]["$ref"].replace("definitions", "components/schemas")
-                else:
-                    if "$ref" in info:
-                        info["$ref"] = info["$ref"].replace("definitions", "components/schemas")
 
     def update_definitions(self, schema_dict):
         if isinstance(schema_dict, dict):
@@ -233,10 +256,10 @@ class SwaggerJsonAdapt(object):
                             "unique_name": definition,
                             "info": definition_info,
                         }
-                for definition, info in update_schemas.items():
+                for _, info in update_schemas.items():
                     self.swagger_json["components"]["schemas"][info["unique_name"]] = info["info"]
                 # 替换所有schemas引用地址位置至components/schemas
-                for name, info in schema_dict["properties"].items():
+                for _, info in schema_dict["properties"].items():
                     if info.get("type") == "array":
                         if "$ref" in info["items"]:
                             definition_name = info["items"]["$ref"].replace("#/definitions/", "")
@@ -248,7 +271,7 @@ class SwaggerJsonAdapt(object):
                             info["$ref"] = f'#/components/schemas/{update_schemas[definition_name]["unique_name"]}'
 
     def save_swagger_yaml(self):
-        self.swagger_json["tags"].extend(
+        self.swagger_json.get("tags").extend(
             [{"name": name, "description": value} for name, value in self.tag_dict.items()])
         with open(self.swagger_file, "w", encoding="utf-8") as f:
             yaml.dump(self.swagger_json, f, allow_unicode=True)
@@ -259,7 +282,9 @@ class SwaggerJsonAdapt(object):
             def inner_wrapper(*args, **kwargs):
                 self.add_api(api_json)
                 return func(*args, **kwargs)
+
             return inner_wrapper
+
         return wrapper
 
     def save_api_info_map(self):
@@ -292,7 +317,9 @@ class SwaggerJsonAdapt(object):
             self.api_info_map[model_name][resource_name] = {}
         if func_name in self.api_info_map[model_name][resource_name]:
             logging.warning(
-                f"[warning] {model_name} {resource_name} {func_name} is repeat, overwritten old api info!!!")
+                "[warning] %s %s %s is repeat, overwritten old api info!!!"
+                , model_name, resource_name, func_name
+            )
         self.api_info_map[model_name][resource_name][func_name] = api_schema_dict
 
         def wrapper(func):
@@ -303,27 +330,6 @@ class SwaggerJsonAdapt(object):
             return inner_wrapper
 
         return wrapper
-
-    @staticmethod
-    def get_db_model_fields(db_model):
-        if not isinstance(db_model, type) or not issubclass(db_model, sqlalchemyModel):
-            return {}
-        return {col.name: col.type for col in db_model.__table__.columns}
-
-    @staticmethod
-    def get_schema_type(field_type):
-        if isinstance(field_type, Integer):
-            return getattr(SchemaType, "int").value
-        elif isinstance(field_type, Float):
-            return getattr(SchemaType, "float").value
-        elif isinstance(field_type, Boolean):
-            return getattr(SchemaType, "bool").value
-        elif isinstance(field_type, DateTime):
-            return getattr(SchemaType, "datetime").value
-        elif isinstance(field_type, String):
-            return getattr(SchemaType, "string").value
-        else:
-            return getattr(SchemaType, "string").value
 
     def get_query_schema_by_db_model(self, db_model, require_list=None):
         fields = self.get_db_model_fields(db_model)
@@ -350,10 +356,10 @@ class SwaggerJsonAdapt(object):
         if not fields:
             return {}
         schema = {
-                "properties": {},
-                "title": "Schema",
-                "type": "object"
-              }
+            "properties": {},
+            "title": "Schema",
+            "type": "object"
+        }
 
         for field, field_type in fields.items():
             field_schema = {"title": field}
@@ -381,7 +387,9 @@ if __name__ == '__main__':
         node_int: Dict[str, int]
         node_int: dict = {"test": 1}
 
+
     from enum import Enum
+
 
     class EnumsTaskExecutorType(str, Enum):
         """Another Enums class"""
@@ -397,6 +405,7 @@ if __name__ == '__main__':
                 return getattr(cls, attr).value
             else:
                 return None
+
 
     class EnumsTaskType(str, Enum):
         """Another Enums class"""
@@ -429,6 +438,7 @@ if __name__ == '__main__':
         is_manage_task: bool = False
         case_node_id: int = None
 
+
     user_tag = {
         "name": "用户",
         "description": "用户相关接口",
@@ -448,5 +458,3 @@ if __name__ == '__main__':
     adapt.load_swagger_json()
     adapt.api_schema_model_map(API_JSON)
     adapt.save_api_info_map()
-
-

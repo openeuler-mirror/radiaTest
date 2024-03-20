@@ -7,15 +7,14 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 ####################################
-# @Author  : Ethan-Zhang
-# @email   : ethanzhang55@outlook.com
+# @Author  :
+# @email   :
 # @Date    : 2023/05/08
 # @License : Mulan PSL v2
 #####################################
 
 import abc
 import os
-import subprocess
 import shlex
 from typing import List
 
@@ -54,6 +53,28 @@ class GitRepoAdaptor:
             "usabled": False,
         }
 
+    @abc.abstractmethod
+    def suite2cases_resolve(self, git_repo_id: int) -> List[tuple]:
+        """
+        abstract interface, acting as the main entrance to resolve testcases 
+        of target git repo
+            :params git_repo_id(int)
+            :returns [tuple], [(testsuite data，[testcase data])]
+        """
+
+    @staticmethod
+    def _get_work_dir(work_dir: str) -> str:
+        """
+        Determine whether the root path of the test case resolution is 
+        a directory, and store it as an instance variable if the 
+        directory path is valid
+            :returns str, the valid directory path
+        """
+        if not os.path.isdir(work_dir):
+            return ""
+
+        return work_dir
+
     def download(self) -> tuple:
         """download testcases to local env
             :returns [tuple]:
@@ -68,35 +89,14 @@ class GitRepoAdaptor:
 
         return exitcode, output
 
-    @abc.abstractmethod
-    def suite2cases_resolve(self, git_repo_id: int) -> List[tuple]:
-        """
-        abstract interface, acting as the main entrance to resolve testcases 
-        of target git repo
-            :params git_repo_id(int)
-            :returns [tuple], [(testsuite data，[testcase data])]
-        """
-
-    def _get_work_dir(self, work_dir: str) -> str:
-        """
-        Determine whether the root path of the test case resolution is 
-        a directory, and store it as an instance variable if the 
-        directory path is valid
-            :returns str, the valid directory path
-        """
-        if not os.path.isdir(work_dir):
-            return None
-
-        return work_dir
-
     def _get_suites(self,
-                    git_repo_id: int, dir: str,
+                    git_repo_id: int, local_dir: str,
                     prefix: str = "", pass_through: bool = False) -> List[tuple]:
         """
         Retrieve all projects within the specified directory, 
         with each project treated as a test suite.
             :params git_repo_id(int), the ID of the target repo.
-            :params dir(str), the current directory to look up.
+            :params local_dir(str), the current directory to look up.
             :params prefix(str), the prefix word for the name of suite, 
                 default as void string.
             :params pass_through(bool), whether the prefix of suite would be 
@@ -107,8 +107,8 @@ class GitRepoAdaptor:
         """
         suite2cases = []
 
-        for filename in os.listdir(dir):
-            file_path = os.path.join(dir, filename)
+        for filename in os.listdir(local_dir):
+            file_path = os.path.join(local_dir, filename)
             if not os.path.isdir(file_path):
                 continue
 
@@ -122,7 +122,7 @@ class GitRepoAdaptor:
                     suite_data,
                     self._get_cases(
                         suite=filename,
-                        dir=file_path,
+                        local_dir=file_path,
                         prefix="" if not pass_through else prefix,
                     )
                 )
@@ -130,7 +130,7 @@ class GitRepoAdaptor:
 
         return suite2cases
 
-    def _get_cases(self, suite: str, dir: str, prefix: str = "") -> List[dict]:
+    def _get_cases(self, suite: str, local_dir: str, prefix: str = "") -> List[dict]:
         """
         Recursively obtain all use cases in the suite directory, 
         and determine the use case file based on the class variable CASES_ FILETYPES.
@@ -138,7 +138,7 @@ class GitRepoAdaptor:
 
         Args:
             suite(str): the name of test suites, the directory name in the meanwhile
-            dir(str): the current directory to look up
+            local_dir(str): the current directory to look up
             prefix(str): the prefix word for the name of suite and case, 
                 default as void string
         
@@ -157,15 +157,15 @@ class GitRepoAdaptor:
         """
         cases = []
 
-        for filename in os.listdir(dir):
-            _file_path = os.path.join(dir, filename)
+        for filename in os.listdir(local_dir):
+            _file_path = os.path.join(local_dir, filename)
 
-            if (os.path.isfile(_file_path)):
+            if os.path.isfile(_file_path):
                 _case_name, _case_ext = os.path.splitext(filename)
                 if not _case_name or not _case_ext:
                     continue
 
-                if (_case_ext in self.CASES_FILETYPES and _case_name not in self.NOT_CASES):
+                if _case_ext in self.CASES_FILETYPES and _case_name not in self.NOT_CASES:
                     case = self.default_case_dict
                     case.update({
                         "suite": f"{prefix}{suite}",

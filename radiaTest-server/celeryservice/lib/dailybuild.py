@@ -7,8 +7,8 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 ####################################
-# @Author  : Ethan-Zhang
-# @email   : ethanzhang55@outlook.com
+# @Author  :
+# @email   :
 # @Date    : 2022/09/15
 # @License : Mulan PSL v2
 #####################################
@@ -27,6 +27,8 @@ class DailyBuildHandler(TaskHandlerBase):
 
     def __init__(self, logger, promise):
         self.promise = promise
+        self.completion_num = 0
+        self.total_num = 0
         super().__init__(logger)
 
     def travesal_node(self, node_key: str, node_value):
@@ -62,7 +64,7 @@ class DailyBuildHandler(TaskHandlerBase):
             dict: parsed build result which in a specific format
         """
         if not isinstance(node_value, dict) and not isinstance(node_value.get("value"), bool):
-            return None
+            return {}
 
         item = dict()
         item["name"] = node_key
@@ -82,35 +84,30 @@ class DailyBuildHandler(TaskHandlerBase):
         self.total_num += 1
 
         _children = list()
-        for key,value in node_value.items():
+        for key, value in node_value.items():
             _child = self.travesal_node(key, value)
             if _child is not None:
                 _children.append(_child)
         if len(_children) > 0:
             item["children"] = _children
-        
+
         return item
 
     def resolve_detail(self, _id, detail, weekly_health_id):
         if not isinstance(detail, dict):
             raise ValueError(f"the type of param detail should be dictionary, not {type(detail)}")
-        
-        self.completion_num = 0
-        self.total_num = 0
-        
+
         detail["value"] = True
         parsed_detail = self.travesal_node("MAIN_DIR", detail)
-        
+
         dailybuild = DailyBuild.query.filter_by(id=_id).first()
         if not dailybuild:
             self.logger.error(
                 "could not resolve dailybuild {} detail due to the build not exist"
             )
             return
-        
+
         dailybuild.detail = json.dumps(parsed_detail)
         dailybuild.completion = floor(self.completion_num / self.total_num * 100)
         dailybuild.weekly_health_id = weekly_health_id
         dailybuild.add_update(DailyBuild, "/dailybuild")
-
-        

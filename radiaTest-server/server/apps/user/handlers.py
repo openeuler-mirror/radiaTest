@@ -37,7 +37,6 @@ from server.schema.group import ReUserGroupSchema, GroupInfoSchema
 from server.schema.user import UserInfoSchema, UserTaskSchema
 from server.schema.task import TaskInfoSchema
 from server.utils.page_util import PageUtil
-from server.utils.requests_util import do_request
 from server.utils.scope_util import ScopeKey
 from server.utils.user_util import ProfileMap
 
@@ -68,33 +67,6 @@ def handler_oauth_login_url(org: Organization):
     )
 
 
-def send_majun(code):
-    _resp = dict()
-
-    majun_api = current_app.config.get("MAJUN_API")
-    access_token = current_app.config.get("MAJUN_ACCESS_TOKEN")
-    _r = do_request(
-        method="get",
-        url="https://{}?code={}".format(
-            majun_api,
-            code,
-        ),
-        headers={
-            "content-type": "application/json;charset=utf-8",
-            "authorization": request.headers.get("authorization"),
-            "access_token": access_token,
-        },
-        obj=_resp,
-        verify=True,
-    )
-    if _r != 0:
-        return jsonify(
-            error_code=RET.RUNTIME_ERROR,
-            error_msg="could not reach majun system."
-        )
-    return jsonify(_resp)
-
-
 def handler_oauth_callback():
     # 校验参数
     code = request.args.get('code')
@@ -103,11 +75,6 @@ def handler_oauth_callback():
             error_code=RET.PARMA_ERR,
             error_msg="user code should not be null"
         )
-    cookie_info = request.cookies.to_dict()
-    if "user_id" in cookie_info:
-        resp = send_majun(code)
-        _resp = json.loads(resp.response[0])
-        current_app.logger.info(_resp)
 
     return redirect(
         '{}?code={}'.format(
@@ -406,14 +373,14 @@ def handler_get_user_task(query: UserTaskSchema):
     ))
     now = datetime.now(tz=pytz.timezone('Asia/Shanghai'))
     # 全部任务
-    basic_filter_params = [Task.is_delete.is_(False),
-                           Task.executor_id == g.user_id,
-                           Task.org_id == current_org_id]
+    basic_filter_params = [Task.is_delete.is_(False), Task.executor_id == g.user_id, Task.org_id == current_org_id]
 
     # 今日任务总数
-    today_filter_params = [extract('year', Task.create_time) == now.year,
-                           extract('month', Task.create_time) == now.month,
-                           extract('day', Task.create_time) == now.day]
+    today_filter_params = [
+        extract('year', Task.create_time) == now.year,
+        extract('month', Task.create_time) == now.month,
+        extract('day', Task.create_time) == now.day
+    ]
     today_filter_params.extend(basic_filter_params)
     today_tasks_count = Task.query.filter(*today_filter_params).count()
 
@@ -421,8 +388,7 @@ def handler_get_user_task(query: UserTaskSchema):
     today = datetime(now.year, now.month, now.day, 0, 0, 0)
     this_week_start = today - timedelta(days=now.weekday())
     this_week_end = today + timedelta(days=7 - now.weekday())
-    week_filter_params = [Task.create_time >= this_week_start,
-                          Task.create_time < this_week_end]
+    week_filter_params = [Task.create_time >= this_week_start, Task.create_time < this_week_end]
     week_filter_params.extend(basic_filter_params)
     week_tasks_count = Task.query.filter(*week_filter_params).count()
 
@@ -433,8 +399,7 @@ def handler_get_user_task(query: UserTaskSchema):
     else:
         next_month_start = datetime(now.year + 1, 1, 1)
 
-    month_filter_params = [Task.create_time >= this_month_start,
-                           Task.create_time < next_month_start]
+    month_filter_params = [Task.create_time >= this_month_start, Task.create_time < next_month_start]
     month_filter_params.extend(basic_filter_params)
     month_tasks_count = Task.query.filter(*month_filter_params).count()
 

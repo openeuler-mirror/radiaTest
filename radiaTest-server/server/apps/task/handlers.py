@@ -71,6 +71,7 @@ from server.utils.response_util import RET
 from server.utils.page_util import PageUtil
 from server.utils.permission_utils import PermissionManager, GetAllByPermission
 from server.apps.issue.handler import GiteeV8BaseIssueHandler
+from server.apps.testcase.handler import CaseNodeHandler
 from .services import (
     UpdateTaskStatusService,
     get_family_member,
@@ -79,8 +80,6 @@ from .services import (
     send_message,
     judge_task_automatic,
 )
-from server.apps.testcase.handler import CaseNodeHandler
-
 
 base_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -154,9 +153,9 @@ class HandlerTaskStatus(object):
             elif item.name == "已执行":
                 executed_index = body.order_list.index(item)
         if (
-            execute_index >= 0
-            and executed_index >= 0
-            and executed_index - execute_index != 1
+                execute_index >= 0
+                and executed_index >= 0
+                and executed_index - execute_index != 1
         ):
             return jsonify(
                 error_code=RET.PARMA_ERR,
@@ -228,7 +227,7 @@ class HandlerTask(object):
         )
 
         if body.executor_type == EnumsTaskExecutorType.GROUP.value and (
-            body.type == "ORGANIZATION" or body.type == "VERSION"
+                body.type == "ORGANIZATION" or body.type == "VERSION"
         ):
             insert_dict["group_id"] = executor_id
             relationship = ReUserGroup.query.filter_by(
@@ -351,8 +350,8 @@ class HandlerTask(object):
             item_dict["auto_case_success"] = True
             for milestone in item.milestones:
                 if (
-                    len(milestone.cases) > len(milestone.manual_cases)
-                    and milestone.job_result != "done"
+                        len(milestone.cases) > len(milestone.manual_cases)
+                        and milestone.job_result != "done"
                 ):
                     item_dict["auto_case_success"] = False
                     break
@@ -400,7 +399,7 @@ class HandlerTask(object):
                     {
                         "label": org.name,
                         "type": "org" if query.type == "all" else query.type,
-                        "tasks": [ _task.to_gantt_dict() for _task in tasks ]
+                        "tasks": [_task.to_gantt_dict() for _task in tasks]
                     }
                 )
 
@@ -418,7 +417,7 @@ class HandlerTask(object):
                 )
 
             re_user_groups = ReUserGroup.query.join(Group).filter(*filter_params).all()
-            
+
             for re_user_group in re_user_groups:
                 tasks = Task.query.filter(
                     Task.is_delete.is_(False),
@@ -434,7 +433,7 @@ class HandlerTask(object):
                         {
                             "label": re_user_group.group.name,
                             "type": "group",
-                            "tasks": [ _task.to_gantt_dict() for _task in tasks ]
+                            "tasks": [_task.to_gantt_dict() for _task in tasks]
                         }
                     )
 
@@ -469,7 +468,7 @@ class HandlerTask(object):
             db.session.commit()
         db.session.delete(task)
         db.session.commit()
-        PermissionManager().clean("/api/v1/tasks/", [task_id])
+        PermissionManager.clean("/api/v1/tasks/", [task_id])
         return jsonify(error_code=RET.OK, error_msg="OK")
 
     @staticmethod
@@ -482,7 +481,7 @@ class HandlerTask(object):
                 error_code=RET.SERVER_ERR,
                 error_msg="task has accomplished, not allowed edit !",
             )
-  
+
         if body.executor_type == EnumsTaskExecutorType.PERSON.value:
             user = User.query.filter_by(user_id=body.executor_id).first()
             if not user:
@@ -500,7 +499,7 @@ class HandlerTask(object):
                 return jsonify(
                     error_code=RET.NO_DATA_ERR, error_msg="group is not exists"
                 )
-        
+
         participant = TaskParticipant.query.filter_by(
             task_id=task.id,
             participant_id=body.executor_id,
@@ -553,7 +552,6 @@ class HandlerTask(object):
                         _data=_data,
                     )
             else:
-                
                 role = Role.query.filter_by(
                     name="admin", type="group", group_id=task.group_id
                 ).first()
@@ -653,7 +651,7 @@ class HandlerTask(object):
             task.add_update()
             db.session.commit()
             return jsonify(error_code=RET.OK, error_msg="OK")
-            
+
         for key, value in body.dict().items():
             if key in ["milestones", "frame", "status_id", "status_name"]:
                 continue
@@ -683,26 +681,19 @@ class HandlerTask(object):
             if body.frame:
                 task.frame = body.frame
             if any([body.milestones, body.milestone_id]) and any(
-                [
-                    task.parents.filter(Task.is_delete.is_(False)).all(),
-                    task.children.filter(Task.is_delete.is_(False)).all(),
-                ]
+                    [
+                        task.parents.filter(Task.is_delete.is_(False)).all(),
+                        task.children.filter(Task.is_delete.is_(False)).all(),
+                    ]
             ):
                 return jsonify(
                     error_code=RET.PARMA_ERR,
                     error_msg="Tasks have associated tasks, and milestones are not allowed to be modified.",
                 )
-            if (
-                task.type != "VERSION"
-                and body.milestone_id
-                and (
-                    (
-                        task.milestones
-                        and body.milestone_id != task.milestones[0].milestone_id
-                    )
-                    or not task.milestones
-                )
-            ):
+            check_task_milestone = (
+                task.milestones and body.milestone_id != task.milestones[0].milestone_id or not task.milestones
+            )
+            if task.type != "VERSION" and body.milestone_id and check_task_milestone:
                 for milestone in task.milestones:
                     _ = [db.session.delete(item) for item in milestone.manual_cases]
                     db.session.commit()
@@ -720,8 +711,8 @@ class HandlerTask(object):
                     old_milestones = [item.milestone_id for item in task.milestones]
                     delete_list = list(set(old_milestones) - set(milestones))
                     for item in TaskMilestone.query.filter(
-                        TaskMilestone.task_id == task_id,
-                        TaskMilestone.milestone_id.in_(delete_list),
+                            TaskMilestone.task_id == task_id,
+                            TaskMilestone.milestone_id.in_(delete_list),
                     ).all():
                         _ = [db.session.delete(cases) for cases in item.manual_cases]
                         db.session.commit()
@@ -764,7 +755,7 @@ class HandlerTask(object):
                 return result
 
         return jsonify(error_code=RET.OK, error_msg="OK")
-    
+
     @staticmethod
     @collect_sql_error
     def update_percentage(task_id, percentage: int):
@@ -806,9 +797,7 @@ class HandlerTask(object):
         return_data["executor_group"] = (
             GroupInfoSchema(**group.to_dict()).dict() if group else None
         )
-        return_data["tags"] = [
-            TagInfoSchema(**item.__dict__).dict() for item in task.tags
-        ]
+        return_data["tags"] = [TagInfoSchema(**item.__dict__).dict() for item in task.tags]
 
         if task.milestones:
             milestones = [item.milestone_id for item in task.milestones]
@@ -819,7 +808,7 @@ class HandlerTask(object):
                 if task.milestones:
                     milestone = Milestone.query.get(task.milestones[0].milestone_id)
                 return_data["milestone"] = milestone.to_json()
-        
+
         return jsonify(error_code=RET.OK, error_msg="OK", data=return_data)
 
     @staticmethod
@@ -944,7 +933,7 @@ class HandlerTaskParticipant(object):
                 error_code=RET.NO_DATA_ERR,
                 error_msg="task is not exists / user is no right",
             )
-     
+
         executor_to_participant_type = task.executor_type
         executor_to_participant_id = task.executor_id
         if task.executor_type == EnumsTaskExecutorType.GROUP.value:
@@ -958,8 +947,8 @@ class HandlerTaskParticipant(object):
 
         for item in body.participants:
             if (
-                str(executor_to_participant_id) == str(item.participant_id)
-                and executor_to_participant_type == item.type
+                    str(executor_to_participant_id) == str(item.participant_id)
+                    and executor_to_participant_type == item.type
             ):
                 return jsonify(
                     error_code=RET.DATA_EXIST_ERR,
@@ -1243,12 +1232,13 @@ class HandlerTaskFamily(object):
         filter_params = [Task.is_delete.is_(False), Task.id != task_id]
         if query.title:
             filter_params.append(Task.title.like(f"%{query.title}%"))
-        parents = set(
-            [item.id for item in task.parents.filter(Task.is_delete.is_(False)).all()]
-        )
-        children = set(
-            [item.id for item in task.children.filter(Task.is_delete.is_(False)).all()]
-        )
+
+        pend_parents = [item.id for item in task.parents.filter(Task.is_delete.is_(False)).all()]
+        parents = set(pend_parents)
+
+        pend_children = [item.id for item in task.children.filter(Task.is_delete.is_(False)).all()]
+        children = set(pend_children)
+
         if not query.is_parent:
             family_member = get_family_member(
                 parents, return_set=set(), is_parent=query.is_parent
@@ -1505,8 +1495,8 @@ class HandlerTaskCase(object):
         if task_milestone.task.task_status.name == "执行中":
             manual_case_id = [item.case_id for item in task_milestone.manual_cases]
             if (
-                set(body.cases) - set(manual_case_id)
-                and task_milestone.job_result == "running"
+                    set(body.cases) - set(manual_case_id)
+                    and task_milestone.job_result == "running"
             ):
                 return jsonify(
                     error_code=RET.PARMA_ERR, error_msg="current cass running"
@@ -1600,7 +1590,7 @@ class HandlerTaskMilestone(object):
     @staticmethod
     @collect_sql_error
     def update_manual_cases_result(
-        task_id, taskmilestone_id, case_id, body: TaskCaseResultSchema
+            task_id, taskmilestone_id, case_id, body: TaskCaseResultSchema
     ):
         task_milestone = TaskMilestone.query.get(taskmilestone_id)
         task = task_milestone.task
@@ -1661,32 +1651,10 @@ class HandlerTaskStatistics(object):
         self.expired_tasks = []
         self.accomplish_tasks = []
 
-    def analyze_number(self):
-        total = len(self.tasks)
-        accomplish = 0
-        no_accomplish = total
-        today_expire = 0
-        expired = 0
-        for task in self.tasks:
-            if task.accomplish_time:
-                self.accomplish_tasks.append(task)
-                accomplish += 1
-                no_accomplish -= 1
-            if task.deadline and task.deadline.date() == datetime.now(tz=pytz.timezone('Asia/Shanghai')).date():
-                today_expire += 1
-            if task.deadline and (
-                not task.accomplish_time or task.deadline <= task.accomplish_time
-            ):
-                self.expired_tasks.append(task)
-                expired += 1
-        return [total, accomplish, no_accomplish, today_expire, expired]
-
     @staticmethod
     @collect_sql_error
     def analyze_executor(tasks):
-        executor_list = [
-            (item.executor_type, item.executor_id, item.group_id) for item in tasks
-        ]
+        executor_list = [(item.executor_type, item.executor_id, item.group_id) for item in tasks]
         executor_set = set(executor_list)
         executor_data = {}
         for item in executor_set:
@@ -1703,20 +1671,12 @@ class HandlerTaskStatistics(object):
                     executor_data[key] = item_count
         return executor_data
 
-    def analyze_expired(self):
-        return self.analyze_executor(self.expired_tasks)
-
-    def analyze_tasks(self):
-        return self.analyze_executor(self.tasks)
-
     @staticmethod
     def analyze_date_step(start_time, end_time):
         days = abs((end_time - start_time).days)
         if days == 0:
             return [start_time], [start_time]
-        date_list = [
-            start_time + timedelta(days=i) for i in range(0, days, math.ceil(days / 30))
-        ]
+        date_list = [start_time + timedelta(days=i) for i in range(0, days, math.ceil(days / 30))]
         if end_time not in date_list:
             date_list.append(end_time)
         day_axis = [f"{item.year}-{item.month}-{item.day}" for item in date_list]
@@ -1740,6 +1700,32 @@ class HandlerTaskStatistics(object):
             return month_axis, date_list
         return day_axis, date_list
 
+    def analyze_number(self):
+        total = len(self.tasks)
+        accomplish = 0
+        no_accomplish = total
+        today_expire = 0
+        expired = 0
+        for task in self.tasks:
+            if task.accomplish_time:
+                self.accomplish_tasks.append(task)
+                accomplish += 1
+                no_accomplish -= 1
+            if task.deadline and task.deadline.date() == datetime.now(tz=pytz.timezone('Asia/Shanghai')).date():
+                today_expire += 1
+            if task.deadline and (
+                    not task.accomplish_time or task.deadline <= task.accomplish_time
+            ):
+                self.expired_tasks.append(task)
+                expired += 1
+        return [total, accomplish, no_accomplish, today_expire, expired]
+
+    def analyze_expired(self):
+        return self.analyze_executor(self.expired_tasks)
+
+    def analyze_tasks(self):
+        return self.analyze_executor(self.tasks)
+
     def analyze_burn_up(self):
         start_time = self.query.start_time
         if not start_time:
@@ -1757,13 +1743,9 @@ class HandlerTaskStatistics(object):
         x_axis, date_list = self.analyze_date_step(start_time.date(), end_time.date())
 
         total = len(self.tasks)
-        accomplish_list = [
-            item.accomplish_time.date() for item in self.accomplish_tasks
-        ]
+        accomplish_list = [item.accomplish_time.date() for item in self.accomplish_tasks]
         accomplish_set = set(accomplish_list)
-        accomplish_tuple = [
-            (item, accomplish_list.count(item)) for item in accomplish_set
-        ]
+        accomplish_tuple = [(item, accomplish_list.count(item)) for item in accomplish_set]
         if not accomplish_tuple:
             return x_axis, [total for _ in range(len(x_axis))]
         accomplish_tuple.sort(key=lambda x: x[0])
@@ -1939,7 +1921,7 @@ class HandlerCaseFrame(object):
     def get_task_frame():
         _frame = str(Frame)
         index = _frame.index("[", 0, len(_frame))
-        frame = ast.literal_eval(_frame[index : len(_frame)])
+        frame = ast.literal_eval(_frame[index: len(_frame)])
         return jsonify(error_code=RET.OK, error_msg="OK", data=frame)
 
 
@@ -1971,6 +1953,41 @@ class HandlerTaskProgress(object):
             update_task_progress.delay(task.id)
             raise RuntimeError("task progress is being counted, please wait for some time.")
 
+    @staticmethod
+    def statistic(test_static_info):
+        from server.utils.math_util import calculate_rate
+        tmp_test_static_info = dict()
+        tmp_test_static_info.update(test_static_info)
+
+        all_cnt = 0
+        for _result in test_static_info.keys():
+            _count = test_static_info.get(_result)
+            all_cnt += _count
+        tmp_test_static_info.update(
+            {
+                "all_cnt": all_cnt
+            }
+        )
+        test_progress_cnt = 0
+        if test_static_info.get("failed"):
+            test_progress_cnt += test_static_info.get("failed")
+        if test_static_info.get("success"):
+            test_progress_cnt += test_static_info.get("success")
+        tmp_test_static_info.update(
+            {
+                "test_progress": calculate_rate(test_progress_cnt, all_cnt, 2)
+            }
+        )
+
+        for _result in test_static_info.keys():
+            _count = test_static_info.get(_result)
+            tmp_test_static_info.update(
+                {
+                    _result + "_rate": calculate_rate(_count, all_cnt, 2)
+                }
+            )
+        return tmp_test_static_info
+
     def get_test_info_from_redis(self):
         task_id = redis_client.hget(
             self.task_key, "task_id")
@@ -1993,7 +2010,7 @@ class HandlerTaskProgress(object):
         获取版本任务测试进展
         """
         return self.get_task_case_node_and_test_progress(self.task.case_node_id, False)
-    
+
     def get_milestone_test_progress(self):
         """
         获取里程碑测试进展
@@ -2009,9 +2026,9 @@ class HandlerTaskProgress(object):
         for case_id in self.all_task_case_node_infos.keys():
             case_node_path = self.all_task_case_node_infos.get(case_id).get("source")
             if (
-                case_node_path.startswith(str(case_node_id) + ",") 
+                    case_node_path.startswith(str(case_node_id) + ",")
             ) or (
-                case_node_path.find("," + str(case_node_id) + ",") > -1
+                    case_node_path.find("," + str(case_node_id) + ",") > -1
             ):
                 result = self.all_task_case_node_infos.get(case_id).get("result")
                 if test_static_info.get(result):
@@ -2050,43 +2067,8 @@ class HandlerTaskProgress(object):
             data=return_data
         )
 
-    @staticmethod
-    def statistic(test_static_info):
-        from server.utils.math_util import calculate_rate
-        tmp_test_static_info = dict()
-        tmp_test_static_info.update(test_static_info)
-
-        all_cnt = 0
-        for _result in test_static_info.keys():
-            _count = test_static_info.get(_result)
-            all_cnt += _count
-        tmp_test_static_info.update(
-            {
-                "all_cnt": all_cnt
-            }
-        )
-        test_progress_cnt = 0
-        if test_static_info.get("failed"):
-            test_progress_cnt += test_static_info.get("failed")
-        if test_static_info.get("success"):
-            test_progress_cnt += test_static_info.get("success")
-        tmp_test_static_info.update(
-            {
-                "test_progress": calculate_rate(test_progress_cnt, all_cnt, 2)
-            }
-        )
-
-        for _result in test_static_info.keys():
-            _count = test_static_info.get(_result)
-            tmp_test_static_info.update(
-                {
-                    _result+"_rate": calculate_rate(_count, all_cnt, 2)
-                }
-            )
-        return tmp_test_static_info
-
     @collect_sql_error
-    def get_task_case_node_and_test_progress(self, case_node_id, unfold:bool=True):
+    def get_task_case_node_and_test_progress(self, case_node_id, unfold: bool = True):
         from server.schema.testcase import CaseNodeBaseSchema
         case_node = CaseNode.query.filter_by(id=case_node_id).first()
         if not case_node:
@@ -2112,7 +2094,7 @@ class HandlerTaskProgress(object):
                     if child.type == 'case' and str(child.case_id) in self.all_task_case_node_infos.keys():
                         case_result = self.all_task_case_node_infos.get(str(child.case_id)).get("result")
                         child_dict["result"] = case_result
-                    elif  child.type != 'case':
+                    elif child.type != 'case':
                         test_progress = self.get_test_progress_by_case_node(child.id)
                         if test_progress.get("all_cnt") == 0:
                             continue

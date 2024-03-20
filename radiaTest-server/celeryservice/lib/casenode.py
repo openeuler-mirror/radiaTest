@@ -25,25 +25,25 @@ class CaseNodeCreator(TaskHandlerBase):
         super().__init__(logger)
 
     def create_suite_node(
-        self,
-        parent_id: int, # 被创建suite类型节点的父节点 
-        suite_id: int, # 被创建suite类型节点关联的用例ID
-        permission_type: str = 'public', # 被创建suite类型节点的权限类型 
-        org_id: int = None, # 被创建suite类型节点的所属组织
-        group_id: int = None, # 被创建suite类型节点的所属团队
-        user_id: str = None, # 创建异步任务的当前用户id
+            self,
+            parent_id: int,  # 被创建suite类型节点的父节点
+            suite_id: int,  # 被创建suite类型节点关联的用例ID
+            permission_type: str = 'public',  # 被创建suite类型节点的权限类型
+            org_id: int = None,  # 被创建suite类型节点的所属组织
+            group_id: int = None,  # 被创建suite类型节点的所属团队
+            user_id: str = None,  # 创建异步任务的当前用户id
     ):
         # 父节点存在性检查
         parent_node = CaseNode.query.filter_by(id=parent_id).first()
         if not parent_node or not parent_node.in_set:
             self.logger.error(f"parent node #{parent_id} does not exist/not valid")
-            return
+            return 0
 
         # 待关联测试套存在性检查
         suite = Suite.query.filter_by(id=suite_id).first()
         if not suite:
             self.logger.error(f"suite#{suite_id} does not exist, could not be relative")
-            return
+            return 0
 
         self.next_period()
         self.promise.update_state(
@@ -68,7 +68,7 @@ class CaseNodeCreator(TaskHandlerBase):
         ).first()
         if same_node:
             testsuite_node = same_node
-        
+
         else:
             testsuite_node = CaseNode(
                 permission_type=permission_type,
@@ -82,14 +82,14 @@ class CaseNodeCreator(TaskHandlerBase):
             )
             try:
                 testsuite_node.add_update()
-                
+
             except (SQLAlchemyError, IntegrityError) as e:
                 self.logger.error(str(e))
-                return None
+                return 0
 
             parent_node.children.append(testsuite_node)
             parent_node.add_update()
-            
+
             self.logger.info(f"suite {suite.name} has been added under node {parent_node.title}")
             self.next_period()
             self.promise.update_state(
@@ -102,13 +102,13 @@ class CaseNodeCreator(TaskHandlerBase):
             return testsuite_node.id
 
     def create_case_node(
-        self,
-        parent_id: int, # 被创建case类型节点的父节点 
-        case_name: str, # 被创建case类型节点关联的用例名 
-        case_id: int, # 被创建case类型节点关联的用例ID
-        permission_type: str = 'public', # 被创建case类型节点的权限类型 
-        org_id: int = None, # 被创建case类型节点的所属组织
-        group_id: int = None, # 被创建case类型节点的所属团队 
+            self,
+            parent_id: int,  # 被创建case类型节点的父节点
+            case_name: str,  # 被创建case类型节点关联的用例名
+            case_id: int,  # 被创建case类型节点关联的用例ID
+            permission_type: str = 'public',  # 被创建case类型节点的权限类型
+            org_id: int = None,  # 被创建case类型节点的所属组织
+            group_id: int = None,  # 被创建case类型节点的所属团队
     ):
         # 父节点存在性检查
         parent_node = CaseNode.query.filter_by(id=parent_id).first()
@@ -139,13 +139,13 @@ class CaseNodeCreator(TaskHandlerBase):
             testcase_node.add_update()
         except (IntegrityError, SQLAlchemyError) as e:
             self.logger.error(str(e))
-            return    
+            return
 
         parent_node.children.append(testcase_node)
         parent_node.add_update()
 
         self.logger.info(f"case {case_name} has been added under node {parent_node.title}")
-        
+
         self.next_period()
         self.promise.update_state(
             state="DONE",

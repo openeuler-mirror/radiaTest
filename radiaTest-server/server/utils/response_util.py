@@ -13,10 +13,10 @@
 # @License : Mulan PSL v2
 #####################################
 
+from functools import wraps
 import requests
 
 from flask import make_response, g, jsonify, current_app
-from functools import wraps
 
 
 class RET(object):
@@ -116,7 +116,7 @@ def value_error_collect(func):
     return wrapper
 
 
-def  workspace_error_collect(func):
+def workspace_error_collect(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         try:

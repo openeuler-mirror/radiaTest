@@ -12,12 +12,10 @@
 # @Date    :
 # @License : Mulan PSL v2
 #####################################
-import json
 from enum import Enum
 
 from server import db
 from server.model import BaseModel, PermissionBaseModel
-from server.model.permission import Role, ReUserRole
 
 
 class OrganizationRole(Enum):
@@ -46,6 +44,27 @@ class Organization(db.Model, PermissionBaseModel, BaseModel):
     roles = db.relationship("Role", cascade="all, delete", backref="organization")
 
     re_org_publisher = db.relationship("RequirementPublisher", backref="org")
+
+    @staticmethod
+    def create(model):
+        new_recode = Organization()
+        new_recode.name = model.name
+        new_recode.avatar_url = model.avatar_url
+        new_recode.description = model.description
+        new_recode.enterprise_id = model.enterprise_id
+        new_recode.enterprise_join_url = model.enterprise_join_url
+        new_recode.oauth_client_id = model.oauth_client_id
+        new_recode.oauth_client_secret = model.oauth_client_secret
+        new_recode.oauth_scope = model.oauth_scope
+        new_recode.authority = model.authority
+        new_recode.oauth_login_url = model.oauth_login_url
+        new_recode.oauth_get_token_url = model.oauth_get_token_url
+        new_recode.oauth_get_user_info_url = model.oauth_get_user_info_url
+        new_id = new_recode.add_flush_commit_id()
+        if not new_id:
+            return None
+        new_recode.id = new_id
+        return new_recode
 
     def add_update(self, table=None, namespace=None, broadcast=False):
         from sqlalchemy.exc import IntegrityError
@@ -90,25 +109,3 @@ class Organization(db.Model, PermissionBaseModel, BaseModel):
             "description": self.description,
             "avatar_url": self.avatar_url,
         }
-
-    @staticmethod
-    def create(model):
-        new_recode = Organization()
-        new_recode.name = model.name
-        new_recode.avatar_url = model.avatar_url
-        new_recode.description = model.description
-        new_recode.enterprise_id = model.enterprise_id
-        new_recode.enterprise_join_url = model.enterprise_join_url
-        new_recode.oauth_client_id = model.oauth_client_id
-        new_recode.oauth_client_secret = model.oauth_client_secret
-        new_recode.oauth_scope = model.oauth_scope
-        new_recode.authority = model.authority
-        new_recode.oauth_login_url = model.oauth_login_url
-        new_recode.oauth_get_token_url = model.oauth_get_token_url
-        new_recode.oauth_get_user_info_url = model.oauth_get_user_info_url
-        new_id = new_recode.add_flush_commit_id()
-        if not new_id:
-            return None
-        new_recode.id = new_id
-        return new_recode
-

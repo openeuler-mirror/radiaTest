@@ -7,16 +7,13 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 ####################################
-# @Author  : 凹凸曼打小怪兽
-# @email   : 15710801006@163.com
+# @Author  :
+# @email   :
 # @Date    : 2023/01/11
 # @License : Mulan PSL v2
 #####################################
 
 from enum import Enum
-
-from sqlalchemy import func
-from sqlalchemy.orm import aliased
 
 from server.model import BaseModel, PermissionBaseModel
 from server.model.permission import Role, ReUserRole
@@ -53,6 +50,18 @@ class Group(db.Model, PermissionBaseModel, BaseModel):
 
     re_group_requirment_publisher = db.relationship("RequirementPublisher", backref="group")
     re_group_requirment_acceptor = db.relationship("RequirementAcceptor", backref="group")
+
+    @staticmethod
+    def create(name, description=None, avatar_url=None, creator_id=None, org_id=None, permission_type=None):
+        new_recode = Group()
+        new_recode.name = name
+        new_recode.description = description
+        new_recode.avatar_url = avatar_url
+        new_recode.creator_id = creator_id
+        new_recode.org_id = org_id
+        new_recode.permission_type = permission_type
+        group_id = new_recode.add_flush_commit_id()
+        return group_id, new_recode
 
     def add_update(self, table=None, namespace=None, broadcast=False):
         from sqlalchemy.exc import IntegrityError
@@ -92,18 +101,6 @@ class Group(db.Model, PermissionBaseModel, BaseModel):
             'update_time': self.update_time.strftime("%Y-%m-%d %H:%M:%S")
         }
 
-    @staticmethod
-    def create(name, description=None, avatar_url=None, creator_id=None, org_id=None, permission_type=None):
-        new_recode = Group()
-        new_recode.name = name
-        new_recode.description = description
-        new_recode.avatar_url = avatar_url
-        new_recode.creator_id = creator_id
-        new_recode.org_id = org_id
-        new_recode.permission_type = permission_type
-        group_id = new_recode.add_flush_commit_id()
-        return group_id, new_recode
-
 
 class ReUserGroup(db.Model, BaseModel):
     __tablename__ = "re_user_group"
@@ -115,6 +112,16 @@ class ReUserGroup(db.Model, BaseModel):
     user_id = db.Column(db.String(512), db.ForeignKey('user.user_id'))
     group_id = db.Column(db.Integer(), db.ForeignKey('group.id'))
     org_id = db.Column(db.Integer(), nullable=False)
+
+    @staticmethod
+    def create(flag, role_type, user_id, group_id, org_id):
+        new_recode = ReUserGroup()
+        new_recode.user_add_group_flag = flag
+        new_recode.role_type = role_type
+        new_recode.user_id = user_id
+        new_recode.group_id = group_id
+        new_recode.org_id = org_id
+        new_recode.add_update()
 
     def to_dict(self):
         _filter = [ReUserRole.user_id == self.user_id, Role.type == 'group', Role.group_id == self.group_id]
@@ -131,13 +138,3 @@ class ReUserGroup(db.Model, BaseModel):
             "update_time": self.update_time.strftime("%Y-%m-%d %H:%M:%S"),
             "role": _role.to_json() if _role else None
         }
-
-    @staticmethod
-    def create(flag, role_type, user_id, group_id, org_id):
-        new_recode = ReUserGroup()
-        new_recode.user_add_group_flag = flag
-        new_recode.role_type = role_type
-        new_recode.user_id = user_id
-        new_recode.group_id = group_id
-        new_recode.org_id = org_id
-        new_recode.add_update()

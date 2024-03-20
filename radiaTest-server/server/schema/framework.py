@@ -13,13 +13,12 @@
 # @License : Mulan PSL v2
 #####################################
 
-from typing_extensions import Literal
 from typing import Optional
+from typing_extensions import Literal
 
 from pydantic import BaseModel, root_validator, validator
 from pydantic.networks import HttpUrl
 from server.schema.base import PermissionBase
-from server.schema import PermissionType
 
 
 class FrameworkBase(PermissionBase):

@@ -15,12 +15,13 @@
 
 import json
 import requests
+
 from flask import current_app
 
 from server.utils import DateEncoder
 
 
-def do_request(method, url, params=None, body=None, headers=None, timeout=30, obj=None, encoder=DateEncoder, verify=True):
+class HttpRequestParam:
     """
     :param headers: dict
     :param method: http method
@@ -31,24 +32,47 @@ def do_request(method, url, params=None, body=None, headers=None, timeout=30, ob
     :param obj: callback object, support list/dict/object/func
     :param encoder: JSON encoder
     :param verify: ssl pem / not verify
-    :return:
     """
+    def __init__(
+            self,
+            method,
+            url,
+            params=None,
+            body=None,
+            headers=None,
+            timeout=30,
+            obj=None,
+            encoder=DateEncoder,
+            verify=True
+    ):
+        self.method = method
+        self.url = url
+        self.params = params
+        self.body = body
+        self.headers = headers
+        self.timeout = timeout
+        self.obj = obj
+        self.encoder = encoder
+        self.verify = verify
 
+
+def do_request(param: HttpRequestParam):
+    body = None
     try:
-        if method.lower() not in ['get', 'post', 'put', 'delete']:
+        if param.method.lower() not in ['get', 'post', 'put', 'delete']:
             return -1
         
-        if encoder is not None:
-            body = json.dumps(body, cls=encoder)
+        if param.encoder is not None:
+            body = json.dumps(param.body, cls=param.encoder)
 
         resp = requests.request(
-            method.lower(), 
-            url, 
-            params=params, 
+            param.method.lower(),
+            param.url,
+            params=param.params,
             data=body,
-            timeout=timeout, 
-            headers=headers,
-            verify=verify,
+            timeout=param.timeout,
+            headers=param.headers,
+            verify=param.verify,
         )
         
         if resp.status_code not in [requests.codes.ok, requests.codes.created, requests.codes.no_content]:
@@ -60,13 +84,13 @@ def do_request(method, url, params=None, body=None, headers=None, timeout=30, ob
             )
             return 1
         
-        if obj is not None:
-            if isinstance(obj, list):
-                obj.extend(resp.json())
-            elif isinstance(obj, dict):
-                obj.update(resp.json())
-            elif callable(obj):
-                obj(resp)
+        if param.obj is not None:
+            if isinstance(param.obj, list):
+                param.obj.extend(resp.json())
+            elif isinstance(param.obj, dict):
+                param.obj.update(resp.json())
+            elif callable(param.obj):
+                param.obj(resp)
         return 0
 
     except requests.exceptions.ReadTimeout as e:

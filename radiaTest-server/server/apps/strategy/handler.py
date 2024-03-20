@@ -29,7 +29,6 @@ from server.model.product import Product
 from server.model.user import User
 from server.model.strategy import ReProductFeature, Strategy
 from server.utils.db import Insert, collect_sql_error
-from server.utils.shell import run_cmd
 
 
 class FeatureHandler:
@@ -105,7 +104,7 @@ class GiteePrHandler():
     def access_token(self):
         return celeryconfig.v5_access_token
 
-    def add_update(self, act, url, data, filter=None):
+    def add_update(self, act, url, data, filters=None):
 
         data.update({"access_token": self.access_token})
 
@@ -116,11 +115,9 @@ class GiteePrHandler():
             headers=current_app.config.get("HEADERS"),
         )
         _resp.encoding = _resp.apparent_encoding
-
-        if (_resp.status_code != 200 and act == "PUT") or (
-                _resp.status_code != 201 and act == "POST" and (
-                filter not in _resp.text)
-        ):
+        put_res = (_resp.status_code != 200 and act == "PUT")
+        post_res = (_resp.status_code != 201 and act == "POST" and (filters not in _resp.text))
+        if put_res or post_res:
             current_app.logger.error(_resp.text)
             raise ValueError(
                 "fail to add_update through gitee v5 openAPI or has exist."
@@ -161,14 +158,37 @@ class CommitHandler:
             "base": "master",  # pr目的分支
             "refs": "master",  # 索引分支
             "branch_name": f'radiaTest-{user.gitee_name}',  # 新分支名称
-            "gitee_password": "Mugen12#$",  # radiaTest机器人git密码
-            "email": "radiatest@163.com",  # radiaTest机器人公共账户gitee邮箱
+            "gitee_password": current_app.config.get("GITEE_PASSWORD"),  # radiaTest机器人git密码
+            "email": current_app.config.get("GITEE_EMAIL"),  # radiaTest机器人公共账户gitee邮箱
         }
         self.enterprise_params = {
             "owner": "openEuler",  # 企业组织
             "repo": "QA",  # 企业仓库
         }
         self.strategy_id = strategy_id
+
+    @property
+    def re_row(self):
+        strategy = Strategy.query.filter_by(id=self.strategy_id).first()
+        re_row = ReProductFeature.query.filter_by(
+            id=strategy.product_feature_id
+        ).first()
+
+        if not re_row:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="The data is not exist."
+            )
+
+        return re_row
+
+    @property
+    def title(self):
+        feature = Feature.query.filter_by(
+            id=self.re_row.feature_id
+        ).first()
+
+        return feature.feature
 
     def create_pull_request(self, body):
         _url = "https://gitee.com/api/v5/repos/{}/{}/pulls".format(
@@ -204,7 +224,7 @@ class CommitHandler:
             params=body,
         )
 
-    def create_fork(self, body=dict()):
+    def create_fork(self, body: dict = None):
         _url = "https://gitee.com/api/v5/repos/{}/{}/forks".format(
             self.enterprise_params.get("owner"),
             self.enterprise_params.get("repo")
@@ -217,7 +237,7 @@ class CommitHandler:
             filter="存在同名的仓库"
         )
 
-    def create_branch(self, body=dict()):
+    def create_branch(self, body: dict = None):
         _url = "https://gitee.com/api/v5/repos/{}/{}/branches".format(
             self.user_params.get("owner"),
             self.user_params.get("repo")
@@ -244,29 +264,6 @@ class CommitHandler:
             url=_url,
             params=body,
         )
-
-    @property
-    def re_row(self):
-        strategy = Strategy.query.filter_by(id=self.strategy_id).first()
-        re_row = ReProductFeature.query.filter_by(
-            id=strategy.product_feature_id
-        ).first()
-
-        if not re_row:
-            return jsonify(
-                error_code=RET.NO_DATA_ERR,
-                error_msg="The data is not exist."
-            )
-
-        return re_row
-
-    @property
-    def title(self):
-        feature = Feature.query.filter_by(
-            id=self.re_row.feature_id
-        ).first()
-
-        return feature.feature
 
     def get_path(self):
         product = Product.query.filter_by(

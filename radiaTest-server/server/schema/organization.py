@@ -13,15 +13,13 @@
 # @License : Mulan PSL v2
 #####################################
 
-import json
 from typing import Optional
 from datetime import datetime
 
-from pydantic import BaseModel, Field, root_validator, validator
+from pydantic import BaseModel, Field, root_validator
 
-from .base import PageBaseSchema
 from server.schema import Authority
-from server.model import User
+from server.schema.base import PageBaseSchema
 
 
 class OrgUserInfoSchema(BaseModel):
@@ -51,8 +49,13 @@ class AddSchema(BaseModel):
 
     @root_validator
     def validate_enterpise(cls, values):
-        if not values["oauth_client_id"] or not values["oauth_client_secret"] or not values["oauth_login_url"] \
-                or not values["oauth_get_token_url"] or not values["oauth_get_user_info_url"]:
+        if not all((
+                values["oauth_client_id"],
+                values["oauth_client_secret"],
+                values["oauth_login_url"],
+                values["oauth_get_token_url"],
+                values["oauth_get_user_info_url"]
+        )):
             raise TypeError("lack of oauth info to create this organization")
 
         if values.get("enterprise_id"):

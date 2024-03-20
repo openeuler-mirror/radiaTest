@@ -7,14 +7,13 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 ####################################
-# @Author  : Ethan-Zhang
-# @email   : ethanzhang55@outlook.com
+# @Author  :
+# @email   :
 # @Date    : 2023/05/08
 # @License : Mulan PSL v2
 #####################################
 
 import shlex
-import subprocess
 
 from server.apps.git_repo.adaptor import GitRepoAdaptor
 from server.utils.shell import run_cmd
@@ -29,11 +28,11 @@ class Ltp(GitRepoAdaptor):
 
         _work_dir = self._get_work_dir(f"{self.oet_path}/runtest")
         if not _work_dir:
-            return None
+            return []
         exitcode, output, _ = run_cmd("cd {} && ls | grep -v Makefile".format(shlex.quote(_work_dir)))
 
         if exitcode:
-            return None
+            return []
 
         suites_arr = output.strip().split('\n')
 
@@ -56,7 +55,7 @@ class Ltp(GitRepoAdaptor):
 
         return suite2cases
     
-    def _get_cases(self, suite: str):
+    def _get_cases(self, suite: str, local_dir: str = None, prefix: str = ""):
         """rebuild function to get cases data from ltp repo
             :params suite(str), the name of target suite
             :returns [dict], the fields of each element of the 

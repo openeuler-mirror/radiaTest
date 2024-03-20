@@ -13,19 +13,12 @@
 # # @License : Mulan PSL v2
 #####################################
 
-from datetime import datetime
-from typing_extensions import Literal
 from typing import Optional
-import pytz
 
-from pydantic import BaseModel, Field, constr, root_validator
-from sqlalchemy import func
-from server import db
+from pydantic import BaseModel, constr
 
 
-from server.model import Product, Milestone
-from server.utils.db import Precise
-from server.schema import MilestoneType, MilestoneState, SortOrder
+from server.schema import MilestoneType, MilestoneState
 from server.schema.base import PageBaseSchema
 
 
