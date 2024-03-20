@@ -18,24 +18,24 @@ import shlex
 from itertools import groupby
 
 
-def standard_cmd(input):
-    if isinstance(input, str):
-        command_list = shlex.split(input)
+def standard_cmd(cmd):
+    if isinstance(cmd, str):
+        command_list = shlex.split(cmd)
         cmds = [list(group) for key, group in groupby(command_list, lambda x: x != '&&') if key]
         return cmds
-    elif isinstance(input, list):
-        if all(isinstance(item, str) for item in input):
-            return [input]
-        elif all(isinstance(item, list) and all(isinstance(subitem, str) for subitem in item) for item in input):
-            return input
+    elif isinstance(cmd, list):
+        if all(isinstance(item, str) for item in cmd):
+            return [cmd]
+        elif all(isinstance(item, list) and all(isinstance(subitem, str) for subitem in item) for item in cmd):
+            return cmd
         else:
             return []
     else:
         return []
 
 
-def run_cmd(input):
-    cmds = standard_cmd(input)
+def run_cmd(cmd):
+    cmds = standard_cmd(cmd)
     returncode = 1
     output = ""
     error = ""
@@ -49,7 +49,7 @@ def run_cmd(input):
             shell=False
         )
         process.wait()
-        output, error = process.communicate()
+        output, error = process.communicate(timeout=30)
         returncode = process.returncode
     return returncode, output.decode("utf-8"), error.decode("utf-8")
 

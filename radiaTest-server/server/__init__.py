@@ -14,26 +14,26 @@
 #####################################
 
 import os
+import ssl
 import json
 import logging
 import logging.config
 from pathlib import Path
 
+from importlib import import_module
 import pymysql
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
-from flask_socketio import SocketIO
 from flask_swagger_ui import get_swaggerui_blueprint
 
-
-from .utils.redis_util import RedisClient
-from importlib import import_module
-from .plugins.flask_authz import CasbinEnforcer
 from server.config.settings import Config
 from server.utils.config_util import loads_config_ini, loads_app_yaml
 from server.utils.celery_utils import init_celery
 from server.plugins.swagger.adapt_swagger import SwaggerJsonAdapt
+from server.plugins.flask_socketio import SocketIO
+from .utils.redis_util import RedisClient
+from .plugins.flask_authz import CasbinEnforcer
 
 
 db = SQLAlchemy()
@@ -85,12 +85,12 @@ def create_app(**kwargs):
     )
 
     if kwargs.get('celery'):
-        init_celery(kwargs['celery'], app)
+        init_celery(kwargs.get('celery'), app)
 
     CORS(cors_allowed_origins="*")
 
     socketio.init_app(
-        app, message_queue=app.config.get("SOCKETIO_PUBSUB")
+        app, message_queue=app.config.get("SOCKETIO_PUBSUB"), ssl={"ssl": {"cert_reqs": ssl.CERT_NONE}}
     )
 
     pymysql.install_as_MySQLdb()

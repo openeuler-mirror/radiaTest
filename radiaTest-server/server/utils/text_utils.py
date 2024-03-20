@@ -12,14 +12,14 @@
 # @Date    :
 # @License : Mulan PSL v2
 #####################################
+"""
+    This module provides a text splitter class TextItemSplitter that splits texts consists of items of numeral tags
+    into a dictionary, along with 3 XxxNumeralRule classes representing the numeral rules which inherit the class
+    AbstractNumeralRule.
+"""
 
 from typing import Type, List, Dict
 from abc import abstractmethod, ABC
-"""
-    This module provides a text splitter class TextItemSplitter that splits texts consists of items of numeral tags 
-    into a dictionary, along with 3 XxxNumeralRule classes representing the numeral rules which inherit the class 
-    AbstractNumeralRule.
-"""
 
 
 class AbstractNumeralRule(ABC):

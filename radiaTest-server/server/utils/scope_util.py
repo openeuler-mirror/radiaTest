@@ -14,5 +14,13 @@
 #####################################
 
 class ScopeKey(object):
-    gitee = lambda oauth_scope: f"{oauth_scope}".replace(',', "%20")
-    oneid = lambda oauth_scope: f"{oauth_scope}".replace(",", "%20") + "&state=random"
+    @staticmethod
+    def gitee_scope(oauth_scope):
+        return f"{oauth_scope}".replace(',', "%20")
+
+    @staticmethod
+    def oneid_scope(oauth_scope):
+        return f"{oauth_scope}".replace(",", "%20") + "&state=random"
+
+    gitee = gitee_scope
+    oneid = oneid_scope
