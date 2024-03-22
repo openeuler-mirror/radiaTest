@@ -294,6 +294,7 @@ class GiteeIssueQueryV5(BaseModel):
 
 class GiteeMilestoneQuerySchema(BaseModel):
     search: str
+    org_id: int
     page: int = 1
     per_page: int = 20
 

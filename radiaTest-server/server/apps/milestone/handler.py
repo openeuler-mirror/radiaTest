@@ -323,12 +323,12 @@ class MilestoneHandler:
 
 
 class MilestoneOpenApiHandler(BaseOpenApiHandler):
-    def __init__(self, body=None):
+    def __init__(self, body=None, org_id=None):
         if body is not None:
             self.type = body.get("type")
             self.product_id = body.get("product_id")
             self.body = self.radia_2_gitee(body)
-        org_id = redis_client.hget(RedisKey.user(g.user_id), 'current_org_id')
+        org_id = org_id if org_id else redis_client.hget(RedisKey.user(g.user_id), 'current_org_id')
         super().__init__(table=Milestone, namespace="/milestone", org_id=org_id)
 
     def gitee_2_radia(self, body):
