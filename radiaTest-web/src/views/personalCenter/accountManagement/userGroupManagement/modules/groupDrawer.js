@@ -58,7 +58,7 @@ function getGroupRole() {
 }
 
 function editGroupUsers(rowIndex) {
-  groupInfo.name = state.dataList[rowIndex].groupName;
+  groupInfo.name = state.dataList[rowIndex].name;
   groupInfo.id = state.dataList[rowIndex].id;
   groupInfo.re_user_group_id = state.dataList[rowIndex].re_user_group_id;
   groupInfo.re_user_group_role_type = state.dataList[rowIndex].re_user_group_role_type;

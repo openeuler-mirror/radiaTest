@@ -340,10 +340,10 @@ function getRootNodes() {
   actions.unshift(createBaselineAction);
   menuList.value = [];
   let item = {
-    label: storage.getLocalValue('unLoginOrgId').name,
-    key: `org-${storage.getLocalValue('unLoginOrgId').id}`,
+    label: storage.getLocalValue('unLoginOrgId')?.name,
+    key: `org-${storage.getLocalValue('unLoginOrgId')?.id}`,
     info: {
-      org_id: storage.getLocalValue('unLoginOrgId').id,
+      org_id: storage.getLocalValue('unLoginOrgId')?.id,
     },
     actions,
     iconColor: 'rgba(0, 47, 167, 1)',
@@ -474,6 +474,7 @@ function dialogAction(confirmFn, node, d, contentType) {
       type: 'primary',
       ghost: true,
       onClick: () => {
+        milePage.value = 1;
         if (contentType === 'baseline' || contentType === 'template') {
           handleBaselineDialogConfirm(confirmFn, node, d, contentType);
         } else {
@@ -489,7 +490,10 @@ function dialogAction(confirmFn, node, d, contentType) {
       size: 'large',
       type: 'error',
       ghost: true,
-      onClick: () => d.destroy()
+      onClick: () => {
+        milePage.value = 1;
+        d.destroy();
+      }
     },
     '取消'
   );
@@ -520,15 +524,20 @@ function newDectoryContent() {
   ]);
   return form;
 }
-
+const milePage = ref(1);
+const hasNext = ref(true);
 function getCurMilestones(node, query) {
   milestoneLoading.value = true;
   let params = { paged: true };
+  params.per_page = 10;
+  params.current_page = milePage.value;
   if (query) {
     params.name = query;
   }
   if (node.type === 'org') {
     getOrgMilestone(node.info.org_id, params).then((res) => {
+      console.log('getOrgMilestone', res);
+      hasNext.value = res.data.has_next;
       const { data } = res;
       milestoneOptions.value = data.items?.map((item) => {
         return {
@@ -540,13 +549,15 @@ function getCurMilestones(node, query) {
     });
   } else if (node.type === 'group') {
     getGroupMilestone(node.info.group_id, params).then((res) => {
-      const { data } = res;
-      milestoneOptions.value = data.items?.map((item) => {
+
+      hasNext.value = res.data.has_next;
+      let resMilestone = res.data.items?.map((item) => {
         return {
           label: item.name,
           value: item.id
         };
       });
+      milestoneOptions.value = milestoneOptions.value.length ? milestoneOptions.value.concat(resMilestone) : resMilestone;
       milestoneLoading.value = false;
     });
   }
@@ -608,6 +619,9 @@ function newBaselineContent(node) {
         filterable: true,
         onSearch: (query) => {
           getCurMilestones(node, query);
+        },
+        onScroll: (e) => {
+          handleScroll(e, node);
         }
       })
     )
@@ -1310,7 +1324,6 @@ const selectKey = ref();
 const selectOptions = ref();
 
 function menuClick({ key, options }) {
-  console.log('111menuClick', key, options);
   if (!key.length) {
     return;
   }
@@ -1462,7 +1475,15 @@ function extendSubmit(value) {
     window.$message?.success('上传成功');
   });
 }
-
+const handleScroll = async (e, node) => {
+  const currentTarget = e.currentTarget;
+  if (currentTarget.scrollTop + currentTarget.offsetHeight >= currentTarget.scrollHeight) {
+    if (hasNext.value) {
+      milePage.value = milePage.value + 1;
+      getCurMilestones(node, null, 'next');
+    }
+  }
+};
 export {
   suiteInfo,
   frameworkList,

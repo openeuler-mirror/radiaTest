@@ -11,7 +11,8 @@
           创建用户组
         </n-button>
         <div id="search">
-          <n-input placeholder="请输入用户名组进行搜索" clearable v-model:value="searchGroupName"> </n-input>
+          <n-input placeholder="请输入用户名组进行搜索" clearable v-model:value="searchGroupName">
+          </n-input>
           <n-button type="primary" @click="searchGroup">搜索</n-button>
         </div>
       </div>
@@ -24,7 +25,12 @@
         @update:page-size="turnPageSize"
         :row-props="groupRowProps"
       />
-      <n-drawer :show="groupInfo.show" :width="800" placement="right" :on-update:show="drawerUpdateShow">
+      <n-drawer
+        :show="groupInfo.show"
+        :width="800"
+        placement="right"
+        :on-update:show="drawerUpdateShow"
+      >
         <n-drawer-content>
           <template #header>{{ groupInfo.name }}</template>
           <n-data-table
@@ -48,7 +54,13 @@
           </template>
         </n-drawer-content>
       </n-drawer>
-      <n-modal v-model:show="showCreateForm" preset="dialog" title="Dialog" :mask-closable="false" :showIcon="false">
+      <n-modal
+        v-model:show="showCreateForm"
+        preset="dialog"
+        title="Dialog"
+        :mask-closable="false"
+        :showIcon="false"
+      >
         <template #header>
           <div>创建用户组</div>
         </template>
@@ -61,15 +73,23 @@
           :label-width="100"
         >
           <n-form-item label="头像">
-            <n-upload list-type="image-card" @update:file-list="uploadFinish" accept=".png,.jpg,.gif">
+            <n-upload
+              list-type="image-card"
+              @update:file-list="uploadFinish"
+              accept=".png,.jpg,.gif"
+            >
               点击上传
             </n-upload>
           </n-form-item>
-          <n-form-item label="用户组名" path="groupName">
-            <n-input placeholder="请输入用户组名" v-model:value="createModal.groupName" />
+          <n-form-item label="用户组名" path="name">
+            <n-input placeholder="请输入用户组名" v-model:value="createModal.name" />
           </n-form-item>
           <n-form-item label="描述">
-            <n-input placeholder="请输入组织描述" type="textarea" v-model:value="createModal.describe" />
+            <n-input
+              placeholder="请输入组织描述"
+              type="textarea"
+              v-model:value="createModal.description"
+            />
           </n-form-item>
         </n-form>
         <template #action>
@@ -79,7 +99,13 @@
           </n-space>
         </template>
       </n-modal>
-      <n-modal v-model:show="showAddUser" preset="dialog" title="Dialog" :showIcon="false" :mask-closable="false">
+      <n-modal
+        v-model:show="showAddUser"
+        preset="dialog"
+        title="Dialog"
+        :showIcon="false"
+        :mask-closable="false"
+      >
         <template #header>
           <div>添加用户</div>
         </template>
@@ -106,7 +132,9 @@
         <template #action>
           <n-space style="width: 100%">
             <n-button type="error" ghost size="large" @click="cancelAdd"> 取消 </n-button>
-            <n-button size="large" @click="handlePositiveClick" type="primary" ghost> 提交 </n-button>
+            <n-button size="large" @click="handlePositiveClick" type="primary" ghost>
+              提交
+            </n-button>
           </n-space>
         </template>
       </n-modal>
@@ -122,7 +150,7 @@ import { modules } from './modules/index.js';
 export default {
   components: {
     Add,
-    deleteItem
+    deleteItem,
   },
   name: 'userGroupManagement',
   setup() {
@@ -134,19 +162,21 @@ export default {
     fileList: {
       handler(val) {
         if (val.length === 1) {
-          document.querySelector('.n-upload-trigger.n-upload-trigger--image-card').style.display = 'none';
+          document.querySelector('.n-upload-trigger.n-upload-trigger--image-card').style.display =
+            'none';
         } else {
-          document.querySelector('.n-upload-trigger.n-upload-trigger--image-card').style.display = 'block';
+          document.querySelector('.n-upload-trigger.n-upload-trigger--image-card').style.display =
+            'block';
         }
       },
-      deep: true
-    }
+      deep: true,
+    },
   },
   unmounted() {
     modules.allRole.value = {};
     modules.pagination.page = 1;
     modules.searchGroupName.value = '';
-  }
+  },
 };
 </script>
 <style lang="less" scope>

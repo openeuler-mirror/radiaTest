@@ -17,8 +17,8 @@
             size="medium"
             :style="{}"
           >
-            <n-form-item label="名称" path="name">
-              <n-input placeholder="请输入任务名称" v-model:value="model.name" />
+            <n-form-item label="名称" path="title">
+              <n-input placeholder="请输入任务名称" v-model:value="model.title" />
             </n-form-item>
             <n-form-item label="任务类型" path="type">
               <n-select
@@ -28,11 +28,11 @@
                 :value="model.type"
               />
             </n-form-item>
-            <n-form-item label="执行团队" path="group" v-if="model.type === 'GROUP'">
+            <n-form-item label="执行团队" path="group_id" v-if="model.type === 'GROUP'">
               <n-select
                 placeholder="请选择"
                 :options="groups"
-                :value="model.group"
+                :value="model.group_id"
                 :render-label="renderLabel"
                 @update:value="getUserByGroup"
                 :disabled="model.type == 'PERSON'"
@@ -71,11 +71,11 @@
             <n-form-item label="开始日期" path="start_time">
               <n-date-picker type="date" v-model:value="model.start_time" />
             </n-form-item>
-            <n-form-item label="截止日期" path="closingTime">
-              <n-date-picker type="date" v-model:value="model.closingTime" />
+            <n-form-item label="截止日期" path="deadline">
+              <n-date-picker type="date" v-model:value="model.deadline" />
             </n-form-item>
-            <n-form-item label="关键词" path="keyword">
-              <n-input placeholder="请输入关键词" v-model:value="model.keyword" type="textarea" />
+            <n-form-item label="关键词" path="keywords">
+              <n-input placeholder="请输入关键词" v-model:value="model.keywords" type="textarea" />
             </n-form-item>
             <n-form-item label="摘要" path="abstract">
               <n-input
@@ -976,12 +976,12 @@
               size="medium"
               :style="{}"
             >
-              <n-form-item label="名称" path="name">
-                <n-input placeholder="请输入任务名称" v-model:value="modelVersion.name" />
+              <n-form-item label="名称" path="title">
+                <n-input placeholder="请输入任务名称" v-model:value="modelVersion.title" />
               </n-form-item>
-              <n-form-item label="执行者" path="orgTask">
+              <n-form-item label="执行者" path="executor_id">
                 <n-cascader
-                  :value="modelVersion.orgTask"
+                  :value="modelVersion.executor_id"
                   placeholder="请选择"
                   :options="orgOptions"
                   :cascade="false"
@@ -992,9 +992,9 @@
                   :on-load="handleLoad"
                 />
               </n-form-item>
-              <n-form-item label="里程碑" path="milestone">
+              <n-form-item label="里程碑" path="milestone_id">
                 <n-select
-                  v-model:value="modelVersion.milestone"
+                  v-model:value="modelVersion.milestone_id"
                   placeholder="请选择里程碑"
                   :options="milestoneOptions"
                   filterable
@@ -1004,13 +1004,13 @@
               <n-form-item label="开始日期" path="start_time">
                 <n-date-picker type="date" v-model:value="modelVersion.start_time" />
               </n-form-item>
-              <n-form-item label="截止日期" path="closingTime">
-                <n-date-picker type="date" v-model:value="modelVersion.closingTime" />
+              <n-form-item label="截止日期" path="deadline">
+                <n-date-picker type="date" v-model:value="modelVersion.deadline" />
               </n-form-item>
-              <n-form-item label="关键词" path="keyword">
+              <n-form-item label="关键词" path="keywords">
                 <n-input
                   placeholder="请输入关键词"
-                  v-model:value="modelVersion.keyword"
+                  v-model:value="modelVersion.keywords"
                   type="textarea"
                 />
               </n-form-item>
@@ -1070,6 +1070,105 @@
               @save="saveFile"
             ></v-md-editor>
           </div>
+        </n-modal>
+      </div>
+      <div>
+        <n-modal v-model:show="resultCaseModal" class="modalBox">
+          <n-card
+            style="width: 900px"
+            :bordered="false"
+            size="medium"
+            :title="resultCaseModalData.name"
+          >
+            <template #header-extra>
+              <div class="headMenu">
+                <div title="编辑">
+                  <n-icon
+                    size="24"
+                    class="menuItem"
+                    @click="editResultCase"
+                    v-show="!editResultFileds"
+                  >
+                    <Edit24Regular />
+                  </n-icon>
+                </div>
+
+                <div title="退出编辑">
+                  <n-icon
+                    size="24"
+                    class="menuItem"
+                    @click="editResultCase"
+                    v-show="editResultFileds"
+                  >
+                    <PlaylistAddCheckRound />
+                  </n-icon>
+                </div>
+
+                <div title="关闭">
+                  <a class="menuItem close" @click="closeResultModal">
+                    <n-icon size="24">
+                      <CloseOutline />
+                    </n-icon>
+                  </a>
+                </div>
+              </div>
+            </template>
+
+            <n-form
+              :model="modelResult"
+              :rules="rulesResult"
+              ref="formRefResult"
+              label-placement="left"
+              :label-width="100"
+              size="medium"
+              :style="{}"
+              :disabled="!editResultFileds"
+            >
+              <n-grid :cols="18" :x-gap="24">
+                <n-form-item-gi :span="18" label="执行时长：" path="running_time">
+                  <div style="line-height: 34px">{{ modelResult.running_time }}</div>
+                </n-form-item-gi>
+                <n-form-item-gi :span="9" label="执行结果：" path="result">
+                  <n-select
+                    placeholder="执行结果"
+                    :options="resultCaseoptions"
+                    @update:value="updateResult"
+                    v-model:value="modelResult.result"
+                  />
+                </n-form-item-gi>
+
+                <n-form-item-gi
+                  :span="18"
+                  size="large"
+                  label="详细信息"
+                  label-placement="top"
+                  label-style="color:#1890ff"
+                >
+                  <hr style="border: 1px solid #eeebeb; width: 100%" />
+                </n-form-item-gi>
+
+                <n-form-item-gi :span="9" label="结果日志连接" path="log_url">
+                  <n-input placeholder="请输入结果日志连接" v-model:value="modelResult.log_url" />
+                </n-form-item-gi>
+
+                <n-form-item-gi :span="9" label="错误类型" path="fail_type">
+                  <n-input placeholder="请输入错误类型" v-model:value="modelResult.fail_type" />
+                </n-form-item-gi>
+                <n-form-item-gi :span="24" label="错误详情" path="details">
+                  <editor
+                    id="tinymce"
+                    v-model="modelResult.details"
+                    tag-name="div"
+                    :init="init"
+                    :disabled="!editResultFileds"
+                  />
+                </n-form-item-gi>
+              </n-grid>
+            </n-form>
+            <div style="display: flex; justify-content: right; margin: 20px 20px 0 0">
+              <n-button type="info" ghost @click="handleEditResultCase">确定</n-button>
+            </div>
+          </n-card>
         </n-modal>
       </div>
     </div>
@@ -1570,5 +1669,12 @@ export default defineComponent({
 
 .editable {
   color: #1890ff;
+}
+</style>
+<style>
+.modalBox {
+  .n-form-item .n-form-item-blank {
+    display: block !important;
+  }
 }
 </style>

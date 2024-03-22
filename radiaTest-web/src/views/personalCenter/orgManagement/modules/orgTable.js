@@ -1,6 +1,5 @@
 import { h, ref } from 'vue';
 import { NAvatar, NIcon, NButton, NSpace } from 'naive-ui';
-import claAndEnterprise from '@/components/orgManagement/claAndEnterprise.vue';
 import { Construct } from '@vicons/ionicons5';
 import { renderTooltip } from '@/assets/render/tooltip';
 import { Delete24Regular as Delete } from '@vicons/fluent';
@@ -39,26 +38,22 @@ function cloneRegisterModel(row) {
     registerModel.authoritySecondaryType = 'personal';
   }
 
-  registerModel.name = cloneData.organization_name;
-  registerModel.claVerifyUrl = cloneData.cla_verify_url;
-  registerModel.claSignUrl = cloneData.cla_sign_url;
-  registerModel.claRequestMethod = cloneData.cla_request_type;
-  registerModel.claPassFlag = cloneData.cla_pass_flag;
+  registerModel.name = cloneData.name;
   registerModel.enterpriseId = cloneData.enterprise_id;
   registerModel.enterpriseToken = cloneData.enterprise_token;
   registerModel.enterpriseJoinUrl = cloneData.enterprise_join_url;
   registerModel.oauthClientId = cloneData.oauth_client_id;
   registerModel.oauthClientSecret = cloneData.oauth_client_secret;
   registerModel.oauthClientScope = cloneData.oauth_scope?.split(',');
-  registerModel.description = cloneData.organization_description;
+  registerModel.description = cloneData.description;
   registerModel.orgId = cloneData.organization_id;
-  registerModel.organizationSvatar = cloneData.organization_avatar;
+  registerModel.organizationSvatar = cloneData.avatar_url;
   registerModel.oauthLoginUrl = cloneData.oauth_login_url;
   registerModel.oauthGetTokenUrl = cloneData.oauth_get_token_url;
   registerModel.oauthGetUserInfoUrl = cloneData.oauth_get_user_info_url;
   fileList.value = [];
-  if (row.organization_avatar) {
-    fileList.value.push({ id: 'c', status: 'finished', url: row.organization_avatar });
+  if (row.avatar_url) {
+    fileList.value.push({ id: 'c', status: 'finished', url: row.avatar_url });
   }
 }
 
@@ -74,32 +69,25 @@ function handleDeleteOrg(row) {
 
 const orgColumns = [
   {
-    type: 'expand',
-    expandable: (rowData) => rowData.organization_name,
-    renderExpand: (rowData) => {
-      return h(claAndEnterprise, { info: rowData });
-    }
-  },
-  {
     title: '',
-    key: 'organization_avatar',
+    key: 'avatar_url',
     align: 'center',
     render(row) {
       return h(NAvatar, {
         size: 'small',
-        src: row.organization_avatar,
+        src: row.avatar_url,
         style: { background: 'rgba(0,0,0,0)' }
       });
     }
   },
   {
     title: '组织名称',
-    key: 'organization_name',
+    key: 'name',
     align: 'center'
   },
   {
     title: '描述',
-    key: 'organization_description',
+    key: 'description',
     align: 'center'
   },
   {

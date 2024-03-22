@@ -17,31 +17,31 @@ const showRelation = ref(true); //是否显示关联任务
 
 // 新建任务参数
 const model = ref({
-  name: null,
+  title: null,
   type: null,
   group: null,
   executor: null,
   start_time: null,
-  closingTime: null,
+  deadline: null,
   orgTask: '',
   taskType: '',
   fatherTask: null,
   childTask: null,
-  keyword: null,
+  keywords: null,
   abstract: null,
   abbreviation: null
 });
 
 // 新建版本任务参数
 const modelVersion = ref({
-  name: null,
+  title: null,
   group: null,
-  orgTask: '',
+  executor_id: '',
   executor: null,
   start_time: null,
-  closingTime: null,
+  deadline: null,
   milestone: null,
-  keyword: null,
+  keywords: null,
   abstract: null,
   taskType: '',
   abbreviation: null,
@@ -51,12 +51,12 @@ const modelVersion = ref({
 
 // 创建版本任务表单检验规则
 const rulesVersion = ref({
-  name: {
+  title: {
     required: true,
     message: '任务名称必填',
     trigger: ['blur', 'input']
   },
-  orgTask: {
+  executor_id: {
     required: true,
     message: '执行者必填',
     trigger: ['blur', 'change']
@@ -73,7 +73,7 @@ const rulesVersion = ref({
     message: '开始日期必填',
     trigger: ['blur', 'change']
   },
-  closingTime: {
+  deadline: {
     type: 'number',
     required: true,
     message: '截止日期必填',
@@ -114,7 +114,7 @@ const orgOptions = ref([
 
 // 创建任务表单检验规则
 const rules = ref({
-  name: {
+  title: {
     required: true,
     message: '任务名称必填',
     trigger: ['blur', 'input']
@@ -145,7 +145,7 @@ const rules = ref({
     message: '开始日期必填',
     trigger: ['blur', 'change']
   },
-  closingTime: {
+  deadline: {
     type: 'number',
     required: true,
     message: '截止日期必填',
@@ -156,17 +156,17 @@ const rules = ref({
 // 设置创建任务等级、状态id
 function createBaseTask(element) {
   model.value = {
-    name: null,
+    title: null,
     type: null,
     group: null,
     executor: null,
     start_time: null,
-    closingTime: null,
+    deadline: null,
     orgTask: '',
     taskType: '',
     fatherTask: null,
     childTask: null,
-    keyword: null,
+    keywords: null,
     abstract: null,
     abbreviation: null
   };
@@ -217,11 +217,11 @@ function taskTypeChange(value) {
     ];
     groups.value = [{ label: '个人', value: '0' }];
     nextTick(() => {
-      model.value.group = '0';
+      model.value.group_id = '0';
       model.value.executor = String(storage.getValue('user_id'));
     });
   } else {
-    model.value.group = '';
+    model.value.group_id = '';
     model.value.executor = '';
   }
   if (model.value.type === 'GROUP') {
@@ -231,12 +231,12 @@ function taskTypeChange(value) {
 
 // 获取执行团队下属人员
 function getUserByGroup(value) {
-  model.value.group = value;
+  model.value.group_id = value;
   model.value.executor = '';
   showLoading.value = true;
   personArray.value = [];
   axios
-    .get(`/v1/groups/${model.value.group}/users`, {
+    .get(`/v1/groups/${model.value.group_id}/users`, {
       page_num: 1,
       page_size: 99999
     })
@@ -260,12 +260,12 @@ function getUserByGroup(value) {
 function cancelCreateTask() {
   store.commit('taskManage/toggleNewTaskDrawer');
   model.value = {
-    name: null,
+    title: null,
     type: null,
     group: null,
     executor: null,
     start_time: null,
-    closingTime: null,
+    deadline: null,
     orgTask: '',
     taskType: ''
   };
@@ -336,14 +336,14 @@ const milestoneOptions = ref([]);
 // 显示创建版本任务
 function createVersionTask() {
   modelVersion.value = {
-    name: null,
+    title: null,
     group: null,
-    orgTask: '',
+    executor_id: '',
     executor: null,
     start_time: null,
-    closingTime: null,
+    deadline: null,
     milestone: null,
-    keyword: null,
+    keywords: null,
     abstract: null,
     taskType: '',
     abbreviation: null,
@@ -373,18 +373,18 @@ function createVersionTaskBtn() {
         .post('/v1/tasks', {
           is_version_task: true,
           type: 'VERSION',
-          title: modelVersion.value.name,
+          title: modelVersion.value.title,
           status_id: detailTask.statusId,
           executor_type: modelVersion.value.taskType,
           parent_id: modelVersion.value.fatherTask,
           child_id: modelVersion.value.childTask,
-          executor_id: modelVersion.value.orgTask,
+          executor_id: modelVersion.value.executor_id,
           start_time: formatTime(new Date(modelVersion.value.start_time), 'yyyy-MM-dd'),
-          deadline: formatTime(new Date(modelVersion.value.closingTime), 'yyyy-MM-dd'),
-          keywords: modelVersion.value.keyword,
+          deadline: formatTime(new Date(modelVersion.value.deadline), 'yyyy-MM-dd'),
+          keywords: modelVersion.value.keywords,
           abstract: modelVersion.value.abstract,
           abbreviation: modelVersion.value.abbreviation,
-          milestone_id: modelVersion.value.milestone
+          milestone_id: modelVersion.value.milestone_id
         })
         .then(() => {
           if (showRelation.value) {
@@ -404,7 +404,7 @@ function createVersionTaskBtn() {
   });
 }
 function versionSelect(value, { type }) {
-  modelVersion.value.orgTask = value;
+  modelVersion.value.executor_id = value;
   modelVersion.value.taskType = type;
 }
 
@@ -416,18 +416,18 @@ function createTask(e, versionTask = false) {
       axios
         .post('/v1/tasks', {
           is_version_task: versionTask,
-          title: model.value.name,
+          title: model.value.title,
           level: Number(detailTask.level) + 1,
           type: model.value.type,
           status_id: detailTask.statusId,
           executor_type: model.value.taskType,
           parent_id: model.value.fatherTask,
           child_id: model.value.childTask,
-          group_id: model.value.type === 'GROUP' ? Number(model.value.group) : null,
+          group_id: model.value.type === 'GROUP' ? Number(model.value.group_id) : null,
           executor_id: model.value.type === 'ORGANIZATION' ? model.value.orgTask : model.value.executor,
           start_time: formatTime(new Date(model.value.start_time), 'yyyy-MM-dd'),
-          deadline: formatTime(new Date(model.value.closingTime), 'yyyy-MM-dd'),
-          keywords: model.value.keyword,
+          deadline: formatTime(new Date(model.value.deadline), 'yyyy-MM-dd'),
+          keywords: model.value.keywords,
           abstract: model.value.abstract,
           abbreviation: model.value.abbreviation
         })

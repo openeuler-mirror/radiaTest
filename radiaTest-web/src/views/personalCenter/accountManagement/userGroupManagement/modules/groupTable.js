@@ -38,8 +38,8 @@ function getDataList(name) {
       if (res?.data?.items && Array.isArray(res.data.items) && res.data.items.length) {
         res.data.items.forEach((item) => {
           state.dataList.push({
-            groupName: item.name,
-            describe: item.description,
+            name: item.name,
+            description: item.description,
             rule: item.re_user_group_role_type === 1 || item.re_user_group_role_type === 2,
             createTime: item.create_time,
             show: false,
@@ -86,7 +86,7 @@ function groupRowProps(row, rowIndex) {
 //edit group information
 const editGroupForm = ref();
 const editGroupRules = reactive({
-  groupName: {
+  name: {
     trigger: ['blur', 'input'],
     required: true,
     message: '组织名不能为空'
@@ -106,8 +106,8 @@ function editAction(d) {
             changeLoadingStatus(true);
             axios
               .put(`/v1/groups/${state.editGroupData.id}`, {
-                name: state.editGroupData.groupName,
-                description: state.editGroupData.describe
+                name: state.editGroupData.name,
+                description: state.editGroupData.description
               })
               .then((res) => {
                 if (res?.error_code === '2000') {
@@ -156,11 +156,11 @@ function editContent() {
         labelWidth: 100
       },
       [
-        h(NFormItem, { label: '用户组名称', path: 'groupName' }, [
+        h(NFormItem, { label: '用户组名称', path: 'name' }, [
           h(NInput, {
-            value: state.editGroupData.groupName,
+            value: state.editGroupData.name,
             onUpdateValue: (value) => {
-              state.editGroupData.groupName = value;
+              state.editGroupData.name = value;
             }
           })
         ]),
@@ -170,9 +170,9 @@ function editContent() {
         h(NFormItem, { label: '描述' }, [
           h(NInput, {
             type: 'textarea',
-            value: state.editGroupData.describe,
+            value: state.editGroupData.description,
             onUpdateValue: (value) => {
-              state.editGroupData.describe = value;
+              state.editGroupData.description = value;
             }
           })
         ])
@@ -263,7 +263,7 @@ const columns = [
   },
   {
     title: '用户组名称',
-    key: 'groupName',
+    key: 'name',
     align: 'center'
   },
   {
@@ -284,7 +284,7 @@ const columns = [
   },
   {
     title: '描述',
-    key: 'describe',
+    key: 'description',
     align: 'center'
   },
   {

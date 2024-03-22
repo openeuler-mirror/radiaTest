@@ -19,8 +19,10 @@ import { changeTaskPercentage } from '@/api/put.js';
 import {
   getTaskFrame, getSuite, getDistributeTemplates, getDetailTaskFamily,
   getDetailTasks, getDetailTaskCases, getTaskComments, getTaskParticipants,
-  getTaskReports
+  getTaskReports, getResultModalData,
 } from '@/api/get.js';
+import { storage } from '@/assets/utils/storageUtils';
+
 const showModal = ref(false); // 显示任务详情页
 const showCaseModal = ref(false); // 显示关联测试用例表格
 const modalData = ref({}); // 任务详情页数据
@@ -57,7 +59,6 @@ const showReportModal = ref(false); // 生成报告弹窗
 const reportArray = ref([]); // 报告数组
 const editStatus = ref(true); // 编辑状态
 const showEditTaskDetailBtn = ref(false); // 显示编辑任务按钮
-
 const frameArray = ref();
 
 // 富文本配置
@@ -328,6 +329,7 @@ function getTaskCases() {
     .then((res) => {
       [tempCases.value, casesData.value, tempArray] = [[], [], []];
       modalData.value.cases = res.data;
+      console.log('getTempCases', res.data);
       getTempCases(res.data);
       getCasesData();
     })
@@ -494,6 +496,40 @@ const distributeTaskOption = ref([]); // 可分配模板
 const distributeTaskMilestoneValue = ref(null); // 分配任务里程碑
 const distributeTaskMilestoneOption = ref([]); // 可分配里程碑
 
+const resultCaseModal = ref(false); //编辑结果弹框
+const resultCaseModalData = ref(null); // 编辑结果弹框数据
+const resultCaseoptions = [
+  { label: 'running', value: 'running' },
+  { label: 'success', value: 'success' },
+  { label: 'failed', value: 'failed' }
+];
+const editResultFileds = ref(false);  //结果弹框是否可编辑
+const formRefResult = ref(null); // 结果弹框表单
+// 编辑结果弹框
+const modelResult = ref({
+  running_time: null,
+  result: null,
+  // org: '',
+  // baseline: null,
+  // testsuite: null,
+  log_url: null,
+  fail_type: null,
+  details: null,
+});
+const rulesResult = ref({
+  org: {
+    required: true,
+    message: '组织名必填',
+    trigger: ['blur', 'input']
+  },
+
+  result: {
+    required: true,
+    message: '执行结果必填',
+    trigger: ['blur', 'change']
+  },
+});
+
 // 获取里程碑选项
 function getDistributeMilestone() {
   distributeTaskMilestoneValue.value = null;
@@ -629,7 +665,7 @@ const caseViewColumns = [
     }
   },
   {
-    title: '用例状态',
+    title: '执行结果',
     align: 'center',
     key: 'status',
     render(rowData) {
@@ -658,15 +694,19 @@ const caseViewColumns = [
           trigger: 'click',
           disabled: !editStatus.value || rowData.type === 'auto',
           onSelect: (key) => {
+            let params = {
+              org_id: storage.getLocalValue('unLoginOrgId')?.id,
+              milestone_id: rowData.milestoneId,
+              case_id: rowData.id,
+              result: key,
+            };
             axios
-              .put(`/v1/task/${detailTask.taskId}/milestones/${rowData.taskMilestoneId}/cases/${rowData.id}`, {
-                result: key
-              })
+              .post('/v1/testcase/test-result', params)
               .then(() => {
                 getTaskCases();
               })
               .catch((err) => {
-                window.$message?.error(err.data.error_msg || '未知错误');
+                window.$message?.error(err?.data?.error_msg || '未知错误');
               });
           },
           options
@@ -703,6 +743,37 @@ const caseViewColumns = [
     render(rowData) {
       if (rowData.suite) {
         return [
+          h(
+            NButton,
+            {
+              type: 'primary',
+              text: true,
+              style: 'margin-right:10px;',
+              onClick: () => {
+                if (editStatus.value) {
+                  let params = {
+                    milestone_id: rowData.milestoneId,
+                    case_id: rowData.id
+                  };
+                  getResultModalData(params)
+                    .then((res) => {
+                      resultCaseModal.value = true;
+                      resultCaseModalData.value = rowData;
+                      modelResult.value = res.data;
+                      if (!Object.keys(res.data).length) {
+                        modelResult.value.milestone_id = rowData.milestoneId;
+                        modelResult.value.case_id = rowData.id;
+                        modelResult.value.result = rowData.status;
+                      }
+                    })
+                    .catch((error) => {
+                      window.$message?.error(error.data.error_msg || '未知错误');
+                    });
+                }
+              }
+            },
+            (rowData.id !== '' && !rowData.children) ? '结果' : ''
+          ),
           h(
             NButton,
             {
@@ -1546,7 +1617,52 @@ function getFrame() {
 const setTaskPercentage = () => {
   changeTaskPercentage(modalData.value.detail.id, { percentage: modalData.value.detail.percentage });
 };
+// 编辑结果用例
+function editResultCase() {
+  if (!editResultFileds.value) {
+    window.$message?.success('进入编辑模式');
+    editResultFileds.value = true;
+  } else {
+    window.$message?.success('退出编辑模式');
+    editResultFileds.value = false;
+  }
+}
+// 关闭结果弹框遮罩按钮
+function closeResultModal() {
+  resultCaseModal.value = false;
+  modelResult.value = {
+    running_time: null,
+    result: null,
+    log_url: null,
+    fail_type: null,
+    details: null,
+  };
+  editResultFileds.value = false;
+}
+function handleEditResultCase() {
+  modelResult.value.org_id = storage.getLocalValue('unLoginOrgId')?.id;
+  formRefResult.value.validate((error) => {
+    if (!error) {
+      axios
+        .post('/v1/testcase/test-result', modelResult.value)
+        .then(() => {
+          window.$message?.success('用例修改成功!');
+          getTaskCases();
+          closeResultModal();
+        })
+        .catch((err) => {
+          window.$message?.error(err?.data?.error_msg || '未知错误');
+        });
+    } else {
+      window.$message?.error('请填写相关信息');
+    }
+  });
+}
 
+const updateResult = (value) => {
+  modelResult.value.result = value;
+
+};
 export {
   setTaskPercentage,
   getFrame,
@@ -1681,5 +1797,16 @@ export {
   changeManage,
   caseIssueModalData,
   caseIssueModalRef,
-  showDistributeTaskSpin
+  showDistributeTaskSpin,
+  resultCaseModal,
+  resultCaseModalData,
+  editResultCase,
+  closeResultModal,
+  resultCaseoptions,
+  editResultFileds,
+  handleEditResultCase,
+  formRefResult,
+  modelResult,
+  rulesResult,
+  updateResult
 };

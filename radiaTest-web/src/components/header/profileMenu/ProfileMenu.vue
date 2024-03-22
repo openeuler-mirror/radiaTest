@@ -137,7 +137,8 @@ export default defineComponent({
     modules.getOrg();
     modules.getOrgList();
     const msgCount = inject('msgCount');
-    const token = storage.getValue('token');
+    const token = ref(storage.getValue('token'));
+    const router = useRouter();
     watch(
       msgCount,
       () => {
@@ -152,6 +153,13 @@ export default defineComponent({
       {
         deep: true,
       }
+    );
+    watch(
+      () => router.currentRoute.value,
+      () => {
+        token.value = storage.getValue('token');
+      },
+      { immediate: true }
     );
 
     return {
