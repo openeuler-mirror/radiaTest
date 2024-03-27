@@ -357,7 +357,7 @@ class GiteeMilestoneEventV2(Resource):
         "query_schema_model": GiteeMilestoneQuerySchema
     })
     def get(self, query: GiteeMilestoneQuerySchema):
-        return MilestoneOpenApiHandler().get_milestones(params=query.__dict__)
+        return MilestoneOpenApiHandler(org_id=query.org_id).get_milestones(params=query.__dict__)
 
 
 class SyncMilestoneItemEventV2(Resource):
