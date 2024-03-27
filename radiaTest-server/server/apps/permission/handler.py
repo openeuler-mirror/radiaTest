@@ -7,8 +7,8 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 ####################################
-# @Author  : 凹凸曼打小怪兽
-# @email   : 15710801006@163.com
+# @Author  :
+# @email   :
 # @Date    : 2023/01/11
 # @License : Mulan PSL v2
 #####################################
@@ -23,11 +23,10 @@ from server.model.organization import Organization
 from server.model.group import Group, ReUserGroup, GroupRole
 from server.model.user import User
 from server.model.permission import ReScopeRole, ReUserRole, Role, Scope
-from server.utils.response_util import RET, ssl_cert_verify_error_collect
+from server.utils.response_util import RET
 from server.utils.db import Insert, Delete, collect_sql_error
 from server.utils.read_from_yaml import get_default_suffix
 from server.utils.redis_util import RedisKey
-from server.utils.permission_utils import GetAllByPermission
 from server.utils.page_util import PageUtil
 
 
@@ -363,10 +362,14 @@ class RoleLimitedHandler:
         self.role_id = None
 
         _role = Role.query.filter_by(id=role_id).first()
-        if _role and _role.type == _type and (
-                (_type == 'group' and _role.group_id == group_id) or (
-                _type == 'org' and _role.org_id == org_id) or _type == 'public' or _type == 'person'):
-            self.role_id = _role.id
+        if _role and _role.type == _type:
+            is_valid_role = (
+                    (_type == 'group' and _role.group_id == group_id)
+                    or (_type == 'org' and _role.org_id == org_id)
+                    or _type == 'public' or _type == 'person'
+            )
+            if is_valid_role:
+                self.role_id = _role.id
 
 
 class UserRoleLimitedHandler(RoleLimitedHandler):

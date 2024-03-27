@@ -15,9 +15,9 @@
 
 import json
 
-from pydantic import BaseModel, validator
-from typing import Optional
 from datetime import datetime
+from typing import Optional
+from pydantic import BaseModel, validator
 
 
 class MessageModel(BaseModel):
@@ -34,8 +34,8 @@ class MessageModel(BaseModel):
     def validate_data(cls, v):
         try:
             return json.loads(v)
-        except:
-            return None
+        except ValueError as e:
+            return dict()
 
 
 class MessageCallBack(BaseModel):

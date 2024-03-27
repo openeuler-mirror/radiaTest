@@ -7,19 +7,14 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 ####################################
-# Author : MDS_ZHR
-# email : 331884949@qq.com
 # Date : 2022/12/13 14:00:00
 # License : Mulan PSL v2
 #####################################
-# 基线模板(Baseline_template)相关接口的schema
 
-import re
 from typing import Optional, List
-from pydantic import BaseModel, constr, validator
+from pydantic import BaseModel
 from pydantic.class_validators import root_validator
-from server.model.group import Group
-from server.model.organization import Organization
+
 from server.schema import CaseNodeType, PermissionType, BaselineTemplateType
 
 

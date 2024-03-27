@@ -183,7 +183,8 @@ class DailyBuildEvent(Resource):
         _product = request.form.get("product")
         _build = request.form.get("build")
         _file = request.files.get("file")
-        if not _product or len(_product.split("-")) != 2 or not _build or not _file:
+        is_valid_param = (not _product or len(_product.split("-")) != 2 or not _build or not _file)
+        if is_valid_param:
             return jsonify(
                 error_code=RET.PARMA_ERR,
                 error_msg="params invalid"
@@ -289,7 +290,8 @@ class RpmCheckEvent(Resource):
         _product = request.form.get("product")
         _build = request.form.get("build")
         _file = request.files.get("file")
-        if not _product or len(_product.split("-")) != 2 or not _build or not _file:
+        is_param_valid = (not _product or len(_product.split("-")) != 2 or not _build or not _file)
+        if is_param_valid:
             return jsonify(
                 error_code=RET.PARMA_ERR,
                 error_msg="params invalid"

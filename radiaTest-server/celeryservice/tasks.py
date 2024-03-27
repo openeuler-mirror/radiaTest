@@ -14,13 +14,14 @@
 
 
 #####################################
+import os
 import ssl
 import re
 from datetime import datetime
-import os
 import sys
 import json
 import requests
+import stat
 from lxml import html, etree
 
 import redis
@@ -347,9 +348,11 @@ def resolve_pkglist_after_resolve_rc_name(repo_url, store_path, product, round_n
         resp.encoding = 'utf-8'
         # 网页内容到写入文件中
         tmp_file_name = f"{product_version}-html.txt"
-        with open(tmp_file_name, "wb") as f:
-            f.write(resp.content)
-            f.close()
+        flags = os.O_RDWR | os.O_CREAT
+        mode = stat.S_IRUSR | stat.S_IWUSR
+        with os.fdopen(os.open(tmp_file_name, flags, mode), 'wb') as fout:
+            fout.write(resp.content)
+            fout.close()
         exitcode, output, error = run_cmd(f"cat {tmp_file_name} | grep 'rc{round_num}_openeuler'"
                                           + " | awk -F 'title=\"' '{print $2}' | awk -F '\">' '{print $1}' | uniq"
                                           )
@@ -367,13 +370,16 @@ def resolve_pkglist_after_resolve_rc_name(repo_url, store_path, product, round_n
             return
         resp.encoding = 'utf-8'
         # 写入网页内容到文件中
-        with open(tmp_file_name, "wb") as f:
-            f.write(resp.content)
-            f.close()
-        exitcode, _, error = run_cmd(f"cat {tmp_file_name} | "
-                                     + "grep 'title=' | awk -F 'title=\"' '{print $2}' | awk -F '\">' '{print $1}' | grep '.rpm' | uniq >"
-                                     + f"{pkg_file}"
-                                     )
+        flags = os.O_RDWR | os.O_CREAT
+        mode = stat.S_IRUSR | stat.S_IWUSR
+        with os.fdopen(os.open(tmp_file_name, flags, mode), 'wb') as fout:
+            fout.write(resp.content)
+            fout.close()
+        exitcode, _, error = run_cmd(
+            f"cat {tmp_file_name} | "
+            + "grep 'title=' | awk -F 'title=\"' '{print $2}' | awk -F '\">' '{print $1}' | grep '.rpm' | uniq >"
+            + f"{pkg_file}"
+        )
 
         if exitcode != 0:
             logger.error(error)
@@ -386,9 +392,10 @@ def resolve_pkglist_after_resolve_rc_name(repo_url, store_path, product, round_n
             tmp_file_name = f"{product_version_repo}-{arch}-html.txt"
             pkg_file = f"{product_version_repo}-{arch}.pkgs"
             get_pkg_file(_url, tmp_file_name, pkg_file)
-        exitcode, _, error = run_cmd(f"sort {product_version_repo}-aarch64.pkgs"
-                                     + f" {product_version_repo}-x86_64.pkgs | uniq >{product_version_repo}-all.pkgs"
-                                     )
+        exitcode, _, error = run_cmd(
+            f"sort {product_version_repo}-aarch64.pkgs"
+            + f" {product_version_repo}-x86_64.pkgs | uniq >{product_version_repo}-all.pkgs"
+        )
 
         if exitcode != 0:
             logger.error(error)
@@ -425,21 +432,25 @@ def resolve_pkglist_from_url(repo_name, repo_url, store_path):
             resp.encoding = 'utf-8'
             # 写入网页内容到文件中
             tmp_file_name = f"{store_path}/{_repo_path}-{arch}-html.txt"
-            with open(tmp_file_name, "wb") as f:
-                f.write(resp.content)
-                f.close()
+            flags = os.O_RDWR | os.O_CREAT
+            mode = stat.S_IRUSR | stat.S_IWUSR
+            with os.fdopen(os.open(tmp_file_name, flags, mode), 'wb') as fout:
+                fout.write(resp.content)
+                fout.close()
 
-            exitcode, _, error = run_cmd(f"cat {tmp_file_name} | "
-                                         + "grep 'title=' | awk -F 'title=\"' '{print $2}' | awk -F '\">' '{print $1}' | grep '.rpm' | uniq >"
-                                         + f"{store_path}/{_repo_path}-{arch}.pkgs"
-                                         )
+            exitcode, _, error = run_cmd(
+                f"cat {tmp_file_name} | "
+                + "grep 'title=' | awk -F 'title=\"' '{print $2}' | awk -F '\">' '{print $1}' | grep '.rpm' | uniq >"
+                + f"{store_path}/{_repo_path}-{arch}.pkgs"
+            )
 
             if exitcode != 0:
                 logger.error(error)
                 return
-        exitcode, _, error = run_cmd(f"sort {store_path}/{_repo_path}-aarch64.pkgs"
-                                     + f" {store_path}/{_repo_path}-x86_64.pkgs | uniq >{store_path}/{_repo_path}-all.pkgs"
-                                     )
+        exitcode, _, error = run_cmd(
+            f"sort {store_path}/{_repo_path}-aarch64.pkgs"
+            + f" {store_path}/{_repo_path}-x86_64.pkgs | uniq >{store_path}/{_repo_path}-all.pkgs"
+        )
 
         if exitcode != 0:
             logger.error(error)

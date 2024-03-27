@@ -33,22 +33,22 @@
 flask-casbin: Flask module for using Casbin with flask apps
 """
 import re
-
-from sqlite3 import adapt
-import casbin
-from flask import request, jsonify, g
-from functools import partial, wraps
+import shlex
+from functools import wraps
 from abc import ABC
 from abc import abstractmethod
-import shlex
 
-from .utils import authorization_decoder, UnSupportedAuthType
+import casbin
+from flask import request, jsonify
+
+
 from server.utils.response_util import RET
+from .utils import authorization_decoder, UnSupportedAuthType
 
 
 class Filter:
-    def __init__(self, ptype=[], **kwargs) -> None:
-        self.ptype = ptype
+    def __init__(self, ptype=None, **kwargs) -> None:
+        self.ptype = ptype or []
         self.v0 = kwargs.get("v0") if kwargs.get("v0") else []
         self.v1 = kwargs.get("v1") if kwargs.get("v1") else []
         self.v2 = kwargs.get("v2") if kwargs.get("v2") else []
@@ -78,6 +78,28 @@ class CasbinEnforcer:
         self.user_name_headers = None
         if self.app is not None:
             self.init_app(self.app)
+
+    @staticmethod
+    def sanitize_group_headers(headers_str, delimiter=",") -> list:
+        """
+        Sanitizes group header string so that it is easily parsable by enforcer
+        removes extra spaces, and converts comma delimited or white space
+        delimited list into a list.
+
+        Default delimiter: "," (comma)
+
+        Returns:
+            list
+        """
+        check_single_quote = (headers_str.startswith("'") and headers_str.endswith("'"))
+        check_double_quote = (headers_str.startswith('"') and headers_str.endswith('"'))
+        if delimiter == " " and (check_single_quote or check_double_quote):
+            return [
+                string.strip() for string in shlex.split(headers_str) if string != ""
+            ]
+        return [
+            string.strip() for string in headers_str.split(delimiter) if string != ""
+        ]
 
     def init_app(self, app, adapter):
         self.app = app
@@ -112,7 +134,7 @@ class CasbinEnforcer:
         @wraps(func)
         def wrapper(*args, **kwargs):
             from server.utils.message_util import MessageManager
-            
+
             # Set resource URI from request
             uri = str(request.path)
             # Extract domain fo the resource URI
@@ -145,7 +167,7 @@ class CasbinEnforcer:
                 self.app.logger.info("Get owner from owner_loader")
                 for owner in self._owner_loader():
                     owner = owner.strip('"') if isinstance(owner, str) else owner
-                    
+
                     if self.e.enforce(owner, uri, act, dom):
                         return func(*args, **kwargs)
 
@@ -171,7 +193,7 @@ class CasbinEnforcer:
                             continue
 
                         if self.user_name_headers and header in map(
-                            str.lower, self.user_name_headers
+                                str.lower, self.user_name_headers
                         ):
                             owner_audit = owner
                         if self.e.enforce(owner, uri, act, dom):
@@ -190,14 +212,14 @@ class CasbinEnforcer:
                         # Split header by ',' in case of groups when groups are
                         # sent "group1,group2,group3,..." in the header
                         for owner in self.sanitize_group_headers(
-                            request.headers.get(header), delimiter
+                                request.headers.get(header), delimiter
                         ):
                             self.app.logger.debug(
                                 "Enforce against owner: %s header: %s"
                                 % (owner.strip('"'), header)
                             )
                             if self.user_name_headers and header in map(
-                                str.lower, self.user_name_headers
+                                    str.lower, self.user_name_headers
                             ):
                                 owner_audit = owner
                             if self.e.enforce(owner.strip('"'), uri, act, dom):
@@ -208,7 +230,7 @@ class CasbinEnforcer:
                                         uri,
                                         ""
                                         if not self.user_name_headers
-                                        and owner_audit != ""
+                                           and owner_audit != ""
                                         else " to user: %s" % owner_audit,
                                     )
                                 )
@@ -238,32 +260,9 @@ class CasbinEnforcer:
                     return jsonify(error_code=RET.UNAUTHORIZE_ERR, error_msg=MessageManager().run(_api))
                 except RuntimeError as e:
                     self.app.logger.error(str(e))
-                    return jsonify(error_code=RET.UNAUTHORIZE_ERR, error_msg="Unauthorized")        
+                    return jsonify(error_code=RET.UNAUTHORIZE_ERR, error_msg="Unauthorized")
 
         return wrapper
-
-    @staticmethod
-    def sanitize_group_headers(headers_str, delimiter=",") -> list:
-        """
-        Sanitizes group header string so that it is easily parsable by enforcer
-        removes extra spaces, and converts comma delimited or white space
-        delimited list into a list.
-
-        Default delimiter: "," (comma)
-
-        Returns:
-            list
-        """
-        if delimiter == " " and (
-            (headers_str.startswith("'") and headers_str.endswith("'"))
-            or (headers_str.startswith('"') and headers_str.endswith('"'))
-        ):
-            return [
-                string.strip() for string in shlex.split(headers_str) if string != ""
-            ]
-        return [
-            string.strip() for string in headers_str.split(delimiter) if string != ""
-        ]
 
     def manager(self, func):
         """Get the Casbin Enforcer Object to manager Casbin"""

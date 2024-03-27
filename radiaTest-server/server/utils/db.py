@@ -58,19 +58,20 @@ def pdbc_filter(func):
             ret = func(*args, **kwargs)
             return ret
         except Exception as e:
-            raise RuntimeError(e)
+            raise RuntimeError("pdbc_filter error:{}".format(e)) from e
 
     return wrapper
 
 
 class DataBase(object):
-    @classmethod
-    def method(cls, **kwargs):
-        pass
 
     def __init__(self, table, data) -> None:
         self._table = table
         self._data = data
+
+    @classmethod
+    def method(cls, **kwargs):
+        pass
 
 
 class FilterBase(DataBase):
@@ -92,6 +93,7 @@ class Precise(FilterBase):
                 getattr(kwargs.get("_table"), kwargs.get("_key"))
                 == "{}".format(kwargs.get("_value"))
             )
+        return kwargs.get("_filters")
 
     @pdbc_filter
     def all(self):
@@ -126,15 +128,16 @@ class MultipleConditions(Precise):
 
 
 class Insert(FilterBase):
+
+    def __init__(self, table, data: dict) -> None:
+        self._instance = table()
+        super().__init__(table, data)
+
     @classmethod
     def method(cls, **kwargs):
         return setattr(
             kwargs.get("_instance"), kwargs.get("_key"), kwargs.get("_value")
         )
-
-    def __init__(self, table, data: dict) -> None:
-        self._instance = table()
-        super().__init__(table, data)
 
     @pdbc
     def single(self, table=None, namespace=None, broadcast=False):

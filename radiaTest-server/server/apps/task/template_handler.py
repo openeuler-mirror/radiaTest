@@ -7,8 +7,8 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 ####################################
-# @Author : gaodi12
-# @Email  : gaodi12@huawei.com
+# @Author :
+# @Email  :
 # @License: Mulan PSL v2
 # @Date   : 2022-12-20 13:46:29
 #####################################
@@ -72,7 +72,7 @@ class HandlerTemplate:
         return PageUtil.get_data(
             query_filter=query_filter,
             query=query,
-            func= page_func if query.simple else None
+            func=page_func if query.simple else None
         )
 
     @staticmethod
@@ -225,7 +225,7 @@ class HandlerTemplateType:
         dtt = DistributeTemplateType.query.get(type_id)
         db.session.delete(dtt)
         db.session.commit()
-        PermissionManager().clean(
+        PermissionManager.clean(
             "/api/v1/tasks/distribute-templates/types/", [type_id]
         )
         return jsonify(error_code=RET.OK, error_msg="OK")

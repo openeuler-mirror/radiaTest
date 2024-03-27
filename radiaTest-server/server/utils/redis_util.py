@@ -23,6 +23,16 @@ class RedisClient(object):
     def __init__(self):
         self.redis_params = dict()
 
+    @property
+    def connection(self):
+        ctx = _app_ctx_stack.top
+        if ctx is not None:
+            if not hasattr(ctx, 'redis_db'):
+                ctx.redis_db = self.connect()
+            return ctx.redis_db
+        else:
+            return None
+
     def init_app(self, app=None):
         self.redis_params = dict(
             host=app.config.get("REDIS_HOST", "localhost"),
@@ -39,14 +49,6 @@ class RedisClient(object):
             **self.redis_params
         )
         return redis.StrictRedis(connection_pool=pool)
-
-    @property
-    def connection(self):
-        ctx = _app_ctx_stack.top
-        if ctx is not None:
-            if not hasattr(ctx, 'redis_db'):
-                ctx.redis_db = self.connect()
-            return ctx.redis_db
 
     def set(self, name, value, ex=None):
         self.connection.set(name, value, ex=ex)

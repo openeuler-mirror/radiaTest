@@ -7,8 +7,8 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 ####################################
-# Author : MDS_ZHR
-# email : 331884949@qq.com
+# Author :
+# email :
 # Date : 2022/12/13 14:00:00
 # License : Mulan PSL v2
 #####################################
@@ -160,7 +160,7 @@ def init_api(api: Api):
         "/api/v1/case/<int:case_id>", 
         methods=["GET", "PUT", "DELETE"]
     )
-    api.add_resource(CaseImport, "/api/v1/case/import",  methods=["POST"])
+    api.add_resource(CaseImport, "/api/v1/case/import", methods=["POST"])
     api.add_resource(
         CaseRecycleBin, 
         "/api/v1/case/recycle-bin",

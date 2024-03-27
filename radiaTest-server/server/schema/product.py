@@ -13,9 +13,9 @@
 # @License : Mulan PSL v2
 #####################################
 
-from typing_extensions import Literal
 from typing import Optional
-from pydantic import BaseModel, constr, root_validator
+from typing_extensions import Literal
+from pydantic import constr, root_validator
 
 from server.model import Product
 from server.utils.db import Precise

@@ -319,9 +319,7 @@ def handler_update_user(group_id, body):
             org_id = redis_client.hget(RedisKey.user(g.user_id), "current_org_id")
             for item in res:
                 user_id = item.user_id
-                _filter = [ReUserRole.user_id == user_id,
-                           Role.group_id == group_id,
-                           Role.type == 'group']
+                _filter = [ReUserRole.user_id == user_id, Role.group_id == group_id, Role.type == 'group']
                 re_list = ReUserRole.query.join(Role).filter(*_filter).all()
                 for _re in re_list:
                     Delete(ReUserRole, {"id": _re.id}).single()

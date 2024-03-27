@@ -15,10 +15,10 @@
 
 import json
 import re
-from typing_extensions import Literal
 from typing import List, Optional
+from typing_extensions import Literal
 
-from pydantic import BaseModel, HttpUrl, validator, root_validator, constr
+from pydantic import BaseModel, HttpUrl, validator, root_validator
 
 from server.schema import Operator, SortOrder, MilestoneState
 

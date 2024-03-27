@@ -14,6 +14,7 @@
 #####################################
 
 from datetime import datetime
+import pytz
 
 from server.utils.db import Insert
 from server.model.celerytask import CeleryTask
@@ -22,11 +23,11 @@ from server.model.celerytask import CeleryTask
 class TaskHandlerBase:
     def __init__(self, logger):
         self.logger = logger
-        self.start_time = datetime.now()
+        self.start_time = datetime.now(tz=pytz.timezone('Asia/Shanghai'))
         self.running_time = 0
 
     def next_period(self):
-        _current_time = datetime.now()
+        _current_time = datetime.now(tz=pytz.timezone('Asia/Shanghai'))
         self.running_time = (_current_time - self.start_time).seconds * \
             1000 + (_current_time - self.start_time).microseconds/1000
 

@@ -34,7 +34,6 @@ class RedisPipeline:
                 ),
                 item.group_overview_url
             )
-            return item
 
         elif isinstance(item, OpenqaGroupOverviewItem):
             _build_time_array = time.strptime(

@@ -256,7 +256,7 @@ class GenerateTestReportEvent(Resource):
                 error_code=RET.NO_DATA_ERR,
                 error_msg="milestone {} not exist".format(milestone_id),
             )
-        return GenerateVersionTestReport().generate_update_test_report(milestone_id, query.uri)
+        return GenerateVersionTestReport().generate_update_test_report(milestone_id)
 
 
 class TestReportFileEvent(Resource):
@@ -282,7 +282,7 @@ class TestReportFileEvent(Resource):
         tmp_folder = current_app.template_folder
         current_app.template_folder = current_app.config.get("TEST_REPORT_PATH")
         if query.file_type == "md":
-            resp =  make_response(render_template(_test_report.md_file))
+            resp = make_response(render_template(_test_report.md_file))
         else:
             resp = make_response(render_template(_test_report.html_file))
         current_app.template_folder = tmp_folder

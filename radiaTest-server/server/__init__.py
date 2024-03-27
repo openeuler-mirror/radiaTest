@@ -74,9 +74,9 @@ def create_app(**kwargs):
     app = Flask(__name__)
 
     app.config.from_object("server.config.settings.Config")
-    if not kwargs["init_config"]:
+    if not kwargs.get("init_config"):
         raise RuntimeError("There is no valid config files for this flask app.")
-    app.config.update(kwargs["init_config"])
+    app.config.update(kwargs.get("init_config"))
     loads_app_yaml(app)
 
     init_logging(

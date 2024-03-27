@@ -20,7 +20,6 @@ import zipfile
 from shutil import move
 from pathlib import Path
 
-from flask import current_app
 import rarfile
 
 
@@ -47,6 +46,12 @@ class SafeUncompress(object):
                     new_name = str(name).encode('utf-8').decode('utf-8')
         return new_name
 
+    @staticmethod
+    def is_safe_path(basedir, name):
+        # resolves symbolic links
+        path = basedir.joinpath(name)
+        return os.path.abspath(path).startswith(str(basedir))
+
     def unicoding(self, dist_dir, sub_dir=None):
         # 遍历目录进行乱码处理
         if not sub_dir:
@@ -62,18 +67,11 @@ class SafeUncompress(object):
             for sub_path in os.listdir(new_path):
                 self.unicoding(new_path, sub_path)
 
-    @staticmethod
-    def is_safe_path(basedir, name):
-        # resolves symbolic links
-        path = basedir.joinpath(name)
-        return os.path.abspath(path).startswith(str(basedir))
-
     def uncompress_zip(self, dist_dir):
         zip_file = zipfile.ZipFile(self.filepath)
         # 校验最大文件数
         if len(zip_file.namelist()) > self.max_number:
-            current_app.logger.error("uncompress failed, files too many!")
-            exit(1)
+            raise RuntimeError("zip pack uncompress failed, files too many!")
         safe_file_list = []
         total_size = 0
         for name in zip_file.namelist():
@@ -97,8 +95,7 @@ class SafeUncompress(object):
             total_size += info.file_size
             safe_file_list.append(name)
         if total_size > self.max_total_size:
-            current_app.logger.error("uncompress failed, total size too big!")
-            exit(1)
+            raise RuntimeError("zip pack uncompress failed, total size too big!")
         for safe_file in safe_file_list:
             zip_file.extract(safe_file, dist_dir)
 
@@ -107,8 +104,7 @@ class SafeUncompress(object):
     def uncompress_rar(self, dist_dir):
         rar = rarfile.RarFile(self.filepath)
         if len(rar.namelist()) > self.max_number:
-            current_app.logger.error("uncompress failed, files too many!")
-            exit(1)
+            raise RuntimeError("rar pack uncompress failed, files too many!")
         safe_file_list = []
         total_size = 0
         for name in rar.namelist():
@@ -122,8 +118,7 @@ class SafeUncompress(object):
             total_size += rar.getinfo(name).file_size
             safe_file_list.append(name)
         if total_size > self.max_total_size:
-            current_app.logger.error("uncompress failed, total size too big!")
-            exit(1)
+            raise RuntimeError("rar pack uncompress failed, total size too big!")
         for safe_file in safe_file_list:
             rar.extract(safe_file, dist_dir)
         rar.close()
@@ -131,8 +126,7 @@ class SafeUncompress(object):
     def uncompress_tar(self, dist_dir):
         tar = tarfile.open(name=self.filepath, mode="r:*")
         if len(tar.getnames()) > self.max_number:
-            current_app.logger.error("uncompress failed, files too many!")
-            exit(1)
+            raise RuntimeError("tar pack uncompress failed, files too many!")
         safe_file_list = []
         total_size = 0
         for name in tar.getnames():
@@ -152,8 +146,7 @@ class SafeUncompress(object):
             safe_file_list.append(name)
 
         if total_size > self.max_total_size:
-            current_app.logger.error("uncompress failed, total size too big!")
-            exit(1)
+            raise RuntimeError("tar pack uncompress failed, total size too big!")
         for safe_file in safe_file_list:
             tar.extract(safe_file, dist_dir)
         tar.close()

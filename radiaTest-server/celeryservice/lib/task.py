@@ -42,6 +42,61 @@ class TaskdistributeHandler(TaskHandlerBase):
         self.task_milestone = None
         super().__init__(logger)
 
+    @staticmethod
+    def delete_task_cases(task_milestone: TaskMilestone, cases: list):
+        tm_cases = task_milestone.cases.copy() if task_milestone.cases else []
+        _ = [task_milestone.cases.remove(item) for item in tm_cases if item.id in cases]
+        task_milestone.add_update()
+        tm_manual_cases = (
+            task_milestone.manual_cases.copy() if task_milestone.manual_cases else []
+        )
+        _ = [db.session.delete(item) for item in tm_manual_cases if item.case_id in cases]
+        db.session.commit()
+        judge_task_automatic(task_milestone)
+
+    @staticmethod
+    def bind_scope(task_id, user_ids: list, base_dir):
+        task = Task.query.get(task_id)
+        pm = PermissionManager(creator_id=task.creator_id, org_id=task.org_id)
+        scope_data_allow, scope_data_deny = pm.get_api_list(
+            "task", os.path.join(base_dir, "execute_task.yaml"), task_id
+        )
+        for user_id in user_ids:
+            pm.bind_scope_user(
+                scope_datas_allow=scope_data_allow,
+                scope_datas_deny=scope_data_deny,
+                user_id=user_id,
+            )
+
+    @staticmethod
+    def add_helpers(task, helpers):
+        if helpers:
+            for item in helpers.split(","):
+                tp = TaskParticipant()
+                tp.task_id = task.id
+                tp.participant_id = item
+                task.participants.append(tp)
+            task.add_update()
+
+    @staticmethod
+    def add_milestone(task, milestone_id, cases=None):
+        task.automatic = False
+        tm = TaskMilestone()
+        tm.task_id = task.id
+        tm.milestone_id = milestone_id
+        if cases:
+            task.automatic = True
+            tm.cases = Case.query.filter(
+                Case.id.in_(cases), Case.deleted.is_(False)
+            ).all()
+            for case in tm.cases:
+                if not case.usabled:
+                    tmc = TaskManualCase(case_id=case.id)
+                    task.automatic = False
+                    tm.manual_cases.append(tmc)
+        tm.add_update()
+        task.add_update()
+
     @collect_sql_error
     def distribute(self, task_id, template_id, body):
         # 分析数据
@@ -120,49 +175,6 @@ class TaskdistributeHandler(TaskHandlerBase):
         child_task = Task.query.get(child_task_id)
         return child_task
 
-    @staticmethod
-    def bind_scope(task_id, user_ids: list, base_dir):
-        task = Task.query.get(task_id)
-        pm = PermissionManager(creator_id=task.creator_id, org_id=task.org_id)
-        scope_data_allow, scope_data_deny = pm.get_api_list(
-            "task", os.path.join(base_dir, "execute_task.yaml"), task_id
-        )
-        for user_id in user_ids:
-            pm.bind_scope_user(
-                scope_datas_allow=scope_data_allow,
-                scope_datas_deny=scope_data_deny,
-                user_id=user_id,
-            )
-
-    @staticmethod
-    def add_helpers(task, helpers):
-        if helpers:
-            for item in helpers.split(","):
-                tp = TaskParticipant()
-                tp.task_id = task.id
-                tp.participant_id = item
-                task.participants.append(tp)
-            task.add_update()
-
-    @staticmethod
-    def add_milestone(task, milestone_id, cases=None):
-        task.automatic = False
-        tm = TaskMilestone()
-        tm.task_id = task.id
-        tm.milestone_id = milestone_id
-        if cases:
-            task.automatic = True
-            tm.cases = Case.query.filter(
-                Case.id.in_(cases), Case.deleted.is_(False)
-            ).all()
-            for case in tm.cases:
-                if not case.usabled:
-                    tmc = TaskManualCase(case_id=case.id)
-                    task.automatic = False
-                    tm.manual_cases.append(tmc)
-        tm.add_update()
-        task.add_update()
-
     def create_child_task(self, df: pd.DataFrame, group_id, body):
         milestone_id = body.get("milestone_id")
         base_dir = body.get("base_dir")
@@ -170,7 +182,7 @@ class TaskdistributeHandler(TaskHandlerBase):
             f'T{self.parent_task.id}_TM{df.loc[0, "type_name"]}'
             f'_M{milestone_id}'
         )
-        #加上键值锁，避免异步任务重复创建任务
+        # 加上键值锁，避免异步任务重复创建任务
         task_key = f"CREATE_TASK_{key_title}"
         if redis_client.keys(task_key):
             return
@@ -218,20 +230,6 @@ class TaskdistributeHandler(TaskHandlerBase):
         )
         redis_client.delete(task_key)
 
-    @staticmethod
-    def delete_task_cases(task_milestone: TaskMilestone, cases: list):
-        tm_cases = task_milestone.cases.copy() if task_milestone.cases else []
-        _ = [task_milestone.cases.remove(item) for item in tm_cases if item.id in cases]
-        task_milestone.add_update()
-        tm_manual_cases = (
-            task_milestone.manual_cases.copy() if task_milestone.manual_cases else []
-        )
-        _ = [
-            db.session.delete(item) for item in tm_manual_cases if item.case_id in cases
-        ]
-        db.session.commit()
-        judge_task_automatic(task_milestone)
-
 
 class VersionTaskProgressHandler(TaskHandlerBase):
     def __init__(self, logger, promise):
@@ -269,6 +267,66 @@ class HandlerUpdateTaskProgress(object):
         self.task = task
         self.task_key = f"MILESTONE_{self.milestone_id}_TASK_{self.task.id}_TEST_INFO"
 
+    @staticmethod
+    def get_case_node(case_node, case_node_infos: dict, all_node_ids: list, test_stat_info: dict, source: str = ""):
+        """
+        :description: Get all child case_nodes under the case_node
+        :param: case_node_infos: dict, store all child case_node whose type is case under the case_node
+        :param: all_node_ids: list, store all child case_node ids under the case_node
+        :param: source: str, a temporary variable
+        """
+        if case_node.type == "case":
+            tmp_source = source + "," + str(case_node.id)
+            [all_node_ids.append(_id) for _id in list(map(int, tmp_source[1:].split(","))) if _id not in all_node_ids]
+            result = case_node.case_result if case_node.case_result else "pending"
+            case_node_infos.update(
+                {
+                    str(case_node.case_id): {
+                        "case_node_id": case_node.id,
+                        "source": tmp_source[1:],
+                        "result": result,
+                    }
+                }
+            )
+
+            if test_stat_info.get(result):
+                test_stat_info.update({result: test_stat_info.get(result) + 1})
+            else:
+                test_stat_info.update({result: 1})
+        else:
+            tmp_source = source + "," + str(case_node.id)
+            if not case_node.children.all():
+                return
+            for case_node_tmp in case_node.children.all():
+                HandlerUpdateTaskProgress.get_case_node(
+                    case_node_tmp, case_node_infos, all_node_ids, test_stat_info, tmp_source
+                )
+
+    @staticmethod
+    def get_all_tasks(task, task_ids):
+        """
+        获取所有测试任务
+        """
+        task_ids.append(task.id)
+        for sub_task in task.children.filter(Task.is_delete.is_(False)).all():
+            HandlerUpdateTaskProgress.get_all_tasks(
+                sub_task,
+                task_ids
+            )
+
+    @collect_sql_error
+    def get_task_case_node(self):
+        """
+        :description: Get all child case_nodes under the version task
+        :return: 
+            case_node_infos: dict, store all child case_node whose type is case under the case_node
+            all_node_ids: list, store all child case_node ids under the case_node
+        """
+        case_node = CaseNode.query.filter_by(id=self.task.case_node_id).first()
+        HandlerUpdateTaskProgress.get_case_node(
+            case_node, self.all_task_case_node_infos, self.all_node_ids, self.all_task_test_static_info
+        )
+
     def update_task_progress(self):
         task_key = f"UPDATE_MILESTONE_{self.milestone_id}_TASK_{self.task.id}_TEST_PROGRESS"
         _key = redis_client.keys(task_key)
@@ -290,7 +348,7 @@ class HandlerUpdateTaskProgress(object):
 
     def save_test_info_to_redis(self):
         redis_client.hmset(
-            self.task_key, 
+            self.task_key,
             {
                 "milestone_id": self.milestone_id,
                 "task_id": self.task.id,
@@ -300,63 +358,3 @@ class HandlerUpdateTaskProgress(object):
                 "all_task_test_static_info": json.dumps(self.all_task_test_static_info),
             }
         )
-
-    @staticmethod
-    def get_case_node(case_node, case_node_infos: dict, all_node_ids: list, test_stat_info: dict, source: str=""):
-        """
-        :description: Get all child case_nodes under the case_node
-        :param: case_node_infos: dict, store all child case_node whose type is case under the case_node
-        :param: all_node_ids: list, store all child case_node ids under the case_node
-        :param: source: str, a temporary variable
-        """
-        if case_node.type == "case":
-            tmp_source = source + "," + str(case_node.id)
-            [all_node_ids.append(_id) for _id in  list(map(int, tmp_source[1:].split(","))) if _id not in all_node_ids]
-            result = case_node.case_result if case_node.case_result else "pending"
-            case_node_infos.update(
-                {
-                    str(case_node.case_id): {
-                        "case_node_id": case_node.id,
-                        "source": tmp_source[1:],
-                        "result": result,
-                    }
-                }
-            )
-            
-            if test_stat_info.get(result):
-                test_stat_info.update({result: test_stat_info.get(result) + 1})
-            else:
-                test_stat_info.update({result: 1})
-        else:
-            tmp_source = source + "," + str(case_node.id)
-            if not case_node.children.all():
-                return
-            for case_node_tmp in case_node.children.all():
-                HandlerUpdateTaskProgress.get_case_node(
-                    case_node_tmp, case_node_infos, all_node_ids, test_stat_info, tmp_source
-                )
-
-    @collect_sql_error
-    def get_task_case_node(self):
-        """
-        :description: Get all child case_nodes under the version task
-        :return: 
-            case_node_infos: dict, store all child case_node whose type is case under the case_node
-            all_node_ids: list, store all child case_node ids under the case_node
-        """
-        case_node = CaseNode.query.filter_by(id=self.task.case_node_id).first()
-        HandlerUpdateTaskProgress.get_case_node(
-            case_node, self.all_task_case_node_infos, self.all_node_ids, self.all_task_test_static_info
-        )
-
-    @staticmethod
-    def get_all_tasks(task, task_ids):
-        """
-        获取所有测试任务
-        """
-        task_ids.append(task.id)
-        for sub_task in task.children.filter(Task.is_delete.is_(False)).all():
-            HandlerUpdateTaskProgress.get_all_tasks(
-                sub_task,
-                task_ids
-            )

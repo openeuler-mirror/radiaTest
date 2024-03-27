@@ -7,8 +7,8 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 ####################################
-# Author : MDS_ZHR
-# email : 331884949@qq.com
+# Author :
+# email :
 # Date : 2022/12/13 14:00:00
 # License : Mulan PSL v2
 #####################################
@@ -44,14 +44,13 @@ class BaselineTemplateHandler:
             BaseNode.is_root.is_(True),
             BaseNode.baseline_template_id == baseline_template_id,
         ]
-        
+
         root_node = BaseNode.query.filter(*root_filter_params).first()
         if not root_node:
             return {"data": {"text": "新建"}}
-        
-        res_items = BaselineTemplateHandler.get_all_children(root_node) 
-        return res_items
 
+        res_items = BaselineTemplateHandler.get_all_children(root_node)
+        return res_items
 
     @staticmethod
     @collect_sql_error
@@ -59,7 +58,7 @@ class BaselineTemplateHandler:
 
         if not base_node.children:
             return base_node.to_json()
-        
+
         return_data = {
             **base_node.to_json(),
             "children": []
@@ -73,7 +72,7 @@ class BaselineTemplateHandler:
     @collect_sql_error
     def get_all(query, workspace=None):
         filter_params = GetAllByPermission(BaselineTemplate, workspace, org_id=query.org_id).get_filter()
-        
+
         for key, value in query.dict().items():
             if not value:
                 continue
@@ -93,52 +92,51 @@ class BaselineTemplateHandler:
                 )
             )
         baselinetemps = BaselineTemplate.query.filter(*filter_params).all()
-        
+
         return_data = [baseline_template.to_json() for baseline_template in baselinetemps]
         return jsonify(error_code=RET.OK, error_msg="OK", data=return_data)
-
 
     @staticmethod
     @collect_sql_error
     def check_enable_inherit_all(baseline_template, inherit_template):
         result = False
         if baseline_template.type == inherit_template.type:
-            if (
-                baseline_template.type == "org" and \
-                baseline_template.org_id == inherit_template.org_id
-            ) or (
-                baseline_template.type == "group" and \
-                baseline_template.group_id == inherit_template.group_id
-            ):
+            is_valid_org = (
+                    baseline_template.type == "org" and
+                    baseline_template.org_id == inherit_template.org_id
+            )
+            is_valid_group = (
+                    baseline_template.type == "group" and
+                    baseline_template.group_id == inherit_template.group_id
+            )
+            if is_valid_org or is_valid_group:
                 result = True
         return result
-
 
     @staticmethod
     @collect_sql_error
     def impl_select_base_node_casenode(baseline_template, base_node):
         _casenode = None
-        
+
         filter_params = [
             CaseNode.baseline_id == sqlalchemy.null()
         ]
 
         if base_node.case_node_id:
             casenode = CaseNode.query.filter_by(id=base_node.case_node_id).first()
-            
+
             if baseline_template.type == base_node.type:
                 _casenode = casenode
             else:
                 if casenode.suite_id:
                     filter_params.append(CaseNode.suite_id == casenode.suite_id)
                 elif casenode.case_id:
-                    filter_params.append(CaseNode.case_id == casenode.case_id)   
+                    filter_params.append(CaseNode.case_id == casenode.case_id)
                 else:
-                    filter_params.append(CaseNode.title == base_node.title) 
-                
+                    filter_params.append(CaseNode.title == base_node.title)
+
                 _casenode = CaseNode.query.filter(*filter_params).first()
         return _casenode
-
 
     @staticmethod
     @collect_sql_error
@@ -160,35 +158,32 @@ class BaselineTemplateHandler:
                 parent = BaseNode.query.filter_by(id=key).first()
                 child = BaseNode.query.filter_by(id=_id).first()
                 child.parent.append(parent)
-                child.add_update() 
-                        
+                child.add_update()
+
         nodes.append(_id)
         return _id, nodes
-
 
     @staticmethod
     @collect_sql_error
     def check_base_node_not_exist(base_node, res_old_base_nodes):
-        flag = False            
+        flag = False
         if not res_old_base_nodes:
             flag = True
             return flag
         if base_node.title not in list(
-            map(lambda node: node.get("title"), res_old_base_nodes)
+                map(lambda node: node.get("title"), res_old_base_nodes)
         ):
             if base_node.case_node_id is not None:
                 for old_base_node in res_old_base_nodes:
                     if ((
-                        old_base_node["case_node_id"] != base_node.case_node_id,
+                            old_base_node["case_node_id"] != base_node.case_node_id,
                     )):
-                        
                         flag = True
             else:
                 flag = True
         if base_node.is_root:
             flag = False
         return flag
-
 
     @staticmethod
     @collect_sql_error
@@ -198,7 +193,7 @@ class BaselineTemplateHandler:
         ).first()
         if not baseline_template:
             return jsonify(
-                error_code=RET.NO_DATA_ERR, 
+                error_code=RET.NO_DATA_ERR,
                 error_msg="baseline_template does not exist"
             )
 
@@ -208,7 +203,7 @@ class BaselineTemplateHandler:
         inherit_template = BaselineTemplate.query.filter(*filter_params).first()
         if not inherit_template:
             return jsonify(
-                error_code=RET.NO_DATA_ERR, 
+                error_code=RET.NO_DATA_ERR,
                 error_msg="inherit_baseline_template does not exist."
             )
 
@@ -220,18 +215,18 @@ class BaselineTemplateHandler:
         inherit_baseline_template = BaselineTemplate.query.filter(*filter_params).first()
         if not inherit_baseline_template:
             return jsonify(
-                error_code=RET.NO_DATA_ERR, 
+                error_code=RET.NO_DATA_ERR,
                 error_msg="inherit_baseline_template does not exist or not openable."
             )
-        
+
         old_root_base_node = BaseNode.query.filter(
             BaseNode.baseline_template_id == baseline_template_id,
             BaseNode.is_root == 1,
-            ).first()
+        ).first()
         if not old_root_base_node:
             return jsonify(
-                error_code = RET.VERIFY_ERR,
-                error_msg = "The root node of baseLineTemplate is empty."
+                error_code=RET.VERIFY_ERR,
+                error_msg="The root node of baseLineTemplate is empty."
             )
 
         res_old_nodes = list()
@@ -250,37 +245,37 @@ class BaselineTemplateHandler:
 
         if not base_nodes:
             return jsonify(
-                error_code = RET.VERIFY_ERR,
-                error_msg = "base_nodes does not exist."
+                error_code=RET.VERIFY_ERR,
+                error_msg="base_nodes does not exist."
             )
-        
+
         nodes = list()
         res_node = dict()
         for base_node in base_nodes:
             if not base_node:
                 return jsonify(
-                    error_code = RET.VERIFY_ERR,
-                    error_msg = "base_node does not exist."
+                    error_code=RET.VERIFY_ERR,
+                    error_msg="base_node does not exist."
                 )
 
             _casenode = BaselineTemplateHandler.impl_select_base_node_casenode(
-                baseline_template, 
+                baseline_template,
                 base_node
             )
 
             flag = BaselineTemplateHandler.check_base_node_not_exist(
-                base_node, 
+                base_node,
                 res_old_base_nodes
             )
-            
+
             if flag:
                 resp = BaselineTemplateHandler.create_new_base_node(
                     baseline_template, base_node, _casenode, res_node, nodes
                 )
-                if type(resp) == tuple:
-                    _id, nodes = resp 
+                if isinstance(resp, tuple):
+                    _id, nodes = resp
                 else:
-                    return resp  
+                    return resp
             else:
                 for node in res_old_base_nodes:
                     if node.get("title") == base_node.title:
@@ -291,9 +286,9 @@ class BaselineTemplateHandler:
                         break
                     else:
                         _id = None
-            
+
             children = base_node.children
-            
+
             children_list = []
             [children_list.append(child) for child in children]
             if children and _id:
@@ -302,7 +297,6 @@ class BaselineTemplateHandler:
                 })
 
         return jsonify(error_code=RET.OK, error_msg="OK", data=nodes)
-
 
 
 class BaseNodeHandler:
@@ -321,7 +315,6 @@ class BaseNodeHandler:
             data=base_node.to_json()
         )
 
-
     @staticmethod
     @collect_sql_error
     def get_all(baseline_template_id, query):
@@ -329,7 +322,7 @@ class BaseNodeHandler:
         filter_params.append(
             BaseNode.baseline_template_id == baseline_template_id
         )
-        
+
         for key, value in query.dict().items():
             if not value:
                 continue
@@ -344,7 +337,6 @@ class BaseNodeHandler:
         return_data = [base_node.to_json() for base_node in base_nodes]
         return jsonify(error_code=RET.OK, error_msg="OK", data=return_data)
 
-
     @staticmethod
     @collect_sql_error
     def post(baseline_template_id, body):
@@ -353,14 +345,14 @@ class BaseNodeHandler:
         ).first()
         if not baseline_template:
             return jsonify(
-                error_code=RET.NO_DATA_ERR, 
+                error_code=RET.NO_DATA_ERR,
                 error_msg="baseline_template does not exist"
             )
 
         parent = BaseNode.query.filter_by(id=body.parent_id).first()
         if not parent:
             return jsonify(
-                error_code=RET.NO_DATA_ERR, 
+                error_code=RET.NO_DATA_ERR,
                 error_msg="parent node does not exist"
             )
         if body.title is not None:
@@ -389,9 +381,9 @@ class BaseNodeHandler:
             return jsonify(error_code=RET.OK, error_msg="OK")
 
         base_body = body.__dict__
-        
+
         _case_node_ids = base_body.pop("case_node_ids")
-        #去重
+        # 去重
         for child in parent.children:
             if child.case_node_id in _case_node_ids:
                 _case_node_ids.remove(child.case_node_id)
@@ -412,7 +404,6 @@ class BaseNodeHandler:
 
         return jsonify(error_code=RET.OK, error_msg="OK")
 
-
     @staticmethod
     @collect_sql_error
     def delete(base_node_id):
@@ -427,7 +418,7 @@ class BaseNodeHandler:
         )
         if current_org_id != base_node.org_id:
             return jsonify(error_code=RET.VERIFY_ERR, error_msg="No right to delete")
-        
+
         _baseline_id = base_node.baseline_template_id
         db.session.delete(base_node)
         if base_node.type == "baseline" and _baseline_id:
@@ -451,7 +442,7 @@ class BaselineTemplateApplyHandler:
         ).first()
         if not self.baseline_template:
             raise ValueError("The baseline_template is not openable, cannot apply.")
-        
+
         self.root_casenode = CaseNode.query.filter_by(id=case_node_id).first()
         if not self.root_casenode.baseline:
             raise ValueError("this node is not a baseline")
@@ -466,7 +457,7 @@ class BaselineTemplateApplyHandler:
             CaseNode.type != "baseline",
             sqlalchemy.or_(
                 CaseNode.type == "suite",
-                CaseNode.type == "case",  
+                CaseNode.type == "case",
             ),
         ).all()
 
@@ -481,7 +472,7 @@ class BaselineTemplateApplyHandler:
         if not baseline:
             raise ValueError(
                 "The baseline is not exist."
-            )            
+            )
 
         baseline_template = BaselineTemplate.query.filter_by(
             id=self.root_basenode.baseline_template_id
@@ -495,12 +486,12 @@ class BaselineTemplateApplyHandler:
             if baseline.org_id != baseline_template.org_id:
                 raise ValueError(
                     "Orgs cannot be applied to each other."
-                ) 
+                )
 
         if baseline.permission_type == baseline_template.type == "group":
             if baseline.group_id != baseline_template.group_id:
                 raise ValueError(
-                    "Groups cannot be applied to each other."        
+                    "Groups cannot be applied to each other."
                 )
 
         if baseline.permission_type != baseline_template.type:
@@ -511,7 +502,7 @@ class BaselineTemplateApplyHandler:
 
     def apply(self):
         self._apply(self.root_basenode, self.root_casenode)
-    
+
     def _copy_basenode2casenode(self, from_basenode, to_casenode):
         new_node = CaseNode(
             type=from_basenode.type,
@@ -527,7 +518,7 @@ class BaselineTemplateApplyHandler:
             case_id=from_basenode.case_node.case_id if from_basenode.case_node else None,
         )
         new_node.add_update()
-        
+
         to_casenode.children.append(new_node)
         to_casenode.add_update()
 
@@ -543,19 +534,19 @@ class BaselineTemplateApplyHandler:
 
         if from_basenode.title in origin_dirs.keys():
             return origin_dirs.get(from_basenode.title)
-        
+
         return self._copy_basenode2casenode(from_basenode, to_casenode)
-        
+
     def _apply_suite(self, from_basenode, to_casenode):
         origin_suites = dict()
         if to_casenode.children:
             for child in to_casenode.children:
                 if child.type == 'suite':
                     origin_suites[child.suite_id] = child
-        
+
         if from_basenode.case_node.suite_id in origin_suites.keys():
             return origin_suites.get(from_basenode.case_node.suite_id)
-        
+
         return self._copy_basenode2casenode(from_basenode, to_casenode)
 
     def _apply_case(self, from_basenode, to_casenode):
@@ -564,12 +555,12 @@ class BaselineTemplateApplyHandler:
             for child in to_casenode.children:
                 if child.type == 'case':
                     origin_cases[child.case_id] = child
-        
+
         if from_basenode.case_node.case_id in origin_cases.keys():
             return origin_cases.get(from_basenode.case_node.case_id)
-        
+
         return self._copy_basenode2casenode(from_basenode, to_casenode)
-        
+
     def _apply(self, from_basenode, to_casenode):
         if not from_basenode.children:
             return
@@ -582,6 +573,6 @@ class BaselineTemplateApplyHandler:
                 new_child = self._apply_suite(child, to_casenode)
             elif child.type == 'case':
                 new_child = self._apply_case(child, to_casenode)
-            
+
             if new_child:
                 self._apply(child, new_child)

@@ -12,13 +12,13 @@
 # @Date    :
 # @License : Mulan PSL v2
 #####################################
+import os
 
 import yaml
-import os
+
 from server.model.permission import Scope
 from server.model.administrator import Admin
 from server.model.permission import Role
-from server.model.alembic_version import AlembicVersion
 
 
 def init_admin(db, app):
@@ -42,7 +42,7 @@ def init_scope(db, app):
             try:
                 result = yaml.safe_load(f.read())
             except yaml.YAMLError as e:
-                raise RuntimeError(e)
+                raise RuntimeError("yaml load failed:{}".format(e)) from e
         eft_dict = {'allow': '允许', 'deny': '拒绝'}
         for scope in result:
             alias = scope['alias']
@@ -51,7 +51,8 @@ def init_scope(db, app):
             for eft in eft_dict:
                 new_alias = eft_dict[eft] + alias
                 scope = Scope.query.filter_by(alias=new_alias).first()
-                if scope and (scope.uri != uri or scope.act != act or scope.eft != eft):
+                is_new_scope = (scope.uri != uri or scope.act != act or scope.eft != eft)
+                if scope and is_new_scope:
                     scope.uri = uri
                     scope.act = act
                     scope.eft = eft
@@ -73,7 +74,7 @@ def init_role(db, app):
             try:
                 result = yaml.safe_load(f.read())
             except yaml.YAMLError as e:
-                raise RuntimeError(e)
+                raise RuntimeError("yaml load error:{}".format(e)) from e
         role_list = result['public']
         for role_type in role_list:
             if role_type == 'user':
@@ -104,7 +105,7 @@ def create_role(_type, group=None, org=None):
             result = yaml.safe_load(f.read())
         except yaml.YAMLError as e:
             current_app.logger.error(f'init role when creating org/group error -> {e}')
-            raise RuntimeError(e)
+            raise RuntimeError("init role when creating org/group error") from e
     role_list = result[_type]
     admin_role = None
     return_list = []
@@ -147,7 +148,7 @@ def create_role(_type, group=None, org=None):
     return admin_role, return_list
 
 
-def get_api(_path, file, matching_word, id):
+def get_api(_path, file, matching_word, obj_id):
     from flask import current_app
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     with open(os.path.join(base_dir, "apps" + os.sep + _path + os.sep + file), 'r', encoding='utf-8') as f:
@@ -155,7 +156,7 @@ def get_api(_path, file, matching_word, id):
             result = yaml.safe_load(f.read())
         except yaml.YAMLError as e:
             current_app.logger.error(f'get api error -> {e}')
-            raise RuntimeError(e)
+            raise RuntimeError("get api error") from e
     allow_list = list()
     deny_list = list()
     _list = list()
@@ -163,8 +164,8 @@ def get_api(_path, file, matching_word, id):
     for scope in result:
         for eft in eft_dict:
             _list.append({
-                "alias": eft_dict[eft] + scope['alias'] + "_" + matching_word + "_" + str(id),
-                "uri": str(scope['uri']).replace("{" + matching_word + "_id}", str(id)),
+                "alias": eft_dict[eft] + scope['alias'] + "_" + matching_word + "_" + str(obj_id),
+                "uri": str(scope['uri']).replace("{" + matching_word + "_id}", str(obj_id)),
                 "act": scope['act'],
                 "eft": eft
             })
@@ -182,7 +183,7 @@ def get_default_suffix(role_type):
             result = yaml.safe_load(f.read())
         except yaml.YAMLError as e:
             current_app.logger.error(f'get_default_suffix error -> {e}')
-            raise RuntimeError(e)
+            raise RuntimeError('get_default_suffix error') from e
     role_list = result[role_type]
     suffix = None
     for role_type in role_list:

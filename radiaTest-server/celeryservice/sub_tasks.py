@@ -24,7 +24,6 @@ from server.model.framework import GitRepo
 from server.schema.testcase import SuiteBase, SuiteUpdate, CaseBaseSchemaWithSuiteId
 from server.model.qualityboard import SameRpmCompare, RpmCompare
 
-
 logger = get_task_logger('manage')
 
 
@@ -79,7 +78,7 @@ def update_suite(suite_data, cases_data):
         deleted=False,
     ).all()
 
-    [ radia_cases.add(case.name) for case in cases ]
+    [radia_cases.add(case.name) for case in cases]
     git_cases = set()
     for case_data in cases_data:
         git_cases.add(case_data.get("name"))
@@ -114,7 +113,7 @@ def update_compare_result(round_group_id: int, results, repo_path):
         ).first()
         if not rpm_compare:
             _ = Insert(
-                RpmCompare, 
+                RpmCompare,
                 {
                     "repo_path": repo_path,
                     "arch": result.get("arch"),
@@ -127,7 +126,7 @@ def update_compare_result(round_group_id: int, results, repo_path):
         else:
             _ = Edit(
                 RpmCompare,
-                {   
+                {
                     "id": rpm_compare.id,
                     "compare_result": result.get("compare_result"),
                 }
@@ -148,7 +147,7 @@ def update_daily_compare_result(daily_name, comparer_round_name, compare_results
     ws.write(0, 1, comparer_round_name)
     ws.write(0, 2, "arch")
     ws.write(0, 3, "compare result")
-    
+
     for result in compare_results:
         ws.write(cnt, 0, result.get("rpm_list_1"))
         ws.write(cnt, 1, result.get("rpm_list_2"))
@@ -185,7 +184,7 @@ def update_samerpm_compare_result(round_id: int, results, repo_path):
         ).first()
         if not rpm_compare:
             _ = Insert(
-                SameRpmCompare, 
+                SameRpmCompare,
                 {
                     "repo_path": repo_path,
                     "rpm_name": result.get("rpm_name"),
@@ -198,7 +197,7 @@ def update_samerpm_compare_result(round_id: int, results, repo_path):
         else:
             _ = Edit(
                 SameRpmCompare,
-                {   
+                {
                     "id": rpm_compare.id,
                     "compare_result": result.get("compare_result"),
                 }
@@ -246,7 +245,7 @@ def create_case_node_multi_select(body):
             if _case:
                 body["case_id"] = _id
                 body["title"] = _case.name
-                #版本基线下的case类型的case_result设为“pending”
+                # 版本基线下的case类型的case_result设为“pending”
                 if body.get("baseline_id"):
                     body["case_result"] = "pending"
                 insert_case_node(body, parent)

@@ -35,18 +35,18 @@ class Admin(db.Model, BaseModel):
     def check_password_hash(self, password):
         return check_password_hash(self.password_hash, password)
 
-    def add_update(self, table=None, namespace=None):
+    def add_update(self, table=None, namespace=None, broadcast=False):
         casbin_enforcer.adapter.add_policy(
-            "g", 
-            "g", 
-            ["admin_%s"%(self.id), "root"]
+            "g",
+            "g",
+            ["admin_%s" % (self.id), "root"]
         )
         return super().add_update(table, namespace)
 
-    def delete(self, table, namespace):
+    def delete(self, table=None, namespace=None, broadcast=False):
         casbin_enforcer.adapter.remove_policy(
-            "g", 
-            "g", 
-            ["admin_%s"%(self.id), "root"]
+            "g",
+            "g",
+            ["admin_%s" % (self.id), "root"]
         )
         return super().delete(table, namespace)

@@ -7,12 +7,11 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 ####################################
-# Author : MDS_ZHR
-# email : 331884949@qq.com
+# Author :
+# email :
 # Date : 2022/12/13 14:00:00
 # License : Mulan PSL v2
 #####################################
-# 用例管理(Testcase)相关接口的schema
 
 from typing import Optional
 from typing import List
@@ -56,7 +55,7 @@ class CaseNodeBodySchema(BaseModel):
             if values["in_set"] is True and values["milestone_id"]:
                 raise ValueError("the case set can not relate to any milestone")
         else:
-            if values["in_set"] is False and not values["milestone_id"] and  values["type"] == "baseline":
+            if values["in_set"] is False and not values["milestone_id"] and values["type"] == "baseline":
                 raise ValueError("the testing baseline needs relating to milestone")
 
         if values["is_root"] is True and values["in_set"] is True:

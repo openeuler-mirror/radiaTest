@@ -19,7 +19,7 @@ from openpyxl import Workbook
 from lib.common import RestApi
 
 
-def export_case_to_excel(filepath: str, auth: str=None) -> None:
+def export_case_to_excel(filepath: str, auth: str = None) -> None:
     """
         导出case详细信息到excel文档(.xlsx)
     """
@@ -63,7 +63,7 @@ def export_case_to_excel(filepath: str, auth: str=None) -> None:
         resp = api.get(verify=False)
         resp_dict = json.loads(resp.text)
         case_node_list = resp_dict.get("data")
-        for _case_node in  case_node_list:
+        for _case_node in case_node_list:
             if _case_node.get("case_id") == case_id:
                 node_num = node_num + 1
         ws.cell(row, 6, node_num)

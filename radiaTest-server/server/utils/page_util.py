@@ -130,14 +130,14 @@ class Paginate(object):
         if self.has_next:
             return self._page + 1
         else:
-            return None
+            return 0
 
     @property
     def prev_num(self):
         if self.has_prev:
             return self._page - 1
         else:
-            return None
+            return 0
 
     @property
     def per_page(self):

@@ -7,8 +7,8 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 ####################################
-# Author : MDS_ZHR
-# email : 331884949@qq.com
+# Author :
+# email :
 # Date : 2022/12/13 14:00:00
 # License : Mulan PSL v2
 #####################################
@@ -19,6 +19,7 @@ import math
 import os
 import datetime
 import time
+import pytz
 from typing import List
 import openpyxl
 from openpyxl.styles import Alignment
@@ -26,7 +27,6 @@ from openpyxl.styles import Alignment
 from flask import jsonify, g, current_app, request
 import sqlalchemy
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
-
 
 from server import db, redis_client
 from server.utils.redis_util import RedisKey
@@ -47,7 +47,7 @@ from server.model.celerytask import CeleryTask
 from server.model.organization import Organization
 from server.model.milestone import Milestone
 from server.schema.testcase import (
-    CaseNodeBaseSchema, 
+    CaseNodeBaseSchema,
     AddCaseCommitSchema,
     CaseNodeBodySchema
 )
@@ -72,17 +72,17 @@ class CaseImportHandler:
                 self.case_file = ExcelImportFile(file)
             except TypeError:
                 self.case_file = MarkdownImportFile(file)
-            
+
             if self.case_file.filetype:
                 testcase_file_path = os.path.join(current_app.config.get("TMP_FILE_SAVE_PATH"), "testcase")
                 self.case_file.file_save(testcase_file_path)
             else:
                 mesg = "Filetype of {}.{} is not supported".format(
-                        self.case_file.filename,
-                        self.case_file.filetype,
-                    )
+                    self.case_file.filename,
+                    self.case_file.filetype,
+                )
                 raise RuntimeError(mesg)
-        
+
         except RuntimeError as e:
             current_app.logger.error(str(e))
             if os.path.exists(self.case_file.filepath):
@@ -91,12 +91,8 @@ class CaseImportHandler:
 
     def import_case(self, group_id=None, case_node_id=None):
         permission_type = "org"
-        if group_id:
-            try:
-                _ = int(group_id)
-                permission_type = "group"
-            except (ValueError, TypeError):
-                group_id = None
+        if isinstance(group_id, int):
+            permission_type = "group"
         else:
             group_id = None
 
@@ -117,7 +113,7 @@ class CaseImportHandler:
 
         if not _task:
             return jsonify(
-                error_code=RET.SERVER_ERR, 
+                error_code=RET.SERVER_ERR,
                 error_msg="could not send task to resolve file"
             )
 
@@ -146,7 +142,7 @@ class CaseImportHandler:
         """
         testcase_file_path = os.path.join(current_app.config.get("TMP_FILE_SAVE_PATH"), "export")
         os.makedirs(testcase_file_path, exist_ok=True)
-        try:                       
+        try:
             if to == "md":
                 kwargs = {
                     "df": Excel(self.case_file.filetype).load(self.case_file.filepath),
@@ -163,15 +159,15 @@ class CaseImportHandler:
                     )
 
                     kwargs = {
-                        "md_content": f.read(), 
+                        "md_content": f.read(),
                         "wb_path": _wb_path,
                         "sheet_name": self.case_file.filename,
                     }
-                
+
                 wb = openpyxl.Workbook()
                 wb.create_sheet(self.case_file.filename)
                 wb.save(_wb_path)
-            
+
             return self.CONVERT_METHOD[to](**kwargs)
 
         except KeyError as e:
@@ -186,7 +182,7 @@ class CaseNodeHandler:
         case_node = CaseNode.query.filter_by(id=case_node_id).first()
         if not case_node:
             return jsonify(
-                error_code=RET.NO_DATA_ERR, 
+                error_code=RET.NO_DATA_ERR,
                 error_msg="case_node does not exists"
             )
 
@@ -195,7 +191,7 @@ class CaseNodeHandler:
         filter_params.append(CaseNode.parent.contains(case_node))
         if query.title:
             filter_params.append(CaseNode.title.like(f'%{query.title}%'))
-        
+
         children = CaseNode.query.filter(*filter_params).all()
 
         return_data["children"] = [child.to_json() for child in children]
@@ -236,11 +232,11 @@ class CaseNodeHandler:
             filter_param.append(
                 CaseNode.suite_id == query.suite_id,
             )
-            
+
         case_node = CaseNode.query.filter(*filter_param).first()
         if not case_node:
             return jsonify(
-                error_code=RET.NO_DATA_ERR, 
+                error_code=RET.NO_DATA_ERR,
                 error_msg="case node does not exist."
             )
         return_data = CaseNodeBaseSchema(**case_node.__dict__).dict()
@@ -316,7 +312,7 @@ class CaseNodeHandler:
         parent = CaseNode.query.filter_by(id=body.parent_id).first()
         if not parent:
             return jsonify(error_code=RET.NO_DATA_ERR, error_msg="parent node does not exist")
-        
+
         _body.update({
             "permission_type": parent.permission_type,
             "in_set": parent.in_set,
@@ -329,7 +325,7 @@ class CaseNodeHandler:
             Task.accomplish_time.is_(None),
             Task.is_delete.is_(False),
             Task.is_manage_task.is_(False),
-            ).first()
+        ).first()
         if task:
             return jsonify(
                 error_code=RET.DATA_EXIST_ERR,
@@ -439,7 +435,9 @@ class CaseNodeHandler:
                 zip_case_set.file_save(testcase_file_path)
                 uncompressed_filepath = "{}/{}".format(
                     os.path.dirname(zip_case_set.filepath),
-                    f"{zip_case_set.filename}_" + datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+                    f"{zip_case_set.filename}_" + datetime.datetime.now(
+                        tz=pytz.timezone('Asia/Shanghai')
+                    ).strftime("%Y%m%d%H%M%S")
                 )
                 uncompress_flag = zip_case_set.uncompress(uncompressed_filepath)
                 # 清理压缩包
@@ -448,12 +446,8 @@ class CaseNodeHandler:
                     return jsonify(error_code=RET.BAD_REQ_ERR, error_msg="解压失败，请检查压缩文件是否符合规范！")
 
                 permission_type = "org"
-                if group_id:
-                    try:
-                        _ = int(group_id)
-                        permission_type = "group"
-                    except (ValueError, TypeError):
-                        group_id = None
+                if isinstance(group_id, int):
+                    permission_type = "group"
                 else:
                     group_id = None
                 _task = resolve_testcase_set.delay(
@@ -553,7 +547,6 @@ class CaseNodeHandler:
             get_parent(_case_node)
         return root_case_node[0]
 
-
     @staticmethod
     @collect_sql_error
     def get_caseset_filter(_type, _id, current_org_id):
@@ -576,16 +569,15 @@ class CaseNodeHandler:
             filter_org_params.append(CaseNode.permission_type == "org")
         return filter_params, filter_group_params, filter_org_params
 
-
     @staticmethod
     @collect_sql_error
-    def get_caseset_return_data(current_org_id, filter_params, filter_group_params,\
-            filter_org_params, return_data):
+    def get_caseset_return_data(current_org_id, filter_params, filter_group_params, \
+                                filter_org_params, return_data):
 
         current_org_name = Organization.query.filter_by(
-            id = current_org_id
+            id=current_org_id
         ).first().name
-        
+
         if filter_org_params or filter_group_params:
             filter_org_params.extend(filter_params)
             _caseset_org = CaseNode.query.filter(*filter_org_params).first()
@@ -594,25 +586,18 @@ class CaseNodeHandler:
                     "org": {
                         "name": current_org_name,
                         "id": current_org_id,
-                        "children": [
-                            child.to_json() for child in _caseset_org.children
-                        ]
+                        "children": [child.to_json() for child in _caseset_org.children]
                     }
                 })
             filter_group_params.extend(filter_params)
             _caseset_group = CaseNode.query.filter(*filter_group_params).first()
             if _caseset_group:
-                return_data["group"]["children"] = [
-                    child.to_json() for child in _caseset_group.children
-                ]
+                return_data["group"]["children"] = [child.to_json() for child in _caseset_group.children]
         else:
             _caseset = CaseNode.query.filter(*filter_params).first()
-            if _caseset:   
-                return_data["org"]["children"] = [
-                    child.to_json() for child in _caseset.children
-                ]
+            if _caseset:
+                return_data["org"]["children"] = [child.to_json() for child in _caseset.children]
         return return_data
-
 
     @staticmethod
     @collect_sql_error
@@ -623,7 +608,7 @@ class CaseNodeHandler:
                 error_code=RET.NO_DATA_ERR,
                 error_msg=f"{_type} is invalid.",
             )
-        
+
         _item = _table.query.filter_by(id=_id).first()
         if not _item:
             return jsonify(
@@ -637,18 +622,18 @@ class CaseNodeHandler:
                 "children": []
             }
         }
-        
+
         filters = CaseNodeHandler.get_caseset_filter(
-            _type, 
+            _type,
             _id,
             _id
         )
-        
+
         return_data = CaseNodeHandler.get_caseset_return_data(
             _id,
             filters[0],
-            filters[1], 
-            filters[2], 
+            filters[1],
+            filters[2],
             return_data
         )
 
@@ -658,7 +643,6 @@ class CaseNodeHandler:
             data=return_data,
         )
 
-
     @staticmethod
     @collect_sql_error
     def get_task(case_node_id, res_type=None):
@@ -667,26 +651,25 @@ class CaseNodeHandler:
             case_node_id=case_node_id,
             is_delete=False
         ).order_by(Task.create_time.desc()).first()
-        if task:         
+        if task:
             return HandlerTask.get(task.id, res_type=res_type)
         else:
             return jsonify(error_code=RET.OK, error_msg="OK", data=[])
 
-
     @staticmethod
     @collect_sql_error
-    def create_relate_case_node(nodes, case_node, parent_id, 
-            suite_case_node=None, case_case_node=None):
+    def create_relate_case_node(nodes, case_node, parent_id,
+                                suite_case_node=None, case_case_node=None):
         flag = False
         if suite_case_node:
             check_suite_case_node = CaseNode.query.filter(
                 CaseNode.suite_id == suite_case_node.suite_id,
                 CaseNode.type == "suite",
                 CaseNode.baseline_id == case_node.baseline_id,
-            ).first()      
+            ).first()
             if not check_suite_case_node:
                 flag = True
-                node_body = suite_case_node.to_json() 
+                node_body = suite_case_node.to_json()
             else:
                 _id = check_suite_case_node.id
         if case_case_node:
@@ -694,7 +677,7 @@ class CaseNodeHandler:
                 CaseNode.case_id == case_case_node.case_id,
                 CaseNode.type == "case",
                 CaseNode.baseline_id == case_node.baseline_id,
-            ).first()      
+            ).first()
             if not check_case_case_node:
                 flag = True
                 node_body = case_case_node.to_json()
@@ -703,12 +686,11 @@ class CaseNodeHandler:
 
         if flag:
             if node_body["is_root"] is True:
-                    node_body.update({
-                        "is_root": False
-                    })                         
+                node_body.update({"is_root": False})
+
             node_body.pop("id")
             node_body.update({
-                "baseline_id":case_node.baseline_id,
+                "baseline_id": case_node.baseline_id,
                 "creator_id": g.user_id,
                 "case_node_id": suite_case_node.id if suite_case_node else case_case_node.id,
                 "title": suite_case_node.title if suite_case_node else case_case_node.title,
@@ -718,14 +700,14 @@ class CaseNodeHandler:
             if case_node.permission_type == "group":
                 node_body.update({
                     "group_id": case_node.group_id
-            })
+                })
             _id = Insert(CaseNode, node_body).insert_id(CaseNode, '/case_node')
 
             parent = CaseNode.query.filter_by(id=parent_id).first()
             child = CaseNode.query.filter_by(id=_id).first()
             child.parent.append(parent)
-            child.add_update() 
-        
+            child.add_update()
+
         nodes.append(_id)
         return _id, nodes
 
@@ -737,19 +719,19 @@ class CaseNodeHandler:
             id=case_node_id).first()
         if not case_node:
             return jsonify(error_code=RET.NO_DATA_ERR, error_msg="Case-node is not exist.")
-        
+
         suite_case_node = CaseNode.query.filter(
             CaseNode.suite_id == body.suite_id,
             CaseNode.type == "suite",
             CaseNode.baseline_id.is_(None),
-            ).first()
+        ).first()
         if not suite_case_node:
             return jsonify(error_code=RET.NO_DATA_ERR, error_msg="suite_case_node is not exist.")
 
         resp = CaseNodeHandler.create_relate_case_node(
             nodes, case_node, case_node_id, suite_case_node=suite_case_node
         )
-        if type(resp) == tuple:
+        if isinstance(resp, tuple):
             suite_id, nodes = resp
         else:
             return resp
@@ -759,14 +741,14 @@ class CaseNodeHandler:
                 CaseNode.case_id == case_id,
                 CaseNode.type == "case",
                 CaseNode.baseline_id.is_(None),
-                ).first()
+            ).first()
             if not case_case_node:
                 return jsonify(error_code=RET.NO_DATA_ERR, error_msg="case_case_node is not exist.")
 
             resp = CaseNodeHandler.create_relate_case_node(
                 nodes, case_node, suite_id, case_case_node=case_case_node
             )
-            if type(resp) == tuple:
+            if isinstance(resp, tuple):
                 case_id, nodes = resp
             else:
                 return resp
@@ -798,7 +780,7 @@ class CaseNodeHandler:
         case_node = CaseNode.query.filter_by(id=case_node_id).first()
         if not case_node:
             return jsonify(error_code=RET.VERIFY_ERR, error_msg="case-node is not exist.")
-        
+
         filter_params = [
             CaseNode.baseline_id == baseline_id,
             CaseNode.type == "suite",
@@ -806,7 +788,6 @@ class CaseNodeHandler:
         suite_nodes = CaseNode.query.join(Suite).filter(*filter_params).all()
 
         return suite_nodes
- 
 
     @staticmethod
     @collect_sql_error
@@ -970,15 +951,15 @@ class ResourceItemHandler:
         'month': 30,
     }
 
-    def __init__(self, commit_type="week", case_node:CaseNode=None, **kwargs):
+    def __init__(self, commit_type="week", case_node: CaseNode = None, **kwargs):
         if kwargs.get("_type") and kwargs.get("_type") not in ['group', 'org']:
             raise RuntimeError("type error, parameter type must be group or org")
-        if (
-            kwargs.get("_type") == 'group' and not kwargs.get("group_id")
-        ) or (
-            kwargs.get("_type") == 'org' and not kwargs.get("org_id")
-        ):
+
+        check_group_valid = (kwargs.get("_type") == 'group' and not kwargs.get("group_id"))
+        check_org_valid = (kwargs.get("_type") == 'org' and not kwargs.get("org_id"))
+        if check_group_valid or check_org_valid:
             raise RuntimeError("type not match, group_id/org_id not exist")
+
         if kwargs.get("case_node_type") == 'baseline' and not kwargs.get("baseline_id"):
             raise RuntimeError("baseline id should be offered")
 
@@ -1006,12 +987,12 @@ class ResourceItemHandler:
             cases_filter.append(CaseNode.baseline_id == self.baseline_id)
         else:
             cases_filter.append(CaseNode.baseline_id == sqlalchemy.null())
-        
+
         all_count = Case.query.join(CaseNode).filter(
             *cases_filter
         ).count()
         auto_count = Case.query.join(CaseNode).filter(
-            *cases_filter, 
+            *cases_filter,
             Case.automatic.is_(True)
         ).count()
 
@@ -1030,7 +1011,7 @@ class ResourceItemHandler:
             suites_filter.append(CaseNode.baseline_id == self.baseline_id)
         else:
             suites_filter.append(CaseNode.baseline_id == sqlalchemy.null())
-        
+
         all_count = Suite.query.join(CaseNode).filter(
             *suites_filter,
         ).count()
@@ -1046,10 +1027,42 @@ class ResourceItemHandler:
                 res += 1
             else:
                 res += self.count_children_case(child)
-            
+
         return res
 
-    def _get_table_filter(self, table): 
+    def get_case_distribute(self):
+        first_children = [
+            child for child in self.case_node.children if child.type == "directory" or child.type == "suite"
+        ]
+
+        result = list()
+
+        for first_child in first_children:
+            res_first_count = self.count_children_case(first_child)
+
+            result.append({
+                "name": first_child.title,
+                "value": res_first_count,
+            })
+
+        return result
+
+    def run(self):
+        case_count, auto_ratio = self.get_case()
+        suite_count = self.get_suite()
+        return_data = {
+            "case_count": case_count,
+            "auto_ratio": auto_ratio,
+            "suite_count": suite_count,
+        }
+
+        return jsonify(
+            error_code=RET.OK,
+            error_msg='OK',
+            data=return_data
+        )
+
+    def _get_table_filter(self, table):
         if self._type == 'group':
             table_filter = [
                 table.permission_type == 'group',
@@ -1062,37 +1075,6 @@ class ResourceItemHandler:
                 table.org_id == self.org_id
             ]
         return table_filter
-
-    def get_case_distribute(self):
-        first_children =  list(filter(lambda child:(
-            child.type == "directory" or child.type == "suite"
-        ), self.case_node.children))
-        result = list()
-
-        for first_child in first_children:
-            res_first_count = self.count_children_case(first_child)
-
-            result.append({
-                "name": first_child.title,
-                "value": res_first_count,
-            })
-            
-        return result
-
-    def run(self):
-        case_count, auto_ratio = self.get_case()
-        suite_count = self.get_suite()
-        return_data = {
-            "case_count": case_count,
-            "auto_ratio": auto_ratio,
-            "suite_count": suite_count,
-        }     
-
-        return jsonify(
-            error_code=RET.OK,
-            error_msg='OK',
-            data=return_data
-        )
 
 
 class CaseSetHandler:
@@ -1116,7 +1098,7 @@ class CaseSetHandler:
                     commit_type=query.commit_type,
                     case_node=casenode
                 )
-        
+
             case_count, auto_ratio = resource.get_case()
             suite_count = resource.get_suite()
             return_data = {
@@ -1127,7 +1109,7 @@ class CaseSetHandler:
 
             type_distribute = resource.get_case_distribute()
             return_data["type_distribute"] = type_distribute
-        
+
         if case_node_type == "baseline":
             if casenode.permission_type == "group":
                 resource = ResourceItemHandler(
@@ -1145,7 +1127,7 @@ class CaseSetHandler:
                     baseline_id=casenode.baseline_id,
                     case_node=casenode,
                 )
-        
+
             case_count, auto_ratio = resource.get_case()
             suite_count = resource.get_suite()
             return_data = {
@@ -1156,7 +1138,7 @@ class CaseSetHandler:
 
             type_distribute = resource.get_case_distribute()
             return_data["type_distribute"] = type_distribute
-        
+
         return return_data
 
 
@@ -1179,7 +1161,7 @@ class SuiteDocumentHandler:
             "group_id": suite.group_id,
             "suite_id": suite_id,
             "permission_type": suite.permission_type,
-            }
+        }
         )
         _id = Insert(SuiteDocument, _body).insert_id(SuiteDocument, "/suite_document")
         return jsonify(error_code=RET.OK, error_msg="OK", data={"id": _id})
@@ -1201,6 +1183,30 @@ class OrphanSuitesHandler:
         self.query = query
         self._add_params()
 
+    def add_filters(self, query_filters: list):
+        self.filter += query_filters
+
+    @collect_sql_error
+    def get_all(self):
+        query_filter = Suite.query.outerjoin(CaseNode).filter(*self.filter).order_by(
+            Suite.name,
+            Suite.create_time
+        )
+
+        def page_func(item):
+            suite_dict = item.to_json()
+            return suite_dict
+
+        page_dict, e = PageUtil.get_page_dict(
+            query_filter,
+            self.query.page_num,
+            self.query.page_size,
+            func=page_func
+        )
+        if e:
+            return jsonify(error_code=RET.SERVER_ERR, error_msg=f'get orphan suites page error {e}')
+        return jsonify(error_code=RET.OK, error_msg="OK", data=page_dict)
+
     def _add_params(self):
         _filter_params = []
         if self.query.name:
@@ -1213,34 +1219,10 @@ class OrphanSuitesHandler:
             _filter_params.append(Suite.framework.name == self.query.framework_name)
         self.filter += _filter_params
 
-    def add_filters(self, query_filters: list):
-        self.filter += query_filters
-
-    @collect_sql_error
-    def get_all(self):
-        query_filter = Suite.query.outerjoin(CaseNode).filter(*self.filter).order_by(
-            Suite.name, 
-            Suite.create_time
-        )
-
-        def page_func(item):
-            suite_dict = item.to_json()
-            return suite_dict
-        
-        page_dict, e = PageUtil.get_page_dict(
-            query_filter, 
-            self.query.page_num, 
-            self.query.page_size, 
-            func=page_func
-        )
-        if e:
-            return jsonify(error_code=RET.SERVER_ERR, error_msg=f'get orphan suites page error {e}')
-        return jsonify(error_code=RET.OK, error_msg="OK", data=page_dict)
-
 
 class CasefileExportUtil:
     COL_NAMES = [
-        '测试套', '用例名', '测试级别', '测试类型', '用例描述', '节点数', 
+        '测试套', '用例名', '测试级别', '测试类型', '用例描述', '节点数',
         '预置条件', '操作步骤', '预期输出', '是否自动化', '备注'
     ]
 
@@ -1258,7 +1240,7 @@ class CasefileExportUtil:
 
     def get_casefile(self):
         return self.casefile
-    
+
     def rm_casefile(self):
         if os.path.isfile(self.casefile):
             os.remove(self.casefile)
@@ -1300,21 +1282,21 @@ class ExcelExportUtil(CasefileExportUtil):
         sheet = wb.active
         sheet.title = self.filename
         for i, col_name in enumerate(self.COL_NAMES):
-            sheet.cell(self.next_row, i+1).value = col_name
+            sheet.cell(self.next_row, i + 1).value = col_name
         wb.save(self.casefile)
         self.next_row += 1
-    
-    def add_row(self, row_data: list):
+
+    def add_row(self, row_data: list = None):
         wb = openpyxl.load_workbook(self.casefile)
         sheet = wb[self.filename]
         for i, value in enumerate(row_data):
-            sheet.cell(self.next_row, i+1).value = value
-            sheet.cell(self.next_row, i+1).alignment = Alignment(
+            sheet.cell(self.next_row, i + 1).value = value
+            sheet.cell(self.next_row, i + 1).alignment = Alignment(
                 wrapText=True,
                 vertical='top',
                 horizontal='left',
             )
-        
+
         wb.save(self.casefile)
         self.next_row += 1
 
@@ -1325,12 +1307,12 @@ class MdExportUtil(CasefileExportUtil):
         self.casefile = os.path.join(current_app.config.get("TMP_FILE_SAVE_PATH"), "export", f"{self.filename}.md")
 
     def create_casefile(self):
-        with open(self.casefile,  "a") as f:
+        with open(self.casefile, "a") as f:
             f.write(f"|{'|'.join(self.COL_NAMES)}|\n")
-            split_row = "|---"*len(self.COL_NAMES) + "|\n"
+            split_row = "|---" * len(self.COL_NAMES) + "|\n"
             f.write(split_row)
-    
-    def add_row(self, row_data: list):
+
+    def add_row(self, row_data: list = None):
         with open(self.casefile, "a+") as f:
             _row = '|'
             for cell in row_data:

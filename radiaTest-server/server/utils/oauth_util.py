@@ -13,7 +13,7 @@
 # @License : Mulan PSL v2
 #####################################
 
-from server.utils.requests_util import do_request
+from server.utils.requests_util import do_request, HttpRequestParam
 
 
 class LoginApi(object):
@@ -38,7 +38,7 @@ class LoginApi(object):
             }
             body = dict(client_secret=client_secret)
             resp = {}
-            r = do_request(
+            http_request_param = HttpRequestParam(
                 "post",
                 url,
                 params=params,
@@ -46,6 +46,7 @@ class LoginApi(object):
                 obj=resp,
                 encoder=None
             )
+            r = do_request(http_request_param)
             if r != 0 or not resp.get("access_token"):
                 return False, {}
             return True, resp
@@ -66,13 +67,14 @@ class LoginApi(object):
                 }
                 headers = {"Content-Type": "application/json"}
             resp = {}
-            r = do_request(
+            http_request_param = HttpRequestParam(
                 "get",
                 url,
                 params=params,
                 obj=resp,
                 headers=headers
             )
+            r = do_request(http_request_param)
 
             if r != 0:
                 return False, {}

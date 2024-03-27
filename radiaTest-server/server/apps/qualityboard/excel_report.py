@@ -7,8 +7,8 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 ####################################
-# @Author  : hukun66
-# @email   : hu_kun@hoperun.com
+# @Author  :
+# @email   :
 # @Date    : 2023/09/04
 # @License : Mulan PSL v2
 #####################################
@@ -61,6 +61,11 @@ class BaseReport(object):
         if not self.save_path.exists():
             self.save_path.mkdir()
 
+    @staticmethod
+    def set_cell_color(sheet, row, col, color):
+        # 设置单元格颜色
+        sheet.cell(row=row, column=col).fill = PatternFill(start_color=color, end_color=color, fill_type='solid')
+
     def merge_cells(self, sheet, start_row, end_row=None, start_column=None, end_column=None):
         # 单元格合并
         if not end_row:
@@ -70,15 +75,6 @@ class BaseReport(object):
         if not end_column:
             end_column = self.total_col_num
         sheet.merge_cells(start_row=start_row, end_row=end_row, start_column=start_column, end_column=end_column)
-
-    @staticmethod
-    def set_cell_color(sheet, row, col, color):
-        # 设置单元格颜色
-        sheet.cell(row=row, column=col).fill = PatternFill(start_color=color, end_color=color, fill_type='solid')
-
-    def _main(self, wb, excel_data):
-        # 生成报告逻辑必须实现
-        raise Exception("子类的_main方法必须实现")
 
     def generate_excel_report(self, excel_data):
         name = f"{self.product_name}_{self.round_name}" if self.round_name else f"{self.product_name}"
@@ -95,6 +91,10 @@ class BaseReport(object):
         finally:
             wb.close()
         return save_file
+
+    def _main(self, wb, excel_data):
+        # 生成报告逻辑必须实现
+        raise Exception("子类的_main方法必须实现")
 
 
 class QualityReport(BaseReport):
@@ -447,7 +447,7 @@ class ATReport(BaseReport):
 
         return current_sheet_index
 
-    def _main(self, wb, res_list):
+    def _main(self, wb, excel_data):
         # 向sheet表写入at列表数据
         sheet_index = 0
         ws = wb.create_sheet('AT历史记录总览', sheet_index)
@@ -458,7 +458,7 @@ class ATReport(BaseReport):
         for index, value in enumerate(self.overview_table_header.values(), start=1):
             write_content(ws, row_index, index, value, bold_font)
         # 写入build信息
-        for res_info in res_list:
+        for res_info in excel_data:
             row_index = row_index + 1
             for col_index, key in enumerate(self.overview_table_header.keys(), start=1):
                 write_content(ws, row_index, col_index, res_info.get(key))

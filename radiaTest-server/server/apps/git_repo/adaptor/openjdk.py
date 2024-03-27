@@ -7,8 +7,8 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 ####################################
-# @Author  : Ethan-Zhang
-# @email   : ethanzhang55@outlook.com
+# @Author  :
+# @email   :
 # @Date    : 2023/05/08
 # @License : Mulan PSL v2
 #####################################
@@ -34,7 +34,7 @@ class Jdk8uDev(JdkBaseAdaptor):
         """
         work_dir = self._get_work_dir(self.oet_path)
         if not work_dir:
-            return None
+            return []
 
         suite2cases = []
         for suite in self.SUITES:
@@ -54,8 +54,7 @@ class Jdk8uDev(JdkBaseAdaptor):
 
 
 class Jdk11uDev(JdkBaseAdaptor):
-    SUITES = ["fmw", "hotspot", "jaxp", "jdk", 
-    "langtools", "lib-test", "micro", "nashorn"]
+    SUITES = ["fmw", "hotspot", "jaxp", "jdk", "langtools", "lib-test", "micro", "nashorn"]
 
     def suite2cases_resolve(self, git_repo_id):
         """resolving testcases data from jdk11u-dev repo
@@ -66,7 +65,7 @@ class Jdk11uDev(JdkBaseAdaptor):
             os.path.join(self.oet_path, 'test')
         )
         if not work_dir:
-            return None
+            return []
 
         suite2cases = []
         for suite in self.SUITES:
@@ -86,8 +85,7 @@ class Jdk11uDev(JdkBaseAdaptor):
 
 
 class Jdk17uDev(JdkBaseAdaptor):
-    SUITES = ["hotspot", "jaxp", "jdk", 
-    "langtools", "lib-test", "micro"]
+    SUITES = ["hotspot", "jaxp", "jdk", "langtools", "lib-test", "micro"]
 
     def suite2cases_resolve(self, git_repo_id):
         """resolving testcases data from jdk17u-dev repo
@@ -98,7 +96,7 @@ class Jdk17uDev(JdkBaseAdaptor):
             os.path.join(self.oet_path, 'test')
         )
         if not work_dir:
-            return None
+            return []
 
         suite2cases = []
         for suite in self.SUITES:

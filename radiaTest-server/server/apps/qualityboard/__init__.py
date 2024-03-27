@@ -137,7 +137,8 @@ def init_api(api: Api):
     )
     api.add_resource(
         PackageListCompareEvent,
-        "/api/v1/qualityboard/<int:qualityboard_id>/round/<int:comparee_round_id>/with/<int:comparer_round_id>/pkg-compare"
+        "/api/v1/qualityboard/<int:qualityboard_id>"
+        "/round/<int:comparee_round_id>/with/<int:comparer_round_id>/pkg-compare"
     )
     api.add_resource(
         DailyBuildPackageListCompareEvent,

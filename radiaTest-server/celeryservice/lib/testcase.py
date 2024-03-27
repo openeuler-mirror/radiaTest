@@ -38,6 +38,16 @@ class TestcaseHandler(TaskAuthHandler):
         self.promise = promise
         super().__init__(user, logger)
 
+    @staticmethod
+    def clean_file(filepath):
+        if os.path.exists(filepath):
+            try:
+                os.remove(filepath)
+            except Exception as error:
+                # 用例集导入文件为uncompress用户权限
+                current_app.logger.error(str(error))
+                _, _, _ = run_cmd("sudo -u uncompress rm -rf '{}'".format(filepath))
+
     def create_case_node(self, body):
         if not body.parent_id:
             case_node_id = Insert(CaseNode, body.__dict__).insert_id()
@@ -308,16 +318,12 @@ class TestcaseHandler(TaskAuthHandler):
                     self.logger.error(resp_dict["error_msg"])
             else:
                 try:
-                    try:
-                        msg = json.loads(_resp.text).get("message")
-                    except:
-                        msg = _resp.text
-                    self.logger.error(
-                        f"Bad request post to server api for resolve testcase by filepath: {msg}"
-                    )
-                except:
-                    self.logger.error(
-                        "Bad request post to server api for resolve testcase by filepath")
+                    msg = json.loads(_resp.text).get("message")
+                except (KeyError, ValueError) as e:
+                    msg = _resp.text
+                self.logger.error(
+                    f"Bad request post to server api for resolve testcase by filepath: {msg}"
+                )
             return
 
         if not os.path.isdir(_filepath):
@@ -465,12 +471,4 @@ class TestcaseHandler(TaskAuthHandler):
 
             return jsonify(error_code=RET.SERVER_ERR, error_msg=str(e))
 
-    @staticmethod
-    def clean_file(filepath):
-        if os.path.exists(filepath):
-            try:
-                os.remove(filepath)
-            except Exception as error:
-                # 用例集导入文件为uncompress用户权限
-                current_app.logger.error(str(error))
-                _, _, _ = run_cmd("sudo -u uncompress rm -rf '{}'".format(filepath))
+

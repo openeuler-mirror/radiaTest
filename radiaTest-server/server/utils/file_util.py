@@ -15,7 +15,6 @@
 
 import os
 import re
-import socket
 import datetime
 import time
 import uuid
@@ -23,8 +22,8 @@ from contextlib import contextmanager
 from pathlib import Path
 from uuid import uuid1
 from shlex import quote
-from functools import lru_cache
 from werkzeug.utils import secure_filename
+import pytz
 
 import magic
 from flask import current_app, jsonify
@@ -61,14 +60,6 @@ class FileUtil(object):
         return f'{current_app.static_url_path}{os.path.sep}{static_dir}{os.path.sep}{uuid1().hex}'
 
 
-@lru_cache()
-def get_local_ip():
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.connect(('8.8.8.8', 80))
-    socket_name = s.getsockname()
-    return socket_name[0]
-
-
 class ImportFile:
     def __init__(self, file, filename=None, filetype=None) -> None:
         self.file = file
@@ -79,13 +70,6 @@ class ImportFile:
         if not filename and not filetype:
             self.filename, self.filetype = self._validate_filetype()
 
-    def _validate_filetype(self):
-        pattern = r'^([^\.].*?)\.({})$'.format('|'.join(self.valid_types))
-        result = re.search(pattern, self.file.filename)
-        if not result:
-            return None
-        return result[1], result[2]
-
     def file_save(self, tmp_path, timestamp=True):
         if timestamp:
             self.filepath = os.path.join(
@@ -95,7 +79,7 @@ class ImportFile:
                         lazy_pinyin(
                             "{}.{}.{}".format(
                                 self.filename,
-                                datetime.datetime.now().strftime("%Y%m%d%H%M%S"),
+                                datetime.datetime.now(tz=pytz.timezone('Asia/Shanghai')).strftime("%Y%m%d%H%M%S"),
                                 self.filetype
                             )
                         )
@@ -128,6 +112,13 @@ class ImportFile:
 
         cmd = "rm -rf {}".format(quote(self.filepath))
         _, _, _ = run_cmd(cmd)
+
+    def _validate_filetype(self):
+        pattern = r'^([^\.].*?)\.({})$'.format('|'.join(self.valid_types))
+        result = re.search(pattern, self.file.filename)
+        if not result:
+            return "", ""
+        return result[1], result[2]
 
 
 class ZipImportFile(ImportFile):
@@ -247,11 +238,31 @@ def identify_file_type(file, need_type):
 
 
 class FileTypeMapping(object):
-    case_set_type = ["application/zip", "application/gzip", "application/x-gzip", "application/x-tar",
-                     "application/x-rar-compressed", "application/x-rar"]
-    test_case_type = ["text/plain", "text/markdown", "application/vnd.ms-excel", "text/csv",
-                      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"]
+    case_set_type = [
+        "application/zip",
+        "application/gzip",
+        "application/x-gzip",
+        "application/x-tar",
+        "application/x-rar-compressed",
+        "application/x-rar"
+    ]
+    test_case_type = [
+        "text/plain",
+        "text/markdown",
+        "application/vnd.ms-excel",
+        "text/csv",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    ]
 
-    image_type = ["image/jpeg", "image/png", "image/gif", "image/bmp", "image/x-ms-bmp", "image/x-windows-bmp",
-                  "image/svg+xml", "image/vnd.microsoft.icon", "image/x-icon"]
+    image_type = [
+        "image/jpeg",
+        "image/png",
+        "image/gif",
+        "image/bmp",
+        "image/x-ms-bmp",
+        "image/x-windows-bmp",
+        "image/svg+xml",
+        "image/vnd.microsoft.icon",
+        "image/x-icon"
+    ]
     yaml_type = ["text/plain", "text/x-yaml", "application/yaml"]

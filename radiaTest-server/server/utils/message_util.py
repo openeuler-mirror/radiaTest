@@ -13,8 +13,11 @@
 # @License : Mulan PSL v2
 #####################################
 
-import json, yaml, os
+import os
+import json
+
 from flask import g
+import yaml
 
 from server.model import (
     Message,
@@ -23,7 +26,7 @@ from server.model import (
     Role,
     ReUserRole,
 )
-from server.utils.db import Insert, Precise
+from server.utils.db import Precise
 from server.utils.table_adapter import TableAdapter
 
 

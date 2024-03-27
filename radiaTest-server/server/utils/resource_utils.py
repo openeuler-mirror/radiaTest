@@ -14,10 +14,12 @@
 #####################################
 
 import os
+
 from flask import jsonify
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+
 from server.utils.db import Insert, Delete
 from server.utils.response_util import RET
-from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from server.utils.permission_utils import PermissionManager
 from server.utils.table_adapter import TableAdapter
 
@@ -36,7 +38,7 @@ class ResourceManager:
         cur_file_dir = os.path.abspath(__file__)
         cur_dir = cur_file_dir.replace(cur_file_dir.split(
             os.sep)[-1], "").replace("utils"+os.sep, "")
-        allow_list, deny_list = PermissionManager(self.creator_id, self.org_id).get_api_list(
+        allow_list, deny_list = PermissionManager.get_api_list(
             self.table_name,
             cur_dir + "apps" + os.sep + self.table_name + os.sep + file_name,
             item_id
@@ -48,11 +50,11 @@ class ResourceManager:
             item_id = Insert(self._table, body).insert_id(
                 self._table, "/"+self.table_name)
         except (IntegrityError, SQLAlchemyError) as e:
-            raise RuntimeError(str(e))
+            raise RuntimeError("insert db error:{}".format(e)) from e
         cur_file_dir = os.path.abspath(__file__)
         cur_dir = cur_file_dir.replace(cur_file_dir.split(
             os.sep)[-1], "").replace("utils"+os.sep, "")
-        allow_list, deny_list = PermissionManager().get_api_list(
+        allow_list, deny_list = PermissionManager.get_api_list(
             self.table_name,
             cur_dir + "apps" + os.sep + self.table_name + os.sep + file_name,
             item_id
@@ -70,11 +72,11 @@ class ResourceManager:
             item_id = Insert(self._table, body).insert_id(
                 self._table, "/"+self.table_name)
         except (IntegrityError, SQLAlchemyError) as e:
-            raise RuntimeError(str(e))
+            raise RuntimeError("insert db method2 error:{}".format(e)) from e
         cur_file_dir = os.path.abspath(__file__)
         cur_dir = cur_file_dir.replace(cur_file_dir.split(
             os.sep)[-1], "").replace("utils"+os.sep, "")
-        allow_list, deny_list = PermissionManager().get_api_list(
+        allow_list, deny_list = PermissionManager.get_api_list(
             self.table_name,
             cur_dir + "apps" + os.sep + file_name,
             item_id
@@ -90,7 +92,7 @@ class ResourceManager:
     def del_single(self, resource_id):
         Delete(self._table, {"id": resource_id}).single(
             self._table, "/" + self.table_name)
-        PermissionManager().clean(self.api_ver + "/" +
+        PermissionManager.clean(self.api_ver + "/" +
                                   self.table_name + "/", [resource_id])
         return jsonify(
             error_code=RET.OK, error_msg="Request processed successfully."
@@ -108,12 +110,12 @@ class ResourceManager:
                 )
             else:
                 cas_ids = [cas.id for cas in _cascades]
-                PermissionManager().clean(self.api_ver + "/" +
+                PermissionManager.clean(self.api_ver + "/" +
                                           cascade_table.__tablename__ + "/", cas_ids)
 
         Delete(self._table, {"id": resource_id}).single(
             self._table, "/" + self.table_name)
-        PermissionManager().clean(self.api_ver + "/" +
+        PermissionManager.clean(self.api_ver + "/" +
                                   self.table_name + "/", [resource_id])
         return jsonify(
             error_code=RET.OK, error_msg="Request processed successfully."
@@ -122,7 +124,7 @@ class ResourceManager:
     def del_batch(self, resource_ids: list):
         Delete(self._table, {"id": resource_ids}).batch(
             self._table, "/" + self.table_name)
-        PermissionManager().clean(self.api_ver + "/" + self.table_name + "/", resource_ids)
+        PermissionManager.clean(self.api_ver + "/" + self.table_name + "/", resource_ids)
         return jsonify(
             error_code=RET.OK, error_msg="Request processed successfully."
         )

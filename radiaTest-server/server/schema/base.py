@@ -18,11 +18,13 @@ from typing import List, Optional
 from enum import Enum
 from pydantic import BaseModel, root_validator
 from flask import g
+
 from server import redis_client
 from server.utils.redis_util import RedisKey
-from . import PermissionType
 from server.utils.db import Precise
-from server.model import User, Group, ReUserGroup
+from server.model import ReUserGroup
+from server.schema import PermissionType
+
 
 class DeleteBaseModel(BaseModel):
     id: List[int]
@@ -41,7 +43,7 @@ class PageBaseSchema(BaseModel):
     def _validate(cls, values):
         if values["page_size"] < 1 or values["page_num"] < 1:
             raise ValueError("page_size or page_num must be more then zero")
-        
+
         return values
 
 
@@ -63,7 +65,7 @@ class TimeBaseSchema(BaseModel):
         try:
             if values.get("start_time"):
                 values["start_time"] = datetime.strptime(
-                    values["start_time"], 
+                    values["start_time"],
                     "%Y-%m-%d %H:%M:%S"
                 )
             if values.get("end_time"):
@@ -71,18 +73,18 @@ class TimeBaseSchema(BaseModel):
                     values["end_time"],
                     "%Y-%m-%d %H:%M:%S"
                 )
-                
-        except:
-            raise ValueError(
+
+        except ValueError as e:
+            raise RuntimeError(
                 "the format of start_time/end_time is not valid, the valid type is: %Y-%m-%d %H:%M:%S"
-            )
+            ) from e
 
         if values.get("start_time") and values.get("end_time"):
             start_time = values.get("start_time").strftime("%Y-%m-%d")
             end_time = values.get("end_time").strftime("%Y-%m-%d")
             if start_time >= end_time:
                 raise ValueError("end_time is earlier than start_time.")
-        
+
         return values
 
 
@@ -102,7 +104,12 @@ class PermissionBase(BaseModel):
                 raise ValueError("Lack of group_id for a role of group")
             else:
                 re_user_group = Precise(
-                    ReUserGroup, {"group_id": values.get("group_id"), "org_id": values.get("org_id"), "user_id": values.get("creator_id")}
+                    ReUserGroup,
+                    {
+                        "group_id": values.get("group_id"),
+                        "org_id": values.get("org_id"),
+                        "user_id": values.get("creator_id")
+                    }
                 ).first()
                 if not re_user_group:
                     raise ValueError("The group does not exist or does not belong to current org.")

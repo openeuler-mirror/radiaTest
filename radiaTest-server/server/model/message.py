@@ -14,12 +14,10 @@
 #####################################
 
 import json
-
+from enum import Enum
 
 from server.model import BaseModel
 from server import db
-from enum import Enum
-
 from server.utils.db import Insert
 
 
@@ -98,6 +96,34 @@ class Message(db.Model, BaseModel):
     type = db.Column(db.Integer(), nullable=False, default=MsgType.text.value)
     org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
 
+    @staticmethod
+    def create_instance(data, from_id, to_ids, org_id, level=MsgLevel.user.value, msg_type=MsgType.text.value):
+        new_recode = Message()
+        if isinstance(data, str):
+            new_recode.data = data
+        else:
+            new_recode.data = json.dumps(data)
+        new_recode.from_id = from_id
+        new_recode.level = level
+        new_recode.type = msg_type
+        new_recode.org_id = org_id
+        message_id = new_recode.add_flush_commit_id()
+        # 消息关联用户
+        if isinstance(to_ids, (list, tuple, set)):
+            for msg_user_id in to_ids:
+                Insert(MessageUsers,
+                       {
+                           "user_id": msg_user_id,
+                           "message_id": message_id,
+                       }).single()
+        else:
+            Insert(MessageUsers,
+                   {
+                       "user_id": to_ids,
+                       "message_id": message_id,
+                   }).single()
+        return new_recode
+
     def to_dict(self):
         return {
             "id": self.id,
@@ -119,10 +145,10 @@ class Message(db.Model, BaseModel):
         self.emit_count()
 
     def add_flush_commit_id(self, table=None, namespace=None, broadcast=False):
-        id = super().add_flush_commit_id(table, namespace, broadcast)
+        record_id = super().add_flush_commit_id(table, namespace, broadcast)
         self.emit_count()
         self.emit_notify()
-        return id
+        return record_id
 
     def add_flush_commit(self, table=None, namespace=None, broadcast=False):
         message = super().add_flush_commit(table, namespace, broadcast)
@@ -157,32 +183,3 @@ class Message(db.Model, BaseModel):
                 namespace='/message',
                 room=str(mes_user.user_id)
             )
-
-    @staticmethod
-    def create_instance(data, from_id, to_ids, org_id, level=MsgLevel.user.value, msg_type=MsgType.text.value):
-        new_recode = Message()
-        if isinstance(data, str):
-            new_recode.data = data
-        else:
-            new_recode.data = json.dumps(data)
-        new_recode.from_id = from_id
-        new_recode.level = level
-        new_recode.type = msg_type
-        new_recode.org_id = org_id
-        message_id = new_recode.add_flush_commit_id()
-        # 消息关联用户
-        if isinstance(to_ids, (list, tuple, set)):
-            for msg_user_id in to_ids:
-                Insert(MessageUsers,
-                       {
-                           "user_id": msg_user_id,
-                           "message_id": message_id,
-                       }).single()
-        else:
-            Insert(MessageUsers,
-                   {
-                       "user_id": to_ids,
-                       "message_id": message_id,
-                   }).single()
-        return new_recode
-

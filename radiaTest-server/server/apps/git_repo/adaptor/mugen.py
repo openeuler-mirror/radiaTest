@@ -7,17 +7,15 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 ####################################
-# @Author  : Ethan-Zhang
-# @email   : ethanzhang55@outlook.com
+# @Author  :
+# @email   :
 # @Date    : 2023/05/08
 # @License : Mulan PSL v2
 #####################################
 
 import os
-import subprocess
 import shlex
 import json
-import re
 from copy import deepcopy
 from typing import List
 
@@ -35,7 +33,7 @@ class Mugen(GitRepoAdaptor):
         }
 
         @classmethod
-        def _translate(cls, text: str):
+        def translate(cls, text: str):
             """translate keywords which does not match coding lint rule
                 :params text(str), the original text to translate
                 :returns str, the translated text, keywords would be change 
@@ -47,7 +45,7 @@ class Mugen(GitRepoAdaptor):
             return text
 
         @classmethod
-        def _translate_add_disk(cls, add_disk_list: list) -> str:
+        def translate_add_disk(cls, add_disk_list: list) -> str:
             return ",".join([str(x) for x in add_disk_list])
 
     def suite2cases_resolve(self, git_repo_id):
@@ -58,17 +56,17 @@ class Mugen(GitRepoAdaptor):
 
         _work_dir = self._get_work_dir(f"{self.oet_path}/suite2cases")
         if not _work_dir:
-            return None
+            return []
         exitcode, output, _ = run_cmd('cd {} && export SUITE=(*.json) && echo "${{SUITE[@]%.*}}"'.format(
             shlex.quote(_work_dir))
         )
 
         if exitcode:
-            return None
+            return []
 
         suites_arr = output.strip().split()
 
-        return self._get_suites(suites_arr, git_repo_id)
+        return self._get_suites(git_repo_id=git_repo_id, suites_arr=suites_arr)
     
     def _get_case_code(self, path: str, case: dict) -> str:
         """get code of testcase from given filepath
@@ -96,7 +94,8 @@ class Mugen(GitRepoAdaptor):
 
         return script_code
 
-    def _get_cases(self, suite: str, suite_path: str, cases: list) -> list:
+    def _get_cases(self, suite: str = None, local_dir: str = None,
+                   prefix: str = "", suite_path: str = None, cases: list = None) -> list:
         """rebuild function to get cases data with fixed format from given testsuite for mugen
             :params suite(str), the name of given testsuite
             :params suite_path(str), the filepath of testsuite
@@ -137,7 +136,7 @@ class Mugen(GitRepoAdaptor):
             "r"
         ) as f:
             f_str = f.read()
-            translated_str = Mugen.MugenField._translate(f_str)
+            translated_str = Mugen.MugenField.translate(f_str)
             origin_data = json.loads(translated_str)
 
         suite_data = {
@@ -148,13 +147,14 @@ class Mugen(GitRepoAdaptor):
 
         # translate value of add_disk to valid format
         if suite_data.get("add_disk") is not None:
-            suite_data["add_disk"] = Mugen.MugenField._translate_add_disk(
+            suite_data["add_disk"] = Mugen.MugenField.translate_add_disk(
                 suite_data["add_disk"]
             )
         
         return suite_data
 
-    def _get_suites(self, suites_arr: List[str], git_repo_id: int) -> List[tuple]:
+    def _get_suites(self, git_repo_id: int = None, local_dir: str = None,
+                    prefix: str = "", pass_through: bool = False, suites_arr: List[str] = None) -> List[tuple]:
         """rebuild function to get suites from mugen repo
             :params suites_arr([str]), the list of suites name resolved
             :returns [tuple], [(suite data, [case data])]
@@ -163,7 +163,7 @@ class Mugen(GitRepoAdaptor):
         for suite in suites_arr:
             try:
                 suite_data = self._get_suite(suite, git_repo_id)
-            except:
+            except Exception as e:
                 continue
             
             # redundance fileds pop out 
@@ -177,7 +177,7 @@ class Mugen(GitRepoAdaptor):
                 if suite_path[-1] == '/':
                     suite_path = suite_path[:-1]
             
-            cases_data = self._get_cases(suite, suite_path, cases)
+            cases_data = self._get_cases(suite=suite, suite_path=suite_path, cases=cases)
 
             suite2cases.append(
                 (suite_data, cases_data)
