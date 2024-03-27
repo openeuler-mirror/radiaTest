@@ -265,6 +265,8 @@ const getOrgList = () => {
     },
   ];
   defaultExpandedKeys.value.push(storage.getLocalValue('unLoginOrgId').id);
+  orgList.value = _.cloneDeep(treeData.value);
+  showLoading.value = false;
 };
 
 // 获取树根节点

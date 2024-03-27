@@ -7,36 +7,36 @@ import { getDataList } from './groupTable';
 const showCreateForm = ref(false);
 const formRef = ref();
 const createModal = reactive({
-  groupName: '',
-  describe: ''
+  name: '',
+  description: ''
 });
 const rules = {
-  groupName: {
+  name: {
     required: true,
     trigger: ['blur', 'input'],
     message: '请输入组织名'
   }
 };
 const fileList = ref([]);
-function createGroup () {
+function createGroup() {
   showCreateForm.value = true;
 }
-function onNegativeClick () {
+function onNegativeClick() {
   window.$message && window.$message.info('取消创建');
   showCreateForm.value = false;
 }
-async function onPositiveClick () {
+async function onPositiveClick() {
   await formRef.value.validate((errors) => {
     if (!errors) {
       changeLoadingStatus(true);
       let formData = new FormData();
       formData.append('avatar_url', fileList.value[0]?.file);
-      formData.append('name', createModal.groupName);
-      formData.append('description', createModal.describe);
+      formData.append('name', createModal.name);
+      formData.append('description', createModal.description);
       axios.post('/v1/groups', formData).then(() => {
         showCreateForm.value = false;
-        createModal.groupName = '';
-        createModal.describe = '';
+        createModal.name = '';
+        createModal.description = '';
         fileList.value = [];
         window.$message && window.$message.success('添加成功!');
         getDataList();
@@ -53,7 +53,7 @@ async function onPositiveClick () {
   });
   return false;
 }
-function uploadFinish (options) {
+function uploadFinish(options) {
   fileList.value = options;
 }
 

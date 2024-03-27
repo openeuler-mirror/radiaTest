@@ -3,6 +3,7 @@ import axios2 from 'axios';
 import { unkonwnErrorMsg } from '@/assets/utils/description';
 import { workspace } from '@/assets/config/menu.js';
 import { storage } from '@/assets/utils/storageUtils';
+import router from '@/router/index';
 
 function getRequest(url, data, config, unLoginRquest) {
   return new Promise((resolve, reject) => {
@@ -22,6 +23,15 @@ function getRequest(url, data, config, unLoginRquest) {
         resolve(res);
       })
       .catch((err) => {
+        if (!storage.getValue('token') && !addedOrgData.org_id) {
+          router.replace(`/blank?redirect=${router.currentRoute.value.fullPath}`);
+          window.$notification?.error({
+            content: '登录过期,请重新登录',
+            duration: 5000,
+            keepAliveOnHover: true
+          });
+          return;
+        }
         if (!axios2.isCancel(err)) {
           window.$notification?.error({
             content: err?.data?.error_msg || unkonwnErrorMsg,
@@ -523,4 +533,7 @@ export function getAllOrgList(data) {
   return getRequest('/v1/orgs/all', data);
 }
 
+export function getResultModalData(data) {
+  return getRequest('/v1/testcase/test-result', data);
+}
 

@@ -74,9 +74,7 @@ server.interceptors.response.use(
       return Promise.resolve(response);
     }
     if (response.data.error_code === '4021') {
-      router.push({
-        name: 'home',
-      });
+      router.replace(`/blank?redirect=${router.currentRoute.value.fullPath}`);
       return Promise.reject(response);
     }
 
@@ -90,12 +88,17 @@ server.interceptors.response.use(
         error_msg: '登录失效',
       };
       window.$message?.info(
-        '请点击右上角头像进行重新登录',
+        '请点击右上角登录按钮进行重新登录',
         {
           closable: true,
           duration: 10000
         }
       );
+      if (router.currentRoute.value.matched[0].name === 'PersonalCenter') {
+        router.replace({
+          name: 'task'
+        });
+      }
     } else if (error.response?.status === 500) {
       window.$message?.destroyAll();
       error.response.data = {
