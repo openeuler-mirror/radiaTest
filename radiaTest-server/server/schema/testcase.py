@@ -83,7 +83,7 @@ class CaseNodeBodySchema(BaseModel):
         elif values["type"] == 'case':
             if not values["parent_id"]:
                 raise ValueError("case must have a parent case-node")
-    
+
             if values["multiselect"]:
                 if not values["case_ids"]:
                     raise ValueError("The case-node should relate to case")
@@ -107,13 +107,12 @@ class CaseNodeQuerySchema(BaseModel):
     org_id: Optional[int]
     title: Optional[str]
 
-
     @root_validator
     def validate_query(cls, values):
         if values["org_id"] and values["group_id"]:
             raise ValueError("org_id and group_id should not be provided in same request")
         return values
-        
+
 
 class CaseNodeItemQuerySchema(BaseModel):
     title: Optional[str]
@@ -133,7 +132,7 @@ class CaseSetNodeQueryBySuiteSchema(BaseModel):
 
 class CaseNodeUpdateSchema(BaseModel):
     title: Optional[str]
-    milestone_id: Optional[int]   
+    milestone_id: Optional[int]
 
 
 class CaseNodeBaseSchema(BaseModel):
@@ -172,7 +171,6 @@ class SuiteBase(BaseModel):
     group_id: Optional[int]
     org_id: Optional[int]
 
-    
     @validator("add_disk")
     def check_add_disk(cls, v):
         try:
@@ -193,7 +191,7 @@ class SuiteUpdate(SuiteBase):
 
 
 class DeleteSchema(BaseModel):
-    case_node_id:  Optional[int]
+    case_node_id: Optional[int]
 
 
 class SuiteBaseUpdate(BaseModel):
@@ -255,7 +253,6 @@ class CaseCreateBody(CaseCreate, CaseNodeBodySchema):
     suite: str = None
     title: Optional[str] = None
     type: Optional[CaseNodeType] = "case"
-
 
     @root_validator
     def validate_values(cls, values):
@@ -396,3 +393,41 @@ class TestResultEventSchemaV2(BaseModel):
 class TestResultQuerySchema(BaseModel):
     milestone_id: int
     case_id: int
+
+
+class TestCaseBase:
+    def __init__(self, parent_id: int, permission_type: str = 'public', org_id: int = None, group_id: int = None):
+        self.parent_id = parent_id  # 被创建case类型节点的父节点
+        self.permission_type = permission_type  # 被创建case类型节点的权限类型
+        self.org_id = org_id  # 被创建case类型节点的所属组织
+        self.group_id = group_id  # 被创建case类型节点的所属团队
+
+
+class CreateCaseInstance(TestCaseBase):
+    def __init__(
+            self,
+            parent_id: int,
+            case_name: str,
+            case_id: int,
+            permission_type: str = 'public',
+            org_id: int = None,
+            group_id: int = None
+    ):
+        super().__init__(parent_id, permission_type, org_id, group_id)
+        self.case_name = case_name  # 被创建case类型节点关联的用例名
+        self.case_id = case_id  # 被创建case类型节点关联的用例ID
+
+
+class SuiteNodeInstance(TestCaseBase):
+    def __init__(
+            self,
+            parent_id: int,
+            suite_id: int,
+            permission_type: str = 'public',
+            org_id: int = None,
+            group_id: int = None,
+            user_id: str = None,
+    ):
+        super().__init__(parent_id, permission_type, org_id, group_id)
+        self.suite_id = suite_id   # 被创建suite类型节点关联的用例ID
+        self.user_id = user_id     # 创建异步任务的当前用户id

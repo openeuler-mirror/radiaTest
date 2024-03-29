@@ -7,13 +7,14 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 ####################################
-# @Author  : hukun66
-# @email   : hu_kun@hoperun.com
+# @Author  :
+# @email   :
 # @Date    : 2023/09/15
 # @License : Mulan PSL v2
 #####################################
 import logging
 import os
+import stat
 import re
 import threading
 import uuid
@@ -28,7 +29,7 @@ from flask_sqlalchemy.model import Model as sqlalchemyModel
 from sqlalchemy.sql.sqltypes import DateTime, Integer, String, Boolean, Float
 from pydantic import BaseModel
 
-from server.plugins.swagger.swagger_schema import BaseResponse, SchemaType
+from server.plugins.swagger.swagger_schema import SchemaType
 
 
 class SwaggerJsonAdapt(object):
@@ -246,7 +247,8 @@ class SwaggerJsonAdapt(object):
                 # 重名参数改名
                 for definition, definition_info in definitions.items():
                     self.adapt_ref_address(definition_info)  # 多重引用地址处理
-                    if definition in self.swagger_json["components"]["schemas"]:
+                    components = self.swagger_json.get("components")
+                    if components and definition in components.get("schemas"):
                         update_schemas[definition] = {
                             "unique_name": definition + "_" + str(uuid.uuid4()).replace('-', ''),
                             "info": definition_info,
@@ -257,24 +259,34 @@ class SwaggerJsonAdapt(object):
                             "info": definition_info,
                         }
                 for _, info in update_schemas.items():
-                    self.swagger_json["components"]["schemas"][info["unique_name"]] = info["info"]
+                    if info.get("unique_name"):
+                        self.swagger_json["components"]["schemas"][info.get("unique_name")] = info.get("info")
                 # 替换所有schemas引用地址位置至components/schemas
                 for _, info in schema_dict["properties"].items():
                     if info.get("type") == "array":
-                        if "$ref" in info["items"]:
+                        if "$ref" in info.get("items"):
                             definition_name = info["items"]["$ref"].replace("#/definitions/", "")
-                            info["items"]["$ref"] = f'#/components/schemas/' \
-                                                    f'{update_schemas[definition_name]["unique_name"]}'
+                            update_schemas_name = update_schemas.get(definition_name)
+                            if update_schemas_name:
+                                unique_name = update_schemas_name.get("unique_name")
+                                info["items"]["$ref"] = f'#/components/schemas/' \
+                                                        f'{unique_name}'
                     else:
                         if "$ref" in info:
                             definition_name = info["$ref"].replace("#/definitions/", "")
-                            info["$ref"] = f'#/components/schemas/{update_schemas[definition_name]["unique_name"]}'
+                            update_schemas_name = update_schemas.get(definition_name)
+                            if update_schemas_name:
+                                unique_name = update_schemas_name.get("unique_name")
+                                info["$ref"] = f'#/components/schemas/{unique_name}'
 
     def save_swagger_yaml(self):
         self.swagger_json.get("tags").extend(
             [{"name": name, "description": value} for name, value in self.tag_dict.items()])
-        with open(self.swagger_file, "w", encoding="utf-8") as f:
-            yaml.dump(self.swagger_json, f, allow_unicode=True)
+        flags = os.O_RDWR | os.O_CREAT
+        mode = stat.S_IRUSR | stat.S_IWUSR
+        with os.fdopen(os.open(self.swagger_file, flags, mode), 'w', encoding="utf-8") as fout:
+            yaml.dump(self.swagger_json, fout, allow_unicode=True)
+            fout.close()
 
     def swagger_wrapper(self, api_json):
         def wrapper(func):
@@ -317,8 +329,10 @@ class SwaggerJsonAdapt(object):
             self.api_info_map[model_name][resource_name] = {}
         if func_name in self.api_info_map[model_name][resource_name]:
             logging.warning(
-                "[warning] %s %s %s is repeat, overwritten old api info!!!"
-                , model_name, resource_name, func_name
+                "[warning] %s %s %s is repeat, overwritten old api info!!!",
+                model_name,
+                resource_name,
+                func_name
             )
         self.api_info_map[model_name][resource_name][func_name] = api_schema_dict
 

@@ -7,13 +7,14 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 ####################################
-# @Author  : disnight
-# @email   : fjc837005411@outlook.com
+# @Author  :
+# @email   :
 # @Date    : 2022/07/30
 # @License : Mulan PSL v2
 #####################################
 
 import os
+import stat
 import argparse
 from enum import Enum
 
@@ -21,28 +22,27 @@ from flask import current_app
 
 
 class RpmCompareStatus(Enum):
-    SAME = 0 # name, version, release all same
-    VER_UP = 1 # name same, version update, ignore release change
-    VER_DOWN = 2 # name same, version downgrade, ignore release change
-    REL_UP = 3 # name version same, release changed
-    REL_DOWN = 4 # name version same, release downgrade
-    ADD = 5 # rpm packages has been added
-    DEL = 6 # rpm packages has been removed
-    LACK = 7 # lack of rpm packages
-    DIFFERENT = 8 # name, version, release, one or more of them are diffrent
-    ERROR = 200 # unexpected compare
+    SAME = 0  # name, version, release all same
+    VER_UP = 1  # name same, version update, ignore release change
+    VER_DOWN = 2  # name same, version downgrade, ignore release change
+    REL_UP = 3  # name version same, release changed
+    REL_DOWN = 4  # name version same, release downgrade
+    ADD = 5  # rpm packages has been added
+    DEL = 6  # rpm packages has been removed
+    LACK = 7  # lack of rpm packages
+    DIFFERENT = 8  # name, version, release, one or more of them are diffrent
+    ERROR = 200  # unexpected compare
 
 
 class RpmName():
-    
-    file_name = "" # rpm包名
-    name = "" # rpm名，即spec中的package的字段
-    src_name = "" # 源码包rpm名，即spec中的Name字段
-    version = "" # rpm version版本信息，即spec中的Version字段
-    release = "" # rpm release版本信息，即spec中的Release字段
-    epoch = "" # rpm epoch版本信息，即spec中的Epoch字段，默认为0
-    arch = "" # rpm 架构信息，即spec中的Epoch字段，根据架构由不同ok
- 
+    file_name = ""  # rpm包名
+    name = ""  # rpm名，即spec中的package的字段
+    src_name = ""  # 源码包rpm名，即spec中的Name字段
+    version = ""  # rpm version版本信息，即spec中的Version字段
+    release = ""  # rpm release版本信息，即spec中的Release字段
+    epoch = ""  # rpm epoch版本信息，即spec中的Epoch字段，默认为0
+    arch = ""  # rpm 架构信息，即spec中的Epoch字段，根据架构由不同ok
+
     def __init__(self, **kwargs) -> None:
         """_
 
@@ -66,7 +66,7 @@ class RpmName():
             self.arch = kwargs.get("arch")
         else:
             raise ValueError("Arguments are invalid to init a RpmName Object")
-    
+
     def __str__(self) -> str:
         if not self.is_parsed:
             return "unsupported name format"
@@ -228,7 +228,7 @@ class RpmNameLoader():
 
 
 class RpmNameComparator():
-    
+
     @staticmethod
     def compare_str_version(version_a, version_b):
         """Compare the order between two given version strings
@@ -289,7 +289,7 @@ class RpmNameComparator():
                 version_b_t = int(version_b_arr[i])
             else:
                 tmp_b = "".join(filter(str.isdigit, version_b_arr[i]))
-                #如果全为字母，设大小为-1，作为比较值
+                # 如果全为字母，设大小为-1，作为比较值
                 if tmp_b == "":
                     version_b_t = -1
                 else:
@@ -373,12 +373,12 @@ class RpmNameComparator():
         return
             RpmCompareStatus
         """
-        pass 
+        pass
 
     @staticmethod
-    def compare_rpm_name(rpm_name1:str, rpm_name2:str, get_dict=False):
+    def compare_rpm_name(rpm_name1: str, rpm_name2: str, get_dict=False):
         return RpmNameComparator.compare_rpm_name_cls(
-            RpmName(rpm_file_name=rpm_name1), 
+            RpmName(rpm_file_name=rpm_name1),
             RpmName(rpm_file_name=rpm_name2)
         )
 
@@ -428,7 +428,7 @@ def compare_rpm_name(rpm_args):
     return [rpm_args.rpmlist[0], rpm_args.rpmlist[1], result]
 
 
-def compare_rpm_list(rpm_args, save_file=True, output_file="output.csv"): 
+def compare_rpm_list(rpm_args, save_file=True, output_file="output.csv"):
     if len(rpm_args.rpmlistfile) != 2:
         current_app.logger.warning("this cli only support 2 rpmlist file compare")
         return []
@@ -436,16 +436,19 @@ def compare_rpm_list(rpm_args, save_file=True, output_file="output.csv"):
     rpmdict2 = RpmNameLoader.load_rpmdict_from_file(rpm_args.rpmlistfile[1])
     result = RpmNameComparator.compare_rpm_dict(rpmdict1, rpmdict2)
     if save_file:
-        with open(output_file, "w") as f:
+        flags = os.O_RDWR | os.O_CREAT
+        mode = stat.S_IRUSR | stat.S_IWUSR
+        with os.fdopen(os.open(output_file, flags, mode), 'w') as fout:
             for line in result:
-                f.write("{},{},{},{}".format(
+                fout.write("{},{},{},{}".format(
                     line.get("arch", ""),
                     line.get("rpm_list_1", ""),
                     line.get("rpm_list_2", ""),
                     line.get("compare_result", "")
                 ))
                 # 为保证CSV文件换行无空白行，故强制使用\n作为换行符
-                f.write("\n")
+                fout.write("\n")
+            fout.close()
     return result
 
 
@@ -456,29 +459,28 @@ def load_compare_rpm_name_args():
         args : cli input
     """
     parser = argparse.ArgumentParser()
-    
+
     subparsers = parser.add_subparsers(dest="cmd_name",
                                        help="use sub command rpmnama parse, rpmname compare, rpmlist compare")
-    
+
     rpmname_parser = subparsers.add_parser("rpm_name",
-                                        help="get license from spec")
+                                           help="get license from spec")
     rpmname_parser.add_argument("-rn", "--rpmname", type=str,
                                 help="the name of rpmfile")
     rpmname_parser.set_defaults(func=parse_rpm_name)
-    
-    
+
     rpmname_com_parser = subparsers.add_parser("rpm_compare",
-                                        help="get license from spec")
+                                               help="get license from spec")
     rpmname_com_parser.add_argument("-rl", "--rpmlist", type=str, nargs=2,
-                                help="the name list of rpmfile")
+                                    help="the name list of rpmfile")
     rpmname_com_parser.set_defaults(func=compare_rpm_name)
-    
+
     rpmlist_com_parser = subparsers.add_parser("rpmlist_compare",
-                                        help="get license from spec")    
+                                               help="get license from spec")
     rpmlist_com_parser.add_argument("-rf", "--rpmlistfile", type=str, nargs=2,
-                                help="the file path of rpmlist")
+                                    help="the file path of rpmlist")
     rpmlist_com_parser.set_defaults(func=compare_rpm_list)
-    
+
     return parser.parse_args()
 
 

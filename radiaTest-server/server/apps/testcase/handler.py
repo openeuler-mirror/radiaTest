@@ -17,10 +17,11 @@
 import abc
 import math
 import os
+import stat
 import datetime
 import time
-import pytz
 from typing import List
+import pytz
 import openpyxl
 from openpyxl.styles import Alignment
 
@@ -1032,7 +1033,9 @@ class ResourceItemHandler:
 
     def get_case_distribute(self):
         first_children = [
-            child for child in self.case_node.children if child.type == "directory" or child.type == "suite"
+            child
+            for child in self.case_node.children
+            if child.type == "directory" or child.type == "suite"
         ]
 
         result = list()
@@ -1197,12 +1200,7 @@ class OrphanSuitesHandler:
             suite_dict = item.to_json()
             return suite_dict
 
-        page_dict, e = PageUtil.get_page_dict(
-            query_filter,
-            self.query.page_num,
-            self.query.page_size,
-            func=page_func
-        )
+        page_dict, e = PageUtil(self.query.page_num, self.query.page_size,).get_page_dict(query_filter, func=page_func)
         if e:
             return jsonify(error_code=RET.SERVER_ERR, error_msg=f'get orphan suites page error {e}')
         return jsonify(error_code=RET.OK, error_msg="OK", data=page_dict)
@@ -1307,19 +1305,24 @@ class MdExportUtil(CasefileExportUtil):
         self.casefile = os.path.join(current_app.config.get("TMP_FILE_SAVE_PATH"), "export", f"{self.filename}.md")
 
     def create_casefile(self):
-        with open(self.casefile, "a") as f:
-            f.write(f"|{'|'.join(self.COL_NAMES)}|\n")
+        flags = os.O_WRONLY | os.O_APPEND | os.O_CREAT
+        mode = stat.S_IRUSR | stat.S_IWUSR
+        with os.fdopen(os.open(self.casefile, flags, mode), 'a') as fout:
+            fout.write(f"|{'|'.join(self.COL_NAMES)}|\n")
             split_row = "|---" * len(self.COL_NAMES) + "|\n"
-            f.write(split_row)
+            fout.write(split_row)
+            fout.close()
 
     def add_row(self, row_data: list = None):
-        with open(self.casefile, "a+") as f:
+        flags = os.O_RDWR | os.O_CREAT | os.O_APPEND
+        mode = stat.S_IRUSR | stat.S_IWUSR
+        with os.fdopen(os.open(self.casefile, flags, mode), 'a+') as fout:
             _row = '|'
             for cell in row_data:
                 cell = cell.replace('\n', '<br />')
                 _row = _row + str(cell) + '|'
             _row += '\n'
-            f.write(_row)
+            fout.write(_row)
 
 
 class TestResultEventHandler:

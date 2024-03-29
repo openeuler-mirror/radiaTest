@@ -1198,8 +1198,8 @@ class HandlerTaskFamily(object):
             ]
             _filter.extend(permission_filter)
             tasks = Task.query.filter(*_filter).all()
-            return_data = [TaskBaseSchema(**item.__dict__).dict() for item in tasks]
-            return jsonify(error_code=RET.OK, error_msg="OK", data=return_data)
+            task_data = [TaskBaseSchema(**item.__dict__).dict() for item in tasks]
+            return jsonify(error_code=RET.OK, error_msg="OK", data=task_data)
 
         if not query.not_in:
             task = Task.query.get(task_id)
@@ -1234,19 +1234,19 @@ class HandlerTaskFamily(object):
             filter_params.append(Task.title.like(f"%{query.title}%"))
 
         pend_parents = [item.id for item in task.parents.filter(Task.is_delete.is_(False)).all()]
-        parents = set(pend_parents)
+        unique_parents = set(pend_parents)
 
         pend_children = [item.id for item in task.children.filter(Task.is_delete.is_(False)).all()]
-        children = set(pend_children)
+        unique_children = set(pend_children)
 
         if not query.is_parent:
             family_member = get_family_member(
-                parents, return_set=set(), is_parent=query.is_parent
-            ).union(children)
+                unique_parents, return_set=set(), is_parent=query.is_parent
+            ).union(unique_children)
         else:
             family_member = get_family_member(
-                children, return_set=set(), is_parent=query.is_parent
-            ).union(parents)
+                unique_children, return_set=set(), is_parent=query.is_parent
+            ).union(unique_parents)
         filter_params.append(Task.id.notin_(family_member))
         filter_params.append(
             TaskMilestone.milestone_id.in_(

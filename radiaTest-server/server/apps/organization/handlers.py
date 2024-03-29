@@ -45,7 +45,7 @@ def handler_org_group_page(org_id, query: PageBaseSchema):
         return GroupInfoSchema(**item.group.to_dict()).dict()
 
     # 返回结果
-    page_dict, e = PageUtil.get_page_dict(query_filter, query.page_num, query.page_size, func=page_func, is_set=True)
+    page_dict, e = PageUtil(query.page_num, query.page_size).get_page_dict(query_filter, func=page_func, is_set=True)
     if e:
         return jsonify(error_code=RET.SERVER_ERR, error_msg=f'get group page error {e}')
     return jsonify(error_code=RET.OK, error_msg="OK", data=page_dict)
@@ -68,7 +68,7 @@ def handler_get_all_org(query):
             return None
         return OrgBaseSchema(**item.to_dict()).dict()
 
-    page_dict, e = PageUtil.get_page_dict(query_filter, query.page_num, query.page_size, func=page_func)
+    page_dict, e = PageUtil(query.page_num, query.page_size).get_page_dict(query_filter, func=page_func)
     if e:
         return jsonify(error_code=RET.SERVER_ERR, error_msg=f'get organization page error {e}')
 
@@ -115,7 +115,7 @@ def handler_org_user_page(org_id):
         return user_dict
 
     # 返回结果
-    page_dict, e = PageUtil.get_page_dict(query_filter, page_num, page_size, func=page_func)
+    page_dict, e = PageUtil(page_num, page_size).get_page_dict(query_filter, func=page_func)
     if e:
         return jsonify(error_code=RET.SERVER_ERR, error_msg=f'get group page error {e}')
     return jsonify(error_code=RET.OK, error_msg="OK", data=page_dict)

@@ -32,6 +32,16 @@ class MsgType(Enum):
     script = 1
 
 
+class MessageInstance:
+    def __init__(self, data, from_id, to_ids, org_id, level=MsgLevel.user.value, msg_type=MsgType.text.value):
+        self.data = data
+        self.from_id = from_id
+        self.to_ids = to_ids
+        self.org_id = org_id
+        self.level = level
+        self.msg_type = msg_type
+
+
 # 消息中间表
 class MessageUsers(db.Model, BaseModel):
     __tablename__ = "message_users"
@@ -97,20 +107,20 @@ class Message(db.Model, BaseModel):
     org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
 
     @staticmethod
-    def create_instance(data, from_id, to_ids, org_id, level=MsgLevel.user.value, msg_type=MsgType.text.value):
+    def create_instance(message_instance: MessageInstance):
         new_recode = Message()
-        if isinstance(data, str):
-            new_recode.data = data
+        if isinstance(message_instance.data, str):
+            new_recode.data = message_instance.data
         else:
-            new_recode.data = json.dumps(data)
-        new_recode.from_id = from_id
-        new_recode.level = level
-        new_recode.type = msg_type
-        new_recode.org_id = org_id
+            new_recode.data = json.dumps(message_instance.data)
+        new_recode.from_id = message_instance.from_id
+        new_recode.level = message_instance.level
+        new_recode.type = message_instance.msg_type
+        new_recode.org_id = message_instance.org_id
         message_id = new_recode.add_flush_commit_id()
         # 消息关联用户
-        if isinstance(to_ids, (list, tuple, set)):
-            for msg_user_id in to_ids:
+        if isinstance(message_instance.to_ids, (list, tuple, set)):
+            for msg_user_id in message_instance.to_ids:
                 Insert(MessageUsers,
                        {
                            "user_id": msg_user_id,
@@ -119,7 +129,7 @@ class Message(db.Model, BaseModel):
         else:
             Insert(MessageUsers,
                    {
-                       "user_id": to_ids,
+                       "user_id": message_instance.to_ids,
                        "message_id": message_id,
                    }).single()
         return new_recode

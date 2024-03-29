@@ -17,13 +17,12 @@
 
 import re
 import datetime
-import pytz
 from contextlib import contextmanager
+import pytz
 
 import redis
 import requests
 from flask import current_app
-
 
 from celeryservice.tasks import read_openqa_tests_overview
 from server.model.product import Product

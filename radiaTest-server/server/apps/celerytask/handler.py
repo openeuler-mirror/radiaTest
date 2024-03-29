@@ -51,7 +51,7 @@ class CeleryTaskHandler:
             celerytask_dict = item.to_dict()
             return celerytask_dict
 
-        page_dict, e = PageUtil.get_page_dict(query_filter, query.page_num, query.page_size, func=page_func)
+        page_dict, e = PageUtil(query.page_num, query.page_size).get_page_dict(query_filter, func=page_func)
         if e:
             return jsonify(error_code=RET.SERVER_ERR, error_msg=f'get celery task page error {e}')
         return jsonify(error_code=RET.OK, error_msg="OK", data=page_dict)

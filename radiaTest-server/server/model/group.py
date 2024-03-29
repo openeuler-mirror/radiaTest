@@ -17,6 +17,7 @@ from enum import Enum
 
 from server.model import BaseModel, PermissionBaseModel
 from server.model.permission import Role, ReUserRole
+from server.schema.group import GroupInstance
 from server import db
 
 
@@ -52,14 +53,14 @@ class Group(db.Model, PermissionBaseModel, BaseModel):
     re_group_requirment_acceptor = db.relationship("RequirementAcceptor", backref="group")
 
     @staticmethod
-    def create(name, description=None, avatar_url=None, creator_id=None, org_id=None, permission_type=None):
+    def create(group_instance: GroupInstance):
         new_recode = Group()
-        new_recode.name = name
-        new_recode.description = description
-        new_recode.avatar_url = avatar_url
-        new_recode.creator_id = creator_id
-        new_recode.org_id = org_id
-        new_recode.permission_type = permission_type
+        new_recode.name = group_instance.name
+        new_recode.description = group_instance.description
+        new_recode.avatar_url = group_instance.avatar_url
+        new_recode.creator_id = group_instance.creator_id
+        new_recode.org_id = group_instance.org_id
+        new_recode.permission_type = group_instance.permission_type
         group_id = new_recode.add_flush_commit_id()
         return group_id, new_recode
 

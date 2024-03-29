@@ -953,9 +953,7 @@ class DailyBuildOverview(Resource):
             qualityboard_dict = item.to_json()
             return qualityboard_dict
 
-        page_dict, e = PageUtil.get_page_dict(
-            query_filter, query.page_num, query.page_size, func=page_func
-        )
+        page_dict, e = PageUtil(query.page_num, query.page_size).get_page_dict(query_filter, func=page_func)
         if e:
             return jsonify(error_code=RET.SERVER_ERR, error_msg=f'get dailybuild page error {e}')
         return jsonify(error_code=RET.OK, error_msg="OK", data=page_dict)
@@ -1164,8 +1162,7 @@ class WeeklybuildHealthOverview(Resource):
             weeklybuild_dict["health_baseline"] = 100
             return weeklybuild_dict
 
-        page_dict, e = PageUtil.get_page_dict(
-            query_filter, query.page_num, query.page_size, func=page_func)
+        page_dict, e = PageUtil(query.page_num, query.page_size).get_page_dict(query_filter, func=page_func)
         _pool.disconnect()
         if e:
             return jsonify(error_code=RET.SERVER_ERR, error_msg=f'get health of weeklybuild page error {e}')
@@ -1584,9 +1581,7 @@ class SamePackageListCompareEvent(Resource):
             rpm_compare_dict = item.to_json()
             return rpm_compare_dict
 
-        page_dict, e = PageUtil.get_page_dict(
-            query_filter, query.page_num, query.page_size, func=page_func
-        )
+        page_dict, e = PageUtil(query.page_num, query.page_size).get_page_dict(query_filter, func=page_func)
         if e:
             return jsonify(
                 error_code=RET.SERVER_ERR, error_msg=f"get comparation page error {e}"
@@ -1817,9 +1812,7 @@ class PackageListCompareEvent(Resource):
             rpm_compare_dict = item.to_json()
             return rpm_compare_dict
 
-        page_dict, e = PageUtil.get_page_dict(
-            query_filter, query.page_num, query.page_size, func=page_func
-        )
+        page_dict, e = PageUtil(query.page_num, query.page_size).get_page_dict(query_filter, func=page_func)
         if e:
             return jsonify(
                 error_code=RET.SERVER_ERR, error_msg=f"get comparation page error {e}"
@@ -2010,7 +2003,7 @@ class DailyBuildPkgEvent(Resource):
     })
     def post(self, body: DailyBuildSchema):
         try:
-            DailyBuildPackageListHandler.get_all_packages_file(body.daily_name, body.repo_url)
+            DailyBuildPackageListHandler.get_daily_all_packages_file(body.daily_name, body.repo_url)
         except RuntimeError as e:
             return jsonify(
                 error_code=RET.RUNTIME_ERROR,

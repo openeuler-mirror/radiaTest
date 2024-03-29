@@ -19,6 +19,8 @@ import json
 from copy import deepcopy
 from typing import List
 
+from flask import current_app
+
 from server.apps.git_repo.adaptor import GitRepoAdaptor
 from server.utils.shell import run_cmd
 
@@ -163,24 +165,22 @@ class Mugen(GitRepoAdaptor):
         for suite in suites_arr:
             try:
                 suite_data = self._get_suite(suite, git_repo_id)
+                cases = suite_data.pop("cases")
+                _raw_path = suite_data.pop("path")
+
+                suite_path = None
+                if _raw_path:
+                    suite_path = _raw_path.repalce("$OET_PATH", self.oet_path)
+
+                    if suite_path[-1] == '/':
+                        suite_path = suite_path[:-1]
+
+                cases_data = self._get_cases(suite=suite, suite_path=suite_path, cases=cases)
+
+                suite2cases.append(
+                    (suite_data, cases_data)
+                )
             except Exception as e:
-                continue
-            
-            # redundance fileds pop out 
-            cases = suite_data.pop("cases")
-            _raw_path = suite_data.pop("path")
-
-            suite_path = None
-            if _raw_path:
-                suite_path = _raw_path.repalce("$OET_PATH", self.oet_path)
-
-                if suite_path[-1] == '/':
-                    suite_path = suite_path[:-1]
-            
-            cases_data = self._get_cases(suite=suite, suite_path=suite_path, cases=cases)
-
-            suite2cases.append(
-                (suite_data, cases_data)
-            )
+                current_app.logger.info(f"suite is not standard:{e}")
 
         return suite2cases

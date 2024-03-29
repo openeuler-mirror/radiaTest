@@ -27,7 +27,7 @@ from server.utils.redis_util import RedisKey
 from server.utils.db import collect_sql_error, Insert
 from server.utils.read_from_yaml import get_default_suffix
 from server.model.user import User
-from server.model.message import Message
+from server.model.message import Message, MessageInstance
 from server.model.task import Task
 from server.model.milestone import Milestone
 from server.model.organization import Organization
@@ -114,37 +114,27 @@ def handler_login_callback(query):
         current_app.config.get("AUTHORITY"),
         org.name
     )
-    if not isinstance(result, tuple) or not isinstance(result[0], bool):
+    if not isinstance(result, dict):
         return result
-    if result[0]:
-        resp = Response(content_type="application/json")
-        resp.set_data(
-            json.dumps(
-                {
-                    "error_code": RET.OK,
-                    "error_msg": "OK",
-                    "data": {
-                        "url": f'{current_app.config["OAUTH_HOME_URL"]}?isSuccess=True',
-                        "user_id": result[1],
-                        "token": result[2],
-                        "current_org_id": result[3],
-                        "current_org_name": result[4]
-                    }
+
+    resp = Response(content_type="application/json")
+    resp.set_data(
+        json.dumps(
+            {
+                "error_code": RET.OK,
+                "error_msg": "OK",
+                "data": {
+                    "url": f'{current_app.config["OAUTH_HOME_URL"]}?isSuccess=True',
+                    "user_id": result.get("user_id"),
+                    "token": result.get("token"),
+                    "current_org_id": result.get("org_id"),
+                    "current_org_name": result.get("org_name")
                 }
-            )
-        )
-        resp.status = 200
-        return resp
-    else:
-        return jsonify(
-            error_code=result[1],
-            error_msg="OK",
-            data={
-                "url": '{}?isSuccess=False'.format(
-                    current_app.config["OAUTH_HOME_URL"]
-                )
             }
         )
+    )
+    resp.status = 200
+    return resp
 
 
 @collect_sql_error
@@ -155,6 +145,7 @@ def handler_login(oauth_token, org_id, oauth_user_info_url, authority, org_name)
     :param org_id: 当前登入的组织id
     :param oauth_user_info_url: 鉴权机构的获取用户信息url
     :param authority: 鉴权机构
+    :param org_name: 当前登录的组织名
     :return: 元组 (登录是否成功，user_id，[token，refresh_token])
              flask dict
     """
@@ -201,7 +192,7 @@ def handler_login(oauth_token, org_id, oauth_user_info_url, authority, org_name)
     except (AttributeError, TypeError) as e:
         raise RuntimeError(str(e)) from e
     if _r.get("error_code") != RET.OK:
-        return False, _r.get("error_msg")
+        return _resp
     handler_register(user.user_id, org_id)
     # 生成token值
     token = generate_token(
@@ -210,7 +201,12 @@ def handler_login(oauth_token, org_id, oauth_user_info_url, authority, org_name)
         int(current_app.config.get("LOGIN_EXPIRES_TIME"))
     )
 
-    return True, user.user_id, token, current_org_id, current_org_name
+    return {
+        "user_id": user.user_id,
+        "token": token,
+        "org_id": current_org_id,
+        "org_name": current_org_name
+    }
 
 
 @collect_sql_error
@@ -287,18 +283,20 @@ def handler_select_default_org(org_id, org_name, user_id=None):
         user_oauth_id = g.user_id
     else:
         user_oauth_id = user_id
-
-    redis_client.hset(
-        RedisKey.user(user_oauth_id),
-        'current_org_id',
-        org_id
-    )
-    redis_client.hset(
-        RedisKey.user(user_oauth_id),
-        'current_org_name',
-        org_name
-    )
-    return jsonify(error_code=RET.OK, error_msg="OK")
+    try:
+        redis_client.hset(
+            RedisKey.user(user_oauth_id),
+            'current_org_id',
+            org_id
+        )
+        redis_client.hset(
+            RedisKey.user(user_oauth_id),
+            'current_org_name',
+            org_name
+        )
+        return jsonify(error_code=RET.OK, error_msg="OK")
+    except Exception as e:
+        return jsonify(error_code=RET.OTHER_REQ_ERR, error_msg="something error happened")
 
 
 def handler_add_group(group_id, body):
@@ -315,8 +313,10 @@ def handler_add_group(group_id, body):
         re.user_add_group_flag = True
         re.role_type = GroupRole.user.value
         info = info.format('已加入')
-        message = Message.create_instance(dict(info=info), g.user_id, msg.from_id, msg.org_id)
-        message1 = Message.create_instance(dict(info=info), g.user_id, g.user_id, msg.org_id)
+        message_instance = MessageInstance(dict(info=info), g.user_id, msg.from_id, msg.org_id)
+        message_instance1 = MessageInstance(dict(info=info), g.user_id, g.user_id, msg.org_id)
+        message = Message.create_instance(message_instance)
+        message1 = Message.create_instance(message_instance1)
 
         # 绑定用户和用户组基础角色关系
         group_suffix = get_default_suffix('group')
@@ -330,8 +330,10 @@ def handler_add_group(group_id, body):
     else:
         re.is_delete = True
         info = info.format('拒绝加入')
-        message = Message.create_instance(dict(info=info), g.user_id, msg.from_id, msg.org_id)
-        message1 = Message.create_instance(dict(info=info), g.user_id, g.user_id, msg.org_id)
+        message_instance = MessageInstance(dict(info=info), g.user_id, msg.from_id, msg.org_id)
+        message_instance1 = MessageInstance(dict(info=info), g.user_id, g.user_id, msg.org_id)
+        message = Message.create_instance(message_instance)
+        message1 = Message.create_instance(message_instance1)
     msg.is_delete = True
     re.add_update()
     message.add_update()
@@ -359,7 +361,7 @@ def handler_get_all(query):
         return user_dict
 
     # 返回结果
-    page_dict, e = PageUtil.get_page_dict(query_filter, query.page_num, query.page_size, func=page_func)
+    page_dict, e = PageUtil(query.page_num, query.page_size).get_page_dict(query_filter, func=page_func)
     if e:
         return jsonify(error_code=RET.SERVER_ERR, error_msg=f'get group page error {e}')
     return jsonify(error_code=RET.OK, error_msg="OK", data=page_dict)
@@ -456,7 +458,7 @@ def handler_get_user_task(query: UserTaskSchema):
             .order_by(Task.update_time.desc(), Task.id.asc())
         filter_param = not_accomplish_filter
 
-    page_dict, e = PageUtil.get_page_dict(filter_param, query.page_num, query.page_size, func=page_func)
+    page_dict, e = PageUtil(query.page_num, query.page_size).get_page_dict(filter_param, func=page_func)
     if e:
         return jsonify(error_code=RET.SERVER_ERR, error_msg=f'get task page error {e}')
 

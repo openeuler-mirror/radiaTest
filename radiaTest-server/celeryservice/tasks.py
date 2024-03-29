@@ -20,8 +20,8 @@ import re
 from datetime import datetime
 import sys
 import json
-import requests
 import stat
+import requests
 from lxml import html, etree
 
 import redis
@@ -52,19 +52,20 @@ from server.schema.openqa import (
     OpenqaGroupOverviewItem,
     OpenqaTestsOverviewItem
 )
+from server.schema.testcase import CreateCaseInstance, SuiteNodeInstance
 from server.plugins.flask_socketio import SocketIO
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(BASE_DIR)
 
 logger = get_task_logger("manage")
-socketio = SocketIO(message_queue=celeryconfig.socketio_pubsub, ssl={"ssl": {"cert_reqs": ssl.CERT_NONE}})
+socketio = SocketIO(message_queue=celeryconfig.SOCKETIO_PUBSUB, ssl={"ssl": {"cert_reqs": ssl.CERT_NONE}})
 
 # 建立redis backend连接池
-pool = redis.ConnectionPool.from_url(celeryconfig.result_backend, decode_responses=True)
+pool = redis.ConnectionPool.from_url(celeryconfig.RESULT_BACKEND, decode_responses=True)
 # 建立scrapyspider的存储redis池
 scrapyspider_pool = redis.ConnectionPool.from_url(
-    celeryconfig.scrapyspider_backend,
+    celeryconfig.SCRAPYSPIDER_BACKEND,
     decode_responses=True
 )
 
@@ -99,7 +100,7 @@ def setup_periodic_tasks(sender, **kwargs):
 
 @celery.task
 def async_read_openqa_homepage():
-    response = requests.get(f"{celeryconfig.openqa_url}")
+    response = requests.get(f"{celeryconfig.OPENQA_URL}")
     html_content = response.text
 
     # 使用 lxml 解析网页内容
@@ -113,7 +114,7 @@ def async_read_openqa_homepage():
         item["product_name"] = result.xpath('./a/text()')[0]
         item["group_overview_url"] = result.xpath('./a/@href')[0]
         home_page_data = OpenqaHomeItem(**item)
-        _ = redis_pipeline.process_item(home_page_data)
+        redis_pipeline.process_item(home_page_data)
 
     _keys = _redis_client.keys("*_group_overview_url")
 
@@ -137,7 +138,7 @@ def async_read_openqa_homepage():
 
 @celery.task
 def read_openqa_group_overview(product_name, group_overview_url):
-    response = requests.get(f"{celeryconfig.openqa_url}{add_escape(group_overview_url)}?limit_builds=400")
+    response = requests.get(f"{celeryconfig.OPENQA_URL}{add_escape(group_overview_url)}?limit_builds=400")
     html_content = response.text
 
     # 使用 lxml 解析网页内容
@@ -156,7 +157,7 @@ def read_openqa_group_overview(product_name, group_overview_url):
         item["build_tests_url"] = title.xpath('./a/@href')[0]
         item["build_time"] = title.xpath('./abbr/@title')[0]
         group_overview_data = OpenqaGroupOverviewItem(**item)
-        _ = _redis_pipeline.process_item(group_overview_data)
+        _redis_pipeline.process_item(group_overview_data)
 
     logger.info(f"crawl group overview data of product {product_name} succeed")
 
@@ -175,7 +176,7 @@ def read_openqa_group_overview(product_name, group_overview_url):
 
 @celery.task
 def read_openqa_tests_overview(product_build, tests_overview_url):
-    response = requests.get(f"{celeryconfig.openqa_url}{tests_overview_url}")
+    response = requests.get(f"{celeryconfig.OPENQA_URL}{tests_overview_url}")
     html_content = response.text
 
     # 使用 lxml 解析网页内容
@@ -353,9 +354,10 @@ def resolve_pkglist_after_resolve_rc_name(repo_url, store_path, product, round_n
         with os.fdopen(os.open(tmp_file_name, flags, mode), 'wb') as fout:
             fout.write(resp.content)
             fout.close()
-        exitcode, output, error = run_cmd(f"cat {tmp_file_name} | grep 'rc{round_num}_openeuler'"
-                                          + " | awk -F 'title=\"' '{print $2}' | awk -F '\">' '{print $1}' | uniq"
-                                          )
+        exitcode, output, error = run_cmd(
+            f"cat {tmp_file_name} | grep 'rc{round_num}_openeuler'"
+            + " | awk -F 'title=\"' '{print $2}' | awk -F '\">' '{print $1}' | uniq"
+        )
 
         if exitcode != 0:
             logger.error(error)
@@ -466,64 +468,38 @@ def resolve_pkglist_from_url(repo_name, repo_url, store_path):
 @celery.task(bind=True)
 def async_create_testsuite_node(
         self,
-        parent_id: int,  # 被创建suite类型节点的父节点
-        suite_id: int,  # 被创建suite类型节点关联的用例ID
-        permission_type: str = 'public',  # 被创建suite类型节点的权限类型
-        org_id: int = None,  # 被创建suite类型节点的所属组织
-        group_id: int = None,  # 被创建suite类型节点的所属团队
-        user_id: str = None,  # 创建异步任务的当前用户id
+        suite_node_instance: SuiteNodeInstance
 ):
-    testsuite_node_id = CaseNodeCreator(logger, self).create_suite_node(
-        parent_id,
-        suite_id,
-        permission_type,
-        org_id,
-        group_id,
-        user_id,
-    )
+    testsuite_node_id = CaseNodeCreator(logger, self).create_suite_node(suite_node_instance)
     if not testsuite_node_id:
         return
 
-    suite = Suite.query.filter_by(id=suite_id).first()
+    suite = Suite.query.filter_by(id=suite_node_instance.suite_id).first()
     # 分发创建对应测试套下用例节点子任务
     for testcase in suite.case:
-        _task = async_create_testcase_node.delay(
+        create_case_instance = CreateCaseInstance(
             testsuite_node_id,
             testcase.name,
             testcase.id,
-            permission_type,
-            org_id,
-            group_id
+            suite_node_instance.permission_type,
+            suite_node_instance.org_id,
+            suite_node_instance.group_id
         )
+        _task = async_create_testcase_node.delay(create_case_instance)
         celerytask = {
             "tid": _task.task_id,
             "status": "PENDING",
             "object_type": "create_testcase_node",
             "description": f"create case node related to case#{testcase.id} under {suite.name}",
-            "user_id": user_id,
+            "user_id": suite_node_instance.user_id,
         }
 
         _ = Insert(CeleryTask, celerytask).single(CeleryTask, "/celerytask")
 
 
 @celery.task(bind=True)
-def async_create_testcase_node(
-        self,
-        parent_id: int,  # 被创建case类型节点的父节点
-        case_name: str,  # 被创建case类型节点关联的用例名
-        case_id: int,  # 被创建case类型节点关联的用例ID
-        permission_type: str = 'public',  # 被创建case类型节点的权限类型
-        org_id: int = None,  # 被创建case类型节点的所属组织
-        group_id: int = None,  # 被创建case类型节点的所属团队
-):
-    CaseNodeCreator(logger, self).create_case_node(
-        parent_id,
-        case_name,
-        case_id,
-        permission_type,
-        org_id,
-        group_id,
-    )
+def async_create_testcase_node(self, create_case_instance: CreateCaseInstance):
+    CaseNodeCreator(logger, self).create_case_node(create_case_instance)
 
 
 def get_test_time_by_res_log(res_log):
@@ -534,7 +510,7 @@ def get_test_time_by_res_log(res_log):
     if res:
         try:
             job_id = res.group("job_id")
-            job_detail_url = f"{celeryconfig.openqa_url}/api/v1/jobs/{job_id}"
+            job_detail_url = f"{celeryconfig.OPENQA_URL}/api/v1/jobs/{job_id}"
             resp = requests.request("get", job_detail_url)
             job_data = resp.json()["job"]
             start_date = datetime.strptime(job_data.get("t_started", "-"), "%Y-%m-%dT%H:%M:%S")
@@ -593,7 +569,7 @@ def test_overview_parse(tree, product_build):
 
             item["aarch64_res_status"] = res.xpath('./i/@title')[0]
             aarch64_res_log = res.xpath('./@href')[0]
-            item["aarch64_res_log"] = f"{celeryconfig.openqa_url}{aarch64_res_log}"
+            item["aarch64_res_log"] = f"{celeryconfig.OPENQA_URL}{aarch64_res_log}"
 
             if item["aarch64_res_status"] != "cancelled":
                 item["aarch64_start_time"], item["aarch64_end_name"], item["aarch64_test_duration"] = \
@@ -603,7 +579,7 @@ def test_overview_parse(tree, product_build):
             if aarch64_failedmodule:
                 failedmodule = aarch64_failedmodule[0]
                 item["aarch64_failedmodule_name"] = failedmodule.xpath('./a/span/text()')[0]
-                item["aarch64_failedmodule_log"] = f"{celeryconfig.openqa_url}{failedmodule.xpath('./a/@href')[0]}"
+                item["aarch64_failedmodule_log"] = f"{celeryconfig.OPENQA_URL}{failedmodule.xpath('./a/@href')[0]}"
 
         try:
             x86_64_selector = res_selectors[1]
@@ -622,7 +598,7 @@ def test_overview_parse(tree, product_build):
 
             item["x86_64_res_status"] = res.xpath('./i/@title')[0]
             x86_64_res_log = res.xpath('./@href')[0]
-            item["x86_64_res_log"] = f"{celeryconfig.openqa_url}{x86_64_res_log}"
+            item["x86_64_res_log"] = f"{celeryconfig.OPENQA_URL}{x86_64_res_log}"
             if item["x86_64_res_status"] != "cancelled":
                 item["x86_64_start_time"], item["x86_64_end_name"], item["x86_64_test_duration"] = \
                     get_test_time_by_res_log(x86_64_res_log)
@@ -631,7 +607,7 @@ def test_overview_parse(tree, product_build):
             if x86_failedmodule:
                 failedmodule = x86_failedmodule[0]
                 item["x86_64_failedmodule_name"] = failedmodule.xpath('./a/span/text()')[0]
-                item["x86_64_failedmodule_log"] = f"{celeryconfig.openqa_url}{failedmodule.xpath('./a/@href')[0]}"
+                item["x86_64_failedmodule_log"] = f"{celeryconfig.OPENQA_URL}{failedmodule.xpath('./a/@href')[0]}"
 
         test_overview_data = OpenqaTestsOverviewItem(**item)
         _redis_pipeline.process_item(test_overview_data)
