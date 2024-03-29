@@ -20,11 +20,11 @@ from datetime import datetime
 from math import floor
 import os
 import io
+import requests
+import pytz
 
 from flask import jsonify, current_app, g, make_response, send_file
 from sqlalchemy import func
-import requests
-import pytz
 import xlwt
 import redis
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
@@ -86,8 +86,7 @@ class ChecklistHandler:
                 error_msg='OK',
                 data=data
             )
-        page_dict, e = PageUtil.get_page_dict(
-            filter_chain, query.page_num, query.page_size, func=lambda x: x.to_json())
+        page_dict, e = PageUtil(query.page_num, query.page_size).get_page_dict(filter_chain, func=lambda x: x.to_json())
         if e:
             return jsonify(
                 error_code=RET.SERVER_ERR,
@@ -279,8 +278,7 @@ class CheckItemHandler:
                 data=data
             )
 
-        page_dict, e = PageUtil.get_page_dict(
-            filter_chain, query.page_num, query.page_size, func=lambda x: x.to_json())
+        page_dict, e = PageUtil(query.page_num, query.page_size).get_page_dict(filter_chain, func=lambda x: x.to_json())
         if e:
             return jsonify(
                 error_code=RET.SERVER_ERR,
@@ -667,7 +665,7 @@ class DailyBuildPackageListHandler(PackageListHandler):
         self.packages = self.get_packages()
 
     @staticmethod
-    def get_all_packages_file(repo_name=None, repo_url=None):
+    def get_daily_all_packages_file(repo_name=None, repo_url=None):
         key_val = f"resolving_{repo_name}_pkglist"
         _keys = redis_client.keys(key_val)
         if len(_keys) > 0:

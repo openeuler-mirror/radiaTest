@@ -84,3 +84,12 @@ class GroupsQuerySchema(PageBaseSchema):
     name: Optional[str]
     description: Optional[str]
 
+
+class GroupInstance:
+    def __init__(self, name, description=None, avatar_url=None, creator_id=None, org_id=None, permission_type=None):
+        self.name = name
+        self.description = description
+        self.avatar_url = avatar_url
+        self.creator_id = creator_id
+        self.org_id = org_id
+        self.permission_type = permission_type

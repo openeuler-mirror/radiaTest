@@ -19,13 +19,8 @@ import json
 from flask import g
 import yaml
 
-from server.model import (
-    Message,
-    MsgLevel,
-    MsgType,
-    Role,
-    ReUserRole,
-)
+from server.model.message import MessageInstance, MsgType, MsgLevel, Message
+from server.model.permission import Role, ReUserRole
 from server.utils.db import Precise
 from server.utils.table_adapter import TableAdapter
 
@@ -111,7 +106,8 @@ class MessageManager:
         info = f'<b>{g.user_login}</b>请求{_api.get("alias")}。'
         if _api.get("ip"):
             info = f'<b>{g.user_login}</b>请求{_api.get("alias")}<b>{_api.get("ip")}</b>。'
-        Message.create_instance(json.dumps(
+        message_instance = MessageInstance(
+            json.dumps(
                 dict(
                     permission_type=_instance.permission_type,
                     info=info,
@@ -120,6 +116,13 @@ class MessageManager:
                     _alias=_api.get("alias"),
                     _id=_api.get("id"),
                     body=_api["body"],
-                )), g.user_id, [item.user_id for item in re_role_user], cur_org_id,
-            level=MsgLevel.user.value, msg_type=MsgType.script.value)
+                )
+            ),
+            g.user_id,
+            [item.user_id for item in re_role_user],
+            cur_org_id,
+            level=MsgLevel.user.value,
+            msg_type=MsgType.script.value
+        )
+        Message.create_instance(message_instance)
         return "Unauthorized, Your request has been sent to the administrator for processing."

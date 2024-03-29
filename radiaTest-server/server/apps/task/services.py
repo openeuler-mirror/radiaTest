@@ -15,9 +15,9 @@
 
 import datetime
 import json
-import pytz
 from uuid import uuid1
 from typing import List
+import pytz
 
 from flask import g, current_app, url_for, jsonify
 
@@ -27,7 +27,7 @@ from server.model.task import Task, TaskStatus, TaskManualCase, TaskMilestone
 from server.model.testcase import Case
 from server.model.group import Group, ReUserGroup
 from server.model.user import User
-from server.model.message import Message, MsgLevel
+from server.model.message import Message, MsgLevel, MessageInstance
 from server.utils.requests_util import do_request, HttpRequestParam
 from server.utils.response_util import RET
 from server.schema.user import UserBaseSchema
@@ -310,7 +310,14 @@ def send_message(task: Task, msg, from_id=1):
     to_id.append(task.executor_id)
     to_id.append(task.creator_id)
     unique_to_id = set(to_id)
-    Message.create_instance(json.dumps({"info": msg}), from_id, unique_to_id, task.org_id, level=MsgLevel.system.value)
+    message_instance = MessageInstance(
+        json.dumps({"info": msg}),
+        from_id,
+        unique_to_id,
+        task.org_id,
+        level=MsgLevel.system.value
+    )
+    Message.create_instance(message_instance)
 
 
 def judge_task_automatic(task_milestone: TaskMilestone):

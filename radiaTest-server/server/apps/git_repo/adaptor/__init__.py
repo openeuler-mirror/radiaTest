@@ -53,15 +53,6 @@ class GitRepoAdaptor:
             "usabled": False,
         }
 
-    @abc.abstractmethod
-    def suite2cases_resolve(self, git_repo_id: int) -> List[tuple]:
-        """
-        abstract interface, acting as the main entrance to resolve testcases 
-        of target git repo
-            :params git_repo_id(int)
-            :returns [tuple], [(testsuite data，[testcase data])]
-        """
-
     @staticmethod
     def _get_work_dir(work_dir: str) -> str:
         """
@@ -74,6 +65,15 @@ class GitRepoAdaptor:
             return ""
 
         return work_dir
+
+    @abc.abstractmethod
+    def suite2cases_resolve(self, git_repo_id: int) -> List[tuple]:
+        """
+        abstract interface, acting as the main entrance to resolve testcases
+        of target git repo
+            :params git_repo_id(int)
+            :returns [tuple], [(testsuite data，[testcase data])]
+        """
 
     def download(self) -> tuple:
         """download testcases to local env

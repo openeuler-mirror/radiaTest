@@ -7,13 +7,14 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 ####################################
-# @Author  : disnight
-# @email   : fjc837005411@outlook.com
+# @Author  :
+# @email   :
 # @Date    : 2022/08/21
 # @License : Mulan PSL v2
 #####################################
 
-from glob import escape
+import os
+import stat
 import io
 import html
 from bcrypt import re
@@ -133,9 +134,11 @@ class MdUtil:
                 row_content += cell_content + "|"
             
             md_content += row_content + "\n"
-        
-        with open(md_path, "w") as file:
-            file.write(md_content)
+        flags = os.O_RDWR | os.O_CREAT
+        mode = stat.S_IRUSR | stat.S_IWUSR
+        with os.fdopen(os.open(md_path, flags, mode), 'w') as fout:
+            fout.write(md_content)
+            fout.close()
         
         return md_path
 

@@ -18,10 +18,13 @@ from server.utils.response_util import RET
 
 
 class PageUtil(object):
-    @staticmethod
-    def get_page_dict(query_filter, page_num=1, page_size=10, model=None, func=None, is_set=False):
+    def __init__(self, page_num=1, page_size=10):
+        self.page_num = page_num
+        self.page_size = page_size
+
+    def get_page_dict(self, query_filter, model=None, func=None, is_set=False):
         try:
-            page = query_filter.paginate(page=page_num, per_page=page_size)
+            page = query_filter.paginate(page=self.page_num, per_page=self.page_size)
 
             if not page or page.total <= 0:
                 return {}, None
@@ -85,9 +88,7 @@ class PageUtil(object):
         if func is None:
             func = PageUtil.page_func
 
-        page_dict, e = PageUtil.get_page_dict(
-            query_filter, query.page_num, query.page_size, func=func
-        )
+        page_dict, e = PageUtil(query.page_num, query.page_size).get_page_dict(query_filter, func=func)
         if e:
             return jsonify(
                 error_code=RET.SERVER_ERR,
@@ -112,7 +113,7 @@ class Paginate(object):
         self._page = page_num
         self._per_page = page_size
         self._total = total
-        if self._page > self.pages and self.pages != 0:
+        if self._page > self.pages != 0:
             raise RuntimeError("page_num out of range.")
         if page_size == 0:
             raise RuntimeError("page_size can't be zero.")

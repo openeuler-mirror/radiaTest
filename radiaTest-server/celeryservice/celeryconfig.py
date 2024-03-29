@@ -15,18 +15,16 @@
 
 #####################################
 
-import ssl
-
 from configparser import NoOptionError, NoSectionError, ConfigParser
 from pathlib import Path
 
 from kombu import Exchange, Queue
 
-ini_path = "/etc/radiaTest/server.ini"
+INI_PATH = "/etc/radiaTest/server.ini"
 
 
 def loads_config_ini(section, option):
-    config_ini = Path(ini_path)
+    config_ini = Path(INI_PATH)
 
     cfg = ConfigParser()
     cfg.read(config_ini)
@@ -38,49 +36,20 @@ def loads_config_ini(section, option):
 
 
 # Broker settings
-broker_url = loads_config_ini("celery", "BROKER_URL")
-broker_use_ssl = {
-    'ssl_version': ssl.PROTOCOL_TLSv1_2,
-    'cert_reqs': ssl.CERT_NONE,
-}
-broker_pool_limit = 10
+BROKER_URL = loads_config_ini("celery", "BROKER_URL")
 
 imports = ("manage",)
 
-worker_state_db = "celeryservice/celerymain/celery_revokes_state_db"
-
-# Task结果储存配置
-task_ignore_result = False
-
 # Using redis to store state and results
-result_backend = "{}?ssl_cert_reqs=required&ssl_ca_certs=/etc/radiaTest/redis.crt".format(
+RESULT_BACKEND = "{}?ssl_cert_reqs=required&ssl_ca_certs=/etc/radiaTest/redis.crt".format(
     loads_config_ini("celery", "RESULT_BACKEND"))
 
 # Using redis to store data of spiders
-scrapyspider_backend = "{}?ssl_cert_reqs=required&ssl_ca_certs=/etc/radiaTest/redis.crt".format(
+SCRAPYSPIDER_BACKEND = "{}?ssl_cert_reqs=required&ssl_ca_certs=/etc/radiaTest/redis.crt".format(
     loads_config_ini("celery", "SCRAPYSPIDER_BACKEND"))
 
 # socketio pubsub redis url
-socketio_pubsub = loads_config_ini("celery", "SOCKETIO_PUBSUB")
-
-# 频次限制配置
-worker_disable_rate_limits = False
-task_default_rate_limit = '100/s'
-task_prefetch_multiplier = 4
-
-# 一般配置
-task_serializer = "json"
-result_serializer = "json"
-accept_content = ["json"]
-timezone = "Asia/Shanghai"
-enable_utc = True
-# task_compression = 'gzip'
-
-# 默认log配置
-celeryd_log_file = "celeryservice/celerymain/celery.log"
-
-# beat配置
-beat_max_loop_interval = 3600
+SOCKETIO_PUBSUB = loads_config_ini("celery", "SOCKETIO_PUBSUB")
 
 # rabbitMQ routing配置
 # 队列属性定义
@@ -207,21 +176,9 @@ task_queues = (
     )
 )
 
-task_default_exchange_type = "direct"
+OPENQA_URL = loads_config_ini("at", "OPENQA_URL")
 
-# SSL file path(Warning: if you modify this item,
-# you need to change the corresponding build and deployment files)
-cacert_path = loads_config_ini("server", "CA_CERT")
-openqa_url = loads_config_ini("at", "OPENQA_URL")
-
-# mail server info(make sure net is reachable)
-smtp_server = loads_config_ini("mail", "SMTP_SERVER")
-smtp_port = loads_config_ini("mail", "SMTP_PORT")
-from_addr = loads_config_ini("mail", "FROM_ADDR")
-smtp_passwd = loads_config_ini("mail", "SMTP_PASSWD")
 
 # access_token of radiaTest-bot(make sure gitee v5 api is reachable)
-v5_access_token = loads_config_ini("token", "V5_ACCESS_TOKEN")
+V5_ACCESS_TOKEN = loads_config_ini("token", "V5_ACCESS_TOKEN")
 
-redis_cacert_path = loads_config_ini("redis", "REDIS_CA_CERTS")
-redis_use_ssl = loads_config_ini("redis", "REDIS_USE_SSL")

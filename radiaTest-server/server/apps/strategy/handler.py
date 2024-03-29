@@ -15,6 +15,7 @@
 
 import json
 import os
+import stat
 
 from flask import current_app, g, jsonify
 import requests
@@ -102,7 +103,7 @@ class GiteePrHandler():
 
     @property
     def access_token(self):
-        return celeryconfig.v5_access_token
+        return celeryconfig.V5_ACCESS_TOKEN
 
     def add_update(self, act, url, data, filters=None):
 
@@ -296,8 +297,12 @@ class CommitHandler:
         if not os.path.exists(product_path):
             os.mkdir(product_path)
 
-        with open(export_file, 'w') as f:
-            f.writelines(md_content)
+        flags = os.O_RDWR | os.O_CREAT
+        mode = stat.S_IRUSR | stat.S_IWUSR
+        with os.fdopen(os.open(export_file, flags, mode), 'w') as fout:
+            fout.writelines(md_content)
+            fout.close()
+
         return export_file
 
 

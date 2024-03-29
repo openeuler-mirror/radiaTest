@@ -20,7 +20,7 @@ from flask import g, jsonify, request
 from flask_socketio import emit
 
 from server import db, redis_client
-from server.model.message import Message, MessageUsers
+from server.model.message import Message, MessageUsers, MessageInstance
 from server.model.group import ReUserGroup, Group
 from server.model.user import User
 from server.schema.message import MessageModel
@@ -67,7 +67,7 @@ def handler_msg_list():
     def page_func(item):
         return MessageModel(**item.to_dict()).dict()
 
-    page_data, e = PageUtil.get_page_dict(query_filter, page_num=page_num, page_size=page_size, func=page_func)
+    page_data, e = PageUtil(page_num=page_num, page_size=page_size).get_page_dict(query_filter, func=page_func)
     if e:
         return jsonify(error_code=RET.SERVER_ERR, error_msg=f'get group page error {e}')
     return jsonify(error_code=RET.OK, error_msg='OK', data=page_data)
@@ -143,7 +143,8 @@ def handler_msg_callback(body):
         info = info.format('管理员处理')
     else:
         info = info.format('管理员拒绝')
-    Message.create_instance(dict(info=info), g.user_id, [msg.from_id], msg.org_id)
+    message_instance = MessageInstance(dict(info=info), g.user_id, [msg.from_id], msg.org_id)
+    Message.create_instance(message_instance)
     msg.has_read = True
     msg.type = 0
     msg.add_update()
@@ -189,7 +190,8 @@ def handler_addgroup_msg_callback(body):
         else:
             info = info.format('管理员拒绝')
             res.delete()
-    Message.create_instance(dict(info=info), g.user_id, [msg.from_id], msg.org_id)
+    message_instance = MessageInstance(dict(info=info), g.user_id, [msg.from_id], msg.org_id)
+    Message.create_instance(message_instance)
     return jsonify(error_code=RET.OK, error_msg="OK")
 
 
@@ -249,7 +251,7 @@ def handler_group_page():
         })
         return {**re_dict, **group_dict}
 
-    page_dict, e = PageUtil.get_page_dict(query_filter, page_num, page_size, func=page_func)
+    page_dict, e = PageUtil(page_num, page_size).get_page_dict(query_filter, func=page_func)
     if e:
         return jsonify(error_code=RET.SERVER_ERR, error_msg=f'get group page error {e}')
     return jsonify(error_code=RET.OK, error_msg="OK", data=page_dict)
@@ -263,5 +265,6 @@ def handler_create_text_msg(body):
             return jsonify(error_code=RET.VERIFY_ERR, error_msg="to_ids error")
 
     org_id = redis_client.hget(RedisKey.user(g.user_id), 'current_org_id')
-    Message.create_instance(body.data, g.user_id, body.to_ids, org_id)
+    message_instance = MessageInstance(body.data, g.user_id, body.to_ids, org_id)
+    Message.create_instance(message_instance)
     return jsonify(error_code=RET.OK, error_msg="OK")

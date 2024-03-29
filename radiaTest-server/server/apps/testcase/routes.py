@@ -64,7 +64,8 @@ from server.schema.testcase import (
     CaseNodeBodyQuerySchema,
     CaseV2Query,
     TestResultEventSchemaV2,
-    TestResultQuerySchema
+    TestResultQuerySchema,
+    SuiteNodeInstance
 )
 from server.apps.testcase.handler import (
     CaseImportHandler,
@@ -407,14 +408,15 @@ class CaseNodeSuitesEvent(Resource):
 
         from celeryservice.tasks import async_create_testsuite_node
         for suite_id in body.suites:
-            _task = async_create_testsuite_node.delay(
+            suite_node_instance = SuiteNodeInstance(
                 case_node.id,
                 suite_id,
                 body.permission_type,
                 body.org_id,
                 body.group_id,
-                g.user_id,
+                g.user_id
             )
+            _task = async_create_testsuite_node.delay(suite_node_instance)
             celerytask = {
                 "tid": _task.task_id,
                 "status": "PENDING",
