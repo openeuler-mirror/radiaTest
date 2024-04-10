@@ -71,7 +71,11 @@ class UpdateTaskHandler:
                 product_body
             ).insert_id()
 
-            ResourceManager("product", creator_id=form.group.creator_id, org_id=form.group.org_id).add_permission(
+            ResourceManager(
+                "product",
+                creator_id=form.group.creator_id,
+                org_id=form.group.org_id
+            ).add_permission(
                 "api_infos.yaml",
                 {
                     "creator_id": form.group.creator_id,
@@ -292,7 +296,7 @@ class AtHandler:
 
         tests_overview_url = f"/tests/overview?distri={product.lower()}&version={version}&build=-{build}"
         # 校验是否已触发at任务
-        res = requests.get(f"{self.openqa_url}{tests_overview_url}")
+        res = requests.get(f"{self.openqa_url}{tests_overview_url}", timeout=30)
         # 不存在直接返回
         if res.status_code != 200:
             at_result.update({

@@ -182,7 +182,8 @@ class QualityBoardEvent(Resource):
         "query_schema_model": QualityBoardSchema,  # 当前接口请求体参数schema校验器
     })
     def delete(self, body: QualityBoardSchema):
-        return Delete(QualityBoard, body.__dict__).single()
+        Delete(QualityBoard, body.__dict__).single()
+        return jsonify(error_code=RET.OK, error_msg=f"delete qualityboard[{body.product_id}] success")
 
 
 class QualityBoardItemEvent(Resource):
@@ -277,13 +278,13 @@ class QualityBoardDeleteVersionEvent(Resource):
         if not qualityboard:
             return jsonify(
                 error_code=RET.NO_DATA_ERR,
-                error_msg="qualityboard {} not exitst".format(qualityboard_id)
+                error_msg="back to last version failed due to qualityboard {} not exitst".format(qualityboard_id)
             )
 
         if qualityboard.iteration_version == "":
             return jsonify(
                 error_code=RET.NO_DATA_ERR,
-                error_msg="no iteration version"
+                error_msg="back to qualityboard version failed due to no iteration version"
             )
         iteration_version = ""
         _versions = qualityboard.iteration_version.split("->")
@@ -291,12 +292,16 @@ class QualityBoardDeleteVersionEvent(Resource):
             iteration_version = qualityboard.iteration_version.replace(
                 "->" + _versions[-1], "")
         if iteration_version == "":
-            return Delete(QualityBoard, {"id": qualityboard_id}).single()
+            Delete(QualityBoard, {"id": qualityboard_id}).single()
+            return jsonify(
+                error_code=RET.OK,
+                error_msg="back to last version success,iterration_version is None"
+            )
         qualityboard.iteration_version = iteration_version
         qualityboard.add_update()
         return jsonify(
             error_code=RET.OK,
-            error_msg="OK."
+            error_msg="back to last version success"
         )
 
 
@@ -513,7 +518,11 @@ class ChecklistItem(Resource):
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
     })
     def delete(self, checklist_id):
-        return Delete(Checklist, {"id": checklist_id}).single()
+        Delete(Checklist, {"id": checklist_id}).single()
+        return jsonify(
+            error_code=RET.OK,
+            error_msg=f"delete checklist[{checklist_id}] success"
+        )
 
 
 class ChecklistEvent(Resource):
@@ -643,9 +652,13 @@ class CheckItemEvent(Resource):
         if _ci:
             return jsonify(
                 error_code=RET.DB_DATA_ERR,
-                error_msg="Checkitem has existed."
+                error_msg="create checkitem failed due to checkitem has existed."
             )
-        return Insert(CheckItem, body.__dict__).single(CheckItem, "/checkitem")
+        Insert(CheckItem, body.__dict__).single(CheckItem, "/checkitem")
+        return jsonify(
+            error_code=RET.OK,
+            error_msg=f"create checkitem[{body.title}, {body.field_name}] success"
+        )
 
 
 class CheckItemSingleEvent(Resource):
@@ -727,7 +740,7 @@ class CheckItemSingleEvent(Resource):
         if not _ci:
             return jsonify(
                 error_code=RET.DB_DATA_ERR,
-                error_msg="Checkitem does not existed."
+                error_msg="delete checkitem failed due to Checkitem does not existed."
             )
         _cl = Checklist.query.filter_by(checkitem_id=checkitem_id).first()
         if _cl:
@@ -735,7 +748,11 @@ class CheckItemSingleEvent(Resource):
                 error_code=RET.DATA_EXIST_ERR,
                 error_msg="Deletion failed because this check item is used."
             )
-        return Delete(CheckItem, {"id": checkitem_id}).single()
+        Delete(CheckItem, {"id": checkitem_id}).single()
+        return jsonify(
+            error_code=RET.OK,
+            error_msg=f"delete checkitem[{checkitem_id}] success"
+        )
 
 
 class ChecklistResultEvent(Resource):

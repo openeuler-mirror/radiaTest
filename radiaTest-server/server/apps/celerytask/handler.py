@@ -59,7 +59,11 @@ class CeleryTaskHandler:
     @staticmethod
     @collect_sql_error
     def create(body):
-        return Insert(CeleryTask, body.__dict__).single(
+        Insert(CeleryTask, body.__dict__).single(
             CeleryTask, "/celerytask"
+        )
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="insert celery task success"
         )
 

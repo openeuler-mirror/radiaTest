@@ -135,7 +135,10 @@ class GiteePrHandler():
             _params.update(params)
 
         _resp = requests.get(
-            url=url, params=_params, headers=current_app.config.get("HEADERS")
+            url=url,
+            params=_params,
+            headers=current_app.config.get("HEADERS"),
+            timeout=30
         )
 
         _resp.encoding = _resp.apparent_encoding

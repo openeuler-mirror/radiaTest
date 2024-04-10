@@ -21,7 +21,7 @@ from flask import current_app
 class FileAES:
     def __init__(self):
         self.key = current_app.config.get('AES_KEY').encode('utf-8')
-        self.mode = AES.MODE_ECB
+        self.mode = AES.MODE_GCM
 
     def encrypt(self, text):
         """加密函数"""

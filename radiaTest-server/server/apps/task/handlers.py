@@ -635,7 +635,9 @@ class HandlerTask(object):
     @staticmethod
     @collect_sql_error
     def update(task_id, body: UpdateTaskSchema):
-        task = Task.query.get(task_id)
+        filter_params = GetAllByPermission(Task).get_filter()
+        filter_params.extend([Task.id == task_id])
+        task = Task.query.filter(*filter_params).first()
         if not task:
             return jsonify(error_code=RET.NO_DATA_ERR, error_msg="task does not exist")
         if task.task_status.name == "已完成":
@@ -779,7 +781,10 @@ class HandlerTask(object):
         @return:
         """
         is_delete = True if request.args.get("is_delete") == "true" else False
-        task = Task.query.filter_by(id=task_id, is_delete=is_delete).first()
+        org_id = int(request.args.get("org_id"))
+        filter_params = GetAllByPermission(Task, org_id=org_id).get_filter()
+        filter_params.extend([Task.id == task_id, Task.is_delete == is_delete])
+        task = Task.query.filter(*filter_params).first()
         if not task:
             return jsonify(error_code=RET.NO_DATA_ERR, error_msg="task is not exists")
 

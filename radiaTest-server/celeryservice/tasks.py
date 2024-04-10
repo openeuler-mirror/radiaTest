@@ -22,7 +22,8 @@ import sys
 import json
 import stat
 import requests
-from lxml import html, etree
+from lxml import html
+import defusedxml.ElementTree as deftree
 
 import redis
 from celery import current_app as celery
@@ -100,7 +101,7 @@ def setup_periodic_tasks(sender, **kwargs):
 
 @celery.task
 def async_read_openqa_homepage():
-    response = requests.get(f"{celeryconfig.OPENQA_URL}")
+    response = requests.get(f"{celeryconfig.OPENQA_URL}", timeout=30)
     html_content = response.text
 
     # 使用 lxml 解析网页内容
@@ -138,7 +139,10 @@ def async_read_openqa_homepage():
 
 @celery.task
 def read_openqa_group_overview(product_name, group_overview_url):
-    response = requests.get(f"{celeryconfig.OPENQA_URL}{add_escape(group_overview_url)}?limit_builds=400")
+    response = requests.get(
+        f"{celeryconfig.OPENQA_URL}{add_escape(group_overview_url)}?limit_builds=400",
+        timeout=30
+    )
     html_content = response.text
 
     # 使用 lxml 解析网页内容
@@ -176,7 +180,7 @@ def read_openqa_group_overview(product_name, group_overview_url):
 
 @celery.task
 def read_openqa_tests_overview(product_build, tests_overview_url):
-    response = requests.get(f"{celeryconfig.OPENQA_URL}{tests_overview_url}")
+    response = requests.get(f"{celeryconfig.OPENQA_URL}{tests_overview_url}", timeout=30)
     html_content = response.text
 
     # 使用 lxml 解析网页内容
@@ -342,7 +346,7 @@ def resolve_pkglist_after_resolve_rc_name(repo_url, store_path, product, round_n
     repo_paths = ["everything", "EPOL/main", "update"]
     if round_num:
         product_version = f'{product_version}-round-{round_num}'
-        resp = requests.get(repo_url)
+        resp = requests.get(repo_url, timeout=30)
         if resp.status_code != 200:
             logger.error("Could not connect to the url: {}".format(repo_url))
             return
@@ -366,7 +370,7 @@ def resolve_pkglist_after_resolve_rc_name(repo_url, store_path, product, round_n
         repo_paths = repo_paths[:-1]
 
     def get_pkg_file(url, tmp_file_name, pkg_file):
-        resp = requests.get(url)
+        resp = requests.get(url, timeout=30)
         if resp.status_code != 200:
             logger.error("Could not connect to the url: {}".format(url))
             return
@@ -427,7 +431,7 @@ def resolve_pkglist_from_url(repo_name, repo_url, store_path):
         _repo_path = f"{repo_name}-{repo_path.split('/')[0]}"
         for arch in ["aarch64", "x86_64"]:
             _url = f"{repo_url}/{repo_path}/{arch}/Packages/"
-            resp = requests.get(_url)
+            resp = requests.get(_url, timeout=30)
             if resp.status_code != 200:
                 logger.error("Could not connect to the url: {}".format(_url))
                 return
@@ -559,7 +563,7 @@ def test_overview_parse(tree, product_build):
             continue
 
         aarch64_selector = res_selectors[0]
-        tmp = etree.tostring(aarch64_selector, encoding="unicode", method="xml")
+        tmp = deftree.tostring(aarch64_selector, encoding="unicode", method="xml")
         if tmp.strip() != "<td>-</td>":
             aarch64_res = aarch64_selector.xpath('./span[starts-with(@id, "res-")]/a')
             if not aarch64_res:
@@ -588,7 +592,7 @@ def test_overview_parse(tree, product_build):
             _redis_pipeline.process_item(test_overview_data)
             continue
 
-        tmp = etree.tostring(x86_64_selector, encoding="unicode", method="xml")
+        tmp = deftree.tostring(x86_64_selector, encoding="unicode", method="xml")
         if tmp.strip() != "<td>-</td>":
             x86_res = x86_64_selector.xpath('./span[starts-with(@id, "res-")]/a')
             if not x86_res:

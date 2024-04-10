@@ -36,7 +36,32 @@ class RoleHandler:
     def get(role_id, query):
         role = Role.query.filter_by(id=role_id).first()
         if not role:
-            return jsonify(error_code=RET.NO_DATA_ERR, error_msg="The role is not exist")
+            return jsonify(error_code=RET.NO_DATA_ERR, error_msg=f"query role[{role_id}] is not exist")
+        is_admin = True
+        current_user = g.user_id
+        if not current_user.startswith("admin_"):
+            if role.type != "person":
+                filter_params = [ReUserRole.user_id == current_user]
+                if role.type == "public":
+                    filter_params.extend([Role.type == role.type, Role.name == "admin"])
+                elif role.type == "org":
+                    filter_params.extend([Role.type == role.type, Role.name == "admin", Role.org_id == role.org_id])
+                elif role.type == "group":
+                    filter_params.extend(
+                        [
+                            Role.type == role.type,
+                            Role.name == "admin",
+                            Role.org_id == role.org_id,
+                            Role.group_id == role.group_id
+                        ]
+                    )
+                user_admin = ReUserRole.query.join(Role).filter(
+                    *filter_params
+                ).all()
+                if not user_admin:
+                    is_admin = False
+            elif role.type == "person" and role.name != current_user:
+                is_admin = False
 
         return_data = role.to_json()
 
@@ -59,14 +84,14 @@ class RoleHandler:
         return_data.update({"scopes": scopes})
 
         users = []
-
-        for re in role.re_user_role:
-            user = User.query.filter_by(user_id=re.user_id).first()
-            users.append(user.to_dict())
+        if is_admin:
+            for re in role.re_user_role:
+                user = User.query.filter_by(user_id=re.user_id).first()
+                users.append(user.to_dict())
 
         return_data.update({"users": users})
 
-        return jsonify(error_code=RET.OK, error_msg="OK", data=return_data)
+        return jsonify(error_code=RET.OK, error_msg=f"query role[{role_id}] is success", data=return_data)
 
     @staticmethod
     @collect_sql_error
@@ -100,7 +125,7 @@ class RoleHandler:
 
         return_data = [role.to_json() for role in roles]
 
-        return jsonify(error_code=RET.OK, error_msg="OK", data=return_data)
+        return jsonify(error_code=RET.OK, error_msg="get role info success", data=return_data)
 
     @staticmethod
     @collect_sql_error
@@ -140,10 +165,19 @@ class RoleHandler:
             ).first()
 
         if not _relation and _body["type"] != "public":
-            return jsonify(error_code=RET.NO_DATA_ERR, error_msg="Group/Organization has not been exist")
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg="create role[{},{}] failed due to group/organization has not been exist".format(
+                    _body.get("type"),
+                    _body.get("name")
+                )
+            )
 
         if _role is not None:
-            return jsonify(error_code=RET.DATA_EXIST_ERR, error_msg="This role is already exist")
+            return jsonify(
+                error_code=RET.DATA_EXIST_ERR,
+                error_msg="This role[{},{}] is already exist".format(_body.get("type"), _body.get("name"))
+            )
 
         _ = Insert(Role, _body).insert_id(Role, '/role')
 
@@ -153,19 +187,25 @@ class RoleHandler:
             role.children.append(Role.query.get(_))
             _after = [_ for _ in role.children]
             role.add_update(difference=list(set(_after) - set(_origin)))
-        return jsonify(error_code=RET.OK, error_msg="OK")
+        return jsonify(
+            error_code=RET.OK,
+            error_msg="create role[{},{}] success".format(_body.get("type"), _body.get("name"))
+        )
 
     @staticmethod
     @collect_sql_error
     def delete(role_id):
         role = Role.query.filter_by(id=role_id).first()
         if not role:
-            return jsonify(error_code=RET.NO_DATA_ERR, error_msg="The role to delete is not exist")
+            return jsonify(error_code=RET.NO_DATA_ERR, error_msg=f"The role[{role_id}] to delete is not exist")
         if role.necessary:
-            return jsonify(error_code=RET.OTHER_REQ_ERR, error_msg="The role is not allowed to delete")
+            return jsonify(error_code=RET.OTHER_REQ_ERR, error_msg=f"The role[{role_id}] is not allowed to delete")
         roles = [_.name for _ in role.children]
         if roles:
-            return jsonify(error_code=RET.OTHER_REQ_ERR, error_msg=f"The role is related to sub-role(s):{str(roles)}")
+            return jsonify(
+                error_code=RET.OTHER_REQ_ERR,
+                error_msg=f"The role[{role_id}] is related to sub-role(s):{str(roles)}"
+            )
         _urs = ReUserRole.query.filter_by(role_id=role.id).all()
         _srs = ReScopeRole.query.filter_by(role_id=role.id).all()
         for _re in _urs:
@@ -173,20 +213,20 @@ class RoleHandler:
         for _re in _srs:
             Delete(ReScopeRole, {"id": _re.id}).single()
         role.delete()
-        return jsonify(error_code=RET.OK, error_msg="OK")
+        return jsonify(error_code=RET.OK, error_msg=f"delete role[{role_id}] is success")
 
     @staticmethod
     @collect_sql_error
     def update(role_id, body):
         role = Role.query.filter_by(id=role_id).first()
         if not role:
-            return jsonify(error_code=RET.NO_DATA_ERR, error_msg="The role to delete is not exist")
+            return jsonify(error_code=RET.NO_DATA_ERR, error_msg=f"update role[{role_id}] is not exist")
 
         role.name = body.name
 
         role.add_update()
 
-        return jsonify(error_code=RET.OK, error_msg="OK")
+        return jsonify(error_code=RET.OK, error_msg=f"update role[{role_id}] success")
 
     @staticmethod
     @collect_sql_error
@@ -205,7 +245,7 @@ class RoleHandler:
             if _role.name == suffix:
                 role_dict['default'] = True
             role_list.append(role_dict)
-        return jsonify(error_code=RET.OK, error_msg="OK", data=role_list)
+        return jsonify(error_code=RET.OK, error_msg="get role info success", data=role_list)
 
 
 class ScopeHandler:
@@ -227,7 +267,20 @@ class ScopeHandler:
 
         scopes = Scope.query.filter(*filter_params)
 
-        return PageUtil.get_data(scopes, query)
+        resp = PageUtil.get_data(scopes, query)
+        result = resp.get_json()
+        if result.get("error_code") != RET.OK:
+            error_msg = result.get("error_msg")
+            return jsonify(
+                error_code=result.get("error_code"),
+                error_msg=f"get scope failed for the reson[{error_msg}]"
+            )
+        else:
+            return jsonify(
+                error_code=RET.OK,
+                error_msg="get scope info success",
+                data=result.get("data")
+            )
 
     @staticmethod
     def get_scopes_by_role(role_id, query):
@@ -248,7 +301,20 @@ class ScopeHandler:
             Scope.create_time.desc(),
             Scope.id.asc()
         )
-        return PageUtil.get_data(scopes, query)
+        resp = PageUtil.get_data(scopes, query)
+        result = resp.get_json()
+        if result.get("error_code") != RET.OK:
+            error_msg = result.get("error_msg")
+            return jsonify(
+                error_code=result.get("error_code"),
+                error_msg=f"failed to obtain permission scope for role due to[{error_msg}]"
+            )
+        else:
+            return jsonify(
+                error_code=RET.OK,
+                error_msg="success to obtain permission scope for role",
+                data=result.get("data")
+            )
 
     @staticmethod
     @collect_sql_error
@@ -264,7 +330,7 @@ class ScopeHandler:
         if not _role:
             return jsonify(
                 error_code=RET.NO_DATA_ERR,
-                error_msg=f"the administrator role of public does not exist"
+                error_msg="the administrator role of public does not exist"
             )
         return ScopeHandler.get_scopes_by_role(_role.id, query)
 
@@ -275,7 +341,7 @@ class ScopeHandler:
         if not _owner:
             return jsonify(
                 error_code=RET.NO_DATA_ERR,
-                error_msg=f"the {_type} does not exist"
+                error_msg=f"get {_type} scope failed due to the {_type}[{owner_id}] does not exist"
             )
 
         with open('server/config/role_init.yaml', 'r', encoding='utf-8') as f:
@@ -294,7 +360,8 @@ class ScopeHandler:
         if not _role:
             return jsonify(
                 error_code=RET.NO_DATA_ERR,
-                error_msg=f"the administrator role of this {_type} does not exist"
+                error_msg=f"get {_type} scope failed due to "
+                          f"the administrator role of this {_type}[{owner_id}] does not exist"
             )
         return ScopeHandler.get_scopes_by_role(_role.id, query)
 
@@ -302,26 +369,26 @@ class ScopeHandler:
     @collect_sql_error
     def create(body):
         _ = Insert(Scope, body.__dict__).insert_id(Scope, '/scope')
-        return jsonify(error_code=RET.OK, error_msg="OK")
+        return jsonify(error_code=RET.OK, error_msg=f"scope[{body.alias, body.uri, body.act, body.eft}] add success")
 
     @staticmethod
     @collect_sql_error
-    def delete(role_id):
-        scope = Scope.query.filter_by(id=role_id).first()
+    def delete(scope_id):
+        scope = Scope.query.filter_by(id=scope_id).first()
         if not scope:
-            return jsonify(error_code=RET.NO_DATA_ERR, error_msg="The scope to delete is not exist")
+            return jsonify(error_code=RET.NO_DATA_ERR, error_msg=f"delete scope[{scope_id}] is not exist")
 
         db.session.delete(scope)
         db.session.commit()
 
-        return jsonify(error_code=RET.OK, error_msg="OK")
+        return jsonify(error_code=RET.OK, error_msg=f"delete scope[{scope_id}] is success")
 
     @staticmethod
     @collect_sql_error
-    def update(role_id, body):
-        scope = Scope.query.filter_by(id=role_id).first()
+    def update(scope_id, body):
+        scope = Scope.query.filter_by(id=scope_id).first()
         if not scope:
-            return jsonify(error_code=RET.NO_DATA_ERR, error_msg="The scope to delete is not exist")
+            return jsonify(error_code=RET.NO_DATA_ERR, error_msg=f"update scope[{scope_id}] is not exist")
 
         scope.alias = body.alias
         scope.uri = body.uri
@@ -330,31 +397,7 @@ class ScopeHandler:
 
         scope.add_update()
 
-        return jsonify(error_code=RET.OK, error_msg="OK")
-
-
-class BindingHandler:
-    @staticmethod
-    @collect_sql_error
-    def bind_scope_role(body):
-        _scope = Scope.query.filter_by(id=body.scope_id).first()
-        _role = Role.query.filter_by(id=body.role_id).first()
-
-        if not _scope or not _role:
-            return jsonify(error_code=RET.NO_DATA_ERR, error_msg="Scope/Role has not been exist")
-
-        return Insert(ReScopeRole, body.__dict__).single()
-
-    @staticmethod
-    @collect_sql_error
-    def bind_user_role(body):
-        _user = User.query.filter_by(user_id=body.user_id).first()
-        _role = Role.query.filter_by(id=body.role_id).first()
-
-        if not _user or not _role:
-            return jsonify(error_code=RET.NO_DATA_ERR, error_msg="User/Role has not been exist")
-
-        return Insert(ReUserRole, body.__dict__).single()
+        return jsonify(error_code=RET.OK, error_msg=f"update scope[{scope_id}] is success")
 
 
 class RoleLimitedHandler:
@@ -384,7 +427,10 @@ class UserRoleLimitedHandler(RoleLimitedHandler):
 
     def bind_user(self):
         if not self.role_id or not self.user_id:
-            return jsonify(error_code=RET.VERIFY_ERR, error_msg="permission denied")
+            return jsonify(
+                error_code=RET.VERIFY_ERR,
+                error_msg="bind user and role failed due to empty role id or user id"
+            )
 
         _role = Role.query.get(self.role_id)
 
@@ -396,36 +442,54 @@ class UserRoleLimitedHandler(RoleLimitedHandler):
                 rug.role_type = GroupRole.user.value
             rug.add_update()
 
-        return Insert(
+        Insert(
             ReUserRole,
             {
                 "user_id": self.user_id,
                 "role_id": self.role_id
             }
         ).single()
+        return jsonify(error_code=RET.OK, error_msg=f"bind user[{self.user_id}] and role[{self.role_id}] is success")
 
     def unbind_user(self):
         if not self.role_id or not self.user_id:
-            return jsonify(error_code=RET.VERIFY_ERR, error_msg="permission denied")
+            return jsonify(
+                error_code=RET.VERIFY_ERR,
+                error_msg="unbind user and role failed due to empty role id or user id"
+            )
 
         re = ReUserRole.query.filter_by(role_id=self.role_id, user_id=self.user_id).first()
         if not re:
-            return jsonify(error_code=RET.DATA_EXIST_ERR, error_msg="This Binding is already not exist")
+            return jsonify(
+                error_code=RET.DATA_EXIST_ERR,
+                error_msg=f"unbind user[{self.user_id}] and role[{self.role_id}] "
+                          f"failed due to This Binding is already not exist"
+            )
         if re.role.type == 'group':
             rug = ReUserGroup.query.filter_by(user_id=self.user_id, group_id=re.role.group_id).first()
             if not rug:
-                return jsonify(error_code=RET.VERIFY_ERR,
-                               error_msg="user-group binding not exist")
+                return jsonify(
+                    error_code=RET.VERIFY_ERR,
+                    error_msg=f"unbind user[{self.user_id}] and role[{self.role_id}] "
+                              f"failed due to user-group binding not exist"
+                )
             if re.role.name == 'admin' and rug.role_type == GroupRole.create_user.value:
-                return jsonify(error_code=RET.VERIFY_ERR,
-                               error_msg="group creator user-role bind is not allowed to untie")
+                return jsonify(
+                    error_code=RET.VERIFY_ERR,
+                    error_msg=f"unbind user[{self.user_id}] and role[{self.role_id}] "
+                              f"failed due to group creator user-role bind is not allowed to untie"
+                )
 
-        return Delete(
+        Delete(
             ReUserRole,
             {
                 "id": re.id,
             }
         ).single()
+        return jsonify(
+            error_code=RET.OK,
+            error_msg=f"unbind user[{self.user_id}] and role[{self.role_id}] relation success"
+        )
 
 
 class ScopeRoleLimitedHandler(RoleLimitedHandler):
@@ -438,27 +502,42 @@ class ScopeRoleLimitedHandler(RoleLimitedHandler):
 
     def bind_scope(self):
         if not self.role_id or not self.scope_id:
-            return jsonify(error_code=RET.VERIFY_ERR, error_msg="permission denied")
+            return jsonify(
+                error_code=RET.VERIFY_ERR,
+                error_msg="bind scope and role failed due to empty role id or scope id"
+            )
 
-        return Insert(
+        Insert(
             ReScopeRole,
             {
                 "scope_id": self.scope_id,
                 "role_id": self.role_id
             }
         ).single()
+        return jsonify(error_code=RET.OK, error_msg=f"bind scope[{self.scope_id}] and role[{self.role_id}] is success")
 
     def unbind_scope(self):
         if not self.role_id or not self.scope_id:
-            return jsonify(error_code=RET.VERIFY_ERR, error_msg="permission denied")
+            return jsonify(
+                error_code=RET.VERIFY_ERR,
+                error_msg="unbind scope and role failed due to empty scope id or role id"
+            )
 
         re = ReScopeRole.query.filter_by(role_id=self.role_id, scope_id=self.scope_id).first()
         if not re:
-            return jsonify(error_code=RET.NO_DATA_ERR, error_msg="This Binding is already not exist")
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg=f"unbind scope[{self.role_id}] and role[{self.role_id}] "
+                          f"failed due to this binding is already not exist"
+            )
 
-        return Delete(
+        Delete(
             ReScopeRole,
             {
                 "id": re.id,
             }
         ).single()
+        return jsonify(
+            error_code=RET.OK,
+            error_msg=f"unbind scope[{self.scope_id}] and role[{self.role_id}] success"
+        )

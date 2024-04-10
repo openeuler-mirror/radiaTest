@@ -194,6 +194,7 @@ class Task(Resource):
 
 
 class TaskItem(Resource):
+    @auth.login_check
     @response_collect
     @swagger_adapt.api_schema_model_map({
         "__module__": get_task_tag.__module__,  # 获取当前接口所在模块

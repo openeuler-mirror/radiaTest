@@ -7,8 +7,8 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 ####################################
-# @Author  : Ethan-Zhang
-# @email   : ethanzhang55@outlook.com
+# @Author  :
+# @email   :
 # @Date    : 2022/12/26
 # @License : Mulan PSL v2
 
@@ -19,7 +19,7 @@ from flask import request, g, jsonify, current_app
 from server import db
 
 from server import redis_client
-from server.utils.response_util import RET
+from server.utils.response_util import RET, log_util
 from server.utils.redis_util import RedisKey
 from server.utils.auth_util import generate_token
 from server.utils.db import collect_sql_error, Delete
@@ -37,27 +37,32 @@ def handler_login(body):
     # 从数据库中获取数据
     admin = Admin.query.filter_by(account=body.account).first()
     if not admin:
-        return jsonify(
+        resp = jsonify(
             error_code=RET.VERIFY_ERR,
             error_msg='Account does not exist or password is incorrect. Please re-enter'
         )
-
+        log_util(resp)
+        return resp
     # 防止用户多次登录
     lock_key = f'admin_{request.remote_addr}_{admin.account}'
     i = redis_client.get(lock_key)
     if i and int(i) >= 5:
-        return jsonify(
+        resp = jsonify(
             error=RET.VERIFY_ERR,
             error_msg='login number is too many, account is locked'
         )
+        log_util(resp)
+        return resp
 
     if not admin.check_password_hash(body.password):
         redis_client.incr(lock_key)
         redis_client.expire(lock_key, ex=1800)
-        return jsonify(
+        resp = jsonify(
             error_code=RET.VERIFY_ERR,
             error_msg='Account does not exist or password is incorrect. Please re-enter'
         )
+        log_util(resp)
+        return resp
 
     user_dict = {
         'user_id': f'admin_{admin.id}',
@@ -74,27 +79,32 @@ def handler_login(body):
         'admin': 1,
         'account': admin.account
     }
-    return jsonify(
+    resp = jsonify(
         error_code=RET.OK,
-        error_msg='OK',
+        error_msg='admin login success',
         data=return_dict
     )
+    log_util(resp)
+    return resp
 
 
 @collect_sql_error
 def handler_read_org_list():
     admin = Admin.query.filter_by(account=g.user_login).first()
     if not admin:
-        return jsonify(error_code=RET.VERIFY_ERR, error_msg='no right')
+        resp = jsonify(error_code=RET.VERIFY_ERR, error_msg='user no right to get organization info')
+        log_util(resp)
+        return resp
     org_list = Organization.query.filter_by(is_delete=False).all()
     org_info_list = list()
     for item in org_list:
         org_info_list.append(item.to_dict())
-    return jsonify(
+    resp = jsonify(
         error_code=RET.OK,
-        error_msg="OK",
+        error_msg="admin get organization success",
         data=org_info_list
     )
+    return resp
 
 
 @collect_sql_error
@@ -126,7 +136,7 @@ def handler_save_org(body, avatar=None):
     if not org:
         return jsonify(
             error_code=RET.DB_ERR,
-            error_msg="database add error"
+            error_msg="database add organization error"
         )
     # 角色初始化
     role_admin, role_list = create_role(_type='org', org=org)
@@ -144,7 +154,7 @@ def handler_save_org(body, avatar=None):
                                                   _data=_data)
     return jsonify(
         error_code=RET.OK,
-        error_msg="OK",
+        error_msg="organization create success",
         data={"id": org.id}
     )
 
@@ -156,7 +166,7 @@ def handler_update_org(org_id):
     if not admin:
         return jsonify(
             error_code=RET.VERIFY_ERR,
-            error_msg='no right'
+            error_msg='user no right to update organizaton'
         )
     org = Organization.query.filter_by(is_delete=False, id=org_id).first()
     if not org:
@@ -197,7 +207,7 @@ def handler_update_org(org_id):
     org.add_update()
     return jsonify(
         error_code=RET.OK,
-        error_msg="OK"
+        error_msg="update organization info success"
     )
 
 
@@ -231,19 +241,35 @@ def handler_change_passwd(body):
     if not admin:
         return jsonify(
             error_code=RET.NO_DATA_ERR,
-            error_msg='admin no find'
+            error_msg='admin not find'
+        )
+
+    lock_key = f'admin_change_{request.remote_addr}_{admin.account}'
+    i = redis_client.get(lock_key)
+    if i and int(i) >= 5:
+        redis_client.delete(RedisKey.user(g.user_id))
+        redis_client.delete(RedisKey.token(g.user_id))
+        redis_client.delete(RedisKey.token(g.token))
+        return jsonify(
+            error=RET.OK,
+            error_msg='change password number is too many, account is locked'
         )
 
     if not admin.check_password_hash(body.old_password):
+        redis_client.incr(lock_key)
+        redis_client.expire(lock_key, ex=1800)
         return jsonify(
             error_code=RET.VERIFY_ERR,
-            error_msg='old password error'
+            error_msg='Account does not exist or password is incorrect. Please re-enter'
         )
     admin.password = body.new_password
     admin.add_update(Admin, '/admin')
+    redis_client.delete(RedisKey.user(g.user_id))
+    redis_client.delete(RedisKey.token(g.user_id))
+    redis_client.delete(RedisKey.token(g.token))
     return jsonify(
         error_code=RET.OK,
-        error_msg="new password update success"
+        error_msg="admin new password update success"
     )
 
 
@@ -271,5 +297,4 @@ def check_authority(form: dict):
                 "oauth_get_user_info_url": current_app.config.get("GITEE_OAUTH_GET_USER_INFO_URL"),
                 "oauth_scope": current_app.config.get("GITEE_OAUTH_SCOPE")
             })
-    current_app.logger.info("form:{}".format(form))
     return True, form

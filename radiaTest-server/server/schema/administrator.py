@@ -12,6 +12,7 @@
 # @Date    :
 # @License : Mulan PSL v2
 #####################################
+import re
 
 from pydantic import BaseModel, validator, root_validator
 
@@ -40,4 +41,11 @@ class ChangePasswdSchema(BaseModel):
 
         if values['new_password'] != values['re_new_password']:
             raise ValueError('The passwords entered twice are different')
+
+        pattern = (
+            r"^(?=(?:.*[a-z])?)(?=(?:.*[A-Z])?)(?=(?:.*\d)?)(?=(?:.*[!@#$%^&*()-_+=])?)[a-zA-Z\d!^~@#$%^&*()-_+=]+$"
+        )
+        if not re.match(pattern, values['new_password']):
+            raise ValueError('The password complexity does not meet the requirements')
+
         return values

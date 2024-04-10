@@ -131,11 +131,11 @@ def handler_update_msg():
 def handler_msg_callback(body):
     msg = Message.query.filter_by(id=body.msg_id, is_delete=False).first()
     if not msg:
-        return jsonify(error_code=RET.NO_DATA_ERR, error_msg="消息不存在")
+        return jsonify(error_code=RET.NO_DATA_ERR, error_msg=f"消息[{body.msg_id}]不存在")
 
     lock_flag = lock_message(msg.id)
     if lock_flag is False:
-        return jsonify(error_code=RET.DATA_EXIST_ERR, error_msg="消息正在被处理")
+        return jsonify(error_code=RET.DATA_EXIST_ERR, error_msg=f"消息[{body.msg_id}]正在被处理")
 
     _data = json.loads(msg.data)
     info = f'<b>您</b>请求{_data.get("_alias")}<b>{_data.get("_id")}</b>已经被{{}}</b>。'
@@ -148,7 +148,7 @@ def handler_msg_callback(body):
     msg.has_read = True
     msg.type = 0
     msg.add_update()
-    return jsonify(error_code=RET.OK, error_msg="OK")
+    return jsonify(error_code=RET.OK, error_msg=f"consume message[{body.msg_id}] is success")
 
 
 @collect_sql_error
@@ -156,11 +156,11 @@ def handler_addgroup_msg_callback(body):
     org_name = redis_client.hget(RedisKey.user(g.user_id), "current_org_name")
     msg = Message.query.filter_by(id=body.msg_id, is_delete=False).first()
     if not msg:
-        return jsonify(error_code=RET.NO_DATA_ERR, error_msg="消息不存在")
+        return jsonify(error_code=RET.NO_DATA_ERR, error_msg=f"消息[{body.msg_id}]不存在")
 
     lock_flag = lock_message(msg.id)
     if lock_flag is False:
-        return jsonify(error_code=RET.OK, error_msg="消息正在被处理")
+        return jsonify(error_code=RET.OK, error_msg=f"消息[{body.msg_id}]正在被处理")
 
     _data = json.loads(msg.data) if isinstance(msg.data, str) else msg.data
     info = f'您请求加入<b>{org_name}</b>组织下的<b>{_data.get("group_name")}</b>组已经被<b>{{}}</b>。'
@@ -192,7 +192,7 @@ def handler_addgroup_msg_callback(body):
             res.delete()
     message_instance = MessageInstance(dict(info=info), g.user_id, [msg.from_id], msg.org_id)
     Message.create_instance(message_instance)
-    return jsonify(error_code=RET.OK, error_msg="OK")
+    return jsonify(error_code=RET.OK, error_msg=f"deal add group message[{body.msg_id}] success")
 
 
 @collect_sql_error

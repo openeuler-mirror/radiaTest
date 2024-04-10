@@ -7,8 +7,8 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 ####################################
-# @Author  : hukun66
-# @email   : hu_kun@hoperun.com
+# @Author  :
+# @email   :
 # @Date    : 2023/09/19
 # @License : Mulan PSL v2
 #####################################
