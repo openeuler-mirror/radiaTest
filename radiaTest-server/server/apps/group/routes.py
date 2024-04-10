@@ -28,7 +28,6 @@ from server.apps.group.handlers import (
     handler_add_user,
     handler_update_user,
     handler_apply_join_group,
-    handler_get_group_asset_rank
 )
 from server.utils.auth_util import auth
 from server.utils.response_util import response_collect
@@ -284,19 +283,3 @@ class UserApplyGroup(Resource):
         """
         return handler_apply_join_group(group_id)
 
-
-class GroupAssetRank(Resource):
-    @auth.login_required()
-    @response_collect
-    @validate()
-    @swagger_adapt.api_schema_model_map({
-        "__module__": get_group_tag.__module__,   # 获取当前接口所在模块
-        "resource_name": "GroupAssetRank",  # 当前接口视图函数名
-        "func_name": "get",   # 当前接口所对应的函数名
-        "tag": get_group_tag(),  # 当前接口所对应的标签
-        "summary": "获取用户组asset_rank",  # 当前接口概述
-        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
-        "query_schema_model": PageBaseSchema
-    })
-    def get(self, query: PageBaseSchema):
-        return handler_get_group_asset_rank(query)

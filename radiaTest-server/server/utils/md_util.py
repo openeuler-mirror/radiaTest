@@ -16,13 +16,14 @@
 import os
 import stat
 import io
+import multiprocessing
 import html
 from bcrypt import re
 
 from flask import current_app
 import openpyxl
 import markdown
-from lxml import etree
+from lxml import html
 
 
 class MdUtil:
@@ -42,7 +43,7 @@ class MdUtil:
         return:
             list: [ lxml_table_1, lxml_table_2]
         """
-        try :
+        try:
             html_content = markdown.markdown(md_content, extensions=MdUtil.DEFAULT_MD_EXT)
         except UnicodeDecodeError as ude:
             current_app.logger.error(f"unsupported unicode in markdown file :{str(ude)}")
@@ -55,7 +56,7 @@ class MdUtil:
             return []
 
         html_content = html.escape(html_content)
-        html_etree = etree.HTML(html_content, parser=etree.HTMLParser(encoding="utf-8"))
+        html_etree = html.fromstring(html_content)
         table_list = html_etree.xpath("//table")
         return table_list
 
@@ -68,7 +69,7 @@ class MdUtil:
             file_path (str): html file path
 
         """
-        try :
+        try:
             html_content = markdown.markdown(md_content, output_format="html", extensions=MdUtil.DEFAULT_MD_EXT)
         except UnicodeDecodeError as ude:
             current_app.logger.error(f"unsupported unicode in markdown file :{str(ude)}")
@@ -181,10 +182,10 @@ class MdUtil:
         # 表头赋值
         for col in range(cols_num):
             ws.cell(1, col + 1).value = title[col]
-        
+
         # 搜索有效表行
         row_pattern = r"^" + "".join([
-            '(?:\|((?!\s*(?:grep|awk|sed|tee|sort|uniq|tail|more|less)).*?[^\\\]{1,50})?)' for _ in range(cols_num)
+            '(?:\|((?!\s*(?:grep|awk|sed|tee|sort|uniq|tail|more|less)).*[^\\\])?)' for _ in range(cols_num)
         ]) + "\|$"
         row_index = 2
 
@@ -196,18 +197,28 @@ class MdUtil:
                 escape_content = escape_content.replace(key, value)
             return escape_content
 
-        for i in range(header + 2, len(md_lines)):
-            result = re.match(row_pattern, md_lines[i])
-            if result:
-                cells = result.groups()
-                # md转行替换，格式转换
-                body = list(map(escape_content, cells))
-                # 表行赋值
-                if len(body) == cols_num:
-                    for col in range(cols_num):
-                        ws.cell(row_index, col + 1).value = body[col]
-                    row_index += 1
+        def save_wb():
+            nonlocal row_index
+            for i in range(header + 2, len(md_lines)):
+                result = re.match(row_pattern, md_lines[i])
+                if result:
+                    cells = result.groups()
+                    # md转行替换，格式转换
+                    body = list(map(escape_content, cells))
+                    # 表行赋值
+                    if len(body) == cols_num:
+                        for col in range(cols_num):
+                            ws.cell(row_index, col + 1).value = body[col]
+                        row_index += 1
 
-        wb.save(wb_path)
+            wb.save(wb_path)
+
+        proccess = multiprocessing.Process(target=save_wb)
+        proccess.start()
+        proccess.join(60)
+
+        if proccess.is_alive():
+            proccess.terminate()
+            raise RuntimeError("md convert timeout")
 
         return wb_path

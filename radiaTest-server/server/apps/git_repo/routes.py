@@ -7,8 +7,8 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 ####################################
-# @Author  : Ethan-Zhang
-# @email   : ethanzhang55@outlook.com
+# @Author  :
+# @email   :
 # @Date    : 
 # @License : Mulan PSL v2
 
@@ -133,7 +133,8 @@ class GitRepoItemEvent(Resource):
             "id": git_repo_id,
         }
 
-        return Edit(GitRepo, _body).single(GitRepo, "/git_repo")
+        Edit(GitRepo, _body).single(GitRepo, "/git_repo")
+        return jsonify(error_code=RET.OK, error_msg=f"edit git_repo[{git_repo_id}] success")
 
     @response_collect
     @casbin_enforcer.enforcer

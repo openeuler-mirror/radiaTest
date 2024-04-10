@@ -16,7 +16,7 @@
 from functools import wraps
 import requests
 
-from flask import make_response, g, jsonify, current_app
+from flask import make_response, g, jsonify, current_app, request, Response
 
 
 class RET(object):
@@ -52,29 +52,45 @@ class RET(object):
     MAIL_ERROR = "80000"
 
 
+def log_util(func_result):
+    uri = str(request.path)
+    ip = request.remote_addr
+    act = str(request.method).upper()
+
+    if isinstance(func_result, Response):
+        result = func_result.get_json()
+        error_code = result.get("error_code")
+        error_msg = result.get("error_msg")
+        if error_code != RET.OK and not error_msg:
+            msg = "something operate failed"
+        elif error_code == RET.OK and not error_msg:
+            msg = "operate success"
+        elif error_code != RET.OK and error_msg:
+            msg = f"operate failed:{error_msg}"
+        else:
+            msg = f"operate success:{error_msg}"
+    else:
+        msg = "something operate failed"
+    current_app.logger.info(
+        "Ip={}, UserId={}, Method={}, Uri={}, Result={}.".format(
+            ip if ip else "",
+            g.user_id if g.user_id else 0,
+            act,
+            uri,
+            msg
+        )
+    )
+
+
 def response_collect(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         func_result = func(*args, **kwargs)
+        log_util(func_result)
         resp = make_response(func_result)
         if hasattr(g, "token"):
             resp.headers['Authorization'] = g.token
         return resp
-
-    return wrapper
-
-
-def attribute_error_collect(func):
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        try:
-            resp = func(*args, **kwargs)
-            return resp
-        except AttributeError as e:
-            return jsonify(
-                error_code=RET.RUNTIME_ERROR,
-                error_msg=str(e)
-            )
 
     return wrapper
 
@@ -88,11 +104,11 @@ def ssl_cert_verify_error_collect(func):
         except requests.exceptions.SSLError as e:
             current_app.logger.error(str(e))
             if "SSLCertVerificationError" in str(e):
-                return dict(
+                return jsonify(
                     error_code=RET.CERTIFICATE_VERIFY_FAILED,
                     error_msg="SSLCertVerificationError, certificate verify failed.",
                 )
-            return dict(
+            return jsonify(
                 error_code=RET.SSLERROR,
                 error_msg="SSLError, please check your certificate.",
             )

@@ -105,7 +105,7 @@ class ServiceModel(BaseModel):
 
 
 class CasbinRoleModel(BaseModel):
-    dom_pattern = r'^/api/v[0-9]+/([^/]+).*$'
+    dom_pattern = r'^/api/v[0-9]+/([^/]+)(?:/.*)?$'
 
     def _get_subject(self, role_type, role_name):
         """get subject by relationship between group/organization and role"""

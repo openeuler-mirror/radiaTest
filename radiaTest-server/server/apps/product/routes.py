@@ -88,7 +88,7 @@ class ProductEventItem(Resource):
         if not product:
             return jsonify(
                 error_code=RET.NO_DATA_ERR,
-                error_msg="product does not exist.",
+                error_msg="edit product failed due to product does not exist.",
             )
         name = product.name
         version = product.version
@@ -103,11 +103,15 @@ class ProductEventItem(Resource):
         if product and product.id != product_id:
             return jsonify(
                 error_code=RET.NO_DATA_ERR,
-                error_msg="The version of product has existed.",
+                error_msg="edit product failed due to the version of product has existed.",
             )
         _data = body.__dict__
         _data["id"] = product_id
-        return Edit(Product, _data).single(Product, '/product')
+        Edit(Product, _data).single(Product, '/product')
+        return jsonify(
+            error_code=RET.OK,
+            error_msg=f"edit product[{product_id}] success",
+        )
 
 
 class ProductEvent(Resource):

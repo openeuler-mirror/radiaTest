@@ -18,10 +18,8 @@ import json
 
 from flask.globals import current_app
 import requests
-from flask import g, jsonify
+from flask import jsonify
 
-from server import redis_client
-from server.utils.redis_util import RedisKey
 from server.utils.db import collect_sql_error
 from server.utils.response_util import RET
 from server.model.organization import Organization
@@ -95,7 +93,7 @@ class BaseOpenApiHandler:
             _params.update(params)
 
         _resp = requests.get(
-            url=url, params=_params, headers=self.headers
+            url=url, params=_params, headers=self.headers, timeout=30
         )
 
         _resp.encoding = _resp.apparent_encoding

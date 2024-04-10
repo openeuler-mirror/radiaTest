@@ -797,10 +797,14 @@ class CaseItemEvent(Resource):
         if not case_node:
             return jsonify(
                 error_code=RET.NO_DATA_ERR,
-                error_msg="the case_node does not exist"
+                error_msg="delete case failed due to the case_node does not exist"
             )
         Delete(CaseNode, {"id": case_node.id}).single(CaseNode, "/case_node")
-        return Delete(Case, {"id": case_id}).single(Case, "/case")
+        Delete(Case, {"id": case_id}).single(Case, "/case")
+        return jsonify(
+            error_code=RET.OK,
+            error_msg=f"delete case[{case_id}] success"
+        )
 
     @response_collect
     @swagger_adapt.api_schema_model_map({
@@ -1267,9 +1271,10 @@ class SuiteDocumentItemEvent(Resource):
                 "id": document_id
             }
         )
-        return Edit(SuiteDocument, _body).single(
+        Edit(SuiteDocument, _body).single(
             SuiteDocument, "/suite_document"
         )
+        return jsonify(error_code=RET.OK, error_msg=f"edit suite doc[{document_id}] success")
 
     @auth.login_required()
     @response_collect

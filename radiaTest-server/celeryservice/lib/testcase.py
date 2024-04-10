@@ -300,6 +300,7 @@ class TestcaseHandler(TaskAuthHandler):
                     'Authorization': self.user.get("auth"),
                 },
                 verify=_verify,
+                timeout=30
             )
             if isinstance(_resp, dict):
                 self.logger.error(

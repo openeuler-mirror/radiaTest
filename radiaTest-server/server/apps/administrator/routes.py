@@ -88,7 +88,6 @@ class Org(Resource):
         for key, value in request.form.items():
             if value:
                 _form[key] = value
-        current_app.logger.info("register org:{}".format(_form))
         result, form = check_authority(_form)
         if not result:
             return form

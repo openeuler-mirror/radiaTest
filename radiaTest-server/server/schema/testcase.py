@@ -13,15 +13,17 @@
 # License : Mulan PSL v2
 #####################################
 
-from typing import Optional
-from typing import List
+import multiprocessing
+from typing import Optional, List
 from pydantic import BaseModel, validator
 from pydantic.class_validators import root_validator
 from pydantic.networks import HttpUrl
 from typing_extensions import Literal
+
 from server.model.testcase import Suite, Case
 from server.schema.base import PermissionBase, UpdateBaseModel, PageBaseSchema
 from server.schema import MachineType, PermissionType, CaseNodeType, CommitType
+from server.utils.text_utils import check_illegal_lables
 
 
 class PermissionBaseSchema(BaseModel):
@@ -388,6 +390,17 @@ class TestResultEventSchemaV2(BaseModel):
     fail_type: Optional[str]
     details: Optional[str]
     running_time: Optional[int]
+
+    @validator("details")
+    def check_details(cls, v):
+        if v:
+            process = multiprocessing.Process(target=check_illegal_lables, args=(v,))
+            process.start()
+            process.join(5)
+            if process.is_alive():
+                process.terminate()
+                raise RuntimeError("details maybe unsecurity")
+            return v
 
 
 class TestResultQuerySchema(BaseModel):

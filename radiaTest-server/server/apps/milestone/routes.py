@@ -202,7 +202,11 @@ class MilestoneItemEventV2(Resource):
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
     })
     def delete(self, milestone_id):
-        return DeleteMilestone.single(milestone_id)
+        DeleteMilestone.single(milestone_id)
+        return jsonify(
+            error_code=RET.OK,
+            error_msg=f"delete milestone[{milestone_id}] success"
+        )
 
     @response_collect
     @validate()

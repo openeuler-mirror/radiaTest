@@ -963,7 +963,10 @@ class GiteeV8IssueHandlerV2(GiteeV8BaseIssueHandler):
         if params is not None and isinstance(params, dict):
             _params.update(params)
         _resp = requests.get(
-            url=url, params=_params, headers=self.headers
+            url=url,
+            params=_params,
+            headers=self.headers,
+            timeout=30
         )
         _resp.encoding = _resp.apparent_encoding
 

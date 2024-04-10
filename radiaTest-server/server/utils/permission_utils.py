@@ -368,7 +368,7 @@ class GetAllByPermission:
             ).all()
         else:
             if not org_id:
-                raise RuntimeError(f"need org_id")
+                org_id = 0
             self.current_org_id = org_id
             self.re_user_groups = []
 

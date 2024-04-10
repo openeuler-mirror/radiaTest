@@ -47,8 +47,12 @@ def handler_org_group_page(org_id, query: PageBaseSchema):
     # 返回结果
     page_dict, e = PageUtil(query.page_num, query.page_size).get_page_dict(query_filter, func=page_func, is_set=True)
     if e:
-        return jsonify(error_code=RET.SERVER_ERR, error_msg=f'get group page error {e}')
-    return jsonify(error_code=RET.OK, error_msg="OK", data=page_dict)
+        return jsonify(error_code=RET.SERVER_ERR, error_msg=f'get group under organization[{org_id}] info page error {e}')
+    return jsonify(
+        error_code=RET.OK,
+        error_msg=f"get group info under organization[{org_id}] is success",
+        data=page_dict
+    )
 
 
 @collect_sql_error
@@ -72,7 +76,7 @@ def handler_get_all_org(query):
     if e:
         return jsonify(error_code=RET.SERVER_ERR, error_msg=f'get organization page error {e}')
 
-    return jsonify(error_code=RET.OK, error_msg="OK", data=page_dict)
+    return jsonify(error_code=RET.OK, error_msg="get organization page success", data=page_dict)
 
 
 @collect_sql_error

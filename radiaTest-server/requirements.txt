@@ -16,8 +16,7 @@ click-didyoumean==0.3.0
 click-plugins==1.1.1
 click-repl==0.2.0
 colorama==0.4.4
-configobj==5.0.8
-pycryptodome==3.15.0
+pycryptodome==3.20.0
 decorator==4.4.2
 distro==1.5.0
 et-xmlfile==1.1.0
@@ -47,7 +46,6 @@ ntplib==0.4.0
 numpy==1.22.3
 openpyxl==3.0.9
 pandas==1.3.4
-paramiko==3.4.0
 prompt-toolkit==3.0.24
 pycodestyle==2.8.0
 pycparser==2.20
@@ -73,7 +71,7 @@ typing_extensions==4.9.0
 urllib3==2.0.7
 wcwidth==0.2.5
 websockify==0.9.0
-Werkzeug==2.2.3
+Werkzeug==2.3.8
 wget==3.2
 xlrd==2.0.1
 zipp==3.6.0
@@ -87,6 +85,6 @@ markdown==3.3.4
 lxml==4.9.1
 xlwt==1.3.0
 flask-swagger-ui==3.36.0
-Twisted==22.10.0
 beautifulsoup4==4.12.3
 python-magic==0.4.27
+defusedxml==0.7.1

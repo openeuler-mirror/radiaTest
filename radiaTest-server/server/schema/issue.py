@@ -13,13 +13,15 @@
 # # @License : Mulan PSL v2
 #####################################
 
+import multiprocessing
 from typing import Optional
 
 from pydantic import BaseModel, constr
-
+from pydantic.class_validators import root_validator
 
 from server.schema import MilestoneType, MilestoneState
 from server.schema.base import PageBaseSchema
+from server.utils.text_utils import check_illegal_lables
 
 
 class IssueBaseSchema(BaseModel):
@@ -40,6 +42,20 @@ class CreateIssueSchema(BaseModel):
     case_id: int
     project_name: str
     issue_type_id: int
+
+    @root_validator
+    def validate_issue(cls, values):
+        if values["title"] and values["description"]:
+            for item in [values["title"], values["description"]]:
+                process = multiprocessing.Process(target=check_illegal_lables, args=(item,))
+                process.start()
+                process.join(5)
+                if process.is_alive():
+                    process.terminate()
+                    raise RuntimeError("something maybe unsecurity")
+            return values
+        else:
+            raise RuntimeError("issue is not complete")
 
 
 class GiteeCreateIssueSchema(BaseModel):

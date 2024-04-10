@@ -138,7 +138,7 @@ class CasbinEnforcer:
             # Set resource URI from request
             uri = str(request.path)
             # Extract domain fo the resource URI
-            pattern = r'^/api/v[0-9]+/([^/]+).*$'
+            pattern = r'^/api/v[0-9]+/([^/]+)(?:/.*)?$'
             result = re.match(pattern, uri)
             if not result:
                 return jsonify(error_code=RET.BAD_REQ_ERR, error_msg="resource uri is not valid")

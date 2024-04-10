@@ -130,7 +130,11 @@ class FrameworkItemEvent(Resource):
             "id": framework_id,
         }
 
-        return Edit(Framework, _body).single(Framework, "/framework")
+        Edit(Framework, _body).single(Framework, "/framework")
+        return jsonify(
+            error_code=RET.OK,
+            error_msg=f"edit framework[{framework_id}] success"
+        )
 
     @response_collect
     @validate()

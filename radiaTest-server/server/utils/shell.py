@@ -18,16 +18,28 @@ import shlex
 from itertools import groupby
 
 
+def check_cmd(cmds):
+    for item in cmds:
+        if item and item[0] in ["bash", "cmd", "cmd.exe", "/bin/sh", "/usr/bin/expect"]:
+            raise RuntimeError("unsupported command")
+        if len(item) > 2 and item[1] == "-c":
+            raise RuntimeError("unsupported command")
+    return cmds
+
+
 def standard_cmd(cmd):
     if isinstance(cmd, str):
         command_list = shlex.split(cmd)
         cmds = [list(group) for key, group in groupby(command_list, lambda x: x != '&&') if key]
+        cmds = check_cmd(cmds)
         return cmds
     elif isinstance(cmd, list):
         if all(isinstance(item, str) for item in cmd):
-            return [cmd]
+            cmds = check_cmd([cmd])
+            return cmds
         elif all(isinstance(item, list) and all(isinstance(subitem, str) for subitem in item) for item in cmd):
-            return cmd
+            cmds = check_cmd(cmd)
+            return cmds
         else:
             return []
     else:
@@ -42,20 +54,23 @@ def run_cmd(cmd):
     if not cmds:
         return returncode, output, "unsupported input type"
     for item in cmds:
-        process = subprocess.Popen(
-            item,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            shell=False
-        )
-        process.wait()
-        output, error = process.communicate(timeout=30)
-        returncode = process.returncode
+        try:
+            process = subprocess.Popen(
+                item,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                shell=False
+            )
+            process.wait()
+            output, error = process.communicate(timeout=30)
+            returncode = process.returncode
+        except Exception as e:
+            return 1, "", str(e)
     return returncode, output.decode("utf-8"), error.decode("utf-8")
 
 
 def add_escape(value):
     reserved_chars = r'''?&'''
-    replace = ['\\' + l for l in reserved_chars]
+    replace = ['\\' + char for char in reserved_chars]
     trans = str.maketrans(dict(zip(reserved_chars, replace)))
     return value.translate(trans)

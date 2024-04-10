@@ -274,7 +274,14 @@ def handler_logout():
     redis_client.delete(RedisKey.user(g.user_id))
     redis_client.delete(RedisKey.token(g.user_id))
     redis_client.delete(RedisKey.token(g.token))
-    return jsonify(error_code=RET.OK, error_msg="OK")
+    return jsonify(
+        error_code=RET.OK,
+        error_msg="{}?client_id={}&redirect_uri={}".format(
+            current_app.config.get("OAUTH_LOGOUT"),
+            current_app.config.get("CLIENT_ID"),
+            current_app.config.get("HOME_PAGE")
+        )
+    )
 
 
 @collect_sql_error
@@ -303,9 +310,15 @@ def handler_add_group(group_id, body):
     re = ReUserGroup.query.filter_by(user_id=g.user_id, group_id=group_id, is_delete=False).first()
     msg = Message.query.filter_by(id=body.msg_id, is_delete=False).first()
     if not re or not msg:
-        return jsonify(error_code=RET.NO_DATA_ERR, error_msg="relationship no find")
+        return jsonify(
+            error_code=RET.NO_DATA_ERR,
+            error_msg=f"handler add group failed due to user[{g.user_id}] or message[{body.msg_id}] is not exists"
+        )
     if re.user_add_group_flag or re.role_type == GroupRole.user.value:
-        return jsonify(error_code=RET.DATA_EXIST_ERR, error_msg="relationship is exist")
+        return jsonify(
+            error_code=RET.DATA_EXIST_ERR,
+            error_msg=f"handler add group failed due to user[{g.user_id}] and group[{group_id}] is exists"
+        )
     info = f'<b>{re.user.user_name}</b>{{}}' \
            f'<b>{redis_client.hget(RedisKey.user(g.user_id), "current_org_name")}' \
            f'</b>组织下<b>{re.group.name}</b>用户组'
@@ -339,7 +352,7 @@ def handler_add_group(group_id, body):
     message.add_update()
     message1.add_update()
     msg.add_update()
-    return jsonify(error_code=RET.OK, error_msg="OK")
+    return jsonify(error_code=RET.OK, error_msg="handler user add group success")
 
 
 @collect_sql_error

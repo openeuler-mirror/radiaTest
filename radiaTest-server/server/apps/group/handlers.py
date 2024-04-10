@@ -18,7 +18,6 @@
 import json
 
 from flask import request, g, jsonify
-import sqlalchemy
 
 from server import redis_client, db
 from server.utils.response_util import RET
@@ -41,7 +40,7 @@ from server.schema.group import ReUserGroupSchema, GroupInfoSchema, QueryGroupUs
 def handler_add_group():
     name = request.form.get('name')
     if not name:
-        return jsonify(error_code=RET.PARMA_ERR, error_msg="group name is null")
+        return jsonify(error_code=RET.PARMA_ERR, error_msg="create group failed due to group name is null")
     # 获取当前用户的组织id
     org_id = redis_client.hget(RedisKey.user(g.user_id), 'current_org_id')
     filter_params = [
@@ -52,7 +51,7 @@ def handler_add_group():
     ]
     re = ReUserGroup.query.join(Group).filter(*filter_params).first()
     if re:
-        return jsonify(error_code=RET.DATA_EXIST_ERR, error_msg="group has exists")
+        return jsonify(error_code=RET.DATA_EXIST_ERR, error_msg=f"create group failed due to group[{name}] has exists")
     avatar = request.files.get('avatar_url')
     if avatar:
         # 文件头检查
@@ -92,7 +91,7 @@ def handler_add_group():
 
     return jsonify(
         error_code=RET.OK,
-        error_msg="OK",
+        error_msg=f"create group[{group_id}, {name}] is success",
         data={"id": group_id}
     )
 
@@ -104,13 +103,16 @@ def handler_update_group(group_id):
     avatar = request.files.get('avatar_url')
     description = request.json.get('description')
     if not name:
-        return jsonify(error_code=RET.PARMA_ERR, error_msg="group name is null")
+        return jsonify(error_code=RET.PARMA_ERR, error_msg="update group failed due to group name is null")
     # 从数据库中获取数据
     re = ReUserGroup.query.filter_by(group_id=group_id, user_id=g.user_id, is_delete=False).first()
     if not re or re.group.is_delete:
-        return jsonify(error_code=RET.NO_DATA_ERR, error_msg=f"group no find")
+        return jsonify(error_code=RET.NO_DATA_ERR, error_msg=f"update group[{group_id}] failed due to data not find")
     if re.role_type not in [GroupRole.admin.value, GroupRole.create_user.value]:
-        return jsonify(error_code=RET.VERIFY_ERR, error_msg="user has not right")
+        return jsonify(
+            error_code=RET.VERIFY_ERR,
+            error_msg=f"update group[{group_id}] failed due to user has not right"
+        )
     group = re.group
     group.name = name
     group.description = description
@@ -121,26 +123,33 @@ def handler_update_group(group_id):
             return res
         group.avatar_url = FileUtil.flask_save_file(avatar, group.avatar_url)
     group.add_update()
-    return jsonify(error_code=RET.OK, error_msg="OK")
+    return jsonify(error_code=RET.OK, error_msg=f"update group[{group_id}] is success")
 
 
 @collect_sql_error
 def handler_delete_group(group_id):
     re = ReUserGroup.query.filter_by(is_delete=False, user_id=g.user_id, group_id=group_id).first()
     if not re or re.group.is_delete:
-        return jsonify(error_code=RET.NO_DATA_ERR, error_msg="user group no find")
+        return jsonify(
+            error_code=RET.NO_DATA_ERR,
+            error_msg=f"delete group[{group_id}] failed due to user and group relation not find"
+        )
 
     # 创建者解散用户组
     if re.role_type == GroupRole.create_user.value:
         group = Group.query.filter_by(is_delete=False, id=group_id).first()
         if not group:
-            return jsonify(error_code=RET.NO_DATA_ERR, error_msg=f"group no find")
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg=f"delete group[{group_id}] failed due to group not find"
+            )
         group.is_delete = True
         flag = group.add_update()
         if not flag:
             return jsonify(
                 error_code=RET.OTHER_REQ_ERR,
-                error_msg='resources are related to current group, please delete these resources and retry!'
+                error_msg=f'delete group[{group_id}] failed due to '
+                          f'resources are related to current group, please delete these resources and retry!'
             )
         res = ReUserGroup.query.filter_by(is_delete=False, group_id=group_id).all()
         org_id = redis_client.hget(RedisKey.user(g.user_id), "current_org_id")
@@ -199,8 +208,8 @@ def handler_delete_group(group_id):
         for re in re_list:
             Delete(ReUserRole, {"id": re.id}).single()
     else:
-        return jsonify(error_code=RET.VERIFY_ERR, error_msg="user has not right")
-    return jsonify(error_code=RET.OK, error_msg="OK")
+        return jsonify(error_code=RET.VERIFY_ERR, error_msg=f"delete group[{group_id}] failed due to user has not right")
+    return jsonify(error_code=RET.OK, error_msg=f"delete group[{group_id}] success")
 
 
 @collect_sql_error
@@ -232,7 +241,7 @@ def handler_group_page():
     page_dict, e = PageUtil(page_num, page_size).get_page_dict(query_filter, func=page_func)
     if e:
         return jsonify(error_code=RET.SERVER_ERR, error_msg=f'get group page error {e}')
-    return jsonify(error_code=RET.OK, error_msg="OK", data=page_dict)
+    return jsonify(error_code=RET.OK, error_msg=f"get group page info success", data=page_dict)
 
 
 @collect_sql_error
@@ -265,8 +274,8 @@ def handler_group_user_page(group_id, query: QueryGroupUserSchema):
     # 返回结果
     page_dict, e = PageUtil(query.page_num, query.page_size).get_page_dict(query_filter, func=page_func)
     if e:
-        return jsonify(error_code=RET.SERVER_ERR, error_msg=f'get group page error {e}')
-    return jsonify(error_code=RET.OK, error_msg="OK", data=page_dict)
+        return jsonify(error_code=RET.SERVER_ERR, error_msg=f'obtain users under group failed due to {e}')
+    return jsonify(error_code=RET.OK, error_msg=f"obtain users under group[{group_id}] success", data=page_dict)
 
 
 @collect_sql_error
@@ -274,9 +283,15 @@ def handler_add_user(group_id, body):
     # 判断用户是否有权限
     re = ReUserGroup.query.filter_by(is_delete=False, user_id=g.user_id, group_id=group_id).first()
     if not re or re.group.is_delete:
-        return jsonify(error_code=RET.NO_DATA_ERR, error_msg="user group no find")
+        return jsonify(
+            error_code=RET.NO_DATA_ERR,
+            error_msg=f"add user to group failed due to user[{g.user_id}] is not belong group[{group_id}]"
+        )
     if re.role_type not in [GroupRole.admin.value, GroupRole.create_user.value]:
-        return jsonify(error_code=RET.VERIFY_ERR, error_msg="user has not right")
+        return jsonify(
+            error_code=RET.VERIFY_ERR,
+            error_msg=f"add user to group failed due to user[{g.user_id}] has not right"
+        )
 
     # 获取已在该用户组下的用户包含（待加入的）
     relations = ReUserGroup.query.filter_by(is_delete=False, group_id=group_id).all()
@@ -316,7 +331,7 @@ def handler_add_user(group_id, body):
 
     db.session.execute(ReUserGroup.__table__.insert(), add_list)
     db.session.commit()
-    return jsonify(error_code=RET.OK, error_msg="OK")
+    return jsonify(error_code=RET.OK, error_msg=f"add user to group[{group_id}] success")
 
 
 @collect_sql_error
@@ -324,7 +339,11 @@ def handler_update_user(group_id, body):
     # 判断用户是否有权限
     re = ReUserGroup.query.filter_by(is_delete=False, user_id=g.user_id, group_id=group_id).first()
     if not re or re.group.is_delete:
-        return jsonify(error_code=RET.NO_DATA_ERR, error_msg="user group no find")
+        return jsonify(
+            error_code=RET.NO_DATA_ERR,
+            error_msg=f"update users within group failed due to user[{g.user_id}] and group[{group_id}] "
+                      f"relation not find"
+        )
     if re.role_type in [GroupRole.admin.value, GroupRole.create_user.value]:
         filter_params = [
             ReUserGroup.user_id.in_(body.user_ids),
@@ -370,18 +389,27 @@ def handler_update_user(group_id, body):
             ReUserGroup.query.filter(*filter_params).update(update_params, synchronize_session=False)
             db.session.commit()
     else:
-        return jsonify(error_code=RET.VERIFY_ERR, error_msg="user has not right")
-    return jsonify(error_code=RET.OK, error_msg="OK")
+        return jsonify(
+            error_code=RET.VERIFY_ERR,
+            error_msg=f"update users within group failed due to user[{g.user_id}] has not right"
+        )
+    return jsonify(error_code=RET.OK, error_msg=f"update users within group[{group_id}] success")
 
 
 @collect_sql_error
 def handler_apply_join_group(group_id):
     group = Group.query.filter_by(id=group_id, is_delete=False).first()
     if not group:
-        return jsonify(error_code=RET.NO_DATA_ERR, error_msg="user group not find")
+        return jsonify(
+            error_code=RET.NO_DATA_ERR,
+            error_msg=f"appply join group[{group_id}] failed due to group not find"
+        )
     re_exists = ReUserGroup.query.filter_by(user_id=g.user_id, group_id=group_id).first()
     if re_exists and re_exists.role_type == 0:
-        return jsonify(error_code=RET.DATA_EXIST_ERR, error_msg="你已申请加入组，请勿重复申请")
+        return jsonify(
+            error_code=RET.DATA_EXIST_ERR,
+            error_msg=f"appply join group[{group_id}] failed due to 你已申请加入组，请勿重复申请"
+        )
 
     re_info = ReUserGroup.query.filter(ReUserGroup.is_delete.is_(False), ReUserGroup.group_id == group_id,
                                        ReUserGroup.role_type.in_([1, 2])).all()
@@ -440,27 +468,5 @@ def handler_apply_join_group(group_id):
         msg_type=MsgType.text.value
     )
     Message.create_instance(message_instance)
-    return jsonify(error_code=RET.OK, error_msg="申请已发送")
+    return jsonify(error_code=RET.OK, error_msg=f"apply join group[{group_id}] message send success")
 
-
-def handler_get_group_asset_rank(query):
-    ranked_group = Group.query.filter(
-        Group.rank != sqlalchemy.null(),
-        Group.is_delete == False,
-        Group.org_id == int(redis_client.hget(RedisKey.user(g.user_id), "current_org_id"))
-    ).order_by(
-        Group.rank.asc(),
-        Group.create_time.asc(),
-    )
-
-    def page_func(item):
-        group_dict = item.to_summary()
-        return group_dict
-
-    page_dict, e = PageUtil(query.page_num, query.page_size).get_page_dict(ranked_group, func=page_func)
-    if e:
-        return jsonify(
-            error_code=RET.SERVER_ERR,
-            error_msg=f'get group rank page error: {e}'
-        )
-    return jsonify(error_code=RET.OK, error_msg="OK", data=page_dict)

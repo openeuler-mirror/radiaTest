@@ -46,7 +46,6 @@ from server.schema.strategy import (
 from server.apps.strategy.handler import (
     FeatureHandler,
     InheritFeatureHandler,
-    CommitHandler,
 )
 from server.utils.response_util import value_error_collect
 
@@ -1342,7 +1341,11 @@ class StrategyCommitItemEvent(Resource):
             "id": strategy_commit_id,
             "commit_tree": json.dumps(body.commit_tree)
         })
-        return Edit(StrategyCommit, _body).single(StrategyCommit, "/strategycommit")
+        Edit(StrategyCommit, _body).single(StrategyCommit, "/strategycommit")
+        return jsonify(
+            error_code=RET.OK,
+            error_msg=f"edit strategycommit[{strategy_commit_id}] success"
+        )
 
 
 class StrategyCommitReductEvent(Resource):

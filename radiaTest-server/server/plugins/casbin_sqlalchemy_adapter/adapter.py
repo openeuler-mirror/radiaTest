@@ -32,7 +32,6 @@
 from typing import List
 
 from casbin import persist
-from sqlalchemy import or_
 
 from server import db
 from server.model.casbin_rule import CasbinRule
@@ -89,11 +88,6 @@ class Adapter(persist.Adapter, persist.adapters.UpdateAdapter):
         """adds a policy rule to the storage."""
         self._save_policy_line(ptype, rule)
 
-    def add_policies(self, sec, ptype, rules):
-        """adds a policy rules to the storage."""
-        for rule in rules:
-            self._save_policy_line(ptype, rule)
-
     def remove_policy(self, sec, ptype, rule):
         """removes a policy rule from the storage."""
         query = CasbinRule.query
@@ -104,22 +98,6 @@ class Adapter(persist.Adapter, persist.adapters.UpdateAdapter):
         r = query.delete()
         db.session.commit()
         return True if r > 0 else False
-
-    def remove_policies(self, sec, ptype, rules):
-        """remove policy rules from the storage."""
-        if not rules:
-            return
-        
-        query = CasbinRule.query
-        query = query.filter(CasbinRule.ptype == ptype)
-        rules = zip(*rules)
-        for i, rule in enumerate(rules):
-            query = query.filter(
-                or_(getattr(CasbinRule, "v{}".format(i)) == v for v in rule)
-            )
-
-        query.delete()
-        db.session.commit()
 
     def remove_filtered_policy(self, sec, ptype, field_index, *field_values):
         """removes policy rules that match the filter from the storage.
@@ -164,7 +142,6 @@ class Adapter(persist.Adapter, persist.adapters.UpdateAdapter):
 
         # need the length of the longest_rule to perform overwrite
         longest_rule = old_rule if len(old_rule) > len(new_rule) else new_rule
-        old_rule_line = query.one()
 
         # overwrite the old rule with the new rule
         for index in range(len(longest_rule)):

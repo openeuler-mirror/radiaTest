@@ -11,6 +11,7 @@
 # @License : Mulan PSL v2
 #####################################
 
+import multiprocessing
 import json
 from typing import List
 from enum import Enum
@@ -22,6 +23,7 @@ from typing_extensions import Literal
 
 from server.schema.base import PageBaseSchema, BaseEnum
 from server.schema import Frame
+from server.utils.text_utils import check_illegal_lables
 
 
 class AddTaskStatusSchema(BaseModel):
@@ -291,6 +293,19 @@ class UpdateTaskParticipantSchema(BaseModel):
 
 class AddTaskCommentSchema(BaseModel):
     content: str
+
+    @validator("content")
+    def validate_content(cls, v):
+        if v:
+            process = multiprocessing.Process(target=check_illegal_lables, args=(v,))
+            process.start()
+            process.join(5)
+            if process.is_alive():
+                process.terminate()
+                raise RuntimeError("content maybe unsecurity")
+            return v
+        else:
+            raise RuntimeError("content can't be None")
 
 
 class DelTaskCommentSchema(BaseModel):
