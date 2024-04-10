@@ -710,7 +710,7 @@
                           }}</span>
                         </div>
                         <div class="log-txt">
-                          <div class="m-t-xs" v-html="v.content"></div>
+                          <div class="m-t-xs" v-dompurify-html="v.content"></div>
                         </div>
                       </div>
                     </div>

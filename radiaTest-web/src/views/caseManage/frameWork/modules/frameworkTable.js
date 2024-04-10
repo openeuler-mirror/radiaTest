@@ -36,16 +36,6 @@ const frameworkColumns = [
     title: '仓库地址',
     key: 'url',
     align: 'center',
-    render(row) {
-      return h(
-        'a',
-        {
-          href: row.url,
-          target: '_blank'
-        },
-        row.url
-      );
-    }
   },
   {
     title: '日志目录相对路径',

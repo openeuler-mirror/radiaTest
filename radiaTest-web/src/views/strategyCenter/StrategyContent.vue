@@ -6,15 +6,21 @@
         <n-button text @click="handleDeleteBtn" :disabled="!hasStrategy"
           ><n-icon size="16"><Delete24Regular /></n-icon>删除</n-button
         >
-        <n-button text @click="handleStagingBtn" :disabled="currentFeature.status === 'submitted' || !hasStrategy"
+        <n-button
+          text
+          @click="handleStagingBtn"
+          :disabled="currentFeature.status === 'submitted' || !hasStrategy"
           ><n-icon size="16"><SaveOutline /></n-icon>暂存</n-button
         >
-        <n-button text @click="handleRestoreBtn" :disabled="currentFeature.status === 'submitted' || !hasStrategy"
+        <n-button
+          text
+          @click="handleRestoreBtn"
+          :disabled="currentFeature.status === 'submitted' || !hasStrategy"
           ><n-icon size="16"><ArrowBackCircleOutline /></n-icon>还原</n-button
         >
-        <n-button text @click="handleSubmitBtn" :disabled="currentFeature.status === 'submitted' || !hasStrategy"
+        <!-- <n-button text @click="handleSubmitBtn" :disabled="currentFeature.status === 'submitted' || !hasStrategy"
           ><n-icon size="16"><GitBranchOutline /></n-icon>提交</n-button
-        >
+        > -->
       </n-space>
     </div>
   </div>
@@ -58,7 +64,7 @@
       size="large"
       :bordered="false"
       :segmented="{
-        content: true
+        content: true,
       }"
       style="width: 1000px"
     >
@@ -75,12 +81,18 @@
             <n-input v-model:value="submitPullRequestFormValue.title" placeholder="请输入标题" />
           </n-form-item-gi>
           <n-form-item-gi :span="12" label="描述" path="description">
-            <Editor v-model="submitPullRequestFormValue.description" tag-name="div" :init="editorInit" />
+            <Editor
+              v-model="submitPullRequestFormValue.description"
+              tag-name="div"
+              :init="editorInit"
+            />
           </n-form-item-gi>
         </n-grid>
       </n-form>
       <n-space>
-        <n-button size="medium" type="error" @click="cancelSubmitPullRequest" ghost> 取消 </n-button>
+        <n-button size="medium" type="error" @click="cancelSubmitPullRequest" ghost>
+          取消
+        </n-button>
         <n-button size="medium" type="primary" @click="submitPullRequestBtn" ghost> 提交 </n-button>
       </n-space>
     </n-card>
@@ -88,7 +100,7 @@
 </template>
 
 <script setup>
-import { ArrowBackCircleOutline, SaveOutline, GitBranchOutline } from '@vicons/ionicons5';
+import { ArrowBackCircleOutline, SaveOutline } from '@vicons/ionicons5';
 import { Email } from '@vicons/carbon';
 import { Delete24Regular } from '@vicons/fluent';
 import ApplyTemplateModal from './ApplyTemplateModal.vue';
@@ -120,7 +132,7 @@ const toolbar = ref({
   hand: true, // 模式
   resetLayout: true, // 整理布局
   zoomOut: true, // 缩小
-  zoomIn: true // 放大
+  zoomIn: true, // 放大
 });
 const kityminderValue = ref({});
 const strategyId = ref(null); // 测试策略ID
@@ -134,7 +146,7 @@ const handleContentChange = (data) => {
 const handleDeleteBtn = () => {
   deleteStrategy(currentFeature.value.info.product_feature_id, {
     org_id: currentFeature.value.info.org_id,
-    user_id: storage.getValue('user_id')
+    user_id: storage.getValue('user_id'),
   }).then(() => {
     hasStrategy.value = false;
     kityminderValue.value = {};
@@ -157,9 +169,9 @@ const handleStagingBtn = () => {
 };
 
 // 提交
-const handleSubmitBtn = () => {
-  showSubmitPullRequestModal.value = true;
-};
+// const handleSubmitBtn = () => {
+//   showSubmitPullRequestModal.value = true;
+// };
 
 // 应用模板
 const handleApplyTemplate = () => {
@@ -175,8 +187,8 @@ const applyTemplateCb = () => {
 const handleCreateStrategy = () => {
   createStrategy(currentFeature.value.info.product_feature_id, {
     tree: {
-      data: { text: currentFeature.value.label, id: 0 }
-    }
+      data: { text: currentFeature.value.label, id: 0 },
+    },
   }).then(() => {
     getStrategyFn();
   });
@@ -208,14 +220,14 @@ const showSubmitPullRequestModal = ref(false); // 显示提交PR弹框
 const submitPullRequestFormRef = ref(null);
 const submitPullRequestFormValue = ref({
   title: '',
-  description: ''
+  description: '',
 });
 const submitPullRequestFormRules = ref({
   title: {
     required: true,
     trigger: ['blur', 'input'],
-    message: '请输入标题'
-  }
+    message: '请输入标题',
+  },
 });
 // 富文本配置
 const editorInit = {
@@ -246,7 +258,7 @@ const editorInit = {
     reader.onload = function () {
       success(this.result);
     };
-  }
+  },
 };
 
 // 取消提交PR
@@ -254,7 +266,7 @@ const cancelSubmitPullRequest = () => {
   showSubmitPullRequestModal.value = false;
   submitPullRequestFormValue.value = {
     title: '',
-    description: ''
+    description: '',
   };
 };
 
@@ -265,7 +277,7 @@ const submitPullRequestBtn = (e) => {
     if (!errors) {
       strategySubmmit(strategyId.value, {
         title: submitPullRequestFormValue.value.title,
-        body: submitPullRequestFormValue.value.description
+        body: submitPullRequestFormValue.value.description,
       }).then(() => {
         window.$message?.success('提交成功！');
         currentFeature.value.status = 'submitted';

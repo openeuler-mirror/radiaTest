@@ -24,6 +24,7 @@ import 'xterm/css/xterm.css';
 import VueKityminder from '@orh/vue-kityminder';
 import hljs from 'highlight.js';
 import VueGridLayout from 'vue-grid-layout';
+import VueDOMPurifyHTML from 'vue-dompurify-html';
 //前端应用由vue框架定义
 const app = createApp(App);
 //将axios模块赋予全局属性
@@ -40,6 +41,7 @@ VMdEditor.use(githubTheme, {
 //应用插件
 app
   .use(VueGridLayout)
+  .use(VueDOMPurifyHTML)
   .use(naive)
   .use(VMdEditor)
   .use(VueKityminder)

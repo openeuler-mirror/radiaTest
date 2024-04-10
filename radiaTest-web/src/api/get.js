@@ -233,10 +233,6 @@ export function getUserAssetRank(params) {
   return getRequest('/v1/user/rank', params);
 }
 
-export function getGroupAssetRank(params) {
-  return getRequest('/v1/group/rank', params);
-}
-
 export function getUserInfo(userId, params, config = null, unLoginRquest = true) {
   return getRequest(`/v1/users/${userId}`, params, config, unLoginRquest);
 }

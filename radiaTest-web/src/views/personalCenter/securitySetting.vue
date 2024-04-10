@@ -16,7 +16,11 @@
               <div>{{ account }}</div>
             </n-form-item>
             <n-form-item label="旧密码" path="old_password">
-              <n-input v-model:value="passwordModel.old_password" placeholder="请输入旧密码" type="password"></n-input>
+              <n-input
+                v-model:value="passwordModel.old_password"
+                placeholder="请输入旧密码"
+                type="password"
+              ></n-input>
             </n-form-item>
             <n-form-item label="新密码" path="new_password" first>
               <n-input
@@ -51,14 +55,15 @@
 import { showLoading } from '@/assets/utils/loading';
 import { storage } from '@/assets/utils/storageUtils';
 import { changeAdminPassword } from '@/api/put';
-
+import { useRouter } from 'vue-router';
+const router = useRouter();
 const account = ref('');
 const passwordFormRef = ref(null);
 const reNewPasswordRef = ref(null);
 const passwordModel = ref({
   old_password: '',
   new_password: '',
-  re_new_password: ''
+  re_new_password: '',
 });
 
 const validateNewPassword = (rule, value) => {
@@ -87,45 +92,45 @@ const passwordFormRules = ref({
   old_password: {
     required: true,
     trigger: ['blur', 'input'],
-    message: '请输入旧密码'
+    message: '请输入旧密码',
   },
   new_password: [
     {
       required: true,
       trigger: ['blur', 'input'],
       min: 8,
-      message: '请输入新密码且最小长度为8'
+      message: '请输入新密码且最小长度为8',
     },
     {
       validator: validateNewPassword,
       message: '新密码不能与旧密码相同',
-      trigger: ['blur', 'input']
-    }
+      trigger: ['blur', 'input'],
+    },
   ],
   re_new_password: [
     {
       required: true,
       trigger: ['blur', 'input'],
-      message: '请重复输入新密码'
+      message: '请重复输入新密码',
     },
     {
       validator: validatePasswordStartWith,
       message: '两次密码输入不一致',
-      trigger: 'input'
+      trigger: 'input',
     },
     {
       validator: validatePasswordSame,
       message: '两次密码输入不一致',
-      trigger: ['blur', 'password-input']
-    }
-  ]
+      trigger: ['blur', 'password-input'],
+    },
+  ],
 });
 
 const resetPassword = () => {
   passwordModel.value = {
     old_password: '',
     new_password: '',
-    re_new_password: ''
+    re_new_password: '',
   };
 };
 
@@ -136,13 +141,19 @@ const submitPassword = () => {
         account: account.value,
         old_password: passwordModel.value.old_password,
         new_password: passwordModel.value.new_password,
-        re_new_password: passwordModel.value.re_new_password
-      }).then(() => {
+        re_new_password: passwordModel.value.re_new_password,
+      }).then((res) => {
         passwordModel.value = {
           old_password: '',
           new_password: '',
-          re_new_password: ''
+          re_new_password: '',
         };
+        if (res.error_msg === 'ok') {
+          window.sessionStorage.clear();
+          router.replace({
+            name: 'task',
+          });
+        }
       });
     }
   });

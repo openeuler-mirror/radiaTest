@@ -1,5 +1,5 @@
 <template>
-  <div class="vhtml" v-html="domString"></div>
+  <div class="vhtml" v-dompurify-html="domString"></div>
 </template>
 
 <script>
@@ -8,7 +8,7 @@ import { defineComponent } from 'vue';
 export default defineComponent({
   props: {
     domString: String,
-  }
+  },
 });
 </script>
 
