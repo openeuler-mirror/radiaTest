@@ -24,7 +24,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_migrate import Migrate, MigrateCommand
 
 from server.utils.celery_utils import make_celery
-from server import create_app, db, redis_client, swagger_adapt, loads_config_ini
+from server import create_app, db, swagger_adapt, loads_config_ini
 
 my_celery = make_celery(__name__)
 init_config = loads_config_ini()
@@ -53,11 +53,9 @@ def run_gevent():
 @app.cli.command("init_asr")
 def init_asr():
     from server.utils.read_from_yaml import init_role, init_scope, init_admin
-    from server.utils.public_login_util import init_public_login
     init_admin(db, app)
     init_scope(db, app)
     init_role(db, app)
-    init_public_login(app, redis_client)
 
 
 @app.cli.command("swagger_init")

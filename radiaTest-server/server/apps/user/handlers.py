@@ -274,6 +274,11 @@ def handler_logout():
     redis_client.delete(RedisKey.user(g.user_id))
     redis_client.delete(RedisKey.token(g.user_id))
     redis_client.delete(RedisKey.token(g.token))
+    current_user = g.user_id
+    if current_user.startswith("admin_"):
+        return jsonify(
+            error_code=RET.OK
+        )
     return jsonify(
         error_code=RET.OK,
         error_msg="{}?client_id={}&redirect_uri={}".format(

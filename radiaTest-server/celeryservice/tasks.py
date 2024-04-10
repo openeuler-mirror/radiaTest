@@ -63,7 +63,7 @@ logger = get_task_logger("manage")
 socketio = SocketIO(message_queue=celeryconfig.SOCKETIO_PUBSUB, ssl={"ssl": {"cert_reqs": ssl.CERT_NONE}})
 
 # 建立redis backend连接池
-pool = redis.ConnectionPool.from_url(celeryconfig.RESULT_BACKEND, decode_responses=True)
+pool = redis.ConnectionPool.from_url(celeryconfig.result_backend, decode_responses=True)
 # 建立scrapyspider的存储redis池
 scrapyspider_pool = redis.ConnectionPool.from_url(
     celeryconfig.SCRAPYSPIDER_BACKEND,

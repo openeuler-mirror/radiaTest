@@ -553,52 +553,6 @@ class SuiteItemEvent(Resource):
         )
 
 
-class PreciseSuiteEvent(Resource):
-    @auth.login_required
-    @response_collect
-    @workspace_error_collect
-    @swagger_adapt.api_schema_model_map({
-        "__module__": get_testcase_tag.__module__,  # 获取当前接口所在模块
-        "resource_name": "PreciseSuiteEvent",  # 当前接口视图函数名
-        "func_name": "get",  # 当前接口所对应的函数名
-        "tag": get_testcase_tag(),  # 当前接口所对应的标签
-        "summary": "精确获取测试套",  # 当前接口概述
-        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
-        "query_schema_model": swagger_adapt.get_query_schema_by_db_model(Suite)
-    })
-    def get(self, workspace: str):
-        body = dict()
-
-        for key, value in request.args.to_dict().items():
-            if value:
-                body[key] = value
-
-        return GetAllByPermission(Suite, workspace).precise(body)
-
-
-class PreciseCaseEvent(Resource):
-    @auth.login_required
-    @response_collect
-    @workspace_error_collect
-    @swagger_adapt.api_schema_model_map({
-        "__module__": get_testcase_tag.__module__,  # 获取当前接口所在模块
-        "resource_name": "PreciseCaseEvent",  # 当前接口视图函数名
-        "func_name": "get",  # 当前接口所对应的函数名
-        "tag": get_testcase_tag(),  # 当前接口所对应的标签
-        "summary": "精确获取测试用例",  # 当前接口概述
-        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
-        "query_schema_model": swagger_adapt.get_query_schema_by_db_model(Case)
-    })
-    def get(self, workspace: str):
-        body = dict()
-
-        for key, value in request.args.to_dict().items():
-            if value:
-                body[key] = value
-
-        return GetAllByPermission(Case, workspace).precise(body)
-
-
 class CaseNodeCommitEvent(Resource):
     @auth.login_required()
     @response_collect
@@ -862,22 +816,6 @@ class CaseRecycleBin(Resource):
     })
     def get(self, workspace: str, query: QueryBaseModel):
         return GetAllByPermission(Case, workspace, org_id=query.org_id).precise({"deleted": 1})
-
-
-class SuiteRecycleBin(Resource):
-    @auth.login_required()
-    @response_collect
-    @workspace_error_collect
-    @swagger_adapt.api_schema_model_map({
-        "__module__": get_testcase_tag.__module__,  # 获取当前接口所在模块
-        "resource_name": "SuiteRecycleBin",  # 当前接口视图函数名
-        "func_name": "get",  # 当前接口所对应的函数名
-        "tag": get_testcase_tag(),  # 当前接口所对应的标签
-        "summary": "测试套回收站数据",  # 当前接口概述
-        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
-    })
-    def get(self, workspace: str):
-        return GetAllByPermission(Suite, workspace).precise({"deleted": 1})
 
 
 class CaseImport(Resource):
@@ -1154,6 +1092,7 @@ class SuiteDocumentEvent(Resource):
         """
         return SuiteDocumentHandler.post(suite_id, body)
 
+    @auth.login_check
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
@@ -1190,11 +1129,10 @@ class SuiteDocumentEvent(Resource):
                 error_code=RET.NO_DATA_ERR,
                 error_msg="The suite is not exist"
             )
-        filter_params = GetAllByPermission(SuiteDocument).get_filter()
+        filter_params = GetAllByPermission(SuiteDocument, org_id=query.org_id).get_filter()
         filter_params.append(SuiteDocument.suite_id == suite_id)
 
         for key, value in query.dict().items():
-
             if not value:
                 continue
             if key == 'title':
@@ -1211,7 +1149,7 @@ class SuiteDocumentItemEvent(Resource):
         url="/api/v1/suite-document/<int:document_id>", 
         methods=["GET"]
     """
-
+    @auth.login_check
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
@@ -1241,7 +1179,8 @@ class SuiteDocumentItemEvent(Resource):
                 "error_msg": "OK!"
             }
         """
-        return GetAllByPermission(SuiteDocument).precise({"id": document_id})
+        org_id = request.args.get("org_id")
+        return GetAllByPermission(SuiteDocument, org_id=org_id).precise({"id": document_id})
 
     @auth.login_required()
     @response_collect
@@ -1306,47 +1245,6 @@ class SuiteDocumentItemEvent(Resource):
                 )
             )
         return ResourceManager("suite_document").del_single(document_id)
-
-
-class CaseNodeDocumentsItemEvent(Resource):
-    """
-        查询case-node下的测试套文档.
-        url="/api/v1/case-node/<int:case_node_id>/documents", 
-        methods=["GET"]
-    """
-
-    @response_collect
-    @validate()
-    @swagger_adapt.api_schema_model_map({
-        "__module__": get_testcase_tag.__module__,  # 获取当前接口所在模块
-        "resource_name": "CaseNodeDocumentsItemEvent",  # 当前接口视图函数名
-        "func_name": "get",  # 当前接口所对应的函数名
-        "tag": get_testcase_tag(),  # 当前接口所对应的标签
-        "summary": "查询case-node下的测试套文档",  # 当前接口概述
-        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
-    })
-    def get(self, case_node_id):
-        """
-            查询case-node下的测试套文档.
-            api:/api/v1/case-node/<int:case_node_id>/documents
-            返回体:
-            {
-                "data": [
-                    {
-                        "case_node_id": int,
-                        "creator_id": int,
-                        "id": int,
-                        "name": str,
-                        "url": str
-                    }
-                ],
-                "error_code": "2000",
-                "error_msg": "OK!"
-            }
-        """
-        return GetAllByPermission(SuiteDocument).precise({
-            "case_node_id": case_node_id
-        })
 
 
 class CaseNodeMoveToEvent(Resource):
@@ -1518,7 +1416,6 @@ class CaseSetItemEvent(Resource):
             ]
             }
         """
-        return_data = dict()
         casenode = CaseNode.query.filter_by(id=case_node_id).first()
         if not casenode:
             return jsonify(

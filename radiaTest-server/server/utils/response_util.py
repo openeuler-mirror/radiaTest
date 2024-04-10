@@ -22,7 +22,6 @@ from flask import make_response, g, jsonify, current_app, request, Response
 class RET(object):
     OK = "2000"
     OTHER_REQ_ERR = "3500"
-    OTHER_REQ_TIMEOUT = "3504"
     PARMA_ERR = "4000"
     VERIFY_ERR = "4001"
     # unauthorized request to api
@@ -36,20 +35,13 @@ class RET(object):
     NO_DATA_ERR = "5003"
     DB_DATA_ERR = "5004"
     FILE_ERR = '6000'
-    DATA_DEL_ERR = "30006"
     SYS_CONF_ERR = "30007"
     WRONG_INSTALL_WAY = "30010"
-    INSTALL_CONF_ERR = "50008"
-    NET_CONF_ERR = "50009"
-    NET_CONECT_ERR = "50010"
-    NO_MEM_ERR = "50011"
     TASK_WRONG_GROUP_NAME = "60001"
-    WRONG_REPO_URL = "60002"
     RUNTIME_ERROR = "60009"
     CASCADE_OP_ERR = "60010"
     CERTIFICATE_VERIFY_FAILED = "5009"
     SSLERROR = "5010"
-    MAIL_ERROR = "80000"
 
 
 def log_util(func_result):
@@ -57,7 +49,11 @@ def log_util(func_result):
     ip = request.remote_addr
     act = str(request.method).upper()
 
-    if isinstance(func_result, Response):
+    if (
+            isinstance(func_result, Response)
+            and func_result.mimetype == "application/json"
+            and func_result.status_code == 200
+    ):
         result = func_result.get_json()
         error_code = result.get("error_code")
         error_msg = result.get("error_msg")
@@ -69,6 +65,12 @@ def log_util(func_result):
             msg = f"operate failed:{error_msg}"
         else:
             msg = f"operate success:{error_msg}"
+    elif (
+            isinstance(func_result, Response)
+            and func_result.mimetype != "application/json"
+            and func_result.status_code == 200
+    ):
+        msg = "export file success"
     else:
         msg = "something operate failed"
     current_app.logger.info(
@@ -148,5 +150,5 @@ def workspace_error_collect(func):
                 error_code=RET.UNAUTHORIZED_ACCESS,
                 error_msg=str(e),
             )
-    
+
     return wrapper

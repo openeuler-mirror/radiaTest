@@ -572,8 +572,7 @@ class CaseNodeHandler:
 
     @staticmethod
     @collect_sql_error
-    def get_caseset_return_data(current_org_id, filter_params, filter_group_params, \
-                                filter_org_params, return_data):
+    def get_caseset_return_data(current_org_id, filter_params, filter_group_params, filter_org_params, return_data):
 
         current_org_name = Organization.query.filter_by(
             id=current_org_id
@@ -1150,14 +1149,12 @@ class SuiteDocumentHandler:
     @collect_sql_error
     def post(suite_id, body):
         _body = body.__dict__
-        suites = list()
         suite = Suite.query.filter_by(id=suite_id).first()
         if not suite:
             return jsonify(
                 error_code=RET.PARMA_ERR,
                 error_msg="The suite is not exist"
             )
-        suites.append(suite)
         _body.update({
             "creator_id": g.user_id,
             "org_id": redis_client.hget(RedisKey.user(g.user_id), 'current_org_id'),
