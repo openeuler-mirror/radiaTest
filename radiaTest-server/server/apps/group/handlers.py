@@ -27,13 +27,13 @@ from server.utils.file_util import FileUtil, identify_file_type, FileTypeMapping
 from server.utils.page_util import PageUtil
 from server.utils.permission_utils import PermissionManager
 from server.utils.read_from_yaml import create_role, get_api
-from server.model.group import Group, ReUserGroup, GroupRole
+from server.model.group import Group, ReUserGroup, GroupRole, GroupInstance
 from server.model.administrator import Admin
 from server.model.message import Message, MsgType, MsgLevel, MessageInstance
 from server.model.organization import Organization
 from server.model.permission import ReUserRole, Role
 from server.model.user import User
-from server.schema.group import ReUserGroupSchema, GroupInfoSchema, QueryGroupUserSchema, GroupInstance
+from server.schema.group import ReUserGroupSchema, GroupInfoSchema, QueryGroupUserSchema
 
 
 @collect_sql_error

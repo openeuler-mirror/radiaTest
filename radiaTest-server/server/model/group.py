@@ -17,8 +17,17 @@ from enum import Enum
 
 from server.model import BaseModel, PermissionBaseModel
 from server.model.permission import Role, ReUserRole
-from server.schema.group import GroupInstance
 from server import db
+
+
+class GroupInstance:
+    def __init__(self, name, description=None, avatar_url=None, creator_id=None, org_id=None, permission_type=None):
+        self.name = name
+        self.description = description
+        self.avatar_url = avatar_url
+        self.creator_id = creator_id
+        self.org_id = org_id
+        self.permission_type = permission_type
 
 
 class GroupRole(Enum):
