@@ -205,7 +205,7 @@ class SocketIO(object):
             manager_kwargs = {
                 "url": url,
                 "channel": channel,
-                "wirte_only": write_only
+                "write_only": write_only
             }
             if url:
                 if url.startswith(('redis://', "rediss://")):
