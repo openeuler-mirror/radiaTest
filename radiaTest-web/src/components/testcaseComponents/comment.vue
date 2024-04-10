@@ -3,8 +3,8 @@
     <div class="comment-title">
       <div>
         <userInfo :userInfo="comment.creator" />
-        <div style="display:inline-block" v-if="isReply">
-          <span style="margin:0 20px">回复</span>
+        <div style="display: inline-block" v-if="isReply">
+          <span style="margin: 0 20px">回复</span>
           <span>
             <userInfo :userInfo="comment.reply" />
           </span>
@@ -13,11 +13,9 @@
           {{ formatTime(comment.create_time, 'yyyy-MM-dd hh:mm:ss') }}
         </span>
       </div>
-      <n-button type="error" text @click="deleteComment">
-        删除
-      </n-button>
+      <n-button type="error" text @click="deleteComment"> 删除 </n-button>
     </div>
-    <div v-html="comment.content"></div>
+    <div v-dompurify-html="comment.content"></div>
     <div class="comment-action" v-show="!showComment">
       <n-button @click="reply" text>
         <template #icon>
@@ -26,9 +24,9 @@
         回复
       </n-button>
     </div>
-    <div v-if="comment.child_list?.length" style="padding:10px 20px;padding-right:0">
+    <div v-if="comment.child_list?.length" style="padding: 10px 20px; padding-right: 0">
       <comment
-        style="border:none"
+        style="border: none"
         v-for="(item, index) in comment.child_list"
         :comment="item"
         :isReply="true"
@@ -39,12 +37,8 @@
       <editor v-model="commentInput" tag-name="div" :init="init" />
     </div>
     <n-space v-if="showComment">
-      <n-button type="primary" @click="replay">
-        回复
-      </n-button>
-      <n-button type="info" @click="cancelReply">
-        取消
-      </n-button>
+      <n-button type="primary" @click="replay"> 回复 </n-button>
+      <n-button type="info" @click="cancelReply"> 取消 </n-button>
     </n-space>
   </div>
 </template>
@@ -65,13 +59,13 @@ export default {
     Chat,
     Editor,
     userInfo,
-    comment
+    comment,
   },
   data() {
     return {
       showComment: false,
       init,
-      commentInput: ''
+      commentInput: '',
     };
   },
   methods: {
@@ -89,7 +83,7 @@ export default {
     replay() {
       createComment(this.comment.commit_id, {
         parent_id: this.comment.id,
-        content: this.commentInput
+        content: this.commentInput,
       }).then(() => {
         this.cancelReply();
         getComment();
@@ -97,7 +91,7 @@ export default {
     },
     cancelReply() {
       this.showComment = false;
-    }
+    },
   },
 };
 </script>

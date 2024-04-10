@@ -102,7 +102,7 @@
           创建于 {{ formatTime(details?.created_at, 'yyyy-MM-dd hh:mm:ss') }}
         </span>
       </div>
-      <div class="content" v-html="details?.description_html"></div>
+      <div class="content" v-dompurify-html="details?.description_html"></div>
       <template #footer>
         <n-button @click="openIssuePage" icon-placement="right">
           前往Issue

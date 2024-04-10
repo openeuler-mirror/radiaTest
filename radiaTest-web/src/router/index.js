@@ -4,7 +4,6 @@ import Dashboard from '@/views/dashboard/Dashboard';
 import Testcase from '@/views/caseManage/testcase/Testcase';
 import Report from '@/views/taskManage/report/Report.vue';
 import Task from '@/views/taskManage/task/Task';
-import Require from '@/views/taskManage/require/Require.vue';
 import StrategyCenter from '@/views/strategyCenter/StrategyCenter';
 import Distribution from '@/views/taskManage/distribution/Distribution.vue';
 import PersonalCenter from '@/views/personalCenter/PersonalCenter.vue';
@@ -67,11 +66,6 @@ const router = createRouter({
               path: 'task/',
               component: Task,
               name: 'task'
-            },
-            {
-              path: 'require/',
-              component: Require,
-              name: 'require'
             },
             {
               path: 'report/',

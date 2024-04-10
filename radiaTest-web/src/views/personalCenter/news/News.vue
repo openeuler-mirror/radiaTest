@@ -11,15 +11,21 @@
             </template>
             <n-list>
               <n-list-item v-for="(item, index) in unreadNewsList" :key="index" class="news">
-                <p class="news-item" v-html="item.data.info"></p>
+                <p class="news-item" v-dompurify-html="item.data.info"></p>
                 <p class="news-date">
                   <span>{{ formatTime(item.create_time, 'yyyy-MM-dd hh:mm:ss') }}</span>
                 </p>
                 <div class="btnBox">
                   <n-space>
-                    <n-button type="primary" @click="accept(item)" v-if="item.type === 1"> 接受 </n-button>
-                    <n-button type="error" @click="refuse(item)" v-if="item.type === 1"> 拒绝 </n-button>
-                    <n-button type="info" @click="read(index)" v-if="item.type === 0"> 已读 </n-button>
+                    <n-button type="primary" @click="accept(item)" v-if="item.type === 1">
+                      接受
+                    </n-button>
+                    <n-button type="error" @click="refuse(item)" v-if="item.type === 1">
+                      拒绝
+                    </n-button>
+                    <n-button type="info" @click="read(index)" v-if="item.type === 0">
+                      已读
+                    </n-button>
                   </n-space>
                 </div>
               </n-list-item>
@@ -36,14 +42,18 @@
           <n-tab-pane name="readNewsList" tab="已读消息">
             <n-list>
               <n-list-item v-for="(item, index) in readNewsList" :key="index" class="news">
-                <p class="news-item" v-html="item.data.info"></p>
+                <p class="news-item" v-dompurify-html="item.data.info"></p>
                 <p class="news-date">
                   <span>{{ formatTime(item.create_time, 'yyyy-MM-dd hh:mm:ss') }}</span>
                 </p>
                 <div class="btnBox">
                   <n-space>
-                    <n-button type="primary" @click="accept(item)" v-if="item.type === 1"> 接受 </n-button>
-                    <n-button type="error" @click="refuse(item)" v-if="item.type === 1"> 拒绝 </n-button>
+                    <n-button type="primary" @click="accept(item)" v-if="item.type === 1">
+                      接受
+                    </n-button>
+                    <n-button type="error" @click="refuse(item)" v-if="item.type === 1">
+                      拒绝
+                    </n-button>
                   </n-space>
                 </div>
               </n-list-item>
@@ -69,7 +79,7 @@ import { formatTime } from '@/assets/utils/dateFormatUtils';
 
 export default {
   components: {
-    cardPage
+    cardPage,
   },
   setup() {
     modules.getUnreadNews();
@@ -79,7 +89,7 @@ export default {
       modules.getReadNews();
     });
     return { formatTime, ...modules };
-  }
+  },
 };
 </script>
 <style lang="less" scope>
