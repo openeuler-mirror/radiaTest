@@ -148,7 +148,7 @@ const submitPassword = () => {
           new_password: '',
           re_new_password: '',
         };
-        if (res.error_msg === 'ok') {
+        if (res.error_msg === 'OK') {
           window.sessionStorage.clear();
           router.replace({
             name: 'task',
