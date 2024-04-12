@@ -88,13 +88,16 @@ function handleSelect(key) {
     axios.delete('/v1/logout').then((res) => {
       if (res.error_code === '2000') {
         window.sessionStorage.clear();
-        if (router.currentRoute.value.matched[0].name === 'PersonalCenter') {
+        if (res.error_msg) {
+          window.location = res.error_msg;
+        } else if (router.currentRoute.value.matched[0].name === 'PersonalCenter') {
           router.replace({
             name: 'task'
           });
         } else {
           router.replace(`/blank?redirect=${router.currentRoute.value.fullPath}`);
         }
+
       }
     });
   } else if (key === 'accountInfo') {
