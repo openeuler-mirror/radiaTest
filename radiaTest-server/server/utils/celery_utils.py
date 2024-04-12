@@ -18,8 +18,8 @@ from celeryservice import celeryconfig
 
 
 def make_celery(app_name):
-    broker = celeryconfig.BROKER_URL
-    backend = celeryconfig.RESULT_BACKEND
+    broker = celeryconfig.broker_url
+    backend = celeryconfig.result_backend
 
     celery = Celery(
         app_name,

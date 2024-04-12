@@ -461,7 +461,7 @@ def load_compare_rpm_name_args():
     parser = argparse.ArgumentParser()
 
     subparsers = parser.add_subparsers(dest="cmd_name",
-                                       help="use sub command rpmnama parse, rpmname compare, rpmlist compare")
+                                       help="use sub command rpmname parse, rpmname compare, rpmlist compare")
 
     rpmname_parser = subparsers.add_parser("rpm_name",
                                            help="get license from spec")

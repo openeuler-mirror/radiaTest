@@ -51,8 +51,8 @@ def init_scope(db, app):
             for eft in eft_dict:
                 new_alias = eft_dict[eft] + alias
                 scope = Scope.query.filter_by(alias=new_alias).first()
-                is_new_scope = (scope.uri != uri or scope.act != act or scope.eft != eft)
-                if scope and is_new_scope:
+                is_new_scope = (scope and (scope.uri != uri or scope.act != act or scope.eft != eft))
+                if is_new_scope:
                     scope.uri = uri
                     scope.act = act
                     scope.eft = eft

@@ -27,12 +27,9 @@ from server.apps.testcase.routes import (
     CaseNodeCommitEvent,
     CaseImport,
     CaseRecycleBin,
-    SuiteRecycleBin,
     ResolveTestcaseByFilepath,
     SuiteItemEvent,
     TemplateCasesQuery,
-    PreciseCaseEvent,
-    PreciseSuiteEvent,
     CaseCommit,
     CaseNodeTask,
     MileStoneCaseNode,
@@ -41,7 +38,6 @@ from server.apps.testcase.routes import (
     OrgNodeItem,
     SuiteDocumentEvent,
     SuiteDocumentItemEvent,
-    CaseNodeDocumentsItemEvent,
     CaseSetItemEvent,
     BaselineEvent,
     CaseNodeRelateItemEvent,
@@ -112,18 +108,6 @@ def init_api(api: Api):
         methods=["GET", "POST"]
     )
     api.add_resource(
-        PreciseCaseEvent, 
-        "/api/v1/case/preciseget", 
-        "/api/v1/ws/<string:workspace>/case/preciseget",
-        methods=["GET"]
-    )
-    api.add_resource(
-        PreciseSuiteEvent, 
-        "/api/v1/suite/preciseget", 
-        "/api/v1/ws/<string:workspace>/suite/preciseget",
-        methods=["GET"]
-    )
-    api.add_resource(
         SuiteItemEvent, 
         "/api/v1/suite/<int:suite_id>", 
         methods=["GET", "PUT", "DELETE"]
@@ -165,12 +149,6 @@ def init_api(api: Api):
         CaseRecycleBin, 
         "/api/v1/case/recycle-bin",
         "/api/v1/ws/<string:workspace>/case/recycle-bin",  
-        methods=["GET"]
-    )
-    api.add_resource(
-        SuiteRecycleBin, 
-        "/api/v1/suite/recycle-bin",
-        "/api/v1/ws/<string:workspace>/suite/recycle-bin",  
         methods=["GET"]
     )
     api.add_resource(
@@ -225,11 +203,6 @@ def init_api(api: Api):
         SuiteDocumentItemEvent,
         "/api/v1/suite-document/<int:document_id>",
         methods=["GET", "PUT", "DELETE"]
-    )
-    api.add_resource(
-        CaseNodeDocumentsItemEvent,
-        "/api/v1/case-node/<int:case_node_id>/documents",
-        methods=["GET"]
     )
     api.add_resource(
         GroupCasesetEvent,

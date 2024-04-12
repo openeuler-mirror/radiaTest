@@ -36,12 +36,12 @@ def loads_config_ini(section, option):
 
 
 # Broker settings
-BROKER_URL = loads_config_ini("celery", "BROKER_URL")
+broker_url = loads_config_ini("celery", "BROKER_URL")
 
 imports = ("manage",)
 
 # Using redis to store state and results
-RESULT_BACKEND = "{}?ssl_cert_reqs=required&ssl_ca_certs=/etc/radiaTest/redis.crt".format(
+result_backend = "{}?ssl_cert_reqs=required&ssl_ca_certs=/etc/radiaTest/redis.crt".format(
     loads_config_ini("celery", "RESULT_BACKEND"))
 
 # Using redis to store data of spiders
