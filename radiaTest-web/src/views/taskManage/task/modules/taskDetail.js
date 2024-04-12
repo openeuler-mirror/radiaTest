@@ -13,7 +13,6 @@ import tinymce from 'tinymce/tinymce';
 import 'tinymce/themes/silver/theme'; // 引用主题文件
 import 'tinymce/icons/default'; // 引用图标文件
 import 'tinymce/plugins/image'; //图片
-import 'tinymce/plugins/imagetools'; //图片工具
 import 'tinymce/plugins/nonbreaking';
 import { changeTaskPercentage } from '@/api/put.js';
 import {
