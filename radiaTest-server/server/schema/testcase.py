@@ -324,7 +324,7 @@ class SuiteDocumentBodySchema(BaseModel):
 
 
 class SuiteDocumentQuerySchema(BaseModel):
-    org_id = None
+    org_id: int = None
     title: str = None
 
 
