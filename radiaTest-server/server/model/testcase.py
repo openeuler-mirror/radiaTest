@@ -129,7 +129,7 @@ class Suite(PermissionBaseModel, BaseModel, db.Model):
     remark = db.Column(LONGTEXT(), nullable=True)
     owner = db.Column(db.String(64), nullable=True)
     deleted = db.Column(db.Boolean(), nullable=False, default=False)
-    #测试套来源，默认是代码仓：project，手动创建：manual
+    # 测试套来源，默认是代码仓：project，手动创建：manual
     source_type = db.Column(db.Enum("project", "manual"), nullable=False, default="project")
 
     git_repo_id = db.Column(db.Integer(), db.ForeignKey("git_repo.id"))
@@ -217,7 +217,7 @@ class Case(BaseModel, PermissionBaseModel, db.Model):
 
     tasks_manuals = db.relationship(
         'TaskManualCase', backref='case', cascade='all, delete')
-    
+
     def to_json(self):
         _suite = Suite.query.filter_by(id=self.suite_id).first()
         _git_repo = _suite.git_repo
