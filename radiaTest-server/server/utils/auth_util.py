@@ -16,7 +16,7 @@
 import binascii
 from functools import wraps
 
-from flask import g, current_app
+from flask import g, current_app, request
 from flask_httpauth import HTTPTokenAuth
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from itsdangerous.exc import SignatureExpired, BadSignature, BadData
@@ -68,7 +68,7 @@ def generate_token(user_id, user_login, ex=60 * 60 * 2):
         encoding='utf-8'
     )
     # 令牌payload加密
-    aes_payload = FileAES().encrypt(_token.split('.')[1])
+    aes_payload, tag, nonce = FileAES().encrypt(_token.split('.')[1])
     token = _token.replace(_token.split('.')[1], aes_payload)
     
     # 缓存新令牌，绑定到当前用户
@@ -77,7 +77,9 @@ def generate_token(user_id, user_login, ex=60 * 60 * 2):
         RedisKey.token(token), 
         mapping={
             "user_id": user_id,
-            "user_login": user_login
+            "user_login": user_login,
+            "tag": tag,
+            "nonce": nonce
         }, 
         ex=ex
     )
@@ -88,12 +90,18 @@ def generate_token(user_id, user_login, ex=60 * 60 * 2):
 @auth.verify_token
 def verify_token(token):
     try:
+        payload = request.headers.get("Authorization")
+        if not payload:
+            return False
+        token = payload.split(" ")[1]
         if not redis_client.exists(RedisKey.token(token)):
             return False
 
+        tag = redis_client.hget(RedisKey.token(token), "tag")
+        nonce = redis_client.hget(RedisKey.token(token), "nonce")
         # 令牌payload解密
         aes = FileAES()
-        decode_payload = aes.decrypt(token.split('.')[1])
+        decode_payload = aes.decrypt(token.split('.')[1], tag, nonce)
         _token = token.replace(token.split('.')[1], decode_payload)
         # 反序列化，还原为原始信息
         global serializer

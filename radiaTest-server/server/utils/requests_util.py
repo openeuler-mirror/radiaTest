@@ -57,7 +57,7 @@ class HttpRequestParam:
 
 
 def do_request(param: HttpRequestParam):
-    body = None
+    body = param.body
     try:
         if param.method.lower() not in ['get', 'post', 'put', 'delete']:
             return -1
