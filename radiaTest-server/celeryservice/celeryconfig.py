@@ -14,7 +14,7 @@
 
 
 #####################################
-
+import ssl
 from configparser import NoOptionError, NoSectionError, ConfigParser
 from pathlib import Path
 
@@ -37,7 +37,11 @@ def loads_config_ini(section, option):
 
 # Broker settings
 broker_url = loads_config_ini("celery", "BROKER_URL")
-
+broker_use_ssl = {
+    'ssl_version': ssl.PROTOCOL_TLSv1_2,
+    'cert_reqs': ssl.CERT_NONE,
+}
+broker_pool_limit = 10
 imports = ("manage",)
 
 # Using redis to store state and results
