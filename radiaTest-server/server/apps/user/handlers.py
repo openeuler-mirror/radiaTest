@@ -283,7 +283,7 @@ def handler_logout():
         error_code=RET.OK,
         error_msg="{}?client_id={}&redirect_uri={}".format(
             current_app.config.get("OAUTH_LOGOUT"),
-            current_app.config.get("CLIENT_ID"),
+            current_app.config.get("OAUTH_CLIENT_ID"),
             current_app.config.get("HOME_PAGE")
         )
     )

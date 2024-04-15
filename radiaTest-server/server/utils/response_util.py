@@ -68,7 +68,6 @@ def log_util(func_result):
     elif (
             isinstance(func_result, Response)
             and func_result.mimetype != "application/json"
-            and func_result.status_code == 200
     ):
         msg = "export file success"
     else:
@@ -76,7 +75,7 @@ def log_util(func_result):
     current_app.logger.info(
         "Ip={}, UserId={}, Method={}, Uri={}, Result={}.".format(
             ip if ip else "",
-            g.user_id if g.user_id else 0,
+            g.user_id if hasattr(g, "user_id") else 0,
             act,
             uri,
             msg
