@@ -93,7 +93,7 @@ def verify_token(token):
         payload = request.headers.get("Authorization")
         if not payload:
             return False
-        token = payload.split(" ")[1]
+        token = payload.split()[1]
         if not redis_client.exists(RedisKey.token(token)):
             return False
 
