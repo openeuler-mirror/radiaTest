@@ -68,7 +68,11 @@ def authorization_decoder(config, auth_str: str):
     if _type == "JWT":
         """return only the identity， depends on JWT 2.x"""
         try:
-            decode_payload = FileAES().decrypt(_token.split('.')[1])
+            from server import redis_client
+            from server.utils.redis_util import RedisKey
+            tag = redis_client.hget(RedisKey.token(_token), "tag")
+            nonce = redis_client.hget(RedisKey.token(_token), "nonce")
+            decode_payload = FileAES().decrypt(_token.split('.')[1], tag, nonce)
         except UnicodeDecodeError as e:
             raise UnSupportedAuthType(
                 f"{_token} is not in valid encripted coding, cause error {e}"
