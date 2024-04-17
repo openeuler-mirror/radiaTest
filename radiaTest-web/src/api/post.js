@@ -72,6 +72,10 @@ export function addCheckListItem(data) {
 export function addCheckItem(data) {
   return postRequest('/v1/checkitem', data);
 }
+// 新增弱口令
+export function addWeakPwd(data) {
+  return postRequest('/v1/admin/password-rule', data);
+}
 
 export function applyUserGroup(id) {
   return postRequest(`/v1/groups/${id}/apply`);

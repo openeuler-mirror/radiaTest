@@ -53,6 +53,11 @@ export function updateCheckItem(id, data) {
   return putRequest(`/v1/checkitem/${id}`, data);
 }
 
+// 修改弱口令
+export function updateWeakPwd(id, data) {
+  return putRequest(`/v1/admin/${id}/password-rule`, data);
+}
+
 export function updateSyncMilestone(id, data) {
   return putRequest(`/v2/milestone/${id}/sync`, data);
 }

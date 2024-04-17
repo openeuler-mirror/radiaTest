@@ -26,6 +26,7 @@ import rolesManagement from '@/views/personalCenter/authorityManagement/rolesMan
 import usersManagement from '@/views/personalCenter/usersManagement/usersManagement.vue';
 import configManagement from '@/views/personalCenter/configManagement.vue';
 import securitySetting from '@/views/personalCenter/securitySetting.vue';
+import weakPasswordSetting from '@/views/personalCenter/weakPasswordSetting.vue';
 import versionManagement from '@/views/versionManagement/versionManagement.vue';
 import Product from '@/views/versionManagement/product/product.vue';
 import Milestone from '@/views/versionManagement/milestone/milestone.vue';
@@ -256,6 +257,14 @@ const router = createRouter({
           path: 'security-setting/',
           component: securitySetting,
           name: 'securitySetting',
+          meta: {
+            title: 'EulerTest'
+          }
+        },
+        {
+          path: 'weak-password-setting/',
+          component: weakPasswordSetting,
+          name: 'weakPasswordSetting',
           meta: {
             title: 'EulerTest'
           }

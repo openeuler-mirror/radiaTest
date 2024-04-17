@@ -85,6 +85,8 @@
             size="large"
             placeholder="请输入用户名"
             v-model:value="loginForm.userName"
+            v-on:copy.prevent="handleFalse"
+            v-on:cut.prevent="handleFalse"
             type="text"
           >
             <template #prefix>
@@ -101,6 +103,8 @@
             placeholder="请输入密码"
             type="password"
             v-model:value="loginForm.passWord"
+            v-on:copy.prevent="handleFalse"
+            v-on:cut.prevent="handleFalse"
           >
             <template #prefix>
               <n-icon size="20">

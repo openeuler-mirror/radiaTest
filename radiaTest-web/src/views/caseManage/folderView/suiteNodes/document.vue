@@ -2,11 +2,15 @@
   <div class="document-container">
     <div class="leftPart">
       <n-button
-        style="width: 100%;"
+        style="width: 100%"
         size="small"
         type="success"
-        dashed 
-        @click="() => { showCreateModal = true }"
+        dashed
+        @click="
+          () => {
+            showCreateModal = true;
+          }
+        "
       >
         新增文档
       </n-button>
@@ -15,10 +19,10 @@
           <n-icon color="666666" :component="Search" />
         </template>
       </n-input>
-      <div 
-        v-for="(txt, txtIndex) in documentList" 
-        :key="txtIndex" 
-        :class="[{active: checkedItem.id === txt.id}, 'item']"
+      <div
+        v-for="(txt, txtIndex) in documentList"
+        :key="txtIndex"
+        :class="[{ active: checkedItem.id === txt.id }, 'item']"
         @click="handleClick(txt)"
       >
         <div class="prefix">
@@ -29,16 +33,30 @@
           <n-space>
             <n-tooltip trigger="hover">
               <template #trigger>
-                <n-button text @click="() => { showEditModal = true; }">
-                  <n-icon :size="14" :component="Edit"/>
+                <n-button
+                  text
+                  @click="
+                    () => {
+                      showEditModal = true;
+                    }
+                  "
+                >
+                  <n-icon :size="14" :component="Edit" />
                 </n-button>
               </template>
               编辑
             </n-tooltip>
             <n-tooltip trigger="hover">
               <template #trigger>
-                <n-button text @click="() => { showDeleteModal = true; }">
-                  <n-icon :size="14" :component="Close"/>
+                <n-button
+                  text
+                  @click="
+                    () => {
+                      showDeleteModal = true;
+                    }
+                  "
+                >
+                  <n-icon :size="14" :component="Close" />
                 </n-button>
               </template>
               删除
@@ -48,83 +66,56 @@
       </div>
     </div>
     <div v-if="checkedItem.url" class="rightPart">
-      <iframe
+      {{ checkedItem.url }}
+      <!-- <iframe
         :src="checkedItem.url"
         frameborder="0"
         width="100%"
         height="100%"
-      />
+      /> -->
     </div>
     <div v-else class="emptyPart">
       <n-empty />
     </div>
   </div>
-  <n-modal 
+  <n-modal
     v-model:show="showCreateModal"
     preset="card"
-    style="width: 600px;"
+    style="width: 600px"
     title="新建文档"
     :bordered="false"
   >
-    <n-form 
-      ref="createFormRef"
-      :model="createForm"
-      :rules="createRules"
-    >
+    <n-form ref="createFormRef" :model="createForm" :rules="createRules">
       <n-form-item label="标题" path="title">
-        <n-input
-          clearable
-          v-model:value="createForm.title"
-        />
+        <n-input clearable v-model:value="createForm.title" />
       </n-form-item>
       <n-form-item label="链接" path="url">
-        <n-input
-          clearable
-          v-model:value="createForm.url"
-        />
+        <n-input clearable v-model:value="createForm.url" />
       </n-form-item>
     </n-form>
     <n-space>
-      <n-button type="error" @click="cancelCreateCallback" ghost>
-        取消
-      </n-button>
-      <n-button type="primary" @click="submitCreateCallback" ghost>
-        提交
-      </n-button>
+      <n-button type="error" @click="cancelCreateCallback" ghost> 取消 </n-button>
+      <n-button type="primary" @click="submitCreateCallback" ghost> 提交 </n-button>
     </n-space>
   </n-modal>
-  <n-modal 
+  <n-modal
     v-model:show="showEditModal"
     preset="card"
-    style="width: 600px;"
+    style="width: 600px"
     title="编辑文档"
     :bordered="false"
   >
-    <n-form 
-      ref="editFormRef"
-      :model="editForm"
-      :rules="editRules"
-    >
+    <n-form ref="editFormRef" :model="editForm" :rules="editRules">
       <n-form-item label="标题" path="title">
-        <n-input
-          clearable
-          v-model:value="editForm.title"
-        />
+        <n-input clearable v-model:value="editForm.title" />
       </n-form-item>
       <n-form-item label="链接" path="url">
-        <n-input
-          clearable
-          v-model:value="editForm.url"
-        />
+        <n-input clearable v-model:value="editForm.url" />
       </n-form-item>
     </n-form>
     <n-space>
-      <n-button type="error" @click="cancelEditCallback" ghost>
-        取消
-      </n-button>
-      <n-button type="primary" @click="submitEditCallback" ghost>
-        提交
-      </n-button>
+      <n-button type="error" @click="cancelEditCallback" ghost> 取消 </n-button>
+      <n-button type="primary" @click="submitEditCallback" ghost> 提交 </n-button>
     </n-space>
   </n-modal>
   <n-modal
@@ -174,10 +165,9 @@ function documentInit() {
   if (searchWords.value) {
     params.title = searchWords.value;
   }
-  getSuiteDocuments(window.atob(router.params.suiteId), params)
-    .then(res => {
-      documentList.value = res.data;
-    });
+  getSuiteDocuments(window.atob(router.params.suiteId), params).then((res) => {
+    documentList.value = res.data;
+  });
 }
 
 onMounted(() => {
@@ -247,61 +237,61 @@ watch(searchWords, () => {
 </script>
 
 <style lang="less" scoped>
-.document-container{
+.document-container {
   min-height: 700px;
   display: flex;
   justify-content: flex-start;
-  .leftPart{
-    width:20%;
+  .leftPart {
+    width: 20%;
     padding: 20px;
     border-right: 1px solid #eee;
     overflow: scroll;
-    .n-input{
+    .n-input {
       margin: 10px 0;
     }
-    .item{
+    .item {
       padding: 0 8px;
       height: 40px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       font-size: 12px;
-      color:#000;
+      color: #000;
       cursor: pointer;
       border-radius: 5px;
       margin-bottom: 10px;
       &:hover,
-      &.active{
+      &.active {
         background-color: #d2daf5;
       }
-      .prefix{
+      .prefix {
         display: flex;
         align-items: center;
-        .n-icon{
+        .n-icon {
           color: #666666;
           margin-right: 5px;
         }
-        span{
+        span {
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
         }
       }
-      .suffix{
+      .suffix {
         display: none;
       }
-      &:hover{
-        .suffix{
+      &:hover {
+        .suffix {
           display: block;
         }
       }
     }
   }
-  .rightPart{
+  .rightPart {
     overflow: scroll;
     width: 100%;
   }
-  .emptyPart{
+  .emptyPart {
     display: flex;
     width: 100%;
     align-items: center;

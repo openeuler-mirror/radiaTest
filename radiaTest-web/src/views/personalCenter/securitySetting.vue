@@ -142,19 +142,21 @@ const submitPassword = () => {
         old_password: passwordModel.value.old_password,
         new_password: passwordModel.value.new_password,
         re_new_password: passwordModel.value.re_new_password,
-      }).then((res) => {
-        passwordModel.value = {
-          old_password: '',
-          new_password: '',
-          re_new_password: '',
-        };
-        if (res.error_msg === 'OK') {
+      })
+        .then(() => {
+          passwordModel.value = {
+            old_password: '',
+            new_password: '',
+            re_new_password: '',
+          };
           window.sessionStorage.clear();
           router.replace({
             name: 'task',
           });
-        }
-      });
+        })
+        .catch((err) => {
+          window.$message?.error(err.data.error_msg || '未知错误');
+        });
     }
   });
 };
