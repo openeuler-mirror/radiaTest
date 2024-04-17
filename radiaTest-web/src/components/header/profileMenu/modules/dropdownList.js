@@ -159,10 +159,15 @@ function handleLoginByForm() {
         .then((res) => {
           if (res?.data) {
             storage.setValue('token', res.data.token);
-            storage.setValue('role', 1);
             storage.setValue('account', res.data.account);
             showLoginModal.value = false;
-            router.push({ name: 'orgManagement' });
+            if (res.data.password_need_reset === 1) {
+              storage.setValue('role', 'resetPassword');
+              router.push({ name: 'securitySetting' });
+            } else {
+              storage.setValue('role', 1);
+              router.push({ name: 'orgManagement' });
+            }
           }
         })
         .catch((err) => {
@@ -194,9 +199,12 @@ function handleUpdateLoginedOrg(value) {
     window.$message?.error(err.data.error_msg || '未知错误');
   });
 }
+function handleFalse() {
+  return false;
+}
 
 export {
   optionsLogined, optionsUnLogin, iframeOptions, orgRule, showOrgModal, handleSelect,
   handleLoginByForm, loginForm, showLoginModal, loginFormRules, loginFormRef, handleUpdateOrgValue,
-  handleUpdateLoginedOrg
+  handleUpdateLoginedOrg, handleFalse
 };

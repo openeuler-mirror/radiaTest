@@ -40,6 +40,11 @@ export function deleteCheckItem(id) {
   return deleteRequest(`/v1/checkitem/${id}`);
 }
 
+// 删除弱口令
+export function deleteWeakPwd(id) {
+  return deleteRequest(`/v1/admin/${id}/password-rule`);
+}
+
 export function deleteMilestoneAjax(id) {
   return deleteRequest(`/v2/milestone/${id}`);
 }

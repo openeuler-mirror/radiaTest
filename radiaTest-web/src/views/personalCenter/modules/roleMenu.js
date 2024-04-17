@@ -6,7 +6,7 @@ import router from '@/router/index';
 import { LockClosedOutline, HomeOutline } from '@vicons/ionicons5';
 import { BellOutlined } from '@vicons/antd';
 import { Users, Settings } from '@vicons/tabler';
-import { Organization24Regular } from '@vicons/fluent';
+import { Organization24Regular, Password24Regular } from '@vicons/fluent';
 import { ManageAccountsOutlined } from '@vicons/material';
 import { Users as faUsers } from '@vicons/fa';
 
@@ -40,6 +40,18 @@ const adminMenu = [
     icon: renderIcon(Settings)
   },
   {
+    label: '弱口令设置',
+    key: 'weakPasswordSetting',
+    icon: renderIcon(Password24Regular),
+  },
+  {
+    label: '安全设置',
+    key: 'securitySetting',
+    icon: renderIcon(LockClosedOutline),
+  }
+];
+const adminResetPwdMenu = [
+  {
     label: '安全设置',
     key: 'securitySetting',
     icon: renderIcon(LockClosedOutline),
@@ -70,6 +82,9 @@ const userMenu = [
 function initRoleOptions(roleType) {
   if (roleType === 1) {
     menuOptions.value = adminMenu;
+    showHeader.value = false;
+  } else if (roleType === 'resetPassword') {
+    menuOptions.value = adminResetPwdMenu;
     showHeader.value = false;
   } else {
     menuOptions.value = userMenu;
