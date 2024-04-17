@@ -52,7 +52,6 @@ class BaselineTemplate(BaseModel, PermissionBaseModel, db.Model):
         }
         return return_data
 
-
     def to_dict(self):
         _dict = self.__dict__
         _dict.update({
@@ -61,7 +60,6 @@ class BaselineTemplate(BaseModel, PermissionBaseModel, db.Model):
         })
 
         return _dict
-
 
 
 class BaseNode(BaseModel, PermissionBaseModel, db.Model):
@@ -103,7 +101,6 @@ class BaseNode(BaseModel, PermissionBaseModel, db.Model):
             "is_root": self.is_root,
         }
         return return_data
-
 
     def to_dict(self):
         _dict = self.__dict__

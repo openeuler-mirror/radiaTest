@@ -7,15 +7,19 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 ####################################
-# @Author  : Ethan-Zhang
-# @email   : ethanzhang55@outlook.com
+# @Author  :
+# @email   :
 # @Date    : 2022/05/09 19:59:00
 # @License : Mulan PSL v2
 #####################################
 
 FROM radia-test/gunicorn
 LABEL maintainer="ethanzhang55@outlook.com"
+RUN echo "umask 027" >> ~/.bashrc && source ~/.bashrc
 
+RUN sed -i 's/^PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config
+
+RUN systemctl restart sshd
 USER radiaTest
 
 CMD celery -A manage.my_celery worker --loglevel=info --hostname=celery_casefile_resolver@%h --queues=queue_file_resolution,queue_template_testcase --pool=gevent --concurrency=60

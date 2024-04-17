@@ -243,6 +243,6 @@ def collect_sql_error(func):
             return jsonify(error_code=RET.DATA_EXIST_ERR, error_msg=f'data has exist / foreign key is bond')
         except SQLAlchemyError as e:
             current_app.logger.error(f'database operate error -> {e}')
-            return jsonify(error_code=RET.DB_ERR, error_msg=f'database operate error -> {e}')
+            return jsonify(error_code=RET.DB_ERR, error_msg=f'database operate error')
 
     return wrapper

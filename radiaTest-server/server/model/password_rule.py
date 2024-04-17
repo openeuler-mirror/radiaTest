@@ -9,17 +9,23 @@
 ####################################
 # @Author  :
 # @email   :
-# @Date    : 2022/05/09 19:59:00
+# @Date    :
 # @License : Mulan PSL v2
 #####################################
 
-FROM radia-test/gunicorn
-LABEL maintainer="ethanzhang55@outlook.com"
-RUN echo "umask 027" >> ~/.bashrc && source ~/.bashrc
+from server import db
+from server.model import BaseModel
 
-RUN sed -i 's/^PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config
 
-RUN systemctl restart sshd
-USER radiaTest
+class PasswordRule(db.Model, BaseModel):
+    __tablename__ = "password_rule"
 
-CMD celery -A manage.my_celery worker --loglevel=info --hostname=celery_periodic_worker --queues=queue_update_celerytask_status,queue_read_openqa_homepage,queue_update_issue_type_state,queue_update_all_issue_rate,queue_update_all_task_progress --pool=gevent --concurrency=40
+    id = db.Column(db.Integer, primary_key=True)
+    rule = db.Column(db.String(255), nullable=False)
+
+    def to_json(self):
+        return_data = {
+            "id": self.id,
+            "rule": self.rule
+        }
+        return return_data
