@@ -12,7 +12,7 @@
 # @Date    :
 # @License : Mulan PSL v2
 #####################################
-
+from datetime import datetime
 import re
 
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -27,6 +27,8 @@ class Admin(db.Model, BaseModel):
     id = db.Column(db.Integer(), primary_key=True, autoincrement=True)
     account = db.Column(db.String(30), unique=True, nullable=False)
     password_hash = db.Column(db.String(256), nullable=False)
+    last_login_time = db.Column(db.DateTime, nullable=False,
+                                default=datetime(1970, 1, 1), server_default='1970-01-01')
 
     @property
     def password(self):

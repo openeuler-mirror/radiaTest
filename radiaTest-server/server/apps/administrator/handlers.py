@@ -14,6 +14,7 @@
 
 
 #####################################
+from datetime import datetime
 
 from flask import request, g, jsonify, current_app
 from server import db
@@ -74,11 +75,21 @@ def handler_login(body):
         admin.account,
         int(current_app.config.get("LOGIN_EXPIRES_TIME"))
     )
+
+    pwd_reset_flag = 0
+    if admin.last_login_time == datetime(year=1970, month=1, day=1):
+        pwd_reset_flag = 1
+    else:
+        admin.last_login_time = datetime.now()
+        admin.add_update(Admin, '/admin')
+
     return_dict = {
         'token': token,
         'admin': 1,
-        'account': admin.account
+        'account': admin.account,
+        'password_need_reset': pwd_reset_flag
     }
+
     body.password = ""
     resp = jsonify(
         error_code=RET.OK,
@@ -263,6 +274,7 @@ def handler_change_passwd(body):
             error_msg='Account does not exist or password is incorrect. Please re-enter'
         )
     admin.password = body.new_password
+    admin.last_login_time = datetime.now()
     admin.add_update(Admin, '/admin')
     redis_client.delete(RedisKey.user(g.user_id))
     redis_client.delete(RedisKey.token(g.user_id))
