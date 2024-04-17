@@ -7,8 +7,8 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 ####################################
-# @Author  : Ethan-Zhang
-# @email   : ethanzhang55@outlook.com
+# @Author  :
+# @email   :
 # @Date    : 2022/05/09 19:59:00
 # @License : Mulan PSL v2
 #####################################
@@ -49,6 +49,12 @@ RUN chown -R radiaTest:radiaTest /var/log/nginx
 RUN chmod -R 740 /opt/radiaTest
 RUN \cp ./deploy/nginx.conf ./deploy/server.conf /etc/nginx/
 RUN chown -R radiaTest:radiaTest /etc/nginx
+
+RUN echo "umask 027" >> ~/.bashrc && source ~/.bashrc
+
+RUN sed -i 's/^PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config
+
+RUN systemctl restart sshd
 
 USER radiaTest
 RUN npm cache clean --force \

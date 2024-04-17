@@ -79,6 +79,7 @@ def handler_login(body):
         'admin': 1,
         'account': admin.account
     }
+    body.password = ""
     resp = jsonify(
         error_code=RET.OK,
         error_msg='admin login success',
@@ -93,7 +94,6 @@ def handler_read_org_list():
     admin = Admin.query.filter_by(account=g.user_login).first()
     if not admin:
         resp = jsonify(error_code=RET.VERIFY_ERR, error_msg='user no right to get organization info')
-        log_util(resp)
         return resp
     org_list = Organization.query.filter_by(is_delete=False).all()
     org_info_list = list()
@@ -267,6 +267,8 @@ def handler_change_passwd(body):
     redis_client.delete(RedisKey.user(g.user_id))
     redis_client.delete(RedisKey.token(g.user_id))
     redis_client.delete(RedisKey.token(g.token))
+    body.old_password = ""
+    body.new_password = ""
     return jsonify(
         error_code=RET.OK,
         error_msg="admin new password update success"

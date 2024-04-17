@@ -12,14 +12,11 @@
 #####################################
 # 测试设计(Strategy)相关接口的schema
 
-import re
-from typing import Optional, List
-from pydantic import BaseModel, constr, validator
+from typing import Optional
+from pydantic import BaseModel
 from pydantic.class_validators import root_validator
-from server.model.group import Group
-from server.model.organization import Organization
-from server.schema import StrategyImportFileType, PermissionType, StrategyCommitStatus
-from server.schema.testcase import CaseNodeBodySchema, SuiteCreate
+from server.schema import StrategyImportFileType, StrategyCommitStatus
+from server.schema.testcase import SuiteCreate
 from server.schema.base import PageBaseSchema
 
 

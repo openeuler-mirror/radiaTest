@@ -16,6 +16,8 @@ import re
 
 from pydantic import BaseModel, validator, root_validator
 
+from server.model.password_rule import PasswordRule
+
 
 class LoginSchema(BaseModel):
     account: str
@@ -48,4 +50,21 @@ class ChangePasswdSchema(BaseModel):
         if not re.match(pattern, values['new_password']):
             raise ValueError('The password complexity does not meet the requirements')
 
+        rule_exists = PasswordRule.query.filter_by(rule=values['new_password']).first()
+        if rule_exists:
+            raise ValueError('password is weak')
+
         return values
+
+
+class AddRuleSchema(BaseModel):
+    rule: str
+
+    @validator('rule')
+    def v_rule(cls, v):
+        if not v:
+            raise ValueError('rule is empty not support')
+
+        if ' ' in v:
+            raise ValueError('space in rule is not support')
+        return v

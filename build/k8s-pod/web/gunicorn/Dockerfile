@@ -7,8 +7,8 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 ####################################
-# @Author  : Ethan-Zhang
-# @email   : ethanzhang55@outlook.com
+# @Author  :
+# @email   :
 # @Date    : 2022/05/09 19:59:00
 # @License : Mulan PSL v2
 #####################################
@@ -56,11 +56,19 @@ RUN chmod -R 755 /opt/radiaTest
 
 RUN dnf remove make -y
 
+RUN echo "umask 027" >> ~/.bashrc && source ~/.bashrc
+
+RUN sed -i 's/^PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config
+
+RUN systemctl restart sshd
+
 # uncompress用户解压需要rarfile库
 RUN sudo -u uncompress pip3 install rarfile==4.0
 
 USER radiaTest
 ENV PATH="/home/radiaTest/.local/bin:${PATH}"
 RUN pip3 install -r requirements.txt -i $PIP_REPO || pip3 install -r requirements.txt
+
+RUN sed -i '45s/^/# /' /home/radiaTest/.local/lib/python3.9/site-packages/casbin/model/assertion.py
 
 CMD gunicorn --preload -c /etc/radiaTest/gunicorn.conf.py manage:app

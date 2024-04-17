@@ -13,9 +13,13 @@
 # @License : Mulan PSL v2
 #####################################
 
+import re
+
 from werkzeug.security import generate_password_hash, check_password_hash
+
 from server.model import BaseModel
 from server import db, casbin_enforcer
+from server.model.password_rule import PasswordRule
 
 
 class Admin(db.Model, BaseModel):
@@ -30,6 +34,16 @@ class Admin(db.Model, BaseModel):
 
     @password.setter
     def password(self, password):
+        pattern = (
+            r"^(?=(?:.*[a-z])?)(?=(?:.*[A-Z])?)(?=(?:.*\d)?)(?=(?:.*[!@#$%^&*()-_+=])?)[a-zA-Z\d!^~@#$%^&*()-_+=]+$"
+        )
+        if not re.match(pattern, password):
+            raise ValueError('The password complexity does not meet the requirements')
+
+        rule_exists = PasswordRule.query.filter_by(rule=password).first()
+        if rule_exists:
+            raise ValueError('password is weak')
+
         self.password_hash = generate_password_hash(password)
 
     def check_password_hash(self, password):
