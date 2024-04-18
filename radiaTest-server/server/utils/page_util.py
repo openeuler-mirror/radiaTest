@@ -50,7 +50,7 @@ class PageUtil(object):
             return page_dict, None
         except Exception as e:
             current_app.logger.error(f"get page info error {e}")
-            return {}, e
+            return {}, "check error from log"
 
     @staticmethod
     def page_func(item):
@@ -90,9 +90,10 @@ class PageUtil(object):
 
         page_dict, e = PageUtil(query.page_num, query.page_size).get_page_dict(query_filter, func=func)
         if e:
+            current_app.logger.error(f"get page info error {e}")
             return jsonify(
                 error_code=RET.SERVER_ERR,
-                error_msg=f"get page data error {e}"
+                error_msg=f"get page data error, check error from log"
             )
 
         return jsonify(
@@ -192,4 +193,4 @@ class Paginate(object):
             return page_dict, None
         except Exception as e:
             current_app.logger.error(f"get page info error {e}")
-            return {}, e
+            return {}, "check error from log"

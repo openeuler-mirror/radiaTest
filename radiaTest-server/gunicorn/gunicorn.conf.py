@@ -23,6 +23,8 @@ worker_class = 'geventwebsocket.gunicorn.workers.GeventWebSocketWorker'
 
 # workers = multiprocessing.cpu_count() * 2 + 1    #进程数
 workers = 32
+# 每个工作进程的并发连接数限制
+worker_connections = 1000
 loglevel = 'info'  # 日志级别，这个日志级别指的是错误日志的级别，而访问日志的级别无法设置
 access_log_format = '%(t)s %(p)s %(h)s "%(r)s" %(s)s %(L)s %(b)s %(f)s" "%(a)s"'  # 设置gunicorn访问日志格式，错误日志无法设置
 

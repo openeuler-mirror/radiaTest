@@ -44,7 +44,7 @@ def pdbc(func):
             return jsonify(
                 {
                     "error_code": RET.DB_DATA_ERR,
-                    "error_msg": str(e),
+                    "error_msg": "db operate failed due to value error"
                 }
             )
 

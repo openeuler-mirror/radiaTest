@@ -15,14 +15,13 @@
 
 import os
 from urllib import request, error
+from urllib.parse import urlparse
 from typing import List, Optional
 from typing_extensions import Literal
-
 from pydantic import BaseModel, Field, validator
 from pydantic.networks import HttpUrl
 
-from server.schema import MachineType
-from server.schema.base import UpdateBaseModel
+from flask import current_app
 
 
 class OpenEulerUpdateTaskBase(BaseModel):
@@ -36,6 +35,10 @@ class OpenEulerUpdateTaskBase(BaseModel):
     @validator("base_update_url")
     def check_base_url(v):
         try:
+            parsed_url = urlparse(v)
+            domain = parsed_url.netloc
+            if domain != current_app.config.get("REPO_DOMAIN"):
+                raise ValueError("repo domain is not correct")
             request.urlopen(os.path.join(v, 'aarch64/'))
             request.urlopen(os.path.join(v, 'x86_64/'))
 
@@ -49,6 +52,10 @@ class OpenEulerUpdateTaskBase(BaseModel):
     def check_epol_url(v):
         if v:
             try:
+                parsed_url = urlparse(v)
+                domain = parsed_url.netloc
+                if domain != current_app.config.get("REPO_DOMAIN"):
+                    raise ValueError("repo domain is not correct")
                 request.urlopen(os.path.join(v, 'aarch64/'))
                 request.urlopen(os.path.join(v, 'x86_64/'))
 
@@ -56,15 +63,6 @@ class OpenEulerUpdateTaskBase(BaseModel):
                 raise ValueError("epol_update_url:%s is not available." % v) from e
 
         return v
-
-
-class RepoCaseUpdateBase(UpdateBaseModel):
-    machine_num: Optional[int] = 1
-    machine_type: Optional[MachineType] = "kvm"
-    add_network_interface: Optional[int]
-    add_disk: Optional[str]
-    usabled: bool = False
-    code: Optional[str]
 
 
 class LoginOrgListSchema(BaseModel):

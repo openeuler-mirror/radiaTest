@@ -110,7 +110,11 @@ class UpdateTaskHandler:
                 Milestone,
                 body
             ).insert_id()
-            ResourceManager("milestone", creator_id=form.group.creator_id, org_id=form.group.org_id).add_permission(
+            ResourceManager(
+                "milestone",
+                creator_id=form.group.creator_id,
+                org_id=form.group.org_id
+            ).add_permission(
                 "api_infos.yaml",
                 {
                     "creator_id": form.group.creator_id,
@@ -353,8 +357,11 @@ class AtHandler:
                         else:
                             continue
 
-                openqa_url = "https://radiatest.openeuler.org/at-detail?release_url_x86_64={}" \
-                             "&release_url_aarch64={}".format(self.buildname_x86, self.buildname_aarch64)
+                openqa_url = "{}?release_url_x86_64={}&release_url_aarch64={}".format(
+                    current_app.config.get("AT_DETAIL"),
+                    self.buildname_x86,
+                    self.buildname_aarch64
+                )
                 job_done_num = job_success_num + job_fail_num + job_cancel_num
 
                 if total_job_num == 0:
@@ -449,4 +456,3 @@ class AtHandler:
             "detail_list": detail_list,
             "arch_list": sorted(arch_list)
         }
-

@@ -17,6 +17,8 @@ import subprocess
 import shlex
 from itertools import groupby
 
+from flask import current_app
+
 
 def check_cmd(cmds):
     for item in cmds:
@@ -65,7 +67,8 @@ def run_cmd(cmd):
             output, error = process.communicate(timeout=30)
             returncode = process.returncode
         except Exception as e:
-            return 1, "", str(e)
+            current_app.logger.error(f"command execute failed due to:{e}")
+            return 1, "", "command execute failed"
     return returncode, output.decode("utf-8"), error.decode("utf-8")
 
 

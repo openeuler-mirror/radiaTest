@@ -52,7 +52,7 @@ def external_auth(func):
         except RuntimeError as e:
             return jsonify(
                 error_code=RET.UNAUTHORIZE_ERR,
-                error_msg=str(e)
+                error_msg="check auth excepted happened"
             )
 
     return wrapper

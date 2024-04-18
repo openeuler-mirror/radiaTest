@@ -13,7 +13,6 @@
 # # @License : Mulan PSL v2
 #####################################
 
-import multiprocessing
 from typing import Optional
 
 from pydantic import BaseModel, constr
@@ -45,17 +44,15 @@ class CreateIssueSchema(BaseModel):
 
     @root_validator
     def validate_issue(cls, values):
-        if values["title"] and values["description"]:
-            for item in [values["title"], values["description"]]:
-                process = multiprocessing.Process(target=check_illegal_lables, args=(item,))
-                process.start()
-                process.join(5)
-                if process.is_alive():
-                    process.terminate()
-                    raise RuntimeError("something maybe unsecurity")
-            return values
+        if values["title"]:
+            values["title"] = check_illegal_lables(values["title"])
         else:
-            raise RuntimeError("issue is not complete")
+            raise ValueError("title is empty")
+
+        if values["description"]:
+            values["description"] = check_illegal_lables(values["description"])
+
+        return values
 
 
 class GiteeCreateIssueSchema(BaseModel):

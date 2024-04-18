@@ -41,6 +41,9 @@ class ChangePasswdSchema(BaseModel):
         if len(values['old_password']) < 8 or len(values['new_password']) < 8 or len(values['re_new_password']) < 8:
             raise ValueError('password length should be greater than 8')
 
+        if values['new_password'] == values['old_password']:
+            raise ValueError('new password same with old password')
+
         if values['new_password'] != values['re_new_password']:
             raise ValueError('The passwords entered twice are different')
 

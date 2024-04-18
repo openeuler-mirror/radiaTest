@@ -105,3 +105,18 @@ class User(db.Model, BaseModel):
         _filter = [ReUserRole.user_id == self.user_id, Role.type == 'public']
         _role = Role.query.join(ReUserRole).filter(*_filter).first()
         return _role.to_json() if _role else None
+
+
+class UserPrivacyStatement(db.Model, BaseModel):
+    __tablename__ = "user_privacy_statement"
+    id = db.Column(db.Integer(), primary_key=True)
+    user_id = db.Column(db.String(512), db.ForeignKey("user.user_id"))
+    privacy_version = db.Column(db.String(50), nullable=False)
+    is_sign = db.Column(db.Boolean(), default=False, nullable=False)
+
+    def to_json(self):
+        return {
+            "user_id": self.user_id,
+            "privacy_version": self.privacy_version,
+            "is_sign": self.is_sign
+        }

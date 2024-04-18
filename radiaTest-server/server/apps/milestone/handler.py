@@ -360,7 +360,8 @@ class MilestoneOpenApiHandler(BaseOpenApiHandler):
     @collect_sql_error
     def create(self):
         # 调用接口于Gitee企业仓创建里程碑
-        _url = "https://api.gitee.com/enterprises/{}/milestones".format(
+        _url = "{}/{}/milestones".format(
+            current_app.config.get("GITEE_ENTERPRISE"),
             self.current_org.enterprise_id
         )
 
@@ -374,7 +375,8 @@ class MilestoneOpenApiHandler(BaseOpenApiHandler):
 
     def edit(self, milestone_id):
         # 调用接口于Gitee企业仓编辑里程碑
-        _url = "https://api.gitee.com/enterprises/{}/milestones/{}".format(
+        _url = "{}/{}/milestones/{}".format(
+            current_app.config.get("GITEE_ENTERPRISE"),
             self.current_org.enterprise_id,
             milestone_id,
         )
@@ -400,7 +402,8 @@ class MilestoneOpenApiHandler(BaseOpenApiHandler):
                 error_msg="Delete failed, Some tasks have been associated with this milestone"
             )
 
-        _url = "https://api.gitee.com/enterprises/{}/milestones/{}".format(
+        _url = "{}/{}/milestones/{}".format(
+            current_app.config.get("GITEE_ENTERPRISE"),
             self.current_org.enterprise_id,
             milestone.gitee_milestone_id,
         )
@@ -416,7 +419,8 @@ class MilestoneOpenApiHandler(BaseOpenApiHandler):
 
     def edit_state_event(self, milestone_id):
         # 调用接口于Gitee企业仓编辑里程碑状态
-        _url = "https://api.gitee.com/enterprises/{}/milestones/{}".format(
+        _url = "{}/{}/milestones/{}".format(
+            current_app.config.get("GITEE_ENTERPRISE"),
             self.current_org.enterprise_id,
             milestone_id,
         )
@@ -430,7 +434,8 @@ class MilestoneOpenApiHandler(BaseOpenApiHandler):
 
     def get_milestones(self, params):
         # 调用接口于Gitee企业仓获取里程碑
-        _url = "https://api.gitee.com/enterprises/{}/milestones".format(
+        _url = "{}/{}/milestones".format(
+            current_app.config.get("GITEE_ENTERPRISE"),
             self.current_org.enterprise_id,
         )
         _resp = self.query(url=_url, params=params)

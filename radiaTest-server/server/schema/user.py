@@ -13,8 +13,9 @@
 # @License : Mulan PSL v2
 #####################################
 
+from flask import current_app
 from typing import Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
 
 
 class OauthLoginSchema(BaseModel):
@@ -23,6 +24,7 @@ class OauthLoginSchema(BaseModel):
 
 class LoginSchema(OauthLoginSchema):
     code: str
+    privacy_version: str
 
 
 class UserBaseSchema(BaseModel):
@@ -60,3 +62,15 @@ class UserInfoSchema(UserBaseSchema):
 class JoinGroupSchema(BaseModel):
     msg_id: int
     access: bool
+
+
+class PrivacySchema(BaseModel):
+    is_sign: bool = False
+    privacy_version: str
+
+    @validator("privacy_version")
+    def check_privacy_version(cls, v):
+        if v and v == current_app.config.get("PRIVACY_VERSION"):
+            return v
+        else:
+            raise RuntimeError("unknown privacy version")

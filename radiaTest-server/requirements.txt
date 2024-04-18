@@ -88,3 +88,4 @@ flask-swagger-ui==3.36.0
 beautifulsoup4==4.12.3
 python-magic==0.4.27
 defusedxml==0.7.1
+html_sanitizer==1.9.3

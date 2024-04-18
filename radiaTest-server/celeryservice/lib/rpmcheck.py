@@ -12,7 +12,7 @@
 # @Date    : 2022/09/15
 # @License : Mulan PSL v2
 #####################################
-import subprocess
+from shlex import quote
 from flask import current_app
 
 from server import redis_client
@@ -84,12 +84,11 @@ class RpmCheckHandler(TaskHandlerBase):
         )
 
         rpmcheck_path = current_app.config.get("RPMCHECK_FILE_PATH")
-        exitcode, file_list, _ = run_cmd(f"ls -l {rpmcheck_path} | sed '1d' " + " | awk '{print $9}'")
+        exitcode, file_list, _ = run_cmd(f"ls -l {quote(rpmcheck_path)} | sed '1d' " + " | awk '{print $9}'")
 
         if exitcode != 0:
             current_app.logger.info(file_list)
             return
         for _file in file_list.split("\n"):
             if _file.replace(".yaml", "") not in _rpmchecks:
-                _, _, _ = run_cmd(f"rm -f {rpmcheck_path}/{_file}")
-
+                _, _, _ = run_cmd(f"rm -f {quote(rpmcheck_path)}/{quote(_file)}")

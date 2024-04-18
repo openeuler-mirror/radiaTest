@@ -868,7 +868,7 @@ class CaseImport(Resource):
             except RuntimeError as e:
                 return jsonify(
                     error_code=RET.RUNTIME_ERROR,
-                    error_msg=str(e),
+                    error_msg="import case file error",
                 )
 
             return import_handler.import_case(
@@ -1025,7 +1025,7 @@ class GroupNodeItem(Resource):
         except RuntimeError as e:
             return jsonify(
                 error_code=RET.BAD_REQ_ERR,
-                error_msg=str(e)
+                error_msg="get group case statistics failed"
             )
 
 
@@ -1051,7 +1051,7 @@ class OrgNodeItem(Resource):
         except RuntimeError as e:
             return jsonify(
                 error_code=RET.BAD_REQ_ERR,
-                error_msg=str(e)
+                error_msg="get organization testcases statistics failed"
             )
 
 
@@ -1659,7 +1659,7 @@ class CasefileConvertEvent(Resource):
         except RuntimeError as e:
             return jsonify(
                 error_code=RET.RUNTIME_ERROR,
-                error_msg=str(e)
+                error_msg="case file convert format failed"
             )
 
         return send_file(converted_filepath, as_attachment=True)
@@ -1726,7 +1726,7 @@ class OrgSuiteExportEvent(Resource):
         except Exception as e:
             return jsonify(
                 error_code=RET.BAD_REQ_ERR,
-                error_msg=str(e)
+                error_msg="organization testcase export failed"
             )
         finally:
             exportor.rm_casefile()

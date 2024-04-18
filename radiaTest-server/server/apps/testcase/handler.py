@@ -489,7 +489,7 @@ class CaseNodeHandler:
             # 清理压缩包和解压目录
             zip_case_set.clean_and_delete(uncompressed_filepath)
 
-            return jsonify(error_code=RET.SERVER_ERR, error_msg=str(e))
+            return jsonify(error_code=RET.SERVER_ERR, error_msg="import case set failed")
 
     @staticmethod
     @collect_sql_error

@@ -137,15 +137,26 @@ class ZipImportFile(ImportFile):
 
     def uncompress(self, uncompressed_filepath):
         # 赋予uncompress解压目录权限
-        _, _, _ = run_cmd("mkdir -p '{}' && chmod 777 '{}'".format(uncompressed_filepath, uncompressed_filepath))
+        _, _, _ = run_cmd(
+            "mkdir -p '{}' && chmod 777 '{}'".format(
+                quote(uncompressed_filepath),
+                quote(uncompressed_filepath)
+            )
+        )
         # 赋予解压文件可读权限
-        _, _, _ = run_cmd("chmod 755 '{}'".format(self.filepath))
+        _, _, _ = run_cmd("chmod 755 '{}'".format(quote(self.filepath)))
         # 使用uncompress普通用户,安全解压
         safe_uncompress = Path(__file__).parent.joinpath("safe_uncompress.py")
-        _, data, error = run_cmd("sudo -u uncompress python3 '{}' -t '{}' -f '{}' -d '{}'".format(
-            safe_uncompress, self.filetype, self.filepath, uncompressed_filepath))
+        _, data, error = run_cmd(
+            "sudo -u uncompress python3 '{}' -t '{}' -f '{}' -d '{}'".format(
+                quote(safe_uncompress),
+                quote(self.filetype),
+                quote(self.filepath),
+                quote(uncompressed_filepath)
+            )
+        )
         if "uncompress success!" in data:
-            _, _, _ = run_cmd("sudo -u uncompress chmod -R 755 '{}'".format(uncompressed_filepath))
+            _, _, _ = run_cmd("sudo -u uncompress chmod -R 755 '{}'".format(quote(uncompressed_filepath)))
             return True
         else:
             current_app.logger.error(f"data: {data}, error: {error}")
@@ -156,7 +167,7 @@ class ZipImportFile(ImportFile):
         if os.path.exists(self.filepath):
             self.file_remove()
         if uncompressed_filepath and os.path.exists(uncompressed_filepath):
-            _, _, _ = run_cmd("sudo -u uncompress rm -rf '{}'".format(uncompressed_filepath))
+            _, _, _ = run_cmd("sudo -u uncompress rm -rf '{}'".format(quote(uncompressed_filepath)))
 
 
 class ExcelImportFile(ImportFile):

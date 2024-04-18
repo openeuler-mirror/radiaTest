@@ -16,7 +16,7 @@
 import abc
 import json
 
-from flask import g, jsonify
+from flask import g, jsonify, current_app
 
 from server import redis_client, db
 from server.utils.redis_util import RedisKey
@@ -151,32 +151,38 @@ class GiteeV8BaseIssueHandler(IssueOpenApiHandler):
         return gitee_body
 
     def get_all(self, params):
-        _url = "https://api.gitee.com/enterprises/{}/issues".format(
+        _url = "{}/{}/issues".format(
+            current_app.config.get("GITEE_ENTERPRISE"),
             self.current_org.enterprise_id,
         )
         return self.query(url=_url, params=params)
 
     def get(self, issue_id):
-        _url = "https://api.gitee.com/enterprises/{}/issues/{}".format(
-            self.current_org.enterprise_id, issue_id
+        _url = "{}/{}/issues/{}".format(
+            current_app.config.get("GITEE_ENTERPRISE"),
+            self.current_org.enterprise_id,
+            issue_id
         )
         return self.query(url=_url)
 
     def get_issue_types(self):
-        _url = "https://api.gitee.com/enterprises/{}/issue_types".format(
+        _url = "{}/{}/issue_types".format(
+            current_app.config.get("GITEE_ENTERPRISE"),
             self.current_org.enterprise_id,
         )
         return self.query(url=_url)
 
     def get_issue_states(self):
-        _url = "https://api.gitee.com/enterprises/{}/issue_states".format(
+        _url = "{}/{}/issue_states".format(
+            current_app.config.get("GITEE_ENTERPRISE"),
             self.current_org.enterprise_id,
         )
         return self.query(url=_url)
 
     @collect_sql_error
     def create(self):
-        _url = "https://api.gitee.com/enterprises/{}/issues".format(
+        _url = "{}/{}/issues".format(
+            current_app.config.get("GITEE_ENTERPRISE"),
             self.current_org.enterprise_id
         )
 
@@ -189,7 +195,8 @@ class GiteeV8BaseIssueHandler(IssueOpenApiHandler):
         )
 
     def get_projects(self, params):
-        _url = "https://api.gitee.com/enterprises/{}/projects".format(
+        _url = "{}/{}/projects".format(
+            current_app.config.get("GITEE_ENTERPRISE"),
             self.current_org.enterprise_id,
         )
         return self.query(url=_url, params=params)

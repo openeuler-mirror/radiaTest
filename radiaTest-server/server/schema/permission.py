@@ -16,7 +16,7 @@
 from typing import Optional
 from typing_extensions import Literal
 from pydantic import BaseModel, root_validator
-from server.schema import Frame, MachinePurpose, MachineType, RoleType, ActionType, EffectType
+from server.schema import RoleType, ActionType, EffectType
 from server.schema.base import PageBaseSchema
 
 

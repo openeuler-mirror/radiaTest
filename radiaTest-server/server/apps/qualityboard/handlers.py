@@ -15,6 +15,7 @@
 
 import abc
 import re
+from shlex import quote
 from collections import defaultdict
 from datetime import datetime
 from math import floor
@@ -437,7 +438,11 @@ class OpenEulerReleasePlanHandler(FeatureHandler):
         if os.path.isdir("/tmp/release-management"):
             exitcode, _, _ = run_cmd("pushd /tmp/release-management && git pull && popd")
         else:
-            exitcode, _, _ = run_cmd("pushd /tmp && git clone https://gitee.com/openeuler/release-management && popd")
+            exitcode, _, _ = run_cmd(
+                "pushd /tmp && git clone {} && popd".format(
+                    quote(current_app.config.get("OPENEULER_RELEASE"))
+                )
+            )
 
         if exitcode != 0:
             return None

@@ -62,7 +62,7 @@ class RepoTaskHandler(TaskHandlerBase):
             }
         )
 
-        oet_path = "/tmp/{}".format(repo_name)
+        oet_path = "/tmp/{}".format(os.path.normpath(repo_name))
         if os.path.isdir(oet_path):
             shutil.rmtree(oet_path)
 

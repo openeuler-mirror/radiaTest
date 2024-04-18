@@ -12,16 +12,16 @@
 # @Date    :
 # @License : Mulan PSL v2
 #####################################
-from flask import Blueprint, g
+from flask import Blueprint, g, jsonify
 from flask_restful import Resource
 from flask_pydantic import validate
 
 from server import casbin_enforcer, swagger_adapt
 from server.utils.auth_util import auth
-from server.utils.response_util import response_collect
-from server.schema.user import UserTaskSchema, UserInfoSchema
+from server.utils.response_util import response_collect, RET
+from server.schema.user import UserTaskSchema, UserInfoSchema, PrivacySchema
 from server.schema.user import OauthLoginSchema, LoginSchema, JoinGroupSchema, UserQuerySchema
-from server.model.user import User
+from server.model.user import User, UserPrivacyStatement
 from .handlers import handler_oauth_callback
 from .handlers import handler_oauth_login
 from .handlers import handler_user_info
@@ -252,3 +252,52 @@ class UserPrivate(Resource):
     @validate()
     def get(self, user_id):
         return handler_private(user_id)
+
+
+class UserPrivacySign(Resource):
+    @auth.login_required()
+    @response_collect
+    @validate()
+    @swagger_adapt.api_schema_model_map({
+        "__module__": get_user_tag.__module__,  # 获取当前接口所在模块
+        "resource_name": "UserPrivacySign",  # 当前接口视图函数名
+        "func_name": "post",  # 当前接口所对应的函数名
+        "tag": get_user_tag(),  # 当前接口所对应的标签
+        "summary": "添加隐私声明",  # 当前接口概述
+        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
+        "request_schema_model": PrivacySchema,  # 当前接口请求体参数schema校验器
+    })
+    def post(self, body: PrivacySchema):
+        is_sign_privacy = UserPrivacyStatement.query.filter_by(
+            user_id=g.user_id,
+            privacy_version=body.privacy_version,
+            is_sign=1
+        ).first()
+        if body.is_sign:
+            if is_sign_privacy:
+                return jsonify(
+                    error_code=RET.OK,
+                    error_msg=f"user already signed privacy statement[{body.privacy_version}]"
+                )
+            else:
+                sign_privacy_statement = UserPrivacyStatement()
+                sign_privacy_statement.user_id = g.user_id
+                sign_privacy_statement.privacy_version = body.privacy_version
+                sign_privacy_statement.is_sign = body.is_sign
+                sign_privacy_statement.add_update()
+                return jsonify(
+                    error_code=RET.OK,
+                    error_msg=f"user signed privacy statement[{body.privacy_version}] success"
+                )
+        else:
+            if not is_sign_privacy:
+                return jsonify(
+                    error_code=RET.OK,
+                    error_msg=f"user already cancel sign privacy statement[{body.privacy_version}]"
+                )
+            else:
+                is_sign_privacy.delete()
+                return jsonify(
+                    error_code=RET.OK,
+                    error_msg=f"user cancel sign privacy statement[{body.privacy_version}] success"
+                )

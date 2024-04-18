@@ -195,7 +195,8 @@ class CommitHandler:
         return feature.feature
 
     def create_pull_request(self, body):
-        _url = "https://gitee.com/api/v5/repos/{}/{}/pulls".format(
+        _url = "{}/repos/{}/{}/pulls".format(
+            current_app.config.get("GITEE_V5"),
             self.enterprise_params.get("owner"),
             self.enterprise_params.get("repo")
         )
@@ -213,7 +214,8 @@ class CommitHandler:
         )
 
     def get_pull_request(self, body):
-        _url = "https://gitee.com/api/v5/repos/{}/{}/pulls".format(
+        _url = "{}/repos/{}/{}/pulls".format(
+            current_app.config.get("GITEE_V5"),
             self.enterprise_params.get("owner"),
             self.enterprise_params.get("repo")
         )
@@ -229,7 +231,8 @@ class CommitHandler:
         )
 
     def create_fork(self, body: dict = None):
-        _url = "https://gitee.com/api/v5/repos/{}/{}/forks".format(
+        _url = "{}/repos/{}/{}/forks".format(
+            current_app.config.get("GITEE_V5"),
             self.enterprise_params.get("owner"),
             self.enterprise_params.get("repo")
         )
@@ -242,7 +245,8 @@ class CommitHandler:
         )
 
     def create_branch(self, body: dict = None):
-        _url = "https://gitee.com/api/v5/repos/{}/{}/branches".format(
+        _url = "{}/repos/{}/{}/branches".format(
+            current_app.config.get("GITEE_V5"),
             self.user_params.get("owner"),
             self.user_params.get("repo")
         )
@@ -259,7 +263,8 @@ class CommitHandler:
         )
 
     def get_branch(self, body=None):
-        _url = "https://gitee.com/api/v5/repos/{}/{}".format(
+        _url = "{}/repos/{}/{}".format(
+            current_app.config.get("GITEE_V5"),
             self.user_params.get("owner"),
             self.user_params.get("repo")
         )

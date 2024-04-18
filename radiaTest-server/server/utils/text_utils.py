@@ -12,17 +12,11 @@
 # @Date    :
 # @License : Mulan PSL v2
 #####################################
-import re
+from html_sanitizer import Sanitizer
 
 
 def check_illegal_lables(content):
-    malicious_tags_pattern = re.compile(
-        r'<(script|iframe|object|embed|form|input|a|img|style|link)(\s|/?>).*?>',
-        re.IGNORECASE
-    )
+    sanitizer = Sanitizer()
+    cleaned_text = sanitizer.sanitize(content)
 
-    malicious_tags = malicious_tags_pattern.findall(content)
-
-    # 如果找到匹配的标签，返回 True，否则返回 False
-    if malicious_tags:
-        raise RuntimeError("content contain illegal labels")
+    return cleaned_text

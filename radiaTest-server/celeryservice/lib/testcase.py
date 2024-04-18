@@ -18,6 +18,7 @@ import re
 import json
 import openpyxl
 import requests
+import shlex
 
 from flask import current_app, jsonify
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
@@ -46,7 +47,7 @@ class TestcaseHandler(TaskAuthHandler):
             except Exception as error:
                 # 用例集导入文件为uncompress用户权限
                 current_app.logger.error(str(error))
-                _, _, _ = run_cmd("sudo -u uncompress rm -rf '{}'".format(filepath))
+                _, _, _ = run_cmd("sudo -u uncompress rm -rf '{}'".format(shlex.quote(filepath)))
 
     def create_case_node(self, body):
         if not body.parent_id:
@@ -430,7 +431,7 @@ class TestcaseHandler(TaskAuthHandler):
             )
             # 清理解析文件
             self.clean_file(filepath)
-            return jsonify(error_code=RET.SERVER_ERR, error_msg=str(e))
+            return jsonify(error_code=RET.SERVER_ERR, error_msg="testcase resolve failed")
 
     def resolve_case_set(self, zip_filepath, unzip_filepath):
         try:
@@ -470,6 +471,6 @@ class TestcaseHandler(TaskAuthHandler):
                 }
             )
 
-            return jsonify(error_code=RET.SERVER_ERR, error_msg=str(e))
+            return jsonify(error_code=RET.SERVER_ERR, error_msg="resolve case set failed")
 
 

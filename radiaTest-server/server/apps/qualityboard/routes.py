@@ -13,7 +13,7 @@
 # @License : Mulan PSL v2
 #####################################
 
-import subprocess
+from shlex import quote
 import json
 
 import yaml
@@ -1100,7 +1100,7 @@ class RpmCheckDetailEvent(Resource):
             )
 
         file_name = f"{rpmcheck_path}/{query.name}.yaml"
-        exitcode, total, _ = run_cmd(f"wc -l {file_name}" + " | awk '{print $1}'")
+        exitcode, total, _ = run_cmd(f"wc -l {quote(file_name)}" + " | awk '{print $1}'")
 
         if exitcode != 0:
             return jsonify(
@@ -1109,7 +1109,7 @@ class RpmCheckDetailEvent(Resource):
             )
 
         def get_part_file_data(start, end, file_name):
-            exitcode, content, _ = run_cmd(f"sed -n '{start},{end}p' {file_name}")
+            exitcode, content, _ = run_cmd(f"sed -n '{quote(str(start))},{quote(str(end))}p' {quote(file_name)}")
             return exitcode, content
 
         exitcode, content = get_part_file_data(
@@ -1291,7 +1291,7 @@ class FeatureEvent(Resource):
                 except (IntegrityError, SQLAlchemyError, TypeError) as e:
                     return jsonify(
                         error_code=RET.RUNTIME_ERROR,
-                        error_msg=str(e)
+                        error_msg="param type or db execute failed"
                     )
             else:
                 # 社区暂未统一继承特性的定义
@@ -1401,13 +1401,12 @@ class PackageListEvent(Resource):
             except RuntimeError as e:
                 return jsonify(
                     error_code=RET.RUNTIME_ERROR,
-                    error_msg=str(e),
+                    error_msg="get all package file failed",
                 )
 
             return jsonify(
                 error_code=RET.OK,
-                error_msg=f"the packages of {_round.name} " \
-                          f"start resolving, please wait for several minutes"
+                error_msg=f"the packages of {_round.name} start resolving, please wait for several minutes"
             )
         arch = "" if query.repo_path == "source" else "all"
         try:
@@ -1419,12 +1418,12 @@ class PackageListEvent(Resource):
         except RuntimeError as e:
             return jsonify(
                 error_code=RET.RUNTIME_ERROR,
-                error_msg=str(e),
+                error_msg="init package handler failed",
             )
         except ValueError as e:
             return jsonify(
                 error_code=RET.NO_DATA_ERR,
-                error_msg=str(e),
+                error_msg="init package handler value error",
             )
 
         _pkgs = handler.packages
@@ -1499,12 +1498,12 @@ class SamePackageListCompareEvent(Resource):
         except RuntimeError as e:
             return jsonify(
                 error_code=RET.RUNTIME_ERROR,
-                error_msg=str(e),
+                error_msg="init two arch package handler failed",
             )
         except ValueError as e:
             return jsonify(
                 error_code=RET.NO_DATA_ERR,
-                error_msg=str(e),
+                error_msg="init two arch package handler value error",
             )
 
         # 设置锁，避免在比对未完成前，重复触发比对， 比对完成后删除锁
@@ -1628,7 +1627,6 @@ class PackageListCompareEvent(Resource):
             round_1_id=comparee_round_id,
             round_2_id=comparer_round_id,
         ).first()
-        round_group_id = None
         if not round_group:
             round_group_id = Insert(
                 RoundGroup,
@@ -1671,12 +1669,12 @@ class PackageListCompareEvent(Resource):
         except RuntimeError as e:
             return jsonify(
                 error_code=RET.RUNTIME_ERROR,
-                error_msg=str(e),
+                error_msg="two arch compare handler init failed",
             )
         except ValueError as e:
             return jsonify(
                 error_code=RET.NO_DATA_ERR,
-                error_msg=str(e),
+                error_msg="two arch compare handler init failed due to value error",
             )
 
         # 设置锁时长两个小时，避免在比对未完成前，重复触发比对， 比对完成后删除锁
@@ -1894,12 +1892,12 @@ class DailyBuildPackageListCompareEvent(Resource):
         except RuntimeError as e:
             return jsonify(
                 error_code=RET.RUNTIME_ERROR,
-                error_msg=str(e),
+                error_msg="dailybuild package compare failed",
             )
         except ValueError as e:
             return jsonify(
                 error_code=RET.NO_DATA_ERR,
-                error_msg=str(e),
+                error_msg="dailybuild package compare failed due to value error",
             )
 
         # 设置锁，避免在比对未完成前，重复触发比对， 比对完成后删除锁
@@ -1993,7 +1991,7 @@ class DailyBuildPackageListCompareEvent(Resource):
                 error_msg=f"compre result {body.compare_name} has been deleted",
             )
         _path = current_app.config.get("PRODUCT_PKGLIST_PATH")
-        _, _, _ = run_cmd(f"rm -f {_path}/{file_name}")
+        _, _, _ = run_cmd(f"rm -f {quote(_path)}/{quote(file_name)}")
         redis_client.hdel(
             f"daily_build_compare_{comparer_round.name}",
             body.compare_name,
@@ -2024,7 +2022,7 @@ class DailyBuildPkgEvent(Resource):
         except RuntimeError as e:
             return jsonify(
                 error_code=RET.RUNTIME_ERROR,
-                error_msg=str(e),
+                error_msg="get dailybuild all package file failed",
             )
         org_id = redis_client.hget(RedisKey.user(g.user_id), 'current_org_id')
         redis_client.hset(
@@ -2102,7 +2100,7 @@ class DailyBuildPkgEvent(Resource):
             body.daily_name,
         )
         _path = current_app.config.get("PRODUCT_PKGLIST_PATH")
-        _, _, _ = run_cmd(f"rm -f {_path}/{body.daily_name}*.pkgs")
+        _, _, _ = run_cmd(f"rm -f {quote(_path)}/{quote(body.daily_name)}*.pkgs")
         return jsonify(
             error_code=RET.OK,
             error_msg="OK",
