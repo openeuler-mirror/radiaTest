@@ -880,7 +880,11 @@ function uploadSet(node) {
   formData.append('group_id', node.info.group_id);
   changeLoadingStatus(true);
   axios
-    .post('/v1/case-node/case-set', formData)
+    .post('/v1/case-node/case-set', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    })
     .then(() => {
       window.$message?.success('用例集已上传,请到后台任务查看进展');
       getDirectory(node);

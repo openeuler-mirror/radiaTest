@@ -16,41 +16,15 @@ function getData() {
 }
 
 function cloneRegisterModel(row) {
-  for (const key in row.cla_verify_params) {
-    registerModel.urlParams.push({ key, value: row.cla_verify_params[key] });
-  }
-  for (const key in row.cla_verify_body) {
-    registerModel.bodyParams.push({ key, value: row.cla_verify_body[key] });
-  }
   const cloneData = JSON.parse(JSON.stringify(row));
   Object.keys(cloneData).forEach((key) => {
     if (!cloneData[key]) {
       cloneData[key] = undefined;
     }
   });
-  if (cloneData.authority === 'oneid') {
-    registerModel.authorityType = 'oneid';
-  } else if (cloneData.authority === 'gitee' && cloneData.enterprise_id) {
-    registerModel.authorityType = 'gitee';
-    registerModel.authoritySecondaryType = 'enterprise';
-  } else {
-    registerModel.authorityType = 'gitee';
-    registerModel.authoritySecondaryType = 'personal';
-  }
-
   registerModel.name = cloneData.name;
-  registerModel.enterpriseId = cloneData.enterprise_id;
-  registerModel.enterpriseToken = cloneData.enterprise_token;
-  registerModel.enterpriseJoinUrl = cloneData.enterprise_join_url;
-  registerModel.oauthClientId = cloneData.oauth_client_id;
-  registerModel.oauthClientSecret = cloneData.oauth_client_secret;
-  registerModel.oauthClientScope = cloneData.oauth_scope?.split(',');
   registerModel.description = cloneData.description;
-  registerModel.orgId = cloneData.organization_id;
-  registerModel.organizationSvatar = cloneData.avatar_url;
-  registerModel.oauthLoginUrl = cloneData.oauth_login_url;
-  registerModel.oauthGetTokenUrl = cloneData.oauth_get_token_url;
-  registerModel.oauthGetUserInfoUrl = cloneData.oauth_get_user_info_url;
+  registerModel.orgId = cloneData.id;
   fileList.value = [];
   if (row.avatar_url) {
     fileList.value.push({ id: 'c', status: 'finished', url: row.avatar_url });
@@ -61,7 +35,7 @@ function handleDeleteOrg(row) {
   textDialog('warning', '删除组织', '您确定要删除此组织吗？', () => {
     let deleteFormData = new FormData();
     deleteFormData.append('is_delete', true);
-    organizationInfo(row.organization_id, deleteFormData).finally(() => {
+    organizationInfo(row.id, deleteFormData).finally(() => {
       getData();
     });
   });
