@@ -16,10 +16,6 @@
 FROM radia-test/gunicorn
 LABEL maintainer="ethanzhang55@outlook.com"
 
-RUN echo "umask 027" >> ~/.bashrc
-
-RUN sed -i 's/^PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config
-
 USER radiaTest
 
 CMD celery -A manage.my_celery worker --loglevel=info --hostname=celery_database_updator --queues=queue_update_case,queue_update_suite,queue_update_compare_result,queue_update_daily_compare_result,queue_update_samerpm_compare_result,queue_update_case_node,queue_create_case_node_multi_select,queue_update_task_progress --pool=gevent --concurrency=60
