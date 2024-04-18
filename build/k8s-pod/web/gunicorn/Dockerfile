@@ -56,11 +56,9 @@ RUN chmod -R 755 /opt/radiaTest
 
 RUN dnf remove make -y
 
-RUN echo "umask 027" >> ~/.bashrc && source ~/.bashrc
+RUN echo "umask 027" >> ~/.bashrc
 
 RUN sed -i 's/^PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config
-
-RUN systemctl restart sshd
 
 # uncompress用户解压需要rarfile库
 RUN sudo -u uncompress pip3 install rarfile==4.0

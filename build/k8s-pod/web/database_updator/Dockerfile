@@ -16,11 +16,9 @@
 FROM radia-test/gunicorn
 LABEL maintainer="ethanzhang55@outlook.com"
 
-RUN echo "umask 027" >> ~/.bashrc && source ~/.bashrc
+RUN echo "umask 027" >> ~/.bashrc
 
 RUN sed -i 's/^PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config
-
-RUN systemctl restart sshd
 
 USER radiaTest
 
