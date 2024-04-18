@@ -33,7 +33,11 @@ async function onPositiveClick() {
       formData.append('avatar_url', fileList.value[0]?.file);
       formData.append('name', createModal.name);
       formData.append('description', createModal.description);
-      axios.post('/v1/groups', formData).then(() => {
+      axios.post('/v1/groups', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      }).then(() => {
         showCreateForm.value = false;
         createModal.name = '';
         createModal.description = '';

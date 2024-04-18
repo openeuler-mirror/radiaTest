@@ -155,12 +155,13 @@ export default {
     });
   },
 
-  put(url, data) {
+  put(url, data, config) {
     return new Promise((resolve, reject) => {
       server({
         method: 'put',
         url,
         data,
+        ...config,
       })
         .then((res) => {
           resolve(res.data);

@@ -13,23 +13,6 @@ function openRegisterOrgWindow() {
 const requireCla = ref(false);
 const registerModel = reactive({
   name: null,
-
-  enterpriseId: null,
-  enterpriseToken: null,
-  enterpriseJoinUrl: null,
-  urlParams: [],
-  bodyParams: [],
-  oauthClientId: null,
-  oauthClientSecret: null,
-  oauthClientScope: [],
-  description: null,
-  orgId: null,
-  organizationAvatar: null,
-  authorityType: 'gitee',
-  authoritySecondaryType: 'personal',
-  oauthLoginUrl: null,
-  oauthGetTokenUrl: null,
-  oauthGetUserInfoUrl: null
 });
 
 const rules = {
@@ -39,44 +22,7 @@ const rules = {
     message: '请输入组织名'
   },
 
-  enterpriseId: {
-    required: true,
-    trigger: ['blur', 'input'],
-    message: '请输入'
-  },
 
-  oauthClientId: {
-    required: true,
-    trigger: ['blur', 'input'],
-    message: '请输入'
-  },
-  oauthClientSecret: {
-    required: true,
-    trigger: ['blur', 'input'],
-    message: '请输入'
-  },
-  oauthClientScope: {
-    required: true,
-    type: 'array',
-    trigger: ['blur', 'input'],
-    message: '请填写',
-    validator(rule, value) {
-      if (value.length) {
-        return true;
-      }
-      return false;
-    }
-  },
-  oauthGetTokenUrl: {
-    required: true,
-    trigger: ['blur', 'input'],
-    message: '请输入'
-  },
-  oauthGetUserInfoUrl: {
-    required: true,
-    trigger: ['blur', 'input'],
-    message: '请输入'
-  }
 };
 const regirsterRef = ref();
 // 验证地址的请求方式
@@ -125,28 +71,16 @@ function closeOrgFrom() {
   fileList.value = [];
   registerModel.name = null;
   registerModel.description = null;
-
-  registerModel.urlParams = [];
-  registerModel.bodyParams = [];
-  registerModel.authorityType = 'gitee';
-  registerModel.authoritySecondaryType = 'personal';
-  registerModel.oauthLoginUrl = null;
-  registerModel.oauthClientId = null;
-  registerModel.oauthClientSecret = null;
-  registerModel.oauthClientScope = [];
-  registerModel.oauthGetTokenUrl = null;
-  registerModel.oauthGetUserInfoUrl = null;
-  registerModel.enterpriseId = null;
-  registerModel.enterpriseToken = null;
-  registerModel.enterpriseJoinUrl = null;
-  registerModel.orgId = null;
-  registerModel.organizationAvatar = null;
 }
 
 // 注册新组织
 function handleCreateOrg(formData) {
   axios
-    .post('/v1/admin/org', formData)
+    .post('/v1/admin/org', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    })
     .then((res) => {
       changeLoadingStatus(false);
       getData();
@@ -174,53 +108,11 @@ function handleUpdateOrg(id, formData) {
 
 // 提交表单
 function submitOrgInfo() {
-  const [claVerifyBody, claVerifyParams] = [{}, {}];
-  registerModel.urlParams.forEach((item) => {
-    claVerifyParams[item.key] = item.value;
-  });
-  registerModel.bodyParams.forEach((item) => {
-    claVerifyBody[item.key] = item.value;
-  });
-
   let formData = new FormData();
   formData.append('avatar_url', fileList.value[0]?.file);
   formData.append('name', registerModel.name);
-  formData.append('cla_verify_url', registerModel.claVerifyUrl);
-  formData.append('cla_sign_url', registerModel.claSignUrl);
-  formData.append('cla_request_type', registerModel.claRequestMethod);
-  formData.append('cla_pass_flag', registerModel.claPassFlag);
-  formData.append('cla_verify_params', JSON.stringify(claVerifyParams));
-  formData.append('cla_verify_body', JSON.stringify(claVerifyBody));
   formData.append('description', registerModel.description);
-
-  if (registerModel.authorityType === 'oneid') {
-    formData.append('authority', 'oneid');
-    formData.append('oauth_login_url', registerModel.oauthLoginUrl);
-    formData.append('oauth_client_id', registerModel.oauthClientId);
-    formData.append('oauth_client_secret', registerModel.oauthClientSecret);
-    formData.append('oauth_scope', registerModel.oauthClientScope?.join(','));
-    formData.append('oauth_get_token_url', registerModel.oauthGetTokenUrl);
-    formData.append('oauth_get_user_info_url', registerModel.oauthGetUserInfoUrl);
-  } else if (registerModel.authorityType === 'gitee' && registerModel.authoritySecondaryType === 'personal') {
-    formData.append('authority', 'gitee');
-    formData.append('oauth_login_url', registerModel.oauthLoginUrl);
-    formData.append('oauth_client_id', registerModel.oauthClientId);
-    formData.append('oauth_client_secret', registerModel.oauthClientSecret);
-    formData.append('oauth_scope', registerModel.oauthClientScope?.join(','));
-    formData.append('oauth_get_token_url', registerModel.oauthGetTokenUrl);
-    formData.append('oauth_get_user_info_url', registerModel.oauthGetUserInfoUrl);
-  } else {
-    formData.append('authority', 'gitee');
-    formData.append('oauth_login_url', registerModel.oauthLoginUrl);
-    formData.append('oauth_client_id', registerModel.oauthClientId);
-    formData.append('oauth_client_secret', registerModel.oauthClientSecret);
-    formData.append('oauth_scope', registerModel.oauthClientScope?.join(','));
-    formData.append('oauth_get_token_url', registerModel.oauthGetTokenUrl);
-    formData.append('oauth_get_user_info_url', registerModel.oauthGetUserInfoUrl);
-    formData.append('enterprise_id', registerModel.enterpriseId);
-    formData.append('enterprise_token', registerModel.enterpriseToken);
-    formData.append('enterprise_join_url', registerModel.enterpriseJoinUrl);
-  }
+  formData.append('authority', 'default');
 
   regirsterRef.value.validate((errors) => {
     if (!errors) {

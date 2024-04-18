@@ -1,9 +1,12 @@
 import { modifySuccessMsg, unkonwnErrorMsg } from '@/assets/utils/description';
 import axios from '@/axios';
-function putRequest(url, data, msg) {
+function putRequest(url, data, msg, hasHeader) {
+  let header = hasHeader ? {
+    'Content-Type': 'multipart/form-data'
+  } : null;
   return new Promise((resolve, reject) => {
     axios
-      .put(url, data)
+      .put(url, data, { headers: header })
       .then((res) => {
         window.$message?.success(msg?.successMsg || modifySuccessMsg);
         resolve(res);
@@ -32,7 +35,7 @@ export function modifyCommitInfo(id, data) {
 
 
 export function organizationInfo(id, data) {
-  return putRequest(`/v1/admin/org/${id}`, data);
+  return putRequest(`/v1/admin/org/${id}`, data, null, true);
 }
 export function milestoneNext(id, data) {
   return putRequest(`/v1/qualityboard/${id}`, data);
@@ -133,7 +136,7 @@ export function updateCompareRounds(roundId, data, msg) {
 }
 
 export function updateTemplateDrawer(data, id) {
-  return putRequest(`/v1/template/${id}`, data);
+  return putRequest(`/v1/template/${id}`, data, null, true);
 }
 
 // 更新测试策略模板
