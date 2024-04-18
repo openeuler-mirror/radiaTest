@@ -50,11 +50,9 @@ RUN chmod -R 740 /opt/radiaTest
 RUN \cp ./deploy/nginx.conf ./deploy/server.conf /etc/nginx/
 RUN chown -R radiaTest:radiaTest /etc/nginx
 
-RUN echo "umask 027" >> ~/.bashrc && source ~/.bashrc
+RUN echo "umask 027" >> ~/.bashrc
 
 RUN sed -i 's/^PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config
-
-RUN systemctl restart sshd
 
 USER radiaTest
 RUN npm cache clean --force \

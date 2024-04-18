@@ -15,11 +15,10 @@
 
 FROM radia-test/gunicorn
 LABEL maintainer="ethanzhang55@outlook.com"
-RUN echo "umask 027" >> ~/.bashrc && source ~/.bashrc
+RUN echo "umask 027" >> ~/.bashrc
 
 RUN sed -i 's/^PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config
 
-RUN systemctl restart sshd
 USER radiaTest
 
 CMD celery -A manage.my_celery worker --loglevel=info --hostname=celery_root_resolver --queues=queue_resolve_dailybuild,queue_resolve_rpmcheck_detail,queue_set_resolution,queue_resolve_openeuler_pkglist,queue_resolve_pkglist_after_resolve_rc_name,queue_resolve_pkglist_from_url,queue_resolve_distribute_template,queue_resolve_base_node --pool=gevent -O fair
