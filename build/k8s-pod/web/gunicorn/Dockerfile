@@ -56,15 +56,17 @@ RUN chmod -R 755 /opt/radiaTest
 
 RUN dnf remove make -y
 
-RUN echo "umask 027" >> ~/.bashrc
-
 RUN sed -i 's/^PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config
 
 # uncompress用户解压需要rarfile库
 RUN sudo -u uncompress pip3 install rarfile==4.0
 
 USER radiaTest
+
+RUN echo "umask 027" >> ~/.bashrc
+
 ENV PATH="/home/radiaTest/.local/bin:${PATH}"
+
 RUN pip3 install -r requirements.txt -i $PIP_REPO || pip3 install -r requirements.txt
 
 RUN sed -i '45s/^/# /' /home/radiaTest/.local/lib/python3.9/site-packages/casbin/model/assertion.py
