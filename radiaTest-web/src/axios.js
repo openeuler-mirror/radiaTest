@@ -98,6 +98,8 @@ server.interceptors.response.use(
         router.replace({
           name: 'task'
         });
+      } else {
+        router.replace(`/blank?redirect=${router.currentRoute.value.fullPath}`);
       }
     } else if (error.response?.status === 500) {
       window.$message?.destroyAll();

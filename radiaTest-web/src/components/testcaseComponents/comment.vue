@@ -34,7 +34,7 @@
       />
     </div>
     <div v-if="showComment">
-      <editor v-model="commentInput" tag-name="div" :init="init" />
+      <Editor v-model="commentInput" tag-name="div" :init="init" />
     </div>
     <n-space v-if="showComment">
       <n-button type="primary" @click="replay"> 回复 </n-button>

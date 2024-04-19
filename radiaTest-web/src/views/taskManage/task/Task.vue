@@ -719,7 +719,12 @@
                 <template #footer v-if="showFooterContent == 'comment'">
                   <div class="footer">
                     <div>
-                      <editor v-model="commentInput" tag-name="div" :init="init" />
+                      <editor
+                        v-model="commentInput"
+                        tag-name="div"
+                        :init="init"
+                        :api-key="apiKey"
+                      />
                     </div>
                     <div class="commentBtn">
                       <n-button class="btn" type="info" @click="commentFn(commentInput)"
@@ -1161,6 +1166,7 @@
                     tag-name="div"
                     :init="init"
                     :disabled="!editResultFileds"
+                    :api-key="apiKey"
                   />
                 </n-form-item-gi>
               </n-grid>

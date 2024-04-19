@@ -10,10 +10,10 @@ import { createTask, model, showRelation } from './createTask';
 import { generateMdFile, md } from './mdFile';
 import { unkonwnErrorMsg } from '@/assets/utils/description';
 import tinymce from 'tinymce/tinymce';
+import 'tinymce/models/dom/model';
 import 'tinymce/themes/silver/theme'; // 引用主题文件
 import 'tinymce/icons/default'; // 引用图标文件
 import 'tinymce/plugins/image'; //图片
-// import 'tinymce/plugins/imagetools'; //图片工具
 import 'tinymce/plugins/nonbreaking';
 import { changeTaskPercentage } from '@/api/put.js';
 import {
@@ -60,18 +60,18 @@ const reportArray = ref([]); // 报告数组
 const editStatus = ref(true); // 编辑状态
 const showEditTaskDetailBtn = ref(false); // 显示编辑任务按钮
 const frameArray = ref();
-
+const apiKey = 'qagffr3pkuv17a8on1afax661irst1hbr4e6tbv888sz91jc';
 // 富文本配置
 const init = {
   language_url: require('@/assets/tinymce/zh_CN.js'), // 中文语言包路径
   language: 'zh_CN',
   skin_url: '/tinymce/skins/ui/oxide', // 编辑器皮肤样式
   content_css: '/tinymce/skins/content/default/content.min.css',
-  menubar: false, // 隐藏菜单栏
+  // menubar: false, // 隐藏菜单栏
   height: 200,
   width: '100%',
   toolbar_mode: 'scrolling', // 工具栏模式
-  plugins: 'image imagetools nonbreaking',
+  plugins: 'image  nonbreaking',
   toolbar:
     'undo redo fontsizeselect fontselect|underline forecolor backcolor bold italic strikethrough image subscript superscript removeformat|',
   content_style: 'p {margin: 5px 0; font-size: 14px}',
@@ -79,18 +79,40 @@ const init = {
   font_formats:
     '微软雅黑=Microsoft YaHei,Helvetica Neue,PingFang SC,sans-serif;苹果苹方=PingFang SC,Microsoft YaHei,sans-serif;宋体=simsun,serif;仿宋体=FangSong,serif;黑体=SimHei,sans-serif;Arial=arial,helvetica,sans-serif;Arial Black=arial black,avant garde;Book Antiqua=book antiqua,palatino;',
   branding: false, // 隐藏右下角技术支持
+  promotion: false,
   elementpath: false, // 隐藏底栏的元素路径
   nonbreaking_force_tab: true,
   resize: false, // 禁止改变大小
   statusbar: false, // 隐藏底部状态栏
   // 图片上传
-  images_upload_handler(blobInfo, success) {
-    let reader = new FileReader();
-    reader.readAsDataURL(blobInfo.blob());
-    reader.onload = function () {
-      success(this.result);
-    };
-  }
+  image_title: true,
+  automatic_uploads: true,
+  file_picker_types: 'image',
+  file_picker_callback: (cb) => {
+    const input = document.createElement('input');
+    input.setAttribute('type', 'file');
+    input.setAttribute('accept', 'image/*');
+
+    input.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+
+      const reader = new FileReader();
+      reader.addEventListener('load', () => {
+        const id = `blobid${(new Date()).getTime()}`;
+        const blobCache = tinymce.activeEditor.editorUpload.blobCache;
+        const base64 = reader.result.split(',')[1];
+        const blobInfo = blobCache.create(id, file, base64);
+        blobCache.add(blobInfo);
+
+        cb(blobInfo.blobUri(), { title: file.name });
+      });
+      reader.readAsDataURL(file);
+    });
+
+    input.click();
+  },
+
+
 };
 
 // 渲染图标
@@ -329,7 +351,6 @@ function getTaskCases() {
     .then((res) => {
       [tempCases.value, casesData.value, tempArray] = [[], [], []];
       modalData.value.cases = res.data;
-      console.log('getTempCases', res.data);
       getTempCases(res.data);
       getCasesData();
     })
@@ -1669,6 +1690,7 @@ export {
   autocompleteArray,
   autocompleteChange,
   init,
+  apiKey,
   tempCases,
   reportArray,
   showModal,
