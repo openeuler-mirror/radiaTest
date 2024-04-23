@@ -20,7 +20,13 @@
             <n-gi :span="2">
               <p>{{ state.userInfo.user_name }}</p>
             </n-gi>
-            <n-gi :span="9"> </n-gi>
+            <n-gi :span="9">
+              <p>
+                <n-button quaternary type="info" @click="handlePrivacyClick">
+                  取消隐私协议
+                </n-button>
+              </p>
+            </n-gi>
           </n-grid>
         </div>
       </div>

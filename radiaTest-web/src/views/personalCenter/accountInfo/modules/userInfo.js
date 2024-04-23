@@ -3,6 +3,8 @@ import { reactive, ref } from 'vue';
 import { changeLoadingStatus } from '@/assets/utils/loading';
 import axios from '@/axios';
 import { storage } from '@/assets/utils/storageUtils';
+import { signPrivacy } from '@/api/post';
+import router from '@/router/index';
 
 const state = reactive({
   userInfo: {}
@@ -38,6 +40,25 @@ function cancelEditPhone() {
   phone.value = '';
   isEditPhone.value = false;
 }
+function handlePrivacyClick() {
+  signPrivacy({ privacy_version: 'v1.0', is_sign: false }).then(() => {
+    axios.delete('/v1/logout').then((res) => {
+      window.sessionStorage.clear();
+      if (res.error_msg) {
+        window.location = res.error_msg;
+      } else {
+        router.replace({
+          name: 'task'
+        });
+      }
+    }).catch(err => {
+      window.$message?.error(err?.data?.error_msg || '退出登录失败！');
+    });
+
+  }).catch(err => {
+    window.$message?.error(err?.data?.error_msg || '取消用户隐私协议失败！');
+  });
+}
 
 export {
   state,
@@ -45,4 +66,5 @@ export {
   isEditPhone,
   editUserPhone,
   cancelEditPhone,
+  handlePrivacyClick
 };

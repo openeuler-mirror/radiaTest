@@ -213,3 +213,8 @@ export function createTemplate(data) {
   return postRequest('/v1/template', data);
 }
 
+// 签署用户营私协议
+export function signPrivacy(data) {
+  return postRequest('/v1/user/privacy-sign', data);
+}
+
