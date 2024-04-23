@@ -637,13 +637,13 @@ class BaselineTemplateApplyItemEvent(Resource):
         except ValueError as e:
             return jsonify(
                 error_code=RET.VERIFY_ERR,
-                error_msg=str(e),
+                error_msg="param value is not correct",
             )
         
         except (SQLAlchemyError, IntegrityError) as e:
             return jsonify(
                 error_code=RET.DB_ERR,
-                error_msg=str(e)
+                error_msg="db execute failed"
             )
         
         return jsonify(

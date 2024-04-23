@@ -33,7 +33,6 @@ class QualityBoard(BaseModel, db.Model):
         db.Integer(), db.ForeignKey("product.id"), nullable=True
     )
 
-
     def get_round_milestones(self):
         milestones = dict()
         if len(self.iteration_version) > 0:
@@ -115,7 +114,7 @@ class Checklist(db.Model, BaseModel):
             }
             data.append(item)
             return data
-        idx = 0
+
         r_len = len(self.rounds)
         if r_len == 1:
             item = {
@@ -299,7 +298,6 @@ class Feature(db.Model, BaseModel):
     re_feature_products = db.relationship(
         'ReProductFeature', backref="feature", cascade="all, delete, delete-orphan"
     )
-
 
     def to_json(self):
         return {

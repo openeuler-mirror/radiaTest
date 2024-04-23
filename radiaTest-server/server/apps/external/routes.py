@@ -443,7 +443,7 @@ class GetTestReportFileEvent(Resource):
             except RuntimeError as e:
                 return jsonify(
                     error_code=RET.NO_DATA_ERR,
-                    error_msg="test is not in progress.",
+                    error_msg=f"test is not in progress, look at reason from log",
                 )
 
         tmp_folder = current_app.template_folder

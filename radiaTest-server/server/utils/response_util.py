@@ -127,7 +127,7 @@ def value_error_collect(func):
             current_app.logger.error(f'value_error_collect:{e}')
             return jsonify(
                 error_code=RET.RUNTIME_ERROR,
-                error_msg=str(e)
+                error_msg="check value error"
             )
 
     return wrapper
@@ -142,12 +142,12 @@ def workspace_error_collect(func):
         except ValueError as e:
             return jsonify(
                 error_code=RET.PARMA_ERR,
-                error_msg=str(e),
+                error_msg="workspace request param error",
             )
         except RuntimeError as e:
             return jsonify(
                 error_code=RET.UNAUTHORIZED_ACCESS,
-                error_msg=str(e),
+                error_msg="workspace request runtime error",
             )
 
     return wrapper

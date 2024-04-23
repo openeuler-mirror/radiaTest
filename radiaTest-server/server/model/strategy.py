@@ -15,10 +15,9 @@
 # 测试设计(Strategy)的model层
 
 from sqlalchemy.dialects.mysql import LONGTEXT
-from sqlalchemy.orm import backref
 
 from server import db
-from server.model.base import BaseModel, PermissionBaseModel
+from server.model.base import BaseModel
 
 
 class ReProductFeature(BaseModel, db.Model):
@@ -50,14 +49,14 @@ class Strategy(BaseModel, db.Model):
     org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
     creator_id = db.Column(db.String(512), db.ForeignKey("user.user_id"))
     file_type = db.Column(db.String(255), nullable=False)
-    product_feature_id = db.Column(db.Integer(), 
-        db.ForeignKey("re_product_feature.id"), 
+    product_feature_id = db.Column(
+        db.Integer(),
+        db.ForeignKey("re_product_feature.id"),
         unique=True
     )
     strategy_commit = db.relationship(
         "StrategyCommit", cascade="all, delete", backref="strategy"
-    )    
-    
+    )
 
     def to_json(self):
         return_data = {
@@ -76,7 +75,6 @@ class StrategyCommit(BaseModel, db.Model):
     commit_tree = db.Column(LONGTEXT())
     commit_status = db.Column(db.String(255), nullable=False)
     strategy_id = db.Column(db.Integer(), db.ForeignKey("strategy.id"), unique=True)
-
 
     def to_json(self):
         return_data = {
@@ -104,7 +102,6 @@ class StrategyTemplate(BaseModel, db.Model):
     tree = db.Column(LONGTEXT())
     org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
     creator_id = db.Column(db.String(512), db.ForeignKey("user.user_id"))
-
 
     def to_json(self):
         return_data = {

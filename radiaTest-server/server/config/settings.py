@@ -34,49 +34,8 @@ class Config(object):
     # 支持的架构
     SUPPORTED_ARCHES = ["aarch64", "x86_64"]
 
-    # 物理机
-    # CI宿主机标志
-    CI_HOST = "as the host of ci"
-    # CI测试机标志
-    CI_PURPOSE = "used for ci"
-
-    # 物理机最长占用时间(days)
-    MAX_OCUPY_TIME = 7
-
-    # 物理机默认占用时间(days)
-    DEFAULT_OCUPY_TIME = 1
-
     # HTTP请求头
     HEADERS = {"Content-Type": "application/json;charset=utf8"}
-
-    # 虚拟机
-    # 虚拟机创建基础信息
-    # 最大内存
-    VM_MAX_MEMEORY = 16384
-
-    # 最大core量
-    VM_MAX_CORE = 4
-
-    # 最大thread量
-    VM_MAX_THREAD = 4
-
-    # 最大socket量
-    VM_MAX_SOCKET = 4
-
-    # 最大创建虚拟机数量
-    VM_MAX_COUNT = 10
-
-    # 最大磁盘大小(G)
-    VM_MAX_CAPACITY = 500
-
-    # 等待虚拟机建立通信时长
-    VM_ENABLE_SSH = 300
-
-    # 默认存活时长(days)
-    VM_DEFAULT_DAYS = 7
-
-    # 最大存活时长(days)
-    VM_MAX_DAYS = 15
 
     # NTP server
     NTP_SERVER = [
@@ -119,8 +78,6 @@ class Config(object):
         "备注": "remark",
     }
 
-    # 执行任务
-
     # 每组测试环境，最大执行时长
     MAX_RUN_TIME = 3600
 
@@ -131,9 +88,6 @@ class Config(object):
 
     # 创建虚拟机回调超时(单位:s)
     CALLBACK_EXPIRE_TIME = 3600
-
-    # 默认虚拟机容量(单位:G)
-    VM_DEFAULT_CAPACITY = 50
 
     # 需求涉及软件包的任务目标
     REQUIREMENT_PACKAGE_TARGETS = ["测试设计", "用例开发", "已执行", "问题分析"]
@@ -155,6 +109,21 @@ class Config(object):
 
     # 三方平台的信息
     YAML_PATH = "/etc/radiaTest/app.yaml"
+
+    # 隐私声明版本
+    PRIVACY_VERSION = "v1.0"
+
+    # repo公网域名
+    REPO_DOMAIN = "repo.openeuler.org"
+
+    # gitee企业仓接口
+    GITEE_ENTERPRISE = "https://api.gitee.com/enterprises"
+
+    # openeuler release
+    OPENEULER_RELEASE = "https://gitee.com/openeuler/release-management"
+
+    # gitee v5 接口
+    GITEE_V5 = "https://gitee.com/api/v5"
 
 
 class TestingConfig(Config):

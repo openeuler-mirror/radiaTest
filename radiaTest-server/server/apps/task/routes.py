@@ -909,7 +909,7 @@ class MilestoneTaskProgress(Resource):
         except RuntimeError as e:
             return jsonify(
                 error_code=RET.RUNTIME_ERROR,
-                error_msg=str(e),
+                error_msg="get version test task process failed",
             )
         return taskprogress.get_task_test_progress()
 
@@ -930,7 +930,7 @@ class CaseNodeTaskProgress(Resource):
         except RuntimeError as e:
             return jsonify(
                 error_code=RET.RUNTIME_ERROR,
-                error_msg=str(e),
+                error_msg="get test process failed",
             )
         return taskprogress.get_task_case_node_and_test_progress(case_node_id)
 
@@ -951,7 +951,7 @@ class SubTaskProgress(Resource):
         except RuntimeError as e:
             return jsonify(
                 error_code=RET.RUNTIME_ERROR,
-                error_msg=str(e),
+                error_msg="get the child of task failed",
             )
         return taskprogress.get_test_progress_by_task(task_id)
 

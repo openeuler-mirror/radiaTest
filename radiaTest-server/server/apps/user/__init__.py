@@ -21,6 +21,7 @@ from .routes import Org
 from .routes import Logout
 from .routes import Group
 from .routes import UserTask
+from .routes import UserPrivacySign
 
 
 def init_api(api: Api):
@@ -33,3 +34,4 @@ def init_api(api: Api):
     api.add_resource(Group, '/api/v1/users/groups/<int:group_id>', endpoint='user_group')
     api.add_resource(UserTask, '/api/v1/user/task/info', endpoint='user_task')
     api.add_resource(UserPrivate, '/api/v1/user/private/<string:user_id>', endpoint='user_private')
+    api.add_resource(UserPrivacySign, '/api/v1/user/privacy-sign', endpoint='privacy_sign')

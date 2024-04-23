@@ -26,7 +26,7 @@ from server.utils.auth_util import generate_token
 from server.utils.redis_util import RedisKey
 from server.utils.db import collect_sql_error, Insert
 from server.utils.read_from_yaml import get_default_suffix
-from server.model.user import User
+from server.model.user import User, UserPrivacyStatement
 from server.model.message import Message, MessageInstance
 from server.model.task import Task
 from server.model.milestone import Milestone
@@ -71,10 +71,7 @@ def handler_oauth_callback():
     # 校验参数
     code = request.args.get('code')
     if not code:
-        return jsonify(
-            error_code=RET.PARMA_ERR,
-            error_msg="user code should not be null"
-        )
+        return redirect('{}'.format(current_app.config["HOME_PAGE"]))
 
     return redirect(
         '{}?code={}'.format(
@@ -117,6 +114,12 @@ def handler_login_callback(query):
     if not isinstance(result, dict):
         return result
 
+    is_sign_privacy = UserPrivacyStatement.query.filter_by(
+        user_id=result.get("user_id"),
+        privacy_version=query.privacy_version,
+        is_sign=1
+    ).first()
+
     resp = Response(content_type="application/json")
     resp.set_data(
         json.dumps(
@@ -128,7 +131,8 @@ def handler_login_callback(query):
                     "user_id": result.get("user_id"),
                     "token": result.get("token"),
                     "current_org_id": result.get("org_id"),
-                    "current_org_name": result.get("org_name")
+                    "current_org_name": result.get("org_name"),
+                    "is_privacy_sign": True if is_sign_privacy else False
                 }
             }
         )
@@ -284,7 +288,7 @@ def handler_logout():
         error_msg="{}?client_id={}&redirect_uri={}".format(
             current_app.config.get("OAUTH_LOGOUT"),
             current_app.config.get("OAUTH_CLIENT_ID"),
-            current_app.config.get("HOME_PAGE")
+            current_app.config.get("OAUTH_REDIRECT_URI")
         )
     )
 

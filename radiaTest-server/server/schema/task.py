@@ -11,7 +11,6 @@
 # @License : Mulan PSL v2
 #####################################
 
-import multiprocessing
 import json
 from typing import List
 from enum import Enum
@@ -297,12 +296,7 @@ class AddTaskCommentSchema(BaseModel):
     @validator("content")
     def validate_content(cls, v):
         if v:
-            process = multiprocessing.Process(target=check_illegal_lables, args=(v,))
-            process.start()
-            process.join(5)
-            if process.is_alive():
-                process.terminate()
-                raise RuntimeError("content maybe unsecurity")
+            v = check_illegal_lables(v)
             return v
         else:
             raise RuntimeError("content can't be None")

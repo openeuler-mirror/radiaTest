@@ -13,7 +13,6 @@
 # License : Mulan PSL v2
 #####################################
 
-import multiprocessing
 from typing import Optional, List
 from pydantic import BaseModel, validator
 from pydantic.class_validators import root_validator
@@ -126,6 +125,7 @@ class CaseSetNodeQueryBySuiteSchema(BaseModel):
     suite_id: Optional[int]
     org_id: int = None
 
+    @root_validator
     def validate_suite(cls, values):
         if not values["title"] and values["suite_id"]:
             raise ValueError("suite name or suite_id must be set")
@@ -395,12 +395,8 @@ class TestResultEventSchemaV2(BaseModel):
     @validator("details")
     def check_details(cls, v):
         if v:
-            process = multiprocessing.Process(target=check_illegal_lables, args=(v,))
-            process.start()
-            process.join(5)
-            if process.is_alive():
-                process.terminate()
-                raise RuntimeError("details maybe unsecurity")
+            v = check_illegal_lables(v)
+
             return v
 
 

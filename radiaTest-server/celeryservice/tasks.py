@@ -17,6 +17,7 @@
 import os
 import ssl
 import re
+from shlex import quote
 from datetime import datetime
 import sys
 import json
@@ -359,7 +360,7 @@ def resolve_pkglist_after_resolve_rc_name(repo_url, store_path, product, round_n
             fout.write(resp.content)
             fout.close()
         exitcode, output, error = run_cmd(
-            f"cat {tmp_file_name} | grep 'rc{round_num}_openeuler'"
+            f"cat {quote(tmp_file_name)} | grep 'rc{quote(str(round_num))}_openeuler'"
             + " | awk -F 'title=\"' '{print $2}' | awk -F '\">' '{print $1}' | uniq"
         )
 
@@ -382,9 +383,9 @@ def resolve_pkglist_after_resolve_rc_name(repo_url, store_path, product, round_n
             fout.write(resp.content)
             fout.close()
         exitcode, _, error = run_cmd(
-            f"cat {tmp_file_name} | "
+            f"cat {quote(tmp_file_name)} | "
             + "grep 'title=' | awk -F 'title=\"' '{print $2}' | awk -F '\">' '{print $1}' | grep '.rpm' | uniq >"
-            + f"{pkg_file}"
+            + f"{quote(pkg_file)}"
         )
 
         if exitcode != 0:
@@ -399,8 +400,8 @@ def resolve_pkglist_after_resolve_rc_name(repo_url, store_path, product, round_n
             pkg_file = f"{product_version_repo}-{arch}.pkgs"
             get_pkg_file(_url, tmp_file_name, pkg_file)
         exitcode, _, error = run_cmd(
-            f"sort {product_version_repo}-aarch64.pkgs"
-            + f" {product_version_repo}-x86_64.pkgs | uniq >{product_version_repo}-all.pkgs"
+            f"sort {quote(product_version_repo)}-aarch64.pkgs"
+            + f" {quote(product_version_repo)}-x86_64.pkgs | uniq >{quote(product_version_repo)}-all.pkgs"
         )
 
         if exitcode != 0:
@@ -411,7 +412,7 @@ def resolve_pkglist_after_resolve_rc_name(repo_url, store_path, product, round_n
     tmp_file_name = f"{product_version}-source-html.txt"
     pkg_file = f"{product_version}-source.pkgs"
     get_pkg_file(_url, tmp_file_name, pkg_file)
-    _, _, _ = run_cmd(f"rm -f {store_path}/{product}*html.txt")
+    _, _, _ = run_cmd(f"rm -f {quote(store_path)}/{quote(product)}*html.txt")
 
     logger.info(f"crawl openeuler's packages list of {product} succeed")
     lock_key = f"resolving_{product}-release_pkglist"
@@ -445,23 +446,24 @@ def resolve_pkglist_from_url(repo_name, repo_url, store_path):
                 fout.close()
 
             exitcode, _, error = run_cmd(
-                f"cat {tmp_file_name} | "
+                f"cat {quote(tmp_file_name)} | "
                 + "grep 'title=' | awk -F 'title=\"' '{print $2}' | awk -F '\">' '{print $1}' | grep '.rpm' | uniq >"
-                + f"{store_path}/{_repo_path}-{arch}.pkgs"
+                + f"{quote(store_path)}/{quote(_repo_path)}-{quote(arch)}.pkgs"
             )
 
             if exitcode != 0:
                 logger.error(error)
                 return
         exitcode, _, error = run_cmd(
-            f"sort {store_path}/{_repo_path}-aarch64.pkgs"
-            + f" {store_path}/{_repo_path}-x86_64.pkgs | uniq >{store_path}/{_repo_path}-all.pkgs"
+            f"sort {quote(store_path)}/{quote(_repo_path)}-aarch64.pkgs"
+            + f" {quote(store_path)}/{quote(_repo_path)}-x86_64.pkgs "
+            + f"| uniq >{quote(store_path)}/{quote(_repo_path)}-all.pkgs"
         )
 
         if exitcode != 0:
             logger.error(error)
             return
-    _, _, _ = run_cmd(f"rm -f {store_path}/{repo_name}*html.txt")
+    _, _, _ = run_cmd(f"rm -f {quote(store_path)}/{quote(repo_name)}*html.txt")
 
     logger.info(f"crawl openeuler's packages list of {repo_name} succeed")
     lock_key = f"resolving_{repo_name}_pkglist"
