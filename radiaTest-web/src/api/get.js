@@ -4,18 +4,21 @@ import { unkonwnErrorMsg } from '@/assets/utils/description';
 import { workspace } from '@/assets/config/menu.js';
 import { storage } from '@/assets/utils/storageUtils';
 import router from '@/router/index';
-
+import store from '@/store';
 function getRequest(url, data, config, unLoginRquest) {
   return new Promise((resolve, reject) => {
     if (!storage.getValue('token') && unLoginRquest) {
       return;
     }
     let addedOrgData = {};
+
     if (data && url !== '/v1/login/org/list') {
       addedOrgData = data;
-      addedOrgData.org_id = storage.getLocalValue('unLoginOrgId')?.id;
+      if (url !== '/v1/login') {
+        addedOrgData.org_id = storage.getLocalValue('unLoginOrgId')?.id || store.getters.getUnLoginOrgId?.id;
+      }
     } else {
-      addedOrgData.org_id = storage.getLocalValue('unLoginOrgId')?.id;
+      addedOrgData.org_id = storage.getLocalValue('unLoginOrgId')?.id || store.getters.getUnLoginOrgId?.id;
     }
     axios
       .get(url, addedOrgData, config)

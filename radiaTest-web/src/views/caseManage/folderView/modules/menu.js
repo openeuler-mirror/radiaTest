@@ -340,10 +340,10 @@ function getRootNodes() {
   actions.unshift(createBaselineAction);
   menuList.value = [];
   let item = {
-    label: storage.getLocalValue('unLoginOrgId')?.name,
-    key: `org-${storage.getLocalValue('unLoginOrgId')?.id}`,
+    label: storage.getLocalValue('unLoginOrgId')?.name || store.getters.getUnLoginOrgId?.name,
+    key: `org-${storage.getLocalValue('unLoginOrgId')?.id || store.getters.getUnLoginOrgId?.id}`,
     info: {
-      org_id: storage.getLocalValue('unLoginOrgId')?.id,
+      org_id: storage.getLocalValue('unLoginOrgId')?.id || store.getters.getUnLoginOrgId?.id,
     },
     actions,
     iconColor: 'rgba(0, 47, 167, 1)',

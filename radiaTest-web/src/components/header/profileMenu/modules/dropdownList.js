@@ -8,6 +8,7 @@ import { activeOrg, getOrg, selectedOrg, currentOrg } from './orgInfo';
 import axios from '@/axios';
 import router from '@/router/index';
 import { storage } from '@/assets/utils/storageUtils';
+import store from '@/store';
 
 const optionsLogined = [
   {
@@ -181,6 +182,7 @@ function handleLoginByForm() {
 function handleUpdateOrgValue(value) {
   selectedOrg.value = value;
   storage.setLocalValue('unLoginOrgId', value);
+  store.commit('unLoginOrgId/setOrgId', value);
   router.replace(`/blank?redirect=${router.currentRoute.value.fullPath}`);
 }
 
@@ -189,6 +191,7 @@ function handleUpdateLoginedOrg(value) {
     if (res.error_msg === 'OK') {
       selectedOrg.value = value;
       storage.setLocalValue('unLoginOrgId', value);
+      store.commit('unLoginOrgId/setOrgId', value);
       router.replace(`/blank?redirect=${router.currentRoute.value.fullPath}`);
     }
   }).catch((err) => {

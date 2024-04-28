@@ -9,7 +9,7 @@
           trigger="click"
         >
           <n-button quaternary icon-placement="right" strong secondary type="info"
-            >{{ selectedOrg.name || '请选择登录' }}
+            >{{ selectedOrg?.name || '请选择登录' }}
             <template #icon>
               <n-icon>
                 <cash-icon />
@@ -31,7 +31,7 @@
           trigger="click"
         >
           <n-button quaternary icon-placement="right" strong secondary type="info"
-            >{{ selectedOrg.name || '请选择登录' }}
+            >{{ selectedOrg?.name || '请选择登录' }}
             <template #icon>
               <n-icon>
                 <cash-icon />
