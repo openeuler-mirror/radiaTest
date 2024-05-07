@@ -13,8 +13,8 @@
 # @License : Mulan PSL v2
 #####################################
 
-from flask import current_app
 from typing import Optional
+from flask import current_app
 from pydantic import BaseModel, validator
 
 

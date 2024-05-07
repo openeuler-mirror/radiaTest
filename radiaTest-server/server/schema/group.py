@@ -29,10 +29,7 @@ class ReUserGroupSchema(BaseModel):
 
     @validator("re_user_group_create_time")
     def check_time_format(cls, v):
-        try:
-            v = datetime.strptime(v, "%Y-%m-%d %H:%M:%S")
-        except ValueError as e:
-            raise RuntimeError("the format of create_time is not valid, the valid type is: %Y-%m-%d %H:%M:%S") from e
+        v = datetime.strptime(v, "%Y-%m-%d %H:%M:%S")
 
         return v
 

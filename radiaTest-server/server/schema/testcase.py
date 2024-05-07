@@ -175,13 +175,10 @@ class SuiteBase(BaseModel):
 
     @validator("add_disk")
     def check_add_disk(cls, v):
-        try:
-            if v:
-                disks = list(map(int, v.strip().split(",")))
-                _ = [int(disk) for disk in disks]
-            return v
-        except (ValueError, AttributeError, TypeError) as e:
-            raise ValueError("The type of add_disk is not validate.") from e
+        if v:
+            disks = list(map(int, v.strip().split(",")))
+            _ = [int(disk) for disk in disks]
+        return v
 
 
 class SuiteCreate(SuiteBase):
@@ -206,13 +203,10 @@ class SuiteBaseUpdate(BaseModel):
 
     @validator("add_disk")
     def check_add_disk(cls, v):
-        try:
-            if v:
-                disks = list(map(int, v.strip().split(",")))
-                _ = [int(disk) for disk in disks]
+        if v:
+            disks = list(map(int, v.strip().split(",")))
+            _ = [int(disk) for disk in disks]
             return v
-        except (ValueError, AttributeError, TypeError) as e:
-            raise ValueError("The type of add_disk is not validate.") from e
 
 
 class SuiteDirectoryUpdate(BaseModel):

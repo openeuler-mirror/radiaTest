@@ -1260,8 +1260,8 @@ class HandlerTaskFamily(object):
         )
         filter_params.extend(permission_filter)
         tasks = Task.query.join(TaskMilestone).filter(*filter_params).all()
-        return_data = [TaskBaseSchema(**item.__dict__).dict() for item in tasks]
-        return jsonify(error_code=RET.OK, error_msg="OK", data=return_data)
+        task_data = [TaskBaseSchema(**item.__dict__).dict() for item in tasks]
+        return jsonify(error_code=RET.OK, error_msg="OK", data=task_data)
 
     @staticmethod
     @collect_sql_error

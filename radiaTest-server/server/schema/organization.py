@@ -62,15 +62,12 @@ class AddSchema(BaseModel):
             if not values["oauth_scope"]:
                 raise TypeError("lack of enterprise info to create this organization")
 
-            try:
-                scope_list = values["oauth_scope"].split(',')
-                for scope in scope_list:
-                    if not isinstance(scope, str):
-                        raise TypeError(
-                            "the format of oauth_scope is not valid"
-                        )
-            except AttributeError as e:
-                raise TypeError(str(e)) from e
+            scope_list = values["oauth_scope"].split(',')
+            for scope in scope_list:
+                if not isinstance(scope, str):
+                    raise TypeError(
+                        "the format of oauth_scope is not valid"
+                    )
 
         return values
 

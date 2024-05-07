@@ -62,22 +62,16 @@ class TimeBaseSchema(BaseModel):
 
     @root_validator
     def check_time_format(cls, values):
-        try:
-            if values.get("start_time"):
-                values["start_time"] = datetime.strptime(
-                    values["start_time"],
-                    "%Y-%m-%d %H:%M:%S"
-                )
-            if values.get("end_time"):
-                values["end_time"] = datetime.strptime(
-                    values["end_time"],
-                    "%Y-%m-%d %H:%M:%S"
-                )
-
-        except ValueError as e:
-            raise RuntimeError(
-                "the format of start_time/end_time is not valid, the valid type is: %Y-%m-%d %H:%M:%S"
-            ) from e
+        if values.get("start_time"):
+            values["start_time"] = datetime.strptime(
+                values["start_time"],
+                "%Y-%m-%d %H:%M:%S"
+            )
+        if values.get("end_time"):
+            values["end_time"] = datetime.strptime(
+                values["end_time"],
+                "%Y-%m-%d %H:%M:%S"
+            )
 
         if values.get("start_time") and values.get("end_time"):
             start_time = values.get("start_time").strftime("%Y-%m-%d")

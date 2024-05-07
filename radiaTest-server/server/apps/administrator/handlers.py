@@ -15,10 +15,11 @@
 
 #####################################
 from datetime import datetime
+import pytz
 
 from flask import request, g, jsonify, current_app
-from server import db
 
+from server import db
 from server import redis_client
 from server.utils.response_util import RET, log_util
 from server.utils.redis_util import RedisKey
@@ -80,7 +81,7 @@ def handler_login(body):
     if admin.last_login_time == datetime(year=1970, month=1, day=1):
         pwd_reset_flag = 1
     else:
-        admin.last_login_time = datetime.now()
+        admin.last_login_time = datetime.now(tz=pytz.timezone('Asia/Shanghai'))
         admin.add_update(Admin, '/admin')
 
     return_dict = {
@@ -156,13 +157,19 @@ def handler_save_org(body, avatar=None):
         "org_id": org.id
     }
     scope_data_allow, scope_data_deny = get_api("organization", "org.yaml", "org", org.id)
-    PermissionManager(org_id=org.id).generate(scope_datas_allow=scope_data_allow, scope_datas_deny=scope_data_deny,
-                                              _data=_data)
+    PermissionManager(org_id=org.id).generate(
+        scope_datas_allow=scope_data_allow,
+        scope_datas_deny=scope_data_deny,
+        _data=_data
+    )
 
     for role in role_list:
         scope_data_allow, scope_data_deny = get_api("permission", "role.yaml", "role", role.id)
-        PermissionManager(org_id=org.id).generate(scope_datas_allow=scope_data_allow, scope_datas_deny=scope_data_deny,
-                                                  _data=_data)
+        PermissionManager(org_id=org.id).generate(
+            scope_datas_allow=scope_data_allow,
+            scope_datas_deny=scope_data_deny,
+            _data=_data
+        )
     return jsonify(
         error_code=RET.OK,
         error_msg="organization create success",
@@ -274,7 +281,7 @@ def handler_change_passwd(body):
             error_msg='Account does not exist or password is incorrect. Please re-enter'
         )
     admin.password = body.new_password
-    admin.last_login_time = datetime.now()
+    admin.last_login_time = datetime.now(tz=pytz.timezone('Asia/Shanghai'))
     admin.add_update(Admin, '/admin')
     redis_client.delete(RedisKey.user(g.user_id))
     redis_client.delete(RedisKey.token(g.user_id))
@@ -290,12 +297,12 @@ def handler_change_passwd(body):
 def check_authority(form: dict):
     if form.get("authority") == "default":
         if not all((
-            current_app.config.get("GITEE_OAUTH_CLIENT_ID"),
-            current_app.config.get("GITEE_OAUTH_CLIENT_SECRET"),
-            current_app.config.get("GITEE_OAUTH_LOGIN_URL"),
-            current_app.config.get("GITEE_OAUTH_GET_TOKEN_URL"),
-            current_app.config.get("GITEE_OAUTH_GET_USER_INFO_URL"),
-            current_app.config.get("GITEE_OAUTH_SCOPE")
+                current_app.config.get("GITEE_OAUTH_CLIENT_ID"),
+                current_app.config.get("GITEE_OAUTH_CLIENT_SECRET"),
+                current_app.config.get("GITEE_OAUTH_LOGIN_URL"),
+                current_app.config.get("GITEE_OAUTH_GET_TOKEN_URL"),
+                current_app.config.get("GITEE_OAUTH_GET_USER_INFO_URL"),
+                current_app.config.get("GITEE_OAUTH_SCOPE")
         )):
             return False, jsonify(
                 error_code=RET.NO_DATA_ERR,

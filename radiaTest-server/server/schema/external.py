@@ -34,16 +34,12 @@ class OpenEulerUpdateTaskBase(BaseModel):
     @staticmethod
     @validator("base_update_url")
     def check_base_url(v):
-        try:
-            parsed_url = urlparse(v)
-            domain = parsed_url.netloc
-            if domain != current_app.config.get("REPO_DOMAIN"):
-                raise ValueError("repo domain is not correct")
-            request.urlopen(os.path.join(v, 'aarch64/'))
-            request.urlopen(os.path.join(v, 'x86_64/'))
-
-        except (error.HTTPError, error.URLError) as e:
-            raise ValueError("base_update_url:%s is not available." % v) from e
+        parsed_url = urlparse(v)
+        domain = parsed_url.netloc
+        if domain != current_app.config.get("REPO_DOMAIN"):
+            raise ValueError("repo domain is not correct")
+        request.urlopen(os.path.join(v, 'aarch64/'))
+        request.urlopen(os.path.join(v, 'x86_64/'))
 
         return v
 
@@ -51,16 +47,12 @@ class OpenEulerUpdateTaskBase(BaseModel):
     @validator("epol_update_url")
     def check_epol_url(v):
         if v:
-            try:
-                parsed_url = urlparse(v)
-                domain = parsed_url.netloc
-                if domain != current_app.config.get("REPO_DOMAIN"):
-                    raise ValueError("repo domain is not correct")
-                request.urlopen(os.path.join(v, 'aarch64/'))
-                request.urlopen(os.path.join(v, 'x86_64/'))
-
-            except (error.HTTPError, error.URLError) as e:
-                raise ValueError("epol_update_url:%s is not available." % v) from e
+            parsed_url = urlparse(v)
+            domain = parsed_url.netloc
+            if domain != current_app.config.get("REPO_DOMAIN"):
+                raise ValueError("repo domain is not correct")
+            request.urlopen(os.path.join(v, 'aarch64/'))
+            request.urlopen(os.path.join(v, 'x86_64/'))
 
         return v
 
