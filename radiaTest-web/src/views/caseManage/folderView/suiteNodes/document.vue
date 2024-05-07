@@ -290,6 +290,7 @@ watch(searchWords, () => {
   .rightPart {
     overflow: scroll;
     width: 100%;
+    margin: 30px;
   }
   .emptyPart {
     display: flex;

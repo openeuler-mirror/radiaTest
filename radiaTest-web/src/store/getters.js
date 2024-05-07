@@ -10,5 +10,6 @@ const getters = {
   deletedData: state => state.selected.history,
   getReadNewsList: state => state.news.readNewsList,
   getUnreadNewsList: state => state.news.unreadNewsList,
+  getUnLoginOrgId: state => state.unLoginOrgId.unLoginOrgId,
 };
 export default getters;

@@ -2,6 +2,7 @@ import { ref } from 'vue';
 
 import { storage } from '@/assets/utils/storageUtils';
 import { getAllOrg, getUserInfo } from '@/api/get';
+import store from '@/store';
 const accountName = ref('');
 const orgOptions = ref([]);
 const currentOrg = ref('');
@@ -32,18 +33,21 @@ const selectedOrg = ref('');
 const orgListoptions = ref([]);
 function getOrgList() {
   getAllOrg().then((res) => {
+    if (!orgListoptions.value.length) {
+      storage.setLocalValue('unLoginOrgId', null);
+    }
     orgListoptions.value = res.data.map((item) => ({
       label: item.org_name,
       value: { name: item.org_name, id: String(item.org_id) },
       ...item
     }));
-  }).then(() => {
     if (storage.getLocalValue('unLoginOrgId')) {
       selectedOrg.value = storage.getLocalValue('unLoginOrgId');
-    } else if (!storage.getLocalValue('unLoginOrgId') && orgListoptions.value.some(obj => obj.label === 'openEuler')) {
-      selectedOrg.value = (orgListoptions.value.find(obj => obj.label === 'openEuler')).value;
+    } else {
+      selectedOrg.value = orgListoptions.value[0]?.value || null;
       storage.setLocalValue('unLoginOrgId', selectedOrg.value);
     }
+    store.commit('unLoginOrgId/setOrgId', selectedOrg.value);
   });
 }
 

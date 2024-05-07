@@ -87,13 +87,6 @@ server.interceptors.response.use(
       error.response.data = {
         error_msg: '登录失效',
       };
-      window.$message?.info(
-        '请点击右上角登录按钮进行重新登录',
-        {
-          closable: true,
-          duration: 10000
-        }
-      );
       if (router.currentRoute.value.matched[0].name === 'PersonalCenter') {
         router.replace({
           name: 'task'

@@ -234,6 +234,7 @@ import { storage } from '@/assets/utils/storageUtils';
 import { getAllFeature, getProductFeature } from '@/api/get';
 import { relateProductFeature, createProductFeature } from '@/api/post';
 import _ from 'lodash';
+import store from '@/store';
 
 const showLoading = ref(false);
 const treeData = ref([]);
@@ -248,10 +249,10 @@ const FeatureSetDetailRef = ref(null); // 特性集页面
 // 获取组织节点
 const getOrgList = () => {
   let item = {
-    label: storage.getLocalValue('unLoginOrgId').name,
-    key: storage.getLocalValue('unLoginOrgId').id,
+    label: storage.getLocalValue('unLoginOrgId')?.name || store.getters.getUnLoginOrgId?.name,
+    key: storage.getLocalValue('unLoginOrgId')?.id || store.getters.getUnLoginOrgId?.id,
     info: {
-      org_id: storage.getLocalValue('unLoginOrgId').id,
+      org_id: storage.getLocalValue('unLoginOrgId')?.id || store.getters.getUnLoginOrgId?.id,
     },
     isLeaf: false,
     type: 'org',
@@ -264,7 +265,7 @@ const getOrgList = () => {
       children: createOrgChildren(item),
     },
   ];
-  defaultExpandedKeys.value.push(storage.getLocalValue('unLoginOrgId').id);
+  defaultExpandedKeys.value.push(storage.getLocalValue('unLoginOrgId')?.id);
   orgList.value = _.cloneDeep(treeData.value);
   showLoading.value = false;
 };
