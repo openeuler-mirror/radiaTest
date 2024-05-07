@@ -58,10 +58,7 @@ class CheckBaseline(BaseModel):
             if not 0 <= _baseline <= 1:
                 raise ValueError("ratio baseline must be around 0-100%")
         else:
-            try:
-                _ = int(baseline)
-            except ValueError as e:
-                raise ValueError("baseline must be a ratio or a number") from e
+            _ = int(baseline)
 
         return baseline
 
@@ -103,11 +100,8 @@ class AddChecklistSchema(BaseModel):
                             "ratio baseline must be around 0-100%"
                         )
                 else:
-                    try:
-                        _ = int(baseline)
-                    except ValueError as e:
-                        raise ValueError(
-                            "baseline must be a ratio or a number") from e
+                    _ = int(baseline)
+
             for op in _ops:
                 if op not in set(["<", ">", "=", "<=", ">="]):
                     raise ValueError(

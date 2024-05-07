@@ -10,7 +10,7 @@
 # @Date    : 2023/01/29
 # @License : Mulan PSL v2
 #####################################
-
+import html
 import json
 from datetime import datetime
 from typing import Optional
@@ -20,7 +20,6 @@ import pytz
 from pydantic import BaseModel, Field, constr, root_validator, validator
 from sqlalchemy import func
 from server import db
-
 
 from server.model import Product, Milestone
 from server.utils.db import Precise
@@ -159,10 +158,10 @@ class MilestoneCreateSchema(MilestoneBaseSchema, PermissionBase):
             prefix = product.name + "-" + product.version
             if milestone_type == "update":
                 values["name"] = (
-                    prefix
-                    + "-update_"
-                    + datetime.now(tz=pytz.timezone("Asia/Shanghai")
-                                   ).strftime("%Y%m%d")
+                        prefix
+                        + "-update_"
+                        + datetime.now(tz=pytz.timezone("Asia/Shanghai")
+                                       ).strftime("%Y%m%d")
                 )
             elif milestone_type == "round":
                 prefix = prefix + "-round-"
@@ -192,23 +191,15 @@ class MilestoneCreateSchema(MilestoneBaseSchema, PermissionBase):
 
 class QueryMilestoneByTimeSchema(BaseModel):
     milestone_time: str
-    org_id: int = None
+    org_id: int = 0
 
     @validator('milestone_time')
     def validate(cls, v):
         if isinstance(v, str):
+            v = html.escape(v)
             v = json.loads(v)
-            try:
-                v[0] = datetime.strptime(
-                    v[0], 
-                    "%Y-%m-%d"
-                )
-                v[1] = datetime.strptime(
-                    v[1],
-                    "%Y-%m-%d"
-                )  
-            except ValueError as e:
-                raise RuntimeError("the format of time is not valid, the valid type is: %Y-%m-%d") from e
+            v[0] = datetime.strptime(v[0], "%Y-%m-%d")
+            v[1] = datetime.strptime(v[1], "%Y-%m-%d")
 
             v[0] = v[0].strftime("%Y-%m-%d")
             v[1] = v[1].strftime("%Y-%m-%d")

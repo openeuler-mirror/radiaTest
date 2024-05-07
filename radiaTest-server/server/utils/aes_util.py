@@ -13,8 +13,8 @@
 # @License : Mulan PSL v2
 #####################################
 
-from Crypto.Cipher import AES
 import base64
+from Crypto.Cipher import AES
 from flask import current_app
 
 

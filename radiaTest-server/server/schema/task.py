@@ -10,7 +10,7 @@
 # @Date    :
 # @License : Mulan PSL v2
 #####################################
-
+import html
 import json
 from typing import List
 from enum import Enum
@@ -94,17 +94,15 @@ class AddTaskSchema(BaseModel):
         )
         if check_version_res or check_not_version_res:
             raise ValueError("when type of task is VERSION, milestone_id must be not None.")
-        try:
-            datetime.strptime(
-                values.get("start_time"), 
-                "%Y-%m-%d"
-            )
-            datetime.strptime(
-                values.get("deadline"),
-                "%Y-%m-%d"
-            )  
-        except ValueError as e:
-            raise RuntimeError("the format of time is not valid, the valid type is: %Y-%m-%d") from e
+        datetime.strptime(
+            values.get("start_time"),
+            "%Y-%m-%d"
+        )
+        datetime.strptime(
+            values.get("deadline"),
+            "%Y-%m-%d"
+        )
+
         if values.get("deadline") < values.get("start_time"):
             raise ValueError("start time must be earlier than deadline.")
         return values
@@ -127,18 +125,10 @@ class QueryTaskByTimeSchema(BaseModel):
     @validator('task_time')
     def validate(cls, v):
         if isinstance(v, str):
+            v = html.escape(v)
             v = json.loads(v)
-            try:
-                v[0] = datetime.strptime(
-                    v[0], 
-                    "%Y-%m-%d"
-                )
-                v[1] = datetime.strptime(
-                    v[1],
-                    "%Y-%m-%d"
-                )  
-            except ValueError as e:
-                raise RuntimeError("the format of time is not valid, the valid type is: %Y-%m-%d") from e
+            v[0] = datetime.strptime(v[0], "%Y-%m-%d")
+            v[1] = datetime.strptime(v[1], "%Y-%m-%d")
 
             v[0] = v[0].strftime("%Y-%m-%d")
             v[1] = v[1].strftime("%Y-%m-%d")

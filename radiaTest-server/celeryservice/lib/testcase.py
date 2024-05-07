@@ -16,9 +16,9 @@
 import os
 import re
 import json
+import shlex
 import openpyxl
 import requests
-import shlex
 
 from flask import current_app, jsonify
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError

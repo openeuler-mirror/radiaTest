@@ -208,7 +208,10 @@ def handler_delete_group(group_id):
         for re in re_list:
             Delete(ReUserRole, {"id": re.id}).single()
     else:
-        return jsonify(error_code=RET.VERIFY_ERR, error_msg=f"delete group[{group_id}] failed due to user has not right")
+        return jsonify(
+            error_code=RET.VERIFY_ERR,
+            error_msg=f"delete group[{group_id}] failed due to user has not right"
+        )
     return jsonify(error_code=RET.OK, error_msg=f"delete group[{group_id}] success")
 
 
@@ -469,4 +472,3 @@ def handler_apply_join_group(group_id):
     )
     Message.create_instance(message_instance)
     return jsonify(error_code=RET.OK, error_msg=f"apply join group[{group_id}] message send success")
-
