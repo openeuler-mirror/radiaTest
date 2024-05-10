@@ -720,6 +720,7 @@ const caseViewColumns = [
               milestone_id: rowData.milestoneId,
               case_id: rowData.id,
               result: key,
+              task_id: detailTask.taskId,
             };
             axios
               .post('/v1/testcase/test-result', params)
@@ -1662,6 +1663,7 @@ function closeResultModal() {
 }
 function handleEditResultCase() {
   modelResult.value.org_id = storage.getLocalValue('unLoginOrgId')?.id;
+  modelResult.value.task_id = detailTask.taskId;
   formRefResult.value.validate((error) => {
     if (!error) {
       axios
