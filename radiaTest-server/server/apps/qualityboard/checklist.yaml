@@ -1,0 +1,9 @@
+- alias: 取消checklist
+  uri: /api/v1/checklist/{checklist_id}/deselect
+  act: put
+- alias: 删除checklist
+  uri: /api/v1/checklist/{checklist_id}
+  act: delete
+- alias: 更新checklist
+  uri: /api/v1/checklist/{checklist_id}
+  act: put

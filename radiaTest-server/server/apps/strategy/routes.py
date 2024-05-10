@@ -21,7 +21,7 @@ from flask_restful import Resource
 from flask_pydantic import validate
 from sqlalchemy import not_
 
-from server import redis_client, db, swagger_adapt
+from server import redis_client, db, swagger_adapt, casbin_enforcer
 from server.utils.page_util import PageUtil
 from server.utils.redis_util import RedisKey
 from server.utils.auth_util import auth
@@ -39,7 +39,6 @@ from server.schema.strategy import (
     StrategyBodySchema,
     StrategyRelateSchema,
     StrategyCommitBodySchema,
-    StrategyCommitUpdateSchema,
     StrategyQuerySchema,
     StrategyPermissionBaseSchema,
 )
@@ -48,6 +47,8 @@ from server.apps.strategy.handler import (
     InheritFeatureHandler,
 )
 from server.utils.response_util import value_error_collect
+from server.utils.read_from_yaml import get_api
+from server.utils.permission_utils import PermissionManager
 
 
 def get_strategy_tag():
@@ -67,12 +68,10 @@ class FeatureSetEvent(Resource):
     @auth.login_required()
     @response_collect
     @validate()
-    @value_error_collect
-    @collect_sql_error
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_strategy_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_strategy_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "FeatureSetEvent",  # 当前接口视图函数名
-        "func_name": "post",   # 当前接口所对应的函数名
+        "func_name": "post",  # 当前接口所对应的函数名
         "tag": get_strategy_tag(),  # 当前接口所对应的标签
         "summary": "创建特性",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -104,10 +103,15 @@ class FeatureSetEvent(Resource):
             }
         """
         _body = body.__dict__
+        current_org_id = redis_client.hget(
+            RedisKey.user(g.user_id),
+            "current_org_id"
+        )
         _body.update({
             "status": "Accepted",
             "sig": ",".join(body.sig),
             "owner": ",".join(body.owner),
+            "org_id": current_org_id
         })
         filter_params = [
             Feature.feature == _body.get("feature"),
@@ -115,6 +119,21 @@ class FeatureSetEvent(Resource):
             Feature.owner == _body.get("owner")
         ]
         feature_id = FeatureHandler(filter_params, True, _body).create_node()
+        _data = {
+            "permission_type": "org",
+            "org_id": current_org_id,
+        }
+        scope_data_allow, scope_data_deny = get_api(
+            "strategy",
+            "feature.yaml",
+            "feature",
+            feature_id
+        )
+        PermissionManager().generate(
+            scope_datas_allow=scope_data_allow,
+            scope_datas_deny=scope_data_deny,
+            _data=_data
+        )
         return jsonify(
             error_code=RET.OK,
             error_msg="OK",
@@ -132,9 +151,9 @@ class FeatureSetEvent(Resource):
     @value_error_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_strategy_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_strategy_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "FeatureSetEvent",  # 当前接口视图函数名
-        "func_name": "get",   # 当前接口所对应的函数名
+        "func_name": "get",  # 当前接口所对应的函数名
         "tag": get_strategy_tag(),  # 当前接口所对应的标签
         "summary": "分页查询特性集",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -170,10 +189,13 @@ class FeatureSetEvent(Resource):
         if query.type:
             new_feature = ReProductFeature.query.filter_by(is_new=1).all()
             new_feature_ids = [feature.feature_id for feature in new_feature]
-            features = db.session.query(Feature).filter(not_(Feature.id.in_(set(new_feature_ids)))).all()
+            features = db.session.query(Feature).filter(
+                not_(Feature.id.in_(set(new_feature_ids))),
+                Feature.org_id == query.org_id
+            ).all()
             _data = [feature.to_json() for feature in features]
         else:
-            features = db.session.query(Feature)
+            features = db.session.query(Feature).filter(Feature.org_id == query.org_id)
             return PageUtil.get_data(features, query)
 
         return jsonify(
@@ -195,9 +217,9 @@ class StrategyRelateEvent(Resource):
     @validate()
     @value_error_collect
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_strategy_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_strategy_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "StrategyRelateEvent",  # 当前接口视图函数名
-        "func_name": "post",   # 当前接口所对应的函数名
+        "func_name": "post",  # 当前接口所对应的函数名
         "tag": get_strategy_tag(),  # 当前接口所对应的标签
         "summary": "关联继承特性",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -244,13 +266,14 @@ class FeatureSetItemEvent(Resource):
         url="/api/v1/feature/<int:feature_id>", 
         methods=["Get"]
     """
+
     @response_collect
     @validate()
     @value_error_collect
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_strategy_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_strategy_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "FeatureSetItemEvent",  # 当前接口视图函数名
-        "func_name": "get",   # 当前接口所对应的函数名
+        "func_name": "get",  # 当前接口所对应的函数名
         "tag": get_strategy_tag(),  # 当前接口所对应的标签
         "summary": "特性详情",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -295,14 +318,13 @@ class FeatureSetItemEvent(Resource):
     """
 
     @auth.login_required()
+    @casbin_enforcer.enforcer
     @response_collect
     @validate()
-    @value_error_collect
-    @collect_sql_error
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_strategy_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_strategy_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "FeatureSetItemEvent",  # 当前接口视图函数名
-        "func_name": "put",   # 当前接口所对应的函数名
+        "func_name": "put",  # 当前接口所对应的函数名
         "tag": get_strategy_tag(),  # 当前接口所对应的标签
         "summary": "修改指定特性",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -364,14 +386,13 @@ class FeatureSetItemEvent(Resource):
     """
 
     @auth.login_required()
+    @casbin_enforcer.enforcer
     @response_collect
     @validate()
-    @value_error_collect
-    @collect_sql_error
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_strategy_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_strategy_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "FeatureSetItemEvent",  # 当前接口视图函数名
-        "func_name": "delete",   # 当前接口所对应的函数名
+        "func_name": "delete",  # 当前接口所对应的函数名
         "tag": get_strategy_tag(),  # 当前接口所对应的标签
         "summary": "删除指定特性",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -401,13 +422,14 @@ class ProductFeatureEvent(Resource):
         查询指定产品下所有特性，包括新特性以及继承特性(Feature).
         url="/api/v1/product/<int:product_id>/feature", methods=["GET"]
     """
+
     @response_collect
     @validate()
     @value_error_collect
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_strategy_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_strategy_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "ProductFeatureEvent",  # 当前接口视图函数名
-        "func_name": "get",   # 当前接口所对应的函数名
+        "func_name": "get",  # 当前接口所对应的函数名
         "tag": get_strategy_tag(),  # 当前接口所对应的标签
         "summary": "获取产品所有特性",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -486,9 +508,9 @@ class StrategyCommitEvent(Resource):
     @validate()
     @value_error_collect
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_strategy_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_strategy_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "StrategyCommitEvent",  # 当前接口视图函数名
-        "func_name": "get",   # 当前接口所对应的函数名
+        "func_name": "get",  # 当前接口所对应的函数名
         "tag": get_strategy_tag(),  # 当前接口所对应的标签
         "summary": "获取测试策略脑图",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -558,12 +580,10 @@ class StrategyCommitEvent(Resource):
     @auth.login_required()
     @response_collect
     @validate()
-    @value_error_collect
-    @collect_sql_error
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_strategy_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_strategy_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "StrategyCommitEvent",  # 当前接口视图函数名
-        "func_name": "post",   # 当前接口所对应的函数名
+        "func_name": "post",  # 当前接口所对应的函数名
         "tag": get_strategy_tag(),  # 当前接口所对应的标签
         "summary": "创建测试策略",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -639,6 +659,22 @@ class StrategyCommitEvent(Resource):
         db.session.flush()
 
         db.session.commit()
+        _data = {
+            "permission_type": "org",
+            "org_id": strategy_record.org_id,
+        }
+        scope_data_allow, scope_data_deny = get_api(
+            "strategy",
+            "strategy.yaml",
+            "strategy",
+            strategy_record.id
+        )
+        PermissionManager().generate(
+            scope_datas_allow=scope_data_allow,
+            scope_datas_deny=scope_data_deny,
+            _data=_data
+        )
+
         return jsonify(
             error_code=RET.OK,
             error_msg="OK",
@@ -648,12 +684,10 @@ class StrategyCommitEvent(Resource):
     @auth.login_required()
     @response_collect
     @validate()
-    @value_error_collect
-    @collect_sql_error
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_strategy_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_strategy_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "StrategyCommitEvent",  # 当前接口视图函数名
-        "func_name": "delete",   # 当前接口所对应的函数名
+        "func_name": "delete",  # 当前接口所对应的函数名
         "tag": get_strategy_tag(),  # 当前接口所对应的标签
         "summary": "删除产品测试策略",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -661,7 +695,7 @@ class StrategyCommitEvent(Resource):
     })
     def delete(self, product_feature_id, body: StrategyPermissionBaseSchema):
         strategy = Strategy.query.filter_by(
-            org_id=body.org_id, creator_id=body.user_id, product_feature_id=product_feature_id
+            org_id=body.org_id, creator_id=g.user_id, product_feature_id=product_feature_id
         ).first()
         if not strategy:
             return jsonify(
@@ -688,9 +722,9 @@ class StrategyItemEvent(Resource):
     @validate()
     @value_error_collect
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_strategy_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_strategy_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "StrategyItemEvent",  # 当前接口视图函数名
-        "func_name": "get",   # 当前接口所对应的函数名
+        "func_name": "get",  # 当前接口所对应的函数名
         "tag": get_strategy_tag(),  # 当前接口所对应的标签
         "summary": "获取测试策略",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -726,14 +760,13 @@ class StrategyItemEvent(Resource):
     """
 
     @auth.login_required()
+    @casbin_enforcer.enforcer
     @response_collect
     @validate()
-    @value_error_collect
-    @collect_sql_error
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_strategy_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_strategy_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "StrategyItemEvent",  # 当前接口视图函数名
-        "func_name": "delete",   # 当前接口所对应的函数名
+        "func_name": "delete",  # 当前接口所对应的函数名
         "tag": get_strategy_tag(),  # 当前接口所对应的标签
         "summary": "删除测试策略",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -782,11 +815,10 @@ class StrategyTemplateEvent(Resource):
     @auth.login_check
     @response_collect
     @validate()
-    @value_error_collect
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_strategy_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_strategy_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "StrategyTemplateEvent",  # 当前接口视图函数名
-        "func_name": "get",   # 当前接口所对应的函数名
+        "func_name": "get",  # 当前接口所对应的函数名
         "tag": get_strategy_tag(),  # 当前接口所对应的标签
         "summary": "查询测试策略模板",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -810,9 +842,12 @@ class StrategyTemplateEvent(Resource):
             }  
         """
         if query.title:
-            strategy_templates = StrategyTemplate.query.filter(StrategyTemplate.title.like(f"%{query.title}%")).all()
+            strategy_templates = StrategyTemplate.query.filter(
+                StrategyTemplate.title.like(f"%{query.title}%"),
+                StrategyTemplate.org_id == query.org_id
+            ).all()
         else:
-            strategy_templates = StrategyTemplate.query.all()
+            strategy_templates = StrategyTemplate.query.filter(StrategyTemplate.org_id == query.org_id).all()
         return jsonify(
             error_code=RET.OK,
             error_msg="OK",
@@ -828,12 +863,10 @@ class StrategyTemplateEvent(Resource):
     @auth.login_required()
     @response_collect
     @validate()
-    @value_error_collect
-    @collect_sql_error
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_strategy_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_strategy_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "StrategyTemplateEvent",  # 当前接口视图函数名
-        "func_name": "post",   # 当前接口所对应的函数名
+        "func_name": "post",  # 当前接口所对应的函数名
         "tag": get_strategy_tag(),  # 当前接口所对应的标签
         "summary": "创建测试策略模板",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -857,18 +890,17 @@ class StrategyTemplateEvent(Resource):
             }  
         """
         _body = body.__dict__
-        strategy_template = StrategyTemplate.query.filter_by(title=_body.get("title")).first()
+        org_id = redis_client.hget(
+            RedisKey.user(g.user_id),
+            "current_org_id"
+        )
+        strategy_template = StrategyTemplate.query.filter_by(title=_body.get("title"), org_id=org_id).first()
         if strategy_template:
             return jsonify(
                 error_code=RET.VERIFY_ERR,
                 error_msg="template name is already exists",
             )
         creator_id = g.user_id
-        org_id = redis_client.hget(
-            RedisKey.user(g.user_id),
-            "current_org_id"
-        )
-
         _body.update({
             "tree": json.dumps(body.tree),
             "creator_id": creator_id,
@@ -876,6 +908,21 @@ class StrategyTemplateEvent(Resource):
         })
 
         strategy_template_id = Insert(StrategyTemplate, _body).insert_id()
+        _data = {
+            "permission_type": "org",
+            "org_id": org_id,
+        }
+        scope_data_allow, scope_data_deny = get_api(
+            "strategy",
+            "strategy_template.yaml",
+            "strategy_template",
+            strategy_template_id
+        )
+        PermissionManager().generate(
+            scope_datas_allow=scope_data_allow,
+            scope_datas_deny=scope_data_deny,
+            _data=_data
+        )
         return jsonify(
             error_code=RET.OK,
             error_msg="OK",
@@ -889,13 +936,14 @@ class StrategyTemplateItemEvent(Resource):
         url="/api/v1/strategy-template/<int:strategy_template_id>", 
         methods=["Get"]
     """
+
     @response_collect
     @validate()
     @value_error_collect
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_strategy_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_strategy_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "StrategyTemplateItemEvent",  # 当前接口视图函数名
-        "func_name": "get",   # 当前接口所对应的函数名
+        "func_name": "get",  # 当前接口所对应的函数名
         "tag": get_strategy_tag(),  # 当前接口所对应的标签
         "summary": "获取测试策略模板",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -935,13 +983,13 @@ class StrategyTemplateItemEvent(Resource):
     """
 
     @auth.login_required()
+    @casbin_enforcer.enforcer
     @response_collect
     @validate()
-    @value_error_collect
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_strategy_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_strategy_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "StrategyTemplateItemEvent",  # 当前接口视图函数名
-        "func_name": "put",   # 当前接口所对应的函数名
+        "func_name": "put",  # 当前接口所对应的函数名
         "tag": get_strategy_tag(),  # 当前接口所对应的标签
         "summary": "修改测试策略模板",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -977,14 +1025,13 @@ class StrategyTemplateItemEvent(Resource):
     """
 
     @auth.login_required()
+    @casbin_enforcer.enforcer
     @response_collect
     @validate()
-    @value_error_collect
-    @collect_sql_error
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_strategy_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_strategy_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "StrategyTemplateItemEvent",  # 当前接口视图函数名
-        "func_name": "delete",   # 当前接口所对应的函数名
+        "func_name": "delete",  # 当前接口所对应的函数名
         "tag": get_strategy_tag(),  # 当前接口所对应的标签
         "summary": "删除测试策略模板",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -1024,9 +1071,9 @@ class StrategyTemplateApplyEvent(Resource):
     @value_error_collect
     @collect_sql_error
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_strategy_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_strategy_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "StrategyTemplateApplyEvent",  # 当前接口视图函数名
-        "func_name": "post",   # 当前接口所对应的函数名
+        "func_name": "post",  # 当前接口所对应的函数名
         "tag": get_strategy_tag(),  # 当前接口所对应的标签
         "summary": "应用测试策略模板",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -1191,13 +1238,13 @@ class StrategyCommitStageEvent(Resource):
     """
 
     @auth.login_required()
+    @casbin_enforcer.enforcer
     @response_collect
     @validate()
-    @value_error_collect
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_strategy_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_strategy_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "StrategyCommitStageEvent",  # 当前接口视图函数名
-        "func_name": "post",   # 当前接口所对应的函数名
+        "func_name": "post",  # 当前接口所对应的函数名
         "tag": get_strategy_tag(),  # 当前接口所对应的标签
         "summary": "创建测试策略commit",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -1266,9 +1313,9 @@ class StrategyCommitItemEvent(Resource):
     @validate()
     @value_error_collect
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_strategy_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_strategy_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "StrategyCommitItemEvent",  # 当前接口视图函数名
-        "func_name": "get",   # 当前接口所对应的函数名
+        "func_name": "get",  # 当前接口所对应的函数名
         "tag": get_strategy_tag(),  # 当前接口所对应的标签
         "summary": "获取测试策略commit",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -1311,42 +1358,6 @@ class StrategyCommitItemEvent(Resource):
             data=data
         )
 
-    @auth.login_required()
-    @response_collect
-    @validate()
-    @value_error_collect
-    @swagger_adapt.api_schema_model_map({
-        "__module__": get_strategy_tag.__module__,   # 获取当前接口所在模块
-        "resource_name": "StrategyCommitItemEvent",  # 当前接口视图函数名
-        "func_name": "put",   # 当前接口所对应的函数名
-        "tag": get_strategy_tag(),  # 当前接口所对应的标签
-        "summary": "编辑测试策略commit",  # 当前接口概述
-        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
-        "request_schema_model": StrategyCommitUpdateSchema
-    })
-    def put(self, strategy_commit_id, body: StrategyCommitUpdateSchema):
-        """
-            在数据库中获取测试策略commit.
-            API: "/api/v1/product-feature/<int:product_feature_id>/strategy-commit"
-
-            返回体:
-            {
-                "error_code": "2000",
-                "error_msg": "Request processed successfully."
-            }  
-        """
-        _body = body.__dict__
-        _body.update({
-            **_body,
-            "id": strategy_commit_id,
-            "commit_tree": json.dumps(body.commit_tree)
-        })
-        Edit(StrategyCommit, _body).single(StrategyCommit, "/strategycommit")
-        return jsonify(
-            error_code=RET.OK,
-            error_msg=f"edit strategycommit[{strategy_commit_id}] success"
-        )
-
 
 class StrategyCommitReductEvent(Resource):
     """
@@ -1356,14 +1367,13 @@ class StrategyCommitReductEvent(Resource):
     """
 
     @auth.login_required()
+    @casbin_enforcer.enforcer
     @response_collect
     @validate()
-    @value_error_collect
-    @collect_sql_error
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_strategy_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_strategy_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "StrategyCommitReductEvent",  # 当前接口视图函数名
-        "func_name": "delete",   # 当前接口所对应的函数名
+        "func_name": "delete",  # 当前接口所对应的函数名
         "tag": get_strategy_tag(),  # 当前接口所对应的标签
         "summary": "删除测试策略commit",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
@@ -1413,9 +1423,9 @@ class ProductInheritFeatureEvent(Resource):
     @validate()
     @value_error_collect
     @swagger_adapt.api_schema_model_map({
-        "__module__": get_strategy_tag.__module__,   # 获取当前接口所在模块
+        "__module__": get_strategy_tag.__module__,  # 获取当前接口所在模块
         "resource_name": "ProductInheritFeatureEvent",  # 当前接口视图函数名
-        "func_name": "post",   # 当前接口所对应的函数名
+        "func_name": "post",  # 当前接口所对应的函数名
         "tag": get_strategy_tag(),  # 当前接口所对应的标签
         "summary": "更新继承特性",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义

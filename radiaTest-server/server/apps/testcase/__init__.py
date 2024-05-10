@@ -165,7 +165,7 @@ def init_api(api: Api):
                      '/api/v1/case/commit',
                      '/api/v1/case/commit/<int:commit_id>',
                      endpoint='commit',
-                     methods=["GET", "POST", "PUT", "DELETE"]
+                     methods=["POST"]
                      )
 
     api.add_resource(

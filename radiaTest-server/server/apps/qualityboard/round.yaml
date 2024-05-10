@@ -1,0 +1,7 @@
+- alias: 更新round
+  uri: /api/v1/round/{round_id}
+  act: put
+- alias: 更改round绑定的里程碑
+  uri: /api/v1/round/{round_id}/bind-milestone
+  act: put
+

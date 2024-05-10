@@ -14,8 +14,10 @@
 #####################################
 import re
 
-from flask import request, jsonify
+from flask import request, jsonify, g
 from sqlalchemy import or_
+
+from server.model.administrator import Admin
 from server.model.organization import Organization
 from server.model.user import User
 from server.model.group import Group, ReUserGroup
@@ -83,20 +85,11 @@ def handler_get_all_org(query):
 
 
 @collect_sql_error
-def handler_org_statistic(org_id: int):
-    total_groups = Group.query.filter_by(org_id=org_id, is_delete=False).count()
-
-    return jsonify(
-        error_code=RET.OK,
-        error_msg="OK",
-        data={
-            "total_groups": total_groups,
-        }
-    )
-
-
-@collect_sql_error
 def handler_org_user_page(org_id):
+    admin = Admin.query.filter_by(account=g.user_login).first()
+    if not admin:
+        resp = jsonify(error_code=RET.VERIFY_ERR, error_msg='user no right to get organization user info')
+        return resp
     page_num = int(request.args.get('page_num', 1))
     page_size = int(request.args.get('page_size', 10))
     name = request.args.get('name')

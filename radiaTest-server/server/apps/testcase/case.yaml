@@ -1,0 +1,7 @@
+- alias: 更新case
+  uri: /api/v1/case/{case_id}
+  act: put
+- alias: 删除case
+  uri: /api/v1/case/{case_id}
+  act: delete
+

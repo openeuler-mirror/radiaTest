@@ -1,0 +1,6 @@
+- alias: 删除质量看板
+  uri: /api/v1/qualityboard/{qualityboard_id}
+  act: delete
+- alias: 更新质量看板
+  uri: /api/v1/qualityboard/{qualityboard_id}
+  act: put

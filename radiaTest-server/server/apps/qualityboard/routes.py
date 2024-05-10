@@ -24,7 +24,7 @@ from flask_pydantic import validate
 from sqlalchemy import func, or_
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
-from server import db, redis_client, swagger_adapt
+from server import db, redis_client, swagger_adapt, casbin_enforcer
 from server.utils.auth_util import auth
 from server.utils.redis_util import RedisKey
 from server.utils.response_util import response_collect, RET
@@ -97,6 +97,8 @@ from server.utils.rpm_util import RpmNameLoader
 from celeryservice.sub_tasks import update_compare_result, update_samerpm_compare_result, update_daily_compare_result
 from celeryservice.tasks import read_openqa_tests_overview
 from server.utils.shell import run_cmd
+from server.utils.permission_utils import PermissionManager
+from server.utils.read_from_yaml import get_api
 
 
 def get_quality_board_tag():
@@ -133,6 +135,11 @@ class QualityBoardEvent(Resource):
                 error_code=RET.NO_DATA_ERR,
                 error_msg="product {} not exist".format(body.product_id)
             )
+        _data = {
+            "permission_type": _p.permission_type,
+            "org_id": _p.org_id,
+            "group_id": _p.group_id
+        }
         milestone = Milestone.query.filter(
             Milestone.product_id == body.product_id,
             Milestone.type == "round",
@@ -144,11 +151,35 @@ class QualityBoardEvent(Resource):
             round_id = RoundHandler.add_round(body.product_id, milestone.id)
             iteration_version = str(round_id)
             PackageListHandler.get_all_packages_file(round_id)
+            scope_data_allow, scope_data_deny = get_api(
+                "qualityboard",
+                "round.yaml",
+                "round",
+                round_id
+            )
+            PermissionManager().generate(
+                scope_datas_allow=scope_data_allow,
+                scope_datas_deny=scope_data_deny,
+                _data=_data
+            )
 
         qualityboard = QualityBoard(
-            product_id=body.product_id, iteration_version=iteration_version)
-        qualityboard.add_update()
+            product_id=body.product_id,
+            iteration_version=iteration_version
+        )
+        qualityboard_id = qualityboard.add_flush_commit_id()
 
+        scope_data_allow, scope_data_deny = get_api(
+            "qualityboard",
+            "qualityboard.yaml",
+            "qualityboard",
+            qualityboard_id
+        )
+        PermissionManager().generate(
+            scope_datas_allow=scope_data_allow,
+            scope_datas_deny=scope_data_deny,
+            _data=_data
+        )
         return jsonify(
             error_code=RET.OK,
             error_msg="OK.",
@@ -170,6 +201,7 @@ class QualityBoardEvent(Resource):
         return Select(QualityBoard, query.__dict__).precise()
 
     @auth.login_required()
+    @casbin_enforcer.enforcer
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
@@ -188,6 +220,7 @@ class QualityBoardEvent(Resource):
 
 class QualityBoardItemEvent(Resource):
     @auth.login_required()
+    @casbin_enforcer.enforcer
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
@@ -254,7 +287,22 @@ class QualityBoardItemEvent(Resource):
         qualityboard.iteration_version = iteration_version
         qualityboard.add_update()
         PackageListHandler.get_all_packages_file(round_id)
-
+        _data = {
+            "permission_type": milestone.permission_type,
+            "org_id": milestone.org_id,
+            "group_id": milestone.group_id
+        }
+        scope_data_allow, scope_data_deny = get_api(
+            "qualityboard",
+            "round.yaml",
+            "round",
+            round_id
+        )
+        PermissionManager().generate(
+            scope_datas_allow=scope_data_allow,
+            scope_datas_deny=scope_data_deny,
+            _data=_data
+        )
         return jsonify(
             error_code=RET.OK,
             error_msg="OK.",
@@ -307,6 +355,7 @@ class QualityBoardDeleteVersionEvent(Resource):
 
 class DeselectChecklistItem(Resource):
     @auth.login_required()
+    @casbin_enforcer.enforcer
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
@@ -385,6 +434,7 @@ class ChecklistItem(Resource):
         return ChecklistHandler.handler_get_one(checklist_id)
 
     @auth.login_required()
+    @casbin_enforcer.enforcer
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
@@ -507,6 +557,7 @@ class ChecklistItem(Resource):
         )
 
     @auth.login_required()
+    @casbin_enforcer.enforcer
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
@@ -577,7 +628,25 @@ class ChecklistEvent(Resource):
                 error_code=RET.DB_DATA_ERR,
                 error_msg="Checklist {} for {} product has existed".format(ci.title, _p.name)
             )
-        cl = Insert(Checklist, body.__dict__).insert_obj(Checklist, "/checklist")
+        cl_id = Insert(Checklist, body.__dict__).insert_id(Checklist, "/checklist")
+
+        _data = {
+            "permission_type": _p.permission_type,
+            "org_id": _p.org_id,
+            "group_id": _p.group_id
+        }
+        scope_data_allow, scope_data_deny = get_api(
+            "qualityboard",
+            "checklist.yaml",
+            "checklist",
+            cl_id
+        )
+        PermissionManager().generate(
+            scope_datas_allow=scope_data_allow,
+            scope_datas_deny=scope_data_deny,
+            _data=_data
+        )
+
         return jsonify(
             error_code=RET.OK,
             error_msg="OK."
@@ -2366,6 +2435,7 @@ class RoundEvent(Resource):
 
 class RoundItemEvent(Resource):
     @auth.login_required
+    @casbin_enforcer.enforcer
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
@@ -2445,6 +2515,7 @@ class CompareRoundEvent(Resource):
 
 class RoundMilestoneEvent(Resource):
     @auth.login_required
+    @casbin_enforcer.enforcer
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({

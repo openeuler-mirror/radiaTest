@@ -1,6 +1,3 @@
-- alias: 获取组织下人员信息
-  uri: /api/v1/org/{org_id}/users
-  act: get
 - alias: 获取组织下团队信息
   uri: /api/v1/org/{org_id}/groups
   act: get
@@ -16,6 +13,6 @@
 - alias: scope-组织角色解绑
   uri: /api/v1/scope-role/org/{org_id}
   act: delete
-- alias: 以组织名义发布需求
-  uri: /api/v1/requirement/org/{org_id}
+- alias: 创建组织角色
+  uri: /api/v1/role
   act: post

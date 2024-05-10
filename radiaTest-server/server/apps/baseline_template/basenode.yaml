@@ -1,0 +1,6 @@
+- alias: 更新basenode
+  uri: /api/v1/base-node/{base_node_id}
+  act: put
+- alias: 删除basenode
+  uri: /api/v1/base-node/{base_node_id}
+  act: delete

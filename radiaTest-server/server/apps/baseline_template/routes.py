@@ -18,7 +18,7 @@ from flask_restful import Resource
 from flask_pydantic import validate
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 
-from server import redis_client, db, swagger_adapt
+from server import redis_client, db, swagger_adapt, casbin_enforcer
 from server.schema.base import QueryBaseModel
 from server.utils.redis_util import RedisKey
 from server.utils.auth_util import auth
@@ -38,7 +38,8 @@ from server.apps.baseline_template.handler import (
     BaselineTemplateApplyHandler,
     BaselineTemplateHandler,
 )
-from server.utils.permission_utils import GetAllByPermission
+from server.utils.permission_utils import GetAllByPermission, PermissionManager
+from server.utils.read_from_yaml import get_api
 
 
 def get_baseline_template_tag():
@@ -53,6 +54,7 @@ class BaselineTemplateEvent(Resource):
         创建、查询基线模板(Baseline_template).
         url="/api/v1/baseline-template", methods=["POST", "GET"]
     """
+
     @auth.login_required()
     @response_collect
     @validate()
@@ -65,7 +67,7 @@ class BaselineTemplateEvent(Resource):
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
         "request_schema_model": BaselineTemplateBodySchema,
     })
-    def post(self, body: BaselineTemplateBodySchema):        
+    def post(self, body: BaselineTemplateBodySchema):
         """
             在数据库中新增Baseline_template数据, 并新增该模板首节点Base_Node.
             请求体:
@@ -97,10 +99,10 @@ class BaselineTemplateEvent(Resource):
             org_id = body.org_id
         else:
             org_id = redis_client.hget(
-                RedisKey.user(g.user_id), 
+                RedisKey.user(g.user_id),
                 'current_org_id'
             )
-            
+
         baseline_template = BaselineTemplate(
             title=body.title,
             type=body.type,
@@ -110,27 +112,51 @@ class BaselineTemplateEvent(Resource):
             org_id=org_id,
             group_id=body.group_id,
         )
-        db.session.add(baseline_template)
-        db.session.commit()
-
-        new_baseline_template = BaselineTemplate.query.filter_by(title=body.title).first()
-
+        baseline_template_id = baseline_template.add_flush_commit_id()
+        _data = {
+            "permission_type": body.type,
+            "org_id": org_id,
+            "group_id": body.group_id
+        }
+        scope_data_allow, scope_data_deny = get_api(
+            "baseline_template",
+            "baseline_template.yaml",
+            "baseline_template",
+            baseline_template_id
+        )
+        PermissionManager().generate(
+            scope_datas_allow=scope_data_allow,
+            scope_datas_deny=scope_data_deny,
+            _data=_data
+        )
         _base_node = BaseNode(
             title=body.title,
             creator_id=g.user_id,
-            group_id=new_baseline_template.group_id,
-            org_id=new_baseline_template.org_id,
-            permission_type=new_baseline_template.permission_type,
-            baseline_template_id=new_baseline_template.id,
+            group_id=body.group_id,
+            org_id=org_id,
+            permission_type=body.type,
+            baseline_template_id=baseline_template_id,
             type="baseline",
             is_root=True,
         )
-        db.session.add(_base_node)
-        db.session.commit()
+
+        basenode_id = _base_node.add_flush_commit_id()
+
+        scope_data_allow, scope_data_deny = get_api(
+            "baseline_template",
+            "basenode.yaml",
+            "base_node",
+            basenode_id
+        )
+        PermissionManager().generate(
+            scope_datas_allow=scope_data_allow,
+            scope_datas_deny=scope_data_deny,
+            _data=_data
+        )
 
         return jsonify(
             error_code=RET.OK,
-            error_msg="OK."
+            error_msg=f"create base template[{baseline_template_id}] success"
         )
 
     @auth.login_check
@@ -144,7 +170,7 @@ class BaselineTemplateEvent(Resource):
         "tag": get_baseline_template_tag(),  # 当前接口所对应的标签
         "summary": "搜索基线模板",  # 当前接口概述
         "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
-        "query_schema_model": BaselineTemplateQuerySchema,   # 当前接口查询参数schema校验器
+        "query_schema_model": BaselineTemplateQuerySchema,  # 当前接口查询参数schema校验器
     })
     def get(self, workspace: str, query: BaselineTemplateQuerySchema):
         """
@@ -174,6 +200,7 @@ class BaselineTemplateInheritEvent(Resource):
         url="/api/v1/baseline-template/<int:baseline_template_id>/inherit/<int:inherit_baseline_template_id>", 
         methods=["POST"]
     """
+
     @auth.login_required()
     @response_collect
     @validate()
@@ -198,9 +225,9 @@ class BaselineTemplateInheritEvent(Resource):
             "error_code": "2000",
             "error_msg": "OK"
             }  
-        """      
+        """
         return BaselineTemplateHandler.inherit(
-            baseline_template_id, 
+            baseline_template_id,
             inherit_baseline_template_id
         )
 
@@ -211,7 +238,9 @@ class BaselineTemplateItemEvent(Resource):
         url="/api/v1/baseline-template/<int:baseline_template_id>", 
         methods=["GET", "PUT", "DELETE"]
     """
+
     @auth.login_required()
+    @casbin_enforcer.enforcer
     @response_collect
     @collect_sql_error
     @validate()
@@ -259,8 +288,7 @@ class BaselineTemplateItemEvent(Resource):
         if body.openable is not None:
             baseline_template.openable = body.openable
         baseline_template.add_update(BaselineTemplate, "/baseline_template")
-            
-  
+
         _base_node = BaseNode.query.filter_by(
             baseline_template_id=baseline_template_id,
             is_root=True,
@@ -272,6 +300,7 @@ class BaselineTemplateItemEvent(Resource):
         return jsonify(error_code=RET.OK, error_msg="OK")
 
     @auth.login_required()
+    @casbin_enforcer.enforcer
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
@@ -385,7 +414,9 @@ class BaseNodeEvent(Resource):
         url="/api/v1/baseline-template/<int:baseline_template_id>/base-node", 
         methods=["POST", "GET"]
     """
+
     @auth.login_required()
+    @casbin_enforcer.enforcer
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
@@ -449,6 +480,7 @@ class BaseNodeItemEvent(Resource):
         url="/api/v1/base-node/<int:base_node_id>", 
         methods=["POST", "GET"]
     """
+
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
@@ -487,6 +519,7 @@ class BaseNodeItemEvent(Resource):
         return BaseNodeHandler.get(base_node_id)
 
     @auth.login_required()
+    @casbin_enforcer.enforcer
     @response_collect
     @swagger_adapt.api_schema_model_map({
         "__module__": get_baseline_template_tag.__module__,  # 获取当前接口所在模块
@@ -510,6 +543,7 @@ class BaseNodeItemEvent(Resource):
         return BaseNodeHandler.delete(base_node_id)
 
     @auth.login_required()
+    @casbin_enforcer.enforcer
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
@@ -537,7 +571,7 @@ class BaseNodeItemEvent(Resource):
         base_node = BaseNode.query.filter_by(id=base_node_id).first()
         if base_node.case_node_id:
             return jsonify(
-                error_code=RET.VERIFY_ERR, 
+                error_code=RET.VERIFY_ERR,
                 error_msg="Associated node cannot be modified."
             )
         if base_node.parent:
@@ -545,13 +579,13 @@ class BaseNodeItemEvent(Resource):
             for node in parent.children:
                 if node.title == body.title:
                     return jsonify(
-                        error_code=RET.DATA_EXIST_ERR, 
+                        error_code=RET.DATA_EXIST_ERR,
                         error_msg=f"{body.title} has existed."
                     )
         base_node.title = body.title
         base_node.add_update(BaseNode, "/base_node")
         return jsonify(
-            error_code=RET.OK, 
+            error_code=RET.OK,
             error_msg="OK."
         )
 
@@ -562,7 +596,9 @@ class BaselineTemplateCleanItemEvent(Resource):
         url="/api/v1/baseline-template/<int:baseline_template_id>/clean", 
         methods=["DELETE"]
     """
+
     @auth.login_required()
+    @casbin_enforcer.enforcer
     @response_collect
     @collect_sql_error
     @validate()
@@ -591,7 +627,7 @@ class BaselineTemplateCleanItemEvent(Resource):
         ).first()
         if not root_base_node:
             return jsonify(error_code=RET.NO_DATA_ERR, error_msg="Base node doesn't existed.")
-        
+
         for base_node in root_base_node.children:
             db.session.delete(base_node)
         db.session.commit()
@@ -604,6 +640,7 @@ class BaselineTemplateApplyItemEvent(Resource):
         url="/api/v1/case-node/<int:case_node_id>/apply/baseline-template/<int:baseline_template_id>", 
         methods=["POST"]
     """
+
     @auth.login_required()
     @response_collect
     @validate()
@@ -628,24 +665,24 @@ class BaselineTemplateApplyItemEvent(Resource):
             "error_code": "2000",
             "error_msg": "OK"
             }  
-        """  
+        """
         try:
             handler = BaselineTemplateApplyHandler(case_node_id, baseline_template_id)
             handler.check_valid()
             handler.apply()
-        
+
         except ValueError as e:
             return jsonify(
                 error_code=RET.VERIFY_ERR,
                 error_msg="param value is not correct",
             )
-        
+
         except (SQLAlchemyError, IntegrityError) as e:
             return jsonify(
                 error_code=RET.DB_ERR,
                 error_msg="db execute failed"
             )
-        
+
         return jsonify(
             error_code=RET.OK,
             error_msg="OK",

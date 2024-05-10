@@ -1,0 +1,9 @@
+- alias: 删除测试策略
+  uri: /api/v1/strategy/{strategy_id}
+  act: delete
+- alias: 暂存测试策略
+  uri: /api/v1/strategy/{strategy_id}/strategy-commit/stage
+  act: post
+- alias: 还原测试策略
+  uri: /api/v1/strategy/{strategy_id}/reduct
+  act: delete

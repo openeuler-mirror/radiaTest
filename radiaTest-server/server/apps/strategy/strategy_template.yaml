@@ -1,0 +1,6 @@
+- alias: 更新策略模板
+  uri: /api/v1/strategy-template/{strategy_template_id}
+  act: post
+- alias: 删除策略模板
+  uri: /api/v1/strategy-template/{strategy_template_id}
+  act: delete

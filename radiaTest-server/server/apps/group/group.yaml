@@ -22,9 +22,12 @@
 - alias: scope-团队角色解绑
   uri: /api/v1/scope-role/group/{group_id}
   act: delete
-- alias: 以团队名义接受需求
-  uri: /api/v1/requirement/{requirement_id}/group/{group_id}/accept
+- alias: 查询用户组下的权限域
+  uri: /api/v1/scope/group/{group_id}
+  act: get
+- alias: 审批用户加入群组
+  uri: /api/v1/users/groups/{group_id}
   act: put
-- alias: 以团队名义发布需求
-  uri: /api/v1/requirement/group/{group_id}
+- alias: 创建组角色
+  uri: /api/v1/role
   act: post
