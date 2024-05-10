@@ -84,6 +84,9 @@ function getTask() {
       loading.value = false;
       taskData.value = res.data.items?.map((item) => item);
       pagination.value.pageCount = res.data.pages;
+    }).catch(err => {
+      loading.value = false;
+      window.$message?.error(err.data.error_msg || '未知错误');
     });
 }
 function handlePageChange(page) {
