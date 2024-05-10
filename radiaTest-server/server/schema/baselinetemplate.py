@@ -32,11 +32,11 @@ class BaseNodeBodySchema(BaseModel):
     title: Optional[str]
     parent_id: int
     type: CaseNodeType = "directory"
-    case_node_ids :Optional[List[int]] = []
+    case_node_ids: Optional[List[int]] = []
 
     @root_validator
     def validate_query(cls, values):
-        if values.get("type") == "directory" and values.get("title") is None :
+        if values.get("type") == "directory" and values.get("title") is None:
             raise ValueError("when type is directory, title can't be None")
         return values
 
@@ -46,8 +46,8 @@ class BaselineTemplateBodySchema(BaseModel):
     openable: bool = False
     type: BaselineTemplateType
     org_id: Optional[int]
-    group_id: Optional[int]    
-    
+    group_id: Optional[int]
+
     @root_validator
     def validate_query(cls, values):
         if values.get("org_id") and values.get("group_id"):
@@ -55,7 +55,7 @@ class BaselineTemplateBodySchema(BaseModel):
 
         if values.get("type") == "group" and not values.get("group_id"):
             raise ValueError("The group_id should be provided.")
-        
+
         if values.get("type") == "org" and not values.get("org_id"):
             raise ValueError("The org_id should be provided.")
 
@@ -105,6 +105,3 @@ class BaseNodeQuerySchema(BaseModel):
     org_id: Optional[int]
     case_node_id: Optional[int]
     openable: bool = True
-
-
-   

@@ -23,7 +23,6 @@ from server.utils.auth_util import auth
 from server.utils.response_util import response_collect
 from .handlers import (
     handler_get_all_org,
-    handler_org_statistic,
     handler_org_group_page,
     handler_org_user_page,
 )
@@ -53,22 +52,6 @@ class Org(Resource):
         return handler_get_all_org(query)
 
 
-class OrgStatistic(Resource):
-    @auth.login_required()
-    @response_collect
-    @validate()
-    @swagger_adapt.api_schema_model_map({
-        "__module__": get_organization_tag.__module__,  # 获取当前接口所在模块
-        "resource_name": "OrgStatistic",  # 当前接口视图函数名
-        "func_name": "get",  # 当前接口所对应的函数名
-        "tag": get_organization_tag(),  # 当前接口所对应的标签
-        "summary": "当前组织下用户数、用户组数量统计",  # 当前接口概述
-        "externalDocs": {"description": "", "url": ""},  # 当前接口扩展文档定义
-    })
-    def get(self, org_id: int):
-        return handler_org_statistic(org_id)
-
-
 class Group(Resource):
     @response_collect
     @validate()
@@ -87,6 +70,7 @@ class Group(Resource):
 
 
 class User(Resource):
+    @auth.login_required()
     @response_collect
     @swagger_adapt.api_schema_model_map({
         "__module__": get_organization_tag.__module__,  # 获取当前接口所在模块

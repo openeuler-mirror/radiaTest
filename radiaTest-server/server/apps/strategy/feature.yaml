@@ -1,0 +1,6 @@
+- alias: 更新特定
+  uri: /api/v1/feature/{feature_id}
+  act: put
+- alias: 删除特性
+  uri: /api/v1/feature/{feature_id}
+  act: delete

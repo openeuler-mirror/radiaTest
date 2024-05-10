@@ -377,6 +377,7 @@ class CaseV2Query(PageBaseSchema):
 
 
 class TestResultEventSchemaV2(BaseModel):
+    task_id: int
     org_id: int
     milestone_id: int
     case_id: int

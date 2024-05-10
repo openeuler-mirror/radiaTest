@@ -1,0 +1,9 @@
+- alias: 更新case_node
+  uri: /api/v1/case-node/{case_node_id}
+  act: put
+- alias: 删除case_node
+  uri: /api/v1/case-node/{case_node_id}
+  act: delete
+- alias: 迁移case_node
+  uri: /api/v1/case-node/{case_node_id}/move-to/{to_id}
+  act: put

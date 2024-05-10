@@ -43,7 +43,7 @@ from server.model.testcase import (
     CaseResult
 )
 from server.model.framework import GitRepo
-from server.model.task import Task, TaskMilestone, TaskManualCase
+from server.model.task import Task, TaskMilestone, TaskManualCase, TaskParticipant
 from server.model.celerytask import CeleryTask
 from server.model.organization import Organization
 from server.model.milestone import Milestone
@@ -55,10 +55,12 @@ from server.schema.testcase import (
 from server.schema.celerytask import CeleryTaskUserInfoSchema
 from server.utils.file_util import MarkdownImportFile, ZipImportFile, ExcelImportFile
 from server.utils.sheet import Excel
-from server.utils.permission_utils import GetAllByPermission
+from server.utils.permission_utils import GetAllByPermission, PermissionManager
 from server.utils.md_util import MdUtil
 from celeryservice.tasks import resolve_testcase_file, resolve_testcase_set
 from celeryservice.sub_tasks import create_case_node_multi_select
+from server.utils.read_from_yaml import get_api
+from server.model.group import ReUserGroup
 
 
 class CaseImportHandler:
@@ -306,8 +308,24 @@ class CaseNodeHandler:
         _body = body.__dict__
         _body.update({"creator_id": g.user_id})
         _body.update({"org_id": redis_client.hget(RedisKey.user(g.user_id), 'current_org_id')})
+        _data = {
+            "permission_type": _body.get("permission_type"),
+            "org_id": _body.get("org_id"),
+            "group_id": _body.get("group_id")
+        }
         if not body.parent_id:
             case_node_id = Insert(CaseNode, body.__dict__).insert_id()
+            scope_data_allow, scope_data_deny = get_api(
+                "testcase",
+                "case_node.yaml",
+                "case_node",
+                case_node_id
+            )
+            PermissionManager().generate(
+                scope_datas_allow=scope_data_allow,
+                scope_datas_deny=scope_data_deny,
+                _data=_data
+            )
             return jsonify(error_code=RET.OK, error_msg="OK", data=case_node_id)
 
         parent = CaseNode.query.filter_by(id=body.parent_id).first()
@@ -350,12 +368,23 @@ class CaseNodeHandler:
                         ),
                         data=child.id
                     )
-
+            case_node_id = Insert(
+                CaseNode,
+                _body,
+            ).insert_id()
+            scope_data_allow, scope_data_deny = get_api(
+                "testcase",
+                "case_node.yaml",
+                "case_node",
+                case_node_id
+            )
+            PermissionManager().generate(
+                scope_datas_allow=scope_data_allow,
+                scope_datas_deny=scope_data_deny,
+                _data=_data
+            )
             case_node = CaseNode.query.filter_by(
-                id=Insert(
-                    CaseNode,
-                    _body,
-                ).insert_id()
+                id=case_node_id
             ).first()
 
             case_node.parent.append(parent)
@@ -1164,6 +1193,22 @@ class SuiteDocumentHandler:
         }
         )
         _id = Insert(SuiteDocument, _body).insert_id(SuiteDocument, "/suite_document")
+        _data = {
+            "permission_type": suite.permission_type,
+            "org_id": redis_client.hget(RedisKey.user(g.user_id), 'current_org_id'),
+            "group_id": suite.group_id
+        }
+        scope_data_allow, scope_data_deny = get_api(
+            "testcase",
+            "suite_document.yaml",
+            "document",
+            _id
+        )
+        PermissionManager().generate(
+            scope_datas_allow=scope_data_allow,
+            scope_datas_deny=scope_data_deny,
+            _data=_data
+        )
         return jsonify(error_code=RET.OK, error_msg="OK", data={"id": _id})
 
 
@@ -1197,7 +1242,7 @@ class OrphanSuitesHandler:
             suite_dict = item.to_json()
             return suite_dict
 
-        page_dict, e = PageUtil(self.query.page_num, self.query.page_size,).get_page_dict(query_filter, func=page_func)
+        page_dict, e = PageUtil(self.query.page_num, self.query.page_size, ).get_page_dict(query_filter, func=page_func)
         if e:
             return jsonify(error_code=RET.SERVER_ERR, error_msg=f'get orphan suites page error {e}')
         return jsonify(error_code=RET.OK, error_msg="OK", data=page_dict)
@@ -1329,7 +1374,7 @@ class TestResultEventHandler:
         if not body.result:
             return jsonify(
                 error_code=RET.PARMA_ERR,
-                error_msg="Organization is not existed!",
+                error_msg="result is empty",
             )
         org = Organization.query.filter_by(name=body.org).first()
         if not org:
@@ -1402,10 +1447,52 @@ class TestResultEventHandler:
 
     @staticmethod
     def test_result(body):
+        task_info = Task.query.filter_by(id=body.task_id).first()
+        if not task_info:
+            return jsonify(
+                error_code=RET.NO_DATA_ERR,
+                error_msg=f"task[{body.task_id}] is not exists",
+            )
+        is_valid = False
+        if task_info.creator_id == g.user_id or task_info.executor_id == g.user_id:
+            is_valid = True
+        elif task_info.executor_type == "GROUP":
+            re_user_group = ReUserGroup.query.filter_by(
+                user_id=g.user_id,
+                group_id=task_info.executor_id,
+                is_delete=0
+            ).first()
+            if re_user_group:
+                is_valid = True
+            elif task_info.participants:
+                is_person_participant = TaskParticipant.query.filter_by(
+                    participant_id=g.user_id,
+                    task_id=body.task_id
+                ).first()
+                if is_person_participant:
+                    is_valid = True
+                else:
+                    group_participant = TaskParticipant.query.filter_by(
+                        type="GROUP",
+                        task_id=body.task_id
+                    ).first()
+                    group_id = [item.participant_id for item in group_participant]
+                    re_user_group = ReUserGroup.query.filter(
+                        ReUserGroup.user_id == g.user_id,
+                        ReUserGroup.group_id.in_(group_id),
+                        ReUserGroup.is_delete == False
+                    ).all()
+                    if re_user_group:
+                        is_valid = True
+        if not is_valid:
+            return jsonify(
+                error_code=RET.UNAUTHORIZE_ERR,
+                error_msg="unauthorize change test result",
+            )
         if not body.result:
             return jsonify(
                 error_code=RET.PARMA_ERR,
-                error_msg="Organization is not existed!",
+                error_msg="result is empty",
             )
         org = Organization.query.filter_by(id=body.org_id).first()
         if not org:

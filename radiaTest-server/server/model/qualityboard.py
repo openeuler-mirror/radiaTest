@@ -295,6 +295,7 @@ class Feature(db.Model, BaseModel):
     release_to = db.Column(db.String(50))
     pkgs = db.Column(LONGTEXT())
     task_id = db.Column(db.Integer(), db.ForeignKey("task.id"))
+    org_id = db.Column(db.Integer(), db.ForeignKey("organization.id"))
     re_feature_products = db.relationship(
         'ReProductFeature', backref="feature", cascade="all, delete, delete-orphan"
     )

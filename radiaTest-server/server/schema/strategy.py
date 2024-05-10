@@ -59,6 +59,7 @@ class StrategyTemplateBodySchema(BaseModel):
 
 class StrategyTemplateQuerySchema(BaseModel):
     title: Optional[str]
+    org_id: Optional[int]
 
 
 class FeatureNodeBodySchema(BaseModel):
@@ -91,11 +92,6 @@ class StrategyCommitBodySchema(BaseModel):
 
 class StrategyUpdateSchema(BaseModel):
     tree: Optional[dict]
-
-
-class StrategyCommitUpdateSchema(BaseModel):
-    commit_tree: Optional[dict]
-    commit_status: Optional[str]
 
 
 class CommitBodySchema(BaseModel):

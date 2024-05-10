@@ -192,6 +192,7 @@ class Group(Resource):
     @auth.login_required()
     @response_collect
     @validate()
+    @casbin_enforcer.enforcer
     @swagger_adapt.api_schema_model_map({
         "__module__": get_user_tag.__module__,
         "resource_name": "Group",

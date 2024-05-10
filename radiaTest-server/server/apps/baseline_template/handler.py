@@ -24,7 +24,8 @@ from server.utils.response_util import RET
 from server.utils.db import collect_sql_error
 from server.model.testcase import CaseNode
 from server.model.baselinetemplate import BaselineTemplate, BaseNode
-from server.utils.permission_utils import GetAllByPermission
+from server.utils.permission_utils import GetAllByPermission, PermissionManager
+from server.utils.read_from_yaml import get_api
 
 
 class BaselineTemplateHandler:
@@ -374,10 +375,25 @@ class BaseNodeHandler:
                 title=body.title,
                 is_root=False
             )
-            db.session.add(base_node)
-            db.session.commit()
+            base_node_id = base_node.add_flush_commit_id()
             base_node.parent.append(parent)
             base_node.add_update()
+            _data = {
+                "permission_type": baseline_template.permission_type,
+                "org_id": baseline_template.org_id,
+                "group_id": baseline_template.group_id
+            }
+            scope_data_allow, scope_data_deny = get_api(
+                "baseline_template",
+                "basenode.yaml",
+                "base_node",
+                base_node_id
+            )
+            PermissionManager().generate(
+                scope_datas_allow=scope_data_allow,
+                scope_datas_deny=scope_data_deny,
+                _data=_data
+            )
             return jsonify(error_code=RET.OK, error_msg="OK")
 
         base_body = body.__dict__
@@ -413,11 +429,6 @@ class BaseNodeHandler:
                 error_code=RET.NO_DATA_ERR,
                 error_msg="The base_node does not exist."
             )
-        current_org_id = int(
-            redis_client.hget(RedisKey.user(g.user_id), 'current_org_id')
-        )
-        if current_org_id != base_node.org_id:
-            return jsonify(error_code=RET.VERIFY_ERR, error_msg="No right to delete")
 
         _baseline_id = base_node.baseline_template_id
         db.session.delete(base_node)

@@ -78,7 +78,8 @@ def handler_add_group():
     PermissionManager().generate(
         scope_datas_allow=scope_data_allow,
         scope_datas_deny=scope_data_deny,
-        _data=_data
+        _data=_data,
+        admin_only=True
     )
 
     for role in role_list:

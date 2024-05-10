@@ -28,6 +28,8 @@ from server.utils.db import Insert, Delete, collect_sql_error
 from server.utils.read_from_yaml import get_default_suffix
 from server.utils.redis_util import RedisKey
 from server.utils.page_util import PageUtil
+from server.utils.permission_utils import PermissionManager
+from server.utils.read_from_yaml import get_api
 
 
 class RoleHandler:
@@ -179,14 +181,26 @@ class RoleHandler:
                 error_msg="This role[{},{}] is already exist".format(_body.get("type"), _body.get("name"))
             )
 
-        _ = Insert(Role, _body).insert_id(Role, '/role')
+        role_id = Insert(Role, _body).insert_id(Role, '/role')
 
         if _body.get("role_id"):
             role = Role.query.get(_body["role_id"])
             _origin = [_ for _ in role.children]
-            role.children.append(Role.query.get(_))
+            role.children.append(Role.query.get(role_id))
             _after = [_ for _ in role.children]
             role.add_update(difference=list(set(_after) - set(_origin)))
+
+        _data = {
+            "permission_type": _body.get("type"),
+            "org_id": _body.get("org_id"),
+            "group_id": _body.get("group_id")
+        }
+        scope_data_allow, scope_data_deny = get_api("permission", "role.yaml", "role", role_id)
+        PermissionManager().generate(
+            scope_datas_allow=scope_data_allow,
+            scope_datas_deny=scope_data_deny,
+            _data=_data
+        )
         return jsonify(
             error_code=RET.OK,
             error_msg="create role[{},{}] success".format(_body.get("type"), _body.get("name"))

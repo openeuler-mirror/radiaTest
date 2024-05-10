@@ -1,0 +1,7 @@
+- alias: 更新suite文档
+  uri: /api/v1/suite-document/{document_id}
+  act: put
+- alias: 删除suite文档
+  uri: /api/v1/suite-document/{document_id}
+  act: delete
+

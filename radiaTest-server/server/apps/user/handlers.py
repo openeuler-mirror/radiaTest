@@ -33,6 +33,7 @@ from server.model.milestone import Milestone
 from server.model.organization import Organization
 from server.model.group import ReUserGroup, GroupRole
 from server.model.permission import Role, ReUserRole
+from server.model.administrator import Admin
 from server.schema.group import ReUserGroupSchema, GroupInfoSchema
 from server.schema.user import UserInfoSchema, UserTaskSchema
 from server.schema.task import TaskInfoSchema
@@ -366,6 +367,10 @@ def handler_add_group(group_id, body):
 
 @collect_sql_error
 def handler_get_all(query):
+    admin = Admin.query.filter_by(account=g.user_login).first()
+    if not admin:
+        resp = jsonify(error_code=RET.VERIFY_ERR, error_msg='user no right to get user info')
+        return resp
     filter_params = []
 
     if query.user_id:

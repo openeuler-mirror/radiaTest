@@ -22,7 +22,7 @@ from flask_restful import Resource
 from flask_pydantic import validate
 from sqlalchemy import or_
 
-from server import redis_client, casbin_enforcer, swagger_adapt
+from server import redis_client, casbin_enforcer, swagger_adapt, db
 from server.schema.base import QueryBaseModel
 from server.utils.file_util import identify_file_type, FileTypeMapping, file_concurrency_lock
 from server.utils.redis_util import RedisKey
@@ -82,7 +82,8 @@ from server.apps.testcase.handler import (
 )
 from server.utils.resource_utils import ResourceManager
 from server.utils.page_util import PageUtil
-from server import db
+from server.utils.read_from_yaml import get_api
+from server.utils.permission_utils import PermissionManager
 
 
 def get_testcase_tag():
@@ -159,6 +160,7 @@ class CaseNodeItemEvent(Resource):
         return CaseNodeHandler.get(case_node_id, query)
 
     @auth.login_required()
+    @casbin_enforcer.enforcer
     @response_collect
     @swagger_adapt.api_schema_model_map({
         "__module__": get_testcase_tag.__module__,  # 获取当前接口所在模块
@@ -172,6 +174,7 @@ class CaseNodeItemEvent(Resource):
         return CaseNodeHandler.delete(case_node_id)
 
     @auth.login_required()
+    @casbin_enforcer.enforcer
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
@@ -303,7 +306,22 @@ class SuiteEvent(Resource):
             "permission_type": "org",
             "org_id": redis_client.hget(RedisKey.user(g.user_id), 'current_org_id')
         })
-        _ = Insert(Suite, suite_body).insert_id(Suite, "/suite")
+        suite_id = Insert(Suite, suite_body).insert_id(Suite, "/suite")
+        _data = {
+            "permission_type": "org",
+            "org_id": redis_client.hget(RedisKey.user(g.user_id), 'current_org_id')
+        }
+        scope_data_allow, scope_data_deny = get_api(
+            "testcase",
+            "suite.yaml",
+            "suite",
+            suite_id
+        )
+        PermissionManager().generate(
+            scope_datas_allow=scope_data_allow,
+            scope_datas_deny=scope_data_deny,
+            _data=_data
+        )
         return jsonify(error_code=RET.OK, error_msg="OK")
 
     @auth.login_check
@@ -459,6 +477,7 @@ class SuiteItemEvent(Resource):
         )
 
     @auth.login_required()
+    @casbin_enforcer.enforcer
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
@@ -497,6 +516,7 @@ class SuiteItemEvent(Resource):
         return jsonify(error_code=RET.OK, error_msg="OK")
 
     @auth.login_required()
+    @casbin_enforcer.enforcer
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
@@ -611,6 +631,22 @@ class CaseEvent(Resource):
         })
 
         _id = Insert(Case, case_body).insert_id(Case, "/case")
+        _data = {
+            "permission_type": case_body.get("permission_type"),
+            "org_id": redis_client.hget(RedisKey.user(g.user_id), 'current_org_id'),
+            "group_id": case_body.get("group_id")
+        }
+        scope_data_allow, scope_data_deny = get_api(
+            "testcase",
+            "case.yaml",
+            "case",
+            _id
+        )
+        PermissionManager().generate(
+            scope_datas_allow=scope_data_allow,
+            scope_datas_deny=scope_data_deny,
+            _data=_data
+        )
         return_data["case_id"] = _id
 
         case_body.update({"case_id": _id})
@@ -676,6 +712,7 @@ class CaseEvent(Resource):
 
 class CaseItemEvent(Resource):
     @auth.login_required()
+    @casbin_enforcer.enforcer
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
@@ -732,6 +769,7 @@ class CaseItemEvent(Resource):
         return jsonify(error_code=RET.OK, error_msg="OK")
 
     @auth.login_required()
+    @casbin_enforcer.enforcer
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
@@ -1062,6 +1100,7 @@ class SuiteDocumentEvent(Resource):
     """
 
     @auth.login_required()
+    @casbin_enforcer.enforcer
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
@@ -1183,6 +1222,7 @@ class SuiteDocumentItemEvent(Resource):
         return GetAllByPermission(SuiteDocument, org_id=org_id).precise({"id": document_id})
 
     @auth.login_required()
+    @casbin_enforcer.enforcer
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
@@ -1216,6 +1256,7 @@ class SuiteDocumentItemEvent(Resource):
         return jsonify(error_code=RET.OK, error_msg=f"edit suite doc[{document_id}] success")
 
     @auth.login_required()
+    @casbin_enforcer.enforcer
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
@@ -1255,6 +1296,7 @@ class CaseNodeMoveToEvent(Resource):
     """
 
     @auth.login_required()
+    @casbin_enforcer.enforcer
     @response_collect
     @validate()
     @swagger_adapt.api_schema_model_map({
