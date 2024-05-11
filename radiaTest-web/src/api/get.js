@@ -3,7 +3,7 @@ import axios2 from 'axios';
 import { unkonwnErrorMsg } from '@/assets/utils/description';
 import { workspace } from '@/assets/config/menu.js';
 import { storage } from '@/assets/utils/storageUtils';
-import router from '@/router/index';
+// import router from '@/router/index';
 import store from '@/store';
 function getRequest(url, data, config, unLoginRquest) {
   return new Promise((resolve, reject) => {
@@ -27,7 +27,7 @@ function getRequest(url, data, config, unLoginRquest) {
       })
       .catch((err) => {
         if (!storage.getValue('token') && !addedOrgData.org_id) {
-          router.replace(`/blank?redirect=${router.currentRoute.value.fullPath}`);
+          // router.replace(`/blank?redirect=${router.currentRoute.value.fullPath}`);
           window.$notification?.error({
             content: '登录过期,请重新登录',
             duration: 5000,
