@@ -71,4 +71,4 @@ RUN pip3 install -r requirements.txt -i $PIP_REPO || pip3 install -r requirement
 
 RUN sed -i '45s/^/# /' /home/radiaTest/.local/lib/python3.9/site-packages/casbin/model/assertion.py
 
-CMD bash /opt/radiaTest/build/k8s-pod/web/gunicorn/init_db.sh && gunicorn --preload -c /etc/radiaTest/gunicorn.conf.py manage:app
+CMD gunicorn --preload -c /etc/radiaTest/gunicorn.conf.py manage:app

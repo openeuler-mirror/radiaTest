@@ -36,8 +36,7 @@ def loads_config_ini():
     # clean up config file if exists
     if os.path.isfile(server_config_ini):
         try:
-            #os.remove(server_config_ini)
-            pass
+            os.remove(server_config_ini)
         except Exception as err:
             raise RuntimeError(f"Could not remove {server_config_ini}: {str(err)}") from err
     return config
