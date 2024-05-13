@@ -33,14 +33,14 @@ const selectedOrg = ref('');
 const orgListoptions = ref([]);
 function getOrgList() {
   getAllOrg().then((res) => {
-    if (!orgListoptions.value.length) {
-      storage.setLocalValue('unLoginOrgId', null);
-    }
     orgListoptions.value = res.data.map((item) => ({
       label: item.org_name,
       value: { name: item.org_name, id: String(item.org_id) },
       ...item
     }));
+    if (!orgListoptions.value.length) {
+      storage.setLocalValue('unLoginOrgId', null);
+    }
     if (storage.getLocalValue('unLoginOrgId')) {
       selectedOrg.value = storage.getLocalValue('unLoginOrgId');
     } else {
