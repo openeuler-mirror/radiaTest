@@ -2,7 +2,7 @@ const name = 'radiaTest';
 const version = '1.0.0';
 const license = 'Mulan PSL v2';
 
-const serverPath = 'radiatest.openeuler.org';
+const serverPath = 'radiatest-icsl.test.osinfra.cn';
 const websocketProtocol = 'wss';
 
 const newsSocketPath = `${websocketProtocol}://${serverPath}/message`;
