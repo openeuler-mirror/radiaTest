@@ -1,12 +1,29 @@
 <template>
   <div>
-    <n-form :label-width="40" :model="formValue" :rules="rules" :size="size" label-placement="top" ref="formRef">
+    <n-form
+      :label-width="40"
+      :model="formValue"
+      :rules="rules"
+      :size="size"
+      label-placement="top"
+      ref="formRef"
+    >
       <n-grid :cols="18" :x-gap="24">
         <n-form-item-gi :span="6" label="产品" path="product">
-          <n-select v-model:value="formValue.product" :options="productOpts" placeholder="选择产品" filterable />
+          <n-select
+            v-model:value="formValue.product"
+            :options="productOpts"
+            placeholder="选择产品"
+            filterable
+          />
         </n-form-item-gi>
         <n-form-item-gi :span="6" label="版本" path="product_id">
-          <n-select v-model:value="formValue.product_id" :options="versionOpts" placeholder="选择版本" filterable />
+          <n-select
+            v-model:value="formValue.product_id"
+            :options="versionOpts"
+            placeholder="选择版本"
+            filterable
+          />
         </n-form-item-gi>
         <n-form-item-gi :span="6" label="里程碑类型" path="type">
           <n-select
@@ -14,16 +31,16 @@
             :options="[
               {
                 label: 'update版本',
-                value: 'update'
+                value: 'update',
               },
               {
                 label: '迭代版本',
-                value: 'round'
+                value: 'round',
               },
               {
                 label: '发布版本',
-                value: 'release'
-              }
+                value: 'release',
+              },
             ]"
             placeholder="选择里程碑类型"
             filterable
@@ -91,7 +108,8 @@ import { getProductOpts, getVersionOpts } from '@/assets/utils/getOpts';
 import { storage } from '@/assets/utils/storageUtils';
 import { formatTime } from '@/assets/utils/dateFormatUtils';
 import extendForm from '@/views/versionManagement/product/modules/createForm.js';
-
+import milestoneTable from '@/views/versionManagement/milestone/modules/milestoneTable.js';
+import { get } from '@/assets/CRUD/read';
 export default defineComponent({
   setup(props, context) {
     onMounted(() => {
@@ -120,21 +138,31 @@ export default defineComponent({
       hasEnterprise,
       handlePropsButtonClick: () => validation(createForm.formRef, context),
       post: () => {
-        createAjax.postForm('/v2/milestone', {
-          value: {
-            ...createForm.formValue.value,
-            start_time: formatTime(createForm.formValue.value.start_time, 'yyyy-MM-dd hh:mm:ss'),
-            end_time: formatTime(createForm.formValue.value.end_time, 'yyyy-MM-dd hh:mm:ss'),
-            permission_type: createForm.formValue.value.permission_type.split('-')[0],
-            creator_id: storage.getValue('user_id'),
-            org_id: storage.getValue('loginOrgId'),
-            group_id: Number(createForm.formValue.value.permission_type.split('-')[1])
-          }
-        });
-        context.emit('close');
-      }
+        createAjax
+          .postForm('/v2/milestone', {
+            value: {
+              ...createForm.formValue.value,
+              start_time: formatTime(createForm.formValue.value.start_time, 'yyyy-MM-dd hh:mm:ss'),
+              end_time: formatTime(createForm.formValue.value.end_time, 'yyyy-MM-dd hh:mm:ss'),
+              permission_type: createForm.formValue.value.permission_type.split('-')[0],
+              creator_id: storage.getValue('user_id'),
+              org_id: storage.getValue('loginOrgId'),
+              group_id: Number(createForm.formValue.value.permission_type.split('-')[1]),
+            },
+          })
+          .then(() => {
+            context.emit('close');
+            get.list(
+              '/v2/ws/default/milestone',
+              milestoneTable.totalData,
+              milestoneTable.loading,
+              milestoneTable.filter.value,
+              milestoneTable.pagination
+            );
+          });
+      },
     };
-  }
+  },
 });
 </script>
 
