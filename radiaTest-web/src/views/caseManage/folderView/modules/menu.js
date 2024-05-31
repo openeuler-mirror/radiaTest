@@ -542,6 +542,7 @@ function dialogAction(confirmFn, node, d, contentType) {
       type: 'primary',
       ghost: true,
       onClick: () => {
+        milePage.value = 1;
         if (contentType === 'baseline' || contentType === 'template') {
           handleBaselineDialogConfirm(confirmFn, node, d, contentType);
         } else {
@@ -557,7 +558,10 @@ function dialogAction(confirmFn, node, d, contentType) {
       size: 'large',
       type: 'error',
       ghost: true,
-      onClick: () => d.destroy()
+      onClick: () => {
+        milePage.value = 1;
+        d.destroy();
+      }
     },
     '取消'
   );
@@ -646,7 +650,6 @@ function getTemplates(node, query) {
 }
 
 function newBaselineContent(node) {
-  milePage.value = 1;
   const form = h('div', null, [
     h(
       NFormItem,
