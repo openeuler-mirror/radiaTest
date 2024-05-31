@@ -1,6 +1,13 @@
 <template>
   <div>
-    <n-form :label-width="40" :model="formValue" :rules="rules" :size="size" label-placement="top" ref="formRef">
+    <n-form
+      :label-width="40"
+      :model="formValue"
+      :rules="rules"
+      :size="size"
+      label-placement="top"
+      ref="formRef"
+    >
       <n-grid :cols="18" :x-gap="24">
         <n-form-item-gi :span="6" label="产品" path="name">
           <n-input
@@ -14,7 +21,11 @@
           />
         </n-form-item-gi>
         <n-form-item-gi :span="6" label="版本" path="version">
-          <n-input v-model:value="formValue.version" placeholder="输入待注册版本" @keydown.enter.prevent />
+          <n-input
+            v-model:value="formValue.version"
+            placeholder="输入待注册版本"
+            @keydown.enter.prevent
+          />
         </n-form-item-gi>
         <n-form-item-gi :span="6" label="类型" path="permission_type">
           <n-cascader
@@ -32,16 +43,16 @@
             :options="[
               {
                 label: 'LTS',
-                value: 'LTS'
+                value: 'LTS',
               },
               {
                 label: 'LTS-SPx',
-                value: 'LTS-SPx'
+                value: 'LTS-SPx',
               },
               {
                 label: '创新版本',
-                value: 'INNOVATION'
-              }
+                value: 'INNOVATION',
+              },
             ]"
             placeholder="选择里版本类型"
           />
@@ -59,7 +70,11 @@
           </n-switch>
         </n-form-item-gi>
         <n-form-item-gi :span="18" label="描述" path="description">
-          <n-input v-model:value="formValue.description" placeholder="产品版本的描述文本" @keydown.enter.prevent />
+          <n-input
+            v-model:value="formValue.description"
+            placeholder="产品版本的描述文本"
+            @keydown.enter.prevent
+          />
         </n-form-item-gi>
       </n-grid>
     </n-form>
@@ -73,6 +88,11 @@ import validation from '@/assets/utils/validation.js';
 import { createAjax } from '@/assets/CRUD/create';
 import createForm from '@/views/versionManagement/product/modules/createForm.js';
 import { storage } from '@/assets/utils/storageUtils';
+import {
+  getTableData,
+  productFilterParam,
+  productVersionPagination,
+} from '@/views/versionManagement/product/modules/productTable.js';
 
 export default defineComponent({
   setup(props, context) {
@@ -90,15 +110,20 @@ export default defineComponent({
             permission_type: createForm.formValue.value.permission_type.split('-')[0],
             creator_id: storage.getValue('user_id'),
             org_id: storage.getValue('loginOrgId'),
-            group_id: Number(createForm.formValue.value.permission_type.split('-')[1])
-          }
+            group_id: Number(createForm.formValue.value.permission_type.split('-')[1]),
+          },
         };
         createAjax.postForm('/v1/product', formData).then(() => {
           context.emit('close');
+          getTableData({
+            ...productFilterParam,
+            page_num: 1,
+            page_size: productVersionPagination.pageSize,
+          });
         });
-      }
+      },
     };
-  }
+  },
 });
 </script>
 
