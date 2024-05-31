@@ -73,6 +73,11 @@ import validation from '@/assets/utils/validation.js';
 import { createAjax } from '@/assets/CRUD/create';
 import createForm from '@/views/versionManagement/product/modules/createForm.js';
 import { storage } from '@/assets/utils/storageUtils';
+import {
+  getTableData,
+  productFilterParam,
+  productVersionPagination,
+} from '@/views/versionManagement/product/modules/productTable.js';
 
 export default defineComponent({
   setup(props, context) {
@@ -95,6 +100,11 @@ export default defineComponent({
         };
         createAjax.postForm('/v1/product', formData).then(() => {
           context.emit('close');
+          getTableData({
+            ...productFilterParam,
+            page_num: 1,
+            page_size: productVersionPagination.pageSize,
+          });
         });
       }
     };
