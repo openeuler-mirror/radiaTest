@@ -27,13 +27,15 @@ function disablePreviousDate(ts) {
 
 function getMilestone() {
   // 需要后端适配
-  getAllMilestone().then(res => {
+  getAllMilestone().then((res) => {
     milestoneOptions.value = [];
-    for (const item of res.data.items) {
-      milestoneOptions.value.push({
-        value: item.id,
-        label: item.name,
-      });
+    if (res.data.items) {
+      for (const item of res.data.items) {
+        milestoneOptions.value.push({
+          value: item.id,
+          label: item.name,
+        });
+      }
     }
   });
 }
@@ -43,10 +45,10 @@ function getGroup() {
     group.value = [];
   }
   const requests = [];
-  requests.push(getOrgGroup(storage.getValue('loginOrgId'), { page_size: 99999, page_num: 1, }));
+  requests.push(getOrgGroup(storage.getValue('loginOrgId'), { page_size: 99999, page_num: 1 }));
   groupOptions.value = [];
-  Promise.allSettled(requests).then(responses => {
-    responses.forEach(item => {
+  Promise.allSettled(requests).then((responses) => {
+    responses.forEach((item) => {
       if (item.value?.data?.items) {
         for (const i of item.value.data.items) {
           const element = {
@@ -66,8 +68,8 @@ function getOwner() {
   }
   const requests = [];
   ownerOptions.value = [];
-  Promise.allSettled(requests).then(responses => {
-    responses.forEach(item => {
+  Promise.allSettled(requests).then((responses) => {
+    responses.forEach((item) => {
       if (item.value?.data?.items) {
         for (const i of item.value.data.items) {
           const element = {
@@ -87,16 +89,16 @@ function renderLabel(option) {
     {
       style: {
         display: 'flex',
-        alignItems: 'center'
-      }
+        alignItems: 'center',
+      },
     },
     [
       h(NAvatar, {
         src: option.avatar,
         round: true,
-        size: 'small'
+        size: 'small',
       }),
-      option.label
+      option.label,
     ]
   );
 }

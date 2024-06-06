@@ -11,7 +11,6 @@ function getRequest(url, data, config, unLoginRquest) {
       return;
     }
     let addedOrgData = {};
-
     if (data && url !== '/v1/login/org/list') {
       addedOrgData = data;
       if (url !== '/v1/login') {

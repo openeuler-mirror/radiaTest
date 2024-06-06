@@ -6,9 +6,9 @@ const addedOrg = (params) => {
   let addedOrgData = {};
   if (params) {
     addedOrgData = params;
-    addedOrgData.org_id = storage.getLocalValue('unLoginOrgId').id;
+    addedOrgData.org_id = storage.getLocalValue('unLoginOrgId')?.id;
   } else {
-    addedOrgData.org_id = storage.getLocalValue('unLoginOrgId').id;
+    addedOrgData.org_id = storage.getLocalValue('unLoginOrgId')?.id;
   }
   return addedOrgData;
 };
