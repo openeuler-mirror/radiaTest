@@ -105,6 +105,8 @@
             v-model:value="loginForm.passWord"
             v-on:copy.prevent="handleFalse"
             v-on:cut.prevent="handleFalse"
+            @keyup.enter="handleLoginByForm"
+            passively-activated
           >
             <template #prefix>
               <n-icon size="20">
