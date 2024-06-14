@@ -1,5 +1,12 @@
 <template>
-  <n-form :label-width="40" :model="formValue" :rules="rules" :size="size" label-placement="top" ref="formRef">
+  <n-form
+    :label-width="40"
+    :model="formValue"
+    :rules="rules"
+    :size="size"
+    label-placement="top"
+    ref="formRef"
+  >
     <n-grid :cols="18" :x-gap="24">
       <n-form-item-gi :span="18" label="里程碑名" path="name">
         <n-input
@@ -31,11 +38,12 @@
 <script>
 import { ref, computed, onMounted, defineComponent } from 'vue';
 import { useStore } from 'vuex';
-
 import { any2standard } from '@/assets/utils/dateFormatUtils.js';
 import validation from '@/assets/utils/validation.js';
 import updateAjax from '@/assets/CRUD/update/updateAjax.js';
 import updateForm from '@/views/versionManagement/milestone/modules/updateForm.js';
+import milestoneTable from '@/views/versionManagement/milestone/modules/milestoneTable.js';
+import { get } from '@/assets/CRUD/read';
 
 export default defineComponent({
   setup(props, context) {
@@ -55,13 +63,21 @@ export default defineComponent({
           id: updateForm.formValue.value.id,
           name: updateForm.formValue.value.name,
           start_time: start,
-          end_time: end
+          end_time: end,
         });
-        updateAjax.putForm(`/v2/milestone/${updateForm.formValue.value.id}`, data);
-        context.emit('close');
-      }
+        updateAjax.putForm(`/v2/milestone/${updateForm.formValue.value.id}`, data).then(() => {
+          context.emit('close');
+          get.list(
+            '/v2/ws/default/milestone',
+            milestoneTable.totalData,
+            milestoneTable.loading,
+            milestoneTable.filter.value,
+            milestoneTable.pagination
+          );
+        });
+      },
     };
-  }
+  },
 });
 </script>
 
