@@ -28,7 +28,7 @@
                 :value="model.type"
               />
             </n-form-item>
-            <n-form-item label="执行团队" path="group_id" v-if="model.type === 'GROUP'">
+            <!-- <n-form-item label="执行团队" path="group_id" v-if="model.type === 'GROUP'">
               <n-select
                 placeholder="请选择"
                 :options="groups"
@@ -37,7 +37,7 @@
                 @update:value="getUserByGroup"
                 :disabled="model.type == 'PERSON'"
               />
-            </n-form-item>
+            </n-form-item> -->
             <n-form-item label="执行者" path="orgTask" v-if="model.type === 'ORGANIZATION'">
               <n-cascader
                 :value="model.orgTask"

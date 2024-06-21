@@ -26,12 +26,12 @@
         />
       </div>
     </n-gi>
-    <n-gi>
+    <!-- <n-gi>
       <div class="menuItem" v-show="taskType === 'group'">
         <div class="itemTitle">团队名称</div>
         <n-select v-model:value="groupValue" :options="groupOptions" @update:value="changeGroup" />
       </div>
-    </n-gi>
+    </n-gi> -->
   </n-grid>
   <div id="gstc" class="gstc" v-if="dataList.length">
     <div class="gstc-list">
@@ -195,10 +195,10 @@ const taskTypeOptions = [
     label: '组织任务',
     value: 'organization',
   },
-  {
-    label: '团队任务',
-    value: 'group',
-  },
+  // {
+  //   label: '团队任务',
+  //   value: 'group',
+  // },
 ];
 const changeTaskType = (typeValue) => {
   if (typeValue !== 'group') {
@@ -209,9 +209,9 @@ const changeTaskType = (typeValue) => {
 
 const groupValue = ref(null);
 const groupOptions = ref([]);
-const changeGroup = () => {
-  getData();
-};
+// const changeGroup = () => {
+//   getData();
+// };
 
 // 计算月份数量、月份数组、年份数组、总天数、总月数、日历开始日期、日历结束日期
 const initDate = (dateArray) => {

@@ -84,7 +84,7 @@ const rulesVersion = ref({
 // 任务类型
 const taskTypes = ref([
   { label: '个人任务', value: 'PERSON' },
-  { label: '团队任务', value: 'GROUP' },
+  // { label: '团队任务', value: 'GROUP' },
   { label: '组织任务', value: 'ORGANIZATION' }
 ]);
 

@@ -693,7 +693,7 @@ function createTemplate() {
       axios
         .post('/v1/tasks/distribute-templates', {
           name: drawerModel.value.templateName,
-          group_id: drawerModel.value.groupName
+          // group_id: drawerModel.value.groupName
         })
         .then(() => {
           getTemplateTableData();

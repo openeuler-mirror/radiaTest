@@ -1,6 +1,11 @@
 <template>
   <div class="container">
-    <n-drawer v-model:show="showNewTemplateDrawer" :maskClosable="false" width="600px" placement="right">
+    <n-drawer
+      v-model:show="showNewTemplateDrawer"
+      :maskClosable="false"
+      width="600px"
+      placement="right"
+    >
       <n-drawer-content :title="drawerTitle">
         <n-form
           :model="drawerModel"
@@ -18,7 +23,7 @@
               :disabled="drawerTypeJudge()"
             />
           </n-form-item>
-          <n-form-item label="团队名称" path="groupName" v-if="drawerType !== 'editTemplateName'">
+          <!-- <n-form-item label="团队名称" path="groupName" v-if="drawerType !== 'editTemplateName'">
             <n-select
               v-model:value="drawerModel.groupName"
               placeholder="请选择团队"
@@ -28,7 +33,7 @@
               clearable
               :disabled="drawerTypeJudge()"
             />
-          </n-form-item>
+          </n-form-item> -->
           <n-form-item label="模板类型" path="templateType" v-if="drawerTypeJudge()">
             <n-input placeholder="请输入模板类型" v-model:value="drawerModel.templateType" />
           </n-form-item>
@@ -90,7 +95,12 @@
           </n-form-item>
           <div class="createButtonBox">
             <n-button class="btn" type="error" ghost @click="cancelCreateTemplate">取消</n-button>
-            <n-button class="btn" type="info" ghost @click="createTemplate" v-show="drawerType === 'newTemplate'"
+            <n-button
+              class="btn"
+              type="info"
+              ghost
+              @click="createTemplate"
+              v-show="drawerType === 'newTemplate'"
               >创建模板</n-button
             >
             <n-button
@@ -150,13 +160,13 @@ import { FilePlus } from '@vicons/tabler';
 
 export default {
   components: {
-    FilePlus
+    FilePlus,
   },
   setup() {
     modules.init();
 
     return modules;
-  }
+  },
 };
 </script>
 
