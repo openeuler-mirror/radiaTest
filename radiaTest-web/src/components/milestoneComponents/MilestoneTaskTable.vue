@@ -1,21 +1,16 @@
 <template>
   <div>
-    <div style="display:flex;justify-content:flex-end;margin:10px 0;">
+    <div style="display: flex; justify-content: flex-end; margin: 10px 0">
       <n-input
         round
         @change="getData"
         v-model:value="title"
         placeholder="请输入"
         clearable
-        style="width:300px"
+        style="width: 300px"
       />
     </div>
-    <n-data-table
-      :data="data"
-      :loading="loading"
-      :pagination="pagination"
-      :columns="columns"
-    />
+    <n-data-table :data="data" :loading="loading" :pagination="pagination" :columns="columns" />
   </div>
 </template>
 <script>

@@ -51,7 +51,7 @@ const rules = ref({
 const typeOptions = ref([
   { label: '公共', value: 'public', isLeaf: true },
   { label: '组织', value: 'org', isLeaf: true },
-  { label: '团队', value: 'group', isLeaf: false },
+  // { label: '团队', value: 'group', isLeaf: false },
   { label: '个人', value: 'person', isLeaf: true }
 ]);
 function handleLoad(option) {
