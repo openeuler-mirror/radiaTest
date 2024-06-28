@@ -17,8 +17,8 @@ function echartConfig(chartId, options) {
 }
 
 function initEcharts() {
-  echartConfig('automationRate-pie', automationRatePie([{label:'用例自动化率', value: autoRatio.value}],'用例自动化率'));
-  echartConfig('distribution-pie', contributionRatioPie(typeDistribute.value,'用例分布'));
+  echartConfig('automationRate-pie', automationRatePie([{ label: '用例自动化率', value: autoRatio.value }], '用例自动化率'));
+  echartConfig('distribution-pie', contributionRatioPie(typeDistribute.value, '用例分布'));
 }
 
 function initData() {
@@ -37,7 +37,7 @@ function initData() {
 function dispatchRefreshEvent() {
   window.dispatchEvent(
     new CustomEvent('refreshEvent', {
-      detail: { 
+      detail: {
         caseNodeId: window.atob(router.currentRoute.value.params.taskId)
       },
     })

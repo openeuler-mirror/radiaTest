@@ -26,6 +26,7 @@
       v-model:show="showModal"
       preset="dialog"
       :title="isCreate ? '新增测试框架' : '修改测试框架'"
+      @close="closeForm"
     >
       <n-form ref="formRef" label-placement="top" :model="frameworkForm" :rules="frameworkRules">
         <n-form-item label="名称" path="name">
