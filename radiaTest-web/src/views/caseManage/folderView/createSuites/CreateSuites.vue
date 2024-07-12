@@ -1,13 +1,17 @@
 <template>
   <n-modal v-model:show="showModal">
     <n-card
-      style="width: 60%;"
+      style="width: 60%"
       title="从游离测试套列表选取"
       :closable="true"
-      @close="() => { showModal = false;}"
+      @close="
+        () => {
+          showModal = false;
+        }
+      "
     >
       <n-button
-        style="margin-bottom: 10px;"
+        style="margin-bottom: 10px"
         :disabled="checkedSuites.length === 0"
         @click="handleSubmitSuites"
         type="primary"
@@ -18,7 +22,7 @@
         remote
         :columns="columns"
         :data="data"
-        :row-key="row => row.id"
+        :row-key="(row) => row.id"
         @update:checked-row-keys="handleCheck"
         :pagination="pagination"
         @update:page="turnPage"
@@ -30,8 +34,8 @@
 
 <script setup>
 import { storage } from '@/assets/utils/storageUtils.js';
-import { 
-  createSuitesShow as showModal, 
+import {
+  createSuitesShow as showModal,
   orphanSuitesData as data,
   orphanSuitesPagination as pagination,
   getOrphanSuitesReq,
@@ -87,19 +91,15 @@ function turnPageSize(size) {
 }
 
 function handleSubmitSuites() {
-  createSuites(
-    node.value.id,
-    {
-      permission_type: 'org',
-      org_id: storage.getValue('loginOrgId'),
-      suites: checkedSuites.value,
-      creator_id: storage.getValue('user_id'),
-    }
-  )
-    .then(() => {
-      message.success('新增成功');
-      showModal.value = false;
-    });
+  createSuites(node.value.id, {
+    permission_type: 'org',
+    org_id: storage.getValue('loginOrgId'),
+    suites: checkedSuites.value,
+    creator_id: storage.getValue('user_id'),
+  }).then(() => {
+    message.success('新增成功');
+    showModal.value = false;
+  });
 }
 
 onUnmounted(() => {
@@ -115,5 +115,4 @@ onUnmounted(() => {
 });
 </script>
 
-<style scoped lang="less">
-</style>
+<style scoped lang="less"></style>
