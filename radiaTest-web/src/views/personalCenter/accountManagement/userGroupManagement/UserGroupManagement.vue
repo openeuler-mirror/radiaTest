@@ -60,6 +60,7 @@
         title="Dialog"
         :mask-closable="false"
         :showIcon="false"
+        @close="onNegativeClick"
       >
         <template #header>
           <div>创建用户组</div>
