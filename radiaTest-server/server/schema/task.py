@@ -125,7 +125,7 @@ class QueryTaskByTimeSchema(BaseModel):
     @validator('task_time')
     def validate(cls, v):
         if isinstance(v, str):
-            v = html.escape(v)
+            v = html.unescape(v)
             v = json.loads(v)
             v[0] = datetime.strptime(v[0], "%Y-%m-%d")
             v[1] = datetime.strptime(v[1], "%Y-%m-%d")
