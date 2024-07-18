@@ -22,9 +22,17 @@ function createGroup() {
   showCreateForm.value = true;
 }
 function onNegativeClick() {
+  cleanCreateForm();
   window.$message && window.$message.info('取消创建');
   showCreateForm.value = false;
 }
+
+// 清除表单
+function cleanCreateForm() {
+  createModal.name = '';
+  createModal.description = '';
+}
+
 async function onPositiveClick() {
   await formRef.value.validate((errors) => {
     if (!errors) {
