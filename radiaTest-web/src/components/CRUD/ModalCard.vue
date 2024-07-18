@@ -7,34 +7,14 @@
       :resizable="false"
       style="border-style: none"
     >
-      <div
-        class="dragArea"
-        @mouseenter="draggable = true"
-        @mouseleave="draggable = false"
-      ></div>
-      <n-card
-        class="modalCard"
-        :title="title"
-        style="min-width: 680px; max-width: 1280px"
-      >
+      <div class="dragArea" @mouseenter="draggable = true" @mouseleave="draggable = false"></div>
+      <n-card class="modalCard" :title="title" style="min-width: 680px; max-width: 1280px">
         <slot name="form"></slot>
         <n-space class="NPbutton">
-          <n-button
-            size="large"
-            type="error"
-            @click="onNegativeClick"
-            ghost
-            v-if="showCancel"
-          >
+          <n-button size="large" type="error" @click="onNegativeClick" ghost v-if="showCancel">
             {{ cancelText }}
           </n-button>
-          <n-button
-            size="large"
-            type="primary"
-            @click="onPositiveClick"
-            ghost
-            v-if="showConfirm"
-          >
+          <n-button size="large" type="primary" @click="onPositiveClick" ghost v-if="showConfirm">
             {{ confirmText }}
           </n-button>
         </n-space>
@@ -57,19 +37,19 @@ export default defineComponent({
   props: {
     showConfirm: {
       type: Boolean,
-      default: true
+      default: true,
     },
     showCancel: {
       type: Boolean,
-      default: true
+      default: true,
     },
     cancelText: {
       type: String,
-      default: '取消'
+      default: '取消',
     },
     confirmText: {
       type: String,
-      default: '提交'
+      default: '提交',
     },
     title: String,
     initX: {
@@ -88,6 +68,7 @@ export default defineComponent({
     const y = ref(props.initY);
 
     const onNegativeClick = () => {
+      context.emit('closeCard');
       showModal.value = false;
     };
     const onPositiveClick = () => {
