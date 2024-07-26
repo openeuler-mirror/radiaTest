@@ -84,6 +84,7 @@
     style="width: 600px"
     title="新建文档"
     :bordered="false"
+    @close="cancelCreateCallback"
   >
     <n-form ref="createFormRef" :model="createForm" :rules="createRules">
       <n-form-item label="标题" path="title">
@@ -182,6 +183,10 @@ function handleClick(txt) {
 
 function cancelCreateCallback() {
   showCreateModal.value = false;
+  createForm.value = {
+    title: undefined,
+    url: undefined,
+  };
 }
 function submitCreateCallback() {
   addSuiteDocument(window.atob(router.params.suiteId), {

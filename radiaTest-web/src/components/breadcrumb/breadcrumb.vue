@@ -15,14 +15,14 @@ export default {
   props: {
     fontsize: {
       type: Number,
-      default: 16
+      default: 16,
     },
     list: Array,
     separator: {
       type: String,
-      default: '/'
-    }
-  }
+      default: '/',
+    },
+  },
 };
 </script>
 <style scoped>

@@ -32,7 +32,13 @@
             <span class="step-label">{{ item.name }}</span>
             <n-tooltip>
               <template #trigger>
-                <n-button type="primary" class="step-button" :bordered="false" text @click="handleChecklistBoard">
+                <n-button
+                  type="primary"
+                  class="step-button"
+                  :bordered="false"
+                  text
+                  @click="handleChecklistBoard"
+                >
                   <n-icon :size="18">
                     <ChecklistFilled />
                   </n-icon>
@@ -42,7 +48,13 @@
             </n-tooltip>
             <n-tooltip>
               <template #trigger>
-                <n-button type="primary" class="step-button" :bordered="false" text @click="handleMilestone">
+                <n-button
+                  type="primary"
+                  class="step-button"
+                  :bordered="false"
+                  text
+                  @click="handleMilestone"
+                >
                   <n-icon :size="18">
                     <Milestone />
                   </n-icon>
@@ -52,7 +64,12 @@
             </n-tooltip>
             <n-tooltip v-if="index === list.length - 1 && !done">
               <template #trigger>
-                <n-button class="step-button" :bordered="false" text @click="handleRollbackStepClick">
+                <n-button
+                  class="step-button"
+                  :bordered="false"
+                  text
+                  @click="handleRollbackStepClick"
+                >
                   <n-icon :size="18">
                     <DeleteArrowBack16Filled />
                   </n-icon>
@@ -123,16 +140,16 @@ const props = defineProps({
   list: Array,
   done: {
     type: Boolean,
-    default: false
+    default: false,
   },
   currentId: {
     type: String,
-    default: ''
+    default: '',
   },
   hasQualityboard: {
     type: Boolean,
-    default: false
-  }
+    default: false,
+  },
 });
 
 const { list, done, currentId, hasQualityboard } = toRefs(props);
@@ -144,7 +161,7 @@ const emit = defineEmits([
   'haveDone',
   'haveRecovery',
   'handleChecklistBoard',
-  'handleMilestone'
+  'handleMilestone',
 ]);
 
 const addTip = computed(() => {
