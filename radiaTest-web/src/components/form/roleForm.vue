@@ -4,6 +4,7 @@
     :title="type === 'create' ? '创建角色' : '修改角色'"
     ref="createRuleModal"
     @validate="submitForm"
+    @closeCard="closeForm"
   >
     <template #form>
       <n-form :label-width="80" :model="formValue" :rules="rules" ref="formRef">
@@ -163,6 +164,9 @@ export default {
           window.$message?.error('填写信息有误，请检查');
         }
       });
+    },
+    closeForm() {
+      this.initFormValue();
     },
   },
   mounted() {
