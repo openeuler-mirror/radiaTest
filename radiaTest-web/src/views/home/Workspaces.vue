@@ -1,11 +1,11 @@
 <template>
   <div class="workspaces-container">
     <n-layout
-        :content-style="{
+      :content-style="{
         padding: '24px',
-        backgroundColor: '#f5f5f5'
+        backgroundColor: '#f5f5f5',
       }"
-        embedded
+      embedded
     >
       <div class="welcome-warp">
         <h2>Hi，欢迎使用开源测试管理平台radiaTest！</h2>
@@ -41,15 +41,15 @@
           <div class="text">任务管理管理能力，实现测试活动全流程承载</div>
         </div>
         <div class="image-box">
-          <n-image :src="titleImage" height="250" preview-disabled width="350"/>
+          <n-image :src="titleImage" height="250" preview-disabled width="350" />
         </div>
         <div class="stat-box">
           <n-statistic label="当前组织已有" tabular-nums>
-            <n-number-animation ref="groupStat" :from="0" :to="totalGroupNum"/>
+            <n-number-animation ref="groupStat" :from="0" :to="totalGroupNum" />
             <template #suffix> 个团队接入</template>
           </n-statistic>
           <n-statistic label="当前组织已有" tabular-nums>
-            <n-number-animation ref="userStat" :from="0" :to="totalUserNum"/>
+            <n-number-animation ref="userStat" :from="0" :to="totalUserNum" />
             <template #suffix> 位用户注册</template>
           </n-statistic>
         </div>
@@ -58,7 +58,10 @@
         <n-gi :span="10">
           <div class="workspaces-wrap">
             <div class="workspaces-title">Workspaces</div>
-            <n-collapse :default-expanded-names="['publicWorkspaces', 'groupWorkspaces']" class="workspaces-content">
+            <n-collapse
+              :default-expanded-names="['publicWorkspaces', 'groupWorkspaces']"
+              class="workspaces-content"
+            >
               <n-collapse-item name="publicWorkspaces" title="公共workspaces">
                 <n-grid :cols="2" x-gap="24">
                   <n-gi :span="1">
@@ -75,7 +78,7 @@
                     </div>
                   </n-gi>
                   <n-gi :span="1">
-                    <div class="publicworkspaces-wrap " @click="clickVersionWorkspace">
+                    <div class="publicworkspaces-wrap" @click="clickVersionWorkspace">
                       <div>
                         <n-avatar :size="100" :src="orgAvatarSrc"></n-avatar>
                       </div>
@@ -97,33 +100,33 @@
                 </n-tabs>
                 <template #header-extra>
                   <n-input
-                      v-model:value="searchGroupValue"
-                      clearable
-                      placeholder="请输入团队名称"
-                      @change="searchValueChange"
-                      @click.stop.prevent
+                    v-model:value="searchGroupValue"
+                    clearable
+                    placeholder="请输入团队名称"
+                    @change="searchValueChange"
+                    @click.stop.prevent
                   />
                 </template>
                 <div class="group-workspaces-wrap">
                   <div
-                      v-for="(groupItem, groupIndex) in groupList"
-                      :key="groupIndex"
-                      class="group-workspace"
-                      @click="clickGroupWorkspace(groupItem)"
+                    v-for="(groupItem, groupIndex) in groupList"
+                    :key="groupIndex"
+                    class="group-workspace"
+                    @click="clickGroupWorkspace(groupItem)"
                   >
                     <div class="group-workspace-content">
                       <div class="detail">
                         <div class="image-wrap">
                           <n-image
-                              :fallback-src="createAvatar(groupItem.groupName.slice(0, 1), 100)"
-                              :src="groupItem.groupAvatarUrl"
-                              width="50"
+                            :fallback-src="createAvatar(groupItem.groupName.slice(0, 1), 100)"
+                            :src="groupItem.groupAvatarUrl"
+                            width="50"
                           />
                         </div>
                         <div class="name-user">
                           <div class="name">{{ groupItem.groupName }}</div>
                           <div class="user-wrap">
-                            <AvatarGroup :max="3" :options="groupItem.AvatarList" :size="30"/>
+                            <AvatarGroup :max="3" :options="groupItem.AvatarList" :size="30" />
                           </div>
                         </div>
                       </div>
@@ -132,7 +135,7 @@
                         <n-tooltip trigger="hover">
                           <template #trigger>
                             <n-icon :size="16">
-                              <Lock/>
+                              <Lock />
                             </n-icon>
                           </template>
                           不属于该用户组成员，无法进入此workspace
@@ -142,14 +145,14 @@
                   </div>
                 </div>
                 <n-pagination
-                    v-model:page="groupPage"
-                    v-model:page-size="groupPageSize"
-                    :page-count="groupTotal"
-                    :page-sizes="[12, 24, 48, 100]"
-                    class="pagination-wrap"
-                    show-size-picker
-                    @update:page="groupPageChange"
-                    @update:page-size="groupPageSizeChange"
+                  v-model:page="groupPage"
+                  v-model:page-size="groupPageSize"
+                  :page-count="groupTotal"
+                  :page-sizes="[12, 24, 48, 100]"
+                  class="pagination-wrap"
+                  show-size-picker
+                  @update:page="groupPageChange"
+                  @update:page-size="groupPageSizeChange"
                 />
               </n-collapse-item>
             </n-collapse>
@@ -162,7 +165,7 @@
               <div class="view-all">查看全部</div>
             </div>
             <div v-for="item in noticeList" :key="item.id" class="hover">
-              <n-tag size="small" style="margin-right: 0.5rem;margin-bottom: 0.5rem" type="error">
+              <n-tag size="small" style="margin-right: 0.5rem; margin-bottom: 0.5rem" type="error">
                 {{ item.tag }}
               </n-tag>
               <router-link :to="`/home/notice/${item.title}`">{{ item.title }}</router-link>
@@ -170,8 +173,7 @@
             <div class="document-content-wrap">
               <div class="document-content">
                 <div class="content-type document-first">发布</div>
-                <div class="content-text">
-                </div>
+                <div class="content-text"></div>
               </div>
             </div>
           </div>
@@ -181,7 +183,7 @@
               <div class="view-all">查看全部</div>
             </div>
             <div v-for="item in docList" :key="item.id" class="hover">
-              <n-tag size="small" style="margin-right: 0.5rem;margin-bottom: 0.5rem;" type="info">
+              <n-tag size="small" style="margin-right: 0.5rem; margin-bottom: 0.5rem" type="info">
                 {{ item.tag }}
               </n-tag>
               <router-link :to="`/home/doc/${item.title}`">{{ item.title }}</router-link>
@@ -194,51 +196,53 @@
             </div>
           </div>
           <n-card
-              :content-style="{
-              padding: '0'
+            :content-style="{
+              padding: '0',
             }"
-              class="hovered-card rank-wrap"
+            class="hovered-card rank-wrap"
           >
             <n-tabs animated justify-content="space-evenly" type="line">
               <n-tab
-                  name="person"
-                  @click="
+                name="person"
+                @click="
                   () => {
                     rankType = 'person';
                   }
                 "
-              >个人积分
-              </n-tab
-              >
+                >个人积分
+              </n-tab>
               <n-tab
-                  name="group"
-                  @click="
+                name="group"
+                @click="
                   () => {
                     rankType = 'group';
                   }
                 "
-              >团队积分
-              </n-tab
-              >
+                >团队积分
+              </n-tab>
             </n-tabs>
             <div class="all-rank-container">
               <n-spin :show="loading">
                 <div v-for="(item, index) in rankList" :key="index" class="rank-item all-rank">
                   <p class="rank-item-header">
-                    <n-gradient-text class="rank-item-header-number"> {{ item.rank }}.</n-gradient-text>
+                    <n-gradient-text class="rank-item-header-number">
+                      {{ item.rank }}.</n-gradient-text
+                    >
                     <n-avatar
-                        :fallback-src="handleFallbackSrc(item)"
-                        :size="24"
-                        :src="item.avatar_url"
-                        circle
-                        style="margin-right: 10px"
+                      :fallback-src="handleFallbackSrc(item)"
+                      :size="24"
+                      :src="item.avatar_url"
+                      circle
+                      style="margin-right: 10px"
                     />
-                    <span class="rank-item-header-name">{{ item.user_name ? item.user_name : item.name }}</span>
+                    <span class="rank-item-header-name">{{
+                      item.user_name ? item.user_name : item.name
+                    }}</span>
                   </p>
                   <p class="rank-item-bq">
                     <span class="rank-item-bq-number">{{ item.influence }}</span>
                     <n-icon :size="16">
-                      <radio/>
+                      <radio />
                     </n-icon>
                   </p>
                 </div>
@@ -246,30 +250,30 @@
             </div>
             <div class="rank-pagination">
               <n-pagination
-                  v-model:page="rankPage"
-                  :page-count="rankPageCount"
-                  :page-size="rankPageSize"
-                  :simple="true"
-                  size="small"
-                  @update:page="handleRankPageChange"
+                v-model:page="rankPage"
+                :page-count="rankPageCount"
+                :page-size="rankPageSize"
+                :simple="true"
+                size="small"
+                @update:page="handleRankPageChange"
               />
             </div>
             <div v-if="rankType === 'person'" class="self-rank rank-item">
               <p class="rank-item-header">
                 <n-text class="rank-item-header-number"> {{ accountRank }}.</n-text>
                 <n-avatar
-                    :fallback-src="createAvatar(accountName.slice(0, 1))"
-                    :size="24"
-                    :src="avatarUrl"
-                    circle
-                    style="margin-right: 10px"
+                  :fallback-src="createAvatar(accountName.slice(0, 1))"
+                  :size="24"
+                  :src="avatarUrl"
+                  circle
+                  style="margin-right: 10px"
                 />
                 <span class="rank-item-header-name">{{ accountName }}</span>
               </p>
               <p class="rank-item-bq">
                 <span class="rank-item-bq-number">{{ influenceScore }}</span>
                 <n-icon :size="16">
-                  <radio/>
+                  <radio />
                 </n-icon>
               </p>
             </div>
@@ -282,44 +286,44 @@
     </div>
   </div>
   <n-modal
-      v-model:show="showModal"
-      preset="dialog"
-      style="width: 75rem  /* 1200/16 */"
-      title="选择您要进入的版本"
-      transform-origin="center"
+    v-model:show="showModal"
+    preset="dialog"
+    style="width: 75rem; /* 1200/16 */"
+    title="选择您要进入的版本"
+    transform-origin="center"
   >
     <n-data-table
-        :columns="columns"
-        :data="tableData"
-        :loading="tableLoading"
-        :pagination="productVersionPagination"
-        :row-props="rowProps"
-        remote
-        @update:page="productVersionPageChange"
-        @update:page-size="productVersionPageSizeChange"
+      :columns="columns"
+      :data="tableData"
+      :loading="tableLoading"
+      :pagination="productVersionPagination"
+      :row-props="rowProps"
+      remote
+      @update:page="productVersionPageChange"
+      @update:page-size="productVersionPageSizeChange"
     />
   </n-modal>
 </template>
 <script setup>
-import {Check} from '@vicons/tabler';
-import {Radio} from '@vicons/ionicons5';
-import {storage} from '@/assets/utils/storageUtils';
-import {createAvatar} from '@/assets/utils/createImg';
-import {useRouter} from 'vue-router';
+import { Check } from '@vicons/tabler';
+import { Radio } from '@vicons/ionicons5';
+import { storage } from '@/assets/utils/storageUtils';
+import { createAvatar } from '@/assets/utils/createImg';
+import { useRouter } from 'vue-router';
 import {
   getAllOrg,
   getGroupAssetRank,
   getMsgGroup,
   getOrgStat,
   getUserAssetRank,
-  getUserInfo
+  getUserInfo,
 } from '@/api/get';
 import titleImage from '@/assets/images/programming.png';
 import AvatarGroup from '@/components/personalCenter/avatarGroup.vue';
-import {Lock} from '@vicons/fa';
+import { Lock } from '@vicons/fa';
 import config from '@/assets/config/settings';
-import {ref} from 'vue';
-import {useStore} from 'vuex';
+import { ref } from 'vue';
+import { useStore } from 'vuex';
 import {
   columns,
   productVersionPageChange,
@@ -334,7 +338,7 @@ import {
   hasQualityboard,
   productId,
   detail,
-  list
+  list,
 } from './modules/workspace';
 
 const router = useRouter();
@@ -346,7 +350,7 @@ const showModal = ref(false);
 const totalGroupNum = ref(0);
 const totalUserNum = ref(0);
 
-const rowProps=(row)=>{
+const rowProps = (row) => {
   return {
     style: 'cursor:pointer',
     onClick: () => {
@@ -358,8 +362,8 @@ const rowProps=(row)=>{
       getDefaultCheckNode(productId.value);
       getRoundSelectList(productId.value);
       getBranchSelectList(productId.value);
-      router.push({name: 'dashboard', params: {workspace: 'release'}});
-    }
+      router.push({ name: 'dashboard', params: { workspace: 'release' } });
+    },
   };
 };
 const getOrgStatistic = () => {
@@ -372,7 +376,7 @@ const getOrgStatistic = () => {
 };
 
 const clickDefaultWorkspace = () => {
-  router.push({name: 'dashboard', params: {workspace: 'default'}});
+  router.push({ name: 'dashboard', params: { workspace: 'default' } });
 };
 
 const clickVersionWorkspace = () => {
@@ -381,7 +385,7 @@ const clickVersionWorkspace = () => {
 
 const clickGroupWorkspace = (groupItem) => {
   if (groupItem.isAllowed) {
-    router.push({name: 'automatic', params: {workspace: window.btoa(groupItem.id)}});
+    router.push({ name: 'automatic', params: { workspace: window.btoa(groupItem.id) } });
   }
 };
 // const onAfterLeave = () => {
@@ -389,7 +393,7 @@ const clickGroupWorkspace = (groupItem) => {
 //   router.push({name: 'dashboard', params: {workspace: 'release'}});
 // };
 const getOrgInfo = () => {
-  getAllOrg({org_id: storage.getValue('loginOrgId')}).then((res) => {
+  getAllOrg({ org_id: storage.getValue('loginOrgId') }).then((res) => {
     // orgAvatarSrc.value = res.data.avatar_url;
     res.data.forEach((item) => {
       if (item.org_id === storage.getValue('loginOrgId')) {
@@ -403,7 +407,7 @@ const setAvatarList = (avatarList) => {
   return avatarList.map((item) => {
     return {
       name: item.user_name,
-      src: item.avatar_url
+      src: item.avatar_url,
     };
   });
 };
@@ -413,23 +417,25 @@ const groupPage = ref(1);
 const groupPageSize = ref(12);
 const groupTotal = ref(0);
 const getGroupInfo = () => {
-  getMsgGroup({page_num: groupPage.value, page_size: groupPageSize.value, name: searchGroupValue.value}).then(
-      (res) => {
-        groupList.value = [];
-        res.data?.items.forEach((item) => {
-          groupList.value.push({
-            id: `group_${item.id}`,
-            groupName: item.name,
-            groupAvatarUrl: item.avatar_url,
-            description: item.description,
-            AvatarList: setAvatarList(item.admin_awatar),
-            isAllowed: item.user_add_group_flag
-          });
-        });
-        groupTotal.value = res.data.pages;
-        groupPage.value = res.data.current_page;
-      }
-  );
+  getMsgGroup({
+    page_num: groupPage.value,
+    page_size: groupPageSize.value,
+    name: searchGroupValue.value,
+  }).then((res) => {
+    groupList.value = [];
+    res.data?.items?.forEach((item) => {
+      groupList.value.push({
+        id: `group_${item.id}`,
+        groupName: item.name,
+        groupAvatarUrl: item.avatar_url,
+        description: item.description,
+        AvatarList: setAvatarList(item.admin_awatar),
+        isAllowed: item.user_add_group_flag,
+      });
+    });
+    groupTotal.value = res.data.pages;
+    groupPage.value = res.data.current_page;
+  });
 };
 
 const groupPageChange = (page) => {
@@ -459,7 +465,7 @@ const accountRank = ref(null); // 影响力等级
 const accountName = ref(''); // 当前登录账号
 const avatarUrl = ref(null); // 当前账号头像
 const getRank = (asyncFunc) => {
-  asyncFunc({page_num: rankPage.value, page_size: rankPageSize.value}).then((res) => {
+  asyncFunc({ page_num: rankPage.value, page_size: rankPageSize.value }).then((res) => {
     rankList.value = res.data.items;
     rankPage.value = res.data.current_page;
     rankPageCount.value = res.data.pages;
@@ -498,7 +504,7 @@ onMounted(() => {
     avatarUrl.value = res.data.avatar_url;
     influenceScore.value = res.data.influence;
   });
-  getVersionTableData({page_num: 1, page_size: 10});
+  getVersionTableData({ page_num: 1, page_size: 10 });
 });
 //公告栏
 const store = useStore();
@@ -721,7 +727,6 @@ const docList = store.state.docs.docList;
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
-
         }
 
         .document-first {
@@ -804,7 +809,8 @@ const docList = store.state.docs.docList;
 
 .all-rank:hover {
   background-image: linear-gradient(71deg, #4b94d5, transparent);
-  box-shadow: 0 1px 2px -2px rgba(0, 0, 0, 0.08), 0 3px 6px 0 rgba(0, 0, 0, 0.06), 0 5px 12px 4px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 2px -2px rgba(0, 0, 0, 0.08), 0 3px 6px 0 rgba(0, 0, 0, 0.06),
+    0 5px 12px 4px rgba(0, 0, 0, 0.04);
 }
 
 .self-rank {
