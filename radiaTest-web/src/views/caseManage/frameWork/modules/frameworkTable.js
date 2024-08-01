@@ -3,7 +3,13 @@ import { NSpace, NButton, NIcon } from 'naive-ui';
 import { renderTooltip } from '@/assets/render/tooltip';
 import { Construct, CheckmarkCircleOutline } from '@vicons/ionicons5';
 import { Delete24Regular as Delete, Prohibited24Regular } from '@vicons/fluent';
-import { isCreate, showForm, changeFramework, frameworkForm, deleteFramework } from './frameWorkAction';
+import {
+  isCreate,
+  showForm,
+  changeFramework,
+  frameworkForm,
+  deleteFramework,
+} from './frameWorkAction';
 import axios from '@/axios';
 import { workspace } from '@/assets/config/menu.js';
 
@@ -28,7 +34,7 @@ const frameworkColumns = [
   {
     title: '框架名称',
     key: 'name',
-    align: 'center'
+    align: 'center',
   },
   {
     title: '仓库地址',
@@ -39,16 +45,16 @@ const frameworkColumns = [
         'a',
         {
           href: row.url,
-          target: '_blank'
+          target: '_blank',
         },
         row.url
       );
-    }
+    },
   },
   {
     title: '日志目录相对路径',
     key: 'logs_path',
-    align: 'center'
+    align: 'center',
   },
   {
     title: '是否已适配',
@@ -68,16 +74,16 @@ const frameworkColumns = [
       return h(
         'div',
         {
-          style: `color:${color};display:flex;align-items:center;justify-content:center`
+          style: `color:${color};display:flex;align-items:center;justify-content:center`,
         },
         [
           h(NIcon, null, {
-            default: () => h(icon)
+            default: () => h(icon),
           }),
-          text
+          text,
         ]
       );
-    }
+    },
   },
   {
     title: '操作',
@@ -89,7 +95,7 @@ const frameworkColumns = [
         NSpace,
         {
           justify: 'center',
-          align: 'center'
+          align: 'center',
         },
         [
           renderTooltip(
@@ -107,7 +113,7 @@ const frameworkColumns = [
                   frameworkForm.value.logs_path = row.logs_path;
                   isCreate.value = false;
                   showForm();
-                }
+                },
               },
               h(NIcon, { size: '20' }, h(Construct))
             ),
@@ -122,26 +128,28 @@ const frameworkColumns = [
                 circle: true,
                 onClick: () => {
                   deleteFramework(row.id);
-                }
+                },
               },
               h(NIcon, { size: '20' }, h(Delete))
             ),
             '删除'
-          )
+          ),
         ]
       );
-    }
-  }
+    },
+  },
 ];
 function frameRowProps(row) {
   return {
     onClick: (e) => {
-      const isTrigger = e.path.some((item) => item?.classList?.contains('n-data-table-expand-trigger'));
+      const isTrigger = e.path?.some((item) =>
+        item?.classList?.contains('n-data-table-expand-trigger')
+      );
       if (!row.expand && isTrigger) {
         frameLoading.value = true;
         getRepo(row, frameLoading);
       }
-    }
+    },
   };
 }
 // let frameworkId ;
@@ -150,7 +158,7 @@ function getFramework() {
     frameworkData.value = res.data.map((item) => {
       return {
         ...item,
-        expand: false
+        expand: false,
       };
     });
     frameworkFilterData.value = frameworkData.value;
@@ -165,17 +173,17 @@ const filterRule = ref([
   {
     path: 'name',
     name: '框架名称',
-    type: 'input'
+    type: 'input',
   },
   {
     path: 'url',
     name: '仓库地址',
-    type: 'input'
+    type: 'input',
   },
   {
     path: 'logs_path',
     name: '日志地址',
-    type: 'input'
+    type: 'input',
   },
   {
     path: 'adaptive',
@@ -183,9 +191,9 @@ const filterRule = ref([
     type: 'select',
     options: [
       { label: '是', value: 'true' },
-      { label: '否', value: 'false' }
-    ]
-  }
+      { label: '否', value: 'false' },
+    ],
+  },
 ]);
 
 const filterchange = (filterArray) => {
@@ -193,10 +201,7 @@ const filterchange = (filterArray) => {
   filterArray.forEach((v) => {
     frameworkFilterData.value = frameworkFilterData.value.filter((v2) => {
       if (v.value) {
-        return v2[v.path]
-          .toString()
-          .toLowerCase()
-          .includes(v.value.toString().toLowerCase());
+        return v2[v.path].toString().toLowerCase().includes(v.value.toString().toLowerCase());
       }
       return true;
     });
@@ -212,5 +217,5 @@ export {
   getFramework,
   getRepo,
   filterRule,
-  filterchange
+  filterchange,
 };

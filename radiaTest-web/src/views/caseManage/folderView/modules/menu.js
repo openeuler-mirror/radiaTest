@@ -2,12 +2,18 @@ import { h, ref } from 'vue';
 
 import axios from '@/axios.js';
 import { storage } from '@/assets/utils/storageUtils';
-import { Box16Regular, Delete28Regular, Folder16Regular, Organization20Regular, ClipboardTaskAdd24Regular } from '@vicons/fluent';
+import {
+  Box16Regular,
+  Delete28Regular,
+  Folder16Regular,
+  Organization20Regular,
+  ClipboardTaskAdd24Regular,
+} from '@vicons/fluent';
 import {
   CreateNewFolderOutlined,
   DriveFileMoveRound,
   DriveFileRenameOutlineFilled,
-  GroupsFilled
+  GroupsFilled,
 } from '@vicons/material';
 import { MdRefresh } from '@vicons/ionicons4';
 import { DatabaseImport, File, FileImport } from '@vicons/tabler';
@@ -30,7 +36,7 @@ import {
   getOrgMilestone,
   getOrphanGroupSuites,
   getOrphanOrgSuites,
-  getMilestoneList
+  getMilestoneList,
 } from '@/api/get';
 import { addBaseline, casenodeApplyTemplate } from '@/api/post';
 import { updateCaseNodeParent } from '@/api/put';
@@ -46,16 +52,14 @@ import {
   NTreeSelect,
   NUpload,
   NUploadDragger,
-
 } from 'naive-ui';
 import router from '@/router';
 import { createFormRef, createModalRef, importModalRef } from './createRef';
 
-
 function renderIcon(icon) {
   return () =>
     h(NIcon, null, {
-      default: () => h(icon)
+      default: () => h(icon),
     });
 }
 
@@ -70,28 +74,28 @@ const orphanSuitesPagination = reactive({
   itemCount: 1,
   pageSize: 10,
   showSizePicker: true,
-  pageSizes: [5, 10, 20, 50]
+  pageSizes: [5, 10, 20, 50],
 });
 
 const renameAction = {
   label: '重命名',
   key: 'renameCaseNode',
-  icon: renderIcon(DriveFileRenameOutlineFilled)
+  icon: renderIcon(DriveFileRenameOutlineFilled),
 };
 const editAction = {
   label: '修改',
   key: 'editCaseNode',
-  icon: renderIcon(EditOutlined)
+  icon: renderIcon(EditOutlined),
 };
 const deleteAction = {
   label: '删除',
   key: 'deleteCaseNode',
-  icon: renderIcon(Delete28Regular)
+  icon: renderIcon(Delete28Regular),
 };
 const createChildrenDirectoryAction = {
   label: '新建子目录',
   key: 'newDirectory',
-  icon: renderIcon(Folder16Regular)
+  icon: renderIcon(Folder16Regular),
 };
 const createChildrenAction = {
   label: '新建',
@@ -101,76 +105,76 @@ const createChildrenAction = {
     {
       label: '子目录',
       key: 'newDirectory',
-      icon: renderIcon(Folder16Regular)
+      icon: renderIcon(Folder16Regular),
     },
     {
       label: '测试套',
       key: 'relateSuite',
-      icon: renderIcon(Box16Regular)
-    }
-  ]
+      icon: renderIcon(Box16Regular),
+    },
+  ],
 };
 const relateSuiteAction = {
   label: '关联测试套',
   key: 'relateSuite',
-  icon: renderIcon(Box16Regular)
+  icon: renderIcon(Box16Regular),
 };
 const createAutoTask = {
   label: '自动创建任务',
   key: 'createTask',
-  icon: renderIcon(ClipboardTaskAdd24Regular)
+  icon: renderIcon(ClipboardTaskAdd24Regular),
 };
 const exportTestsuiteInXlsxAction = {
   label: '导出为Excel文件',
   key: 'exportTestsuiteInXlsx',
-  icon: renderIcon(ExportOutlined)
+  icon: renderIcon(ExportOutlined),
 };
 const exportTestsuiteInMdAction = {
   label: '导出为Markdown文件',
   key: 'exportTestsuiteInMarkdown',
-  icon: renderIcon(ExportOutlined)
+  icon: renderIcon(ExportOutlined),
 };
 const exportTestcaseAction = {
   label: '导出文本用例',
   key: 'exportTestcase',
   disabled: true,
-  icon: renderIcon(ExportOutlined)
+  icon: renderIcon(ExportOutlined),
 };
 const importTestcaseAction = {
   label: '导入用例',
   key: 'importCase',
-  icon: renderIcon(FileImport)
+  icon: renderIcon(FileImport),
 };
 const exportCasesetAction = {
   label: '导出用例集',
   key: 'exportSet',
   disabled: true,
-  icon: renderIcon(ExportOutlined)
+  icon: renderIcon(ExportOutlined),
 };
 const relateTestcaseAction = {
   label: '关联测试用例',
   key: 'relateCase',
-  icon: renderIcon(ChartRelationship)
+  icon: renderIcon(ChartRelationship),
 };
 const createTestcaseAction = {
   label: '新建测试用例',
   key: 'newCase',
-  icon: renderIcon(CreateNewFolderOutlined)
+  icon: renderIcon(CreateNewFolderOutlined),
 };
 const createBaselineAction = {
   label: '新建版本基线',
   key: 'newBaseline',
-  icon: renderIcon(Milestone)
+  icon: renderIcon(Milestone),
 };
 const applyBaselineTemplate = {
   label: '应用基线模板',
   key: 'applyTemplate',
-  icon: renderIcon(FileImport)
+  icon: renderIcon(FileImport),
 };
 const moveCaseNodeAction = {
   label: '移动到...',
   key: 'moveCaseNode',
-  icon: renderIcon(DriveFileMoveRound)
+  icon: renderIcon(DriveFileMoveRound),
 };
 
 const iconType = {
@@ -179,7 +183,7 @@ const iconType = {
   baseline: Milestone,
   directory: Folder16Regular,
   suite: Box16Regular,
-  case: File
+  case: File,
 };
 const commonAction = [{ label: '刷新', key: 'refresh', icon: renderIcon(MdRefresh) }];
 
@@ -196,8 +200,7 @@ function getDirectory(node) {
   } else if (node && node.type === 'group') {
     params.group_id = node.key.replace('group-', '');
   } else {
-    return new Promise(() => {
-    });
+    return new Promise(() => { });
   }
   return new Promise((resolve, reject) => {
     // 需要后端适配
@@ -229,7 +232,7 @@ function getDirectory(node) {
             iconColor: 'rgba(0, 47, 167, 1)',
             icon: item.title === '用例集' ? Database : iconType[item.type],
             parent: node,
-            actions
+            actions,
           });
         }
         resolve(node.children);
@@ -306,7 +309,7 @@ function getCaseNode(node, leafType) {
             actions,
             parent: node,
             suiteId: item.suite_id,
-            caseId: item.case_id
+            caseId: item.case_id,
           });
         }
         resolve(node.children);
@@ -342,7 +345,7 @@ function getRootNodes() {
   actions.unshift({
     label: '导入用例集',
     key: 'importCaseSet',
-    icon: renderIcon(DatabaseImport)
+    icon: renderIcon(DatabaseImport),
   });
   actions.unshift(createBaselineAction);
   menuList.value = [];
@@ -354,14 +357,14 @@ function getRootNodes() {
           label: item.org_name,
           key: `org-${item.org_id}`,
           info: {
-            org_id: item.org_id
+            org_id: item.org_id,
           },
           actions,
           iconColor: 'rgba(0, 47, 167, 1)',
           isLeaf: false,
           type: 'org',
           root: true,
-          icon: Organization20Regular
+          icon: Organization20Regular,
         });
       }
       if (item.re_user_org_default) {
@@ -369,52 +372,54 @@ function getRootNodes() {
           label: item.org_name,
           key: `org-${item.org_id}`,
           info: {
-            org_id: item.org_id
+            org_id: item.org_id,
           },
           actions,
           iconColor: 'rgba(0, 47, 167, 1)',
           isLeaf: false,
           type: 'org',
           root: true,
-          icon: Organization20Regular
+          icon: Organization20Regular,
         });
       }
     });
     axios
       .get(`/v1/org/${storage.getValue('loginOrgId')}/groups`, {
         page_num: 1,
-        page_size: 99999
+        page_size: 99999,
       })
       .then((_res) => {
-        for (const item of _res.data.items) {
-          if (item.name === 'openEuler') {
-            releaseMenu.value.push({
+        if (_res && _res.data && _res.data.items) {
+          for (const item of _res.data.items) {
+            if (item.name === 'openEuler') {
+              releaseMenu.value.push({
+                label: item.name,
+                key: `group-${item.id}`,
+                isLeaf: false,
+                root: true,
+                info: {
+                  group_id: item.id,
+                },
+                type: 'group',
+                iconColor: 'rgba(0, 47, 167, 1)',
+                icon: GroupsFilled,
+                actions,
+              });
+            }
+            menuList.value.push({
               label: item.name,
               key: `group-${item.id}`,
               isLeaf: false,
               root: true,
               info: {
-                group_id: item.id
+                group_id: item.id,
               },
               type: 'group',
               iconColor: 'rgba(0, 47, 167, 1)',
               icon: GroupsFilled,
-              actions
+              actions,
             });
           }
-          menuList.value.push({
-            label: item.name,
-            key: `group-${item.id}`,
-            isLeaf: false,
-            root: true,
-            info: {
-              group_id: item.id
-            },
-            type: 'group',
-            iconColor: 'rgba(0, 47, 167, 1)',
-            icon: GroupsFilled,
-            actions
-          });
         }
       });
   });
@@ -430,7 +435,7 @@ const infoRules = {
       return new Error('请填写信息');
     }
     return true;
-  }
+  },
 };
 
 const milestoneId = ref();
@@ -444,7 +449,7 @@ const milestoneIdRules = {
       return new Error('版本基线必须关联里程碑');
     }
     return true;
-  }
+  },
 };
 
 const templateId = ref();
@@ -458,7 +463,7 @@ const templateRules = {
       return new Error('未选择基线模板');
     }
     return true;
-  }
+  },
 };
 
 const nextParentId = ref();
@@ -472,7 +477,7 @@ const moveRules = {
       return new Error('未选择移动目的地');
     }
     return true;
-  }
+  },
 };
 
 const files = ref();
@@ -526,7 +531,8 @@ function handleNormalDialogConfirm(confirmFn, node, d, contentType) {
   } else if (infoRules.validator() === true) {
     confirmFn(node);
     d.destroy();
-  } if (contentType === 'createTask') {
+  }
+  if (contentType === 'createTask') {
     // confirmFn(node);
     // d.destroy();
   } else {
@@ -548,7 +554,7 @@ function dialogAction(confirmFn, node, d, contentType) {
         } else {
           handleNormalDialogConfirm(confirmFn, node, d, contentType);
         }
-      }
+      },
     },
     '确定'
   );
@@ -561,14 +567,14 @@ function dialogAction(confirmFn, node, d, contentType) {
       onClick: () => {
         milePage.value = 1;
         d.destroy();
-      }
+      },
     },
     '取消'
   );
   return h(
     NSpace,
     {
-      style: 'width:100%'
+      style: 'width:100%',
     },
     [cancelBtn, confirmBtn]
   );
@@ -580,15 +586,15 @@ function newDectoryContent() {
       NFormItem,
       {
         label: '目录名称:',
-        rule: infoRules
+        rule: infoRules,
       },
       h(NInput, {
         value: info.value,
         onUpdateValue: (value) => {
           info.value = value;
-        }
+        },
       })
-    )
+    ),
   ]);
   return form;
 }
@@ -608,7 +614,7 @@ function getCurMilestones(node, query) {
       milestoneOptions.value = data.items?.map((item) => {
         return {
           label: item.name,
-          value: item.id
+          value: item.id,
         };
       });
       milestoneLoading.value = false;
@@ -619,10 +625,12 @@ function getCurMilestones(node, query) {
       let resMilestone = res.data.items?.map((item) => {
         return {
           label: item.name,
-          value: item.id
+          value: item.id,
         };
       });
-      milestoneOptions.value = milestoneOptions.value.length ? milestoneOptions.value.concat(resMilestone) : resMilestone;
+      milestoneOptions.value = milestoneOptions.value.length
+        ? milestoneOptions.value.concat(resMilestone)
+        : resMilestone;
       milestoneLoading.value = false;
     });
   }
@@ -643,7 +651,7 @@ function getTemplates(node, query) {
     templateOptions.value = data.map((item) => {
       return {
         label: item.title,
-        value: item.id
+        value: item.id,
       };
     });
   });
@@ -655,20 +663,20 @@ function newBaselineContent(node) {
       NFormItem,
       {
         label: '基线名称:',
-        rule: infoRules
+        rule: infoRules,
       },
       h(NInput, {
         value: info.value,
         onUpdateValue: (value) => {
           info.value = value;
-        }
+        },
       })
     ),
     h(
       NFormItem,
       {
         label: '关联里程碑:',
-        rule: milestoneIdRules
+        rule: milestoneIdRules,
       },
       h(NSelect, {
         value: milestoneId.value,
@@ -687,9 +695,9 @@ function newBaselineContent(node) {
         },
         onScroll: (e) => {
           handleScroll(e, node);
-        }
+        },
       })
-    )
+    ),
   ]);
   return form;
 }
@@ -700,7 +708,7 @@ function applyTemplateContent(node) {
       NFormItem,
       {
         label: '应用基线模板:',
-        rule: templateRules
+        rule: templateRules,
       },
       h(NSelect, {
         value: templateId.value,
@@ -717,9 +725,9 @@ function applyTemplateContent(node) {
         filterable: true,
         onSearch: (query) => {
           getTemplates(node, query);
-        }
+        },
       })
-    )
+    ),
   ]);
   return form;
 }
@@ -729,7 +737,7 @@ function moveCaseNodeContent(node) {
       NFormItem,
       {
         label: '移动到:',
-        rule: moveRules
+        rule: moveRules,
       },
       h(NTreeSelect, {
         value: nextParentId.value,
@@ -740,10 +748,10 @@ function moveCaseNodeContent(node) {
           return h(
             NIcon,
             {
-              color: option.iconColor
+              color: option.iconColor,
             },
             {
-              default: () => h(option.icon)
+              default: () => h(option.icon),
             }
           );
         },
@@ -758,7 +766,7 @@ function moveCaseNodeContent(node) {
               isLeaf: false,
               type: res.data.type,
               iconColor: 'rgba(0, 47, 167, 1)',
-              icon: iconType[res.data.type]
+              icon: iconType[res.data.type],
             });
             moveLoading.value = false;
           });
@@ -776,9 +784,9 @@ function moveCaseNodeContent(node) {
               resolve();
             });
           });
-        }
+        },
       })
-    )
+    ),
   ]);
   return form;
 }
@@ -801,7 +809,7 @@ const setNodeOptions = (array, relateType) => {
       isLeaf: item.type === relateType,
       type: item.type,
       iconColor: 'rgba(0, 47, 167, 1)',
-      icon: iconType[item.type]
+      icon: iconType[item.type],
     };
   });
 };
@@ -812,7 +820,7 @@ const caseOptions = ref([]); // 关联测试用例选项
 function relateSuiteCaseContent(node, relateType) {
   const titleDict = {
     suite: '测试套',
-    case: '测试用例'
+    case: '测试用例',
   };
   let form;
   if (relateType === 'case') {
@@ -821,7 +829,7 @@ function relateSuiteCaseContent(node, relateType) {
         NFormItem,
         {
           label: `关联${titleDict[relateType]}:`,
-          rule: infoRules
+          rule: infoRules,
         },
         h(NTreeSelect, {
           value: info.value,
@@ -844,14 +852,14 @@ function relateSuiteCaseContent(node, relateType) {
               caseOptions.value[0].children = res.data.children.map((item) => {
                 return {
                   label: item.title,
-                  key: `${item.type}-${item.case_id}`
+                  key: `${item.type}-${item.case_id}`,
                 };
               });
               moveLoading.value = false;
             });
-          }
+          },
         })
-      )
+      ),
     ]);
   } else {
     form = h('div', null, [
@@ -859,7 +867,7 @@ function relateSuiteCaseContent(node, relateType) {
         NFormItem,
         {
           label: `关联${titleDict[relateType]}:`,
-          rule: infoRules
+          rule: infoRules,
         },
         h(NTreeSelect, {
           keyField: 'relationKey',
@@ -873,10 +881,10 @@ function relateSuiteCaseContent(node, relateType) {
             return h(
               NIcon,
               {
-                color: option.iconColor
+                color: option.iconColor,
               },
               {
-                default: () => h(option.icon)
+                default: () => h(option.icon),
               }
             );
           },
@@ -899,7 +907,7 @@ function relateSuiteCaseContent(node, relateType) {
                   relationKey: i,
                   disabled: true,
                   isLeaf: false,
-                  children: setNodeOptions(res.data[i].children, relateType)
+                  children: setNodeOptions(res.data[i].children, relateType),
                 });
               }
               moveLoading.value = false;
@@ -920,9 +928,9 @@ function relateSuiteCaseContent(node, relateType) {
                 resolve();
               });
             });
-          }
+          },
         })
-      )
+      ),
     ]);
   }
   return form;
@@ -932,7 +940,7 @@ const description = h(
   NP,
   {
     depth: 3,
-    style: 'margin:8px 0 0 0'
+    style: 'margin:8px 0 0 0',
   },
   '仅支持zip,rar,tar,gz,xz,bz2压缩文件上传'
 );
@@ -961,13 +969,13 @@ function renderUpload() {
   const icon = h(
     'div',
     {
-      style: 'margin-bottom: 12px;'
+      style: 'margin-bottom: 12px;',
     },
     h(
       NIcon,
       {
         size: 48,
-        depth: 3
+        depth: 3,
       },
       h(ArchiveOutline)
     )
@@ -983,7 +991,7 @@ function renderUpload() {
       onUpdateFileList: (file) => {
         files.value = file;
       },
-      defaultUpload: false
+      defaultUpload: false,
     },
     h(NUploadDragger, [icon, tip, description])
   );
@@ -1026,7 +1034,7 @@ function dialogView(confirmFn, node, contentType = 'directory') {
         return dialogAction(confirmFn, node, d, contentType);
       }
       return '';
-    }
+    },
   });
 }
 
@@ -1036,7 +1044,7 @@ function newDirectory(node) {
       title: info.value,
       type: 'directory',
       group_id: node.info.group_id,
-      parent_id: node.info.id
+      parent_id: node.info.id,
     })
     .then(() => {
       window.$message.success('创建成功');
@@ -1056,7 +1064,7 @@ function newBaseline(node) {
     title: info.value,
     milestone_id: milestoneId.value,
     type: 'baseline',
-    permission_type: node.type
+    permission_type: node.type,
   };
   if (node.type === 'org') {
     data.org_id = node.info.org_id;
@@ -1072,26 +1080,29 @@ function newBaseline(node) {
 
 function applyTemplate(node) {
   changeLoadingStatus(true);
-  const allRequest = templateId.value.map(item => {
+  const allRequest = templateId.value.map((item) => {
     return casenodeApplyTemplate(node.info.id, item);
   });
   Promise.allSettled(allRequest)
     .then((results) => {
       changeLoadingStatus(false);
       let length = 0;
-      results.filter(p => p.status === 'fulfilled').map((item) => {
-        length = length + item.value.data?.length;
-      });
+      results
+        .filter((p) => p.status === 'fulfilled')
+        .map((item) => {
+          length = length + item.value.data?.length;
+        });
       window.$message?.info(`${node.info.title}已成功增量应用该模板, 新建${length}个节点`);
-      results.filter(p => p.status === 'rejected').map((item) => {
-        window.$message?.info(item.reason?.data?.error_msg);
-      });
+      results
+        .filter((p) => p.status === 'rejected')
+        .map((item) => {
+          window.$message?.info(item.reason?.data?.error_msg);
+        });
       getCaseNode(node);
     })
     .catch(() => {
       changeLoadingStatus(false);
     });
-
 }
 
 function moveCaseNode(node) {
@@ -1108,7 +1119,7 @@ function relateSuiteCase(node, nodeType) {
     group_id: node.info.group_id,
     org_id: node.info.org_id,
     parent_id: node.info.id,
-    multiselect: true
+    multiselect: true,
   };
   let idArray = info.value.map((item) => {
     return Number(item.split('-').at(-1));
@@ -1153,7 +1164,7 @@ function deleteCaseNode(node) {
 function renameCaseNode(node) {
   axios
     .put(`/v1/case-node/${node.info.id}`, {
-      title: info.value
+      title: info.value,
     })
     .then(() => {
       node.label = info.value;
@@ -1171,7 +1182,7 @@ function newCase(node, caseId, title) {
       group_id: node.info.group_id,
       parent_id: node.info.id,
       case_id: caseId ? caseId : info.value,
-      title: title ? title : inputInfo.value
+      title: title ? title : inputInfo.value,
     })
     .then(() => {
       window.$message?.success('添加成功');
@@ -1184,40 +1195,41 @@ function newCase(node, caseId, title) {
 function createTask(node) {
   let startTime;
   let endTime;
-  getMilestoneList({ name: node.info.title, page_num: 1, page_size: 10 }).then(res => {
-    startTime = res.data?.items[0]?.start_time;
-    endTime = res.data?.items[0]?.end_time;
-  }).then(() => {
-    axios
-      .post('/v1/tasks', {
-        is_version_task: true,
-        type: 'VERSION',
-        title: node.info.title,
-        status_id: 1,
-        executor_type: 'GROUP',
-        executor_id: storage.getValue('orgId') || storage.getLocalValue('unLoginOrgId')?.id,
-        start_time: startTime,
-        deadline: endTime,
-        // keywords: null,
-        // abstract: null,
-        // abbreviation: null,
-        milestone_id: node.info.id,
-      })
-      .then(() => {
-        window.$message?.success('任务创建成功!');
-      })
-      .catch((err) => {
-        window.$message?.error(err.data.error_msg || '未知错误');
-      });
-  });
-
+  getMilestoneList({ name: node.info.title, page_num: 1, page_size: 10 })
+    .then((res) => {
+      startTime = res.data?.items[0]?.start_time;
+      endTime = res.data?.items[0]?.end_time;
+    })
+    .then(() => {
+      axios
+        .post('/v1/tasks', {
+          is_version_task: true,
+          type: 'VERSION',
+          title: node.info.title,
+          status_id: 1,
+          executor_type: 'GROUP',
+          executor_id: storage.getValue('orgId') || storage.getLocalValue('unLoginOrgId')?.id,
+          start_time: startTime,
+          deadline: endTime,
+          // keywords: null,
+          // abstract: null,
+          // abbreviation: null,
+          milestone_id: node.info.id,
+        })
+        .then(() => {
+          window.$message?.success('任务创建成功!');
+        })
+        .catch((err) => {
+          window.$message?.error(err.data.error_msg || '未知错误');
+        });
+    });
 }
 
 function getOrphanSuitesReq() {
   if (createSuitesTargetNode.value.group_id) {
     getOrphanGroupSuites(createSuitesTargetNode.value.group_id, {
       page_num: orphanSuitesPagination.page,
-      page_size: orphanSuitesPagination.pageSize
+      page_size: orphanSuitesPagination.pageSize,
     }).then((res) => {
       orphanSuitesData.value = res.data.items;
       orphanSuitesPagination.pageCount = res.data.pages;
@@ -1227,7 +1239,7 @@ function getOrphanSuitesReq() {
   } else {
     getOrphanOrgSuites({
       page_num: orphanSuitesPagination.page,
-      page_size: orphanSuitesPagination.pageSize
+      page_size: orphanSuitesPagination.pageSize,
     }).then((res) => {
       orphanSuitesData.value = res.data.items;
       orphanSuitesPagination.pageCount = res.data.pages;
@@ -1247,7 +1259,6 @@ function initDialogViewData() {
   nextParentId.value = undefined;
   moveOptions.value = [];
   moveLoading.value = false;
-
 }
 
 function refreshNode(node) {
@@ -1261,25 +1272,25 @@ const actionHandlder = {
     handler(contextmenu) {
       initDialogViewData();
       dialogView(newDirectory, contextmenu);
-    }
+    },
   },
   newBaseline: {
     handler(contextmenu) {
       initDialogViewData();
       dialogView(newBaseline, contextmenu, 'baseline');
-    }
+    },
   },
   applyTemplate: {
     handler(contextmenu) {
       initDialogViewData();
       dialogView(applyTemplate, contextmenu, 'template');
-    }
+    },
   },
   moveCaseNode: {
     handler(contextmenu) {
       initDialogViewData();
       dialogView(moveCaseNode, contextmenu, 'move');
-    }
+    },
   },
   relateSuite: {
     handler(contextmenu) {
@@ -1290,47 +1301,49 @@ const actionHandlder = {
         initDialogViewData();
         dialogView((node) => relateSuiteCase(node, 'suite'), contextmenu, 'suite');
       }
-    }
+    },
   },
   deleteCaseNode: {
     handler(contextmenu) {
       deleteCaseNode(contextmenu);
-    }
+    },
   },
   renameCaseNode: {
     handler(contextmenu) {
       initDialogViewData();
       dialogView(renameCaseNode, contextmenu);
-    }
+    },
   },
   newCase: {
     handler(contextmenu) {
       createModalRef.value.show();
       inSetnode = contextmenu;
-    }
+    },
   },
   relateCase: {
     handler(contextmenu) {
       initDialogViewData();
       dialogView((node) => relateSuiteCase(node, 'case'), contextmenu, 'case');
-    }
+    },
   },
   importCaseSet: {
     handler(contextmenu) {
       initDialogViewData();
       dialogView(uploadSet, contextmenu, 'caseSet');
-    }
+    },
   },
   importCase: {
     handler(contextmenu) {
       importInfo = contextmenu;
       importModalRef.value.show();
-    }
+    },
   },
   exportTestsuiteInXlsx: {
     handler(contextmenu) {
       axios
-        .downLoad(`/v1/org/${contextmenu.info.org_id}/case-node/${contextmenu.info.id}/export`, { filetype: 'xlsx' })
+        .downLoad(`/v1/org/${contextmenu.info.org_id}/case-node/${contextmenu.info.id}/export`, {
+          filetype: 'xlsx',
+        })
         .then((res) => {
           let blob = new Blob([res], { type: 'application/vnd.ms-excel' });
           let url = URL.createObjectURL(blob);
@@ -1346,7 +1359,7 @@ const actionHandlder = {
         .catch((err) => {
           window.$message?.error(`导出失败: ${err.error_msg}`);
         });
-    }
+    },
   },
   exportTestsuiteInMarkdown: {
     handler(contextmenu) {
@@ -1364,12 +1377,12 @@ const actionHandlder = {
         .catch((err) => {
           window.$message?.error(`导出失败: ${err.error_msg}`);
         });
-    }
+    },
   },
   refresh: {
     handler(contextmenu) {
       refreshNode(contextmenu);
-    }
+    },
   },
   editCaseNode: {
     handler(contextmenu) {
@@ -1389,12 +1402,12 @@ const actionHandlder = {
           updateModalRef.value.show();
         });
       }
-    }
+    },
   },
   createTask: {
     handler(contextmenu) {
       createTask(contextmenu);
-    }
+    },
   },
 };
 
@@ -1418,45 +1431,45 @@ function menuClick({ key, options }) {
     router.push({
       name: 'orgNode',
       params: {
-        taskId: window.btoa(id)
-      }
+        taskId: window.btoa(id),
+      },
     });
   } else if (itemkey === 'group') {
     router.push({
       name: 'termNode',
       params: {
-        taskId: window.btoa(id)
-      }
+        taskId: window.btoa(id),
+      },
     });
   } else if (itemkey === 'directory' && label === '用例集') {
     router.push({
       name: 'casesetNode',
       params: {
-        taskId: window.btoa(id)
-      }
+        taskId: window.btoa(id),
+      },
     });
   } else if (type === 'baseline') {
     router.push({
       name: 'baselineNode',
       params: {
-        taskId: window.btoa(id)
-      }
+        taskId: window.btoa(id),
+      },
     });
   } else if (itemkey === 'suite') {
     router.push({
       name: 'suiteNode',
       params: {
         taskId: window.btoa(id),
-        suiteId: window.btoa(suiteId)
-      }
+        suiteId: window.btoa(suiteId),
+      },
     });
   } else if (itemkey === 'case') {
     router.push({
       name: 'testcaseNodes',
       params: {
         taskId: window.btoa(id),
-        caseId: window.btoa(caseId)
-      }
+        caseId: window.btoa(caseId),
+      },
     });
   }
 }
@@ -1591,5 +1604,5 @@ export {
   submitCreateCase,
   clearSelectKey,
   extendSubmit,
-  getOrphanSuitesReq
+  getOrphanSuitesReq,
 };
