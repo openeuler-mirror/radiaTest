@@ -2,7 +2,7 @@ import { ref } from 'vue';
 import { storage } from '@/assets/utils/storageUtils';
 import { createMachineGroup } from '@/api/post';
 import { modifyMachineGroup } from '@/api/put';
-import { isCreate, menuOption,refreshData } from './menu';
+import { isCreate, menuOption, refreshData } from './menu';
 const createModalRef = ref(null);
 const machinesFormRef = ref(null);
 const createMachinesForm = ref({
@@ -14,7 +14,7 @@ const createMachinesForm = ref({
   permission_type: undefined,
   websockify_listen: undefined,
   messenger_ip: undefined,
-  websockify_ip:undefined,
+  websockify_ip: undefined,
 });
 const syncWebsockifyIP = ref(true);
 const syncMessengerIP = ref(true);
@@ -35,6 +35,7 @@ const machinesRules = {
     trigger: ['blur', 'input'],
   },
   ip: {
+    required: true,
     message: 'IP有误',
     validator(rule, value) {
       const reg = /^(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])$/;
@@ -43,16 +44,18 @@ const machinesRules = {
     trigger: ['blur', 'input'],
   },
   messenger_ip: {
+    required: true,
     message: 'IP有误',
-    validator (rule, value) {
+    validator(rule, value) {
       const reg = /^(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])$/;
       return reg.test(value);
     },
     trigger: ['blur', 'input'],
   },
   websockify_ip: {
+    required: true,
     message: 'IP有误',
-    validator (rule, value) {
+    validator(rule, value) {
       const reg = /^(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])$/;
       return reg.test(value);
     },
@@ -64,21 +67,23 @@ const machinesRules = {
     trigger: ['blur', 'input'],
   },
   messenger_listen: {
-    message: '端口必填',
-    validator (rule, value) {
-      return value > 0;
-    },
-    trigger: ['blur', 'input'],
-  },
-  websockify_listen: {
+    required: true,
     message: '端口必填',
     validator(rule, value) {
       return value > 0;
     },
     trigger: ['blur', 'input'],
-  }
+  },
+  websockify_listen: {
+    required: true,
+    message: '端口必填',
+    validator(rule, value) {
+      return value > 0;
+    },
+    trigger: ['blur', 'input'],
+  },
 };
-function changeValue (value) {
+function changeValue(value) {
   if (syncMessengerIP.value) {
     createMachinesForm.value.messenger_ip = value;
   }
@@ -125,7 +130,7 @@ function modifyMachines() {
       ip: undefined,
       messenger_listen: undefined,
       permission_type: undefined,
-      websockify_listen:undefined
+      websockify_listen: undefined
     };
   });
 }
