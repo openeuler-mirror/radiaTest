@@ -1,5 +1,11 @@
 <template>
-  <n-form :label-width="40" :model="infoFormValue" :rules="infoRules" label-placement="top" ref="infoFormRef">
+  <n-form
+    :label-width="40"
+    :model="infoFormValue"
+    :rules="infoRules"
+    label-placement="top"
+    ref="infoFormRef"
+  >
     <n-grid :cols="18" :x-gap="24">
       <n-form-item-gi :span="10" label="测试套名" path="name">
         <n-input v-model:value="infoFormValue.name" placeholder="请设置测试套名" />
@@ -22,12 +28,12 @@
           :options="[
             {
               label: '虚拟机',
-              value: 'kvm'
+              value: 'kvm',
             },
             {
               label: '物理机',
-              value: 'physical'
-            }
+              value: 'physical',
+            },
           ]"
         />
       </n-form-item-gi>
@@ -35,7 +41,11 @@
         <n-input v-model:value="infoFormValue.remark" placeholder="测试用例备注文本" />
       </n-form-item-gi>
       <n-form-item-gi :span="2" label="增加网卡" path="add_network_interface">
-        <n-input-number v-model:value="infoFormValue.add_network_interface" :default-value="0" :min="0" />
+        <n-input-number
+          v-model:value="infoFormValue.add_network_interface"
+          :default-value="0"
+          :min="0"
+        />
       </n-form-item-gi>
       <n-form-item-gi :span="16" label="增加磁盘" path="add_disk">
         <n-dynamic-tags v-model:value="infoFormValue.add_disk" size="large">
@@ -72,7 +82,7 @@ import axios from '@/axios';
 
 export default defineComponent({
   components: {
-    Add
+    Add,
   },
   methods: {
     post() {
@@ -82,7 +92,9 @@ export default defineComponent({
         } else {
           const infoCopyData = JSON.parse(JSON.stringify(this.infoFormValue));
           if (infoCopyData.add_disk) {
-            infoCopyData.add_disk = infoCopyData.add_disk.map((item) => item.replace(' GiB', '')).join(',');
+            infoCopyData.add_disk = infoCopyData.add_disk
+              .map((item) => item.replace(' GiB', ''))
+              .join(',');
           } else {
             infoCopyData.add_disk = '';
           }
@@ -104,7 +116,9 @@ export default defineComponent({
         } else {
           const infoCopyData = JSON.parse(JSON.stringify(this.infoFormValue));
           if (infoCopyData.add_disk) {
-            infoCopyData.add_disk = infoCopyData.add_disk.map((item) => item.replace(' GiB', '')).join(',');
+            infoCopyData.add_disk = infoCopyData.add_disk
+              .map((item) => item.replace(' GiB', ''))
+              .join(',');
           } else {
             infoCopyData.add_disk = '';
           }
@@ -115,7 +129,7 @@ export default defineComponent({
               machine_type: infoCopyData.machine_type,
               add_network_interface: infoCopyData.add_network_interface,
               add_disk: infoCopyData.add_disk,
-              remark: infoCopyData.remark
+              remark: infoCopyData.remark,
             })
             .then(() => {
               window.$message?.success('修改成功!');
@@ -125,7 +139,7 @@ export default defineComponent({
           this.$emit('close');
         }
       });
-    }
+    },
   },
   props: ['data'],
   setup(props) {
@@ -137,8 +151,8 @@ export default defineComponent({
       return [
         {
           label: `${diskUsage.value} GiB`,
-          value: `${diskUsage.value} GiB`
-        }
+          value: `${diskUsage.value} GiB`,
+        },
       ];
     });
     const frameworkList = ref();
@@ -157,7 +171,7 @@ export default defineComponent({
       machine_type: '',
       add_network_interface: '',
       add_disk: [],
-      remark: ''
+      remark: '',
     });
     if (props.data) {
       const temp = JSON.parse(JSON.stringify(props.data));
@@ -168,8 +182,25 @@ export default defineComponent({
       name: {
         required: true,
         trigger: ['input', 'blur'],
-        message: '名称必填'
-      }
+        message: '名称必填',
+      },
+      machine_num: {
+        required: true,
+        type: 'number',
+        trigger: ['input', 'blur'],
+        message: '节点数量必填',
+      },
+      machine_type: {
+        required: true,
+        trigger: ['change', 'blur'],
+        message: '节点类型必填',
+      },
+      add_network_interface: {
+        required: true,
+        type: 'number',
+        trigger: ['change', 'input'],
+        message: '增加网卡必填',
+      },
     };
     return {
       infoFormRef,
@@ -177,9 +208,9 @@ export default defineComponent({
       usageOptions,
       frameworkList,
       diskUsage,
-      infoRules
+      infoRules,
     };
-  }
+  },
 });
 </script>
 
