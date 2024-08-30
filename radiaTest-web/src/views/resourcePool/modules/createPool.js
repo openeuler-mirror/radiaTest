@@ -38,7 +38,8 @@ const machinesRules = {
     required: true,
     message: 'IP有误',
     validator(rule, value) {
-      const reg = /^(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])$/;
+      const reg =
+        /^(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])$/;
       return reg.test(value);
     },
     trigger: ['blur', 'input'],
@@ -47,7 +48,8 @@ const machinesRules = {
     required: true,
     message: 'IP有误',
     validator(rule, value) {
-      const reg = /^(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])$/;
+      const reg =
+        /^(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])$/;
       return reg.test(value);
     },
     trigger: ['blur', 'input'],
@@ -56,7 +58,8 @@ const machinesRules = {
     required: true,
     message: 'IP有误',
     validator(rule, value) {
-      const reg = /^(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])$/;
+      const reg =
+        /^(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])$/;
       return reg.test(value);
     },
     trigger: ['blur', 'input'],
@@ -113,7 +116,7 @@ function createMachines() {
       permission_type: undefined,
       websockify_listen: undefined,
       messenger_ip: undefined,
-      websockify_ip: undefined
+      websockify_ip: undefined,
     };
   });
 }
@@ -130,7 +133,7 @@ function modifyMachines() {
       ip: undefined,
       messenger_listen: undefined,
       permission_type: undefined,
-      websockify_listen: undefined
+      websockify_listen: undefined,
     };
   });
 }
@@ -147,6 +150,19 @@ function submitCreateForm() {
     }
   });
 }
+function closeForm() {
+  createMachinesForm.value = {
+    name: undefined,
+    description: undefined,
+    network_type: 'LAN',
+    ip: undefined,
+    messenger_listen: undefined,
+    permission_type: undefined,
+    websockify_listen: undefined,
+    messenger_ip: undefined,
+    websockify_ip: undefined,
+  };
+}
 
 export {
   machinesRules,
@@ -157,5 +173,6 @@ export {
   showCreateModal,
   machinesFormRef,
   submitCreateForm,
+  closeForm,
   changeValue,
 };

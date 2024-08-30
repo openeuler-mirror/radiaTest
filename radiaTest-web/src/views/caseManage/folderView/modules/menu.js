@@ -531,8 +531,7 @@ function handleNormalDialogConfirm(confirmFn, node, d, contentType) {
   } else if (infoRules.validator() === true) {
     confirmFn(node);
     d.destroy();
-  }
-  if (contentType === 'createTask') {
+  } else if (contentType === 'createTask') {
     // confirmFn(node);
     // d.destroy();
   } else {

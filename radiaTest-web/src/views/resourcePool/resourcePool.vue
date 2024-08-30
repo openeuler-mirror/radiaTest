@@ -1,7 +1,14 @@
 <template>
   <div style="width: 100%; overflow: hidden">
     <n-spin :show="showLoading" stroke="rgba(0, 47, 167, 1)">
-      <modal-card :initY="100" :initX="300" title="创建机器组" ref="createModalRef" @validate="submitCreateForm">
+      <modal-card
+        :initY="100"
+        :initX="300"
+        title="创建机器组"
+        ref="createModalRef"
+        @validate="submitCreateForm"
+        @closeCard="closeForm"
+      >
         <template #form>
           <n-form
             :label-width="40"
@@ -29,7 +36,7 @@
                   placeholder="请输入"
                   :options="[
                     { label: 'WAN', value: 'WAN' },
-                    { label: 'LAN', value: 'LAN' }
+                    { label: 'LAN', value: 'LAN' },
                   ]"
                 />
               </n-form-item-gi>
@@ -58,7 +65,10 @@
                 </n-switch>
               </n-form-item-gi>
               <n-form-item-gi :span="6" label="messenger IP" path="messenger_ip">
-                <n-input v-model:value="createMachinesForm.messenger_ip" placeholder="请输入messenger IP地址" />
+                <n-input
+                  v-model:value="createMachinesForm.messenger_ip"
+                  placeholder="请输入messenger IP地址"
+                />
               </n-form-item-gi>
               <n-form-item-gi :span="6" label="messenger监听" path="messenger_listen">
                 <n-input
@@ -75,7 +85,10 @@
                 </n-switch>
               </n-form-item-gi>
               <n-form-item-gi :span="6" label="websockify IP" path="websockify_ip">
-                <n-input v-model:value="createMachinesForm.websockify_ip" placeholder="请输入websockify IP" />
+                <n-input
+                  v-model:value="createMachinesForm.websockify_ip"
+                  placeholder="请输入websockify IP"
+                />
               </n-form-item-gi>
               <n-form-item-gi :span="6" label="websockify服务端口" path="websockify_listen">
                 <n-input
@@ -100,7 +113,11 @@
           :style="{ height: contentHeight + 'px' }"
         >
           <n-alert title="使用须知" type="warning" closable>
-            若需要查看资源监控、使用VNC控制台，请<n-button type="info" text @click="handleDownloadCert">下载</n-button
+            若需要查看资源监控、使用VNC控制台，请<n-button
+              type="info"
+              text
+              @click="handleDownloadCert"
+              >下载</n-button
             >并安装根证书批量信任机器组服务，或于机器组节点右键菜单中点击信任单个机器组服务
           </n-alert>
           <n-tree
@@ -130,7 +147,7 @@
           content-style="padding: 24px;width:100%"
           :style="{
             overflowY: 'auto',
-            height: contentHeight + 'px'
+            height: contentHeight + 'px',
           }"
           id="resourcePoolRight"
         >
@@ -147,7 +164,10 @@
             <n-tab name="docker" :disabled="true"> Docker </n-tab>
           </n-tabs>
           <router-view v-if="showMachine" :key="key" />
-          <div v-else style="height: 100%; display: flex; justify-content: center; align-items: center">
+          <div
+            v-else
+            style="height: 100%; display: flex; justify-content: center; align-items: center"
+          >
             <n-empty description="请选择机器组"> </n-empty>
           </div>
         </n-layout-content>
@@ -162,7 +182,7 @@ import extendForm from '@/views/versionManagement/product/modules/createForm.js'
 
 export default {
   components: {
-    modalCard
+    modalCard,
   },
   computed: {
     showMachine() {
@@ -170,7 +190,7 @@ export default {
     },
     key() {
       return window.atob(this.$route.params.machineId);
-    }
+    },
   },
   unmounted() {
     this.socket.disconnect();
@@ -203,10 +223,14 @@ export default {
         });
       }
     });
-    if (this.$route.name === 'resourcePool' && this.expandeds.at(-1) !== 'pool' && this.expandeds.length !== 0) {
+    if (
+      this.$route.name === 'resourcePool' &&
+      this.expandeds.at(-1) !== 'pool' &&
+      this.expandeds.length !== 0
+    ) {
       this.$router.push({
         name: this.activeTab,
-        params: { machineId: window.btoa(this.expandeds.at(-1)) }
+        params: { machineId: window.btoa(this.expandeds.at(-1)) },
       });
     }
     if (this.$route.name !== 'resourcePool') {
@@ -221,9 +245,9 @@ export default {
     return {
       typeOptions: extendForm.typeOptions,
       handleLoad: extendForm.handleLoad,
-      ...modules
+      ...modules,
     };
-  }
+  },
 };
 </script>
 <style></style>
