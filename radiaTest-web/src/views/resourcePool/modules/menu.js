@@ -5,20 +5,20 @@ import {
   CircleSharp,
 } from '@vicons/material';
 import { EditOutlined } from '@vicons/antd';
-import { 
+import {
   Delete28Regular,
   ArrowSync20Regular,
   CalendarCheckmark24Regular,
-  TextDescription20Regular 
+  TextDescription20Regular
 } from '@vicons/fluent';
 import { Add } from '@vicons/ionicons5';
 import { NButton, NIcon } from 'naive-ui';
-import { showCreateModal,createMachinesForm } from './createPool';
-import { getMachineGroup,getRootCert } from '@/api/get';
+import { showCreateModal, createMachinesForm } from './createPool';
+import { getMachineGroup, getRootCert } from '@/api/get';
 import { Socket } from '@/socket';
 import config from '@/assets/config/settings';
 import router from '@/router';
-import {deleteMachineGroup} from '@/api/delete';
+import { deleteMachineGroup } from '@/api/delete';
 import { activeTab } from './switch';
 
 const isCreate = ref(false);
@@ -131,7 +131,7 @@ function getTimeDiff(diffTime) {
   }
   return '刚刚';
 }
-function refreshData(){
+function refreshData() {
   menuOptions.value = [
     {
       label: 'radiaTest资源池',
@@ -140,19 +140,19 @@ function refreshData(){
     },
   ];
   expandeds.value = ['pool'];
-  if(router.currentRoute.value.name !== 'resourcePool'){
+  if (router.currentRoute.value.name !== 'resourcePool') {
     expandeds.value.push(window.atob(router.currentRoute.value.params.machineId));
   }
 }
 function handleSelect(key) {
-  if(key === 'check'){
+  if (key === 'check') {
     window.location.href = `https://${menuOption.messenger_ip}:${menuOption.messenger_listen}/api/v1/ca-check`;
-  }else if(key === 'edit'){
+  } else if (key === 'edit') {
     createMachinesForm.value = menuOption;
     showCreateModal();
     isCreate.value = false;
-  }else if(key === 'delete'){
-    deleteMachineGroup(menuOption.id).then(()=>{
+  } else if (key === 'delete') {
+    deleteMachineGroup(menuOption.id).then(() => {
       refreshData();
     });
   }
@@ -182,7 +182,7 @@ function renderSuffix({ option }) {
   }
   return '';
 }
-function handleTreeLoad (node) {
+function handleTreeLoad(node) {
   return new Promise((resolve, reject) => {
     getMachineGroup()
       .then((res) => {
@@ -190,7 +190,7 @@ function handleTreeLoad (node) {
           label: item.name,
           key: String(item.id),
           value: item.id,
-          info:item,
+          info: item,
           suffix: item.ip,
           children: [
             {
@@ -235,7 +235,7 @@ const contentWidth = ref(0);
 
 function handleSelectKey(keys) {
   const key = keys.pop();
-  if (key.indexOf('server') === -1) {
+  if (key && key.indexOf('server') === -1) {
     selectKey.value = key;
   }
 }

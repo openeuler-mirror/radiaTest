@@ -12,6 +12,7 @@ import {
 } from './frameWorkAction';
 import axios from '@/axios';
 import { workspace } from '@/assets/config/menu.js';
+import textDialog from '@/assets/utils/dialog';
 
 const frameLoading = ref(false);
 function getRepo(row) {
@@ -126,8 +127,15 @@ const frameworkColumns = [
                 size: 'medium',
                 type: 'error',
                 circle: true,
-                onClick: () => {
-                  deleteFramework(row.id);
+                // onClick: () => {
+                //   deleteFramework(row.id);
+                // },
+                onClick: (e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  textDialog('warning', '警告', '确认删除此框架吗？', () => {
+                    deleteFramework(row.id);
+                  });
                 },
               },
               h(NIcon, { size: '20' }, h(Delete))
