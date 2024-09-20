@@ -126,6 +126,8 @@ const getTableData = () => {
           label: item.name,
           value: String(item.id),
         }));
+      } else {
+        templateTableData.value = [];
       }
     })
     .finally(() => {
