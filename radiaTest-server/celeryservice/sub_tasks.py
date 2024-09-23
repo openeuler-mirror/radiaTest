@@ -110,6 +110,9 @@ def update_compare_result(round_group_id: int, results, repo_path):
         rpm_compare = RpmCompare.query.filter_by(
             rpm_comparee=result.get("rpm_list_1"),
             rpm_comparer=result.get("rpm_list_2"),
+            repo_path=repo_path,
+            arch=result.get("arch"),
+            compare_result=result.get("compare_result"),
             round_group_id=round_group_id
         ).first()
         if not rpm_compare:

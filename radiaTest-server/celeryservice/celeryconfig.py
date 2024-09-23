@@ -35,6 +35,11 @@ def loads_config_ini(section, option):
         return None
 
 
+# pkglist
+openeuler_dailybuild_repo_url = loads_config_ini("pkglist", "OPENEULER_DAILYBUILD_REPO_URL")
+openmajun_dailybuild_repo_url = loads_config_ini("pkglist", "OPENMAJUN_DAILYBUILD_REPO_URL")
+
+
 # Broker settings
 broker_url = loads_config_ini("celery", "BROKER_URL")
 broker_pool_limit = 10
