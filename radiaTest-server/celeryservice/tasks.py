@@ -359,6 +359,34 @@ def resolve_openeuler_pkglist(repo_url, product, build, repo_path, arch, round=N
     logger.info(f"the lock of crawling has been removed")
 
 
+def get_pkg_file(url, tmp_file_name, pkg_file):
+    resp = requests.get(url)
+    if resp.status_code != 200:
+        logger.error("Could not connect to the url: {}".format(url))
+        oe_daily_repo = celeryconfig.openeuler_dailybuild_repo_url.rstrip('/')
+        om_dailybuild_repo = celeryconfig.openmajun_dailybuild_repo_url.rstrip('/')
+        if url.startswith(oe_daily_repo):
+            url = om_dailybuild_repo + url[len(oe_daily_repo):]
+            resp = requests.get(url)
+            if resp.status_code != 200:
+                logger.error("Could not connect to the url: {}".format(url))
+                return 
+        else:
+            return
+    resp.encoding = 'utf-8'
+    # 写入网页内容到文件中
+    with open(tmp_file_name, "wb") as f:
+        f.write(resp.content)
+        f.close()
+
+    exitcode, output = subprocess.getstatusoutput(f"cat {tmp_file_name} | grep '.rpm\"' "
+                                                  f"| grep -o -E 'href=[\"][^\"]+' | awk -F '\"' '{{print $2}}'  "
+                                                  f"| sort | uniq > {pkg_file}")
+    if exitcode != 0:
+        logger.error(output)
+        return
+
+
 @celery.task
 def resolve_pkglist_after_resolve_rc_name(repo_url, store_path, product, round_num=None):
     if not repo_url or not store_path or not  product:
@@ -366,7 +394,7 @@ def resolve_pkglist_after_resolve_rc_name(repo_url, store_path, product, round_n
         return
 
     _repo_url = repo_url
-    product_version = f"{store_path}/{product}"
+    product_version = f"{store_path.rstrip('/')}/{product}"
     repo_paths = ["everything", "EPOL/main", "update"]
     if round_num :
         product_version = f'{product_version}-round-{round_num}'
@@ -381,34 +409,14 @@ def resolve_pkglist_after_resolve_rc_name(repo_url, store_path, product, round_n
             f.write(resp.content)
             f.close()
         exitcode, output = subprocess.getstatusoutput(
-            f"cat {tmp_file_name} | grep 'rc{round_num}_openeuler'"
-            + " | awk -F 'title=\"' '{print $2}' | awk -F '\">' '{print $1}' | uniq"
+            f"cat {tmp_file_name} | grep -o -E 'rc{round_num}_openeuler-[[:digit:]]{{4}}(-[[:digit:]]{{2}})*/' "
+            f"| head -1 | sed -E 's/\/+$//'"
         )
         if exitcode != 0:
             logger.error(output)
             return
         _repo_url = f'{_repo_url}/{output}'
         repo_paths = repo_paths[:-1]
-
-    def get_pkg_file(url, tmp_file_name, pkg_file):
-        resp = requests.get(url)
-        if resp.status_code != 200:
-            logger.error("Could not connect to the url: {}".format(url))
-            return
-        resp.encoding = 'utf-8'
-        # 写入网页内容到文件中
-        with open(tmp_file_name, "wb") as f:
-            f.write(resp.content)
-            f.close()
-
-        exitcode, output = subprocess.getstatusoutput(
-            f"cat {tmp_file_name} | " 
-            + "grep 'title=' | awk -F 'title=\"' '{print $2}' | awk -F '\">' '{print $1}' | grep '.rpm' | uniq >" 
-            + f"{pkg_file}"
-        )
-        if exitcode != 0:
-            logger.error(output)
-            return
 
     for repo_path in repo_paths:
         product_version_repo = f"{product_version}-{repo_path.split('/')[0]}"
@@ -466,7 +474,7 @@ def resolve_pkglist_from_url(repo_name, repo_url, store_path):
 
             exitcode, output = subprocess.getstatusoutput(
                 f"cat {tmp_file_name} | " 
-                + "grep 'title=' | awk -F 'title=\"' '{print $2}' | awk -F '\">' '{print $1}' | grep '.rpm' | uniq >" 
+                + "grep '.rpm\"' | grep -o -E 'href=[\"][^\"]+' | awk -F '\"' '{print $2}' | sort | uniq >" 
                 + f"{store_path}/{_repo_path}-{arch}.pkgs"
             )
 
