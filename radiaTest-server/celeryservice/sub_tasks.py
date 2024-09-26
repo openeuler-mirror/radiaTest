@@ -16,6 +16,7 @@
 #####################################
 from celery import current_app as celery
 from celery.utils.log import get_task_logger
+from sqlalchemy import insert
 
 from server import redis_client
 from server.utils.db import Insert, Edit, collect_sql_error
@@ -101,41 +102,32 @@ def update_suite(suite_data, cases_data):
         case.commit()
 
 
-@celery.task
-def update_compare_result(round_group_id: int, results, repo_path):
-    for result in results:
-        if not round_group_id:
-            raise ValueError("lack of param round_group_id")
+def batch_insert_rpm_compare(round_group_id: int, results, repo_path):
+    from server import db
+    # clear the older data
+    db.session.query(RpmCompare).filter_by(repo_path=repo_path, round_group_id=round_group_id).delete()
 
-        rpm_compare = RpmCompare.query.filter_by(
-            rpm_comparee=result.get("rpm_list_1"),
-            rpm_comparer=result.get("rpm_list_2"),
-            repo_path=repo_path,
-            arch=result.get("arch"),
-            compare_result=result.get("compare_result"),
-            round_group_id=round_group_id
-        ).first()
-        if not rpm_compare:
-            _ = Insert(
-                RpmCompare, 
-                {
+    # insert the new data
+    db.session.execute(
+        insert(RpmCompare),
+        [
+            {
                     "repo_path": repo_path,
                     "arch": result.get("arch"),
                     "rpm_comparee": result.get("rpm_list_1"),
                     "rpm_comparer": result.get("rpm_list_2"),
                     "compare_result": result.get("compare_result"),
                     "round_group_id": round_group_id,
-                }
-            ).single()
-        else:
-            _ = Edit(
-                RpmCompare,
-                {   
-                    "id": rpm_compare.id,
-                    "compare_result": result.get("compare_result"),
-                }
-            ).single()
+            }
+            for result in results
+        ]
+    )
+    db.session.commit()
 
+
+@celery.task
+def update_compare_result(round_group_id: int, results, repo_path):
+    batch_insert_rpm_compare(round_group_id, results, repo_path)
     compare_key = f"ROUND_GROUP_{round_group_id}_{repo_path}_PKG_COMPARE"
     redis_client.delete(compare_key)
 
