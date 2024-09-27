@@ -252,7 +252,7 @@ const showLoading = computed(() => {
 const flattenTree = (list) => {
   const result = [];
   function flatten(_list = []) {
-    _list.forEach((item) => {
+    _list?.forEach((item) => {
       result.push(item);
       flatten(item.children);
     });
@@ -282,7 +282,7 @@ const getCaseOptions = () => {
   };
   getCaseSuite(param).then((res) => {
     axiosStatus.value = false;
-    res.data.items.forEach((item) => {
+    res?.data?.items?.forEach((item) => {
       casesOption.value.push({
         label: item.name,
         key: `suite-${item.id}`,
@@ -453,13 +453,12 @@ const handleFilter = async (pattern) => {
     // 搜索完毕之后用已经选择的项(也就是搜索是空的时候)suit-id默认展开，没有的suit-id添加到已有的列表中
     if (tempSelectedKeys.value.length) {
       let noRepeatOptions = [];
-      tempSelectedOptions.value.forEach((el) => {
+      tempSelectedOptions?.value?.forEach((el) => {
         if (!noRepeatOptions.find((e) => e.suiteId === el.suiteId)) {
           noRepeatOptions.push(el);
         }
       });
-
-      noRepeatOptions.forEach((item) => {
+      noRepeatOptions?.forEach((item) => {
         if (suiteIds.value.indexOf(item.suiteId) === -1) {
           casesOption.value.push(item.suite);
         }
