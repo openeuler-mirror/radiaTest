@@ -1,5 +1,5 @@
 <template>
-  <div style="padding:30px">
+  <div style="padding: 30px">
     <n-grid>
       <n-gi :span="23">
         <div style="margin-bottom: 10px">
@@ -22,7 +22,12 @@
       :loading="frameLoading"
       remote
     />
-    <n-modal v-model:show="showModal" preset="dialog" :title="isCreate ? '新增测试框架' : '修改测试框架'">
+    <n-modal
+      v-model:show="showModal"
+      preset="dialog"
+      :title="isCreate ? '新增测试框架' : '修改测试框架'"
+      @close="closeForm"
+    >
       <n-form ref="formRef" label-placement="top" :model="frameworkForm" :rules="frameworkRules">
         <n-form-item label="名称" path="name">
           <n-input v-model:value="frameworkForm.name" placeholder="请输入名称" />
@@ -42,12 +47,8 @@
       </n-form>
       <template #action>
         <n-space style="width: 100%">
-          <n-button type="error" ghost size="large" @click="closeForm">
-            取消
-          </n-button>
-          <n-button size="large" @click="submitForm" type="primary" ghost>
-            提交
-          </n-button>
+          <n-button type="error" ghost size="large" @click="closeForm"> 取消 </n-button>
+          <n-button size="large" @click="submitForm" type="primary" ghost> 提交 </n-button>
         </n-space>
       </template>
     </n-modal>
@@ -64,9 +65,9 @@ export default {
     modules.initData();
 
     return {
-      ...modules
+      ...modules,
     };
-  }
+  },
 };
 </script>
 

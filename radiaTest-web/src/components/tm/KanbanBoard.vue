@@ -58,7 +58,10 @@
             <template #item="{ element }">
               <div class="list-group-item" :class="isDrag(element)">
                 <div class="task-card">
-                  <div class="task-priority" :style="{ backgroundColor: tagColor(element.type) }"></div>
+                  <div
+                    class="task-priority"
+                    :style="{ backgroundColor: tagColor(element.type) }"
+                  ></div>
                   <div class="task-main">
                     <div class="task-content-wrapper">
                       <div class="task-content" @click="taskDetail(element)">
@@ -66,7 +69,10 @@
                           {{ element.title }}
                         </n-ellipsis>
                       </div>
-                      <img class="avatar" :src="element.executor?.avatar_url || element.originator?.avatar_url" />
+                      <img
+                        class="avatar"
+                        :src="element.executor?.avatar_url || element.originator?.avatar_url"
+                      />
                     </div>
                     <div class="task-info-wrapper" v-show="element?.tasks?.length">
                       <div class="task-infos">
@@ -108,14 +114,19 @@
 <script>
 import { h } from 'vue';
 import { Dots } from '@vicons/tabler';
-import { AddCircle24Regular, TextBulletListLtr20Filled, Delete20Regular, Edit24Regular } from '@vicons/fluent';
+import {
+  AddCircle24Regular,
+  TextBulletListLtr20Filled,
+  Delete20Regular,
+  Edit24Regular,
+} from '@vicons/fluent';
 import { NIcon } from 'naive-ui';
 import draggable from 'vuedraggable';
 
 const renderIcon = (icon) => {
   return () => {
     return h(NIcon, null, {
-      default: () => h(icon)
+      default: () => h(icon),
     });
   };
 };
@@ -125,7 +136,7 @@ export default {
     Dots,
     TextBulletListLtr20Filled,
     AddCircle24Regular,
-    draggable
+    draggable,
   },
   props: ['taskData'],
   emits: ['showDetail', 'toggleComplete'],
@@ -135,26 +146,26 @@ export default {
         {
           label: '编辑状态',
           key: 'edit',
-          icon: renderIcon(Edit24Regular)
+          icon: renderIcon(Edit24Regular),
         },
         {
           label: '删除状态',
           key: 'delete',
-          icon: renderIcon(Delete20Regular)
+          icon: renderIcon(Delete20Regular),
         },
         {
           label: '批量删除任务',
           key: 'deleteTasks',
           disabled: this.taskData.statusItem !== '待办中',
-          icon: renderIcon(Delete20Regular)
-        }
+          icon: renderIcon(Delete20Regular),
+        },
       ],
       showStatusItem: true,
       statusItemValue: null,
       deleteTasksModal: false,
       deleteTasksValue: null,
       deleteTasksOption: [],
-      showTaskList: true
+      showTaskList: true,
     };
   },
   methods: {
@@ -170,7 +181,7 @@ export default {
           this.deleteTasksOption = this.taskData.tasks.map((v) => {
             return {
               label: v.title,
-              value: v.id
+              value: v.id,
             };
           });
         }
@@ -178,8 +189,10 @@ export default {
     },
     editStatusItem() {
       this.$emit('select', { key: 'edit', value: this.statusItemValue });
+      this.statusItemValue = null;
     },
     cancelStatusItem() {
+      this.statusItemValue = null;
       this.showStatusItem = true;
     },
     showCreateTask() {
@@ -230,14 +243,14 @@ export default {
     deleteTasksBtn() {
       this.$emit('select', {
         key: 'deleteTasks',
-        value: this.deleteTasksValue
+        value: this.deleteTasksValue,
       });
       this.deleteTasksModal = false;
     },
     handleChange(value) {
       this.$emit('toggleComplete', value);
-    }
-  }
+    },
+  },
 };
 </script>
 
