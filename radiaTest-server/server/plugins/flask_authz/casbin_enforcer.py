@@ -39,6 +39,12 @@ class Filter:
         self.v4 = kwargs.get("v4") if kwargs.get("v4") else []
         self.v5 = kwargs.get("v5") if kwargs.get("v5") else []
 
+    def __str__(self):
+        return (f'Filter => ptype: {self.ptype} '
+                f'v0: {self.v0} v1: {self.v1} '
+                f'v2: {self.v2} v3: {self.v3} '
+                f'v4: {self.v4} v5: {self.v5}')
+
 
 class CasbinEnforcer:
     """
@@ -109,6 +115,11 @@ class CasbinEnforcer:
 
             _all_roles_filter = Filter(ptype=['g'])
             _cur_dom_filter = Filter(ptype=['p'], v2=[act], v4=[dom])
+
+            # just load necessary policy for 'vmachine/{vmachine_id}/ssh'
+            if re.match(r'^/api/v1/vmachine/\d+/ssh$', uri):
+                _cur_dom_filter = Filter(ptype=['p'], v1=[uri], v2=[act], v4=[dom])
+
             self.e.load_filtered_policy(_all_roles_filter)
             self.e.load_increment_filtered_policy(_cur_dom_filter)
 
