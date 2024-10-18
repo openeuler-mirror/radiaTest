@@ -87,14 +87,14 @@ const init = {
     reader.onload = function () {
       success(this.result);
     };
-  }
+  },
 };
 
 // 渲染图标
 function renderIcon(icon) {
   return () => {
     return h(NIcon, null, {
-      default: () => h(icon)
+      default: () => h(icon),
     });
   };
 }
@@ -103,7 +103,7 @@ function renderIcon(icon) {
 const detailTask = reactive({
   id: '',
   level: 0,
-  parentId: ''
+  parentId: '',
 });
 
 // 父子任务关联、查询
@@ -169,18 +169,18 @@ const menuOptions = ref([
     label: '删除任务',
     key: 'deleteTask',
     icon: renderIcon(DeleteOutlined),
-    disabled: false
+    disabled: false,
   },
   {
     label: '生成模板报告',
     key: 'reporting',
-    icon: renderIcon(ReportAnalytics)
+    icon: renderIcon(ReportAnalytics),
   },
   {
     label: '分配任务',
     key: 'distributeTask',
-    icon: renderIcon(ArrowsSplit)
-  }
+    icon: renderIcon(ArrowsSplit),
+  },
 ]);
 
 const editRole = computed(() => {
@@ -222,29 +222,29 @@ const caseLoading = ref(false);
 const casePagination = reactive({
   page: 1,
   pageCount: 1, //总页数
-  pageSize: 10 //受控模式下的分页大小
+  pageSize: 10, //受控模式下的分页大小
 });
 
 // 测试用例显示表格分页选项
 const caseViewPagination = reactive({
-  pageSize: 5 //受控模式下的分页大小
+  pageSize: 5, //受控模式下的分页大小
 });
 
 // 测试用例关联表格
 const caseColumns = [
   {
-    type: 'selection'
+    type: 'selection',
   },
   {
     title: 'id',
     key: 'id',
-    align: 'center'
+    align: 'center',
   },
   {
     title: '用例名称',
     key: 'name',
-    align: 'center'
-  }
+    align: 'center',
+  },
 ];
 
 const tempCases = ref([]);
@@ -264,7 +264,7 @@ function getTempCases(data) {
           status: c.result,
           suite: c.suite,
           taskMilestoneId: v.id, // 里程碑ID（里程碑表）
-          usabled: c.usabled
+          usabled: c.usabled,
         });
         tempArray[i] = (tempArray[i] || 0) + 1;
       });
@@ -277,7 +277,7 @@ function getTempCases(data) {
           type: 'auto',
           status: c.result,
           suite: c.suite,
-          usabled: c.usabled
+          usabled: c.usabled,
         });
         tempArray[i] = (tempArray[i] || 0) + 1;
       });
@@ -302,7 +302,7 @@ function getCasesData() {
             type: v.type,
             status: v.status,
             suite: v.suite,
-            usabled: v.usabled
+            usabled: v.usabled,
           });
           flag = false;
         }
@@ -322,9 +322,9 @@ function getCasesData() {
               type: v.type,
               status: v.status,
               suite: v.suite,
-              usabled: v.usabled
-            }
-          ]
+              usabled: v.usabled,
+            },
+          ],
         });
       }
     });
@@ -373,7 +373,7 @@ function getCaseSuite() {
         for (const item of res.data) {
           suiteOptions.value.push({
             label: item.name,
-            value: item.id
+            value: item.id,
           });
         }
       }
@@ -403,7 +403,7 @@ function getCase() {
     page_num: casePagination.page,
     page_size: casePagination.pageSize,
     case_name: tempSearchStr,
-    suite_id: tempSuiteId || null
+    suite_id: tempSuiteId || null,
   })
     .then((res) => {
       loadingRef.value = false;
@@ -431,9 +431,12 @@ function deleteCase(rowData) {
   caseLoading.value = true;
   if (rowData.children) {
     const allRequest = rowData.children.map((caseItem) => {
-      return axios.delete(`/v1/tasks/${modalData.value.detail.id}/milestones/${caseItem.milestoneId}/cases`, {
-        case_id: caseItem.id
-      });
+      return axios.delete(
+        `/v1/tasks/${modalData.value.detail.id}/milestones/${caseItem.milestoneId}/cases`,
+        {
+          case_id: caseItem.id,
+        }
+      );
     });
     Promise.allSettled(allRequest)
       .then(() => {
@@ -448,7 +451,7 @@ function deleteCase(rowData) {
   } else {
     axios
       .delete(`/v1/tasks/${modalData.value.detail.id}/milestones/${rowData.milestoneId}/cases`, {
-        case_id: rowData.id
+        case_id: rowData.id,
       })
       .then(() => {
         caseLoading.value = false;
@@ -493,7 +496,7 @@ function clickAssociatedCases() {
     associatedMilestoneOptions.value = modalData.value.detail.milestones.map((item) => {
       return {
         label: item.name,
-        value: item.id
+        value: item.id,
       };
     });
   } else {
@@ -522,13 +525,13 @@ function getDistributeMilestone() {
     modalData.value.detail.milestones.forEach((item) => {
       distributeTaskMilestoneOption.value.push({
         label: item.name,
-        value: item.id
+        value: item.id,
       });
     });
   } else if (modalData.value.detail.milestone) {
     distributeTaskMilestoneOption.value.push({
       label: modalData.value.detail.milestone.name,
-      value: modalData.value.detail.milestone.id
+      value: modalData.value.detail.milestone.id,
     });
     distributeTaskMilestoneValue.value = modalData.value.detail.milestone.id;
   }
@@ -543,10 +546,13 @@ function cancelDistributeCase() {
 function distributeCaseBtn(item) {
   if (distributeCaseModalData.value.children) {
     const allRequest = distributeCaseModalData.value.children.map((caseItem) => {
-      return axios.put(`/v1/tasks/${modalData.value.detail.id}/milestones/${caseItem.milestoneId}/cases`, {
-        cases: [caseItem.id],
-        child_task_id: item
-      });
+      return axios.put(
+        `/v1/tasks/${modalData.value.detail.id}/milestones/${caseItem.milestoneId}/cases`,
+        {
+          cases: [caseItem.id],
+          child_task_id: item,
+        }
+      );
     });
     Promise.allSettled(allRequest)
       .then(() => {
@@ -559,10 +565,13 @@ function distributeCaseBtn(item) {
       });
   } else {
     axios
-      .put(`/v1/tasks/${modalData.value.detail.id}/milestones/${distributeCaseModalData.value.milestoneId}/cases`, {
-        cases: [distributeCaseModalData.value.id],
-        child_task_id: item
-      })
+      .put(
+        `/v1/tasks/${modalData.value.detail.id}/milestones/${distributeCaseModalData.value.milestoneId}/cases`,
+        {
+          cases: [distributeCaseModalData.value.id],
+          child_task_id: item,
+        }
+      )
       .then(() => {
         getTaskCases();
         initData();
@@ -587,7 +596,7 @@ function distributeTaskBtn(value) {
   axios
     .put(`/v1/tasks/${modalData.value.detail.id}/distribute-templates/${value}`, {
       milestone_id: distributeTaskMilestoneValue.value,
-      distribute_all_cases: distributeAllCases.value
+      distribute_all_cases: distributeAllCases.value,
     })
     .then(() => {
       showDistributeTaskSpin.value = false;
@@ -616,23 +625,23 @@ const caseViewColumns = [
   {
     title: '测试套',
     key: 'suite',
-    align: 'left'
+    align: 'left',
   },
   {
     title: '里程碑',
     align: 'center',
-    key: 'milestoneName'
+    key: 'milestoneName',
     // rowSpan: caseRowSpan
   },
   {
     title: 'id',
     key: 'id',
-    align: 'center'
+    align: 'center',
   },
   {
     title: '用例名称',
     align: 'center',
-    key: 'name'
+    key: 'name',
   },
   {
     title: '用例类型',
@@ -646,7 +655,7 @@ const caseViewColumns = [
         result = '手动';
       }
       return result;
-    }
+    },
   },
   {
     title: '用例状态',
@@ -657,7 +666,7 @@ const caseViewColumns = [
       const options = [
         { label: 'running', key: 'running' },
         { label: 'success', key: 'success' },
-        { label: 'failed', key: 'failed' }
+        { label: 'failed', key: 'failed' },
       ];
       switch (rowData.status) {
         case 'running':
@@ -679,9 +688,12 @@ const caseViewColumns = [
           disabled: !editStatus.value || rowData.type === 'auto',
           onSelect: (key) => {
             axios
-              .put(`/v1/task/${detailTask.taskId}/milestones/${rowData.taskMilestoneId}/cases/${rowData.id}`, {
-                result: key
-              })
+              .put(
+                `/v1/task/${detailTask.taskId}/milestones/${rowData.taskMilestoneId}/cases/${rowData.id}`,
+                {
+                  result: key,
+                }
+              )
               .then(() => {
                 getTaskCases();
               })
@@ -689,18 +701,18 @@ const caseViewColumns = [
                 window.$message?.error(err.data.error_msg || '未知错误');
               });
           },
-          options
+          options,
         },
         h(
           'span',
           {
-            style: `color:${textColor};cursor:pointer`
+            style: `color:${textColor};cursor:pointer`,
           },
           rowData.status
         )
       );
       return dropDown;
-    }
+    },
   },
   {
     title: '可获取',
@@ -714,7 +726,7 @@ const caseViewColumns = [
         result = '否';
       }
       return result;
-    }
+    },
   },
   {
     title: '操作',
@@ -735,7 +747,7 @@ const caseViewColumns = [
                   distributeCaseModal.value = true;
                   distributeCaseModalData.value = rowData;
                 }
-              }
+              },
             },
             rowData.id !== '' ? '分配' : ''
           ),
@@ -751,7 +763,7 @@ const caseViewColumns = [
                   caseIssueModalRef.value.showModal = true;
                   caseIssueModalData.value = rowData;
                 }
-              }
+              },
             },
             rowData.id !== '' ? '提单' : ''
           ),
@@ -765,67 +777,67 @@ const caseViewColumns = [
                 if (editStatus.value) {
                   deleteCase(rowData);
                 }
-              }
+              },
             },
             rowData.id !== '' ? '删除' : ''
-          )
+          ),
         ];
       }
       return null;
-    }
-  }
+    },
+  },
 ];
 
 // 关联父任务选项数组
 const associatedTaskOptions = ref([
   {
     label: 'Drive My Car',
-    value: 'Drive My Car'
+    value: 'Drive My Car',
   },
   {
     label: 'Norwegian Wood',
-    value: 'Norwegian Wood'
+    value: 'Norwegian Wood',
   },
   {
     label: 'Nowhere Man',
-    value: 'Nowhere Man'
-  }
+    value: 'Nowhere Man',
+  },
 ]);
 
 // 关联子任务选项数组
 const associatedChildTaskOptions = ref([
   {
     label: 'Drive My Car',
-    value: 'Drive My Car'
+    value: 'Drive My Car',
   },
   {
     label: 'Norwegian Wood',
-    value: 'Norwegian Wood'
+    value: 'Norwegian Wood',
   },
   {
     label: 'Nowhere Man',
-    value: 'Nowhere Man'
-  }
+    value: 'Nowhere Man',
+  },
 ]);
 
 // 父任务数组
 const fatherTaskArray = ref([
   {
     label: 'abcd',
-    value: 'abcd'
+    value: 'abcd',
   },
   {
     label: 'abea',
-    value: 'abea'
+    value: 'abea',
   },
   {
     label: 'baed',
-    value: 'baed'
+    value: 'baed',
   },
   {
     label: 'bbaa',
-    value: 'bbaa'
-  }
+    value: 'bbaa',
+  },
 ]);
 
 function getMdFiles() {
@@ -833,7 +845,9 @@ function getMdFiles() {
     .get(`/v1/tasks/${detailTask.taskId}/reports`)
     .then((res) => {
       if (res.data?.title || res.data?.content) {
-        modalData.value.reportArray = [{ title: res.data.title || '', content: res.data.content || '' }];
+        modalData.value.reportArray = [
+          { title: res.data.title || '', content: res.data.content || '' },
+        ];
       } else {
         modalData.value.reportArray = [];
       }
@@ -872,7 +886,7 @@ function mergeFamilyTask(response) {
       executor: item.executor.user_name,
       startTime: formatTime(item.start_time, 'yyyy-MM-dd'),
       endTime: formatTime(item.deadline, 'yyyy-MM-dd'),
-      status: item.status.name
+      status: item.status.name,
     };
   });
 
@@ -886,14 +900,14 @@ function mergeFamilyTask(response) {
       executor: item.executor.user_name,
       startTime: formatTime(item.start_time, 'yyyy-MM-dd'),
       endTime: formatTime(item.deadline, 'yyyy-MM-dd'),
-      status: item.status.name
+      status: item.status.name,
     };
   });
 
   distributeCaseOption.value = response.data.children.map((item) => {
     return {
       label: item.title,
-      value: item.id
+      value: item.id,
     };
   });
 
@@ -976,7 +990,7 @@ function cancelCaseBtn() {
 function addTaskCase() {
   axios
     .post(`/v1/tasks/${modalData.value.detail.id}/milestones/${activeMilestoneId}/cases`, {
-      case_id: checkedRowKeys.value
+      case_id: checkedRowKeys.value,
     })
     .then(() => {
       checkedRowKeys.value = [];
@@ -1105,7 +1119,7 @@ function handleSearchFatherTask(query) {
       fatherTaskArrayTemp.value = res.data.map((item) => {
         return {
           label: item.title,
-          value: item.id
+          value: item.id,
         };
       });
     });
@@ -1128,7 +1142,7 @@ function handleSearchChildTask(query) {
       childTaskArrayTemp.value = res.data.map((item) => {
         return {
           label: item.title,
-          value: item.id
+          value: item.id,
         };
       });
     });
@@ -1144,42 +1158,42 @@ const familyColumns = ref([
   {
     title: '任务名称',
     key: 'taskName',
-    align: 'center'
+    align: 'center',
   },
   {
     title: '关联',
     key: 'relation',
-    align: 'center'
+    align: 'center',
   },
   {
     title: '任务类型',
     key: 'taskType',
-    align: 'center'
+    align: 'center',
   },
   {
     title: '归属',
     key: 'belongTo',
-    align: 'center'
+    align: 'center',
   },
   {
     title: '责任人',
     key: 'executor',
-    align: 'center'
+    align: 'center',
   },
   {
     title: '开始时间',
     key: 'startTime',
-    align: 'center'
+    align: 'center',
   },
   {
     title: '截止时间',
     key: 'endTime',
-    align: 'center'
+    align: 'center',
   },
   {
     title: '当前状态',
     key: 'status',
-    align: 'center'
+    align: 'center',
   },
   {
     title: '操作',
@@ -1211,7 +1225,7 @@ const familyColumns = ref([
                         editRelationTask({ child_id: row.id });
                       }
                       d.destroy();
-                    }
+                    },
                   },
                   '确定'
                 );
@@ -1222,19 +1236,19 @@ const familyColumns = ref([
                     ghost: true,
                     onClick: () => {
                       d.destroy();
-                    }
+                    },
                   },
                   '取消'
                 );
                 return [cancelmBtn, confirmBtn];
-              }
+              },
             });
-          }
+          },
         },
         '取消关联'
       );
-    }
-  }
+    },
+  },
 ]);
 
 function familyRowProps(rowData) {
@@ -1245,7 +1259,7 @@ function familyRowProps(rowData) {
       window.setTimeout(() => {
         getDetail(rowData);
       }, 300);
-    }
+    },
   };
 }
 
@@ -1273,14 +1287,14 @@ function getTemplateName() {
   axios
     .get('v1/tasks/distribute-templates', {
       group_id: modalData.value.detail.group_id,
-      simple: true
+      simple: true,
     })
     .then((res) => {
       if (res.data.items) {
         res.data.items.forEach((item) => {
           distributeTaskOption.value.push({
             label: item.name,
-            value: item.id
+            value: item.id,
           });
         });
       }
@@ -1306,7 +1320,7 @@ function handleSelect(key) {
               editTask(modalData.value.detail.id, { is_delete: true });
               showModal.value = false;
               d.destroy();
-            }
+            },
           },
           '确定'
         );
@@ -1317,12 +1331,12 @@ function handleSelect(key) {
             ghost: true,
             onClick: () => {
               d.destroy();
-            }
+            },
           },
           '取消'
         );
         return [cancelmBtn, confirmBtn];
-      }
+      },
     });
   } else if (key === 'reporting') {
     generateMdFile(modalData.value.detail.id, modalData.value.detail.type === 'VERSION');
@@ -1381,7 +1395,7 @@ function commentFn(str) {
     showLoading.value = true;
     axios
       .post(`/v1/tasks/${modalData.value.detail.id}/comment`, {
-        content: str
+        content: str,
       })
       .then(() => {
         getTaskComment();
@@ -1430,7 +1444,7 @@ function getHelper(value) {
   }
   axios
     .put(`/v1/tasks/${modalData.value.detail.id}/participants`, {
-      participants: data
+      participants: data,
     })
     .then(() => {
       // initData();
@@ -1456,14 +1470,14 @@ function getMileposts(groupValue) {
 // 设置开始时间
 function updateStartTime(value) {
   editTask(modalData.value.detail.id, {
-    start_time: formatTime(value, 'yyyy-MM-dd')
+    start_time: formatTime(value, 'yyyy-MM-dd'),
   });
 }
 
 // 设置截止时间
 function updateClosingTime(value) {
   editTask(modalData.value.detail.id, {
-    deadline: formatTime(value, 'yyyy-MM-dd')
+    deadline: formatTime(value, 'yyyy-MM-dd'),
   });
 }
 
@@ -1479,7 +1493,7 @@ function showContent() {
   } else {
     showContentInput.value = false;
     editTask(modalData.value.detail.id, {
-      content: modalData.value.detail.content
+      content: modalData.value.detail.content,
     });
   }
 }
@@ -1543,12 +1557,12 @@ function editTaskDetail() {
 const autocompleteArray = ref([
   {
     label: '是',
-    value: true
+    value: true,
   },
   {
     label: '否',
-    value: false
-  }
+    value: false,
+  },
 ]);
 
 // 任务详情页自动完成变回调
@@ -1566,7 +1580,9 @@ function getFrame() {
 
 // 设置任务完成度
 const setTaskPercentage = () => {
-  changeTaskPercentage(modalData.value.detail.id, { percentage: modalData.value.detail.percentage });
+  changeTaskPercentage(modalData.value.detail.id, {
+    percentage: modalData.value.detail.percentage,
+  });
 };
 
 export {
@@ -1703,5 +1719,5 @@ export {
   changeManage,
   caseIssueModalData,
   caseIssueModalRef,
-  showDistributeTaskSpin
+  showDistributeTaskSpin,
 };

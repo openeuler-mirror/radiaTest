@@ -118,13 +118,14 @@
                   </div>
                   <div class="searchWrap ml-auto">
                     <n-icon size="22" class="search" @click="machineSearch">
-                      <Search />
+                      <IosSearch />
                     </n-icon>
                     <n-input
                       type="text"
                       placeholder="搜索..."
                       class="input"
                       v-model:value="machineSearchValue"
+                      @change="machineSearch"
                     />
                   </div>
                 </div>
@@ -186,13 +187,14 @@
                   </div>
                   <div class="searchWrap ml-auto">
                     <n-icon size="22" class="search" @click="taskSearch">
-                      <Search />
+                      <IosSearch />
                     </n-icon>
                     <n-input
                       type="text"
                       placeholder="搜索..."
                       class="input"
                       v-model:value="taskSearchValue"
+                      @change="taskSearch"
                     />
                   </div>
                 </div>
@@ -907,7 +909,7 @@ import {
   haveRecovery,
   cleanPackageListData,
 } from '@/views/home/modules/workspace';
-import { MdClose } from '@vicons/ionicons4';
+import { MdClose, IosSearch } from '@vicons/ionicons4';
 import { QuestionCircle16Filled } from '@vicons/fluent';
 import {
   featureOption,
@@ -926,6 +928,7 @@ export default defineComponent({
     CheckCircleFilled,
     MdClose,
     CancelRound,
+    IosSearch,
   },
   methods: {},
   setup() {
