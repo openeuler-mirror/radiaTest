@@ -12,30 +12,33 @@
 # @Date    :
 # @License : Mulan PSL v2
 #####################################
-
-import re
 import json
-import shlex
-from subprocess import getstatusoutput
-from copy import deepcopy
-import requests
 import time
+import shlex
+import xml.dom.minidom
+from typing import Dict, List
+from subprocess import getstatusoutput
+from xml.dom.minidom import Element
+
+import libvirt
+from libvirt import virDomain, libvirtError
+import requests
 
 from celeryservice import celeryconfig
 from celeryservice.lib import TaskHandlerBase, AuthTaskHandler
-from worker.apps.vmachine.handlers import domain_cli
 from worker.utils.bash import rm_vmachine_relate_file
 
 
 class IllegalMonitor(TaskHandlerBase):
     def _get_virsh_domains(self):
-        exitcode, output = getstatusoutput(
-            "virsh list --all | sed -n '$d; 1,2!p' | awk '{print $2}'"
-        )
-        if exitcode == 0:
-            return output.splitlines()
-
-        return []
+        names = []
+        try:
+            conn = libvirt.openReadOnly(None)
+            domains: List[virDomain] = conn.listAllDomains()
+            return list(map(lambda d: d.name(), domains))
+        except libvirtError as le:
+            self.logger.error(f"list domain names error@_get_virsh_domains {le}")
+            return names
 
     def _query_vmachine(self, domain):
         resp = requests.get(
@@ -50,12 +53,9 @@ class IllegalMonitor(TaskHandlerBase):
                 celeryconfig.cacert_path
         )
         if resp.status_code != 200:
-            raise RuntimeError("the worker cannot connect to server")
+            raise RuntimeError("the worker cannot connect to server@IllegalMonitor")
 
-        try:
-            result = json.loads(resp.text).get("data")
-        except AttributeError:
-            result = resp.json.get("data")
+        result = resp.json().get("data")
 
         return result
 
@@ -182,89 +182,76 @@ class VmStatusMonitor(AuthTaskHandler):
 
 class VmachinesStatusMonitor(TaskHandlerBase):
     def main(self):
-        """
-        批量请求更新虚拟机数据(单次小于等于10)
-        """
-        vmachines_info = self._get_virsh_info()
-        values_num = len(vmachines_info)
-
-        domains = dict()
-        if values_num == 0:
-            self.logger.info("no vm in worker, nothing need update status")
-            return
-        elif values_num >= 10:
-            count = 0
-            for _ in range(values_num):
-                if count != 0 and count % 10 == 0:
-                    try:
-                        _ = self._update_vmachine(domains)
-                    except RuntimeError as e:
-                        self.logger.error(str(e))
-                    finally:
-                        count = 0
-                        domains.clear()
-                        continue
-                else:
-                    vmachine_name, vmachine_info = vmachines_info.popitem()
-                    count += 1
-                    domains.update({
-                        vmachine_name: vmachine_info
-                    })
-        else:
-            for vmachine_name, vmachine_info in vmachines_info.items():
-                domains.update({
-                    vmachine_name: vmachine_info
-                })
-
+        domains = self.list_domains_status()
         if not domains:
-            pass
-        else:
+            return
+        try:
+            _ = self._update_vmachine(domains)
+        except RuntimeError as e:
+            self.logger.error(f'update status error@VmachinesStatusMonitor {e}')
+
+    @staticmethod
+    def parse_domain_xml(d: str) -> Dict:
+        dom_info = dict()
+        dom_tree = xml.dom.minidom.parseString(d)
+        collection = dom_tree.documentElement
+        devices = collection.getElementsByTagName("devices")
+
+        if not devices:
+            return dom_info
+        dev_ele: Element = devices[0]
+        g: Element = dev_ele.getElementsByTagName('graphics')[0]
+        g_type = g.getAttribute('type')
+        vnc_port = g.getAttribute('port')
+        vnc_listen = g.getAttribute('listen')
+
+        if g_type != 'vnc':
+            return dom_info
+
+        dom_info['vnc_port'] = int(vnc_port)
+        dom_info['vnc_token'] = vnc_listen.replace('.', '-') + '-' + str(vnc_port)
+        return dom_info
+
+    def list_domains_status(self) -> Dict:
+        domain_status = dict()
+        try:
+            conn = libvirt.openReadOnly(None)
+            domains: List[virDomain] = conn.listAllDomains()
+        except libvirtError as le:
+            self.logger.error(f"list_domains_status connect or list error {le}")
+            return domain_status
+
+        for d in domains:
+            name = d.name()
+            status_str = 'paused'
+            update_info = {}
             try:
-                _ = self._update_vmachine(domains)
-            except RuntimeError as e:
-                self.logger.error(str(e))
+                status, _ = d.state()
+            except libvirtError as le:
+                domain_status[name] = {'status': status_str}
+                self.logger.error(f"list_domains_status get domain info error {name} {le}")
+                continue
 
-    def _get_virsh_info(self):
-        """
-        获取虚拟机的状态,vncport
-        :return : Type[dict]
-        """
-        exitcode, output = getstatusoutput(
-            "export LANG=en_US.utf-8 ;virsh list --all | sed -n '$d; 1,2!p'"
-        )
-        vmachines_info = dict()
-        _body = dict()
-        vmachines = output.split("\n")
-        if exitcode == 0 and len(vmachines) != 0:
-            for vmachine in vmachines:
-                _body.clear()
-                vmachine_name = re.findall(r'\w+-\w+-\w+-\w+.\w+-\w+', vmachine)[0]
-                if "running" in vmachine:
-                    vnc_port = int(domain_cli("vncdisplay", vmachine_name)[1].strip("\n").split(":")[-1])
-                    vnc_token = celeryconfig.worker_ip.replace(".", "-") + "-" \
-                                + str(vnc_port + celeryconfig.vnc_start_port)
-                    _body.update({
-                        'vnc_port': vnc_port,
-                        'status': "running",
-                        'vnc_token': vnc_token
-                    })
-                elif "shut off" in vmachine:
-                    _body.update({
-                        'status': "shut off"
-                    })
-                else:
-                    _body.update({
-                        'status': "paused"
-                    })
-                body = deepcopy(_body)
-                vmachines_info.update({
-                    vmachine_name: body
-                })
+            vnc_port = None
+            vnc_token = None
+            if status == 1:
+                dom_xml = d.XMLDesc()
+                dom_info = self.parse_domain_xml(dom_xml)
+                vnc_port = dom_info.get('vnc_port')
+                vnc_token = dom_info.get('vnc_token')
+                status_str = 'running'
+            elif status == 5:
+                status_str = 'shut off'
 
-            self.logger.info("we will sync vmachine info:{}".format(vmachines_info))
-            return vmachines_info
+            update_info['status'] = status_str
+            if vnc_port is not None:
+                update_info['vnc_port'] = vnc_port
 
-        return {}
+            if vnc_token is not None:
+                update_info['vnc_token'] = vnc_token
+
+            domain_status[name] = update_info
+        return domain_status
 
     def _update_vmachine(self, domains):
         resp = requests.put(
@@ -280,9 +267,9 @@ class VmachinesStatusMonitor(TaskHandlerBase):
             raise RuntimeError("the worker request to server error happened:{}".format(resp.status_code))
 
         try:
-            result = json.loads(resp.text).get("error_msg")
+            result = resp.json().get("error_msg")
         except AttributeError:
-            result = resp.json.get("error_msg")
+            result = str(resp.content)
 
-        self.logger.info("update result:{}".format(result))
+        self.logger.info("update vm status result:{}".format(result))
         return result

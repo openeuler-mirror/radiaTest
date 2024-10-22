@@ -34,13 +34,13 @@ logger = get_task_logger(__name__)
 @celery.on_after_configure.connect
 def setup_periodic_tasks(sender, **kwargs):
     sender.add_periodic_task(
-        crontab(minute='*/15'),
+        crontab(minute='*/40'),
         async_illegal_monitor.s(),
         name="illegal_monitor"
     )
 
     sender.add_periodic_task(
-        40000.0,
+        crontab(minute='*/30'),
         async_vmachines_status_monitor.s(),
         name="vmachines_status_monitor"
     )
