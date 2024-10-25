@@ -775,7 +775,9 @@ const caseViewColumns = [
               disabled: !editStatus.value || modalData.value.detail.is_single_case,
               onClick: () => {
                 if (editStatus.value) {
-                  deleteCase(rowData);
+                  warning('彻底删除', '您确定要彻底删除此关联的用例吗？', () => {
+                    deleteCase(rowData);
+                  });
                 }
               },
             },
@@ -839,6 +841,42 @@ const fatherTaskArray = ref([
     value: 'bbaa',
   },
 ]);
+
+// 确认弹框
+function warning(title, content, cb) {
+  const d = window.$dialog?.warning({
+    title,
+    content,
+    action: () => {
+      const confirmBtn = h(
+        NButton,
+        {
+          type: 'info',
+          ghost: true,
+          onClick: () => {
+            if (cb) {
+              cb();
+            }
+            d.destroy();
+          },
+        },
+        '确定'
+      );
+      const cancelmBtn = h(
+        NButton,
+        {
+          type: 'error',
+          ghost: true,
+          onClick: () => {
+            d.destroy();
+          },
+        },
+        '取消'
+      );
+      return [cancelmBtn, confirmBtn];
+    },
+  });
+}
 
 function getMdFiles() {
   axios
