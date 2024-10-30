@@ -18,6 +18,7 @@ from flask import request
 from flask_restful import Resource
 from flask_pydantic import validate
 from sqlalchemy import case as sql_case
+from sqlalchemy import desc
 
 from server.model import Product, Milestone, TestReport
 from server.utils.auth_util import auth
@@ -181,7 +182,7 @@ class PreciseProductEvent(Resource):
             if value:
                 body[key] = value
 
-        return GetAllByPermission(Product, workspace).precise(body)
+        return GetAllByPermission(Product, workspace).precise(body, ords=[desc('version')])
 
 
 class UpdateProductIssueRate(Resource):
