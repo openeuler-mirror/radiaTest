@@ -83,6 +83,9 @@ class VmachineItemEvent(Resource):
     })
     def delete(self, vmachine_id):
         _vmachine = Vmachine.query.filter_by(id=vmachine_id).first()
+        if not _vmachine:
+            return jsonify(error_code=RET.OK, error_msg="vmachine has been deleted.")
+
         vmachine = _vmachine.to_json()
         pmachine = _vmachine.pmachine.to_json()
         machine_group = _vmachine.pmachine.machine_group
