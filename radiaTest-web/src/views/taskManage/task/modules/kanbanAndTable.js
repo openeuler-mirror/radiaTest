@@ -18,7 +18,7 @@ const statusArray = computed(() => {
   return listData.value.map((v) => {
     return {
       label: v.statusItem,
-      value: v.id
+      value: v.id,
     };
   });
 });
@@ -29,7 +29,7 @@ function getTask() {
     return axios.get(`/v1/ws/${workspace.value}/tasks`, {
       status_id: item.id,
       page_num: 1,
-      page_size: 99999999
+      page_size: 99999999,
     });
   });
   Promise.allSettled(allRequest)
@@ -60,7 +60,7 @@ function initData(cb) {
             statusItem: item.name,
             id: item.id,
             order: item.order,
-            tasks: []
+            tasks: [],
           });
         }
         getTask();
@@ -106,7 +106,7 @@ function selectTools({ key, value }, element) {
     showLoading.value = true;
     axios
       .put('/v1/tasks/list', {
-        task_ids: value
+        task_ids: value,
       })
       .then(() => {
         showLoading.value = false;
@@ -125,7 +125,7 @@ function dragChange({ moved }) {
   });
   axios
     .put('/v1/task/status/order', {
-      order_list: orderList
+      order_list: orderList,
     })
     .then(() => {
       initData();
@@ -134,7 +134,7 @@ function dragChange({ moved }) {
       window.$message?.error(err.data.error_msg || '未知错误');
       [listData.value[moved.newIndex], listData.value[moved.oldIndex]] = [
         listData.value[moved.oldIndex],
-        listData.value[moved.newIndex]
+        listData.value[moved.newIndex],
       ];
     });
 }
@@ -149,6 +149,7 @@ function createStatusLink() {
 
 // 取消新建任务状态
 function cancelCreate() {
+  statusValue.value = null;
   showCreate.value = true;
 }
 
@@ -158,22 +159,27 @@ function createStatus(str) {
     showLoading.value = true;
     axios
       .post('/v1/task/status', {
-        name: str
+        name: str,
       })
       .then(() => {
         showLoading.value = false;
         window.$message?.success('添加成功!');
         initData();
+        statusValue.value = null;
       })
       .catch((err) => {
         showLoading.value = false;
         window.$message?.error(err.data.error_msg || '未知错误');
+        statusValue.value = null;
       });
     showCreate.value = true;
   }
 }
 function moveList(e) {
-  if (e.draggedContext.element.statusItem === '执行中' || e.draggedContext.element.statusItem === '已执行') {
+  if (
+    e.draggedContext.element.statusItem === '执行中' ||
+    e.draggedContext.element.statusItem === '已执行'
+  ) {
     return false;
   }
   if (e.willInsertAfter === false && e.relatedContext.element.statusItem === '已执行') {
@@ -226,5 +232,5 @@ export {
   createStatusLink,
   cancelCreate,
   createStatus,
-  toggleComplete2
+  toggleComplete2,
 };

@@ -116,6 +116,7 @@
       style="width: 600px"
       title="创建新模板"
       :bordered="false"
+      @close="onNegativeClick"
     >
       <n-form ref="formRef" inline :model="createForm" :rules="rules">
         <n-form-item label="标题" path="title">
