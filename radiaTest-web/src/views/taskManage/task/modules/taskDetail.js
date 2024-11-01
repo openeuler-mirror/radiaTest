@@ -970,7 +970,7 @@ function getDetail(detailData) {
 // 编辑任务选项
 function editTask(id, editInfo) {
   showLoading.value = true;
-  axios
+  return axios
     .put(`/v1/tasks/${id}`, editInfo)
     .then(() => {
       showLoading.value = false;

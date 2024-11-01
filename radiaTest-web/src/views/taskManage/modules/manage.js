@@ -149,8 +149,8 @@ const recycleBinTaskColumns = [
             text: true,
             style: 'margin-right:10px;',
             onClick: () => {
-              warning('恢复任务', '您确定要恢复此任务吗？', () => {
-                editTask(row.id, { is_delete: false });
+              warning('恢复任务', '您确定要恢复此任务吗？', async () => {
+                await editTask(row.id, { is_delete: false });
                 query(recycleBinTaskPagination.value.page);
               });
             }
