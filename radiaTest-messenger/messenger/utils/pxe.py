@@ -52,10 +52,10 @@ class DHCP:
             self._conn.conn()
 
     def base_exec_cmd(self, cmd):
-        return ShellCmd(cmd, self._conn)._bexec()
+        return ShellCmd(cmd, self._conn).bexec()
 
     def exec_cmd(self, cmd):
-        return ShellCmd(cmd, self._conn)._exec()
+        return ShellCmd(cmd, self._conn).exec()
 
 
 class PxeInstall(DHCP):
@@ -263,31 +263,24 @@ class CheckInstall:
 class QueryIp(DHCP):
     def __init__(self, mac) -> None:
         super().__init__()
-
+        if not mac:
+            raise RuntimeError("worker callback error: have not receive mac from worker")
         self._mac = mac
 
     def query(self):
         ip = None
 
         try:
-            if not self._mac:
-                raise RuntimeError(
-                    "worker callback error: have not receive mac from worker"
-                )
-
-            for _ in range(30):
-                ip = ShellCmd(inquire_ip(self._mac), self._conn)._exec()[1]
+            # probing for 4 minutes
+            for _ in range(60):
+                time.sleep(5)
+                ip = ShellCmd(inquire_ip(self._mac), self._conn).exec()[1]
                 if ip is not None:
                     break
-                time.sleep(1)
-        
         except (SSHException, RuntimeError) as e:
             current_app.logger.error(str(e))
 
         if isinstance(ip, str):
             return ip.strip()
         else:
-            return jsonify(
-                error_code=RET.NET_CONECT_ERR, 
-                error_msg="未获取到ip."
-            )
+            return jsonify(error_code=RET.NET_CONECT_ERR, error_msg="未获取到ip.")
