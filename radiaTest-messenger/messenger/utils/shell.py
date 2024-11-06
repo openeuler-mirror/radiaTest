@@ -48,11 +48,16 @@ class ShellCmd:
 
         return exitcode, output
 
+    def exec(self):
+        return self._exec()
+
     def _bexec(self):
         if self._exec()[0]:
             return False
-
         return True
+
+    def bexec(self):
+        return self._bexec()
 
 
 class ShellCmdApi(ShellCmd):
@@ -61,7 +66,6 @@ class ShellCmdApi(ShellCmd):
 
     def exec(self):
         return self._exec()
-
 
     def bexec(self):
         return self._bexec()

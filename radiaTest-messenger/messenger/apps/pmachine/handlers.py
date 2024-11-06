@@ -12,12 +12,13 @@
 # @Date    : 2023/09/04
 # @License : Mulan PSL v2
 #####################################
-
 import json
-import secrets
 import string
-from flask import current_app, jsonify, g, request
 from subprocess import getstatusoutput
+from random import choices, sample, choice
+
+from flask import jsonify, request
+
 from messenger.utils.shell import ShellCmdApi
 from messenger.utils.bash import (
     power_on_off,
@@ -25,7 +26,6 @@ from messenger.utils.bash import (
     get_bmc_user_id,
     reset_bmc_user_passwd,
 )
-
 from messenger.utils.response_util import RET
 from messenger.utils.requests_util import update_request
 from messenger.utils.pssh import ConnectionApi
@@ -50,43 +50,20 @@ class AutoInstall:
         """
         is_async 是否异步执行
         """
+        error_msg = None
         if not self.mirroring["efi"]:
-            return jsonify(
-                {
-                    "error_code": RET.INSTALL_CONF_ERR,
-                    "error_msg": "The milestone image does not provide grub.efi path.",
-                }
-            )
+            error_msg = "The milestone image does not provide grub.efi path.",
         if not self.mirroring["location"]:
-            return jsonify(
-                {
-                    "error_code": RET.INSTALL_CONF_ERR,
-                    "error_msg": "The milestone image does not provide location path.",
-                }
-            )
-
+            error_msg = "The milestone image does not provide location path.",
         if not self.mirroring["ks"]:
-            return jsonify(
-                {
-                    "error_code": RET.INSTALL_CONF_ERR,
-                    "error_msg": "The milestone image does not provide ks path.",
-                }
-            )
+            error_msg = "The milestone image does not provide ks path.",
         if not self.pmachine["mac"]:
-            return jsonify(
-                {
-                    "error_code": RET.INSTALL_CONF_ERR,
-                    "error_msg": "The physical machine registration information does not exist in the mac address.",
-                }
-            )
-
+            error_msg = "The physical machine registration information does not exist in the mac address.",
         if not self.pmachine["ip"]:
-            return jsonify(
-                {
-                    "error_code": RET.INSTALL_CONF_ERR,
-                    "error_msg": "The registration information of the physical machine does not have an IP address.",
-                }
-            )
+            error_msg = "The registration information of the physical machine does not have an IP address.",
+        if error_msg is not None:
+            return jsonify({"error_code": RET.INSTALL_CONF_ERR, "error_msg": error_msg})
+
         # 是否异步任务提前返回结果
         user = {
             "user_id": self.body.get("user_id"),
@@ -157,12 +134,9 @@ class PmachineSshPassword:
         if self._body.get("password"):
             new_password = self._body.get("password")
         else:
-            random_password = "".join(
-                [secrets.choice(string.ascii_letters) for _ in range(3)]
-                + [secrets.choice(string.digits) for _ in range(3)]
-                + ["\\" + secrets.choice(current_app.config.get("RANDOM_PASSWORD_CHARACTER")) for _ in range(2)]
-            )
-            new_password = random_password
+            new_password = ''.join(sample(choices(string.digits, k=4) + 
+                                          choices(string.ascii_letters, k=3) + 
+                                          [choice(['@', '#'])], k=8))
         ssh = ConnectionApi(
             ip=self._body.get("ip"),
             port=self._body.get("port"),
@@ -191,7 +165,7 @@ class PmachineSshPassword:
         _resp = update_request(
             "/api/v1/pmachine/{}".format(self._body.get("id")),
             {
-                "password": new_password.replace("\\", "")
+                "password": new_password
             },
             self._body.get("auth")
         )
@@ -204,7 +178,7 @@ class PmachineSshPassword:
             return jsonify(
                 error_code=RET.OK,
                 error_msg="pmachine {} change password to {} success".format(self._body.get("ip"), new_password),
-                data=[self._body.get("ip"), new_password.replace("\\", "")]
+                data=[self._body.get("ip"), new_password]
             )
 
 
