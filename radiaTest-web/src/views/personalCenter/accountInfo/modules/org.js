@@ -15,7 +15,7 @@ const orgNameRule = {
   trigger: ['blur', 'change'],
   required: true,
   message: '组织不能为空',
-  validator () {
+  validator() {
     if (addInfo.org) {
       return true;
     }
@@ -26,7 +26,7 @@ const orgNameRule = {
 const claEmailRule = {
   trigger: ['blur'],
   required: true,
-  validator () {
+  validator() {
     if (addInfo.claEmail) {
       const emailReg = /^[A-Za-z0-9\u4e00-\u9fa5]+@[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)+$/;
       if (!emailReg.test(addInfo.claEmail)) {
@@ -38,7 +38,7 @@ const claEmailRule = {
 
   }
 };
-function init () {
+function init() {
   let hasOrg = '';
   axios.get(`/v1/users/${storage.getValue('user_id')}`).then(res => {
     const { data } = res;
@@ -62,7 +62,7 @@ function init () {
     changeLoadingStatus(false);
   });
 }
-function submitAddOrg () {
+function submitAddOrg() {
   if (claEmailRule.validator() && typeof claEmailRule.validator() !== 'object' && orgNameRule.validator()) {
     axios.post(`/v1/org/${addInfo.org}/cla`, {
       cla_verify_params: JSON.stringify({ email: addInfo.claEmail, }),
@@ -79,7 +79,7 @@ function submitAddOrg () {
     window.$message?.error('请填写相关信息');
   }
 }
-function handleAddOrg () {
+function handleAddOrg() {
   init();
   showAddModal.value = true;
 }
@@ -98,7 +98,7 @@ const orgColumns = [
     title: '创建时间',
     key: 're_user_org_create_time',
     align: 'center',
-    render (row) {
+    render(row) {
       return h('span', null, [formatTime(new Date(row.re_user_org_create_time), 'yyyy-MM-dd hh:mm:ss')]);
     },
   },
@@ -106,7 +106,7 @@ const orgColumns = [
     title: 'cla邮箱',
     key: 'email',
     align: 'center',
-    render (row) {
+    render(row) {
       return h('span', null, [row.re_user_org_cla_info.email]);
     }
   },
@@ -114,7 +114,7 @@ const orgColumns = [
     title: '角色',
     key: 'role',
     align: 'center',
-    render (row) {
+    render(row) {
       const tag = h(
         NTag,
         {
@@ -122,14 +122,15 @@ const orgColumns = [
         },
         row.role?.name
       );
-      return tag;
+      return row.role?.name ? tag : null;
+
     },
   },
 ];
 const pagination = {
   pagesize: 5
 };
-function orgRowProps (row) {
+function orgRowProps(row) {
   return {
     style: row.re_user_org_role_type === 2 ? 'cursor: pointer;' : 'cursor: not-allowed;',
     onClick: () => {
