@@ -225,26 +225,30 @@ class PmachineInfo:
     def __init__(self, body) -> None:
         self._body = body
 
+    def err_response(self, bmc_status='void', power_status='void', ssh_status='void'):
+        bmc_ip = self._body.get("bmc_ip")
+        return jsonify(
+            error_code=RET.VERIFY_ERR,
+            error_msg=f"pm state: ip {bmc_ip}, bmc {bmc_status}, power {power_status}, ssh {ssh_status}"
+        )
+
     def check(self):
         bmc_ip = self._body.get("bmc_ip")
 
+        # 1. check bmc user account.
         exitcode, output = getstatusoutput(
             "ipmitool -I lanplus -H %s -U %s  -P %s power status"
             % (bmc_ip, self._body.get("bmc_user"), self._body.get("bmc_password"))
         )
         if exitcode != 0:
-            return jsonify(
-                error_code=RET.VERIFY_ERR,
-                error_msg=f"实体机{bmc_ip}的bmc账号或者密码不正确,无法自动释放,请同步最新信息."
-            )
+            return self.err_response(bmc_status='error')
 
+        # 2. check power status.
         pmachine_status = output.split()[-1]
         if pmachine_status != "on":
-            return jsonify(
-                error_code=RET.VERIFY_ERR,
-                error_msg=f"实体机{bmc_ip}非上电状态,无法验证ssh账号密码,无法自动释放,请保证实体机上电状态."
-            )
+            return self.err_response(bmc_status='ok', power_status='off')
 
+        # 3. check os ssh account.
         conn = ConnectionApi(
             self._body.get("ip"),
             self._body.get("password"),
@@ -252,13 +256,11 @@ class PmachineInfo:
             self._body.get("user"),
         ).conn()
         if not conn:
-            return jsonify(
-                error_code=RET.VERIFY_ERR,
-                error_msg=f"实体机{bmc_ip}的ssh账号或者密码不正确,无法自动释放,请同步最新信息."
-            )
+            return self.err_response('ok', 'on', 'error')
+
         conn.close()
 
         return jsonify(
             error_code=RET.OK,
-            error_msg="pmachine info is correct"
+            error_msg=f"pm state: ip {bmc_ip}, bmc ok, power on, ssh ok"
         )
