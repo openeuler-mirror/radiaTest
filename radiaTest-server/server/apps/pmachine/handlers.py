@@ -1,3 +1,4 @@
+# C:\Users\Administrator\Documents\radiaTest.2\radiaTest.ver2\radiaTest-server\server\apps\pmachine\handlers.py
 # Copyright (c) [2022] Huawei Technologies Co.,Ltd.ALL rights reserved.
 # This program is licensed under Mulan PSL v2.
 # You can use it according to the terms and conditions of the Mulan PSL v2.
@@ -7,9 +8,9 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 ####################################
-# @Author  : 
-# @email   : 
-# @Date    : 
+# @Author  :
+# @email   :
+# @Date    :
 # @License : Mulan PSL v2
 
 
@@ -38,7 +39,6 @@ from server.utils.permission_utils import GetAllByPermission
 from server.utils.resource_utils import ResourceManager
 from server.utils.auth_util import generate_messenger_token
 from server.schema.job import PayLoad
-from server.utils.mail_util import Mail
 from server.model.vmachine import Vmachine
 
 
@@ -215,7 +215,7 @@ class PmachineOccupyReleaseHandler:
         if end_time:
             _body.update({
                 "end_time": datetime.datetime.strptime(end_time, "%Y-%m-%d %H:%M:%S").
-                    astimezone(pytz.timezone('Asia/Shanghai'))
+                astimezone(pytz.timezone('Asia/Shanghai'))
             })
         _body.update({
             "id": pmachine_id,
@@ -225,11 +225,19 @@ class PmachineOccupyReleaseHandler:
         return Edit(Pmachine, _body).single(Pmachine, "/pmachine")
 
     def release_with_release_scopes(self, pmachine):
+        protected_pms = current_app.config.get('PROTECTED_PMS')
+        if isinstance(protected_pms, list) and pmachine.bmc_ip in protected_pms:
+            return jsonify(
+                error_code=RET.VERIFY_ERR,
+                error_msg="Pmachine not allow to release. Please check."
+            )
+
         if pmachine.state == "idle":
             return jsonify(
                 error_code=RET.VERIFY_ERR,
-                error_msg="Pmachine state has not been modified. Please check."
+                error_msg="Pmachine state is idle, not need to release. Please check."
             )
+
         if pmachine.state == "occupied" and pmachine.description \
                 == current_app.config.get("CI_HOST"):
             vmachine = Vmachine.query.filter_by(pmachine_id=pmachine.id).first()
@@ -248,6 +256,7 @@ class PmachineOccupyReleaseHandler:
             "old_password": pmachine.password,
             "random_flag": True,
         }
+
         occupier_id = pmachine.occupier_id
         if pmachine.description in [current_app.config.get("CI_HOST"),
                                     current_app.config.get("CI_PURPOSE")]:
@@ -257,6 +266,7 @@ class PmachineOccupyReleaseHandler:
                 }
             )
 
+        # try to change ssh password.
         if _body.get("random_flag"):
             _resp = PmachineMessenger(_body).send_request(
                 pmachine.machine_group,
@@ -264,35 +274,12 @@ class PmachineOccupyReleaseHandler:
             )
 
             _resp = json.loads(_resp.data.decode('UTF-8'))
+
             if _resp.get("error_code") != RET.OK:
                 current_app.logger.error(
-                    f"release pmachine {pmachine.id} failed, "
+                    f"release pmachine {pmachine.id} {pmachine.bmc_ip} failed, "
                     f"messenger return {_resp} when resetting password"
                 )
-                return jsonify(
-                    error_code=RET.BAD_REQ_ERR,
-                    error_msg="Modify ssh password error, can't released."
-                )
-            else:
-                messenger_res = _resp.get("error_msg")
-                current_app.logger.info("messenger response info:{}".format(messenger_res))
-                try:
-                    pmachine_passwd = _resp.get("data")
-                    if isinstance(pmachine_passwd, list):
-                        mail = Mail()
-                        mail.send_text_mail(
-                            current_app.config.get("ADMIN_MAIL_ADDR"),
-                            subject="【radiaTest平台】{}-密码变更通知".format(pmachine_passwd[0]),
-                            text="{} new password:{}".format(pmachine_passwd[0], pmachine_passwd[1])
-                        )
-                    else:
-                        return jsonify(
-                            error_code=RET.BAD_REQ_ERR,
-                            error_msg="messenger response is not correct"
-                        )
-                except Exception as e:
-                    # 邮件发送异常仅打印日志，不影响机器释放
-                    current_app.logger.error("密码变更通知错误:{}".format(e))
 
         if pmachine.state == "occupied":
             _body = {
@@ -312,7 +299,7 @@ class PmachineOccupyReleaseHandler:
         if _resp.get("error_code") != RET.OK:
             return _resp
 
-            # 删除权利
+        # 删除权利
         current_app.logger.info("occupier_id is {}".format(occupier_id))
         if occupier_id != pmachine.creator_id:
             role = Role.query.filter_by(type='person', name=occupier_id).first()
@@ -424,9 +411,9 @@ class StateHandler:
             return jsonify(error_code=RET.NO_DATA_ERR, error_msg="The group which machine belongs to is not exist")
 
         return Message.create_instance(json.dumps(
-                dict(
-                    group_id=re.group.id,
-                    info=f'<b>{redis_client.hget(RedisKey.user(g.user_id), "user_name")}</b>\
+            dict(
+                group_id=re.group.id,
+                info=f'<b>{redis_client.hget(RedisKey.user(g.user_id), "user_name")}</b>\
                     请求{StateHandler.english_to_chinese.get(self.to_state)}物理机<b>{self.pmachine.ip}</b>。'
-                )
-            ), g.user_id, [re.user_id], org_id, level=MsgLevel.user.value, msg_type=MsgType.script.value)
+            )
+        ), g.user_id, [re.user_id], org_id, level=MsgLevel.user.value, msg_type=MsgType.script.value)

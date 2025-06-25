@@ -12,7 +12,6 @@
 # @Date    :
 # @License : Mulan PSL v2
 #####################################
-
 import json
 import datetime
 import requests
@@ -29,96 +28,9 @@ from server.model.pmachine import Pmachine
 from celeryservice.lib import TaskHandlerBase
 from server.utils.response_util import ssl_cert_verify_error_collect
 from server.model.message import Message, MsgType, MsgLevel
-from server.utils.db import Insert, Edit
+from server.utils.db import Edit
 from server.model.permission import Role, ReUserRole
 from server.apps.pmachine.handlers import PmachineOccupyReleaseHandler
-
-
-class LifecycleMonitor(TaskHandlerBase):
-    def check_vmachine_lifecycle(self):
-        v_machines = Vmachine.query.all()
-
-        for vmachine in v_machines:
-            end_time = vmachine.end_time
-
-            if datetime.datetime.now(tz=pytz.timezone("Asia/Shanghai")) > \
-                    end_time.astimezone(pytz.timezone('Asia/Shanghai')):
-                self.logger.info(
-                    "vmachine {} is going to be destroyed, with end_time {}".format(
-                        vmachine.name, vmachine.end_time
-                    )
-                )
-                db.session.delete(vmachine)
-
-        db.session.commit()
-
-    def check_pmachine_lifecycle(self):
-        filter_params = [
-            Pmachine.state == "occupied",
-            Pmachine.end_time.isnot(None),
-        ]
-        pmachines = Pmachine.query.filter(*filter_params).all()
-        pmachine_handler = PmachineOccupyReleaseHandler()
-        for pmachine in pmachines:
-            end_time = pmachine.end_time
-            try:
-                if datetime.datetime.now(tz=pytz.timezone("Asia/Shanghai")) > \
-                        end_time.astimezone(pytz.timezone('Asia/Shanghai')):
-                    self.logger.info(
-                        "pmachine {} is going to be released, with end_time {}".format(
-                            pmachine.bmc_ip, pmachine.end_time
-                        )
-                    )
-
-                    body = dict()
-                    body.update({
-                        "ip": pmachine.ip,
-                        "port": pmachine.port,
-                        "user": pmachine.user,
-                        "password": pmachine.password,
-                        "bmc_ip": pmachine.bmc_ip,
-                        "bmc_user": pmachine.bmc_user,
-                        "bmc_password": pmachine.bmc_password
-                    })
-                    _resp = CeleryMonitorMessenger(body).send_request(
-                        pmachine.machine_group, "/api/v1/pmachine/auto-release-check", method="post")
-                    if _resp.get("error_code") != RET.OK:
-                        # 避免重复发生通知
-                        if pmachine.is_release_notification == 1:
-                            continue
-                        check_res = _resp.get("error_msg")
-                        if pmachine.permission_type in ["org", "person"]:
-                            role = Role.query.filter_by(name="admin", org_id=pmachine.org_id).first()
-                        elif pmachine.permission_type == "group":
-                            role = Role.query.filter_by(
-                                name="admin", org_id=pmachine.org_id, group_id=pmachine.group_id
-                            ).first()
-                        else:
-                            continue
-
-                        re_role_user = ReUserRole.query.filter_by(role_id=role.id).all()
-                        Message.create_instance(json.dumps({'info': check_res}),
-                                                1, [item.user_id for item in re_role_user], pmachine.org_id,
-                                                level=MsgLevel.system.value, msg_type=MsgType.text.value)
-                        Message.create_instance(json.dumps({'info': check_res}),
-                                                1, [pmachine.occupier], pmachine.org_id,
-                                                level=MsgLevel.system.value, msg_type=MsgType.text.value)
-
-                        Edit(Pmachine, {"id": pmachine.id, "is_release_notification": 1}).single(Pmachine, "/pmachine")
-                    else:
-                        # 构建释放请求上下文
-                        with current_app.test_request_context():
-                            occupier_user = User.query.filter_by(user_id=pmachine.occupier_id).first()
-                            g.user_id = occupier_user.user_id
-                            g.user_login = occupier_user.user_login
-                            pmachine_handler.release_with_release_scopes(pmachine)
-            except Exception as e:
-                self.logger.info("pmachine release error:{}".format(e))
-                continue
-
-    def main(self):
-        self.check_pmachine_lifecycle()
-        self.check_vmachine_lifecycle()
 
 
 class CeleryMonitorMessenger:
@@ -147,3 +59,98 @@ class CeleryMonitorMessenger:
         except AttributeError:
             result = resp.json()
         return result
+
+
+class LifecycleMonitor(TaskHandlerBase):
+    def check_vmachine_lifecycle(self):
+        v_machines = Vmachine.query.all()
+
+        for vmachine in v_machines:
+            end_time = vmachine.end_time
+
+            if datetime.datetime.now(tz=pytz.timezone("Asia/Shanghai")) > \
+                    end_time.astimezone(pytz.timezone('Asia/Shanghai')):
+                self.logger.info(
+                    "vmachine {} is going to be destroyed, with end_time {}".format(
+                        vmachine.name, vmachine.end_time
+                    )
+                )
+                db.session.delete(vmachine)
+
+        db.session.commit()
+
+    def do_release_pm(self, pmachine):
+        body = {
+            "ip": pmachine.ip,
+            "port": pmachine.port,
+            "user": pmachine.user,
+            "password": pmachine.password,
+            "bmc_ip": pmachine.bmc_ip,
+            "bmc_user": pmachine.bmc_user,
+            "bmc_password": pmachine.bmc_password
+        }
+        # check bmc status, power status, bmc ssh status.
+        _resp = CeleryMonitorMessenger(body).send_request(pmachine.machine_group,
+                                                          "/api/v1/pmachine/auto-release-check",
+                                                          method="post")
+
+        # check whether the need of notification
+        role = None
+        check_res = ''
+        if _resp.get("error_code") != RET.OK and pmachine.is_release_notification != 1:
+            check_res = _resp.get("error_msg")
+            if pmachine.permission_type in ["org", "person"]:
+                role = Role.query.filter_by(name="admin", org_id=pmachine.org_id).first()
+            elif pmachine.permission_type == "group":
+                role = Role.query.filter_by(
+                    name="admin", org_id=pmachine.org_id, group_id=pmachine.group_id
+                ).first()
+
+        if role is not None:
+            re_role_user = ReUserRole.query.filter_by(role_id=role.id).all()
+            Message.create_instance(json.dumps({'info': check_res}),
+                                    1, [item.user_id for item in re_role_user] + [pmachine.occupier], pmachine.org_id,
+                                    level=MsgLevel.system.value, msg_type=MsgType.text.value)
+
+            Edit(Pmachine, {"id": pmachine.id, "is_release_notification": 1}).single(Pmachine, "/pmachine")
+
+        pmachine_handler = PmachineOccupyReleaseHandler()
+        # 构建释放请求上下文
+        with current_app.test_request_context():
+            occupier_user = User.query.filter_by(user_id=pmachine.occupier_id).first()
+            g.user_id = occupier_user.user_id
+            g.user_login = occupier_user.user_login
+            pmachine_handler.release_with_release_scopes(pmachine)
+
+    def check_pmachine_lifecycle(self):
+
+        filter_params = [
+            Pmachine.state == "occupied",
+            Pmachine.end_time.isnot(None),
+        ]
+
+        protected_pms = current_app.config.get('PROTECTED_PMS')
+
+        if isinstance(protected_pms, list):
+            filter_params.append(Pmachine.bmc_ip.notin_(protected_pms))
+
+        pmachines = Pmachine.query.filter(*filter_params).all()
+
+        for pmachine in pmachines:
+            end_time = pmachine.end_time
+            try:
+                if datetime.datetime.now(tz=pytz.timezone("Asia/Shanghai")) > \
+                        end_time.astimezone(pytz.timezone('Asia/Shanghai')):
+                    self.logger.info(
+                        "pmachine {} is going to be released, with end_time {}".format(
+                            pmachine.bmc_ip, pmachine.end_time
+                        )
+                    )
+                    self.do_release_pm(pmachine)
+            except Exception as e:
+                self.logger.info("pmachine release error:{}".format(e))
+                continue
+
+    def main(self):
+        self.check_pmachine_lifecycle()
+        self.check_vmachine_lifecycle()

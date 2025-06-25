@@ -12,7 +12,6 @@
 # @Date    :
 # @License : Mulan PSL v2
 #####################################
-
 import configparser
 from pathlib import Path
 
@@ -31,11 +30,16 @@ def loads_config_ini(app):
     for section, _ in cfg.items():
         for key, value in cfg.items(section):
             try:
-                _value = int(value)
-
+                value = int(value)
             except ValueError as e:
-                _value = value
-            
-            app.config[key.upper()] = _value
+                pass
+
+            up_key = key.upper()
+
+            if up_key == 'PROTECTED_PMS':
+                app.config[up_key] = value.strip('\'"').split(';')
+                continue
+
+            app.config[up_key] = value
 
     return True
