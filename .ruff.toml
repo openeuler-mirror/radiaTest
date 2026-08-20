@@ -1,0 +1,27 @@
+# 仓库无 pyproject.toml 时的最小 Ruff 配置
+target-version = "py39"   # 无 requires-python / python_requires 声明，按存量兼容默认 py39
+line-length = 100
+
+[lint]
+# 存量仓库默认只开错误类规则；按基线预检结果收紧
+select = ["E", "F", "I"]
+ignore = ["E501", "RUF001", "RUF002", "RUF003"]
+# RUF001/002/003：中文/全角标点注释仓库会把「，」等判为模糊字符，属误报；
+# 后续把 "RUF" 加回 select 时须保留这三条 ignore
+# 收紧路径：清理 PR 后按阶段加回 B → UP/SIM → RUF（规则分批启用）
+
+[lint.per-file-ignores]
+# 存量历史文件豁免（--fix 无法自动修复的规则）；清理 PR 修复后逐条移除
+"radiaTest-server/manage.py" = ["E402"]                                                    # Django 启动入口：导入位于环境配置后，属项目惯例
+"radiaTest-server/server/plugins/flask_socketio/__init__.py" = ["E402", "E722"]            # 存量兼容层：延迟导入/bare except，清理 PR 修复
+"radiaTest-server/celeryservice/lib/testcase.py" = ["E712"]                                # 存量 `== True` 比较，清理 PR 改 truthiness
+"radiaTest-server/server/apps/baseline_template/handler.py" = ["E712", "F634"]             # 存量 `== True` 与 if-tuple，清理 PR 修复
+"radiaTest-server/server/apps/permission/handler.py" = ["E712"]                            # 存量布尔比较，清理 PR 修复
+"radiaTest-server/server/apps/testcase/handler.py" = ["E712"]                              # 存量 `== False` 比较，清理 PR 修复
+"radiaTest-server/server/apps/milestone/handler.py" = ["F523"]                             # .format 多余占位参数，清理 PR 修复
+"radiaTest-server/server/utils/md_util.py" = ["F811"]                                      # 存量重定义，清理 PR 修复
+"radiaTest-server/server/apps/qualityboard/routes.py" = ["F841"]                           # 存量未使用局部变量，清理 PR 修复
+"radiaTest-server/server/__init__.py" = ["F401"]                                           # __init__ 再导出约定，清理 PR 补 __all__
+"radiaTest-server/server/model/__init__.py" = ["F401"]                                     # SQLAlchemy 模型聚合导出，清理 PR 补 __all__
+"radiaTest-server/server/apps/strategy/__init__.py" = ["F401"]                             # __init__ 再导出约定，清理 PR 补 __all__
+"radiaTest-server/server/plugins/casbin_sqlalchemy_adapter/__init__.py" = ["F401"]         # __init__ 再导出约定，清理 PR 补 __all__
