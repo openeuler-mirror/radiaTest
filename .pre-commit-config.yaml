@@ -1,0 +1,62 @@
+# 修复模式：仅对暂存区文件生效；存量仓库请勿运行 pre-commit run --all-files
+minimum_pre_commit_version: "4.0"
+
+repos:
+  # ===== 通用基础 hook（所有语言） =====
+  - repo: https://gitcode.com/gh_mirrors/pr/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace          # 修复：移除行尾空白
+        exclude: (^|/)(pnpm-lock\.yaml|package-lock\.json)$|\.lock$
+      - id: end-of-file-fixer            # 修复：确保文件以单个换行结尾
+        exclude: (^|/)(pnpm-lock\.yaml|package-lock\.json)$|\.lock$
+      - id: check-yaml
+      - id: check-json
+      - id: check-xml
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: [--maxkb=2048]             # 存量最大文件 1.4MB 页面设计截图；样本/截图目录会持续变大
+      - id: detect-private-key
+
+  # ===== 密钥检测 =====
+  - repo: https://gitcode.com/gh_mirrors/gi/gitleaks
+    rev: v8.30.1
+    hooks:
+      - id: gitleaks
+
+  # ===== 拼写检查 =====
+  - repo: https://gitcode.com/gh_mirrors/co/codespell
+    rev: v2.4.3
+    hooks:
+      - id: codespell
+        exclude: ^(vendor/|third_party/|generated/)
+
+  # ===== Python：Ruff（修复）+ Bandit（检查） =====
+  - repo: https://gitcode.com/gh_mirrors/ru/ruff-pre-commit
+    rev: v0.16.2
+    hooks:
+      - id: ruff-check
+        args: [--fix]                    # 修复模式；只读档去掉 --fix
+      - id: ruff-format                  # 修复模式；只读档加 --check
+  - repo: https://gitcode.com/gh_mirrors/ba/bandit
+    rev: 1.9.4
+    hooks:
+      - id: bandit
+        args: [-lll]                     # 存量仓库先只看高危；清理后按路线图放开 -ll → 全量
+
+  # ===== JS/Vue：local hook 调用项目依赖（mirrors-prettier 已归档勿用） =====
+  # 依赖安装：cd radiaTest-web && npm install（prettier/eslint 未安装前本组 hook 不生效）
+  - repo: local
+    hooks:
+      - id: prettier
+        name: prettier
+        entry: bash -c 'cd "$(git rev-parse --show-toplevel)/radiaTest-web" && if [ -x node_modules/.bin/prettier ]; then npx prettier --write "${@#radiaTest-web/}"; fi' --
+        language: system
+        files: ^radiaTest-web/.*\.(js|jsx|ts|tsx|vue|json|css|scss|less|html|md)$
+        exclude: ^radiaTest-web/(node_modules|dist|build)/
+      - id: eslint
+        name: eslint
+        entry: bash -c 'cd "$(git rev-parse --show-toplevel)/radiaTest-web" && if [ -x node_modules/.bin/eslint ]; then npx eslint --fix "${@#radiaTest-web/}"; fi' --
+        language: system
+        files: ^radiaTest-web/.*\.(js|jsx|ts|tsx|vue)$
+        exclude: ^radiaTest-web/(node_modules|dist|build)/
