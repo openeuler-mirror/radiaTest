@@ -1,0 +1,130 @@
+# radiaTest devcontainer compose
+# 中间件为本地开发默认凭据（dev-only），生产凭据绝不写入本文件；
+# 如需修改中间件密码，请同步修改本文件与 .env（见 README.devcontainer.md）
+
+services:
+  # 一次性生成 redis TLS 自签 CA/证书（radiaTest 后端 redis 客户端固定使用 SSLConnection，
+  # celery 的 result backend 也硬编码 ssl 参数，因此 dev 环境 redis 必须启用 TLS）
+  # 直接复用本项目的 openEuler dev 镜像（含 openssl），不依赖第三方证书生成镜像
+  certgen:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: radiatest-certgen
+    user: root
+    entrypoint: ["/bin/sh", "/gen_certs.sh"]
+    volumes:
+      - ./certs/gen_certs.sh:/gen_certs.sh:ro
+      - radiatest-redis-certs:/certs
+    restart: "no"
+
+  redis:
+    image: redis:7
+    command:
+      - redis-server
+      - --port
+      - "0"
+      - --tls-port
+      - "6379"
+      - --tls-cert-file
+      - /certs/redis.crt
+      - --tls-key-file
+      - /certs/redis.key
+      - --tls-ca-cert-file
+      - /certs/redis-ca.crt
+      - --tls-auth-clients
+      - "no"
+      - --requirepass
+      - radiaTest1234
+      - --appendonly
+      - "yes"
+    environment:
+      RADIATEST_REDIS_PASSWORD: radiaTest1234 # gitleaks:allow dev-only 默认值
+    volumes:
+      - radiatest-redis-certs:/certs:ro
+      - radiatest-redis-data:/data
+    ports:
+      - "16379:6379"
+    depends_on:
+      certgen:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "REDISCLI_AUTH=$$RADIATEST_REDIS_PASSWORD redis-cli --tls --cacert /certs/redis-ca.crt ping | grep -q PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  mariadb:
+    image: mariadb:10.5
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_general_ci
+      - --default-authentication-plugin=mysql_native_password
+    environment:
+      MYSQL_ROOT_PASSWORD: 1234
+      MYSQL_DATABASE: radiaTest
+      MYSQL_USER: radiaTest
+      MYSQL_PASSWORD: 1234
+    volumes:
+      - radiatest-mariadb:/var/lib/mysql
+    ports:
+      - "13306:3306"
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    environment:
+      RABBITMQ_DEFAULT_USER: radiaTest
+      RABBITMQ_DEFAULT_PASS: 1234
+      RABBITMQ_DEFAULT_VHOST: radiaTest
+    volumes:
+      - radiatest-rabbitmq:/var/lib/rabbitmq
+    ports:
+      - "15673:15672"
+      - "5673:5672"
+    healthcheck:
+      test: ["CMD-SHELL", "rabbitmq-diagnostics -q ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: sleep infinity
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      - ..:/workspace
+      - radiatest-pip:/home/vscode/.cache/pip
+      - radiatest-npm:/home/vscode/.npm
+      - radiatest-history:/commandhistory
+      - radiatest-redis-certs:/etc/radiaTest/certs:ro
+    ports:
+      - "8080:8080"
+      - "21500:21500"
+    depends_on:
+      redis:
+        condition: service_healthy
+      mariadb:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      certgen:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+volumes:
+  radiatest-redis-certs:
+  radiatest-redis-data:
+  radiatest-mariadb:
+  radiatest-rabbitmq:
+  radiatest-pip:
+  radiatest-npm:
+  radiatest-history:
