@@ -1,4 +1,4 @@
-# Copyright (c) [2026] Huawei Technologies Co.,Ltd.ALL rights reserved.
+# Copyright (c) 2026 Huawei Technologies Co., Ltd. All rights reserved.
 # This program is licensed under Mulan PSL v2.
 # You can use it according to the terms and conditions of the Mulan PSL v2.
 #          http://license.coscl.org.cn/MulanPSL2
@@ -13,9 +13,9 @@
 # @License : Mulan PSL v2
 #####################################
 import io
+import os
 import tarfile
 import zipfile
-from pathlib import Path
 
 import pytest
 
@@ -105,7 +105,7 @@ def test_uncompress_zip_rejects_oversize(tmp_path):
 
 def test_uncompress_zip_skips_deep_path(tmp_path):
     zip_path = tmp_path / "pack.zip"
-    deep_name = "/".join(f"d{i}" for i in range(21)) + "/deep.txt"
+    deep_name = os.path.join(*[f"d{i}" for i in range(21)], "deep.txt")
     make_zip(zip_path, [("ok.txt", "O"), (deep_name, "D")])
     dist = tmp_path / "out"
     dist.mkdir()
