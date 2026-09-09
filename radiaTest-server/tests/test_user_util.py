@@ -1,4 +1,4 @@
-# Copyright (c) [2026] Huawei Technologies Co.,Ltd.ALL rights reserved.
+# Copyright (c) 2026 Huawei Technologies Co., Ltd. All rights reserved.
 # This program is licensed under Mulan PSL v2.
 # You can use it according to the terms and conditions of the Mulan PSL v2.
 #          http://license.coscl.org.cn/MulanPSL2

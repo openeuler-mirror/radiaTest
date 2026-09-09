@@ -1,4 +1,4 @@
-# Copyright (c) [2026] Huawei Technologies Co.,Ltd.ALL rights reserved.
+# Copyright (c) 2026 Huawei Technologies Co., Ltd. All rights reserved.
 # This program is licensed under Mulan PSL v2.
 # You can use it according to the terms and conditions of the Mulan PSL v2.
 #          http://license.coscl.org.cn/MulanPSL2
@@ -17,9 +17,6 @@ import types
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parents[1]
-
-if str(BASE_DIR) not in sys.path:
-    sys.path.insert(0, str(BASE_DIR))
 
 # server/__init__.py 依赖 MySQL/Redis/Casbin 等完整运行环境才能引导，
 # 单元测试只需被测模块本身，这里注册一个轻量包替身跳过应用引导，
