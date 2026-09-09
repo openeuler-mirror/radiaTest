@@ -45,6 +45,16 @@ supervisor控制的进程日志均在./log中
 3.  提交代码
 4.  新建 Pull Request
 
+#### 单元测试
+
+服务端单元测试位于 radiaTest-server/tests 目录，基于 pytest 编写，执行方式：
+
+```bash
+cd radiaTest-server && bash script/ut.sh
+```
+
+脚本会自动安装测试依赖（见 tests/requirements.txt）后执行全部用例。
+
 #### Commit规范 && 质量要求
 
 1.  commit格式

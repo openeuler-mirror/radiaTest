@@ -4,6 +4,7 @@ venv
 dump.rdb
 **/migrations
 **/tests
+!radiaTest-server/tests
 **/tmp
 *.pid*
 *.log*

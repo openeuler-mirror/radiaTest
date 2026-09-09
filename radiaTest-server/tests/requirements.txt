@@ -1,0 +1,8 @@
+pytest
+PyYAML
+rarfile
+html-sanitizer
+flask==2.2.5
+werkzeug==2.3.8
+requests
+pandas
