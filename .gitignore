@@ -1,0 +1,46 @@
+# 敏感信息(Secret)
+.env
+.env.*
+!.env.example
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.eslintcache
+.stylelintcache
+.coverage
+htmlcov/
+
+# Node / 前端
+node_modules/
+dist/
+.vite/
+.pnpm-store/
+.turbo/
+package-lock.json
+yarn.lock
+bun.lock
+
+# 系统 / 编辑器
+.DS_Store
+.idea/
+.vscode/
+.serena/
+
+# 本地输出
+*.log
+tmp/
+coverage/
+
+# 本地 Docker 部署
+deploy/docker/
+
+# 配置文件
+.claude/
+.codegraph/
+.githooks/
+opencode.json
