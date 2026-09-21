@@ -1,0 +1,17 @@
+# Copyright (c) 2026 Huawei Technologies Co., Ltd. All rights reserved.
+# This project is licensed under the Mulan PSL v2.
+# You can use it according to the terms and conditions of the Mulan PSL v2.
+# http://license.coscl.org.cn/MulanPSL2
+
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Pre-commit gate: deterministic checks must pass before a commit lands.
+# code-review / neat-freak (semantic checks) are run manually in the opencode
+# session before committing — they are not part of this hook (AGENTS.md: hooks
+# run only deterministic checks; semantic/docs drift belongs to Audit/Reconcile).
+# Skip with `git commit --no-verify` only for emergencies (e.g. hotfix), never
+# routine.
+
+./scripts/check.sh scripts
+./scripts/check.sh backend
