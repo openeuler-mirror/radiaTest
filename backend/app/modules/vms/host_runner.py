@@ -15,6 +15,7 @@ import shlex
 import subprocess
 import threading
 from collections.abc import Callable, Mapping
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Generic, Any, TypeVar, overload
 

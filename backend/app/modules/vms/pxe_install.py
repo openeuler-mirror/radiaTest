@@ -24,6 +24,7 @@ import re
 import shlex
 import subprocess
 import time
+from dataclasses import dataclass
 from datetime import UTC, datetime
 
 from sqlalchemy import select
@@ -307,8 +308,6 @@ def apply_custom_kernel_to_physical(
             error_code=error_code,
             ),
         )
-
-    from dataclasses import dataclass
 
     from app.modules.vms.service import CustomKernelSwapRequest, install_custom_kernel_via_ssh
 
