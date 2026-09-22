@@ -848,3 +848,374 @@ def _capture_and_store_console(
         # 取证落盘失败不能拖垮挂死主流程：case 还要标 ERROR 并抛 EnvSetHangError。
         logger.debug("console diagnostic artifact store failed", exc_info=True)
         db.rollback()
+
+
+def _capture_and_store_bmc_diagnostics(
+    db: Session, *, job: TestJob, control: VMNodeRuntime, case_run: TestCaseRun
+) -> None:
+    """物理机挂死取证：BMC 独立于被测 OS，整机挂死仍可读 SEL/电源/传感器。
+
+    凭据走 physical_spec 的应用层加密密文；best-effort——BMC 不可达只记
+    debug 日志，不阻断挂死主流程，也绝不据此自动重启物理机。
+    """
+    physical = getattr(control.resource, "physical_spec", None)
+    if physical is None or not physical.bmc_ip or not physical.bmc_username:
+        return
+    try:
+        password = decrypt_secret(physical.bmc_password_ciphertext or "")
+    except Exception:  # noqa: BLE001
+        logger.debug("bmc credential decrypt failed", exc_info=True)
+        return
+    if not password:
+        return
+    try:
+        output = capture_bmc_diagnostics(
+            bmc_ip=physical.bmc_ip,
+            username=physical.bmc_username,
+            password=password,
+        )
+    except Exception:  # noqa: BLE001
+        logger.debug("bmc diagnostics capture failed", exc_info=True)
+        output = "failed to capture BMC diagnostics"
+    try:
+        collector = LogCollector(base_dir=get_settings().pipeline_log_dir)
+        collector.store_artifact(
+            db=db,
+            storage_scope=f"job-{job.id}",
+            job_id=job.id,
+            module="hang",
+            arch=job.arch,
+            artifact_type="bmc_diagnostic",
+            artifact_name=f"bmc-{case_run.suite_name}-{case_run.case_name}.log",
+            content=output,
+        )
+        db.commit()
+    except Exception:  # noqa: BLE001
+        # 取证落盘失败不能拖垮挂死主流程：case 还要标 ERROR 并抛 EnvSetHangError。
+        logger.debug("bmc diagnostic artifact store failed", exc_info=True)
+        db.rollback()
+
+
+class _BmcHangGate:
+    """BMC 电源确认门：为 HangDetector 提供带外三态确认与观察模式回调。
+
+    confirm() 三态：True=电源开启；False=电源关闭(锚定断电宽限)；
+    None=查询失败(不下结论)。判死只信电源状态，SEL 不参与判定
+    (ADR 0044 修订，job 10232 实证 BMC 时钟与事件流不可信)。
+    回调在检测器线程执行，事件与取证产物一律走独立数据库会话，
+    全部 best-effort，绝不阻断心跳循环。
+    """
+
+    def __init__(
+        self,
+        *,
+        job: TestJob,
+        case_run: TestCaseRun,
+        bmc_ip: str,
+        username: str,
+        password: str,
+    ) -> None:
+        self._job_id = job.id
+        self._arch = job.arch
+        self._suite = case_run.suite_name
+        self._case = case_run.case_name
+        self._bmc_ip = bmc_ip
+        self._username = username
+        self._password = password
+        self._watch_started_monotonic: float | None = None
+        self._off_reported = False
+        self.last_verdict: bool | None = None
+        # 判死 detail 的关机证据文案：区分 BMC（电源）与宿主机（domstate）来源。
+        self.off_evidence = "BMC 报告电源断开"
+
+    def confirm(self) -> bool | None:
+        try:
+            self.last_verdict = bmc_power_on(
+                bmc_ip=self._bmc_ip,
+                username=self._username,
+                password=self._password,
+            )
+        except Exception:  # noqa: BLE001
+            logger.debug("bmc confirm probe failed", exc_info=True)
+            self.last_verdict = None
+            return self.last_verdict
+        # 观察中首次读到电源 off：留痕宽限规则（首查 off 已含在 watch-entry 事件里）。
+        if (
+            self.last_verdict is False
+            and self._watch_started_monotonic is not None
+            and not self._off_reported
+        ):
+            self._off_reported = True
+            _record_hang_watch_event(
+                self._job_id,
+                phase="hang_watch",
+                level="warning",
+                message=(
+                    f"BMC（{self._bmc_ip}）观察到电源断开，"
+                    f"{int(WATCH_POWER_OFF_DEADLINE_SECONDS // 60)} 分钟内 SSH"
+                    f" 未恢复将判死，用例 {self._suite}/{self._case}"
+                ),
+            )
+        return self.last_verdict
+
+    def on_watch_start(self) -> None:
+        self._watch_started_monotonic = time.monotonic()
+        if self.last_verdict is True:
+            verdict_text = "电源开启"
+        elif self.last_verdict is False:
+            verdict_text = "电源断开"
+        else:
+            verdict_text = "查询失败"
+        _record_hang_watch_event(
+            self._job_id,
+            phase="hang_watch",
+            level="warning",
+            message=(
+                f"SSH 心跳连续失败已达判定阈值，BMC 检查（{self._bmc_ip}）"
+                f"{verdict_text}，进入观察模式暂缓判死"
+                f"（上限 {int(WATCH_TIMEOUT_SECONDS // 60)} 分钟，断电宽限"
+                f" {int(WATCH_POWER_OFF_DEADLINE_SECONDS // 60)} 分钟），"
+                f"用例 {self._suite}/{self._case}"
+            ),
+        )
+        self._store_artifact(f"bmc-{self._suite}-{self._case}-watch-entry.log")
+
+    def on_recovered(self) -> None:
+        watched_seconds = 0
+        if self._watch_started_monotonic is not None:
+            watched_seconds = int(time.monotonic() - self._watch_started_monotonic)
+        # 复位观察态：off 事件守卫(_watch_started_monotonic)必须严格等于
+        # "观察中"，多 episode 时阈值首查 off 只由 watch-entry 文案报告一次。
+        self._watch_started_monotonic = None
+        _record_hang_watch_event(
+            self._job_id,
+            phase="hang_recovered",
+            level="info",
+            message=(
+                f"SSH 心跳恢复，退出观察模式继续执行（观察 {watched_seconds} 秒），"
+                f"用例 {self._suite}/{self._case}"
+            ),
+        )
+        self._store_artifact(f"bmc-{self._suite}-{self._case}-watch-recovered.log")
+
+    def _store_artifact(self, artifact_name: str) -> None:
+        try:
+            output = capture_bmc_diagnostics(
+                bmc_ip=self._bmc_ip, username=self._username, password=self._password
+            )
+        except Exception:  # noqa: BLE001
+            logger.debug("bmc watch capture failed", exc_info=True)
+            output = "failed to capture BMC diagnostics"
+        _store_hang_watch_artifact(
+            job_id=self._job_id,
+            arch=self._arch,
+            artifact_name=artifact_name,
+            content=output,
+            artifact_type="bmc_diagnostic",
+        )
+
+
+def _record_hang_watch_event(job_id: int, *, phase: str, message: str, level: str) -> None:
+    """观察模式事件落库（检测器线程调用）：独立会话避免与主线程共享 db。"""
+    try:
+        with SessionLocal() as session:
+            job = session.get(TestJob, job_id)
+            if job is not None:
+                record_test_job_event(
+                    session, job=job, phase=phase, message=message, level=level
+                )
+            session.commit()
+    except Exception:  # noqa: BLE001
+        logger.debug("hang watch event record failed", exc_info=True)
+
+
+def _store_hang_watch_artifact(
+    *,
+    job_id: int,
+    arch: str,
+    artifact_name: str,
+    content: str,
+    artifact_type: str,
+) -> None:
+    """观察/恢复取证产物落库（检测器线程调用）：独立会话，失败只记日志。"""
+    try:
+        with SessionLocal() as session:
+            collector = LogCollector(base_dir=get_settings().pipeline_log_dir)
+            collector.store_artifact(
+                db=session,
+                storage_scope=f"job-{job_id}",
+                job_id=job_id,
+                module="hang",
+                arch=arch,
+                artifact_type=artifact_type,
+                artifact_name=artifact_name,
+                content=content,
+            )
+            session.commit()
+    except Exception:  # noqa: BLE001
+        logger.debug("hang watch artifact store failed", exc_info=True)
+
+
+def _build_bmc_hang_gate(
+    job: TestJob, control: VMNodeRuntime, case_run: TestCaseRun
+) -> _BmcHangGate | None:
+    """有 BMC 配置的物理机返回确认门；VM、无 BMC 或凭据不可用返回 None。
+
+    None 表示沿用原判定（阈值+复核即判死），见 ADR 0044。
+    """
+    resource = getattr(control, "resource", None)
+    physical = getattr(resource, "physical_spec", None)
+    if physical is None or not physical.bmc_ip or not physical.bmc_username:
+        return None
+    try:
+        password = decrypt_secret(physical.bmc_password_ciphertext or "")
+    except Exception:  # noqa: BLE001
+        logger.debug("bmc credential decrypt failed", exc_info=True)
+        return None
+    if not password:
+        return None
+    return _BmcHangGate(
+        job=job,
+        case_run=case_run,
+        bmc_ip=physical.bmc_ip,
+        username=physical.bmc_username,
+        password=password,
+    )
+
+
+class _VmHangGate:
+    """宿主机 domstate 确认门（ADR 0046）：VM 的带外三态确认与观察模式回调。
+
+    confirm() 三态：True=domstate 活态(running/paused 等)；False=关机/崩溃
+    态(锚定关机宽限，覆盖 on_crash=restart 自动拉起)；None=宿主机查询失败
+    (不下结论)。回调在检测器线程执行，事件与取证产物一律走独立数据库
+    会话，全部 best-effort，绝不阻断心跳循环。
+    """
+
+    def __init__(
+        self,
+        *,
+        job: TestJob,
+        case_run: TestCaseRun,
+        host_ip: str,
+        vm_name: str,
+        ssh_key_path: str,
+    ) -> None:
+        self._job_id = job.id
+        self._arch = job.arch
+        self._suite = case_run.suite_name
+        self._case = case_run.case_name
+        self._host_ip = host_ip
+        self._vm_name = vm_name
+        self._ssh_key_path = ssh_key_path
+        self._watch_started_monotonic: float | None = None
+        self._off_reported = False
+        self.last_verdict: bool | None = None
+        self.off_evidence = f"宿主机报告 VM {vm_name} 已关机"
+
+    def confirm(self) -> bool | None:
+        try:
+            self.last_verdict = vm_domstate_alive(
+                host_ip=self._host_ip,
+                vm_name=self._vm_name,
+                ssh_key_path=self._ssh_key_path,
+            )
+        except Exception:  # noqa: BLE001
+            logger.debug("vm domstate confirm probe failed", exc_info=True)
+            self.last_verdict = None
+            return self.last_verdict
+        # 观察中首次读到关机态：留痕宽限规则（首查 off 已含在 watch-entry 事件里）。
+        if (
+            self.last_verdict is False
+            and self._watch_started_monotonic is not None
+            and not self._off_reported
+        ):
+            self._off_reported = True
+            _record_hang_watch_event(
+                self._job_id,
+                phase="hang_watch",
+                level="warning",
+                message=(
+                    f"宿主机（{self._host_ip}）观察到 VM {self._vm_name} 已关机，"
+                    f"{int(WATCH_POWER_OFF_DEADLINE_SECONDS // 60)} 分钟内 SSH"
+                    f" 未恢复将判死，用例 {self._suite}/{self._case}"
+                ),
+            )
+        return self.last_verdict
+
+    def on_watch_start(self) -> None:
+        self._watch_started_monotonic = time.monotonic()
+        if self.last_verdict is True:
+            verdict_text = "VM 运行中"
+        elif self.last_verdict is False:
+            verdict_text = "VM 已关机"
+        else:
+            verdict_text = "查询失败"
+        _record_hang_watch_event(
+            self._job_id,
+            phase="hang_watch",
+            level="warning",
+            message=(
+                f"SSH 心跳连续失败已达判定阈值，宿主机 virsh 检查"
+                f"（{self._vm_name}@{self._host_ip}）{verdict_text}，"
+                f"进入观察模式暂缓判死"
+                f"（上限 {int(WATCH_TIMEOUT_SECONDS // 60)} 分钟，关机宽限"
+                f" {int(WATCH_POWER_OFF_DEADLINE_SECONDS // 60)} 分钟），"
+                f"用例 {self._suite}/{self._case}"
+            ),
+        )
+        self._store_artifact(f"console-{self._suite}-{self._case}-watch-entry.log")
+
+    def on_recovered(self) -> None:
+        watched_seconds = 0
+        if self._watch_started_monotonic is not None:
+            watched_seconds = int(time.monotonic() - self._watch_started_monotonic)
+        self._watch_started_monotonic = None
+        _record_hang_watch_event(
+            self._job_id,
+            phase="hang_recovered",
+            level="info",
+            message=(
+                f"SSH 心跳恢复，退出观察模式继续执行（观察 {watched_seconds} 秒），"
+                f"用例 {self._suite}/{self._case}"
+            ),
+        )
+        # 恢复不另存产物：判死路径已由 _capture_and_store_console 覆盖。
+
+    def _store_artifact(self, artifact_name: str) -> None:
+        try:
+            output = capture_vm_console_output(
+                host_ip=self._host_ip,
+                vm_name=self._vm_name,
+                ssh_key_path=self._ssh_key_path,
+            )
+        except Exception:  # noqa: BLE001
+            logger.debug("vm watch capture failed", exc_info=True)
+            output = "failed to capture console output"
+        _store_hang_watch_artifact(
+            job_id=self._job_id,
+            arch=self._arch,
+            artifact_name=artifact_name,
+            content=output,
+            artifact_type="console_diagnostic",
+        )
+
+
+def _build_vm_hang_gate(
+    db: Session, job: TestJob, control: VMNodeRuntime, case_run: TestCaseRun
+) -> _VmHangGate | None:
+    """有宿主机通道的 VM 返回 domstate 确认门；物理机/无通道/未配置返回 None。
+
+    None 表示沿用原判定（阈值+复核即判死），见 ADR 0044/0046。
+    """
+    channel = vm_host_channel(db, control)
+    if channel is None:
+        return None
+    host_ip, vm_name, ssh_key = channel
+    return _VmHangGate(
+        job=job,
+        case_run=case_run,
+        host_ip=host_ip,
+        vm_name=vm_name,
+        ssh_key_path=ssh_key,
+    )
