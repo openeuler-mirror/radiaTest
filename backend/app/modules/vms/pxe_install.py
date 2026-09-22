@@ -34,7 +34,12 @@ from app.db.session import SessionLocal
 from app.modules.resources.models import ManagementStatus, Resource, ResourceType
 from app.modules.resources.physical_install_models import PhysicalInstallImage
 from app.modules.tasks.models import TaskEvent
-from app.modules.test_management.remote import RemoteCommandError, run_ssh_command
+from app.modules.test_management.remote import (
+    RemoteCommandError,
+    RemoteRunOptions,
+    RemoteTarget,
+    run_ssh_command,
+)
 from app.modules.vms.host_contract import PXEInstallPayload, PXEInstallResult
 from app.modules.vms.host_runner import HostEventSink, HostScriptError, run_host_script
 from app.modules.vms.service import (
@@ -169,12 +174,10 @@ def _wait_for_ssh(ip: str, password: str) -> bool:
     for _ in range(SSH_CHECK_MAX_ATTEMPTS):
         try:
             result = run_ssh_command(
-                host=ip,
-                username="root",
-                password=password,
+                target=RemoteTarget(host=ip, username="root", password=password),
                 command="echo ok",
                 timeout_seconds=10,
-                verify_host_key=False,
+                options=RemoteRunOptions(verify_host_key=False),
             )
             if result.returncode == 0 and "ok" in result.stdout:
                 return True
@@ -188,12 +191,10 @@ def _collect_nic_macs(host: str, username: str, password: str) -> list[str]:
     """采集目标机全部网卡 MAC（pxe DHCP 全绑，避免绑错启动网卡）。失败返回空。"""
     try:
         result = run_ssh_command(
-            host=host,
-            username=username,
-            password=password,
+            target=RemoteTarget(host=host, username=username, password=password),
             command="cat /sys/class/net/*/address",
             timeout_seconds=20,
-            verify_host_key=False,
+            options=RemoteRunOptions(verify_host_key=False),
         )
     except RemoteCommandError:
         return []
@@ -247,12 +248,10 @@ def _ssh_cat(ip: str, path: str) -> str:
     """SSH 读取文件内容，失败返回空串。"""
     try:
         result = run_ssh_command(
-            host=ip,
-            username="root",
-            password=DEFAULT_ROOT_PASSWORD,
+            target=RemoteTarget(host=ip, username="root", password=DEFAULT_ROOT_PASSWORD),
             command=f"cat {shlex.quote(path)}",
             timeout_seconds=15,
-            verify_host_key=False,
+            options=RemoteRunOptions(verify_host_key=False),
         )
         return result.stdout if result.returncode == 0 else ""
     except Exception:  # noqa: BLE001
