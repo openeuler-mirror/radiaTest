@@ -11,7 +11,7 @@ from typing import Annotated
 
 from pydantic import BaseModel
 
-from fastapi import APIRouter, Depends, Query, Response, status
+from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy.orm import Session
 
 from app.core.api_runtime import APIError

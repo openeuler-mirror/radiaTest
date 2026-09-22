@@ -8,7 +8,6 @@
 # See the Mulan PSL v2 for more details.
 
 from dataclasses import dataclass
-from datetime import datetime
 from typing import Annotated, NoReturn
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
@@ -93,7 +92,7 @@ def idempotent_envelope(
     request: Request,
     idempotency_key: Annotated[str | None, Header(alias="Idempotency-Key")] = None,
 ) -> IdempotentRequestEnvelope:
-    return IdempotentRequestEnvelope(request=envelope.request, idempotency_key=idempotency_key)
+    return IdempotentRequestEnvelope(request=request, idempotency_key=idempotency_key)
 
 
 @lease_events_router.get("", response_model=PageResponse[LeaseEventRead])
@@ -124,11 +123,6 @@ def occupy_resource(
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[Session, Depends(get_db)],
 ) -> LeaseRead | JSONResponse:
-    lease_id = command.lease_id
-    payload = command.payload
-    current_user = command.current_user
-    force = command.force
-    envelope = command.envelope
     decision = begin_http_idempotent_request(
         db,
         actor=current_user,
@@ -290,11 +284,6 @@ def extend_own_lease(
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[Session, Depends(get_db)],
 ) -> LeaseRead | JSONResponse:
-    lease_id = command.lease_id
-    payload = command.payload
-    current_user = command.current_user
-    force = command.force
-    envelope = command.envelope
     decision = begin_http_idempotent_request(
         db,
         actor=current_user,
@@ -349,11 +338,6 @@ def import_leases_endpoint(
         except LeaseImportFormatError as exc:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
-    lease_id = command.lease_id
-    payload = command.payload
-    current_user = command.current_user
-    force = command.force
-    envelope = command.envelope
     decision = begin_http_idempotent_request(
         db,
         actor=current_user,

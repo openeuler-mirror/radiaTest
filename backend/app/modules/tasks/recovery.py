@@ -21,7 +21,11 @@ from sqlalchemy.orm import Session, aliased
 from app.core.config import get_settings
 from app.modules.resources.models import Resource
 from app.modules.tasks.models import TaskEvent
-from app.modules.tasks.service import get_latest_task_event, record_task_recovery
+from app.modules.tasks.service import (
+    TaskRecoveryDraft,
+    get_latest_task_event,
+    record_task_recovery,
+)
 from app.modules.test_management.models import (
     TEST_JOB_TIMEOUT,
     TestJob,
