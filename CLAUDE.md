@@ -1,0 +1,12 @@
+<!--
+  Copyright (c) 2026 Huawei Technologies Co., Ltd. All rights reserved.
+  This project is licensed under the Mulan PSL v2.
+  You can use it according to the terms and conditions of the Mulan PSL v2.
+  http://license.coscl.org.cn/MulanPSL2
+-->
+
+# CLAUDE.md
+
+项目规则以 `AGENTS.md` 为唯一定义处。
+
+@AGENTS.md
