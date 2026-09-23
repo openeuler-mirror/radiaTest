@@ -1219,3 +1219,749 @@ def _build_vm_hang_gate(
         vm_name=vm_name,
         ssh_key_path=ssh_key,
     )
+
+
+def try_vm_recovery(
+    db: Session,
+    *,
+    job: TestJob,
+    control: VMNodeRuntime,
+    cancel_event: threading.Event | None,
+    trigger: str = "breaker",
+) -> bool:
+    """宿主机硬复位恢复（ADR 0046）：destroy+start 后轮询 SSH 就绪。
+
+    trigger="breaker" 为熔断点触发（原版），"probe" 为用例间/post_env 前
+    探针触发（连接拒绝签名）。每环境集一次的预算由调用方持有（按尝试计）；
+    成功 True（调用方清零连击计数继续剩余用例），无通道/复位失败/SSH 未回
+    False（维持原判定）。事件 vm_recovery_started/vm_recovered/
+    vm_recovery_failed 留痕，复位前抓 console 存肇事现场。
+    """
+    channel = vm_host_channel(db, control)
+    if channel is None:
+        return False
+    host_ip, vm_name, ssh_key = channel
+
+    def _record(phase: str, message: str, *, level: str = "warning") -> None:
+        record_test_job_event(db, job=job, phase=phase, message=message, level=level)
+        db.commit()
+
+    if trigger == "probe":
+        _record(
+            "vm_recovery_started",
+            f"用例间探活发现 SSH 连接拒绝（sshd 不可用），"
+            f"宿主机硬复位 {vm_name}（{host_ip}）尝试恢复",
+        )
+    else:
+        _record(
+            "vm_recovery_started",
+            f"连续用例 SSH 失败触发熔断，宿主机硬复位 {vm_name}（{host_ip}）尝试恢复",
+        )
+    # 复位前取证：这是肇事现场（防火墙残留/isolate 僵尸态的 console 输出）。
+    try:
+        console = capture_vm_console_output(
+            host_ip=host_ip, vm_name=vm_name, ssh_key_path=ssh_key
+        )
+    except Exception:  # noqa: BLE001
+        logger.debug("recovery console capture failed", exc_info=True)
+        console = "failed to capture console output"
+    _store_hang_watch_artifact(
+        job_id=job.id,
+        arch=job.arch,
+        artifact_name="console-recovery.log",
+        content=console,
+        artifact_type="console_diagnostic",
+    )
+
+    if not vm_hard_reset(host_ip=host_ip, vm_name=vm_name, ssh_key_path=ssh_key):
+        _record(
+            "vm_recovery_failed",
+            f"宿主机硬复位失败（{vm_name}@{host_ip}），剩余用例按熔断处理",
+        )
+        return False
+    wait_budget = remaining_test_job_seconds(job, maximum=SSH_READY_TIMEOUT_SECONDS)
+    if wait_budget <= 0:
+        _record(
+            "vm_recovery_failed",
+            f"宿主机硬复位完成但任务剩余时间不足（{vm_name}@{host_ip}），"
+            f"剩余用例按熔断处理",
+        )
+        return False
+
+    deadline = time.monotonic() + wait_budget
+    while True:
+        if _ssh_alive(control):
+            _record(
+                "vm_recovered",
+                f"宿主机硬复位后 SSH 恢复，继续执行剩余用例（{vm_name}@{host_ip}）",
+                level="info",
+            )
+            return True
+        if time.monotonic() >= deadline:
+            break
+        if cancel_event is not None:
+            cancel_event.wait(SSH_READY_RETRY_INTERVAL_SECONDS)
+            if cancel_event.is_set():
+                break
+        else:
+            time.sleep(SSH_READY_RETRY_INTERVAL_SECONDS)
+    _record(
+        "vm_recovery_failed",
+        f"宿主机硬复位后 SSH 未恢复（{vm_name}@{host_ip}），剩余用例按熔断处理",
+    )
+    return False
+
+
+def _ssh_read_file(control: VMNodeRuntime, path: str) -> str:
+    result = run_ssh_command(
+        host=control.ip,
+        username=control.username,
+        password=control.password,
+        command=f"cat {shlex.quote(path)} 2>/dev/null",
+        timeout_seconds=120,
+    )
+    return result.stdout or ""
+
+
+def _ssh_results_listing(control: VMNodeRuntime, suite_name: str) -> dict:
+    """读 mugen results/<suite>/{succeed,failed,skipped} 目录列表。best-effort。"""
+    listing: dict[str, list[str]] = {"succeed": [], "failed": [], "skipped": []}
+    for bucket in listing:
+        result = run_ssh_command(
+            host=control.ip,
+            username=control.username,
+            password=control.password,
+            command=f"ls -1 /tmp/mugen/results/{shlex.quote(suite_name)}/{bucket}/ 2>/dev/null",
+            timeout_seconds=30,
+        )
+        if result.returncode == 0 and result.stdout:
+            listing[bucket] = [line.strip() for line in result.stdout.splitlines() if line.strip()]
+    return listing
+
+
+def _parse_and_store_subcases(
+    db: Session, *, job: TestJob, control: VMNodeRuntime, case_run: TestCaseRun
+) -> None:
+    """run_case 正常结束后按 job.result_parser 解析子用例写 TestCaseRunDetail。best-effort。"""
+    parser = (getattr(job, "result_parser", None) or "").strip()
+    if not parser or parser == "none":
+        return
+    sub_results: list[SubTestResult] = []
+    try:
+        if parser == "ltp":
+            text = _ssh_read_file(control, "/tmp/mugen/logs/ltp.log")
+            sub_results = parse_ltp_log(text)
+        elif parser == "pkgmanage":
+            text = _ssh_read_file(control, "/tmp/module-logs/pkgmanage-details.log")
+            sub_results = parse_pkgmanage_log(text)
+        elif parser in {"pkgcmd", "pkgserver", "pkgunion", "mugen_results", "docker"}:
+            listing = _ssh_results_listing(control, case_run.suite_name)
+            sub_results = parse_mugen_results_dir(listing)
+    except Exception:  # noqa: BLE001
+        logger.debug("subcase parse/store failed", exc_info=True)
+        return
+    for r in sub_results:
+        db.add(
+            TestCaseRunDetail(
+                case_run_id=case_run.id,
+                sub_test_name=r.sub_test_name,
+                status=r.status,
+                detail={},
+            )
+        )
+    db.commit()
+
+
+# 注意：模板经 .format(module=...) 渲染，除 {module} 外的 shell 花括号必须
+# 双写转义（{{...}}），否则 str.format 抛 KeyError 被 best-effort 吞掉，
+# 逐 case 收集静默失效（1a92de8 引入时的隐性 bug，修复于 pkgunion 接入时）。
+_PER_CASE_COLLECT_SCRIPT = r"""OET_PATH="/opt/mugen"
+LOG_FILE="/opt/{module}-logs/{module}.log"
+mkdir -p "$(dirname "${{LOG_FILE}}")"
+SUITE_DIR=$(ls -1 "${{OET_PATH}}/results/" 2>/dev/null | head -n 1)
+if [ -z "${{SUITE_DIR}}" ]; then exit 0; fi
+R="${{OET_PATH}}/results/${{SUITE_DIR}}"
+SUCCEED=0; FAILED=0; SKIPPED=0; FAILED_CASES=""
+[ -d "${{R}}/succeed" ] && SUCCEED=$(ls -1 "${{R}}/succeed" 2>/dev/null | wc -l)
+[ -d "${{R}}/failed" ] && FAILED=$(ls -1 "${{R}}/failed" 2>/dev/null | wc -l)
+[ -d "${{R}}/skipped" ] && SKIPPED=$(ls -1 "${{R}}/skipped" 2>/dev/null | wc -l)
+[ ${{FAILED}} -gt 0 ] && FAILED_CASES=$(ls -1 "${{R}}/failed" 2>/dev/null | xargs)
+{{
+    echo "${{SUITE_DIR}} 用例已执行"
+    echo "成功 ${{SUCCEED}} 个"
+    echo "跳过 ${{SKIPPED}} 个"
+    echo "失败 ${{FAILED}} 个"
+    [ -n "${{FAILED_CASES}}" ] && echo "failed：${{FAILED_CASES}}"
+    echo "-----------------------------"
+}} >> "${{LOG_FILE}}"
+"""
+
+
+def _per_case_collect_log(
+    db: Session, *, job: TestJob, control: VMNodeRuntime, case_run: TestCaseRun
+) -> None:
+    """每个 case 结束后收集 mugen 结果并追加到 module 日志(逐 case 收集)。
+
+    仅对 result_parser 为 pkgcmd / pkgserver / pkgunion 的 module 生效——它们需要逐 case
+    收集，因为 mugen.sh 会在多次运行间覆盖 results 目录。best-effort：收集
+    失败不让 case 失败。
+    """
+    parser = (getattr(job, "result_parser", None) or "").strip()
+    if parser not in ("pkgcmd", "pkgserver", "pkgunion"):
+        return
+    try:
+        script = _PER_CASE_COLLECT_SCRIPT.format(module=parser)
+        run_control_command(
+            control=control,
+            script=script,
+            timeout_seconds=60,
+        )
+    except Exception:  # noqa: BLE001
+        logger.debug("per-case log collect failed", exc_info=True)
+
+
+def _stop_remote_mugen(control: VMNodeRuntime) -> None:
+    """尽力停止当前控制节点上的 Mugen，避免本地 SSH 被取消后远端继续运行。"""
+    try:
+        run_control_command(
+            control=control,
+            script="pkill -f mugen.sh || true",
+            timeout_seconds=30,
+        )
+    except Exception:  # noqa: BLE001
+        logger.debug("failed to stop remote mugen after cancellation", exc_info=True)
+
+
+# 逐 case 上传（ADR 0048）相关常量：results 桶名与 scp 上限秒数。
+_RESULT_BUCKETS = ("succeed", "failed", "skipped")
+_CASE_UPLOAD_SCP_TIMEOUT_SECONDS = 300
+
+
+def _case_upload_pieces(case_run: TestCaseRun) -> list[tuple[str, str]]:
+    """返回 [(artifact_dir, 相对落位路径)]：logs 目录 + 三个 results 桶。"""
+    rel = f"{case_run.suite_name}/{case_run.case_name}"
+    return [
+        ("logs", f"logs/{rel}"),
+        *[("results", f"results/{case_run.suite_name}/{bucket}/{case_run.case_name}")
+          for bucket in _RESULT_BUCKETS],
+    ]
+
+
+def _docker_stage_case_outputs(
+    job: TestJob, control: VMNodeRuntime, case_run: TestCaseRun
+) -> str:
+    """docker 模块：把容器内该 case 的 logs 与 results 桶 docker cp 到宿主机
+    staging（目录结构与最终落位一致），返回 staging 路径。
+    """
+    suite = shlex.quote(case_run.suite_name)
+    case = shlex.quote(case_run.case_name)
+    stage = f"/tmp/kronos-case-upload/{case_run.id}"
+    dirs = [f"{stage}/logs/{suite}"]
+    cmds = [f"rm -rf {shlex.quote(stage)}"]
+    for bucket in _RESULT_BUCKETS:
+        dirs.append(f"{stage}/results/{suite}/{bucket}")
+    cmds.append(f"mkdir -p {' '.join(dirs)}")
+    cmds.append(
+        f"docker cp openEuler_test:/home/mugen/logs/{suite}/{case} "
+        f"{stage}/logs/{suite}/ 2>/dev/null || true"
+    )
+    for bucket in _RESULT_BUCKETS:
+        cmds.append(
+            f"docker cp openEuler_test:/home/mugen/results/{suite}/{bucket}/{case} "
+            f"{stage}/results/{suite}/{bucket}/ 2>/dev/null || true"
+        )
+    run_control_command(
+        control=control,
+        script="\n".join(cmds),
+        timeout_seconds=job_step_timeout(job, 120),
+    )
+    return stage
+
+
+def _existing_remote_paths(control: VMNodeRuntime, paths: list[str]) -> set[str]:
+    """返回 paths 中在控制节点上真实存在的目录。
+
+    mugen 逐 case 覆盖 results 目录，case 只落在恰好一个 outcome 桶里，缺失桶
+    的 scp 必然失败——必须先探测区分"远端缺失"（跳过）与"传输失败"（放弃），
+    否则每个 case 都会被缺失桶误判为传输失败。探测失败按全部缺失处理，交由
+    任务结束补拉兜底。
+    """
+    if not paths:
+        return set()
+    script = "\n".join(
+        f"[ -d {shlex.quote(path)} ] && echo {shlex.quote(path)}" for path in paths
+    )
+    try:
+        result = run_control_command(
+            control=control, script=script, timeout_seconds=30
+        )
+    except Exception:  # noqa: BLE001
+        logger.debug("remote piece path probe failed", exc_info=True)
+        return set()
+    return {line.strip() for line in result.stdout.splitlines() if line.strip()}
+
+
+def _cleanup_remote_stage(control: VMNodeRuntime, stage: str) -> None:
+    """尽力清理测试机上的 docker staging 目录，keep_env 机器长期复用不残留。"""
+    try:
+        run_control_command(
+            control=control,
+            script=f"rm -rf {shlex.quote(stage)}",
+            timeout_seconds=30,
+        )
+    except Exception:  # noqa: BLE001
+        logger.debug("failed to clean remote case staging", exc_info=True)
+
+
+def _ensure_case_dir_artifact(
+    db: Session,
+    *,
+    job: TestJob,
+    run_id: str,
+    module_name: str,
+    arch: str,
+    artifact_name: str,
+    local_dir: Path,
+) -> None:
+    """幂等登记共享目录 artifact（logs/results），已存在则跳过。"""
+    existing = db.execute(
+        select(TestLogArtifact).where(
+            TestLogArtifact.job_id == job.id,
+            TestLogArtifact.artifact_name == artifact_name,
+        )
+    ).scalars().first()
+    if existing is not None:
+        return
+    LogCollector(base_dir=get_settings().pipeline_log_dir).store_dir_artifact(
+        db=db,
+        pipeline_run_id=run_id,
+        job_id=job.id,
+        module=module_name,
+        arch=arch,
+        artifact_type="pkg_folder",
+        artifact_name=artifact_name,
+        local_dir=str(local_dir),
+    )
+
+
+def upload_case_logs(
+    db: Session,
+    *,
+    job: TestJob,
+    control: VMNodeRuntime,
+    case_run: TestCaseRun,
+) -> None:
+    """逐 case 日志原子上传（ADR 0048）。
+
+    case 正常收敛后由 run_case 内联调用：把该 case 的 mugen 执行日志目录与
+    results 桶目录上传到服务端共享目录 artifact 的对应子路径。各 piece 先拉到
+    独立暂存目录，全部成功后统一 rename 落位——单 case 要么完整可见要么不存在；
+    任一 piece 失败则整 case 放弃（不留部分落位、不留可复用残留），由任务结束
+    时的补漏式自汇集兜底。无上下文（非 pipeline 入口）直接跳过。best-effort：
+    失败记 debug 日志，绝不影响 case 结果。幂等：目标 case 目录已存在视为已
+    上传（rerun 归档会先移走旧输出，正常流程不会重复落位）。
+    """
+    tmp_root: Path | None = None
+    try:
+        job_id = getattr(job, "id", None)
+        ctx = get_case_log_context(job_id) if job_id is not None else None
+        if ctx is None:
+            return
+        env_set = db.get(TestEnvSet, case_run.env_set_id) if case_run.env_set_id else None
+        env_index = env_set.set_index if env_set is not None else 1
+        multi_env = len(job.env_sets) > 1
+        base = (
+            Path(get_settings().pipeline_log_dir)
+            / ctx.run_id
+            / ctx.module_name
+            / ctx.arch
+            / ctx.run_job_id
+        )
+        if multi_env:
+            base /= f"env-{env_index}"
+        prefix = f"env{env_index}-" if multi_env else ""
+
+        # 幂等门：logs 主内容已落位即视为该 case 已上传。
+        if (base / "logs" / case_run.suite_name / case_run.case_name).exists():
+            return
+
+        tmp_root = base.parent / f".tmp-{case_run.id}"
+        shutil.rmtree(tmp_root, ignore_errors=True)
+        tmp_root.mkdir(parents=True, exist_ok=True)
+        scp_timeout = job_step_timeout(job, _CASE_UPLOAD_SCP_TIMEOUT_SECONDS)
+
+        docker = bool(
+            getattr(job, "mugen_exec_command", None)
+            and "openEuler_test" in job.mugen_exec_command
+        )
+        staged: list[tuple[str, str, Path]] = []
+        if docker:
+            stage = _docker_stage_case_outputs(job, control, case_run)
+            try:
+                scp_ok = scp_directory(
+                    host=control.ip,
+                    username=control.username,
+                    password=control.password,
+                    remote_path=stage,
+                    local_dir=str(tmp_root),
+                    timeout_seconds=scp_timeout,
+                    verify_host_key=False,
+                )
+            finally:
+                _cleanup_remote_stage(control, stage)
+            if not scp_ok:
+                return
+            stage_local = tmp_root / case_run.id
+            for artifact_dir, rel in _case_upload_pieces(case_run):
+                target = base / rel
+                if target.exists():
+                    continue
+                source = stage_local / rel
+                if not source.exists():
+                    continue
+                staged.append((artifact_dir, rel, source))
+        else:
+            # 逐 piece 拉到独立暂存子目录：某 piece scp 失败不留部分内容，
+            # 也不会被下一个 piece 的 scp 嵌套复用；全部成功后才统一落位。
+            pieces = [
+                (artifact_dir, rel)
+                for artifact_dir, rel in _case_upload_pieces(case_run)
+                if not (base / rel).exists()
+            ]
+            existing = _existing_remote_paths(
+                control, [f"/opt/mugen/{rel}" for _artifact_dir, rel in pieces]
+            )
+            for index, (artifact_dir, rel) in enumerate(pieces):
+                remote_path = f"/opt/mugen/{rel}"
+                if remote_path not in existing:
+                    continue
+                piece_dir = tmp_root / f"piece-{index}"
+                piece_dir.mkdir(parents=True, exist_ok=True)
+                if not scp_directory(
+                    host=control.ip,
+                    username=control.username,
+                    password=control.password,
+                    remote_path=remote_path,
+                    local_dir=str(piece_dir),
+                    timeout_seconds=scp_timeout,
+                    verify_host_key=False,
+                ):
+                    # 任一 piece 传输失败即放弃整 case（原子性），等待结束补拉兜底。
+                    return
+                source = piece_dir / case_run.case_name
+                if not source.exists():
+                    continue
+                staged.append((artifact_dir, rel, source))
+
+        # 统一落位：全部 piece 暂存完成后一次 rename，保证单 case 原子可见。
+        # 注：rename 循环中途失败（同子树 rename 现实中几乎不发生）仍可能留下
+        # 部分落位，幂等门以 logs 为准，缺口由结束补拉合并补齐。
+        landed_dirs: set[str] = set()
+        for artifact_dir, rel, source in staged:
+            target = base / rel
+            target.parent.mkdir(parents=True, exist_ok=True)
+            os.replace(source, target)
+            landed_dirs.add(artifact_dir)
+
+        # 共享目录 artifact 幂等登记（与 _self_collect_logs 命名一致），
+        # 仅登记实际有内容落位的目录。
+        if "logs" in landed_dirs:
+            _ensure_case_dir_artifact(
+                db,
+                job=job,
+                run_id=ctx.run_id,
+                module_name=ctx.module_name,
+                arch=ctx.arch,
+                artifact_name=f"{prefix}logs",
+                local_dir=base / "logs",
+            )
+        if "results" in landed_dirs:
+            _ensure_case_dir_artifact(
+                db,
+                job=job,
+                run_id=ctx.run_id,
+                module_name=ctx.module_name,
+                arch=ctx.arch,
+                artifact_name=f"{prefix}results",
+                local_dir=base / "results",
+            )
+        if landed_dirs:
+            db.commit()
+    except Exception:  # noqa: BLE001
+        logger.debug(
+            "case log upload failed: job=%s case=%s",
+            getattr(job, "id", None),
+            getattr(case_run, "id", None),
+            exc_info=True,
+        )
+        db.rollback()
+    finally:
+        if tmp_root is not None:
+            shutil.rmtree(tmp_root, ignore_errors=True)
+
+
+def _env_label(db: Session, case_run: TestCaseRun) -> str:
+    """按 case_run 所属 env_set 的 env_type 返回 'VM' 或 '物理机'。"""
+    env_set = db.get(TestEnvSet, case_run.env_set_id) if case_run.env_set_id else None
+    if env_set and env_set.env_type == "physical":
+        return "物理机"
+    return "VM"
+
+
+def run_case(
+    db: Session,
+    *,
+    job: TestJob,
+    control: VMNodeRuntime,
+    case_run: TestCaseRun,
+    cancel_check: Callable[[], bool] | None = None,
+    cancel_event: threading.Event | None = None,
+) -> None:
+    """执行单条用例并写结果。
+
+    流程：标 running→写当前 case 标识(挂死时对得上 console)→起 HangDetector
+    心跳→跑 mugen.sh(或 mugen_exec_command)→据 exit code 定 passed/failed/
+    timeout。mugen exit 0 不等于通过：还要查 results/skipped/ 判断是否被跳过。
+    挂死(心跳连续失败)抓 console 存诊断产物并抛 EnvSetHangError。正常结束才
+    解析子用例与按模块收集结果。所有步骤超时派生自 job 剩余时间。
+
+    cancel_check 非空时启动并行取消检测线程：轮询 cancel_requested，命中后
+    先 set job 级 cancel_event(触发所有 EnvSet 本地 SSH 秒级退出)，再新开 SSH
+    执行 pkill -f mugen.sh。命令返回后按优先级分派:
+    - DB 取消(`cancel_detected` 或 `cancel_check`) → 标 `not_executed` 并 return;
+    - hang → 现有挂死路径;
+    - `result.cancelled`+外部 event(Soft 或跨环境集取消) → 标 `not_executed`
+      并抛 `job_cancelled`。
+    """
+    case_run.status = TestCaseRunStatus.RUNNING.value
+    case_run.started_at = utc_now()
+    env_label = _env_label(db, case_run)
+    record_test_job_event(
+        db,
+        job=job,
+        phase="case_started",
+        message=f"开始执行 {case_run.suite_name}/{case_run.case_name} ({env_label} {control.ip})",
+    )
+    db.commit()
+
+    # 写当前 case 标识，挂死时 console 输出能对上
+    try:
+        write_remote_file(
+            host=control.ip,
+            username=control.username,
+            password=control.password,
+            path="/tmp/kronos-current-case",
+            content=f"{case_run.suite_name}/{case_run.case_name}",
+            timeout_seconds=30,
+            verify_host_key=False,
+        )
+    except Exception:  # noqa: BLE001
+        logger.debug("remote marker write failed", exc_info=True)
+
+    case_cancel_event = threading.Event()
+    heartbeat_stats = _HeartbeatStats()
+    # 有带外通道的机器挂死前先确认（观察模式）：物理机走 BMC 电源门（ADR 0044），
+    # VM 走宿主机 domstate 门（ADR 0046）；无通道返回 None 走原判定。
+    hang_gate = _build_bmc_hang_gate(job, control, case_run) or _build_vm_hang_gate(
+        db, job, control, case_run
+    )
+    detector = HangDetector(
+        check_fn=lambda: _ssh_alive(control, heartbeat_stats),
+        on_hung=case_cancel_event.set,
+        confirm_fn=hang_gate.confirm if hang_gate is not None else None,
+        on_watch_start=hang_gate.on_watch_start if hang_gate is not None else None,
+        on_recovered=hang_gate.on_recovered if hang_gate is not None else None,
+    )
+    detector.start()
+
+    # 取消检测线程：周期性轮询 cancel_check；命中先 set cancel_event 让本地
+    # run_process 秒级 kill(避免 12h 长命令自然 timeout),再发远程 pkill 释放资源。
+    cancel_stop = threading.Event()
+    cancel_detected = threading.Event()
+    if cancel_check:
+
+        def _cancel_watcher() -> None:
+            while not cancel_stop.wait(15):
+                if cancel_stop.is_set():
+                    return
+                try:
+                    if cancel_check():
+                        if cancel_event is not None:
+                            cancel_event.set()
+                        case_cancel_event.set()
+                        _stop_remote_mugen(control)
+                        cancel_detected.set()
+                        cancel_stop.set()
+                        return
+                except Exception:  # noqa: BLE001
+                    logger.debug("cancel watcher check failed", exc_info=True)
+
+        threading.Thread(target=_cancel_watcher, daemon=True).start()
+
+    hung = False
+    try:
+        script = (
+            "cd /opt/mugen && "
+            f"bash mugen.sh -f {shlex.quote(case_run.suite_name)} "
+            f"-r {shlex.quote(case_run.case_name)} -x"
+        )
+        if getattr(job, "mugen_exec_command", None):
+            script = job.mugen_exec_command.format(
+                suite=shlex.quote(case_run.suite_name),
+                case=shlex.quote(case_run.case_name),
+            )
+        try:
+            command_timeout = job_step_timeout(job, CASE_COMMAND_TIMEOUT_SECONDS)
+            result = run_control_command(
+                control=control,
+                script=script,
+                timeout_seconds=command_timeout,
+                cancel_event=case_cancel_event,
+                cancel_events=(cancel_event,) if cancel_event is not None else (),
+            )
+        except TestJobExecutionError as exc:
+            if cancel_detected.is_set():
+                case_run.status = TestCaseRunStatus.NOT_EXECUTED.value
+                case_run.completed_at = utc_now()
+                db.commit()
+                return
+            mark_case_execution_error(
+                db, job=job, case_run=case_run, detail=str(exc), error_code=exc.code
+            )
+            raise
+        except RemoteCommandError as exc:
+            if cancel_detected.is_set():
+                case_run.status = TestCaseRunStatus.NOT_EXECUTED.value
+                case_run.completed_at = utc_now()
+                db.commit()
+                return
+            mark_case_execution_error(db, job=job, case_run=case_run, detail=str(exc))
+            raise
+    finally:
+        if detector.is_hung():
+            hung = True
+        detector.stop()
+        cancel_stop.set()
+
+    # 命令返回后按优先级分派取消/挂死/超时。
+    # 1) DB cancel → 保留原 not_executed 语义(用户主动放弃本 case)。
+    if cancel_detected.is_set() or (cancel_check and cancel_check()):
+        if not cancel_detected.is_set():
+            # TestJob 级 watcher 可能已先杀掉本地 SSH；这里仍需停止远端 mugen.sh。
+            _stop_remote_mugen(control)
+        case_run.status = TestCaseRunStatus.NOT_EXECUTED.value
+        case_run.completed_at = utc_now()
+        record_test_job_event(
+            db,
+            job=job,
+            phase="case_cancelled",
+            message=f"用例因取消中断 {case_run.suite_name}/{case_run.case_name}",
+        )
+        db.commit()
+        return
+
+    # 2) 挂死 → 保留原 EnvSetHangError 路径。
+    if hung:
+        _capture_and_store_console(db, job=job, control=control, case_run=case_run)
+        detail = f"VM/物理机挂死（心跳连续失败{heartbeat_stats.summary()}）"
+        if getattr(detector, "bmc_declared", False) and hang_gate is not None:
+            detail += (
+                f"；{hang_gate.off_evidence}，"
+                f"{int(WATCH_POWER_OFF_DEADLINE_SECONDS // 60)} 分钟内 SSH 未恢复"
+            )
+        elif getattr(detector, "watch_duration", None) is not None:
+            detail += f"；观察期 {int(detector.watch_duration)} 秒未见恢复"
+        mark_case_execution_error(
+            db,
+            job=job,
+            case_run=case_run,
+            detail=detail,
+            error_code="vm_hang",
+        )
+        raise EnvSetHangError(f"VM 挂死 {case_run.suite_name}/{case_run.case_name}")
+
+    # 3) 本地被 cancel_event 打断(如主线程 SoftTimeLimit 或兄弟 env_set 触发),
+    #    与"用户通过 DB 主动取消"的语义一致 → 本 case 收敛为 not_executed,
+    #    抛 job_cancelled 让 `_run_env_set_thread` 短路让主线程独占终态决定权。
+    if result.cancelled:
+        case_run.status = TestCaseRunStatus.NOT_EXECUTED.value
+        case_run.completed_at = utc_now()
+        record_test_job_event(
+            db,
+            job=job,
+            phase="case_cancelled",
+            message=f"用例因终止中断 {case_run.suite_name}/{case_run.case_name}",
+            level="warning",
+        )
+        db.commit()
+        _raise_cancelled()
+
+    case_run.exit_code = result.returncode
+    case_run.stdout_summary = result.stdout
+    case_run.stderr_summary = result.stderr
+    case_run.completed_at = utc_now()
+    if result.timed_out and command_timeout < CASE_COMMAND_TIMEOUT_SECONDS:
+        detail = "测试任务超过 15 小时总超时"
+        mark_case_execution_error(
+            db, job=job, case_run=case_run, detail=detail, error_code="task_timeout"
+        )
+        raise TestJobExecutionError("task_timeout", detail)
+    if result.transport_failed:
+        detail = result.stderr or result.stdout or "SSH command timed out"
+        mark_case_execution_error(db, job=job, case_run=case_run, detail=detail)
+        raise RemoteCommandError(detail)
+    if result.returncode == 0:
+        case_run.status = TestCaseRunStatus.PASSED.value
+        level = "info"
+        message = f"用例通过 {case_run.suite_name}/{case_run.case_name}"
+    elif result.returncode == 124:
+        case_run.status = TestCaseRunStatus.TIMEOUT.value
+        level = "error"
+        message = f"用例超时 {case_run.suite_name}/{case_run.case_name}"
+    else:
+        case_run.status = TestCaseRunStatus.FAILED.value
+        level = "error"
+        message = f"用例失败 {case_run.suite_name}/{case_run.case_name}"
+
+    # Override PASSED → SKIPPED: mugen exit code 0 doesn't mean pass —
+    # check results/{suite}/skipped/ dir to see if mugen actually skipped it.
+    if case_run.status == TestCaseRunStatus.PASSED.value:
+        if getattr(job, "mugen_exec_command", None):
+            check_script = (
+                f"docker exec openEuler_test ls -1 "
+                f"/home/mugen/results/{shlex.quote(case_run.suite_name)}/skipped/ 2>/dev/null"
+            )
+        else:
+            check_script = (
+                f"ls -1 /opt/mugen/results/{shlex.quote(case_run.suite_name)}/skipped/ 2>/dev/null"
+            )
+        try:
+            check_result = run_control_command(
+                control=control,
+                script=check_script,
+                timeout_seconds=30,
+            )
+            if check_result.returncode == 0 and check_result.stdout:
+                skipped = {
+                    line.strip() for line in check_result.stdout.splitlines() if line.strip()
+                }
+                if case_run.case_name in skipped:
+                    case_run.status = TestCaseRunStatus.SKIPPED.value
+                    level = "info"
+                    message = f"用例跳过 {case_run.suite_name}/{case_run.case_name}"
+        except Exception:  # noqa: BLE001
+            logger.debug("case skip check failed", exc_info=True)
+
+    record_test_job_event(db, job=job, phase="case_completed", message=message, level=level)
+    db.commit()
+
+    # 子用例解析（正常结束才解析，超时/挂死不解析）
+    _parse_and_store_subcases(db, job=job, control=control, case_run=case_run)
+
+    # Per-case result collection: append to module log immediately (before
+    # next case overwrites mugen results dir). Only for modules that need it.
+    _per_case_collect_log(db, job=job, control=control, case_run=case_run)
+
+    # 逐 case 日志原子上传（ADR 0048）：正常收敛路径至此，机器仍可达；
+    # 挂死/取消/传输失败路径在此之前已 return/raise，不会走到这里。
+    upload_case_logs(db, job=job, control=control, case_run=case_run)
