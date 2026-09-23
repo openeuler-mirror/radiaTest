@@ -187,6 +187,7 @@ def write_remote_file(
     把内容写到远程文件：先建目录，umask 077 + chmod 600 保证文件仅属主可读，
     适配脚本与凭据文件的安全要求。
     """
+    directory = os.path.dirname(path)
     return run_ssh_command(
         target=target,
         command=(
@@ -195,7 +196,7 @@ def write_remote_file(
         ),
         timeout_seconds=timeout_seconds,
         stdin=content,
-        options=RemoteRunOptions(verify_host_key=verify_host_key, cancel_event=cancel_event),
+        options=options,
     )
 
 

@@ -73,7 +73,7 @@ from app.modules.vms.host_contract import (
     VMHostPowerPayload,
     VMHostPowerResult,
 )
-from app.modules.vms.host_runner import HostScriptError, run_host_script
+from app.modules.vms.host_runner import HostRunOptions, HostScriptError, run_host_script
 from app.modules.vms.image_discovery import (
     OFFICIAL_IMAGE_ROUND,
     VMImage,
@@ -976,7 +976,7 @@ def process_vm_request(
                         if deadline is not None:
                             nd = normalize_datetime(deadline)
                             if nd is None:
-                                raise RuntimeError("无法解析租约截止时间") from exc
+                                raise RuntimeError("无法解析租约截止时间")
                             remaining = int((nd - now_utc()).total_seconds())
                             if remaining <= 0:
                                 fail_for_task_timeout(host)
@@ -1202,7 +1202,7 @@ def process_vm_request(
                         if deadline is not None:
                             nd = normalize_datetime(deadline)
                             if nd is None:
-                                raise RuntimeError("无法解析租约截止时间") from exc
+                                raise RuntimeError("无法解析租约截止时间")
                             remaining = int((nd - now_utc()).total_seconds())
                             if remaining <= 0:
                                 fail_for_task_timeout(host)

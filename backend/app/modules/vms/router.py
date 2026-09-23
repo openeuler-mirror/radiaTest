@@ -129,7 +129,7 @@ def idempotent_envelope(
     request: Request,
     idempotency_key: Annotated[str | None, Header(alias="Idempotency-Key")] = None,
 ) -> IdempotentRequestEnvelope:
-    return IdempotentRequestEnvelope(request=envelope.request, idempotency_key=idempotency_key)
+    return IdempotentRequestEnvelope(request=request, idempotency_key=idempotency_key)
 
 
 @images_router.get("", response_model=list[VMImageRead])
@@ -261,8 +261,8 @@ def create_vm_request_endpoint(
     decision = begin_http_idempotent_request(
         db,
         actor=current_user,
-        request=envelope.request,
-        key=envelope.idempotency_key,
+        request=request,
+        key=idempotency_key,
         payload=payload.model_dump(mode="json"),
     )
     if decision.replay is not None:
@@ -317,8 +317,8 @@ def create_vm_batch_endpoint(
     decision = begin_http_idempotent_request(
         db,
         actor=current_user,
-        request=envelope.request,
-        key=envelope.idempotency_key,
+        request=request,
+        key=idempotency_key,
         payload=payload.model_dump(mode="json"),
     )
     if decision.replay is not None:
@@ -668,8 +668,8 @@ def release_vm_batch_endpoint(
     decision = begin_http_idempotent_request(
         db,
         actor=current_user,
-        request=envelope.request,
-        key=envelope.idempotency_key,
+        request=request,
+        key=idempotency_key,
         payload=payload.model_dump(mode="json"),
     )
     if decision.replay is not None:
