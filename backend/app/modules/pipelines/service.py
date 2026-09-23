@@ -1290,3 +1290,668 @@ def compute_execution_status(db: Session, execution: PipelineExecution) -> str:
     if "failed" in statuses:
         return "failed"
     return "succeeded"
+
+
+def get_execution_summary(db: Session, execution_id: str) -> dict | None:
+    """Execution 总看板 read-time 聚合：RunJob 状态/计数/日志/IP。"""
+    execution = db.get(PipelineExecution, execution_id)
+    if execution is None:
+        return None
+    runs = list_execution_runs(db, execution_id)
+    run_summaries: list[dict] = []
+    for run in runs:
+        run_jobs = _latest_run_jobs(list_pipeline_run_jobs(db, run.id))
+        run_status = _worst_wins_run_status(run_jobs)
+        job_summaries: list[dict] = []
+        for job in run_jobs:
+            case_runs = _latest_case_runs_for_run_job(db, job)
+            counts = {
+                "passed": 0,
+                "failed": 0,
+                "skipped": 0,
+                "no_case": 0,
+                "not_executed": 0,
+                "pending": 0,
+                "running": 0,
+                "error": 0,
+                "timeout": 0,
+            }
+            for cr in case_runs:
+                key = cr.status if cr.status in counts else "error"
+                counts[key] += 1
+            # 超时 read-time 标记
+            display_status = job.status
+            if job.status not in _TERMINAL_STATUSES and job.test_job_id:
+                from app.modules.test_management.models import TEST_JOB_TIMEOUT
+
+                tj = db.get(TestJob, job.test_job_id)
+                if tj is not None and tj.created_at is not None:
+                    from datetime import UTC
+
+                    if datetime.now(UTC) > tj.created_at + TEST_JOB_TIMEOUT:
+                        display_status = "timeout"
+            nodes = list_run_job_node_infos(db, job.id)
+            job_summaries.append(
+                {
+                    "id": job.id,
+                    "module_template_id": job.module_template_id,
+                    "arch": job.arch,
+                    "env_type": job.env_type,
+                    "status": display_status,
+                    "counts": counts,
+                    "nodes": [
+                        {
+                            "primary_ip": n.primary_ip,
+                            "resource_code": n.resource_code,
+                            "role": n.role,
+                            "env_set_index": n.env_set_index,
+                            "node_index": n.node_index,
+                        }
+                        for n in nodes
+                    ],
+                }
+            )
+        run_summaries.append(
+            {
+                "id": run.id,
+                "version": run.version,
+                "status": run_status,
+                "jobs": job_summaries,
+            }
+        )
+    return {
+        "id": execution.id,
+        "config_id": execution.config_id,
+        "triggered_by": execution.triggered_by,
+        "triggered_at": execution.triggered_at.isoformat() if execution.triggered_at else None,
+        "versions": execution.versions,
+        "archs": execution.archs,
+        "status": _execution_status_from_runs(run_summaries),
+        "runs": run_summaries,
+    }
+
+
+def _execution_status_from_runs(run_summaries: list[dict]) -> str:
+    statuses = [r["status"] for r in run_summaries]
+    if not statuses:
+        return "pending"
+    if any(s not in _TERMINAL_STATUSES for s in statuses):
+        return "running"
+    if "error" in statuses:
+        return "error"
+    if "cancelled" in statuses:
+        return "cancelled"
+    if "failed" in statuses:
+        return "failed"
+    return "succeeded"
+
+
+def list_run_logs(db: Session, run_id: str) -> list[TestLogArtifact]:
+    return list(
+        db.execute(
+            select(TestLogArtifact)
+            .where(
+                (TestLogArtifact.pipeline_run_id == run_id)
+                | TestLogArtifact.job_id.in_(
+                    select(PipelineRunJob.test_job_id).where(
+                        PipelineRunJob.pipeline_run_id == run_id,
+                        PipelineRunJob.test_job_id.isnot(None),
+                    )
+                )
+            )
+            .order_by(TestLogArtifact.created_at)
+        )
+        .scalars()
+        .all()
+    )
+
+
+def _artifact_belongs_to_run(db: Session, *, artifact: TestLogArtifact, run_id: str) -> bool:
+    if artifact.pipeline_run_id == run_id:
+        return True
+    return (
+        db.scalar(
+            select(PipelineRunJob.id).where(
+                PipelineRunJob.pipeline_run_id == run_id,
+                PipelineRunJob.test_job_id == artifact.job_id,
+            )
+        )
+        is not None
+    )
+
+
+def read_run_log_content(db: Session, run_id: str, artifact_id: str) -> str | None:
+    artifact = db.get(TestLogArtifact, artifact_id)
+    if artifact is None or not _artifact_belongs_to_run(db, artifact=artifact, run_id=run_id):
+        return None
+    try:
+        content = artifact.storage_path and __read_file(artifact.storage_path)
+    except OSError:
+        # 日志文件读取失败(缺失/IO 错)按软失败返回 None,留 debug 便于排查为何取不到日志。
+        logger.debug("failed to read run log artifact %s", artifact_id, exc_info=True)
+        return None
+    if content is None:
+        return ""
+    if len(content.encode("utf-8", errors="replace")) > _LOG_TRUNCATE_BYTES:
+        return content[:_LOG_TRUNCATE_BYTES] + "\n...[truncated, download for full]"
+    return content
+
+
+def __read_file(path: str) -> str:
+    from pathlib import Path
+
+    return Path(path).read_text(encoding="utf-8", errors="replace")
+
+
+def list_dir_artifact_files(db: Session, run_id: str, artifact_id: str) -> list[str] | None:
+    """列出目录型 artifact 内的文件名。不存在或非目录时返回 None。"""
+    artifact = db.get(TestLogArtifact, artifact_id)
+    if artifact is None or not _artifact_belongs_to_run(db, artifact=artifact, run_id=run_id):
+        return None
+    if artifact.artifact_type != "pkg_folder":
+        return None
+    collector = LogCollector(base_dir="")
+    return collector.list_dir_files(artifact)
+
+
+def read_dir_artifact_file(
+    db: Session, run_id: str, artifact_id: str, file_path: str
+) -> str | None:
+    """读取目录型 artifact 中的单个文件。防 path traversal。"""
+    artifact = db.get(TestLogArtifact, artifact_id)
+    if artifact is None or not _artifact_belongs_to_run(db, artifact=artifact, run_id=run_id):
+        return None
+    if artifact.artifact_type != "pkg_folder":
+        return None
+    collector = LogCollector(base_dir="")
+    content = collector.read_dir_file(artifact, file_path)
+    if content is None:
+        return None
+    if len(content.encode("utf-8", errors="replace")) > _LOG_TRUNCATE_BYTES:
+        return content[:_LOG_TRUNCATE_BYTES] + "\n...[truncated, download for full]"
+    return content
+
+
+def get_case_mugen_log(db: Session, run_job_id: str, case_run_id: str) -> dict | None:
+    """查找并返回指定 case_run 的 mugen 日志文件内容。
+
+    在 artifact_name 以 ``logs`` 结尾的 ``pkg_folder`` artifact 中搜索匹配
+    ``{suite_name}/{case_name}/`` 前缀的文件。返回首个匹配文件的内容(截断
+    至 1 MB)及全部匹配文件路径列表；无匹配则返回 None。
+    """
+    run_job = db.get(PipelineRunJob, run_job_id)
+    if run_job is None or not run_job.test_job_id:
+        return None
+    case_run = db.get(TestCaseRun, case_run_id)
+    if case_run is None or case_run.job_id != run_job.test_job_id:
+        return None
+    suite = case_run.suite_name
+    case_name = case_run.case_name
+    if not suite or not case_name:
+        return None
+
+    collector = LogCollector(base_dir="")
+    prefix = f"{suite}/{case_name}/"
+    artifacts = list(
+        db.execute(
+            select(TestLogArtifact).where(
+                TestLogArtifact.job_id == run_job.test_job_id,
+                TestLogArtifact.artifact_type == "pkg_folder",
+            )
+        )
+        .scalars()
+        .all()
+    )
+    matching_files: list[str] = []
+    matched_artifact: TestLogArtifact | None = None
+    for art in artifacts:
+        if not art.artifact_name.endswith("logs"):
+            continue
+        files = collector.list_dir_files(art)
+        for f in files:
+            if f.startswith(prefix):
+                matching_files.append(f)
+                if matched_artifact is None:
+                    matched_artifact = art
+    if not matching_files or matched_artifact is None:
+        return None
+    matching_files.sort()
+    content = collector.read_dir_file(matched_artifact, matching_files[0])
+    if content is None:
+        return None
+    if len(content.encode("utf-8", errors="replace")) > _LOG_TRUNCATE_BYTES:
+        content = content[:_LOG_TRUNCATE_BYTES] + "\n...[truncated, download for full]"
+    return {
+        "content": content,
+        "file_path": matching_files[0],
+        "files": matching_files,
+        "run_id": run_job.pipeline_run_id,
+        "artifact_id": matched_artifact.id,
+    }
+
+
+def get_run_job_detail(db: Session, run_job_id: str) -> dict | None:
+    run_job = db.get(PipelineRunJob, run_job_id)
+    if run_job is None:
+        return None
+    rerun_root_id = run_job.rerun_root_run_job_id or run_job.id
+    rerun_chain = list(
+        db.execute(
+            select(PipelineRunJob)
+            .where(
+                (PipelineRunJob.id == rerun_root_id)
+                | (PipelineRunJob.rerun_root_run_job_id == rerun_root_id)
+            )
+            .order_by(PipelineRunJob.created_at)
+        )
+        .scalars()
+        .all()
+    )
+    chain_by_id = {item.id: item for item in rerun_chain}
+
+    def rerun_attempt(item: PipelineRunJob) -> int:
+        attempt = 0
+        while item.rerun_source_run_job_id:
+            attempt += 1
+            item = chain_by_id.get(item.rerun_source_run_job_id)
+            if item is None:
+                break
+        return attempt
+
+    case_runs = (
+        list(
+            db.execute(
+                select(TestCaseRun)
+                .where(TestCaseRun.job_id == run_job.test_job_id)
+                .order_by(TestCaseRun.suite_name, TestCaseRun.case_name)
+            )
+            .scalars()
+            .all()
+        )
+        if run_job.test_job_id
+        else []
+    )
+    latest_case_runs = sorted(
+        _latest_case_runs_for_run_job(db, run_job),
+        key=lambda item: (item.suite_name, item.case_name),
+    )
+    case_runs_by_id = {item.id: item for item in [*case_runs, *latest_case_runs]}
+    root_case_ids = {item.rerun_root_case_run_id or item.id for item in latest_case_runs}
+    missing_root_case_ids = root_case_ids - case_runs_by_id.keys()
+    if missing_root_case_ids:
+        case_runs_by_id_rows = (
+            db.execute(
+                select(TestCaseRun).where(TestCaseRun.id.in_(missing_root_case_ids))
+            ).scalars()
+        )
+        case_runs_by_id.update(
+            {
+                item.id: item
+                for item in case_runs_by_id_rows
+            }
+        )
+    env_set_ids = {item.env_set_id for item in case_runs}
+    for item in latest_case_runs:
+        root_case = case_runs_by_id.get(item.rerun_root_case_run_id or item.id)
+        if root_case is not None:
+            env_set_ids.add(root_case.env_set_id)
+    env_sets_by_id_rows = (
+        db.execute(
+            select(TestEnvSet)
+            .options(selectinload(TestEnvSet.nodes))
+            .where(TestEnvSet.id.in_(env_set_ids))
+        ).scalars()
+    )
+    env_sets_by_id = {
+        item.id: item
+        for item in env_sets_by_id_rows
+    }
+    details_by_case_run_id: dict[str, list[TestCaseRunDetail]] = {}
+    for detail in db.execute(
+        select(TestCaseRunDetail)
+        .where(TestCaseRunDetail.case_run_id.in_(case_runs_by_id))
+        .order_by(TestCaseRunDetail.case_run_id, TestCaseRunDetail.sub_test_name)
+    ).scalars():
+        details_by_case_run_id.setdefault(detail.case_run_id, []).append(detail)
+    env_set_reasons: dict[str, str | None] = {}
+
+    def env_set_unavailable_reason(env_set: TestEnvSet | None) -> str | None:
+        if env_set is None:
+            return "来源环境不存在"
+        if env_set.id not in env_set_reasons:
+            env_set_reasons[env_set.id] = _env_set_rerun_unavailable_reason(db, env_set)
+        return env_set_reasons[env_set.id]
+
+    case_details: list[dict] = []
+    for cr in case_runs:
+        env_set = env_sets_by_id.get(cr.env_set_id)
+        case_unavailable_reason = env_set_unavailable_reason(env_set)
+        sub = details_by_case_run_id.get(cr.id, [])
+        case_details.append(
+            {
+                "id": cr.id,
+                "suite_name": cr.suite_name,
+                "case_name": cr.case_name,
+                "status": cr.status,
+                "exit_code": cr.exit_code,
+                "stdout_summary": cr.stdout_summary,
+                "stderr_summary": cr.stderr_summary,
+                "env_type": env_set.env_type if env_set else None,
+                "env_set_id": env_set.id if env_set else None,
+                "env_set_index": env_set.set_index if env_set else None,
+                "rerun_source_case_run_id": cr.rerun_source_case_run_id,
+                "rerun_root_case_run_id": cr.rerun_root_case_run_id,
+                "can_rerun": (
+                    cr.status in _RERUNNABLE_CASE_STATUSES and case_unavailable_reason is None
+                ),
+                "rerun_unavailable_reason": case_unavailable_reason,
+                "sub_cases": [
+                    {
+                        "id": s.id,
+                        "sub_test_name": s.sub_test_name,
+                        "status": s.status,
+                    }
+                    for s in sub
+                ],
+            }
+        )
+    attempt_by_test_job_id = {
+        item.test_job_id: rerun_attempt(item)
+        for item in rerun_chain
+        if item.test_job_id is not None
+    }
+    rerun_candidates: list[dict] = []
+    for cr in latest_case_runs:
+        root_case = case_runs_by_id.get(cr.rerun_root_case_run_id or cr.id)
+        env_set = env_sets_by_id.get(root_case.env_set_id) if root_case is not None else None
+        case_unavailable_reason = env_set_unavailable_reason(env_set)
+        if cr.status not in _RERUNNABLE_CASE_STATUSES:
+            case_unavailable_reason = "该状态不支持重跑"
+        sub = details_by_case_run_id.get(cr.id, [])
+        rerun_candidates.append(
+            {
+                "id": cr.id,
+                "suite_name": cr.suite_name,
+                "case_name": cr.case_name,
+                "status": cr.status,
+                "exit_code": cr.exit_code,
+                "stdout_summary": cr.stdout_summary,
+                "stderr_summary": cr.stderr_summary,
+                "env_type": env_set.env_type if env_set else None,
+                "env_set_id": env_set.id if env_set else None,
+                "env_set_index": env_set.set_index if env_set else None,
+                "rerun_source_case_run_id": cr.rerun_source_case_run_id,
+                "rerun_root_case_run_id": cr.rerun_root_case_run_id,
+                "latest_rerun_attempt": attempt_by_test_job_id.get(cr.job_id, 0),
+                "can_rerun": (
+                    cr.status in _RERUNNABLE_CASE_STATUSES and case_unavailable_reason is None
+                ),
+                "rerun_unavailable_reason": case_unavailable_reason,
+                "sub_cases": [
+                    {
+                        "id": s.id,
+                        "sub_test_name": s.sub_test_name,
+                        "status": s.status,
+                    }
+                    for s in sub
+                ],
+            }
+        )
+    nodes = list_run_job_node_infos(db, run_job_id)
+    job_logs = (
+        list(
+            db.execute(
+                select(TestLogArtifact)
+                .where(TestLogArtifact.job_id == run_job.test_job_id)
+                .order_by(TestLogArtifact.created_at)
+            )
+            .scalars()
+            .all()
+        )
+        if run_job.test_job_id
+        else []
+    )
+    # 取 TestJob 的错误信息(若存在)
+    test_job = db.get(TestJob, run_job.test_job_id) if run_job.test_job_id else None
+    error_code = test_job.error_code if test_job else None
+    error_message = test_job.error_message if test_job else None
+    rerun_unavailable_reason = _run_job_rerun_unavailable_reason(db, run_job)
+    chain_case_counts = {
+        item.id: (
+            db.execute(
+                select(func.count())
+                .select_from(TestCaseRun)
+                .where(TestCaseRun.job_id == item.test_job_id)
+            ).scalar_one()
+            if item.test_job_id is not None
+            else 0
+        )
+        for item in rerun_chain
+    }
+
+    # 取该 RunJob 的 task event(runjob 级错误如构建失败以 subject_id=run_job.id
+    # 记录；test-job 级 event 用 test_job_id 记录)。
+    # 物理机 -64k 的内核安装事件记录在 resource 级别（subject_id=resource_id，
+    # task_type=pxe_install），这里只纳入 kernel_64k_* / kernel_latest_* 的 resource
+    # 级事件，PXE 细节（sync_files/bind_dhcp 等）不放入 RunJob 执行过程。
+    task_events: list[dict] = []
+    subject_ids = [run_job.id]
+    if run_job.test_job_id:
+        subject_ids.append(run_job.test_job_id)
+    events = list(
+        db.execute(
+            select(TaskEvent)
+            .where(TaskEvent.subject_id.in_(subject_ids))
+            .order_by(TaskEvent.created_at.asc())
+        )
+        .scalars()
+        .all()
+    )
+    resource_ids = [n.resource_id for n in nodes if n.resource_id]
+    if resource_ids:
+        resource_events = list(
+            db.execute(
+                select(TaskEvent)
+                .where(
+                    TaskEvent.subject_id.in_(resource_ids),
+                    TaskEvent.phase.like("kernel_64k_%")
+                    | TaskEvent.phase.like("kernel_latest_%"),
+                )
+                .order_by(TaskEvent.created_at.asc())
+            )
+            .scalars()
+            .all()
+        )
+        events.extend(resource_events)
+        events.sort(key=lambda e: e.created_at)
+    for ev in events:
+        task_events.append(
+            {
+                "phase": ev.phase,
+                "level": ev.level,
+                "message": ev.message or "",
+                "created_at": ev.created_at.isoformat() if ev.created_at else None,
+            }
+        )
+
+    return {
+        "id": run_job.id,
+        "pipeline_run_id": run_job.pipeline_run_id,
+        "module_template_id": run_job.module_template_id,
+        "arch": run_job.arch,
+        "env_type": run_job.env_type,
+        "test_job_id": run_job.test_job_id,
+        "rerun_source_run_job_id": run_job.rerun_source_run_job_id,
+        "rerun_root_run_job_id": run_job.rerun_root_run_job_id,
+        "rerun_attempt": rerun_attempt(run_job),
+        "can_rerun": rerun_unavailable_reason is None,
+        "rerun_unavailable_reason": rerun_unavailable_reason,
+        "rerun_chain": [
+            {
+                "id": item.id,
+                "status": item.status,
+                "created_at": item.created_at.isoformat() if item.created_at else None,
+                "rerun_attempt": rerun_attempt(item),
+                "case_count": chain_case_counts[item.id],
+            }
+            for item in rerun_chain
+        ],
+        "status": run_job.status,
+        "error_code": error_code,
+        "error_message": error_message,
+        "result_parser": test_job.result_parser if test_job else None,
+        "update_packages": test_job.update_packages if test_job else [],
+        "task_events": task_events,
+        "case_runs": case_details,
+        "rerun_candidates": rerun_candidates,
+        "nodes": [
+            {
+                "primary_ip": n.primary_ip,
+                "resource_code": n.resource_code,
+                "role": n.role,
+                "env_set_index": n.env_set_index,
+                "env_type": next(
+                    (
+                        es.env_type
+                        for es in (test_job.env_sets if test_job else [])
+                        if es.set_index == n.env_set_index
+                    ),
+                    None,
+                ),
+                "node_index": n.node_index,
+                "resource_id": n.resource_id,
+            }
+            for n in nodes
+        ],
+        "logs": [
+            {
+                "id": art.id,
+                "artifact_type": art.artifact_type,
+                "artifact_name": art.artifact_name,
+                "module": art.module,
+                "arch": art.arch,
+                "content": (
+                    read_run_log_content(db, run_job.pipeline_run_id, art.id)
+                    if art.artifact_type == "module_log"
+                    and (
+                        "pkgmanage-details" in art.artifact_name
+                        or "pkgcmd" in art.artifact_name
+                        or "update_list" in art.artifact_name
+                    )
+                    else None
+                ),
+            }
+            for art in job_logs
+        ],
+    }
+
+
+def ensure_execution_envs_destroyable(
+    db: Session, execution_id: str, *, lock: bool = False
+) -> None:
+    """校验 Execution 无活动 RunJob；执行销毁时锁定父 Run 与重跑创建互斥。"""
+    if lock:
+        list(
+            db.execute(
+                select(PipelineRun.id)
+                .where(PipelineRun.execution_id == execution_id)
+                .with_for_update()
+            ).scalars()
+        )
+    statement = (
+        select(PipelineRunJob)
+        .join(PipelineRun, PipelineRunJob.pipeline_run_id == PipelineRun.id)
+        .where(PipelineRun.execution_id == execution_id)
+    )
+    run_jobs = list(db.execute(statement).scalars())
+    if any(job.status not in _TERMINAL_STATUSES and job.status != "cancelled" for job in run_jobs):
+        raise PipelineEnvironmentBusyError("当前执行仍在使用环境，不能销毁")
+
+
+def destroy_execution_envs(db: Session, *, execution: PipelineExecution, actor) -> dict:
+    """发版后人工统一销毁：遍历 Execution 所有 RunJob 的 TestJob 的 env_set.nodes，
+    VM 走 destroy_env_node_vm，物理机释放租约。不改 RunJob/Execution 状态。
+
+    使用 raw SQL 查 test_job_id 避免 ORM identity map 返回已删除的 stale 对象。
+    """
+    from app.modules.leases.schemas import LeaseRelease
+    from app.modules.leases.service import get_resource_active_lease, release_lease
+    from app.modules.resources.models import Resource, ResourceType
+    from app.modules.test_management.envs.vm import destroy_env_node_vm
+    run_ids_rows = (
+        db.execute(select(PipelineRun.id).where(PipelineRun.execution_id == execution.id))
+        .scalars()
+        .all()
+    )
+    run_ids = [
+        r
+        for r in run_ids_rows
+    ]
+
+    ensure_execution_envs_destroyable(db, execution.id, lock=True)
+
+    test_job_ids = list(
+        db.execute(
+            select(PipelineRunJob.test_job_id).where(
+                PipelineRunJob.pipeline_run_id.in_(run_ids),
+                PipelineRunJob.test_job_id.isnot(None),
+            )
+        ).scalars()
+    )
+    db.execute(
+        update(TestEnvSet)
+        .where(TestEnvSet.job_id.in_(test_job_ids))
+        .values(status=TestEnvSetStatus.DESTROYING.value)
+    )
+    db.commit()
+
+    destroyed: list[str] = []
+    failed: list[str] = []
+    processed: set[str] = set()
+    for test_job_id in test_job_ids:
+        job = db.get(TestJob, test_job_id)
+        if job is None:
+            continue
+        for env_set in job.env_sets:
+            for node in env_set.nodes:
+                if not node.resource_id:
+                    continue
+                if node.resource_id in processed:
+                    continue
+                processed.add(node.resource_id)
+                res = db.get(Resource, node.resource_id)
+                if res is None:
+                    continue
+                try:
+                    if res.resource_type == ResourceType.VIRTUAL.value:
+                        destroy_env_node_vm(db, job=job, node=node, actor=actor)
+                    else:
+                        lease = get_resource_active_lease(db, res)
+                        if lease is not None:
+                            release_lease(
+                                db,
+                                lease=lease,
+                                actor=actor,
+                                payload=LeaseRelease(
+                                    reason=f"pipeline destroy-envs execution {execution.id}"
+                                ),
+                                force=True,
+                                allow_virtual=True,
+                            )
+                    db.execute(
+                        update(TestEnvNode)
+                        .where(TestEnvNode.resource_id == node.resource_id)
+                        .values(status=TestEnvNodeStatus.DESTROYED.value)
+                    )
+                    destroyed.append(node.resource_id)
+                except Exception:  # noqa: BLE001
+                    failed.append(node.resource_id)
+    db.execute(
+        update(TestEnvSet)
+        .where(TestEnvSet.job_id.in_(test_job_ids))
+        .values(
+            status=(TestEnvSetStatus.ERROR.value if failed else TestEnvSetStatus.DESTROYED.value)
+        )
+    )
+    db.commit()
+    return {"destroyed": destroyed, "failed": failed}
