@@ -8,6 +8,7 @@
 # See the Mulan PSL v2 for more details.
 
 from collections.abc import Collection
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import delete, select, tuple_
