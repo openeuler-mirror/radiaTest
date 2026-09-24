@@ -47,6 +47,7 @@ from app.modules.pipelines.schemas import (
 from app.modules.resources.service import get_resource, resource_reuse_unavailable_reason
 from app.modules.tasks.models import TaskEvent
 from app.modules.tasks.service import (
+    TaskRecoveryDraft,
     filter_started_task_keys,
     get_latest_task_event,
     record_task_recovery,
@@ -533,17 +534,19 @@ def recover_interrupted_run_jobs(
         run_job.status = after_status
         record_task_recovery(
             db,
-            task_type="pipeline_runjob",
-            subject_type="runjob",
-            subject_id=run_job.id,
-            celery_task_id=celery_task_id,
-            phase=after_status,
-            trigger=trigger,
-            before_status=before_status,
-            after_status=after_status,
-            error_code=recovery_code,
-            message=recovery_message,
-            last_event=last_event,
+            recovery=TaskRecoveryDraft(
+                task_type="pipeline_runjob",
+                subject_type="runjob",
+                subject_id=run_job.id,
+                celery_task_id=celery_task_id,
+                phase=after_status,
+                trigger=trigger,
+                before_status=before_status,
+                after_status=after_status,
+                error_code=recovery_code,
+                message=recovery_message,
+                last_event=last_event,
+            ),
         )
 
     for run_job in run_jobs:

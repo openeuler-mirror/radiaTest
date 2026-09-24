@@ -36,7 +36,13 @@ from app.modules.pipelines.registry import get_framework_executor
 from app.modules.tasks.models import TaskEvent
 from app.modules.test_management.log_collector import LogCollector
 from app.modules.test_management.models import TestJob, TestLogArtifact
-from app.modules.test_management.remote import run_ssh_command, scp_directory, scp_file
+from app.modules.test_management.remote import (
+    RemoteRunOptions,
+    RemoteTarget,
+    run_ssh_command,
+    scp_directory,
+    scp_file,
+)
 from app.worker import celery_app
 
 logger = logging.getLogger(__name__)
@@ -103,12 +109,14 @@ def _self_collect_logs(
         env_set_index = target.get("env_set_index")
         try:
             listing = run_ssh_command(
-                host=ip,
-                username=str(target["username"]),
-                password=str(target["password"]),
+                target=RemoteTarget(
+                    host=ip,
+                    username=str(target["username"]),
+                    password=str(target["password"]),
+                ),
                 command=f"ls -1F {log_dir}/ 2>/dev/null",
                 timeout_seconds=_LOG_TIMEOUT_SECONDS,
-                verify_host_key=False,
+                options=RemoteRunOptions(verify_host_key=False),
             )
             if listing.returncode != 0:
                 continue
@@ -161,9 +169,11 @@ def _self_collect_logs(
                     # 戳，重跑产生新文件名，不膨胀）。不新增 artifact 记录。
                     with tempfile.TemporaryDirectory(prefix="kronos-log-merge-") as tmp:
                         ok = scp_directory(
-                            host=ip,
-                            username=str(target["username"]),
-                            password=str(target["password"]),
+                            target=RemoteTarget(
+                                host=ip,
+                                username=str(target["username"]),
+                                password=str(target["password"]),
+                            ),
                             remote_path=f"{log_dir}/{filename}",
                             local_dir=tmp,
                             timeout_seconds=_DIR_TIMEOUT_SECONDS,
@@ -176,9 +186,11 @@ def _self_collect_logs(
                             )
                     continue
                 ok = scp_directory(
-                    host=ip,
-                    username=str(target["username"]),
-                    password=str(target["password"]),
+                    target=RemoteTarget(
+                        host=ip,
+                        username=str(target["username"]),
+                        password=str(target["password"]),
+                    ),
                     remote_path=f"{log_dir}/{filename}",
                     local_dir=str(local_parent),
                     timeout_seconds=_DIR_TIMEOUT_SECONDS,
@@ -202,9 +214,11 @@ def _self_collect_logs(
                 # large logs (ltp.txt 825k lines → ~400 lines).
                 local_file = local_parent / filename
                 ok = scp_file(
-                    host=ip,
-                    username=str(target["username"]),
-                    password=str(target["password"]),
+                    target=RemoteTarget(
+                        host=ip,
+                        username=str(target["username"]),
+                        password=str(target["password"]),
+                    ),
                     remote_path=f"{log_dir}/{filename}",
                     local_path=str(local_file),
                     timeout_seconds=_DIR_TIMEOUT_SECONDS,

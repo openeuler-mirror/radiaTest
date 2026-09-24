@@ -54,6 +54,8 @@ from app.modules.test_management.models import (
 from app.modules.test_management.remote import (
     RemoteCommandError,
     RemoteCommandResult,
+    RemoteRunOptions,
+    RemoteTarget,
     run_remote_bash_command,
     run_ssh_command,
     scp_directory,
@@ -143,15 +145,17 @@ def run_control_command(
     cancel_events: Sequence[threading.Event] = (),
 ) -> RemoteCommandResult:
     return run_remote_bash_command(
-        host=control.ip,
-        username=control.username,
-        password=control.password,
+        target=RemoteTarget(
+            host=control.ip, username=control.username, password=control.password
+        ),
         script=script,
         timeout_seconds=timeout_seconds,
-        verify_host_key=False,
-        on_line=on_line,
-        cancel_event=cancel_event,
-        cancel_events=cancel_events,
+        options=RemoteRunOptions(
+            verify_host_key=False,
+            on_line=on_line,
+            cancel_event=cancel_event,
+            cancel_events=cancel_events,
+        ),
     )
 
 
@@ -222,14 +226,13 @@ def write_control_file(
     cancel_event: threading.Event | None = None,
 ) -> None:
     result = write_remote_file(
-        host=control.ip,
-        username=control.username,
-        password=control.password,
+        target=RemoteTarget(
+            host=control.ip, username=control.username, password=control.password
+        ),
         path=path,
         content=content,
         timeout_seconds=job_step_timeout(job, 30),
-        verify_host_key=False,
-        cancel_event=cancel_event,
+        options=RemoteRunOptions(verify_host_key=False, cancel_event=cancel_event),
     )
     if result.cancelled:
         _raise_cancelled()
@@ -718,15 +721,15 @@ class _HeartbeatStats:
 def _ssh_alive(control: VMNodeRuntime, stats: _HeartbeatStats | None = None) -> bool:
     try:
         result = run_ssh_command(
-            host=control.ip,
-            username=control.username,
-            password=control.password,
+            target=RemoteTarget(
+                host=control.ip, username=control.username, password=control.password
+            ),
             command="echo ok",
             timeout_seconds=HEARTBEAT_TIMEOUT_SECONDS,
             # 测试机每轮 PXE 重装都会轮换 host key，known_hosts 里的旧 key
             # 会让 accept-new 在 preauth 秒断，心跳三连失败误判 vm_hang。
             # 与全链路其他测试机连接一致，探活不校验 host key。
-            verify_host_key=False,
+            options=RemoteRunOptions(verify_host_key=False),
         )
     except Exception:  # noqa: BLE001
         logger.debug("ssh liveness check failed", exc_info=True)
@@ -750,13 +753,13 @@ def ssh_connect_refused(control: VMNodeRuntime) -> bool:
     """
     try:
         result = run_ssh_command(
-            host=control.ip,
-            username=control.username,
-            password=control.password,
+            target=RemoteTarget(
+                host=control.ip, username=control.username, password=control.password
+            ),
             command="echo ok",
             timeout_seconds=HEARTBEAT_TIMEOUT_SECONDS,
             # 与心跳探活一致：测试机 host key 每轮轮换，不校验。
-            verify_host_key=False,
+            options=RemoteRunOptions(verify_host_key=False),
         )
     except Exception:  # noqa: BLE001
         logger.debug("ssh refused probe failed", exc_info=True)
@@ -1314,9 +1317,9 @@ def try_vm_recovery(
 
 def _ssh_read_file(control: VMNodeRuntime, path: str) -> str:
     result = run_ssh_command(
-        host=control.ip,
-        username=control.username,
-        password=control.password,
+        target=RemoteTarget(
+            host=control.ip, username=control.username, password=control.password
+        ),
         command=f"cat {shlex.quote(path)} 2>/dev/null",
         timeout_seconds=120,
     )
@@ -1328,9 +1331,9 @@ def _ssh_results_listing(control: VMNodeRuntime, suite_name: str) -> dict:
     listing: dict[str, list[str]] = {"succeed": [], "failed": [], "skipped": []}
     for bucket in listing:
         result = run_ssh_command(
-            host=control.ip,
-            username=control.username,
-            password=control.password,
+            target=RemoteTarget(
+                host=control.ip, username=control.username, password=control.password
+            ),
             command=f"ls -1 /tmp/mugen/results/{shlex.quote(suite_name)}/{bucket}/ 2>/dev/null",
             timeout_seconds=30,
         )
@@ -1599,9 +1602,11 @@ def upload_case_logs(
             stage = _docker_stage_case_outputs(job, control, case_run)
             try:
                 scp_ok = scp_directory(
-                    host=control.ip,
-                    username=control.username,
-                    password=control.password,
+                    target=RemoteTarget(
+                        host=control.ip,
+                        username=control.username,
+                        password=control.password,
+                    ),
                     remote_path=stage,
                     local_dir=str(tmp_root),
                     timeout_seconds=scp_timeout,
@@ -1638,9 +1643,11 @@ def upload_case_logs(
                 piece_dir = tmp_root / f"piece-{index}"
                 piece_dir.mkdir(parents=True, exist_ok=True)
                 if not scp_directory(
-                    host=control.ip,
-                    username=control.username,
-                    password=control.password,
+                    target=RemoteTarget(
+                        host=control.ip,
+                        username=control.username,
+                        password=control.password,
+                    ),
                     remote_path=remote_path,
                     local_dir=str(piece_dir),
                     timeout_seconds=scp_timeout,
@@ -1747,13 +1754,13 @@ def run_case(
     # 写当前 case 标识，挂死时 console 输出能对上
     try:
         write_remote_file(
-            host=control.ip,
-            username=control.username,
-            password=control.password,
+            target=RemoteTarget(
+                host=control.ip, username=control.username, password=control.password
+            ),
             path="/tmp/kronos-current-case",
             content=f"{case_run.suite_name}/{case_run.case_name}",
             timeout_seconds=30,
-            verify_host_key=False,
+            options=RemoteRunOptions(verify_host_key=False),
         )
     except Exception:  # noqa: BLE001
         logger.debug("remote marker write failed", exc_info=True)

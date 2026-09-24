@@ -31,7 +31,12 @@ from app.modules.test_management.service import record_test_job_event
 from app.modules.users.models import User
 from app.modules.vms.models import VMRequest, VMRequestStatus
 from app.modules.vms.schemas import VMRequestCreate
-from app.modules.vms.service import create_vm_request, process_vm_destroy, process_vm_request
+from app.modules.vms.service import (
+    VMDestroyOptions,
+    create_vm_request,
+    process_vm_destroy,
+    process_vm_request,
+)
 
 VM_VCPU_COUNT = 4
 VM_MEMORY_MB = 8192
@@ -189,10 +194,11 @@ def destroy_env_node_vm(db: Session, *, job: TestJob, node: TestEnvNode, actor: 
     destroyed = process_vm_destroy(
         resource.id,
         lease.id,
-        actor.id,
-        "test job finished",
-        False,
-        task_id=job.task_id,
+        options=VMDestroyOptions(
+            actor_user_id=actor.id,
+            reason="test job finished",
+            task_id=job.task_id,
+        ),
     )
     db.expire_all()
     if not destroyed:

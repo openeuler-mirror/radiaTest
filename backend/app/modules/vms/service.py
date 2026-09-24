@@ -55,7 +55,7 @@ from app.modules.resources.service import (
     serialize_resources,
 )
 from app.modules.tasks.models import TaskEvent
-from app.modules.tasks.service import list_task_events, record_task_event
+from app.modules.tasks.service import TaskEventDraft, list_task_events, record_task_event
 from app.modules.users.models import User, UserRole
 from app.modules.vms.execution_state import (
     clear_vm_destroy_execution,
@@ -305,16 +305,18 @@ def record_vm_request_event(
     error_code = draft.error_code
     return record_task_event(
         db,
-        task_type=TASK_TYPE_VM_CREATE,
-        subject_type=SUBJECT_TYPE_VM_REQUEST,
-        subject_id=request.id,
-        celery_task_id=request.task_id,
-        level=level,
-        phase=phase,
-        message=message,
-        host_resource_id=host.id if host else None,
-        host_ip=host.primary_ip if host else None,
-        error_code=error_code,
+        draft=TaskEventDraft(
+            task_type=TASK_TYPE_VM_CREATE,
+            subject_type=SUBJECT_TYPE_VM_REQUEST,
+            subject_id=request.id,
+            celery_task_id=request.task_id,
+            level=level,
+            phase=phase,
+            message=message,
+            host_resource_id=host.id if host else None,
+            host_ip=host.primary_ip if host else None,
+            error_code=error_code,
+        ),
     )
 
 
@@ -345,16 +347,18 @@ def record_vm_destroy_event(
     error_code = draft.error_code
     return record_task_event(
         db,
-        task_type=TASK_TYPE_VM_DESTROY,
-        subject_type=SUBJECT_TYPE_RESOURCE,
-        subject_id=resource.id,
-        celery_task_id=celery_task_id,
-        level=level,
-        phase=phase,
-        message=message,
-        host_resource_id=host.id if host else None,
-        host_ip=host.primary_ip if host else None,
-        error_code=error_code,
+        draft=TaskEventDraft(
+            task_type=TASK_TYPE_VM_DESTROY,
+            subject_type=SUBJECT_TYPE_RESOURCE,
+            subject_id=resource.id,
+            celery_task_id=celery_task_id,
+            level=level,
+            phase=phase,
+            message=message,
+            host_resource_id=host.id if host else None,
+            host_ip=host.primary_ip if host else None,
+            error_code=error_code,
+        ),
     )
 
 
@@ -983,15 +987,15 @@ def process_vm_request(
                                 return None
                             timeout_seconds = remaining
                         result = run_host_script(
-                                     options=HostRunOptions(
-                                     host_ip=host.primary_ip,
-                                     script_name="create-vm.sh",
-                                     payload=payload,
-                                     result_model=VMHostCreateResult,
-                                     event_sink=record_host_phase,
-                                     timeout_seconds=timeout_seconds,
-                                     ),
-                                 )
+                            host_ip=host.primary_ip,
+                            script_name="create-vm.sh",
+                            payload=payload,
+                            options=HostRunOptions(
+                                result_model=VMHostCreateResult,
+                                event_sink=record_host_phase,
+                                timeout_seconds=timeout_seconds,
+                            ),
+                        )
                         _confirm_created_vm_on_host(
                             host_ip=host.primary_ip, result=result
                         )
@@ -1209,15 +1213,15 @@ def process_vm_request(
                                 return None
                             timeout_seconds = remaining
                         result = run_host_script(
-                                     options=HostRunOptions(
-                                     host_ip=host.primary_ip,
-                                     script_name="create-vm.sh",
-                                     payload=payload,
-                                     result_model=VMHostCreateResult,
-                                     event_sink=record_host_phase,
-                                     timeout_seconds=timeout_seconds,
-                                     ),
-                                 )
+                            host_ip=host.primary_ip,
+                            script_name="create-vm.sh",
+                            payload=payload,
+                            options=HostRunOptions(
+                                result_model=VMHostCreateResult,
+                                event_sink=record_host_phase,
+                                timeout_seconds=timeout_seconds,
+                            ),
+                        )
                         _confirm_created_vm_on_host(
                             host_ip=host.primary_ip, result=result
                         )
@@ -1462,13 +1466,11 @@ def run_vm_power_host_script(
 
     try:
         result = run_host_script(
-                     options=HostRunOptions(
-                     host_ip=host.primary_ip,
-                     script_name="power-vm.sh",
-                     payload=VMHostPowerPayload(vm_name=vm_name, action=action),
-                     result_model=VMHostPowerResult,
-                     ),
-                 )
+            host_ip=host.primary_ip,
+            script_name="power-vm.sh",
+            payload=VMHostPowerPayload(vm_name=vm_name, action=action),
+            options=HostRunOptions(result_model=VMHostPowerResult),
+        )
     except HostScriptError as exc:
         raise VMConflictError(str(exc)) from exc
     return result, host, vm_name
@@ -2082,7 +2084,6 @@ def _rollback_just_created_vm(
     if host is not None and spec is not None:
         try:
             run_host_script(
-                options=HostRunOptions(
                 host_ip=host.primary_ip,
                 script_name="destroy-vm.sh",
                 payload=VMHostDestroyPayload(
@@ -2090,8 +2091,7 @@ def _rollback_just_created_vm(
                     system_disk_path=spec.system_disk_path,
                     data_disk_paths=spec.data_disk_paths,
                 ),
-                result_model=VMHostDestroyResult,
-                ),
+                options=HostRunOptions(result_model=VMHostDestroyResult),
             )
         except HostScriptError as exc:
             # destroy-vm.sh 失败不阻塞回滚：仍释放租约 + 软删 + fail_request，
@@ -2431,17 +2431,15 @@ def _inspect_vm_host_state(
     """
     try:
         result = run_host_script(
-                     options=HostRunOptions(
-                     host_ip=host_ip,
-                     script_name="inspect-vm.sh",
-                     payload=VMHostInspectPayload(
+            host_ip=host_ip,
+            script_name="inspect-vm.sh",
+            payload=VMHostInspectPayload(
                 vm_name=vm_name,
                 system_disk_path=system_disk_path,
                 data_disk_paths=data_disk_paths,
             ),
-                     result_model=VMHostInspectResult,
-                     ),
-                 )
+            options=HostRunOptions(result_model=VMHostInspectResult),
+        )
     except HostScriptError:
         return None
     if isinstance(result, VMHostInspectResult):
@@ -2516,12 +2514,12 @@ def _run_destroy_host_script(
     for attempt in range(1, VM_DESTROY_RETRY_ATTEMPTS + 1):
         try:
             run_host_script(
-                options=HostRunOptions(
                 host_ip=host_ip,
                 script_name="destroy-vm.sh",
                 payload=payload,
-                result_model=VMHostDestroyResult,
-                event_sink=event_sink,
+                options=HostRunOptions(
+                    result_model=VMHostDestroyResult,
+                    event_sink=event_sink,
                 ),
             )
             return
@@ -2551,7 +2549,6 @@ def _best_effort_destroy_created_vm(*, host_ip: str, result: VMHostCreateResult)
     """
     try:
         run_host_script(
-            options=HostRunOptions(
             host_ip=host_ip,
             script_name="destroy-vm.sh",
             payload=VMHostDestroyPayload(
@@ -2559,8 +2556,7 @@ def _best_effort_destroy_created_vm(*, host_ip: str, result: VMHostCreateResult)
                 system_disk_path=result.system_disk_path,
                 data_disk_paths=result.data_disk_paths,
             ),
-            result_model=VMHostDestroyResult,
-            ),
+            options=HostRunOptions(result_model=VMHostDestroyResult),
         )
     except HostScriptError:
         pass
