@@ -78,7 +78,7 @@ def run_ssh_command(
     command: str,
     timeout_seconds: int,
     stdin: str | None = None,
-    options: RemoteRunOptions = RemoteRunOptions(),
+    options: RemoteRunOptions | None = None,
 ) -> RemoteCommandResult:
     """用 sshpass 跑一次 SSH 命令。密码经 SSHPASS 环境变量传递(-e)，不入 argv。
 
@@ -88,6 +88,7 @@ def run_ssh_command(
     传入任一取消事件时，run_process 会按 2 秒分片轮询；命中即 kill 本地
     sshpass 并返回 `cancelled=True`，上层据此走取消收敛而不是 transport_failed。
     """
+    options = options or RemoteRunOptions()
     host = target.host
     username = target.username
     password = target.password
@@ -165,13 +166,13 @@ def run_remote_bash_command(
     target: RemoteTarget,
     script: str,
     timeout_seconds: int,
-    options: RemoteRunOptions = RemoteRunOptions(),
+    options: RemoteRunOptions | None = None,
 ) -> RemoteCommandResult:
     return run_ssh_command(
         target=target,
         command=f"bash -lc {shlex.quote(script)}",
         timeout_seconds=timeout_seconds,
-        options=options,
+        options=options or RemoteRunOptions(),
     )
 
 
@@ -181,7 +182,7 @@ def write_remote_file(
     path: str,
     content: str,
     timeout_seconds: int = 30,
-    options: RemoteRunOptions = RemoteRunOptions(),
+    options: RemoteRunOptions | None = None,
 ) -> RemoteCommandResult:
     """
     把内容写到远程文件：先建目录，umask 077 + chmod 600 保证文件仅属主可读，
@@ -196,7 +197,7 @@ def write_remote_file(
         ),
         timeout_seconds=timeout_seconds,
         stdin=content,
-        options=options,
+        options=options or RemoteRunOptions(),
     )
 
 

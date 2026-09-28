@@ -9,6 +9,7 @@
 
 import subprocess
 import sys
+import threading
 from collections.abc import Generator
 from contextlib import nullcontext
 from datetime import UTC, datetime, timedelta
@@ -436,6 +437,7 @@ def test_vm_list_search_filters_by_any_field(
     Search matches name, primary_ip, os_version, arch, resource_code,
     management_status — case-insensitive, across pages.
     """
+    admin_token = login_as(client, db_session, username="admin", role=UserRole.ADMIN)
 
     create_virtual_resource(
         client,
@@ -3738,6 +3740,7 @@ def test_apply_custom_kernel_variant_success(
     变体路径：推断 dailybuild repo + 写 [local-kernel] repo + repoquery 找精确 NVR
     + dnf install kernel-<NVR> + reboot + uname 匹配 → kernel_version 写真实值 + 事件。
     """
+    from app.core.config import get_settings
     from app.modules.vms.service import apply_custom_kernel
 
     # 固定 dailybuild root，使 baseurl 断言不依赖运行环境配置（get_settings 为单例）。
@@ -3831,6 +3834,8 @@ def test_apply_custom_kernel_url_success(
     )
     monkeypatch.setattr("app.modules.test_management.remote.run_ssh_command", fake_ssh)
     _fast_forward_reboot_wait(monkeypatch)
+
+    from app.modules.vms.service import apply_custom_kernel
 
     resource = _make_resource_64k()
     request = _make_request_custom(kernel_variant=None, kernel_rpm_url=url)
