@@ -21,13 +21,13 @@ source 目录缺失（404）时返回 None，由调用方决定跳过该块，�
 
 from __future__ import annotations
 
-PKGLIST_TIMEOUT_SECONDS = 30
-
 import hashlib
 import re
 from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.request import urlopen
+
+PKGLIST_TIMEOUT_SECONDS = 30
 
 _RPM_LINK_RE = re.compile(r'(?:title|href)="([^"]+\.rpm)"')
 

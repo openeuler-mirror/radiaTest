@@ -135,6 +135,7 @@ def test_create_vm_cleanup_deletes_libvirt_volumes_on_failure(tmp_path: Path) ->
     virt-install 失败时 cleanup 必须 virsh vol-delete 清 libvirt 卷记录，否则 stale
     卷累积导致 virt-install refresh pool 查 stale domain not found（报错1 根因）。
     """
+    base_dir = tmp_path / "kronos"
     cache_dir = base_dir / "cache"
     instance_dir = base_dir / "instances"
     cache_dir.mkdir(parents=True)
@@ -188,6 +189,7 @@ def test_create_vm_lock_file_outside_instances_dir(tmp_path: Path) -> None:
     锁文件必须在 BASE_DIR 不在 INSTANCE_DIR，避免被 libvirt instances pool 识别为
     volume（报错1 副根因：.kronos-create.lock 在 instances 目录被 pool 纳入）。
     """
+    base_dir = tmp_path / "kronos"
     cache_dir = base_dir / "cache"
     instance_dir = base_dir / "instances"
     cache_dir.mkdir(parents=True)

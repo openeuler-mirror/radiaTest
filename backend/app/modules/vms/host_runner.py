@@ -213,8 +213,9 @@ def run_host_script(
     host_ip: str,
     script_name: str,
     payload: HostPayload,
-    options: HostRunOptions[type[ResultT] | None] = HostRunOptions(),
+    options: HostRunOptions[type[ResultT] | None] | None = None,
 ) -> dict[str, Any] | ResultT:
+    options = options or HostRunOptions()
     result_model = options.result_model
     event_sink = options.event_sink
     timeout_seconds = options.timeout_seconds

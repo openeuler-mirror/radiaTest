@@ -1644,7 +1644,12 @@ def install_kernel_64k_via_ssh(
 
     from app.core.credentials import decrypt_secret
     from app.modules.pipelines.repodata import list_update_dirs
-    from app.modules.test_management.remote import RemoteRunOptions, RemoteTarget, run_ssh_command, write_remote_file
+    from app.modules.test_management.remote import (
+        RemoteRunOptions,
+        RemoteTarget,
+        run_ssh_command,
+        write_remote_file,
+    )
 
     settings = get_settings()
     base_version = os_version[: -len("-64k")]
@@ -1878,7 +1883,12 @@ def install_latest_kernel_via_ssh(
     """
     from app.core.credentials import decrypt_secret
     from app.modules.pipelines.repodata import list_update_dirs, round_label_to_date
-    from app.modules.test_management.remote import RemoteRunOptions, RemoteTarget, run_ssh_command, write_remote_file
+    from app.modules.test_management.remote import (
+        RemoteRunOptions,
+        RemoteTarget,
+        run_ssh_command,
+        write_remote_file,
+    )
 
     settings = get_settings()
     rounds = list_update_dirs(
@@ -2129,7 +2139,6 @@ def _rollback_just_created_vm(
     db.commit()
 
 
-
 class CustomKernelError(Exception):
     """换内核失败：repo 不可达/包不存在/install 失败/uname 不匹配。
 
@@ -2200,7 +2209,12 @@ def install_custom_kernel_via_ssh(
     失败：record_event 对应 phase + raise CustomKernelError。
     """
     from app.core.credentials import decrypt_secret
-    from app.modules.test_management.remote import RemoteRunOptions, RemoteTarget, run_ssh_command, write_remote_file
+    from app.modules.test_management.remote import (
+        RemoteRunOptions,
+        RemoteTarget,
+        run_ssh_command,
+        write_remote_file,
+    )
 
     settings = get_settings()
     password = (
