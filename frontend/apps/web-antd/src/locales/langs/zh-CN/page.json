@@ -1,0 +1,52 @@
+{
+  "auth": {
+    "login": "登录",
+    "register": "注册",
+    "codeLogin": "验证码登录",
+    "qrcodeLogin": "二维码登录",
+    "forgetPassword": "忘记密码",
+    "profile": "个人中心"
+  },
+  "account": {
+    "title": "我的账号"
+  },
+  "audit": {
+    "title": "审计日志"
+  },
+  "dashboard": {
+    "title": "概览",
+    "analytics": "分析页",
+    "workspace": "工作台"
+  },
+  "feishu": {
+    "title": "飞书集成"
+  },
+  "leaseEvents": {
+    "title": "租约日志"
+  },
+  "logs": {
+    "title": "日志"
+  },
+  "resources": {
+    "title": "物理机管理"
+  },
+  "testCases": {
+    "title": "测试用例"
+  },
+  "testJobs": {
+    "title": "测试任务"
+  },
+  "tickets": {
+    "title": "工单管理"
+  },
+  "pipelines": {
+    "title": "流水线",
+    "detail": "流水线详情"
+  },
+  "virtualMachines": {
+    "title": "虚拟机管理"
+  },
+  "users": {
+    "title": "用户管理"
+  }
+}

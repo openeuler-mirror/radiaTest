@@ -1,0 +1,52 @@
+{
+  "auth": {
+    "login": "Login",
+    "register": "Register",
+    "codeLogin": "Code Login",
+    "qrcodeLogin": "Qr Code Login",
+    "forgetPassword": "Forget Password",
+    "profile": "Profile"
+  },
+  "account": {
+    "title": "My Account"
+  },
+  "audit": {
+    "title": "Audit Logs"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "analytics": "Analytics",
+    "workspace": "Workspace"
+  },
+  "feishu": {
+    "title": "Feishu Integration"
+  },
+  "leaseEvents": {
+    "title": "Lease Logs"
+  },
+  "logs": {
+    "title": "Logs"
+  },
+  "resources": {
+    "title": "Physical Machines"
+  },
+  "testCases": {
+    "title": "Test Cases"
+  },
+  "testJobs": {
+    "title": "Test Jobs"
+  },
+  "tickets": {
+    "title": "Tickets"
+  },
+  "pipelines": {
+    "title": "Pipelines",
+    "detail": "Pipeline Detail"
+  },
+  "virtualMachines": {
+    "title": "Virtual Machines"
+  },
+  "users": {
+    "title": "Users"
+  }
+}
