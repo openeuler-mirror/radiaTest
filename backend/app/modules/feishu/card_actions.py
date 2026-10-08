@@ -961,3 +961,506 @@ def remote_command_text_card(
            )
 
 
+def load_vm_images() -> list[VMImage]:
+    return vm_images.discover_images()
+
+
+def vm_create_card(
+    action: FeishuCardAction,
+    *,
+    reset: bool = False,
+    error: str | None = None,
+) -> dict[str, Any]:
+    if not action.open_id:
+        return build_unbound_card()
+    try:
+        images = load_vm_images()
+    except ImageDiscoveryError as exc:
+        return card_error("创建 VM", f"读取镜像列表失败：{exc}")
+    state = get_vm_create_state(action.open_id, images, reset=reset)
+    return build_vm_create_card(images=images, state=state, error=error)
+
+
+def vm_create_submit_card(
+    db: Session,
+    *,
+    action: FeishuCardAction,
+    user: User,
+) -> dict[str, Any]:
+    if not action.open_id:
+        return build_unbound_card()
+
+    form_id = action.value.get("form_id")
+    if not isinstance(form_id, str) or not form_id:
+        return card_error("创建 VM", "卡片状态无效，请重新打开创建 VM。")
+
+    request_hash = hash_request_body({"form_id": form_id})
+    try:
+        decision = begin_idempotent_request(
+                       db,
+                       request=IdempotentRequest(
+                       actor=user,
+                       method="POST",
+                       path=FEISHU_VM_CREATE_PATH,
+                       key=form_id,
+                       request_hash=request_hash,
+                       ),
+                   )
+    except IdempotencyInProgressError:
+        return card_error("创建 VM", "该申请正在提交，请稍后查看申请记录。")
+    except (IdempotencyConflictError, ValueError):
+        return card_error("创建 VM", "无法确认该申请是否已提交，请重新打开创建 VM。")
+
+    if decision.replay is not None:
+        response_body, _ = decision.replay
+        return response_body
+    if decision.record is None:
+        raise RuntimeError("幂等请求必须已领取记录")
+
+    try:
+        with abandon_idempotency_on_error(db, decision.record):
+            state = _VM_CREATE_STATE.get(action.open_id)
+            if state is None or state.get("form_id") != form_id:
+                raise ValueError("卡片状态已失效，请重新打开创建 VM。")
+
+            images = load_vm_images()
+            image = selected_vm_image(images, state)
+            if image is None:
+                raise ValueError("请选择有效的镜像版本和架构。")
+            payload = build_vm_request_payload(user, image, state)
+    except ValueError as exc:
+        return vm_create_card(action, error=str(exc))
+    except ImageDiscoveryError as exc:
+        return card_error("创建 VM", f"读取镜像列表失败：{exc}")
+
+    try:
+        request = vm_service.submit_vm_request(db, actor=user, payload=payload)
+        response_body = build_vm_request_detail_card(vm_service.serialize_vm_request(db, request))
+    except (vm_service.VMImageNotFoundError, vm_service.VMPolicyError) as exc:
+        response_body = vm_create_card(action, error=str(exc))
+    except vm_service.VMQueueUnavailableError as exc:
+        response_body = vm_create_card(action, error=f"队列不可用：{exc}")
+
+    record_idempotency_response(
+        db,
+        record=decision.record,
+        response_body=response_body,
+        status_code=200,
+    )
+    db.commit()
+
+    _VM_CREATE_STATE.pop(action.open_id, None)
+    return response_body
+
+
+def vm_request_detail_card(db: Session, *, user: User, request_id: str) -> dict[str, Any]:
+    request = vm_service.get_vm_request(db, request_id)
+    if request is None:
+        return build_not_found_card()
+    if request.requester_user_id != user.id and user.role != UserRole.ADMIN.value:
+        return build_not_found_card()
+    if request.status == "succeeded" and request.resource_id:
+        return resource_detail_card(
+            db,
+            user=user,
+            resource_id=request.resource_id,
+            return_action="vm_mine",
+            page=0,
+        )
+    return build_vm_request_detail_card(vm_service.serialize_vm_request(db, request))
+
+
+def pipeline_trigger_form_card(
+    db: Session,
+    *,
+    action: FeishuCardAction,
+    user: User,
+    reset: bool = True,
+) -> dict[str, Any]:
+    if user.role != UserRole.ADMIN.value:
+        return build_pipeline_permission_card()
+    config_id = action.value.get("config_id")
+    if not isinstance(config_id, str):
+        return build_pipeline_trigger_error_card("流水线参数无效。")
+    config = get_pipeline_config(db, config_id)
+    if config is None:
+        return build_pipeline_trigger_error_card("流水线不存在或已被删除。")
+    if not config.versions or not config.archs:
+        return build_pipeline_trigger_error_card(
+            "流水线尚未配置版本或架构。", config_id=config.id
+        )
+    if not action.open_id:
+        return build_unbound_card()
+    state = get_pipeline_trigger_state(action.open_id, config, reset=reset)
+    return build_pipeline_trigger_form_card(config, state=state)
+
+
+def pipeline_configs_card(db: Session, *, user: User) -> dict[str, Any]:
+    items: list[dict[str, Any]] = []
+    for config in list_pipeline_configs(db):
+        latest = latest_execution_for_config(db, config.id)
+        items.append(
+            {
+                "id": config.id,
+                "name": config.name,
+                "pipeline_type": config.pipeline_type,
+                "versions": config.versions,
+                "archs": config.archs,
+                "latest": (
+                    {
+                        "id": latest.id,
+                        "status": compute_execution_status(db, latest),
+                    }
+                    if latest
+                    else None
+                ),
+            }
+        )
+    return build_pipeline_configs_card(
+        items,
+        is_admin=user.role == UserRole.ADMIN.value,
+    )
+
+
+def pipeline_executions_card(
+    db: Session, *, running_only: bool
+) -> dict[str, Any]:
+    items: list[dict[str, Any]] = []
+    for execution in list_pipeline_executions(db, limit=20):
+        status = compute_execution_status(db, execution)
+        if running_only and status not in {"pending", "running"}:
+            continue
+        items.append(
+            {
+                "id": execution.id,
+                "config_name": execution_config_name(db, execution),
+                "status": status,
+                "versions": execution.versions,
+                "archs": execution.archs,
+                "triggered_by": execution.triggered_by,
+                "triggered_at": execution.triggered_at,
+            }
+        )
+    return build_pipeline_executions_card(items, running_only=running_only)
+
+
+def pipeline_execution_detail_card(
+    db: Session, *, execution_id: object
+) -> dict[str, Any]:
+    if not isinstance(execution_id, str) or not execution_id:
+        return build_pipeline_trigger_error_card("执行记录参数无效。")
+    summary = get_execution_summary(db, execution_id)
+    if summary is None:
+        return build_pipeline_trigger_error_card("执行记录不存在或已被删除。")
+    execution = db.get(PipelineExecution, execution_id)
+    if execution is not None:
+        summary["config_name"] = execution_config_name(db, execution)
+    return build_pipeline_execution_detail_card(summary)
+
+
+def pipeline_run_job_detail_card(
+    db: Session, *, run_job_id: object, execution_id: object
+) -> dict[str, Any]:
+    if not isinstance(run_job_id, str) or not run_job_id:
+        return build_pipeline_trigger_error_card("RunJob 参数无效。")
+    detail = get_run_job_detail(db, run_job_id)
+    if detail is None:
+        return build_pipeline_trigger_error_card("RunJob 不存在或已被删除。")
+    template_id = detail.get("module_template_id")
+    if isinstance(template_id, str):
+        template = db.get(TestModuleTemplate, template_id)
+        if template is not None:
+            detail["module_name"] = template.display_name
+    return build_pipeline_run_job_card(
+        detail,
+        execution_id=execution_id if isinstance(execution_id, str) else None,
+    )
+
+
+def pipeline_trigger_form_update_card(
+    db: Session, *, action: FeishuCardAction, user: User
+) -> dict[str, Any]:
+    if user.role != UserRole.ADMIN.value:
+        return build_pipeline_permission_card()
+    if not action.open_id:
+        return build_unbound_card()
+    config_id = update_pipeline_trigger_state(action.open_id, action)
+    if not config_id:
+        return build_pipeline_trigger_error_card("流水线参数无效。")
+    return pipeline_trigger_form_card(
+        db,
+        action=FeishuCardAction(
+            action="pipeline_trigger_form",
+            value={"config_id": config_id},
+            open_id=action.open_id,
+            union_id=action.union_id,
+        ),
+        user=user,
+        reset=False,
+    )
+
+
+def pipeline_trigger_confirm_card(
+    db: Session, *, action: FeishuCardAction, user: User
+) -> dict[str, Any]:
+    if user.role != UserRole.ADMIN.value:
+        return build_pipeline_permission_card()
+    config_id = action.value.get("config_id")
+    if not isinstance(config_id, str):
+        return build_pipeline_trigger_error_card("流水线参数无效。")
+    config = get_pipeline_config(db, config_id)
+    if config is None:
+        return build_pipeline_trigger_error_card("流水线不存在或已被删除。")
+    if not action.open_id:
+        return build_unbound_card()
+    state = get_pipeline_trigger_state(action.open_id, config)
+    version = state.get("version")
+    arch = state.get("arch")
+    image_round = state.get("image_round")
+    if version not in config.versions:
+        return build_pipeline_trigger_form_card(
+            config, state=state, error="请选择有效版本。"
+        )
+    if arch not in config.archs:
+        return build_pipeline_trigger_form_card(
+            config, state=state, error="请选择有效架构。"
+        )
+    return build_pipeline_trigger_confirm_card(
+        config,
+        version=version,
+        arch=arch,
+        image_round=image_round,
+    )
+
+
+def pipeline_trigger_submit_card(
+    db: Session, *, action: FeishuCardAction, user: User
+) -> dict[str, Any]:
+    if user.role != UserRole.ADMIN.value:
+        return build_pipeline_permission_card()
+    values = action.value
+    config_id = values.get("config_id")
+    confirmation_id = values.get("confirmation_id")
+    version = values.get("version")
+    arch = values.get("arch")
+    image_round = values.get("image_round")
+    required_values = (config_id, confirmation_id, version, arch)
+    if not all(isinstance(value, str) and value for value in required_values):
+        return build_pipeline_trigger_error_card("确认信息无效，请重新选择流水线。")
+    config = get_pipeline_config(db, config_id)
+    if config is None:
+        return build_pipeline_trigger_error_card("流水线不存在或已被删除。")
+    if version not in config.versions or arch not in config.archs:
+        return build_pipeline_trigger_error_card(
+            "流水线配置已经变化，请重新选择参数。", config_id=config.id
+        )
+    normalized_round = image_round.strip() if isinstance(image_round, str) else None
+    request_body = {
+        "config_id": config.id,
+        "version": version,
+        "arch": arch,
+        "image_round": normalized_round,
+    }
+    try:
+        decision = begin_idempotent_request(
+                       db,
+                       request=IdempotentRequest(
+                       actor=user,
+                       method="POST",
+                       path=FEISHU_PIPELINE_TRIGGER_PATH,
+                       key=confirmation_id,
+                       request_hash=hash_request_body(request_body),
+                       ),
+                   )
+    except IdempotencyInProgressError:
+        return build_pipeline_trigger_error_card("该流水线正在启动，请稍后查询执行状态。")
+    except (IdempotencyConflictError, ValueError):
+        return build_pipeline_trigger_error_card("无法确认该操作是否已执行，请重新选择流水线。")
+    if decision.replay is not None:
+        response_body, _ = decision.replay
+        return response_body
+    if decision.record is None:
+        raise RuntimeError("幂等请求必须已领取记录")
+
+    with abandon_idempotency_on_error(db, decision.record):
+        execution, run_jobs = trigger_pipeline(
+            db,
+            config,
+            versions=[version],
+            archs=[arch],
+            image_round=normalized_round or None,
+            triggered_by=user.id,
+        )
+        response_body = build_pipeline_started_card(config, execution)
+        record_audit_log(
+            db,
+            actor_user_id=user.id,
+            action="feishu.pipeline.trigger",
+            target_type="pipeline_execution",
+            target_id=execution.id,
+            detail=request_body,
+        )
+        record_idempotency_response(
+            db,
+            record=decision.record,
+            response_body=response_body,
+            status_code=200,
+        )
+        db.commit()
+    enqueue_run_jobs(db, run_jobs, user.id)
+    if action.open_id:
+        _PIPELINE_TRIGGER_STATE.pop(
+            pipeline_state_key(action.open_id, config.id),
+            None,
+        )
+    return response_body
+
+
+def handle_bound_action(db: Session, *, action: FeishuCardAction, user: User) -> dict[str, Any]:
+    if action.action == "assistant_help":
+        from app.modules.feishu.assistant_cards import build_assistant_help_card
+
+        return build_assistant_help_card()
+    if action.action == "pipeline_menu":
+        return build_pipeline_menu_card()
+    if action.action == "pipeline_configs":
+        return pipeline_configs_card(db, user=user)
+    if action.action == "pipeline_executions_running":
+        return pipeline_executions_card(db, running_only=True)
+    if action.action == "pipeline_executions_recent":
+        return pipeline_executions_card(db, running_only=False)
+    if action.action == "pipeline_execution_detail":
+        return pipeline_execution_detail_card(
+            db, execution_id=action.value.get("execution_id")
+        )
+    if action.action == "pipeline_run_job_detail":
+        return pipeline_run_job_detail_card(
+            db,
+            run_job_id=action.value.get("run_job_id"),
+            execution_id=action.value.get("execution_id"),
+        )
+    if action.action == "pipeline_trigger_form":
+        return pipeline_trigger_form_card(db, action=action, user=user)
+    if action.action == "pipeline_trigger_form_update":
+        return pipeline_trigger_form_update_card(db, action=action, user=user)
+    if action.action == "pipeline_trigger_confirm":
+        return pipeline_trigger_confirm_card(db, action=action, user=user)
+    if action.action == "pipeline_trigger_submit":
+        return pipeline_trigger_submit_card(db, action=action, user=user)
+    page = int_value(action.value.get("page"))
+    if release_expired_leases(db):
+        db.commit()
+
+    if action.action == "physical_menu":
+        return build_physical_menu_card()
+    if action.action == "vm_menu":
+        return build_vm_menu_card()
+    if action.action == "physical_mine":
+        return build_resource_list_card(
+            title="我的物理机",
+            resources=list_my_physical_resources(db, user),
+            action="physical_mine",
+            page=page,
+            empty_text="当前没有占用中的物理机。",
+            kind="physical",
+        )
+    if action.action == "physical_all":
+        return build_resource_list_card(
+            title="所有物理机",
+            resources=list_physical_resources(db),
+            action="physical_all",
+            page=page,
+            empty_text="没有可显示的物理机。",
+            kind="physical",
+        )
+    if action.action == "vm_mine":
+        return build_resource_list_card(
+            title="我的 VM",
+            resources=vm_service.list_vms(db, actor=user, show_all=False),
+            action="vm_mine",
+            page=page,
+            empty_text="当前没有创建中的 VM。",
+            kind="vm",
+        )
+    if action.action == "resource_detail":
+        resource_id = action.value.get("resource_id")
+        if not isinstance(resource_id, str) or not resource_id:
+            return build_not_found_card()
+        return resource_detail_card(
+            db,
+            user=user,
+            resource_id=resource_id,
+            return_action=str(action.value.get("return_action") or "home"),
+            page=page,
+        )
+    if action.action == "remote_command_form":
+        resource_id = action.value.get("resource_id")
+        if not isinstance(resource_id, str) or not resource_id:
+            return build_not_found_card()
+        return remote_command_form_card(
+                   db,
+                   request=RemoteCommandFormRequest(
+                   action=action,
+                   user=user,
+                   resource_id=resource_id,
+                   return_action=str(action.value.get("return_action") or "home"),
+                   page=page,
+                   reset=True,
+                   ),
+               )
+    if action.action == "remote_command_form_update":
+        if action.open_id:
+            update_remote_command_state(action.open_id, action)
+        resource_id = parse_remote_command_input_name(action.value.get("name"))
+        if resource_id is None:
+            return build_not_found_card()
+        return remote_command_form_card(
+                   db,
+                   request=RemoteCommandFormRequest(
+                   action=action,
+                   user=user,
+                   resource_id=resource_id,
+                   return_action=str(action.value.get("return_action") or "home"),
+                   page=page,
+                   ),
+               )
+    if action.action == "remote_command_submit":
+        return remote_command_submit_card(db, action=action, user=user)
+    if action.action == "vm_create_form":
+        return vm_create_card(action, reset=True)
+    if action.action == "vm_create_form_update":
+        if action.open_id:
+            try:
+                images = load_vm_images()
+            except ImageDiscoveryError as exc:
+                return card_error("创建 VM", f"读取镜像列表失败：{exc}")
+            get_vm_create_state(action.open_id, images)
+            update_vm_create_state(action.open_id, action)
+        return vm_create_card(action)
+    if action.action == "vm_create_submit":
+        return vm_create_submit_card(db, action=action, user=user)
+    if action.action == "vm_request_detail":
+        request_id = action.value.get("request_id")
+        if not isinstance(request_id, str) or not request_id:
+            return build_not_found_card()
+        return vm_request_detail_card(db, user=user, request_id=request_id)
+    if action.action == "account_help":
+        return build_account_help_card(user)
+    return build_home_card()
+
+
+def handle_card_action(db: Session, action: FeishuCardAction) -> dict[str, Any]:
+    """卡片动作总入口：home/account_help 无需绑定，其余动作要求用户已绑定飞书身份。
+
+    未绑定返回引导绑定卡片。已绑定转发到 handle_bound_action 按动作名分发。
+    """
+    if action.action == "home":
+        return build_home_card()
+
+    user = current_user(db, action)
+    if action.action == "account_help":
+        return build_account_help_card(user)
+    if user is None:
+        return build_unbound_card()
+    return handle_bound_action(db, action=action, user=user)
+
