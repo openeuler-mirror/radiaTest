@@ -982,3 +982,695 @@ def test_feishu_card_action_returns_menu_card(db_session: Session) -> None:
     assert "我的物理机" in card_text(card)
 
 
+def test_feishu_resource_actions_require_bound_user(db_session: Session) -> None:
+    handler = FeishuBotHandler(SimpleNamespace(), session_factory=lambda: nullcontext(db_session))
+
+    card = response_card(handler.handle_card_action_event(card_action_event("physical_all")))
+
+    assert card["header"]["title"]["content"] == "需要绑定账号"
+    assert "请在 radiaTest Web 账号页完成飞书绑定" in card_text(card)
+
+
+def test_feishu_card_action_lists_owned_physical_resource_and_credentials(
+    db_session: Session,
+) -> None:
+    user = add_user(db_session, username="te1", role=UserRole.TE)
+    bind_feishu_identity(
+        db_session,
+        actor=user,
+        payload=FeishuIdentityBind(open_id="ou_te1", union_id="on_te1"),
+    )
+    resource = create_resource(db_session, physical_resource_payload())
+    create_lease(
+        db_session,
+        resource=resource,
+        actor=user,
+        payload=lease_payload(),
+    )
+    db_session.commit()
+    handler = FeishuBotHandler(SimpleNamespace(), session_factory=lambda: nullcontext(db_session))
+
+    list_card = response_card(handler.handle_card_action_event(card_action_event("physical_mine")))
+    detail_card = response_card(
+        handler.handle_card_action_event(
+            card_action_event(
+                "resource_detail",
+                resource_id=resource.id,
+                return_action="physical_mine",
+                page=0,
+            )
+        )
+    )
+
+    assert "172.168.131.75" in card_text(list_card)
+    assert "170.70.30.75" in card_text(list_card)
+    assert "SSH 密码" in card_text(detail_card)
+    assert "ssh-pass" in card_text(detail_card)
+    assert "bmc-pass" in card_text(detail_card)
+    assert "远程命令" in card_text(detail_card)
+
+
+def test_feishu_card_action_executes_remote_command_and_audits_without_output(
+    db_session: Session,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    user = add_user(db_session, username="te1", role=UserRole.TE)
+    bind_feishu_identity(
+        db_session,
+        actor=user,
+        payload=FeishuIdentityBind(open_id="ou_te1", union_id="on_te1"),
+    )
+    resource = create_resource(db_session, physical_resource_payload())
+    create_lease(
+        db_session,
+        resource=resource,
+        actor=user,
+        payload=lease_payload(),
+    )
+    db_session.commit()
+    calls: list[dict[str, str]] = []
+
+    def fake_execute_remote_command(**kwargs: str) -> RemoteCommandResult:
+        calls.append(kwargs)
+        return RemoteCommandResult(
+            exit_code=0,
+            stdout="Linux test-host\n",
+            stderr="",
+            duration_ms=42,
+            stdout_length=len("Linux test-host\n"),
+        )
+
+    monkeypatch.setattr(
+        "app.modules.feishu.card_actions.execute_remote_command",
+        fake_execute_remote_command,
+    )
+    handler = FeishuBotHandler(SimpleNamespace(), session_factory=lambda: nullcontext(db_session))
+
+    response_card(
+        handler.handle_card_action_event(
+            card_action_event(
+                "remote_command_form",
+                resource_id=resource.id,
+                return_action="physical_mine",
+                page=0,
+            )
+        )
+    )
+    response_card(
+        handler.handle_card_action_event(
+            card_input_event(f"remote_command|{resource.id}", "uname -a")
+        )
+    )
+    result_card = response_card(
+        handler.handle_card_action_event(
+            card_action_event(
+                "remote_command_submit",
+                resource_id=resource.id,
+                return_action="physical_mine",
+                page=0,
+            )
+        )
+    )
+
+    assert calls == [
+        {
+            "host": "172.168.131.75",
+            "username": "root",
+            "password": "ssh-pass",
+            "command": "uname -a",
+        }
+    ]
+    assert result_card["header"]["title"]["content"] == "远程命令结果"
+    assert "Linux test-host" in card_text(result_card)
+
+    logs = db_session.execute(
+        select(AuditLog).where(AuditLog.action == "feishu.remote_command")
+    ).scalars().all()
+    assert [log.action for log in logs] == ["feishu.remote_command"]
+    assert logs[0].target_id == resource.id
+    assert logs[0].detail["command"] == "uname -a"
+    assert logs[0].detail["exit_code"] == 0
+    assert "Linux test-host" not in str(logs[0].detail)
+    assert "ssh-pass" not in str(logs[0].detail)
+
+
+def test_feishu_remote_command_submit_reads_form_value(
+    db_session: Session,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    user = add_user(db_session, username="te1", role=UserRole.TE)
+    bind_feishu_identity(
+        db_session,
+        actor=user,
+        payload=FeishuIdentityBind(open_id="ou_te1", union_id="on_te1"),
+    )
+    resource = create_resource(db_session, physical_resource_payload())
+    create_lease(
+        db_session,
+        resource=resource,
+        actor=user,
+        payload=lease_payload(),
+    )
+    db_session.commit()
+    commands: list[str] = []
+
+    def fake_execute_remote_command(**kwargs: str) -> RemoteCommandResult:
+        commands.append(kwargs["command"])
+        return RemoteCommandResult(exit_code=0, stdout="CPU\n", stderr="", duration_ms=12)
+
+    monkeypatch.setattr(
+        "app.modules.feishu.card_actions.execute_remote_command",
+        fake_execute_remote_command,
+    )
+    handler = FeishuBotHandler(SimpleNamespace(), session_factory=lambda: nullcontext(db_session))
+
+    response_card(
+        handler.handle_card_action_event(
+            card_action_event(
+                "remote_command_form",
+                resource_id=resource.id,
+                return_action="physical_mine",
+                page=0,
+            )
+        )
+    )
+    submit_event = card_action_event(
+        "remote_command_submit",
+        resource_id=resource.id,
+        return_action="physical_mine",
+        page=0,
+        context=CardActionContext(
+            event_id="evt-remote-command",
+            action_form_value={f"remote_command|{resource.id}": "lscpu"},
+        ),
+    )
+    result_card = response_card(handler.handle_card_action_event(submit_event))
+    replayed_card = response_card(handler.handle_card_action_event(submit_event))
+
+    assert commands == ["lscpu"]
+    assert replayed_card == result_card
+    assert "CPU" in card_text(result_card)
+
+
+def test_feishu_remote_command_card_uses_supported_elements(db_session: Session) -> None:
+    user = add_user(db_session, username="te1", role=UserRole.TE)
+    bind_feishu_identity(
+        db_session,
+        actor=user,
+        payload=FeishuIdentityBind(open_id="ou_te1", union_id="on_te1"),
+    )
+    resource = create_resource(db_session, physical_resource_payload())
+    create_lease(
+        db_session,
+        resource=resource,
+        actor=user,
+        payload=lease_payload(),
+    )
+    db_session.commit()
+    handler = FeishuBotHandler(SimpleNamespace(), session_factory=lambda: nullcontext(db_session))
+
+    card = response_card(
+        handler.handle_card_action_event(
+            card_action_event(
+                "remote_command_form",
+                resource_id=resource.id,
+                return_action="physical_mine",
+                page=0,
+            )
+        )
+    )
+
+    assert all(element.get("tag") in {"div", "action"} for element in card["elements"])
+    assert "请直接在当前私聊发送要执行的单条命令" in card_text(card)
+    assert find_button_value(card, "返回详情")["action"] == "resource_detail"
+
+
+def test_feishu_remote_command_can_be_submitted_as_text_message(
+    db_session: Session,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class FakeSender:
+        def __init__(self) -> None:
+            self.cards: list[dict[str, object]] = []
+
+        @staticmethod
+        def send_home_card(chat_id: str) -> None:
+            raise AssertionError("home card should not be sent")
+
+        def send_card(self, chat_id: str, card: dict[str, object]) -> None:
+            self.cards.append(card)
+
+    user = add_user(db_session, username="te1", role=UserRole.TE)
+    bind_feishu_identity(
+        db_session,
+        actor=user,
+        payload=FeishuIdentityBind(open_id="ou_te1", union_id="on_te1"),
+    )
+    resource = create_resource(db_session, physical_resource_payload())
+    create_lease(
+        db_session,
+        resource=resource,
+        actor=user,
+        payload=lease_payload(),
+    )
+    db_session.commit()
+    commands: list[str] = []
+
+    def fake_execute_remote_command(**kwargs: str) -> RemoteCommandResult:
+        commands.append(kwargs["command"])
+        return RemoteCommandResult(exit_code=0, stdout="CPU\n", stderr="", duration_ms=12)
+
+    monkeypatch.setattr(
+        "app.modules.feishu.card_actions.execute_remote_command",
+        fake_execute_remote_command,
+    )
+    sender = FakeSender()
+    handler = FeishuBotHandler(sender, session_factory=lambda: nullcontext(db_session))
+    response_card(
+        handler.handle_card_action_event(
+            card_action_event(
+                "remote_command_form",
+                resource_id=resource.id,
+                return_action="physical_mine",
+                page=0,
+            )
+        )
+    )
+
+    handler.handle_message(
+        FeishuIncomingMessage(
+            chat_id="oc_chat",
+            chat_type="p2p",
+            message_type="text",
+            text="lscpu",
+            open_id="ou_te1",
+            union_id="on_te1",
+        )
+    )
+
+    assert commands == ["lscpu"]
+    assert len(sender.cards) == 1
+    assert "CPU" in card_text(sender.cards[0])
+
+
+def test_remote_command_executor_limits_captured_output(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    real_popen = subprocess.Popen
+
+    def fake_popen(args: list[str], **kwargs: object) -> subprocess.Popen[bytes]:
+        assert args[:3] == ["sshpass", "-e", "ssh"]
+        return real_popen(
+            [
+                sys.executable,
+                "-c",
+                "import sys; sys.stdout.write('x' * 9000); sys.stderr.write('e' * 100)",
+            ],
+            stdout=kwargs["stdout"],
+            stderr=kwargs["stderr"],
+            env=kwargs["env"],
+        )
+
+    monkeypatch.setattr(process_runner.subprocess, "Popen", fake_popen)
+
+    result = execute_remote_command(
+                 request=RemoteCommandRequest(
+                 host="172.168.131.75",
+                 username="root",
+                 password="ssh-pass",
+                 command="yes",
+                 ),
+             )
+
+    assert len(result.stdout.encode()) <= 8192
+    assert len(result.stderr.encode()) <= 8192
+    assert result.stdout_length == 9000
+    assert result.stderr_length == 100
+    assert result.output_truncated is True
+
+
+def test_remote_command_executor_preserves_command_arguments(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    real_popen = subprocess.Popen
+
+    def fake_popen(args: list[str], **kwargs: object) -> subprocess.Popen[bytes]:
+        remote_command = " ".join(args[-3:])
+        return real_popen(
+            ["sh", "-c", remote_command],
+            stdout=kwargs["stdout"],
+            stderr=kwargs["stderr"],
+            env=kwargs["env"],
+        )
+
+    monkeypatch.setattr(process_runner.subprocess, "Popen", fake_popen)
+
+    result = execute_remote_command(
+                 request=RemoteCommandRequest(
+                 host="172.168.131.75",
+                 username="root",
+                 password="ssh-pass",
+                 command="printf '%s' 'hello world'",
+                 ),
+             )
+
+    assert result.exit_code == 0
+    assert result.stdout == "hello world"
+
+
+def test_feishu_resource_detail_remote_command_uses_ssh_credentials_only(
+    db_session: Session,
+) -> None:
+    user = add_user(db_session, username="te1", role=UserRole.TE)
+    bind_feishu_identity(
+        db_session,
+        actor=user,
+        payload=FeishuIdentityBind(open_id="ou_te1", union_id="on_te1"),
+    )
+    resource = create_resource(db_session, physical_resource_payload())
+    create_lease(
+        db_session,
+        resource=resource,
+        actor=user,
+        payload=lease_payload(),
+    )
+    assert resource.physical_spec is not None
+    resource.physical_spec.bmc_password_ciphertext = "not-a-fernet-token"
+    db_session.commit()
+    handler = FeishuBotHandler(SimpleNamespace(), session_factory=lambda: nullcontext(db_session))
+
+    detail_card = response_card(
+        handler.handle_card_action_event(
+            card_action_event(
+                "resource_detail",
+                resource_id=resource.id,
+                return_action="physical_mine",
+                page=0,
+            )
+        )
+    )
+
+    assert "无法解密" in card_text(detail_card)
+    assert "远程命令" in card_text(detail_card)
+
+
+def test_feishu_remote_command_unexpected_error_is_audited(
+    db_session: Session,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    user = add_user(db_session, username="te1", role=UserRole.TE)
+    bind_feishu_identity(
+        db_session,
+        actor=user,
+        payload=FeishuIdentityBind(open_id="ou_te1", union_id="on_te1"),
+    )
+    resource = create_resource(db_session, physical_resource_payload())
+    create_lease(
+        db_session,
+        resource=resource,
+        actor=user,
+        payload=lease_payload(),
+    )
+    db_session.commit()
+
+    def raise_execute_remote_command(**_: str) -> RemoteCommandResult:
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(
+        "app.modules.feishu.card_actions.execute_remote_command",
+        raise_execute_remote_command,
+    )
+    handler = FeishuBotHandler(SimpleNamespace(), session_factory=lambda: nullcontext(db_session))
+
+    response_card(
+        handler.handle_card_action_event(
+            card_action_event(
+                "remote_command_form",
+                resource_id=resource.id,
+                return_action="physical_mine",
+                page=0,
+            )
+        )
+    )
+    response_card(
+        handler.handle_card_action_event(
+            card_input_event(f"remote_command|{resource.id}", "uname -a")
+        )
+    )
+    card = response_card(
+        handler.handle_card_action_event(
+            card_action_event(
+                "remote_command_submit",
+                resource_id=resource.id,
+                return_action="physical_mine",
+                page=0,
+            )
+        )
+    )
+
+    assert "远程命令执行失败" in card_text(card)
+    logs = db_session.execute(
+        select(AuditLog).where(AuditLog.action == "feishu.remote_command")
+    ).scalars().all()
+    assert len(logs) == 1
+    assert logs[0].detail["command"] == "uname -a"
+    assert logs[0].detail["exit_code"] is None
+    assert logs[0].detail["timed_out"] is False
+    assert "boom" in str(logs[0].detail["error"])
+
+
+def test_feishu_remote_command_requires_credential_permission(
+    db_session: Session,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    owner = add_user(db_session, username="owner", role=UserRole.TE)
+    other = add_user(db_session, username="other", role=UserRole.TE)
+    bind_feishu_identity(
+        db_session,
+        actor=other,
+        payload=FeishuIdentityBind(open_id="ou_te1", union_id="on_te1"),
+    )
+    resource = create_resource(db_session, physical_resource_payload())
+    create_lease(
+        db_session,
+        resource=resource,
+        actor=owner,
+        payload=lease_payload(),
+    )
+    db_session.commit()
+
+    def fail_execute_remote_command(**_: str) -> RemoteCommandResult:
+        raise AssertionError("remote command should not be executed")
+
+    monkeypatch.setattr(
+        "app.modules.feishu.card_actions.execute_remote_command",
+        fail_execute_remote_command,
+    )
+    handler = FeishuBotHandler(SimpleNamespace(), session_factory=lambda: nullcontext(db_session))
+
+    card = response_card(
+        handler.handle_card_action_event(
+            card_action_event(
+                "remote_command_submit",
+                resource_id=resource.id,
+                return_action="physical_mine",
+                page=0,
+            )
+        )
+    )
+
+    assert card["header"]["title"]["content"] == "远程命令"
+    assert "没有权限" in card_text(card)
+    logs = db_session.execute(
+        select(AuditLog).where(AuditLog.action == "feishu.remote_command")
+    ).scalars().all()
+    assert logs == []
+
+
+def test_feishu_resource_detail_survives_broken_credentials(db_session: Session) -> None:
+    user = add_user(db_session, username="te1", role=UserRole.TE)
+    bind_feishu_identity(
+        db_session,
+        actor=user,
+        payload=FeishuIdentityBind(open_id="ou_te1", union_id="on_te1"),
+    )
+    resource = create_resource(db_session, physical_resource_payload())
+    create_lease(
+        db_session,
+        resource=resource,
+        actor=user,
+        payload=lease_payload(),
+    )
+    resource.ssh_password_ciphertext = "not-a-fernet-token"
+    db_session.commit()
+    handler = FeishuBotHandler(SimpleNamespace(), session_factory=lambda: nullcontext(db_session))
+
+    detail_card = response_card(
+        handler.handle_card_action_event(
+            card_action_event(
+                "resource_detail",
+                resource_id=resource.id,
+                return_action="physical_mine",
+                page=0,
+            )
+        )
+    )
+
+    assert detail_card["header"]["title"]["content"] == "资源详情"
+    assert "172.168.131.75" in card_text(detail_card)
+    assert "无法解密" in card_text(detail_card)
+
+
+def test_feishu_card_action_lists_owned_vm(db_session: Session) -> None:
+    user = add_user(db_session, username="te1", role=UserRole.TE)
+    bind_feishu_identity(
+        db_session,
+        actor=user,
+        payload=FeishuIdentityBind(open_id="ou_te1", union_id="on_te1"),
+    )
+    resource = create_resource(db_session, virtual_resource_payload())
+    create_lease(
+        db_session,
+        resource=resource,
+        actor=user,
+        payload=lease_payload(),
+    )
+    db_session.commit()
+    handler = FeishuBotHandler(SimpleNamespace(), session_factory=lambda: nullcontext(db_session))
+
+    card = response_card(handler.handle_card_action_event(card_action_event("vm_mine")))
+
+    assert card["header"]["title"]["content"] == "我的 VM"
+    assert "172.168.132.10" in card_text(card)
+    assert "openEuler-vm" in card_text(card)
+
+
+def test_feishu_card_action_submits_vm_request(
+    db_session: Session,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    user = add_user(db_session, username="te1", role=UserRole.TE)
+    bind_feishu_identity(
+        db_session,
+        actor=user,
+        payload=FeishuIdentityBind(open_id="ou_te1", union_id="on_te1"),
+    )
+    images = [
+        vm_image(arch="aarch64"),
+        vm_image(arch="x86_64"),
+    ]
+    queued_request_ids: list[str] = []
+    monkeypatch.setattr(
+        "app.modules.feishu.card_actions.vm_images.discover_images",
+        lambda: images,
+    )
+    monkeypatch.setattr(vm_service, "find_image", lambda **_: images[1])
+    monkeypatch.setattr(
+        vm_service,
+        "enqueue_vm_create",
+        lambda request: queued_request_ids.append(request.id) or "task-1",
+    )
+    handler = FeishuBotHandler(SimpleNamespace(), session_factory=lambda: nullcontext(db_session))
+
+    create_card = response_card(
+        handler.handle_card_action_event(card_action_event("vm_create_form"))
+    )
+    response_card(handler.handle_card_action_event(card_select_event("arch|x86_64")))
+    response_card(handler.handle_card_action_event(card_input_event("vcpu_count", "4")))
+    response_card(handler.handle_card_action_event(card_input_event("memory_gb", "8")))
+    response_card(handler.handle_card_action_event(card_input_event("data_disk_count", "2")))
+    response_card(handler.handle_card_action_event(card_input_event("extra_nic_num", "1")))
+    response_card(handler.handle_card_action_event(card_input_event("purpose", "飞书调试 VM")))
+    submit_value = find_button_value(create_card, "提交申请")
+    submit_event = card_action_event(
+        "vm_create_submit",
+        form_id=submit_value["form_id"],
+    )
+    request_card = response_card(handler.handle_card_action_event(submit_event))
+    reset_vm_create_state()
+    replayed_card = response_card(handler.handle_card_action_event(submit_event))
+
+    stored = db_session.scalar(select(VMRequest).where(VMRequest.requester_user_id == user.id))
+    assert stored is not None
+    assert queued_request_ids == [stored.id]
+    assert replayed_card == request_card
+    assert stored.arch == "x86_64"
+    assert stored.vcpu_count == 4
+    assert stored.memory_mb == 8192
+    assert stored.data_disk_count == 2
+    assert stored.extra_nic_num == 1
+    assert stored.purpose == "飞书调试 VM"
+    assert request_card["header"]["title"]["content"] == "VM 申请"
+    assert "排队中" in card_text(request_card)
+
+
+def test_feishu_vm_request_detail_shows_credentials_after_success(
+    db_session: Session,
+) -> None:
+    user = add_user(db_session, username="te1", role=UserRole.TE)
+    bind_feishu_identity(
+        db_session,
+        actor=user,
+        payload=FeishuIdentityBind(open_id="ou_te1", union_id="on_te1"),
+    )
+    resource = create_resource(db_session, virtual_resource_payload())
+    create_lease(
+        db_session,
+        resource=resource,
+        actor=user,
+        payload=lease_payload(),
+    )
+    request = VMRequest(
+        requester_user_id=user.id,
+        status=VMRequestStatus.SUCCEEDED.value,
+        purpose="飞书调试 VM",
+        expected_ends_at=datetime.now(UTC) + timedelta(days=1),
+        dist="openEuler",
+        os_version="openEuler-24.03-LTS-SP4",
+        image_round="round-9",
+        arch="aarch64",
+        image_url="http://repo/image.qcow2",
+        vcpu_count=2,
+        memory_mb=4096,
+        disk_gb=0,
+        data_disk_count=0,
+        data_disk_size_gb=50,
+        resource_id=resource.id,
+        host_attempts=[],
+    )
+    db_session.add(request)
+    db_session.commit()
+    handler = FeishuBotHandler(SimpleNamespace(), session_factory=lambda: nullcontext(db_session))
+
+    card = response_card(
+        handler.handle_card_action_event(
+            card_action_event("vm_request_detail", request_id=request.id)
+        )
+    )
+
+    assert card["header"]["title"]["content"] == "资源详情"
+    assert "172.168.132.10" in card_text(card)
+    assert "SSH 密码" in card_text(card)
+    assert "vm-pass" in card_text(card)
+
+
+def test_feishu_home_card_contains_first_level_entries() -> None:
+    card = build_home_card()
+    actions = card["elements"][1]["actions"]
+
+    assert card["header"]["title"]["content"] == "radiaTest"
+    assert [action["text"]["content"] for action in actions] == [
+        "物理机管理",
+        "VM 管理",
+        "流水线",
+        "智能助手",
+        "账号与帮助",
+    ]
+    assert [action["value"]["action"] for action in actions] == [
+        "physical_menu",
+        "vm_menu",
+        "pipeline_menu",
+        "assistant_help",
+        "account_help",
+    ]
+
