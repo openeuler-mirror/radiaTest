@@ -988,3 +988,847 @@ onUnmounted(() => {
 });
 </script>
 
+<template>
+  <Page title="虚拟机管理">
+    <div class="space-y-4">
+      <Card :body-style="{ padding: '16px' }">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <Space wrap>
+            <Checkbox v-model:checked="showAll" @change="changeShowAll">
+              查看全部
+            </Checkbox>
+            <Tag>{{ vmTotal }} 台 VM</Tag>
+            <Tag>{{ requestTotal }} 条申请</Tag>
+          </Space>
+          <Space wrap>
+            <Input
+              v-model:value="searchQuery"
+              allow-clear
+              placeholder="搜索 IP / 名称 / 版本 / 架构"
+              style="width: 260px"
+              @input="onSearchInput"
+              @press-enter="onSearchEnter"
+            />
+            <Button :loading="loading" @click="loadData">
+              <template #icon>
+                <RotateCw class="size-4" />
+              </template>
+              刷新
+            </Button>
+            <Button type="primary" @click="openRequestModal">
+              <template #icon>
+                <Plus class="size-4" />
+              </template>
+              申请 VM
+            </Button>
+          </Space>
+        </div>
+      </Card>
+
+      <Card :body-style="{ padding: '0 16px 16px' }">
+        <Tabs v-model:active-key="activeTab">
+          <TabPane key="vms" tab="VM 列表">
+            <div style="margin-bottom: 12px">
+              <Button
+                :disabled="selectedVmIds.length === 0"
+                danger
+                type="primary"
+                @click="batchReleaseVM"
+              >
+                批量释放（{{ selectedVmIds.length }}）
+              </Button>
+            </div>
+            <Table
+              :columns="vmColumns"
+              :data-source="vms"
+              :loading="loading"
+              :pagination="tablePagination(vmPage, vmTotal)"
+              :row-selection="{
+                selectedRowKeys: selectedVmIds,
+                onChange: (keys) => (selectedVmIds = keys as string[]),
+              }"
+              :scroll="{ x: 1680 }"
+              row-key="id"
+              size="small"
+              @change="changeVMPage"
+            >
+              <template #bodyCell="{ column, record, text }">
+                <template v-if="column.key === 'spec'">
+                  {{ formatSpec(asResourceRecord(record)) }}
+                </template>
+                <template v-else-if="column.key === 'vnc'">
+                  {{ displayValue(record.host_primary_ip) }}:{{
+                    displayValue(record.vnc_port)
+                  }}
+                </template>
+                <template
+                  v-else-if="
+                    column.dataIndex === 'current_lease_expected_ends_at'
+                  "
+                >
+                  {{ formatTime(record.current_lease_expected_ends_at) }}
+                </template>
+                <template v-else-if="column.key === 'action'">
+                  <Space wrap>
+                    <Button
+                      size="small"
+                      type="link"
+                      @click="openDetail(asResourceRecord(record))"
+                    >
+                      <template #icon>
+                        <Eye class="size-4" />
+                      </template>
+                      详情
+                    </Button>
+                    <Button
+                      v-if="canRelease(asResourceRecord(record))"
+                      danger
+                      size="small"
+                      type="link"
+                      @click="releaseVM(asResourceRecord(record))"
+                    >
+                      <template #icon>
+                        <LogOut class="size-4" />
+                      </template>
+                      释放
+                    </Button>
+                    <Button
+                      v-if="canRenew(asResourceRecord(record))"
+                      size="small"
+                      type="link"
+                      @click="openRenewModal(asResourceRecord(record))"
+                    >
+                      <template #icon>
+                        <RotateCw class="size-4" />
+                      </template>
+                      续期
+                    </Button>
+                  </Space>
+                </template>
+                <template v-else>
+                  {{ displayValue(text) }}
+                </template>
+              </template>
+            </Table>
+          </TabPane>
+
+          <TabPane key="requests" tab="申请记录">
+            <Table
+              :columns="requestColumns"
+              :data-source="requests"
+              :loading="loading"
+              :pagination="tablePagination(requestPage, requestTotal)"
+              :scroll="{ x: 2000 }"
+              row-key="id"
+              size="small"
+              @change="changeRequestPage"
+            >
+              <template #bodyCell="{ column, record, text }">
+                <template v-if="column.dataIndex === 'status'">
+                  <Tag :color="statusColor(record.status)">
+                    {{ statusLabel(record.status) }}
+                  </Tag>
+                </template>
+                <template v-else-if="column.dataIndex === 'install_type'">
+                  {{ installTypeLabel(record.install_type) }}
+                </template>
+                <template v-else-if="column.key === 'spec'">
+                  {{ formatRequestSpec(asVMRequestRecord(record)) }} / 数据盘
+                  {{
+                    formatDataDisks(
+                      record.data_disk_count,
+                      record.data_disk_size_gb,
+                    )
+                  }}
+                  / 额外网卡 {{ record.extra_nic_num }} 张
+                </template>
+                <template v-else-if="column.dataIndex === 'created_at'">
+                  {{ formatTime(record.created_at) }}
+                </template>
+                <template v-else-if="column.key === 'action'">
+                  <Space wrap>
+                    <Button
+                      size="small"
+                      type="link"
+                      @click="openRequestDetail(asVMRequestRecord(record))"
+                    >
+                      <template #icon>
+                        <Eye class="size-4" />
+                      </template>
+                      详情
+                    </Button>
+                    <Button
+                      v-if="record.status === 'pending'"
+                      size="small"
+                      type="link"
+                      @click="cancelRequest(asVMRequestRecord(record))"
+                    >
+                      取消
+                    </Button>
+                  </Space>
+                </template>
+                <template v-else>
+                  {{ displayValue(text) }}
+                </template>
+              </template>
+            </Table>
+          </TabPane>
+        </Tabs>
+      </Card>
+    </div>
+
+    <Modal
+      v-model:open="requestOpen"
+      :cancel-button-props="{ disabled: isoUploading }"
+      :closable="!isoUploading"
+      :confirm-loading="requestSubmitting"
+      :keyboard="!isoUploading"
+      :mask-closable="!isoUploading"
+      :ok-button-props="{ disabled: isoUploading }"
+      destroy-on-close
+      title="申请 VM"
+      width="720px"
+      @ok="submitRequest"
+    >
+      <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div>
+          <span
+            class="management-filter__label"
+            :class="requiredLabelClass('installType')"
+          >
+            安装方式
+          </span>
+          <Select
+            v-model:value="requestForm.installType"
+            :disabled="isoUploading"
+            :options="installTypeOptions"
+            class="w-full"
+          />
+        </div>
+        <div v-if="requestForm.installType === 'manual'" class="md:col-span-2">
+          <span
+            class="management-filter__label"
+            :class="requiredLabelClass('imageUrl')"
+          >
+            ISO URL
+          </span>
+          <div class="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
+            <Input
+              v-model:value="requestForm.imageUrl"
+              :disabled="isoUploading"
+              placeholder="http://.../upload.iso"
+            />
+            <Upload
+              :before-upload="beforeISOUpload"
+              :disabled="isoUploading"
+              :show-upload-list="false"
+              accept=".iso"
+            >
+              <Button :loading="isoUploading">
+                <template #icon>
+                  <Inbox class="size-4" />
+                </template>
+                上传
+              </Button>
+            </Upload>
+          </div>
+          <div v-if="isoUploading" class="mt-2">
+            <Progress :percent="isoUploadProgress" size="small" />
+            <div class="text-xs text-gray-500">
+              {{ isoUploadProgress >= 100 ? '服务器处理中' : '正在上传' }}
+            </div>
+          </div>
+        </div>
+        <div>
+          <span
+            class="management-filter__label"
+            :class="requiredLabelClass('dist')"
+          >
+            发行版
+          </span>
+          <Select
+            v-if="requestForm.installType === 'auto'"
+            v-model:value="requestForm.dist"
+            :options="distOptions"
+            class="w-full"
+          />
+          <Input v-else v-model:value="requestForm.dist" placeholder="dist" />
+        </div>
+        <div>
+          <span
+            class="management-filter__label"
+            :class="requiredLabelClass('osVersion')"
+          >
+            OS 版本
+          </span>
+          <Select
+            v-if="requestForm.installType === 'auto'"
+            v-model:value="requestForm.osVersion"
+            :options="osVersionOptions"
+            class="w-full"
+          />
+          <Input
+            v-else
+            v-model:value="requestForm.osVersion"
+            placeholder="version"
+          />
+        </div>
+        <div>
+          <span class="management-filter__label"> 轮次(空=official) </span>
+          <Select
+            v-if="requestForm.installType === 'auto'"
+            v-model:value="requestForm.imageRound"
+            :options="roundOptions"
+            allow-clear
+            class="w-full"
+          />
+          <Input
+            v-else
+            v-model:value="requestForm.imageRound"
+            allow-clear
+            placeholder="round"
+          />
+        </div>
+        <div>
+          <span
+            class="management-filter__label"
+            :class="requiredLabelClass('vcpuCount')"
+          >
+            vCPU
+          </span>
+          <InputNumber
+            v-model:value="requestForm.vcpuCount"
+            :max="16"
+            :min="1"
+            class="w-full"
+          />
+        </div>
+        <div>
+          <span
+            class="management-filter__label"
+            :class="requiredLabelClass('memoryMb')"
+          >
+            内存 MB
+          </span>
+          <InputNumber
+            v-model:value="requestForm.memoryMb"
+            :max="32768"
+            :min="512"
+            :step="1024"
+            class="w-full"
+          />
+        </div>
+        <div>
+          <span class="management-filter__label">额外数据盘数量</span>
+          <InputNumber
+            v-model:value="requestForm.dataDiskCount"
+            :max="4"
+            :min="0"
+            class="w-full"
+          />
+        </div>
+        <div>
+          <span class="management-filter__label">额外网卡数量</span>
+          <InputNumber
+            v-model:value="requestForm.extraNicNum"
+            :max="4"
+            :min="0"
+            class="w-full"
+          />
+        </div>
+        <div>
+          <span
+            class="management-filter__label"
+            :class="requiredLabelClass('archSelections')"
+          >
+            架构选择
+          </span>
+          <CheckboxGroup
+            v-model:value="requestForm.archSelections"
+            class="flex items-center gap-2"
+          >
+            <Checkbox value="aarch64">ARM</Checkbox>
+            <InputNumber
+              v-if="requestForm.archSelections.includes('aarch64')"
+              v-model:value="requestForm.aarch64Count"
+              :max="20"
+              :min="1"
+              class="w-24"
+            />
+            <Checkbox value="x86_64">x86</Checkbox>
+            <InputNumber
+              v-if="requestForm.archSelections.includes('x86_64')"
+              v-model:value="requestForm.x86_64Count"
+              :max="20"
+              :min="1"
+              class="w-24"
+            />
+          </CheckboxGroup>
+        </div>
+        <div>
+          <span class="management-filter__label">内核变体</span>
+          <Select
+            v-model:value="requestForm.kernelVariant"
+            :options="kernelVariantOptions"
+            :loading="kernelVariantsLoading"
+            allow-clear
+            placeholder="不换内核"
+            class="w-full"
+            @change="onKernelVariantChange"
+          />
+        </div>
+        <div>
+          <span class="management-filter__label">内核 RPM URL</span>
+          <Input
+            v-model:value="requestForm.kernelRpmUrl"
+            allow-clear
+            placeholder="http://.../kernel-*.rpm"
+            @input="onKernelRpmUrlInput"
+          />
+        </div>
+        <div>
+          <span
+            class="management-filter__label"
+            :class="requiredLabelClass('expectedEndsAt')"
+          >
+            租约期限
+          </span>
+          <Checkbox v-if="isAdmin" v-model:checked="requestForm.permanent">
+            永久占用
+          </Checkbox>
+          <DatePicker
+            v-if="!isAdmin || !requestForm.permanent"
+            v-model:value="requestForm.expectedEndsAt"
+            :disabled-date="disabledLeaseDate"
+            class="mt-2 w-full"
+            format="YYYY-MM-DD HH:mm"
+            show-time
+          />
+        </div>
+        <div class="md:col-span-2">
+          <span
+            class="management-filter__label"
+            :class="requiredLabelClass('purpose')"
+          >
+            用途
+          </span>
+          <Input
+            v-model:value="requestForm.purpose"
+            placeholder="例如：调试 openEuler"
+          />
+        </div>
+      </div>
+    </Modal>
+
+    <Modal
+      v-model:open="renewOpen"
+      :confirm-loading="renewSubmitting"
+      destroy-on-close
+      title="续期租约"
+      @ok="submitRenew"
+    >
+      <div class="space-y-4" v-if="renewTarget">
+        <Descriptions :column="1" size="small">
+          <DescriptionsItem label="VM">
+            {{ renewTarget.primary_ip }}
+            <template v-if="renewTarget.vm_name || renewTarget.name">
+              / {{ renewTarget.vm_name || renewTarget.name }}
+            </template>
+          </DescriptionsItem>
+          <DescriptionsItem label="当前到期">
+            {{ formatTime(renewTarget.current_lease_expected_ends_at) }}
+          </DescriptionsItem>
+        </Descriptions>
+        <div>
+          <span class="management-filter__label">续期到</span>
+          <DatePicker
+            v-model:value="renewForm.expectedEndsAt"
+            :disabled-date="disabledRenewDate"
+            class="mt-2 w-full"
+            format="YYYY-MM-DD HH:mm"
+            show-time
+          />
+        </div>
+      </div>
+    </Modal>
+
+    <Drawer
+      v-model:open="detailOpen"
+      :destroy-on-close="true"
+      :width="720"
+      placement="right"
+      title="VM 详情"
+    >
+      <Descriptions v-if="selectedVM" bordered :column="1" size="small">
+        <DescriptionsItem label="VM 名称">
+          {{ displayValue(selectedVM.vm_name || selectedVM.name) }}
+        </DescriptionsItem>
+        <DescriptionsItem label="OS IP">
+          <Space wrap>
+            <span>{{ displayValue(selectedVM.primary_ip) }}</span>
+            <Button
+              v-if="canRefreshVMIp(selectedVM)"
+              :loading="refreshingIpId === selectedVM.id"
+              size="small"
+              @click="refreshVMIp(selectedVM)"
+            >
+              <template #icon>
+                <RotateCw class="size-4" />
+              </template>
+              刷新
+            </Button>
+          </Space>
+        </DescriptionsItem>
+        <DescriptionsItem label="MAC">
+          {{ displayValue(selectedVM.mac_address) }}
+        </DescriptionsItem>
+        <DescriptionsItem label="SSH 账号">
+          {{ selectedVM.ssh_username }}
+        </DescriptionsItem>
+        <DescriptionsItem label="SSH 密码">
+          <Space wrap>
+            <span>
+              {{
+                credentialValue(
+                  selectedVM.has_ssh_password,
+                  credentials?.ssh_password,
+                )
+              }}
+            </span>
+            <Button
+              v-if="canEditVMCredentials(selectedVM)"
+              size="small"
+              @click="openPasswordModal(selectedVM)"
+            >
+              编辑
+            </Button>
+          </Space>
+        </DescriptionsItem>
+        <DescriptionsItem label="VNC">
+          {{ displayValue(selectedVM.host_primary_ip) }}:{{
+            displayValue(selectedVM.vnc_port)
+          }}
+        </DescriptionsItem>
+        <DescriptionsItem label="电源状态">
+          <Space wrap>
+            <Tag :color="powerStateColor(powerState)">
+              {{
+                powerLoading
+                  ? '读取中'
+                  : powerStateError || powerStateLabel(powerState)
+              }}
+            </Tag>
+            <Button
+              v-if="canOpenConsole(selectedVM)"
+              :loading="powerLoading"
+              size="small"
+              @click="loadPowerState()"
+            >
+              <template #icon>
+                <RotateCw class="size-4" />
+              </template>
+              刷新状态
+            </Button>
+          </Space>
+        </DescriptionsItem>
+        <DescriptionsItem label="电源操作">
+          <Space v-if="canOpenConsole(selectedVM)" wrap>
+            <Button
+              :disabled="
+                Boolean(powerActionLoading) ||
+                powerLoading ||
+                Boolean(powerStateError) ||
+                !powerState ||
+                powerState === 'running'
+              "
+              :loading="powerActionLoading === 'start'"
+              size="small"
+              @click="operatePower('start')"
+            >
+              启动
+            </Button>
+            <Button
+              :disabled="
+                Boolean(powerActionLoading) ||
+                powerLoading ||
+                Boolean(powerStateError) ||
+                powerState !== 'running'
+              "
+              :loading="powerActionLoading === 'shutdown'"
+              size="small"
+              @click="operatePower('shutdown')"
+            >
+              关机
+            </Button>
+            <Button
+              :disabled="
+                Boolean(powerActionLoading) ||
+                powerLoading ||
+                Boolean(powerStateError) ||
+                powerState !== 'running'
+              "
+              :loading="powerActionLoading === 'reboot'"
+              size="small"
+              @click="operatePower('reboot')"
+            >
+              重启
+            </Button>
+          </Space>
+          <span v-else>无权限</span>
+        </DescriptionsItem>
+        <DescriptionsItem label="控制台">
+          <Button
+            v-if="canOpenConsole(selectedVM)"
+            size="small"
+            @click="openConsole(selectedVM)"
+          >
+            <template #icon>
+              <ExternalLink class="size-4" />
+            </template>
+            打开控制台
+          </Button>
+          <span v-else>无权限</span>
+        </DescriptionsItem>
+        <DescriptionsItem label="架构">
+          {{ displayValue(selectedVM.arch) }}
+        </DescriptionsItem>
+        <DescriptionsItem label="OS">
+          {{ displayValue(selectedVM.os_version) }}
+        </DescriptionsItem>
+        <DescriptionsItem label="内核">
+          {{ displayValue(selectedVM.kernel_version) }}
+        </DescriptionsItem>
+        <DescriptionsItem label="规格">
+          {{ formatSpec(selectedVM) }}
+        </DescriptionsItem>
+        <DescriptionsItem label="数据盘">
+          {{
+            formatDataDisks(
+              selectedVM.data_disk_count,
+              selectedVM.data_disk_size_gb,
+            )
+          }}
+        </DescriptionsItem>
+        <DescriptionsItem label="占用人">
+          {{ displayValue(selectedVM.current_lease_username) }}
+        </DescriptionsItem>
+        <DescriptionsItem label="占用用途">
+          {{ displayValue(selectedVM.current_lease_purpose) }}
+        </DescriptionsItem>
+        <DescriptionsItem label="占用到">
+          {{ formatTime(selectedVM.current_lease_expected_ends_at) }}
+        </DescriptionsItem>
+      </Descriptions>
+    </Drawer>
+
+    <Modal
+      v-model:open="passwordOpen"
+      :confirm-loading="passwordSubmitting"
+      destroy-on-close
+      title="编辑 SSH 密码"
+      @ok="submitPassword"
+    >
+      <div class="space-y-3">
+        <Descriptions v-if="selectedVM" :column="1" size="small">
+          <DescriptionsItem label="VM">
+            {{ displayValue(selectedVM.primary_ip || selectedVM.vm_name) }}
+          </DescriptionsItem>
+          <DescriptionsItem label="SSH 账号">
+            {{ selectedVM.ssh_username }}
+          </DescriptionsItem>
+        </Descriptions>
+        <div>
+          <span class="management-filter__label">SSH 密码</span>
+          <Input
+            v-model:value="passwordForm.sshPassword"
+            autocomplete="new-password"
+            type="password"
+          />
+        </div>
+      </div>
+    </Modal>
+
+    <Drawer
+      v-model:open="requestDetailOpen"
+      :destroy-on-close="true"
+      :width="760"
+      placement="right"
+      title="申请详情"
+    >
+      <div v-if="selectedRequest" class="space-y-4">
+        <div
+          v-if="
+            selectedRequest.status === 'succeeded' &&
+            selectedRequest.resource_id
+          "
+        >
+          <Button type="primary" @click="jumpToVMFromRequest"> 查看 VM </Button>
+        </div>
+        <Descriptions bordered :column="1" size="small">
+          <DescriptionsItem label="状态">
+            <Tag :color="statusColor(selectedRequest.status)">
+              {{ statusLabel(selectedRequest.status) }}
+            </Tag>
+          </DescriptionsItem>
+          <DescriptionsItem label="申请人">
+            {{ displayValue(selectedRequest.requester_username) }}
+          </DescriptionsItem>
+          <DescriptionsItem label="安装方式">
+            {{ installTypeLabel(selectedRequest.install_type) }}
+          </DescriptionsItem>
+          <DescriptionsItem label="镜像">
+            {{ formatRequestImage(selectedRequest) }}
+          </DescriptionsItem>
+          <DescriptionsItem label="镜像 URL">
+            <span class="break-all">
+              {{ displayValue(selectedRequest.image_url) }}
+            </span>
+          </DescriptionsItem>
+          <DescriptionsItem label="规格">
+            {{ formatRequestSpec(selectedRequest) }}
+          </DescriptionsItem>
+          <DescriptionsItem label="数据盘">
+            {{
+              formatDataDisks(
+                selectedRequest.data_disk_count,
+                selectedRequest.data_disk_size_gb,
+              )
+            }}
+          </DescriptionsItem>
+          <DescriptionsItem label="额外网卡">
+            {{ selectedRequest.extra_nic_num }} 张
+          </DescriptionsItem>
+          <DescriptionsItem label="用途">
+            {{ displayValue(selectedRequest.purpose) }}
+          </DescriptionsItem>
+          <DescriptionsItem label="租约到">
+            {{ formatTime(selectedRequest.expected_ends_at) }}
+          </DescriptionsItem>
+          <DescriptionsItem label="创建时间">
+            {{ formatTime(selectedRequest.created_at) }}
+          </DescriptionsItem>
+          <DescriptionsItem label="更新时间">
+            {{ formatTime(selectedRequest.updated_at) }}
+          </DescriptionsItem>
+          <DescriptionsItem label="完成时间">
+            {{ formatTime(selectedRequest.completed_at) }}
+          </DescriptionsItem>
+          <DescriptionsItem label="宿主资源">
+            {{ displayValue(selectedRequest.host_resource_id) }}
+          </DescriptionsItem>
+          <DescriptionsItem label="VM 资源">
+            {{ displayValue(selectedRequest.resource_id) }}
+          </DescriptionsItem>
+          <DescriptionsItem label="错误码">
+            {{ displayValue(selectedRequest.error_code) }}
+          </DescriptionsItem>
+          <DescriptionsItem label="错误信息">
+            <span class="whitespace-pre-wrap break-words">
+              {{ displayValue(selectedRequest.error_message) }}
+            </span>
+          </DescriptionsItem>
+        </Descriptions>
+
+        <section class="space-y-2 border-t border-border pt-4">
+          <div class="text-base font-semibold">宿主尝试摘要</div>
+          <div
+            v-if="selectedRequest.host_attempts.length === 0"
+            class="text-sm text-muted-foreground"
+          >
+            暂无宿主尝试记录
+          </div>
+          <div v-else class="space-y-3">
+            <div
+              v-for="(attempt, index) in selectedRequest.host_attempts"
+              :key="index"
+              class="rounded border border-border p-3"
+            >
+              <div class="mb-2 flex flex-wrap items-center gap-2">
+                <span class="text-sm font-medium">
+                  {{ formatAttemptTitle(attempt, index) }}
+                </span>
+                <Tag :color="statusColor(formatAttemptStatus(attempt))">
+                  {{ statusLabel(formatAttemptStatus(attempt)) }}
+                </Tag>
+              </div>
+              <Descriptions bordered :column="1" size="small">
+                <DescriptionsItem label="错误码">
+                  {{ formatAttemptValue(attempt, 'error_code') }}
+                </DescriptionsItem>
+                <DescriptionsItem label="错误信息">
+                  <span class="whitespace-pre-wrap break-words">
+                    {{ formatAttemptValue(attempt, 'error_message') }}
+                  </span>
+                </DescriptionsItem>
+              </Descriptions>
+            </div>
+          </div>
+        </section>
+
+        <section class="space-y-3 border-t border-border pt-4">
+          <div>
+            <div class="text-base font-semibold">任务事件</div>
+          </div>
+          <div
+            v-if="visibleRequestEvents.length === 0"
+            class="text-sm text-muted-foreground"
+          >
+            暂无任务事件
+          </div>
+          <div v-else class="space-y-3">
+            <div
+              v-for="event in visibleRequestEvents"
+              :key="event.id"
+              class="rounded border border-border p-3"
+            >
+              <div class="mb-2 grid gap-1">
+                <div class="flex min-w-0 flex-wrap items-center gap-2">
+                  <Tag :color="eventLevelColor(event.level)">
+                    {{ event.level }}
+                  </Tag>
+                  <span class="min-w-0 text-sm font-medium break-words">
+                    {{ eventPhaseLabel(event.phase) }}
+                  </span>
+                </div>
+                <span class="text-xs leading-5 text-muted-foreground">
+                  {{ formatTime(event.created_at) }}
+                </span>
+              </div>
+              <div
+                v-if="isHostCommandEvent(event.phase)"
+                class="overflow-x-auto whitespace-pre-wrap break-words rounded bg-muted p-2 font-mono text-xs"
+              >
+                {{ formatTaskEventMessage(event.message) }}
+              </div>
+              <div v-else class="whitespace-pre-wrap break-words text-sm">
+                {{ formatTaskEventMessage(event.message) }}
+              </div>
+              <div
+                v-if="event.host_ip || event.error_code"
+                class="mt-2 text-xs text-muted-foreground"
+              >
+                <span v-if="event.host_ip">宿主 {{ event.host_ip }}</span>
+                <span v-if="event.host_ip && event.error_code"> / </span>
+                <span v-if="event.error_code">
+                  错误码 {{ event.error_code }}
+                </span>
+              </div>
+            </div>
+          </div>
+          <div class="flex justify-end pt-1">
+            <Button
+              :loading="requestEventsLoading"
+              size="small"
+              @click="loadRequestEvents()"
+            >
+              <template #icon>
+                <RotateCw class="size-4" />
+              </template>
+              刷新事件
+            </Button>
+          </div>
+        </section>
+      </div>
+    </Drawer>
+  </Page>
+</template>
