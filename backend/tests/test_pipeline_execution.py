@@ -12,15 +12,18 @@
 from __future__ import annotations
 
 from collections.abc import Generator
+from contextlib import nullcontext
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine, event, select
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.db.base import Base
 from app.modules.leases.models import ResourceLease
+from app.modules.pipelines import builder as pipeline_builder
 from app.modules.pipelines.builder import build_test_job_for_run_job
 from app.modules.pipelines.models import (
     PipelineConfig,
@@ -38,8 +41,14 @@ from app.modules.pipelines.service import (
     get_case_mugen_log,
     get_execution_summary,
     get_run_job_detail,
+    list_run_logs,
+    read_run_log_content,
 )
 from app.modules.resources.models import Resource, ResourceType
+from app.modules.tasks.models import TaskEvent
+from app.modules.test_management.errors import EnvSetHangError
+from app.modules.test_management.frameworks import mugen_runner
+from app.modules.test_management.frameworks.mugen_runner import _HeartbeatStats
 from app.modules.test_management.log_collector import LogCollector
 from app.modules.test_management.models import (
     MugenCase,
@@ -49,8 +58,10 @@ from app.modules.test_management.models import (
     TestEnvNode,
     TestEnvSet,
     TestEnvSetStatus,
+    TestEnvType,
     TestJob,
 )
+from app.modules.test_management.remote import RemoteCommandResult
 from app.modules.test_management.result_parser import parse_pkgmanage_log
 
 
@@ -972,3 +983,988 @@ def test_get_case_mugen_log_not_found(db_session: Session) -> None:
 
     result = get_case_mugen_log(db_session, run_job.id, case_run.id)
     assert result is None
+
+
+# ---------- list / read run logs ----------
+
+
+def test_list_and_read_run_logs(db_session: Session, tmp_path: Path) -> None:
+    template = TestModuleTemplate(name="docker", display_name="Docker", suite_name="smoke")
+    db_session.add(template)
+    db_session.flush()
+    config, execution, run, run_job = _make_run_job(db_session, template=template)
+    collector = LogCollector(base_dir=str(tmp_path))
+    artifact = collector.store_artifact(
+        db=db_session,
+        pipeline_run_id=run.id,
+        job_id="job1",
+        module="docker",
+        arch="x86_64",
+        artifact_type="module_log",
+        artifact_name="smoke.log",
+        content="line1\nline2\n",
+    )
+    db_session.commit()
+
+    logs = list_run_logs(db_session, run.id)
+    assert len(logs) == 1
+    assert logs[0].artifact_name == "smoke.log"
+    content = read_run_log_content(db_session, run.id, artifact.id)
+    assert content == "line1\nline2\n"
+    assert read_run_log_content(db_session, run.id, "missing") is None
+    assert read_run_log_content(db_session, "other-run", artifact.id) is None
+
+
+def test_read_run_log_truncates_large_content(db_session: Session, tmp_path: Path) -> None:
+    template = TestModuleTemplate(name="kernel", display_name="K", suite_name="ltp")
+    db_session.add(template)
+    db_session.flush()
+    config, execution, run, run_job = _make_run_job(db_session, template=template)
+    big = "x" * (1024 * 1024 + 100)
+    collector = LogCollector(base_dir=str(tmp_path))
+    artifact = collector.store_artifact(
+        db=db_session,
+        pipeline_run_id=run.id,
+        job_id="job1",
+        module="kernel",
+        arch="x86_64",
+        artifact_type="module_log",
+        artifact_name="ltp.log",
+        content=big,
+    )
+    db_session.commit()
+    content = read_run_log_content(db_session, run.id, artifact.id)
+    assert "truncated" in content
+    assert len(content) < len(big)
+
+
+# ---------- builder ----------
+
+
+def test_build_test_job_none_filter(db_session: Session) -> None:
+    _seed_mugen_case(db_session, suite_name="smoke", case_name="smoke_case_1")
+    _seed_mugen_case(db_session, suite_name="smoke", case_name="smoke_case_2")
+    template = TestModuleTemplate(
+        name="docker",
+        display_name="Docker",
+        suite_name="smoke",
+        env_set_num=1,
+        node_num=1,
+        case_filter="none",
+    )
+    db_session.add(template)
+    db_session.flush()
+    config, execution, run, run_job = _make_run_job(db_session, template=template)
+    run_job.task_id = "pipeline-task"
+    job = build_test_job_for_run_job(
+        db_session,
+        run_job=run_job,
+        config=config,
+        template=template,
+        version=run.version,
+        actor_user_id="admin",
+    )
+    assert job.env_type == TestEnvType.VM.value
+    assert job.keep_env is True
+    assert job.physical_usage_scenario == "docker-update"
+    assert job.result_parser == template.result_parser
+    assert job.task_id == run_job.task_id
+    assert len(job.env_sets) == 1
+    assert len(job.env_sets[0].case_runs) == 2
+    assert run_job.test_job_id == job.id
+
+
+def test_build_test_job_filters_dangerous_cases_and_records_event(
+    db_session: Session,
+) -> None:
+    """危险用例不进执行清单;名字规则与同步扫描标记都拦截;事件留痕。"""
+    _seed_mugen_case(
+        db_session, suite_name="systemd", case_name="oe_test_service_initrd-cleanup"
+    )
+    _seed_mugen_case(db_session, suite_name="systemd", case_name="oe_test_safe_case")
+    scanned = MugenCase(
+        suite_name="systemd",
+        case_name="oe_test_service_custom-bad",
+        env_type="vm",
+        node_num=1,
+        commit_sha="abc123",
+        dangerous=True,
+        dangerous_reason="脚本伪造 initrd 环境(/etc/initrd-release)",
+    )
+    db_session.add(scanned)
+    db_session.flush()
+    template = TestModuleTemplate(
+        name="docker",
+        display_name="Docker",
+        suite_name="systemd",
+        env_set_num=1,
+        node_num=1,
+        case_filter="none",
+    )
+    db_session.add(template)
+    db_session.flush()
+    config, execution, run, run_job = _make_run_job(db_session, template=template)
+    job = build_test_job_for_run_job(
+        db_session,
+        run_job=run_job,
+        config=config,
+        template=template,
+        version=run.version,
+        actor_user_id="admin",
+    )
+
+    case_names = [
+        cr.case_name for cr in job.env_sets[0].case_runs
+    ]
+    assert case_names == ["oe_test_safe_case"]
+
+    db_session.commit()
+    events = list(
+        db_session.execute(
+            select(TaskEvent).where(
+                TaskEvent.subject_id == str(job.id),
+                TaskEvent.phase == "cases_filtered",
+            )
+        ).scalars()
+    )
+    assert len(events) == 1
+    assert "2" in events[0].message
+    assert "oe_test_service_initrd-cleanup" in events[0].message
+    assert "oe_test_service_custom-bad" in events[0].message
+
+
+def test_build_test_job_no_filter_event_when_all_cases_safe(
+    db_session: Session,
+) -> None:
+    _seed_mugen_case(db_session, suite_name="smoke", case_name="smoke_case_1")
+    template = TestModuleTemplate(
+        name="docker",
+        display_name="Docker",
+        suite_name="smoke",
+        env_set_num=1,
+        node_num=1,
+        case_filter="none",
+    )
+    db_session.add(template)
+    db_session.flush()
+    config, execution, run, run_job = _make_run_job(db_session, template=template)
+    job = build_test_job_for_run_job(
+        db_session,
+        run_job=run_job,
+        config=config,
+        template=template,
+        version=run.version,
+        actor_user_id="admin",
+    )
+    db_session.commit()
+    events = list(
+        db_session.execute(
+            select(TaskEvent).where(
+                TaskEvent.subject_id == str(job.id),
+                TaskEvent.phase == "cases_filtered",
+            )
+        ).scalars()
+    )
+    assert events == []
+
+
+def test_build_test_job_repodata_with_skipped(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _seed_mugen_case(db_session, suite_name="pkgA", case_name="pkgA")
+    _seed_mugen_case(db_session, suite_name="pkgB", case_name="pkgB")
+    template = TestModuleTemplate(
+        name="pkgcmd",
+        display_name="Pkgcmd",
+        suite_name="cli-test",
+        env_set_num=1,
+        node_num=1,
+        case_filter="repodata_packages",
+        env_type="both",
+    )
+    db_session.add(template)
+    db_session.flush()
+    config, execution, run, run_job = _make_run_job(db_session, template=template, env_type="vm")
+    monkeypatch.setattr(
+        pipeline_builder,
+        "fetch_update_packages",
+        lambda *, repo_base_url, version: ["pkgA", "pkgB", "pkgNoCase"],
+    )
+    job = build_test_job_for_run_job(
+        db_session,
+        run_job=run_job,
+        config=config,
+        template=template,
+        version=run.version,
+        actor_user_id="admin",
+    )
+    statuses = [cr.status for cr in job.env_sets[0].case_runs]
+    assert TestCaseRunStatus.NO_CASE.value in statuses
+    assert statuses.count(TestCaseRunStatus.PENDING.value) == 2  # pkgA + pkgB
+
+
+def test_build_test_job_physical_env_type(db_session: Session) -> None:
+    _seed_mugen_case(db_session, suite_name="pkgA", case_name="pkgA", env_type="physical")
+    template = TestModuleTemplate(
+        name="pkgcmd",
+        display_name="Pkgcmd",
+        suite_name="cli-test",
+        env_set_num=1,
+        node_num=1,
+        case_filter="repodata_packages",
+        env_type="both",
+    )
+    db_session.add(template)
+    db_session.flush()
+    config, execution, run, run_job = _make_run_job(
+        db_session, template=template, env_type="physical"
+    )
+    monkeypatch = pytest.MonkeyPatch()
+    monkeypatch.setattr(
+        pipeline_builder,
+        "fetch_update_packages",
+        lambda *, repo_base_url, version: ["pkgA"],
+    )
+    try:
+        job = build_test_job_for_run_job(
+            db_session,
+            run_job=run_job,
+            config=config,
+            template=template,
+            version=run.version,
+            actor_user_id="admin",
+        )
+        assert job.env_type == TestEnvType.PHYSICAL.value
+    finally:
+        monkeypatch.undo()
+
+
+def test_build_test_job_both_physical_disabled_marks_env_set_not_executed(
+    db_session: Session,
+) -> None:
+    """pkgcmd both 模块 config_data.pkgcmd_physical_enabled=False → physical env_set
+    照建（可见）但 case_runs NOT_EXECUTED + 不建 node；vm env_set 正常 PENDING。
+    """
+    _seed_mugen_case(db_session, suite_name="pkgA", case_name="pkgA", env_type="vm")
+    _seed_mugen_case(db_session, suite_name="pkgB", case_name="pkgB", env_type="physical")
+    template = TestModuleTemplate(
+        name="pkgcmd",
+        display_name="Pkgcmd",
+        suite_name="cli-test",
+        env_set_num=1,
+        node_num=1,
+        case_filter="repodata_packages",
+        env_type="both",
+    )
+    db_session.add(template)
+    db_session.flush()
+    config, execution, run, run_job = _make_run_job(db_session, template=template, env_type="vm")
+    config.config_data["pkgcmd_physical_enabled"] = False
+    db_session.flush()
+    monkeypatch = pytest.MonkeyPatch()
+    monkeypatch.setattr(
+        pipeline_builder,
+        "fetch_update_packages",
+        lambda *, repo_base_url, version: ["pkgA", "pkgB"],
+    )
+    try:
+        job = build_test_job_for_run_job(
+            db_session,
+            run_job=run_job,
+            config=config,
+            template=template,
+            version=run.version,
+            actor_user_id="admin",
+        )
+        # 2 env_sets: vm (PENDING) + physical (NOT_EXECUTED, no nodes)
+        assert len(job.env_sets) == 2
+        vm_set, phys_set = job.env_sets
+        assert all(cr.status == TestCaseRunStatus.PENDING.value for cr in vm_set.case_runs)
+        assert all(cr.status == TestCaseRunStatus.NOT_EXECUTED.value for cr in phys_set.case_runs)
+        assert len(phys_set.nodes) == 0
+    finally:
+        monkeypatch.undo()
+
+
+def test_build_test_job_non_kernel_ltp_suite_runs_all_cases(db_session: Session) -> None:
+    _seed_mugen_case(db_session, suite_name="ltp", case_name="oe_test_ltp")
+    _seed_mugen_case(db_session, suite_name="ltp", case_name="oe_test_posix")
+    template = TestModuleTemplate(
+        name="ltp-release",
+        display_name="LTP Release",
+        suite_name="ltp",
+        env_set_num=1,
+        node_num=1,
+        case_filter="none",
+    )
+    db_session.add(template)
+    db_session.flush()
+    config, execution, run, run_job = _make_run_job(db_session, template=template)
+    job = build_test_job_for_run_job(
+        db_session,
+        run_job=run_job,
+        config=config,
+        template=template,
+        version=run.version,
+        actor_user_id="admin",
+    )
+    case_names = {cr.case_name for cr in job.env_sets[0].case_runs}
+    assert case_names == {"oe_test_ltp", "oe_test_posix"}
+
+
+def test_build_test_job_kernel_ltp_excludes_posix_from_default(db_session: Session) -> None:
+    _seed_mugen_case(db_session, suite_name="ltp", case_name="oe_test_ltp", env_type="physical")
+    _seed_mugen_case(db_session, suite_name="ltp", case_name="oe_test_posix", env_type="physical")
+    template = TestModuleTemplate(
+        name="kernel",
+        display_name="Kernel",
+        suite_name="ltp",
+        env_set_num=1,
+        node_num=1,
+        case_filter="none",
+        env_type="physical",
+    )
+    db_session.add(template)
+    db_session.flush()
+    config, execution, run, run_job = _make_run_job(
+        db_session, template=template, env_type="physical"
+    )
+    job = build_test_job_for_run_job(
+        db_session,
+        run_job=run_job,
+        config=config,
+        template=template,
+        version=run.version,
+        actor_user_id="admin",
+    )
+    case_names = {cr.case_name for cr in job.env_sets[0].case_runs}
+    assert case_names == {"oe_test_ltp"}
+
+
+def test_build_test_job_service_test_cases_from_repodata(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """pkgserver: case_filter=service_test_cases -> repodata filelists -> MugenCase match."""
+    _seed_mugen_case(
+        db_session, suite_name="openssh", case_name="oe_test_service_sshd", env_type="vm"
+    )
+    _seed_mugen_case(
+        db_session,
+        suite_name="systemd",
+        case_name="oe_test_service_systemd",
+        env_type="physical",
+    )
+    template = TestModuleTemplate(
+        name="pkgserver",
+        display_name="Service Test",
+        suite_name="service-test",
+        env_set_num=1,
+        node_num=1,
+        case_filter="service_test_cases",
+        env_type="both",
+        result_parser="pkgserver",
+    )
+    db_session.add(template)
+    db_session.flush()
+    config, execution, run, run_job = _make_run_job(db_session, template=template, env_type=None)
+
+    from app.modules.pipelines import builder as builder_module
+
+    monkeypatch.setattr(
+        builder_module,
+        "fetch_service_packages",
+        lambda **kw: [("openssh", "sshd", "service"), ("systemd", "systemd", "service")],
+    )
+
+    job = build_test_job_for_run_job(
+        db_session,
+        run_job=run_job,
+        config=config,
+        template=template,
+        version=run.version,
+        actor_user_id="admin",
+    )
+    assert len(job.env_sets) == 2
+    all_runs = [cr for es in job.env_sets for cr in es.case_runs]
+    assert len(all_runs) == 2
+    case_names = {cr.case_name for cr in all_runs}
+    assert case_names == {"oe_test_service_sshd", "oe_test_service_systemd"}
+
+
+def test_build_test_job_repodata_union_merges_and_dedupes(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """pkgunion: case_filter=repodata_union → repodata + service 两路并集，(suite, case) 去重。"""
+    _seed_mugen_case(db_session, suite_name="nginx", case_name="oe_test_nginx_01")
+    # 两路都命中：repodata 路(suite=nginx 在更新列表选全 suite) + service 路(case_name 匹配)
+    _seed_mugen_case(db_session, suite_name="nginx", case_name="oe_test_service_nginx")
+    # 仅 service 路命中：包 openssh 不在 update source 列表
+    _seed_mugen_case(
+        db_session, suite_name="openssh", case_name="oe_test_service_sshd", env_type="physical"
+    )
+    template = TestModuleTemplate(
+        name="pkgunion",
+        display_name="Package Union Test",
+        suite_name="cli-test",
+        env_set_num=1,
+        node_num=1,
+        case_filter="repodata_union",
+        env_type="both",
+        result_parser="pkgunion",
+    )
+    db_session.add(template)
+    db_session.flush()
+    config, execution, run, run_job = _make_run_job(db_session, template=template, env_type=None)
+
+    from app.modules.pipelines import builder as builder_module
+
+    monkeypatch.setattr(
+        builder_module,
+        "fetch_update_packages",
+        lambda **kw: ["nginx", "pkgNoCase"],
+    )
+    monkeypatch.setattr(
+        builder_module,
+        "fetch_service_packages",
+        lambda **kw: [("nginx", "nginx", "service"), ("openssh", "sshd", "service")],
+    )
+
+    job = build_test_job_for_run_job(
+        db_session,
+        run_job=run_job,
+        config=config,
+        template=template,
+        version=run.version,
+        actor_user_id="admin",
+    )
+    # 并集去重：重叠的 oe_test_service_nginx 只出现一次
+    executable = []
+    for es in job.env_sets:
+        for cr in es.case_runs:
+            if cr.status == TestCaseRunStatus.PENDING.value:
+                executable.append(cr)
+    assert sorted(cr.case_name for cr in executable) == [
+        "oe_test_nginx_01",
+        "oe_test_service_nginx",
+        "oe_test_service_sshd",
+    ]
+    # env_type 拆分：vm=nginx 两例，physical=sshd（vm 集另挂 no_case 包行）
+    by_env = {es.env_type: es for es in job.env_sets}
+    assert sorted(
+        cr.case_name
+        for cr in by_env["vm"].case_runs
+        if cr.status == TestCaseRunStatus.PENDING.value
+    ) == ["oe_test_nginx_01", "oe_test_service_nginx"]
+    assert [cr.case_name for cr in by_env["physical"].case_runs] == ["oe_test_service_sshd"]
+    # no_case 只来自 repodata 路（service 路无 no_case 概念）
+    no_case = []
+    for es in job.env_sets:
+        for cr in es.case_runs:
+            if cr.status == TestCaseRunStatus.NO_CASE.value:
+                no_case.append(cr)
+    assert [cr.suite_name for cr in no_case] == ["pkgNoCase"]
+    # update_packages = 两路包名并集（供 pre_env 补装 update 轮新增包）
+    assert set(job.update_packages) == {"nginx", "pkgNoCase", "openssh"}
+
+
+# ---------- enqueue_run_job ----------
+
+
+def test_prepare_env_skips_mugen_when_exec_command_set(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """prepare_env skips prepare_mugen + configure_mugen_node when mugen_exec_command is set."""
+    job = TestJob(
+        creator_user_id="admin",
+        name="tj",
+        status="running",
+        framework="mugen",
+        env_type="vm",
+        dist="openEuler",
+        os_version="v",
+        image_round="",
+        arch="x86_64",
+        mugen_commit_sha="abc",
+        env_set_num=1,
+        mugen_exec_command="docker exec openEuler_test bash mugen.sh -f {suite} -r {case} -x",
+    )
+    db_session.add(job)
+    db_session.flush()
+    env_set = TestEnvSet(job=job, set_index=1, node_num=1, add_disk_num=0, add_nic_num=0)
+    db_session.add(env_set)
+    db_session.commit()
+
+    control = SimpleNamespace(
+        ip="1.1.1.1",
+        username="root",
+        password="p",
+        resource=SimpleNamespace(host_resource_id=None),
+    )
+
+    called = {"prepare_mugen": False, "configure_mugen_node": False}
+    monkeypatch.setattr(mugen_runner, "wait_for_ssh_ready", lambda *a, **kw: None)
+    monkeypatch.setattr(mugen_runner, "run_control_command", lambda **kw: None)
+    monkeypatch.setattr(mugen_runner, "write_control_file", lambda **kw: None)
+    monkeypatch.setattr(
+        mugen_runner,
+        "prepare_mugen",
+        lambda *a, **kw: called.__setitem__("prepare_mugen", True),
+    )
+    monkeypatch.setattr(
+        mugen_runner,
+        "configure_mugen_node",
+        lambda *a, **kw: called.__setitem__("configure_mugen_node", True),
+    )
+
+    mugen_runner.prepare_env(db_session, job=job, env_set=env_set, control=control, peer=None)
+    assert called["prepare_mugen"] is False
+    assert called["configure_mugen_node"] is False
+
+
+def test_prepare_env_runs_mugen_when_no_exec_command(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """prepare_env runs prepare_mugen + configure_mugen_node when mugen_exec_command is None."""
+    job = TestJob(
+        creator_user_id="admin",
+        name="tj",
+        status="running",
+        framework="mugen",
+        env_type="vm",
+        dist="openEuler",
+        os_version="v",
+        image_round="",
+        arch="x86_64",
+        mugen_commit_sha="abc",
+        env_set_num=1,
+        mugen_exec_command=None,
+    )
+    db_session.add(job)
+    db_session.flush()
+    env_set = TestEnvSet(job=job, set_index=1, node_num=1, add_disk_num=0, add_nic_num=0)
+    db_session.add(env_set)
+    db_session.commit()
+
+    control = SimpleNamespace(
+        ip="1.1.1.1",
+        username="root",
+        password="p",
+        resource=SimpleNamespace(host_resource_id=None),
+    )
+
+    called = {"prepare_mugen": False, "configure_mugen_node": False}
+    monkeypatch.setattr(mugen_runner, "wait_for_ssh_ready", lambda *a, **kw: None)
+    monkeypatch.setattr(mugen_runner, "run_control_command", lambda **kw: None)
+    monkeypatch.setattr(mugen_runner, "write_control_file", lambda **kw: None)
+    monkeypatch.setattr(
+        mugen_runner,
+        "prepare_mugen",
+        lambda *a, **kw: called.__setitem__("prepare_mugen", True),
+    )
+    monkeypatch.setattr(
+        mugen_runner,
+        "configure_mugen_node",
+        lambda *a, **kw: called.__setitem__("configure_mugen_node", True),
+    )
+
+    mugen_runner.prepare_env(db_session, job=job, env_set=env_set, control=control, peer=None)
+    assert called["prepare_mugen"] is True
+    assert called["configure_mugen_node"] is True
+
+
+def test_enqueue_run_job_raises_without_broker() -> None:
+    from app.modules.pipelines.service import enqueue_run_job
+
+    run_job = PipelineRunJob(
+        pipeline_run_id="r", module_template_id="t", arch="x86", env_type=None, status="pending"
+    )
+    with pytest.raises(Exception, match="broker"):
+        enqueue_run_job(run_job, "admin")
+
+
+def test_enqueue_run_jobs_persists_task_id_before_sending(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.modules.pipelines import service as pipeline_service
+
+    template = TestModuleTemplate(name="docker", display_name="Docker", suite_name="smoke")
+    db_session.add(template)
+    db_session.flush()
+    _config, _execution, _run, run_job = _make_run_job(db_session, template=template)
+    db_session.commit()
+
+    sent_task_ids: list[str] = []
+    call_order: list[str] = []
+    original_commit = db_session.commit
+
+    def tracked_commit() -> None:
+        original_commit()
+        call_order.append("commit")
+
+    def fake_send_task(_name: str, *, args: list[str], task_id: str) -> SimpleNamespace:
+        assert args == [run_job.id, "admin"]
+        call_order.append("send")
+        sent_task_ids.append(task_id)
+        return SimpleNamespace(id=task_id)
+
+    monkeypatch.setattr(
+        pipeline_service,
+        "get_settings",
+        lambda: SimpleNamespace(celery_broker_url="redis://broker"),
+    )
+    monkeypatch.setattr(db_session, "commit", tracked_commit)
+    monkeypatch.setattr(pipeline_service.celery_app, "send_task", fake_send_task)
+
+    pipeline_service.enqueue_run_jobs(db_session, [run_job], "admin")
+
+    db_session.expire_all()
+    stored = db_session.get(PipelineRunJob, run_job.id)
+    assert stored is not None
+    assert stored.task_id == sent_task_ids[0]
+    assert call_order[:2] == ["commit", "send"]
+
+
+def test_run_job_task_rolls_back_before_recording_executor_error(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """失败事务先 rollback，RunJob error 与事件才能在新事务提交。"""
+    from app.modules.pipelines import tasks as pipeline_tasks
+
+    template = TestModuleTemplate(name="docker", display_name="Docker", suite_name="smoke")
+    db_session.add(template)
+    db_session.flush()
+    _config, _execution, _run, run_job = _make_run_job(db_session, template=template)
+    run_job.task_id = "pipeline-task"
+    db_session.commit()
+
+    rollback_calls = 0
+    original_rollback = db_session.rollback
+
+    def track_rollback() -> None:
+        nonlocal rollback_calls
+        rollback_calls += 1
+        original_rollback()
+
+    class FailingExecutor:
+        @staticmethod
+        def prepare_and_execute(*args, **kwargs):  # noqa: ANN002, ANN003, ANN201
+            raise RuntimeError("test_jobs.keep_env does not exist")
+
+    monkeypatch.setattr(db_session, "rollback", track_rollback)
+    monkeypatch.setattr(pipeline_tasks, "SessionLocal", lambda: nullcontext(db_session))
+    monkeypatch.setattr(pipeline_tasks, "get_framework_executor", lambda _name: FailingExecutor())
+
+    pipeline_tasks.run_pipeline_run_job_task.run(run_job.id, "admin")
+
+    db_session.expire_all()
+    assert rollback_calls == 1
+    assert db_session.get(PipelineRunJob, run_job.id).status == "error"
+    started = db_session.scalar(
+        select(TaskEvent).where(
+            TaskEvent.subject_id == run_job.id,
+            TaskEvent.phase == "started",
+        )
+    )
+    assert started is not None
+    assert started.celery_task_id == run_job.task_id
+    error_event = db_session.scalar(
+        select(TaskEvent).where(
+            TaskEvent.subject_id == run_job.id,
+            TaskEvent.phase == "runjob_error",
+        )
+    )
+    assert error_event is not None
+    assert "keep_env" in error_event.message
+
+
+def test_run_job_task_finalizes_cancelling_run_job_before_building_test_job(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """cancelling RunJob 到达 worker 时直接完成，不能再建 TestJob。"""
+    from app.modules.pipelines import tasks as pipeline_tasks
+
+    template = TestModuleTemplate(name="docker", display_name="Docker", suite_name="smoke")
+    db_session.add(template)
+    db_session.flush()
+    _config, _execution, _run, run_job = _make_run_job(db_session, template=template)
+    run_job.status = "cancelling"
+    run_job.cancel_requested = True
+    db_session.commit()
+
+    monkeypatch.setattr(pipeline_tasks, "SessionLocal", lambda: nullcontext(db_session))
+    monkeypatch.setattr(
+        pipeline_tasks,
+        "get_framework_executor",
+        lambda _name: pytest.fail("cancelled RunJob must not build a TestJob"),
+    )
+
+    pipeline_tasks.run_pipeline_run_job_task.run(run_job.id, "admin")
+
+    db_session.refresh(run_job)
+    assert run_job.status == "cancelled"
+    assert run_job.test_job_id is None
+
+
+def test_run_job_task_keeps_cancelled_status_when_execution_finishes(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """执行期间到达的取消不能被 executor 的成功终态覆盖。"""
+    from app.modules.pipelines import tasks as pipeline_tasks
+
+    template = TestModuleTemplate(name="docker", display_name="Docker", suite_name="smoke")
+    db_session.add(template)
+    db_session.flush()
+    _config, _execution, _run, run_job = _make_run_job(db_session, template=template)
+    db_session.commit()
+
+    class CancellingExecutor:
+        @staticmethod
+        def prepare_and_execute(*_: object, **__: object) -> str:
+            run_job.cancel_requested = True
+            run_job.status = "cancelling"
+            db_session.commit()
+            return "succeeded"
+
+    monkeypatch.setattr(pipeline_tasks, "SessionLocal", lambda: nullcontext(db_session))
+    monkeypatch.setattr(
+        pipeline_tasks, "get_framework_executor", lambda _name: CancellingExecutor()
+    )
+
+    pipeline_tasks.run_pipeline_run_job_task.run(run_job.id, "admin")
+
+    db_session.refresh(run_job)
+    assert run_job.status == "cancelled"
+
+
+def test_run_job_task_preserves_recovery_terminal_status(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """旧 Worker 的 executor 返回不能覆盖恢复服务已经写入的 error。"""
+    from app.modules.pipelines import tasks as pipeline_tasks
+
+    template = TestModuleTemplate(name="docker", display_name="Docker", suite_name="smoke")
+    db_session.add(template)
+    db_session.flush()
+    _config, _execution, _run, run_job = _make_run_job(db_session, template=template)
+    db_session.commit()
+
+    class RecoveredExecutor:
+        @staticmethod
+        def prepare_and_execute(*_: object, **__: object) -> str:
+            run_job.status = "error"
+            db_session.commit()
+            return "succeeded"
+
+    monkeypatch.setattr(pipeline_tasks, "SessionLocal", lambda: nullcontext(db_session))
+    monkeypatch.setattr(
+        pipeline_tasks, "get_framework_executor", lambda _name: RecoveredExecutor()
+    )
+
+    pipeline_tasks.run_pipeline_run_job_task.run(run_job.id, "admin")
+
+    db_session.refresh(run_job)
+    assert run_job.status == "error"
+
+
+def test_run_job_task_ignores_self_collect_log_failure(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """任务终态已提交后，日志归集异常只能记录日志，不能反向失败任务。"""
+    from app.modules.pipelines import tasks as pipeline_tasks
+
+    template = TestModuleTemplate(name="docker", display_name="Docker", suite_name="smoke")
+    db_session.add(template)
+    db_session.flush()
+    _config, _execution, _run, run_job = _make_run_job(db_session, template=template)
+    db_session.commit()
+
+    class SuccessfulExecutor:
+        @staticmethod
+        def prepare_and_execute(*_: object, **__: object) -> str:
+            return "succeeded"
+
+    monkeypatch.setattr(pipeline_tasks, "SessionLocal", lambda: nullcontext(db_session))
+    monkeypatch.setattr(
+        pipeline_tasks, "get_framework_executor", lambda _name: SuccessfulExecutor()
+    )
+    monkeypatch.setattr(
+        pipeline_tasks,
+        "_self_collect_logs",
+        lambda *_, **__: (_ for _ in ()).throw(RuntimeError("log collection failed")),
+    )
+
+    pipeline_tasks.run_pipeline_run_job_task.run(run_job.id, "admin")
+
+    db_session.refresh(run_job)
+    assert run_job.status == "succeeded"
+
+
+def test_mugen_executor_skips_new_test_job_when_run_job_was_cancelled(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """建完 TestJob 后命中的取消不允许进入 process_test_job。"""
+    from app.modules.pipelines.framework_executors import mugen as mugen_executor
+    from app.modules.test_management.models import TestJobStatus
+
+    template = TestModuleTemplate(name="docker", display_name="Docker", suite_name="smoke")
+    db_session.add(template)
+    db_session.flush()
+    config, _execution, _run, run_job = _make_run_job(db_session, template=template)
+    job, env_set, case_run = _make_job_with_case_run(db_session)
+    job.status = TestJobStatus.PENDING.value
+    db_session.commit()
+
+    def _build_cancelled_test_job(_db: Session, **_: object) -> TestJob:
+        run_job.cancel_requested = True
+        return job
+
+    monkeypatch.setattr(mugen_executor, "build_test_job_for_run_job", _build_cancelled_test_job)
+    monkeypatch.setattr(
+        mugen_executor,
+        "process_test_job",
+        lambda _job_id: pytest.fail("cancelled RunJob must not execute its new TestJob"),
+    )
+
+    terminal = mugen_executor.MugenFrameworkExecutor().prepare_and_execute(
+        db_session,
+        run_job=run_job,
+        config=config,
+        actor_user_id="admin",
+    )
+
+    assert terminal == "cancelled"
+    db_session.refresh(job)
+    db_session.refresh(env_set)
+    db_session.refresh(case_run)
+    assert job.cancel_requested is True
+    assert job.status == TestJobStatus.CANCELLED.value
+    assert env_set.status == TestEnvSetStatus.NOT_EXECUTED.value
+    assert case_run.status == TestCaseRunStatus.NOT_EXECUTED.value
+
+
+# ---------- run_case 挂死处理 ----------
+
+
+def _make_job_with_case_run(db: Session, *, result_parser: str | None = "none") -> tuple:
+    from app.modules.test_management.models import utc_now
+
+    job = TestJob(
+        creator_user_id="admin",
+        name="tj",
+        status="running",
+        framework="mugen",
+        env_type="vm",
+        dist="openEuler",
+        os_version="v",
+        image_round="",
+        arch="x86_64",
+        mugen_commit_sha="abc",
+        env_set_num=1,
+        result_parser=result_parser,
+        created_at=utc_now(),
+    )
+    db.add(job)
+    db.flush()
+    env_set = TestEnvSet(job=job, set_index=1, node_num=1, add_disk_num=0, add_nic_num=0)
+    db.add(env_set)
+    db.flush()
+    case_run = TestCaseRun(
+        job=job, env_set=env_set, suite_name="s", case_name="c", status="pending"
+    )
+    db.add(case_run)
+    db.flush()
+    return job, env_set, case_run
+
+
+def test_run_case_hang_marks_error_and_raises(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    job, _env_set, case_run = _make_job_with_case_run(db_session)
+    control = SimpleNamespace(
+        ip="1.1.1.1",
+        username="root",
+        password="p",
+        resource=SimpleNamespace(host_resource_id=None),
+    )
+
+    monkeypatch.setattr(mugen_runner, "record_test_job_event", lambda *_, **__: None)
+    monkeypatch.setattr(mugen_runner, "write_remote_file", lambda **__: None)
+    monkeypatch.setattr(
+        mugen_runner,
+        "run_control_command",
+        lambda **_: RemoteCommandResult(returncode=0, stdout="", stderr=""),
+    )
+
+    class FakeDetector:
+        @staticmethod
+        def start() -> None:
+            pass
+
+        @staticmethod
+        def stop() -> None:
+            pass
+
+        @staticmethod
+        def is_hung() -> bool:
+            return True
+
+    monkeypatch.setattr(mugen_runner, "HangDetector", lambda **_: FakeDetector())
+    monkeypatch.setattr(mugen_runner, "_capture_and_store_console", lambda *_, **__: None)
+
+    with pytest.raises(EnvSetHangError):
+        mugen_runner.run_case(db_session, job=job, control=control, case_run=case_run)
+
+    assert case_run.status == TestCaseRunStatus.ERROR.value
+
+
+# ---------- 心跳失败模式统计 ----------
+
+
+def test_heartbeat_stats_classifies_failure_modes() -> None:
+    stats = _HeartbeatStats()
+
+    # exit 255 + 连接阶段超时/无路由 = 网络层不可达（整机失联特征）。
+    stats.record_result(
+        RemoteCommandResult(
+            returncode=255,
+            stdout="",
+            stderr="ssh: connect to host 10.0.0.1 port 22: Connection timed out",
+        )
+    )
+    stats.record_result(
+        RemoteCommandResult(returncode=255, stdout="", stderr="No route to host")
+    )
+    # 进程级超时：TCP 已建立、echo 卡死到 30s —— OS 活着但重度受阻。
+    stats.record_result(RemoteCommandResult(returncode=None, stdout="", stderr="", timed_out=True))
+    stats.record_result(
+        RemoteCommandResult(returncode=255, stdout="", stderr="ssh: Connection refused")
+    )
+    stats.record_result(
+        RemoteCommandResult(returncode=255, stdout="", stderr="Connection reset by peer")
+    )
+    stats.record_result(
+        RemoteCommandResult(
+            returncode=255, stdout="", stderr="Connection timed out during banner exchange"
+        )
+    )
+    stats.record_result(RemoteCommandResult(returncode=255, stdout="", stderr="kex typo ???"))
+
+    assert stats.summary() == "：失联×2，超时×1，拒绝×1，断连×2，其他×1；末次错误：kex typo ???"
+    # banner exchange 必须先于失联关键词匹配，保持断连判定。
+    single = _HeartbeatStats()
+    single.record_result(
+        RemoteCommandResult(
+            returncode=255, stdout="", stderr="Connection timed out during banner exchange"
+        )
+    )
+    assert "断连×1" in single.summary()
+
+
+def test_heartbeat_stats_summary_empty_and_last_error() -> None:
+    stats = _HeartbeatStats()
+    assert stats.summary() == ""
+
+    stats.record_result(
+        RemoteCommandResult(returncode=255, stdout="", stderr="ssh: Connection refused\n")
+    )
+    assert stats.summary() == "：拒绝×1；末次错误：ssh: Connection refused"
