@@ -650,3 +650,557 @@ onMounted(() => {
   void loadVMImages();
 });
 </script>
+
+<template>
+  <Page title="流水线">
+    <div class="space-y-4">
+      <Tabs v-model:active-key="activeTab">
+        <TabPane key="configs" tab="Pipeline 配置">
+          <Card :body-style="{ padding: 0 }">
+            <div class="pipeline-toolbar">
+              <div class="pipeline-toolbar__left">
+                <Segmented
+                  v-model:value="configTypeFilter"
+                  :options="configTypeOptions"
+                />
+                <Input
+                  v-model:value="configNameSearch"
+                  allow-clear
+                  placeholder="按名称搜索"
+                  style="width: 240px"
+                />
+              </div>
+              <div class="pipeline-toolbar__right">
+                <Button :loading="loading" @click="loadConfigs">
+                  <template #icon><RotateCw class="size-4" /></template>
+                  刷新
+                </Button>
+                <Button type="primary" @click="openCreateConfig">
+                  <template #icon><Plus class="size-4" /></template>
+                  创建配置
+                </Button>
+              </div>
+            </div>
+            <Table
+              :columns="configColumns"
+              :data-source="filteredConfigs"
+              :loading="loading"
+              :pagination="false"
+              row-key="id"
+              size="small"
+            >
+              <template #bodyCell="{ column, record }">
+                <template v-if="column.dataIndex === 'pipeline_type'">
+                  <Tag :color="pipelineTypeColor(record.pipeline_type)">
+                    {{ record.pipeline_type }}
+                  </Tag>
+                </template>
+                <template v-else-if="column.key === 'versions'">
+                  <Tag
+                    v-for="v in record.versions"
+                    :key="v"
+                    style="margin-bottom: 2px"
+                  >
+                    {{ v }}
+                  </Tag>
+                </template>
+                <template v-else-if="column.key === 'archs'">
+                  <Tag v-for="a in record.archs" :key="a" color="blue">
+                    {{ a }}
+                  </Tag>
+                </template>
+                <template v-else-if="column.key === 'modules'">
+                  <span class="pipeline-cell-muted">
+                    {{ templateNames(record as PipelineConfigRecord) }}
+                  </span>
+                </template>
+                <template v-else-if="column.key === 'latest_execution'">
+                  <template v-if="record.latest_execution">
+                    <Tag :color="statusColor(record.latest_execution.status)">
+                      {{ statusLabel(record.latest_execution.status) }}
+                    </Tag>
+                    <div class="pipeline-cell-muted">
+                      {{ formatTime(record.latest_execution.triggered_at) }}
+                    </div>
+                  </template>
+                  <Tag v-else color="default">未执行</Tag>
+                </template>
+                <template v-else-if="column.key === 'action'">
+                  <Button
+                    size="small"
+                    type="primary"
+                    :loading="triggerLoading"
+                    @click="handleTriggerClick(record as PipelineConfigRecord)"
+                  >
+                    触发
+                  </Button>
+                  <Button
+                    size="small"
+                    type="link"
+                    @click="openEditConfig(record as PipelineConfigRecord)"
+                  >
+                    编辑
+                  </Button>
+                  <Button
+                    size="small"
+                    type="link"
+                    @click="openConfigHistory(record as PipelineConfigRecord)"
+                  >
+                    历史
+                  </Button>
+                </template>
+              </template>
+            </Table>
+          </Card>
+        </TabPane>
+
+        <TabPane key="templates" tab="测试模块模板">
+          <Card :body-style="{ padding: 0 }">
+            <div class="mb-3 flex items-center justify-between px-4 pt-3">
+              <Segmented
+                v-model:value="templateTypeFilter"
+                :options="templateTypeOptions"
+                @change="loadTemplates"
+              />
+              <Button type="primary" @click="openCreateTemplate">
+                <template #icon><Plus class="size-4" /></template>
+                新增模块
+              </Button>
+            </div>
+            <Table
+              :columns="templateColumns"
+              :data-source="templates"
+              :pagination="false"
+              row-key="id"
+              size="small"
+            >
+              <template #bodyCell="{ column, record }">
+                <template v-if="column.key === 'config'">
+                  {{ templateConfig(record as TestModuleTemplateRecord) }}
+                </template>
+                <template v-else-if="column.key === 'split'">
+                  <Tag
+                    :color="
+                      record.env_type === 'both'
+                        ? 'orange'
+                        : record.env_type === 'physical'
+                          ? 'red'
+                          : 'default'
+                    "
+                  >
+                    {{ record.env_type }}
+                  </Tag>
+                </template>
+                <template v-else-if="column.key === 'action'">
+                  <Button
+                    size="small"
+                    type="link"
+                    @click="
+                      openEditTemplate(record as TestModuleTemplateRecord)
+                    "
+                  >
+                    编辑
+                  </Button>
+                </template>
+              </template>
+            </Table>
+          </Card>
+        </TabPane>
+
+        <TabPane key="runs" tab="近期执行">
+          <Card :body-style="{ padding: 0 }">
+            <Table
+              :columns="executionColumns"
+              :data-source="executions"
+              :loading="runsLoading"
+              :pagination="{ defaultPageSize: 20, showSizeChanger: true }"
+              :scroll="{ x: 1300 }"
+              row-key="id"
+              size="small"
+            >
+              <template #bodyCell="{ column, record, text }">
+                <template v-if="column.dataIndex === 'config_name'">
+                  <span class="pipeline-cell-ellipsis">
+                    {{ record.config_name }}
+                  </span>
+                </template>
+                <template v-else-if="column.key === 'versions'">
+                  <Tag
+                    v-for="v in record.versions"
+                    :key="v"
+                    style="margin-bottom: 2px"
+                  >
+                    {{ v }}
+                  </Tag>
+                </template>
+                <template v-else-if="column.key === 'archs'">
+                  <Tag v-for="a in record.archs" :key="a" color="blue">
+                    {{ a }}
+                  </Tag>
+                </template>
+                <template v-else-if="column.dataIndex === 'status'">
+                  <Tag :color="statusColor(record.status)">
+                    {{ statusLabel(record.status) }}
+                  </Tag>
+                </template>
+                <template
+                  v-else-if="
+                    ['triggered_at', 'completed_at'].includes(
+                      String(column.dataIndex),
+                    )
+                  "
+                >
+                  {{ formatTime(text) }}
+                </template>
+                <template v-else-if="column.key === 'action'">
+                  <Button
+                    size="small"
+                    type="link"
+                    @click="openDetail(record as PipelineExecutionRecord)"
+                  >
+                    <template #icon><Eye class="size-4" /></template>
+                    详情
+                  </Button>
+                </template>
+              </template>
+            </Table>
+          </Card>
+        </TabPane>
+      </Tabs>
+    </div>
+
+    <!-- Config Modal -->
+    <Modal
+      v-model:open="configModalOpen"
+      :title="editingConfig ? '编辑配置' : '创建 Pipeline 配置'"
+      :width="
+        configForm.pipeline_type === 'release'
+          ? 'min(1100px, calc(100vw - 32px))'
+          : '600px'
+      "
+      :confirm-loading="savingConfig"
+      @ok="handleSaveConfig"
+      @open-change="onConfigModalOpenChange"
+    >
+      <Form layout="vertical" class="space-y-2">
+        <FormItem label="配置名称">
+          <Input
+            v-model:value="configForm.name"
+            placeholder="如 openEuler Update Weekly"
+          />
+        </FormItem>
+        <template v-if="configForm.pipeline_type === 'release'">
+          <ReleaseConfigFields ref="releaseFields" :config="editingConfig" />
+        </template>
+        <template v-else>
+          <div class="flex gap-4">
+            <FormItem label="流水线类型（pipeline_type）" class="flex-1">
+              <Select v-model:value="configForm.pipeline_type">
+                <SelectOption
+                  v-for="t in pipelineTypes"
+                  :key="t.name"
+                  :value="t.name"
+                >
+                  {{ t.name }}
+                </SelectOption>
+              </Select>
+            </FormItem>
+            <FormItem label="发行版（dist）" class="flex-1">
+              <Input v-model:value="configForm.dist" disabled />
+            </FormItem>
+            <FormItem label="镜像轮次（image_round）" class="flex-1">
+              <Input v-model:value="configForm.image_round" disabled />
+            </FormItem>
+          </div>
+          <FormItem label="测试版本（可多选，也可手动输入新版本）">
+            <Select
+              v-model:value="configForm.versions"
+              mode="tags"
+              style="width: 100%"
+              placeholder="选择或输入版本"
+              @change="onVersionsChange"
+            >
+              <SelectOption v-for="v in versionOptions" :key="v" :value="v">
+                {{ v }}
+              </SelectOption>
+            </Select>
+          </FormItem>
+          <FormItem label="测试架构">
+            <Checkbox.Group v-model:value="configForm.archs">
+              <Checkbox value="aarch64">aarch64</Checkbox>
+              <Checkbox value="x86_64">x86_64</Checkbox>
+            </Checkbox.Group>
+            <div
+              v-if="has64kVersion"
+              style="
+                margin-top: 4px;
+                font-size: 12px;
+                color: hsl(var(--muted-foreground));
+              "
+            >
+              64k 版本仅支持 aarch64，x86_64 组合将自动跳过
+            </div>
+          </FormItem>
+          <FormItem
+            v-if="isDirectRunType(configForm.pipeline_type)"
+            label="测试 Suite（可多选，也可手动输入新 Suite）"
+          >
+            <Select
+              v-model:value="configForm.suites"
+              mode="tags"
+              style="width: 100%"
+              :loading="mugenSuitesLoading"
+              placeholder="选择或输入 Suite 名"
+            >
+              <SelectOption v-for="s in mugenSuites" :key="s" :value="s">
+                {{ s }}
+              </SelectOption>
+            </Select>
+          </FormItem>
+          <FormItem v-else label="测试模块">
+            <div class="flex flex-col gap-2">
+              <Checkbox
+                :checked="
+                  configForm.pkgcmd_physical_enabled &&
+                  configForm.pkgserver_physical_enabled &&
+                  configForm.pkgunion_physical_enabled
+                "
+                @change="
+                  (e: { target: { checked: boolean } }) => {
+                    configForm.pkgcmd_physical_enabled = e.target.checked;
+                    configForm.pkgserver_physical_enabled = e.target.checked;
+                    configForm.pkgunion_physical_enabled = e.target.checked;
+                  }
+                "
+              >
+                执行物理机用例
+              </Checkbox>
+              <Checkbox.Group v-model:value="configForm.module_template_ids">
+                <div class="flex flex-col gap-2">
+                  <div
+                    v-for="t in templates"
+                    :key="t.id"
+                    class="flex items-center gap-3"
+                  >
+                    <Checkbox :value="t.id">
+                      {{ t.display_name }}
+                      <span class="tmpl-suite">({{ t.suite_name }})</span>
+                    </Checkbox>
+                    <Switch
+                      v-if="t.name === 'pkgcmd'"
+                      v-model:checked="configForm.pkgcmd_physical_enabled"
+                      size="small"
+                    >
+                      <template #checkedChildren>物理机</template>
+                      <template #unCheckedChildren>仅 VM</template>
+                    </Switch>
+                    <Switch
+                      v-else-if="t.name === 'pkgserver'"
+                      v-model:checked="configForm.pkgserver_physical_enabled"
+                      size="small"
+                    >
+                      <template #checkedChildren>物理机</template>
+                      <template #unCheckedChildren>仅 VM</template>
+                    </Switch>
+                    <Switch
+                      v-else-if="t.name === 'pkgunion'"
+                      v-model:checked="configForm.pkgunion_physical_enabled"
+                      size="small"
+                    >
+                      <template #checkedChildren>物理机</template>
+                      <template #unCheckedChildren>仅 VM</template>
+                    </Switch>
+                  </div>
+                </div>
+              </Checkbox.Group>
+            </div>
+          </FormItem>
+        </template>
+      </Form>
+    </Modal>
+
+    <!-- Trigger Modal (direct_run types require trigger-level image_round) -->
+    <Modal
+      v-model:open="triggerModalOpen"
+      :confirm-loading="triggerLoading"
+      title="触发流水线"
+      width="500px"
+      @ok="handleTriggerConfirm"
+    >
+      <Form layout="vertical" class="space-y-2">
+        <FormItem label="配置">
+          <span>{{ triggerConfigLabel }}</span>
+        </FormItem>
+        <FormItem label="镜像轮次（image_round）" required>
+          <Input
+            v-model:value="triggerForm.image_round"
+            placeholder="如 round-9（必填，本次触发对应的 RC 构建轮次）"
+          />
+        </FormItem>
+      </Form>
+    </Modal>
+
+    <!-- Template Modal -->
+    <Modal
+      v-model:open="templateModalOpen"
+      :title="editingTemplate ? '编辑模块模板' : '新增测试模块'"
+      width="700px"
+      :confirm-loading="savingTemplate"
+      @ok="handleSaveTemplate"
+    >
+      <Form layout="vertical" class="space-y-2">
+        <div class="flex gap-4">
+          <FormItem label="模块标识（唯一）" class="flex-1">
+            <Input
+              v-model:value="templateForm.name"
+              placeholder="如 docker"
+              :disabled="!!editingTemplate"
+            />
+          </FormItem>
+          <FormItem label="模块名称" class="flex-1">
+            <Input
+              v-model:value="templateForm.display_name"
+              placeholder="如 Docker Update Test"
+            />
+          </FormItem>
+        </div>
+        <div class="flex gap-4">
+          <FormItem label="Mugen Suite" class="flex-1">
+            <Input
+              v-model:value="templateForm.suite_name"
+              placeholder="如 smoke"
+            />
+          </FormItem>
+          <FormItem label="测试框架" class="flex-1">
+            <Select v-model:value="templateForm.test_framework">
+              <SelectOption value="mugen">mugen</SelectOption>
+              <SelectOption value="ltp">ltp</SelectOption>
+              <SelectOption value="other">other</SelectOption>
+            </Select>
+          </FormItem>
+          <FormItem label="用例筛选策略" class="flex-1">
+            <Select v-model:value="templateForm.case_filter">
+              <SelectOption value="none">none（不筛选）</SelectOption>
+              <SelectOption value="repodata_packages">
+                repodata_packages（pkgcmd）
+              </SelectOption>
+              <SelectOption value="repodata_union">
+                repodata_union（pkgunion）
+              </SelectOption>
+              <SelectOption value="service_test_cases">
+                service_test_cases（pkgserver）
+              </SelectOption>
+            </Select>
+          </FormItem>
+        </div>
+        <div class="flex gap-4">
+          <FormItem label="环境套数（env_set_num）" class="flex-1">
+            <InputNumber
+              v-model:value="templateForm.env_set_num"
+              :min="1"
+              style="width: 100%"
+            />
+          </FormItem>
+          <FormItem label="节点数（node_num）" class="flex-1">
+            <InputNumber
+              v-model:value="templateForm.node_num"
+              :min="1"
+              style="width: 100%"
+            />
+          </FormItem>
+          <FormItem label="结果解析器" class="flex-1">
+            <Select v-model:value="templateForm.result_parser">
+              <SelectOption value="none">none</SelectOption>
+              <SelectOption value="ltp">ltp</SelectOption>
+              <SelectOption value="docker">docker</SelectOption>
+              <SelectOption value="pkgcmd">pkgcmd</SelectOption>
+              <SelectOption value="pkgmanage">pkgmanage</SelectOption>
+              <SelectOption value="pkgserver">pkgserver</SelectOption>
+              <SelectOption value="pkgunion">pkgunion</SelectOption>
+            </Select>
+          </FormItem>
+        </div>
+        <FormItem label="环境类型（env_type）">
+          <Select v-model:value="templateForm.env_type">
+            <SelectOption value="vm">vm（仅虚拟机）</SelectOption>
+            <SelectOption value="physical">physical（仅物理机）</SelectOption>
+            <SelectOption value="both">both（VM+物理机都跑）</SelectOption>
+          </Select>
+        </FormItem>
+        <FormItem
+          label="mugen_exec_command（自定义 Mugen 执行命令，留空则用默认）"
+        >
+          <Textarea
+            v-model:value="templateForm.mugen_exec_command"
+            :rows="3"
+            placeholder="留空使用默认：cd /opt/mugen && mugen.sh -f {suite} -r {case} -x&#10;docker 模块示例：docker exec openEuler_test bash -c 'cd /home/mugen && mugen.sh -f {suite} -r {case} -x'"
+            style="font-family: monospace; font-size: 12px"
+          />
+        </FormItem>
+        <FormItem label="pre_env_script（环境准备脚本）">
+          <Textarea
+            v-model:value="templateForm.pre_env_script"
+            :rows="6"
+            placeholder="#!/bin/bash&#10;# VM 启动后、Mugen 执行前运行的脚本&#10;# 可用环境变量：KRONOS_OS_VERSION, KRONOS_ARCH, KRONOS_ENV_SET_INDEX, OET_PATH（mugen 目录，默认 /opt/mugen）"
+            style="font-family: monospace; font-size: 12px"
+          />
+        </FormItem>
+        <FormItem label="rerun_env_script（重跑局部准备脚本）">
+          <Textarea
+            v-model:value="templateForm.rerun_env_script"
+            :rows="5"
+            placeholder="# 每个复用环境套在重跑用例前执行一次；首次执行不运行"
+            style="font-family: monospace; font-size: 12px"
+          />
+        </FormItem>
+        <FormItem label="post_env_script（结果整理脚本）">
+          <Textarea
+            v-model:value="templateForm.post_env_script"
+            :rows="6"
+            placeholder="#!/bin/bash&#10;# Mugen 执行后、日志收集前运行的脚本&#10;# 可用环境变量：KRONOS_OS_VERSION, KRONOS_ARCH, KRONOS_ENV_SET_INDEX, OET_PATH（mugen 目录，默认 /opt/mugen）&#10;# mugen 日志在 ${OET_PATH}/logs/，结果在 ${OET_PATH}/results/"
+            style="font-family: monospace; font-size: 12px"
+          />
+        </FormItem>
+      </Form>
+    </Modal>
+  </Page>
+</template>
+
+<style scoped>
+.tmpl-suite {
+  font-size: 12px;
+  color: hsl(var(--muted-foreground));
+}
+
+.pipeline-toolbar {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+}
+
+.pipeline-toolbar__left {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.pipeline-toolbar__right {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.pipeline-cell-muted {
+  font-size: 12px;
+}
+
+.pipeline-cell-ellipsis {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+</style>
