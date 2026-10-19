@@ -3928,3 +3928,998 @@ def test_execute_env_set_stops_before_prepare_when_64k_is_not_transferred(
     assert all(
         case.status == TestCaseRunStatus.NOT_EXECUTED.value for case in env_set.case_runs
     )
+
+
+def _make_update_config(
+    db,
+    *,
+    versions,
+    archs,
+    template_ids=None,
+):
+    _seed_pipeline_type(db, name="update", strategy_kind="update_strategy")
+    config = PipelineConfig(
+        name="update-cfg",
+        pipeline_type="update",
+        versions=versions,
+        archs=archs,
+        config_data={"module_template_ids": template_ids or []},
+        dist="openEuler",
+        image_round="",
+    )
+    db.add(config)
+    db.flush()
+    return config
+
+
+def _make_template(db, *, name="t", env_type="vm"):
+    tmpl = TestModuleTemplate(
+        name=name,
+        display_name=name,
+        suite_name="s",
+        pipeline_type="update",
+        env_set_num=1,
+        node_num=1,
+        case_filter="none",
+        env_type=env_type,
+        skip_packages=[],
+        pre_env_script="",
+        post_env_script="",
+        mugen_exec_command=None,
+        result_parser="mugen_results",
+        test_framework="mugen",
+    )
+    db.add(tmpl)
+    db.flush()
+    return tmpl
+
+
+def test_update_strategy_skips_64k_x86_64(
+    db_session: Session,
+) -> None:
+    """-64k 版本 × x86_64 架构 → 不创建 RunJob。"""
+    from app.modules.pipelines.pipeline_strategies.update import (
+        UpdatePipelineStrategy,
+    )
+
+    tmpl = _make_template(db_session)
+    config = _make_update_config(
+        db_session,
+        versions=["openEuler-24.03-LTS-SP4", "openEuler-24.03-LTS-SP4-64k"],
+        archs=["aarch64", "x86_64"],
+        template_ids=[tmpl.id],
+    )
+    execution = PipelineExecution(
+        config_id=config.id,
+        triggered_by="admin",
+    )
+    db_session.add(execution)
+    db_session.flush()
+
+    strategy = UpdatePipelineStrategy()
+    run_jobs = strategy.plan_run_jobs(
+        db_session,
+        config=config,
+        execution=execution,
+        versions=config.versions,
+        archs=config.archs,
+    )
+
+    # 2403sp4 × aarch64 + 2403sp4 × x86_64 + 2403sp4-64k × aarch64 = 3
+    # 2403sp4-64k × x86_64 should be skipped
+    assert len(run_jobs) == 3, [rj.arch for rj in run_jobs]
+    # RunJob has no version field; verify via the associated PipelineRun.
+    run_ids = {rj.pipeline_run_id for rj in run_jobs}
+    runs = (
+        db_session.execute(select(PipelineRun).where(PipelineRun.id.in_(run_ids))).scalars().all()
+    )
+    run_by_version = {r.version: r for r in runs}
+    # Two PipelineRuns: one for 2403sp4, one for 2403sp4-64k
+    assert len(runs) == 2
+    # 2403sp4 has 2 RunJobs (aarch64 + x86_64)
+    sp4_id = run_by_version["openEuler-24.03-LTS-SP4"].id
+    sp4_jobs = [rj for rj in run_jobs if rj.pipeline_run_id == sp4_id]
+    assert len(sp4_jobs) == 2
+    assert {rj.arch for rj in sp4_jobs} == {"aarch64", "x86_64"}
+    # 2403sp4-64k has 1 RunJob (aarch64 only)
+    k64k_id = run_by_version["openEuler-24.03-LTS-SP4-64k"].id
+    k64k_jobs = [rj for rj in run_jobs if rj.pipeline_run_id == k64k_id]
+    assert len(k64k_jobs) == 1
+    assert k64k_jobs[0].arch == "aarch64"
+
+
+def test_update_strategy_non_64k_creates_all_combinations(
+    db_session: Session,
+) -> None:
+    """非 -64k 版本 → 全部版本×架构组合都创建。"""
+    from app.modules.pipelines.pipeline_strategies.update import (
+        UpdatePipelineStrategy,
+    )
+
+    tmpl = _make_template(db_session)
+    config = _make_update_config(
+        db_session,
+        versions=["openEuler-22.03-LTS-SP4"],
+        archs=["aarch64", "x86_64"],
+        template_ids=[tmpl.id],
+    )
+    execution = PipelineExecution(
+        config_id=config.id,
+        triggered_by="admin",
+    )
+    db_session.add(execution)
+    db_session.flush()
+
+    strategy = UpdatePipelineStrategy()
+    run_jobs = strategy.plan_run_jobs(
+        db_session,
+        config=config,
+        execution=execution,
+        versions=config.versions,
+        archs=config.archs,
+    )
+
+    assert len(run_jobs) == 2
+
+
+def _make_job_for_runner(
+    db_session: Session,
+    *,
+    mugen_exec_command: str | None = None,
+    pre_env_script: str | None = None,
+    post_env_script: str | None = None,
+) -> TestJob:
+    job = TestJob(
+        creator_user_id="admin",
+        name="tj",
+        status="running",
+        framework="mugen",
+        env_type="vm",
+        dist="openEuler",
+        os_version="v",
+        image_round="",
+        arch="x86_64",
+        mugen_commit_sha="abc",
+        env_set_num=1,
+        mugen_exec_command=mugen_exec_command,
+        pre_env_script=pre_env_script,
+        post_env_script=post_env_script,
+    )
+    db_session.add(job)
+    env_set = TestEnvSet(job=job, set_index=1, node_num=1, add_disk_num=0, add_nic_num=0)
+    db_session.add(env_set)
+    db_session.commit()
+    return job
+
+
+def _ok_result() -> RemoteCommandResult:
+    return RemoteCommandResult(returncode=0, stdout="", stderr="")
+
+
+def _event_phases(db_session: Session, job_id: int) -> list[str]:
+    rows_rows = (
+        db_session.execute(
+            select(TaskEvent).where(TaskEvent.subject_id == str(job_id))
+        ).scalars().all()
+    )
+    return [
+        e.phase
+        for e in rows_rows
+    ]
+
+
+def test_prepare_env_records_ssh_ready_done(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """prepare_env 成功后记 ssh_ready_done。"""
+    job = _make_job_for_runner(db_session, mugen_exec_command="docker exec ...")
+    control = SimpleNamespace(
+        ip="1.1.1.1", username="root", password="p",
+        resource=SimpleNamespace(host_resource_id=None),
+    )
+    monkeypatch.setattr(mugen_runner, "wait_for_ssh_ready", lambda *a, **kw: None)
+    monkeypatch.setattr(mugen_runner, "write_control_file", lambda **kw: None)
+    monkeypatch.setattr(mugen_runner, "run_control_command", lambda **kw: _ok_result())
+
+    mugen_runner.prepare_env(
+        db_session, job=job, env_set=job.env_sets[0], control=control, peer=None
+    )
+
+    phases = _event_phases(db_session, job.id)
+    assert "ssh_ready" in phases
+    assert "ssh_ready_done" in phases
+
+
+def test_prepare_mugen_records_done(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """prepare_mugen 成功后记 mugen_prepare_done。"""
+    job = _make_job_for_runner(db_session)
+    control = SimpleNamespace(ip="1.1.1.1", username="root", password="p")
+    monkeypatch.setattr(mugen_runner, "run_control_command", lambda **kw: _ok_result())
+    monkeypatch.setattr(mugen_runner, "job_step_timeout", lambda *a, **kw: 60)
+
+    mugen_runner.prepare_mugen(db_session, job=job, control=control)
+
+    phases = _event_phases(db_session, job.id)
+    assert "mugen_prepare" in phases
+    assert "mugen_prepare_done" in phases
+
+
+def test_configure_mugen_node_records_done(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """configure_mugen_node 成功后记 mugen_config_done。"""
+    job = _make_job_for_runner(db_session)
+    control = SimpleNamespace(ip="1.1.1.1", username="root", password="p")
+    node = SimpleNamespace(ip="1.1.1.1", username="root", password="p")
+    monkeypatch.setattr(mugen_runner, "run_control_command", lambda **kw: _ok_result())
+    monkeypatch.setattr(mugen_runner, "job_step_timeout", lambda *a, **kw: 120)
+    monkeypatch.setattr("time.sleep", lambda *_: None)
+
+    mugen_runner.configure_mugen_node(
+        db_session, job=job, control=control, node=node, role="control"
+    )
+
+    phases = _event_phases(db_session, job.id)
+    assert "mugen_config" in phases
+    assert "mugen_config_done" in phases
+
+
+def test_configure_mugen_node_raises_job_cancelled_when_result_cancelled(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """configure_mugen_node:run_control_command 返回 cancelled=True 或
+    cancel_event 已 set 时立即抛 job_cancelled,不重试、不 sleep。
+    """
+    import threading
+
+    job = _make_job_for_runner(db_session)
+    control = SimpleNamespace(ip="1.1.1.1", username="root", password="p")
+    node = SimpleNamespace(ip="1.1.1.1", username="root", password="p")
+    cancel_event = threading.Event()
+
+    def _fake_run_control(**kwargs):
+        cancel_event.set()
+        return RemoteCommandResult(returncode=None, stdout="", stderr="", cancelled=True)
+
+    sleeps: list[float] = []
+    monkeypatch.setattr(mugen_runner, "run_control_command", _fake_run_control)
+    monkeypatch.setattr(mugen_runner, "job_step_timeout", lambda *a, **kw: 120)
+    monkeypatch.setattr(mugen_runner.time, "sleep", sleeps.append)
+
+    with pytest.raises(TestJobExecutionError) as exc_info:
+        mugen_runner.configure_mugen_node(
+            db_session,
+            job=job,
+            control=control,
+            node=node,
+            role="control",
+            cancel_event=cancel_event,
+        )
+
+    assert exc_info.value.code == "job_cancelled"
+    assert sleeps == []
+
+
+def test_run_hook_records_done(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """run_hook 成功后记 {phase}_done。"""
+    job = _make_job_for_runner(db_session, pre_env_script="echo hi", post_env_script="echo bye")
+    control = SimpleNamespace(ip="1.1.1.1", username="root", password="p")
+    monkeypatch.setattr(mugen_runner, "run_control_command", lambda **kw: _ok_result())
+    monkeypatch.setattr(mugen_runner, "job_step_timeout", lambda *a, **kw: 60)
+
+    mugen_runner.run_hook(
+        db_session, job=job, control=control, directory="/tmp",
+        script_name="pre_env.sh", phase="pre_env",
+    )
+
+    phases = _event_phases(db_session, job.id)
+    assert "pre_env" in phases
+    assert "pre_env_done" in phases
+
+
+# ---------- VM 带外判活与宿主机恢复（ADR 0046） ----------
+
+
+def _vm_control_with_host(
+    db: Session, *, with_channel: bool = True, vm_name: str = "vm-1"
+) -> SimpleNamespace:
+    """构造带真实 Resource/VirtualResourceSpec 的 VM control。
+
+    回归锁必须用真实 ORM 形态：宿主信息在 virtual_spec 上而不是 Resource 上。
+    """
+    from uuid import uuid4
+
+    from app.modules.resources.models import VirtualResourceSpec
+
+    vm_resource = Resource(
+        resource_code=f"vm-{uuid4().hex[:8]}",
+        resource_type="virtual",
+        ssh_username="root",
+        ssh_password_ciphertext="cipher",
+        primary_ip="10.0.0.2",
+    )
+    db.add(vm_resource)
+    db.flush()
+    if with_channel:
+        host = Resource(
+            resource_code=f"host-{uuid4().hex[:8]}",
+            resource_type="physical",
+            ssh_username="root",
+            ssh_password_ciphertext="cipher",
+            primary_ip="10.0.0.1",
+        )
+        db.add(host)
+        db.flush()
+        vm_resource.virtual_spec = VirtualResourceSpec(
+            vm_name=vm_name, host_resource_id=host.id
+        )
+    else:
+        vm_resource.virtual_spec = VirtualResourceSpec(vm_name=vm_name, host_resource_id=None)
+    db.commit()
+    return SimpleNamespace(ip="10.0.0.2", username="root", password="p", resource=vm_resource)
+
+
+def testvm_host_channel_resolves_from_virtual_spec(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """回归锁：宿主通道从 virtual_spec 解析——修复前 getattr(resource,...) 恒 None，
+    VM console 取证与带外判活从未生效（SimpleNamespace 假对象掩盖了该缺陷）。
+    """
+    monkeypatch.setattr(
+        mugen_runner,
+        "get_settings",
+        lambda: SimpleNamespace(vm_host_ssh_key_path="/test-key"),
+    )
+    control = _vm_control_with_host(db_session)
+    assert mugen_runner.vm_host_channel(db_session, control) == ("10.0.0.1", "vm-1", "/test-key")
+
+    # 无宿主引用
+    control_no_host = _vm_control_with_host(db_session, with_channel=False)
+    assert mugen_runner.vm_host_channel(db_session, control_no_host) is None
+
+    # 物理机不走 VM 通道
+    assert mugen_runner.vm_host_channel(db_session, _bmc_control()) is None
+
+
+def test_capture_console_vm_with_real_resource_uses_host_channel(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """回归锁（修复）：真实 VM Resource 挂死取证走宿主机 virsh console 分支。"""
+    job, _env_set, case_run = _make_job_with_case_run(db_session)
+    control = _vm_control_with_host(db_session)
+    captured: dict[str, object] = {}
+    stores: list[dict] = []
+
+    monkeypatch.setattr(
+        mugen_runner,
+        "get_settings",
+        lambda: SimpleNamespace(
+            vm_host_ssh_key_path="/test-key", pipeline_log_dir="/tmp/kronos-test-logs"
+        ),
+    )
+
+    def fake_capture(*, host_ip, vm_name, ssh_key_path):
+        captured.update(host_ip=host_ip, vm_name=vm_name, ssh_key_path=ssh_key_path)
+        return "=== virsh domstate ===\nrunning"
+
+    monkeypatch.setattr(mugen_runner, "capture_vm_console_output", fake_capture)
+
+    class FakeCollector:
+        def __init__(self, *, base_dir):  # noqa: ANN001
+            pass
+
+        @staticmethod
+        def store_artifact(**kw):  # noqa: ANN003
+            stores.append(kw)
+
+    monkeypatch.setattr(mugen_runner, "LogCollector", FakeCollector)
+
+    _capture_and_store_console(
+        db_session, job=job, control=control, case_run=case_run
+    )
+
+    assert captured == {"host_ip": "10.0.0.1", "vm_name": "vm-1", "ssh_key_path": "/test-key"}
+    assert stores and stores[0]["artifact_type"] == "console_diagnostic"
+
+
+def test_run_case_vm_with_host_channel_builds_domstate_gate(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """VM 有宿主通道 → HangDetector 拿到 domstate 确认门；无通道维持无门。"""
+    job, _env_set, case_run = _make_job_with_case_run(db_session)
+    control = _vm_control_with_host(db_session)
+    captured: dict[str, object] = {}
+
+    class FakeDetector:
+        def __init__(self, **kw: object) -> None:
+            captured.update(kw)
+
+        @staticmethod
+        def start() -> None:
+            pass
+
+        @staticmethod
+        def stop() -> None:
+            pass
+
+        @staticmethod
+        def is_hung() -> bool:
+            return True
+
+    monkeypatch.setattr(mugen_runner, "record_test_job_event", lambda *_, **__: None)
+    monkeypatch.setattr(mugen_runner, "write_remote_file", lambda **__: None)
+    monkeypatch.setattr(
+        mugen_runner,
+        "get_settings",
+        lambda: SimpleNamespace(vm_host_ssh_key_path="/test-key"),
+    )
+    monkeypatch.setattr(
+        mugen_runner,
+        "run_control_command",
+        lambda **_: RemoteCommandResult(returncode=0, stdout="", stderr=""),
+    )
+    monkeypatch.setattr(mugen_runner, "HangDetector", FakeDetector)
+    monkeypatch.setattr(mugen_runner, "_capture_and_store_console", lambda *_, **__: None)
+
+    with pytest.raises(EnvSetHangError):
+        mugen_runner.run_case(db_session, job=job, control=control, case_run=case_run)
+
+    assert captured.get("confirm_fn") is not None
+    assert captured.get("on_watch_start") is not None
+    assert captured.get("on_recovered") is not None
+
+
+def test_run_case_vm_domstate_alive_watches_and_selfheals(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """sssd 场景回放：domstate 活着 → 观察模式 → SSH 恢复 → 用例拿回真实结果。"""
+    import threading
+
+    import app.modules.test_management.hang_detector as hang_detector_module
+
+    job, _env_set, case_run = _make_job_with_case_run(db_session)
+    control = _vm_control_with_host(db_session)
+    events: list[tuple[str | None, str | None]] = []
+    artifacts: list[str | None] = []
+    recovered_event = threading.Event()
+
+    monkeypatch.setattr(mugen_runner, "record_test_job_event", lambda *_, **__: None)
+    monkeypatch.setattr(mugen_runner, "write_remote_file", lambda **__: None)
+    monkeypatch.setattr(
+        mugen_runner,
+        "get_settings",
+        lambda: SimpleNamespace(vm_host_ssh_key_path="/test-key"),
+    )
+    monkeypatch.setattr(mugen_runner, "vm_domstate_alive", lambda **_kw: True)
+    monkeypatch.setattr(mugen_runner, "capture_vm_console_output", lambda **_kw: "console")
+    monkeypatch.setattr(
+        mugen_runner,
+        "_record_hang_watch_event",
+        lambda _job_id, **kw: (
+            events.append((kw.get("phase"), kw.get("message"))),
+            recovered_event.set() if kw.get("phase") == "hang_recovered" else None,
+        ),
+    )
+    monkeypatch.setattr(
+        mugen_runner,
+        "_store_hang_watch_artifact",
+        lambda **kw: artifacts.append(kw.get("artifact_name")),
+    )
+    monkeypatch.setattr(
+        mugen_runner,
+        "run_control_command",
+        lambda **_: (
+            recovered_event.wait(timeout=5),
+            RemoteCommandResult(returncode=0, stdout="", stderr=""),
+        )[1],
+    )
+
+    probe_count = [0]
+
+    def fake_ssh_alive(_control: object, _stats: object = None) -> bool:
+        probe_count[0] += 1
+        return probe_count[0] > 5
+
+    monkeypatch.setattr(mugen_runner, "_ssh_alive", fake_ssh_alive)
+    real_hang_detector = mugen_runner.HangDetector
+
+    def fast_detector(**kw: object) -> object:
+        return real_hang_detector(interval=0.02, max_failures=3, **kw)
+
+    monkeypatch.setattr(mugen_runner, "HangDetector", fast_detector)
+    monkeypatch.setattr(mugen_runner, "_parse_and_store_subcases", lambda *_, **__: None)
+    monkeypatch.setattr(mugen_runner, "_per_case_collect_log", lambda *_, **__: None)
+    monkeypatch.setattr(hang_detector_module, "WATCH_TIMEOUT_SECONDS", 5.0)
+
+    mugen_runner.run_case(db_session, job=job, control=control, case_run=case_run)
+
+    assert recovered_event.wait(timeout=1)
+    phases = [phase for phase, _ in events]
+    assert "hang_watch" in phases
+    assert "hang_recovered" in phases
+    # watch-entry 事件注明宿主机 domstate 活着
+    assert any(message and "VM 运行中" in message for _, message in events)
+    assert artifacts == [f"console-{case_run.suite_name}-{case_run.case_name}-watch-entry.log"]
+    assert case_run.status == TestCaseRunStatus.PASSED.value
+
+
+def test_run_case_vm_domstate_shutoff_deadline_declares_hang(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """domstate shut off → 锚定关机宽限，到点判死：vm_hang + detail 含关机证据。"""
+    import app.modules.test_management.hang_detector as hang_detector_module
+
+    job, _env_set, case_run = _make_job_with_case_run(db_session)
+    control = _vm_control_with_host(db_session)
+    events: list[tuple[str | None, str | None]] = []
+
+    monkeypatch.setattr(
+        mugen_runner,
+        "record_test_job_event",
+        lambda _db, **kw: events.append((kw.get("phase"), kw.get("message"))),
+    )
+    monkeypatch.setattr(mugen_runner, "write_remote_file", lambda **__: None)
+    monkeypatch.setattr(
+        mugen_runner,
+        "get_settings",
+        lambda: SimpleNamespace(vm_host_ssh_key_path="/test-key"),
+    )
+    monkeypatch.setattr(mugen_runner, "vm_domstate_alive", lambda **_kw: False)
+    monkeypatch.setattr(mugen_runner, "capture_vm_console_output", lambda **_kw: "console")
+    monkeypatch.setattr(
+        mugen_runner,
+        "_record_hang_watch_event",
+        lambda _job_id, **kw: events.append((kw.get("phase"), kw.get("message"))),
+    )
+    monkeypatch.setattr(mugen_runner, "_store_hang_watch_artifact", lambda **_kw: None)
+
+    def fake_run_control(**kw: object) -> object:
+        cancel_event = kw.get("cancel_event")
+        if cancel_event is not None:
+            cancel_event.wait(timeout=5)
+        return RemoteCommandResult(returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr(mugen_runner, "run_control_command", fake_run_control)
+    monkeypatch.setattr(
+        mugen_runner,
+        "_ssh_alive",
+        lambda _control, _stats=None: False,
+    )
+    real_hang_detector = mugen_runner.HangDetector
+
+    def fast_detector(**kw: object) -> object:
+        return real_hang_detector(interval=0.02, max_failures=2, **kw)
+
+    monkeypatch.setattr(mugen_runner, "HangDetector", fast_detector)
+    monkeypatch.setattr(mugen_runner, "_capture_and_store_console", lambda *_, **__: None)
+    monkeypatch.setattr(hang_detector_module, "WATCH_POWER_OFF_DEADLINE_SECONDS", 0.15)
+
+    with pytest.raises(EnvSetHangError):
+        mugen_runner.run_case(db_session, job=job, control=control, case_run=case_run)
+
+    assert case_run.status == TestCaseRunStatus.ERROR.value
+    # 首查关机也进观察模式，watch-entry 事件注明 VM 已关机
+    assert any(
+        message and "VM 已关机" in message and "观察模式" in message for _, message in events
+    )
+    assert any(
+        message and "已关机" in message and "10 分钟内 SSH 未恢复" in message
+        for _, message in events
+    )
+    # 判死 detail 注明宿主机关机证据
+    assert any(
+        message and "宿主机报告 VM" in message and "已关机" in message
+        for phase, message in events
+        if phase == "case_error"
+    )
+
+
+def test_try_vm_recovery_no_channel_returns_false(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """无宿主通道（物理机/未配置）：不尝试恢复、不写事件，回退原熔断。"""
+    job, _env_set, _case_run = _make_job_with_case_run(db_session)
+    events: list[str | None] = []
+    monkeypatch.setattr(
+        mugen_runner, "record_test_job_event", lambda _db, **kw: events.append(kw.get("phase"))
+    )
+
+    assert (
+        mugen_runner.try_vm_recovery(
+            db_session, job=job, control=_bmc_control(), cancel_event=None
+        )
+        is False
+    )
+    assert events == []
+
+
+def test_try_vm_recovery_reset_and_ssh_back_returns_true(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """ebtables 场景回放：console 取证 → 硬复位 → SSH 恢复 → True，事件留痕。"""
+    job, _env_set, _case_run = _make_job_with_case_run(db_session)
+    control = _vm_control_with_host(db_session)
+    events: list[str | None] = []
+    artifacts: list[str | None] = []
+    order: list[str] = []
+
+    monkeypatch.setattr(
+        mugen_runner,
+        "get_settings",
+        lambda: SimpleNamespace(vm_host_ssh_key_path="/test-key"),
+    )
+    monkeypatch.setattr(
+        mugen_runner, "record_test_job_event", lambda _db, **kw: events.append(kw.get("phase"))
+    )
+    monkeypatch.setattr(
+        mugen_runner,
+        "capture_vm_console_output",
+        lambda **_kw: (order.append("capture"), "console output")[1],
+    )
+    monkeypatch.setattr(
+        mugen_runner,
+        "_store_hang_watch_artifact",
+        lambda **kw: artifacts.append(kw.get("artifact_name")),
+    )
+    monkeypatch.setattr(
+        mugen_runner,
+        "vm_hard_reset",
+        lambda **_kw: (order.append("reset"), True)[1],
+    )
+    monkeypatch.setattr(
+        mugen_runner,
+        "_ssh_alive",
+        lambda _control, _stats=None: (order.append("ssh"), True)[1],
+    )
+
+    assert (
+        mugen_runner.try_vm_recovery(db_session, job=job, control=control, cancel_event=None)
+        is True
+    )
+    assert events == ["vm_recovery_started", "vm_recovered"]
+    assert order == ["capture", "reset", "ssh"]
+    assert artifacts == ["console-recovery.log"]
+
+
+def test_sync_vm_disks_best_effort(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """sync 契约：下发 sync 命令且绝不抛异常（SSH 已死是杀手用例的预期场景）。"""
+    control = SimpleNamespace(ip="1.1.1.1", username="root", password="p")
+    recorded: list[dict] = []
+
+    def ok_command(**kwargs):
+        recorded.append(kwargs)
+        return RemoteCommandResult(returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr(mugen_runner, "run_control_command", ok_command)
+    mugen_runner.sync_vm_disks(control)
+    assert recorded[0]["script"] == "sync"
+    assert recorded[0]["control"] is control
+
+    # SSH 已死（杀手用例场景）：吞掉异常，交给下轮探针恢复接管
+    def dead_ssh(**_kwargs):
+        raise RuntimeError("ssh dead")
+
+    monkeypatch.setattr(mugen_runner, "run_control_command", dead_ssh)
+    mugen_runner.sync_vm_disks(control)  # 不抛即通过
+
+
+def test_execute_env_set_syncs_at_boundaries(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """job 10238 场景：环境就绪 sync 1 次 + 每个正常返回的用例后各 1 次；
+    异常用例（SSH 已死）不 sync——sync 失败无意义。
+    """
+    from app.modules.test_management import execution as test_execution
+    from app.modules.test_management.remote import RemoteCommandError
+
+    _patch_env_set_basics(monkeypatch, test_execution)
+    _patch_probe_gate(monkeypatch, test_execution, refused=False)
+
+    order: list[str] = []
+
+    def fake_run_case(db, *, job, control, case_run, **kwargs):
+        order.append(f"case:{case_run.case_name}")
+        if case_run.case_name == "c1":  # 中间用例杀 sshd：SSH 已死不 sync
+            case_run.status = TestCaseRunStatus.ERROR.value
+            raise RemoteCommandError("ssh refused")
+        case_run.status = TestCaseRunStatus.PASSED.value
+
+    monkeypatch.setattr(test_execution, "run_case", fake_run_case)
+    monkeypatch.setattr(
+        test_execution, "sync_vm_disks", lambda control: order.append("sync")
+    )
+
+    job, env_set, case_runs = _make_job_with_env_set_and_cases(db_session, num_cases=3)
+    db_session.add(TestEnvNode(env_set=env_set, node_index=0, role="control"))
+    db_session.commit()
+
+    test_execution.execute_env_set(
+        db_session, job=job, env_set=env_set, actor=SimpleNamespace(id="admin")
+    )
+    assert order == [
+        "sync",           # 环境就绪（部署/pre_env 产物落盘）
+        "case:c0",
+        "sync",           # 用例完成后
+        "case:c1",        # 异常用例：不 sync
+        "case:c2",
+        "sync",
+    ]
+
+
+def test_execute_env_set_no_sync_without_host_channel(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """物理机/无宿主通道 VM 不会被硬复位，不付同步开销。"""
+    from app.modules.test_management import execution as test_execution
+
+    _patch_env_set_basics(monkeypatch, test_execution)
+    monkeypatch.setattr(test_execution, "vm_host_channel", lambda *_: None)
+
+    sync_calls: list[object] = []
+    monkeypatch.setattr(
+        test_execution, "sync_vm_disks", lambda control: sync_calls.append(1)
+    )
+    monkeypatch.setattr(
+        test_execution,
+        "run_case",
+        lambda _db, *, job, control, case_run, **_kw: setattr(
+            case_run, "status", TestCaseRunStatus.PASSED.value
+        ),
+    )
+
+    job, env_set, case_runs = _make_job_with_env_set_and_cases(db_session, num_cases=2)
+    db_session.add(TestEnvNode(env_set=env_set, node_index=0, role="control"))
+    db_session.commit()
+
+    test_execution.execute_env_set(
+        db_session, job=job, env_set=env_set, actor=SimpleNamespace(id="admin")
+    )
+    assert sync_calls == []
+    for case_run in case_runs:
+        assert case_run.status == TestCaseRunStatus.PASSED.value
+
+
+def test_try_vm_recovery_probe_trigger_message(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """trigger=probe 的事件文案注明探针来源，与熔断触发区分。"""
+    job, _env_set, _case_run = _make_job_with_case_run(db_session)
+    control = _vm_control_with_host(db_session)
+    messages: list[str] = []
+
+    monkeypatch.setattr(
+        mugen_runner,
+        "get_settings",
+        lambda: SimpleNamespace(vm_host_ssh_key_path="/test-key"),
+    )
+    monkeypatch.setattr(
+        mugen_runner,
+        "record_test_job_event",
+        lambda _db, **kw: messages.append(kw.get("message", "")),
+    )
+    monkeypatch.setattr(mugen_runner, "capture_vm_console_output", lambda **_kw: "console")
+    monkeypatch.setattr(mugen_runner, "_store_hang_watch_artifact", lambda **_kw: None)
+    monkeypatch.setattr(mugen_runner, "vm_hard_reset", lambda **_kw: False)
+
+    assert (
+        mugen_runner.try_vm_recovery(
+            db_session,
+            job=job,
+            control=control,
+            cancel_event=None,
+            trigger="probe",
+        )
+        is False
+    )
+    assert len(messages) == 2
+    assert "连接拒绝" in messages[0]
+    assert "熔断" not in messages[0]
+
+
+def test_try_vm_recovery_ssh_never_back_returns_false(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """复位成功但 SSH 不回：预算耗尽 → False + vm_recovery_failed。"""
+    job, _env_set, _case_run = _make_job_with_case_run(db_session)
+    control = _vm_control_with_host(db_session)
+    events: list[str | None] = []
+
+    monkeypatch.setattr(
+        mugen_runner,
+        "get_settings",
+        lambda: SimpleNamespace(vm_host_ssh_key_path="/test-key"),
+    )
+    monkeypatch.setattr(
+        mugen_runner, "record_test_job_event", lambda _db, **kw: events.append(kw.get("phase"))
+    )
+    monkeypatch.setattr(mugen_runner, "capture_vm_console_output", lambda **_kw: "console")
+    monkeypatch.setattr(mugen_runner, "_store_hang_watch_artifact", lambda **_kw: None)
+    monkeypatch.setattr(mugen_runner, "vm_hard_reset", lambda **_kw: True)
+    monkeypatch.setattr(mugen_runner, "_ssh_alive", lambda _control, _stats=None: False)
+    monkeypatch.setattr(mugen_runner, "SSH_READY_TIMEOUT_SECONDS", 0.05)
+    monkeypatch.setattr(mugen_runner, "SSH_READY_RETRY_INTERVAL_SECONDS", 0.01)
+
+    assert (
+        mugen_runner.try_vm_recovery(db_session, job=job, control=control, cancel_event=None)
+        is False
+    )
+    assert events == ["vm_recovery_started", "vm_recovery_failed"]
+
+
+def test_try_vm_recovery_reset_fails_skips_ssh_wait(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """复位无效（仍 shut off）：不进入 SSH 等待，直接失败。"""
+    job, _env_set, _case_run = _make_job_with_case_run(db_session)
+    control = _vm_control_with_host(db_session)
+    events: list[str | None] = []
+
+    monkeypatch.setattr(
+        mugen_runner,
+        "get_settings",
+        lambda: SimpleNamespace(vm_host_ssh_key_path="/test-key"),
+    )
+    monkeypatch.setattr(
+        mugen_runner, "record_test_job_event", lambda _db, **kw: events.append(kw.get("phase"))
+    )
+    monkeypatch.setattr(mugen_runner, "capture_vm_console_output", lambda **_kw: "console")
+    monkeypatch.setattr(mugen_runner, "_store_hang_watch_artifact", lambda **_kw: None)
+    monkeypatch.setattr(mugen_runner, "vm_hard_reset", lambda **_kw: False)
+
+    def unexpected_alive(_control: object, _stats: object = None) -> bool:
+        raise AssertionError("reset failed; SSH wait must be skipped")
+
+    monkeypatch.setattr(mugen_runner, "_ssh_alive", unexpected_alive)
+
+    assert (
+        mugen_runner.try_vm_recovery(db_session, job=job, control=control, cancel_event=None)
+        is False
+    )
+    assert events == ["vm_recovery_started", "vm_recovery_failed"]
+
+
+def test_execute_env_set_breaker_recovers_and_continues(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """3 连击触发熔断前先试宿主机恢复：成功 → 计数清零继续，恢复只一次。"""
+    from app.modules.test_management import execution as test_execution
+    from app.modules.test_management.remote import RemoteCommandError
+
+    _patch_env_set_basics(monkeypatch, test_execution)
+
+    outcomes: list[Exception | None] = [
+        RemoteCommandError("ssh failed"),
+        RemoteCommandError("ssh failed"),
+        RemoteCommandError("ssh failed"),
+        None,
+        None,
+    ]
+    recovery_calls: list[object] = []
+
+    def fake_run_case(db, *, job, control, case_run, **kwargs):
+        outcome = outcomes.pop(0)
+        if outcome is not None:
+            case_run.status = TestCaseRunStatus.ERROR.value
+            raise outcome
+        case_run.status = TestCaseRunStatus.PASSED.value
+
+    def fake_recovery(db, *, job, control, cancel_event=None):
+        recovery_calls.append(control)
+        return True
+
+    monkeypatch.setattr(test_execution, "run_case", fake_run_case)
+    monkeypatch.setattr(test_execution, "try_vm_recovery", fake_recovery)
+
+    job, env_set, case_runs = _make_job_with_env_set_and_cases(db_session, num_cases=5)
+    db_session.add(TestEnvNode(env_set=env_set, node_index=0, role="control"))
+    db_session.commit()
+
+    has_failure, has_error = test_execution.execute_env_set(
+        db_session, job=job, env_set=env_set, actor=SimpleNamespace(id="admin")
+    )
+    assert has_error is True
+    assert len(recovery_calls) == 1
+    for i in range(3):
+        assert case_runs[i].status == TestCaseRunStatus.ERROR.value
+    for i in (3, 4):
+        assert case_runs[i].status == TestCaseRunStatus.PASSED.value
+
+
+def test_execute_env_set_recovery_once_then_breaker(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """恢复预算每 env_set 一次：再次连击不再恢复，剩余用例批量标 error。"""
+    from app.modules.test_management import execution as test_execution
+    from app.modules.test_management.remote import RemoteCommandError
+
+    _patch_env_set_basics(monkeypatch, test_execution)
+
+    err = RemoteCommandError("ssh failed")
+    outcomes: list[Exception | None] = [err, err, err, None, err, err, err]
+    recovery_calls: list[object] = []
+
+    def fake_run_case(db, *, job, control, case_run, **kwargs):
+        outcome = outcomes.pop(0)
+        if outcome is not None:
+            case_run.status = TestCaseRunStatus.ERROR.value
+            raise outcome
+        case_run.status = TestCaseRunStatus.PASSED.value
+
+    def fake_recovery(db, *, job, control, cancel_event=None):
+        recovery_calls.append(control)
+        return True
+
+    monkeypatch.setattr(test_execution, "run_case", fake_run_case)
+    monkeypatch.setattr(test_execution, "try_vm_recovery", fake_recovery)
+
+    job, env_set, case_runs = _make_job_with_env_set_and_cases(db_session, num_cases=8)
+    db_session.add(TestEnvNode(env_set=env_set, node_index=0, role="control"))
+    db_session.commit()
+
+    has_failure, has_error = test_execution.execute_env_set(
+        db_session, job=job, env_set=env_set, actor=SimpleNamespace(id="admin")
+    )
+    assert has_error is True
+    assert len(recovery_calls) == 1
+    # 第一次熔断被恢复救回：case 3 正常执行；第二次熔断不再恢复，case 7 批量标错
+    for i in (0, 1, 2, 4, 5, 6, 7):
+        assert case_runs[i].status == TestCaseRunStatus.ERROR.value
+    assert case_runs[3].status == TestCaseRunStatus.PASSED.value
+
+
+def test_execute_env_set_recovery_failure_marks_remaining(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """恢复失败（无通道/复位无效/SSH 未回）：维持原熔断批量标 error。"""
+    from app.modules.test_management import execution as test_execution
+
+    _patch_env_set_basics(monkeypatch, test_execution)
+
+    def fake_run_case(db, *, job, control, case_run, **kwargs):
+        case_run.status = TestCaseRunStatus.ERROR.value
+        raise EnvSetHangError("hang")
+
+    monkeypatch.setattr(test_execution, "run_case", fake_run_case)
+    monkeypatch.setattr(
+        test_execution, "try_vm_recovery", lambda *_, **__: False
+    )
+
+    job, env_set, case_runs = _make_job_with_env_set_and_cases(db_session, num_cases=5)
+    db_session.add(TestEnvNode(env_set=env_set, node_index=0, role="control"))
+    db_session.commit()
+
+    has_failure, has_error = test_execution.execute_env_set(
+        db_session, job=job, env_set=env_set, actor=SimpleNamespace(id="admin")
+    )
+    assert has_error is True
+    for i in range(5):
+        assert case_runs[i].status == TestCaseRunStatus.ERROR.value
+
+
+def _patch_probe_gate(monkeypatch, test_execution, *, refused: bool) -> list[dict]:
+    """打开探针门（通道存在）并固定探活结果，返回恢复调用记录。
+
+    一并 no-op 掉 sync（假通道下真实 sync 会 SSH 1.1.1.1 超时）；
+    需要观察 sync 行为的测试自行再覆盖。
+    """
+    monkeypatch.setattr(
+        test_execution, "vm_host_channel", lambda *_: ("10.0.0.1", "vm-1", "/test-key")
+    )
+    monkeypatch.setattr(test_execution, "ssh_connect_refused", lambda _control: refused)
+    monkeypatch.setattr(test_execution, "sync_vm_disks", lambda _control: None)
+    calls: list[dict] = []
+    monkeypatch.setattr(
+        test_execution,
+        "try_vm_recovery",
+        lambda _db, *, job, control, cancel_event=None, **kw: (
+            calls.append({**kw, "control": control}),
+            True,
+        )[1],
+    )
+    return calls
