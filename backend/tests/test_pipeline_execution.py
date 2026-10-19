@@ -4923,3 +4923,258 @@ def _patch_probe_gate(monkeypatch, test_execution, *, refused: bool) -> list[dic
         )[1],
     )
     return calls
+
+
+def test_ssh_connect_refused_classification(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """探针分类：只认连接拒绝（sshd 挂、OS 活）；超时/失联/健康一律 False。"""
+    control = SimpleNamespace(ip="1.1.1.1", username="root", password="p")
+
+    def probe_with(result=None, *, exc=None):
+        outcomes = {"result": result, "exc": exc}
+
+        def fake_run_ssh(**_kwargs):
+            if outcomes["exc"] is not None:
+                raise outcomes["exc"]
+            return outcomes["result"]
+
+        monkeypatch.setattr(mugen_runner, "run_ssh_command", fake_run_ssh)
+        return mugen_runner.ssh_connect_refused(control)
+
+    # 健康机器
+    assert probe_with(RemoteCommandResult(returncode=0, stdout="ok", stderr="")) is False
+    # 连接拒绝（crypto-policies start-limit 签名）
+    assert (
+        probe_with(
+            RemoteCommandResult(
+                returncode=255,
+                stdout="",
+                stderr="ssh: connect to host 1.1.1.1 port 22: Connection refused",
+            )
+        )
+        is True
+    )
+    # 失联/超时：机器状态未知，不触发恢复
+    assert (
+        probe_with(
+            RemoteCommandResult(
+                returncode=255,
+                stdout="",
+                stderr="ssh: connect to host 1.1.1.1 port 22: Connection timed out",
+            )
+        )
+        is False
+    )
+    # 进程超时
+    assert (
+        probe_with(
+            RemoteCommandResult(returncode=None, stdout="", stderr="", timed_out=True)
+        )
+        is False
+    )
+    # 探活自身异常（如缺 sshpass）：不可分类，交给既有链路
+    assert probe_with(exc=RuntimeError("boom")) is False
+
+
+def test_execute_env_set_probe_recovers_before_victim_case(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """job 10235 场景（中间用例杀 sshd）：探针先恢复，victim 用例拿回真实结果。"""
+    from app.modules.test_management import execution as test_execution
+
+    _patch_env_set_basics(monkeypatch, test_execution)
+    recovery_calls = _patch_probe_gate(monkeypatch, test_execution, refused=True)
+
+    monkeypatch.setattr(
+        test_execution,
+        "run_case",
+        lambda _db, *, job, control, case_run, **_kw: setattr(
+            case_run, "status", TestCaseRunStatus.PASSED.value
+        ),
+    )
+
+    job, env_set, case_runs = _make_job_with_env_set_and_cases(db_session, num_cases=3)
+    db_session.add(TestEnvNode(env_set=env_set, node_index=0, role="control"))
+    db_session.commit()
+
+    has_failure, has_error = test_execution.execute_env_set(
+        db_session, job=job, env_set=env_set, actor=SimpleNamespace(id="admin")
+    )
+    # 零 victim：所有用例真实通过，恢复恰一次且 trigger=probe
+    assert has_error is False
+    for case_run in case_runs:
+        assert case_run.status == TestCaseRunStatus.PASSED.value
+    assert len(recovery_calls) == 1
+    assert recovery_calls[0]["trigger"] == "probe"
+
+
+def test_execute_env_set_probe_gated_on_host_channel(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """物理机/无宿主通道：探针门关闭，不做探活与恢复（既有语义不变）。"""
+    from app.modules.test_management import execution as test_execution
+
+    _patch_env_set_basics(monkeypatch, test_execution)
+    monkeypatch.setattr(test_execution, "vm_host_channel", lambda *_: None)
+
+    probe_called: list[bool] = []
+
+    def refused(_control):
+        probe_called.append(True)
+        return True
+
+    monkeypatch.setattr(test_execution, "ssh_connect_refused", refused)
+    recovery_calls: list[object] = []
+    monkeypatch.setattr(
+        test_execution,
+        "try_vm_recovery",
+        lambda *_, **__: (recovery_calls.append(1), False)[1],
+    )
+    monkeypatch.setattr(
+        test_execution,
+        "run_case",
+        lambda _db, *, job, control, case_run, **_kw: setattr(
+            case_run, "status", TestCaseRunStatus.PASSED.value
+        ),
+    )
+
+    job, env_set, case_runs = _make_job_with_env_set_and_cases(db_session, num_cases=2)
+    db_session.add(TestEnvNode(env_set=env_set, node_index=0, role="control"))
+    db_session.commit()
+
+    test_execution.execute_env_set(
+        db_session, job=job, env_set=env_set, actor=SimpleNamespace(id="admin")
+    )
+    assert probe_called == []
+    assert recovery_calls == []
+    for case_run in case_runs:
+        assert case_run.status == TestCaseRunStatus.PASSED.value
+
+
+def test_execute_env_set_probe_budget_consumed_on_attempt(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """预算按尝试计：探针恢复失败后不再重试（避免连环硬复位烧任务预算），
+    后续连击直接走原熔断批量标错。
+    """
+    from app.modules.test_management import execution as test_execution
+    from app.modules.test_management.remote import RemoteCommandError
+
+    _patch_env_set_basics(monkeypatch, test_execution)
+    monkeypatch.setattr(
+        test_execution, "vm_host_channel", lambda *_: ("10.0.0.1", "vm-1", "/test-key")
+    )
+    monkeypatch.setattr(test_execution, "sync_vm_disks", lambda _control: None)
+    monkeypatch.setattr(test_execution, "ssh_connect_refused", lambda _control: True)
+    recovery_calls: list[object] = []
+    monkeypatch.setattr(
+        test_execution,
+        "try_vm_recovery",
+        lambda *_, **__: (recovery_calls.append(1), False)[1],
+    )
+
+    def fake_run_case(db, *, job, control, case_run, **kwargs):
+        case_run.status = TestCaseRunStatus.ERROR.value
+        raise RemoteCommandError("ssh failed")
+
+    monkeypatch.setattr(test_execution, "run_case", fake_run_case)
+
+    job, env_set, case_runs = _make_job_with_env_set_and_cases(db_session, num_cases=5)
+    db_session.add(TestEnvNode(env_set=env_set, node_index=0, role="control"))
+    db_session.commit()
+
+    has_failure, has_error = test_execution.execute_env_set(
+        db_session, job=job, env_set=env_set, actor=SimpleNamespace(id="admin")
+    )
+    assert has_error is True
+    # 恢复只被尝试一次（探针），熔断点不再重试
+    assert len(recovery_calls) == 1
+    for case_run in case_runs:
+        assert case_run.status == TestCaseRunStatus.ERROR.value
+
+
+def test_execute_env_set_post_env_probe_recovers(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """job 10235 精确回放：用例全 passed、末例杀 sshd → post_env 前探针恢复
+    → 清理脚本正常执行，job 不误标 error。
+    """
+    from app.modules.test_management import execution as test_execution
+
+    _patch_env_set_basics(monkeypatch, test_execution)
+    recovery_calls = _patch_probe_gate(monkeypatch, test_execution, refused=True)
+
+    hook_calls: list[str] = []
+
+    def fake_run_hook(_db, *, script_name, **_kw):
+        hook_calls.append(script_name)
+        return None
+
+    monkeypatch.setattr(test_execution, "run_hook", fake_run_hook)
+    monkeypatch.setattr(
+        test_execution,
+        "run_case",
+        lambda _db, *, job, control, case_run, **_kw: setattr(
+            case_run, "status", TestCaseRunStatus.PASSED.value
+        ),
+    )
+
+    job, env_set, case_runs = _make_job_with_env_set_and_cases(db_session, num_cases=2)
+    job.post_env_script = "echo cleanup"
+    db_session.add(TestEnvNode(env_set=env_set, node_index=0, role="control"))
+    db_session.commit()
+
+    has_failure, has_error = test_execution.execute_env_set(
+        db_session, job=job, env_set=env_set, actor=SimpleNamespace(id="admin")
+    )
+    assert has_error is False
+    assert hook_calls == ["post_env.sh"]
+    assert len(recovery_calls) == 1
+    assert recovery_calls[0]["trigger"] == "probe"
+    for case_run in case_runs:
+        assert case_run.status == TestCaseRunStatus.PASSED.value
+
+
+def test_execute_env_set_post_env_probe_failure_keeps_current_behavior(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """post_env 前恢复失败 → 清理失败仍向上传播（job error），维持现状。"""
+    from app.modules.test_management import execution as test_execution
+    from app.modules.test_management.remote import RemoteCommandError
+
+    _patch_env_set_basics(monkeypatch, test_execution)
+    monkeypatch.setattr(
+        test_execution, "vm_host_channel", lambda *_: ("10.0.0.1", "vm-1", "/test-key")
+    )
+    monkeypatch.setattr(test_execution, "sync_vm_disks", lambda _control: None)
+    monkeypatch.setattr(test_execution, "ssh_connect_refused", lambda _control: True)
+    recovery_calls: list[object] = []
+    monkeypatch.setattr(
+        test_execution,
+        "try_vm_recovery",
+        lambda *_, **__: (recovery_calls.append(1), False)[1],
+    )
+
+    def failing_hook(_db, *, script_name, **_kw):
+        raise RemoteCommandError("post_env ssh failed")
+
+    monkeypatch.setattr(test_execution, "run_hook", failing_hook)
+    monkeypatch.setattr(
+        test_execution,
+        "run_case",
+        lambda _db, *, job, control, case_run, **_kw: setattr(
+            case_run, "status", TestCaseRunStatus.PASSED.value
+        ),
+    )
+
+    job, env_set, case_runs = _make_job_with_env_set_and_cases(db_session, num_cases=2)
+    job.post_env_script = "echo cleanup"
+    db_session.add(TestEnvNode(env_set=env_set, node_index=0, role="control"))
+    db_session.commit()
+
+    with pytest.raises(RemoteCommandError):
+        test_execution.execute_env_set(
+            db_session, job=job, env_set=env_set, actor=SimpleNamespace(id="admin")
+        )
+    assert len(recovery_calls) == 1
