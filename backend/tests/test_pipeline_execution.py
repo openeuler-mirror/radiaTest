@@ -30,8 +30,10 @@ from app.modules.pipelines.models import (
     PipelineExecution,
     PipelineRun,
     PipelineRunJob,
+    PipelineType,
     TestModuleTemplate,
 )
+from app.modules.pipelines.registry import get_pipeline_strategy
 from app.modules.pipelines.service import (
     PipelineEnvironmentBusyError,
     PipelineRunJobRerunConflict,
@@ -63,6 +65,7 @@ from app.modules.test_management.models import (
     TestCaseRunDetail,
     TestCaseRunStatus,
     TestEnvNode,
+    TestEnvNodeStatus,
     TestEnvSet,
     TestEnvSetStatus,
     TestEnvType,
@@ -2953,3 +2956,975 @@ def test_execute_env_set_hang_continues_to_next_case(
     assert has_error is True
     assert case_runs[0].status == TestCaseRunStatus.ERROR.value
     assert case_runs[1].status == TestCaseRunStatus.PASSED.value
+
+
+def test_execute_env_set_remote_error_continues(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """RemoteCommandError on case 0 → case 1 should still run."""
+    from app.modules.test_management import execution as test_execution
+    from app.modules.test_management.remote import RemoteCommandError
+
+    _patch_env_set_basics(monkeypatch, test_execution)
+
+    call_results: list[Exception | None] = [RemoteCommandError("ssh failed"), None]
+
+    def fake_run_case(db, *, job, control, case_run, **kwargs):
+        result = call_results.pop(0)
+        if result is not None:
+            case_run.status = TestCaseRunStatus.ERROR.value
+            raise result
+        case_run.status = TestCaseRunStatus.PASSED.value
+
+    monkeypatch.setattr(test_execution, "run_case", fake_run_case)
+
+    job, env_set, case_runs = _make_job_with_env_set_and_cases(db_session, num_cases=2)
+    db_session.add(TestEnvNode(env_set=env_set, node_index=0, role="control"))
+    db_session.commit()
+
+    has_failure, has_error = test_execution.execute_env_set(
+        db_session, job=job, env_set=env_set, actor=SimpleNamespace(id="admin")
+    )
+    assert has_error is True
+    assert case_runs[0].status == TestCaseRunStatus.ERROR.value
+    assert case_runs[1].status == TestCaseRunStatus.PASSED.value
+
+
+def test_execute_env_set_circuit_breaker_after_3_failures(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """3 consecutive hang → remaining cases marked ERROR, loop breaks."""
+    from app.modules.test_management import execution as test_execution
+
+    _patch_env_set_basics(monkeypatch, test_execution)
+
+    def fake_run_case(db, *, job, control, case_run, **kwargs):
+        case_run.status = TestCaseRunStatus.ERROR.value
+        raise EnvSetHangError("hang")
+
+    monkeypatch.setattr(test_execution, "run_case", fake_run_case)
+
+    job, env_set, case_runs = _make_job_with_env_set_and_cases(db_session, num_cases=5)
+    db_session.add(TestEnvNode(env_set=env_set, node_index=0, role="control"))
+    db_session.commit()
+
+    has_failure, has_error = test_execution.execute_env_set(
+        db_session, job=job, env_set=env_set, actor=SimpleNamespace(id="admin")
+    )
+    assert has_error is True
+    # first 3 ran and errored
+    for i in range(3):
+        assert case_runs[i].status == TestCaseRunStatus.ERROR.value
+    # remaining 2 marked ERROR (circuit breaker)
+    for i in range(3, 5):
+        assert case_runs[i].status == TestCaseRunStatus.ERROR.value
+
+
+def test_execute_env_set_resets_counter_on_success(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """hang, success, hang → no circuit breaker (counter reset)."""
+    from app.modules.test_management import execution as test_execution
+
+    _patch_env_set_basics(monkeypatch, test_execution)
+
+    call_results: list[Exception | None] = [
+        EnvSetHangError("hang"),
+        None,
+        EnvSetHangError("hang"),
+        None,
+    ]
+
+    def fake_run_case(db, *, job, control, case_run, **kwargs):
+        result = call_results.pop(0)
+        if result is not None:
+            case_run.status = TestCaseRunStatus.ERROR.value
+            raise result
+        case_run.status = TestCaseRunStatus.PASSED.value
+
+    monkeypatch.setattr(test_execution, "run_case", fake_run_case)
+
+    job, env_set, case_runs = _make_job_with_env_set_and_cases(db_session, num_cases=4)
+    db_session.add(TestEnvNode(env_set=env_set, node_index=0, role="control"))
+    db_session.commit()
+
+    has_failure, has_error = test_execution.execute_env_set(
+        db_session, job=job, env_set=env_set, actor=SimpleNamespace(id="admin")
+    )
+    assert has_error is True
+    assert case_runs[0].status == TestCaseRunStatus.ERROR.value
+    assert case_runs[1].status == TestCaseRunStatus.PASSED.value
+    assert case_runs[2].status == TestCaseRunStatus.ERROR.value
+    assert case_runs[3].status == TestCaseRunStatus.PASSED.value
+
+
+def test_execute_env_set_cancel_between_cases(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """cancel_requested → remaining cases marked not_executed, env_set not_executed."""
+    from app.modules.test_management import execution as test_execution
+
+    _patch_env_set_basics(monkeypatch, test_execution)
+
+    cancel_state = {"cancelled": False}
+
+    def fake_run_case(db, *, job, control, case_run, **kwargs):
+        case_run.status = TestCaseRunStatus.PASSED.value
+        cancel_state["cancelled"] = True
+
+    monkeypatch.setattr(test_execution, "run_case", fake_run_case)
+    monkeypatch.setattr(
+        test_execution, "_is_cancel_requested",
+        lambda d, j: cancel_state["cancelled"],
+    )
+    monkeypatch.setattr(
+        test_execution, "_cancel_check_factory", lambda j: lambda: False,
+    )
+
+    job, env_set, case_runs = _make_job_with_env_set_and_cases(db_session, num_cases=3)
+    db_session.add(TestEnvNode(env_set=env_set, node_index=0, role="control"))
+    db_session.commit()
+
+    has_failure, has_error = test_execution.execute_env_set(
+        db_session, job=job, env_set=env_set, actor=SimpleNamespace(id="admin")
+    )
+    assert has_failure is False
+    assert has_error is False
+    assert case_runs[0].status == TestCaseRunStatus.PASSED.value
+    assert case_runs[1].status == TestCaseRunStatus.NOT_EXECUTED.value
+    assert case_runs[2].status == TestCaseRunStatus.NOT_EXECUTED.value
+
+
+def test_execute_env_set_pre_env_cancel_propagates_without_unbound_local(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """pre_env 期间取消：原始 job_cancelled 正常传播，finally 的 post_env 探针
+    门不得因 vm_recovery_used 未赋值抛 UnboundLocalError（job 10244/10245 实证
+    bug：取消被吞、任务误标 unexpected_execution_error、用例滞留 pending）。
+    """
+    from app.modules.test_management import execution as test_execution
+
+    _patch_env_set_basics(monkeypatch, test_execution)
+
+    def fake_run_hook(
+        db, *, job, control, directory, script_name, phase,
+        error_code="hook_failed", cancel_event=None,
+    ):
+        if script_name == "pre_env.sh":
+            raise TestJobExecutionError("job_cancelled", "测试任务已取消")
+        return None
+
+    monkeypatch.setattr(test_execution, "run_hook", fake_run_hook)
+    # 宿主通道非空 → finally 探针门会求值 not vm_recovery_used（bug 触发条件）
+    monkeypatch.setattr(
+        test_execution, "vm_host_channel", lambda db, control: ("h", "v", "k")
+    )
+    monkeypatch.setattr(test_execution, "ssh_connect_refused", lambda control: False)
+
+    job, env_set, case_runs = _make_job_with_env_set_and_cases(db_session, num_cases=2)
+    db_session.add(TestEnvNode(env_set=env_set, node_index=0, role="control"))
+    job.pre_env_script = "echo pre"
+    job.post_env_script = "echo post"
+    db_session.commit()
+
+    with pytest.raises(TestJobExecutionError) as exc_info:
+        test_execution.execute_env_set(
+            db_session, job=job, env_set=env_set, actor=SimpleNamespace(id="admin")
+        )
+
+    assert exc_info.value.code == "job_cancelled"
+
+
+def test_run_case_cancel_marks_not_executed(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """cancel detected after command → case marked not_executed, no exception."""
+    job, _env_set, case_run = _make_job_with_case_run(db_session)
+    control = SimpleNamespace(
+        ip="1.1.1.1", username="root", password="p",
+        resource=SimpleNamespace(host_resource_id=None),
+    )
+
+    monkeypatch.setattr(mugen_runner, "record_test_job_event", lambda *_, **__: None)
+    monkeypatch.setattr(mugen_runner, "write_remote_file", lambda **__: None)
+    scripts: list[str] = []
+
+    def fake_run_control_command(*, script: str, **_: object) -> RemoteCommandResult:
+        scripts.append(script)
+        return RemoteCommandResult(returncode=1, stdout="", stderr="killed")
+
+    monkeypatch.setattr(
+        mugen_runner, "run_control_command",
+        fake_run_control_command,
+    )
+
+    class FakeDetector:
+        @staticmethod
+        def start() -> None:
+            pass
+
+        @staticmethod
+        def stop() -> None:
+            pass
+
+        @staticmethod
+        def is_hung() -> bool:
+            return False
+
+    monkeypatch.setattr(mugen_runner, "HangDetector", lambda **_: FakeDetector())
+
+    mugen_runner.run_case(
+        db_session, job=job, control=control, case_run=case_run,
+        cancel_check=lambda: True,
+    )
+
+    assert case_run.status == TestCaseRunStatus.NOT_EXECUTED.value
+    assert "pkill -f mugen.sh || true" in scripts
+
+
+def test_run_case_soft_cancel_event_marks_not_executed_and_raises(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """cancel_event 被外部（如 Soft 或 job 级取消）set → run_control_command
+    返回 cancelled=True 且无 DB hit / 无 hang → 本 case 收敛为 not_executed,
+    抛 job_cancelled 让主线程独占终态决定权(Soft 会覆盖成 task_timeout,
+    DB cancel 会覆盖成 cancelled)。
+    """
+    import threading
+
+    job, _env_set, case_run = _make_job_with_case_run(db_session)
+    control = SimpleNamespace(
+        ip="1.1.1.1", username="root", password="p",
+        resource=SimpleNamespace(host_resource_id=None),
+    )
+    cancel_event = threading.Event()
+
+    def _fake_run(**kwargs: object) -> RemoteCommandResult:
+        # 模拟 run_process 2s 内看到附加的 job 级取消信号后 kill sshpass 返回。
+        if cancel_event in kwargs.get("cancel_events", ()):
+            cancel_event.set()
+            return RemoteCommandResult(
+                returncode=None, stdout="", stderr="", cancelled=True
+            )
+        return RemoteCommandResult(returncode=0, stdout="", stderr="")
+
+    class FakeDetector:
+        @staticmethod
+        def start() -> None:
+            pass
+
+        @staticmethod
+        def stop() -> None:
+            pass
+
+        @staticmethod
+        def is_hung() -> bool:
+            return False
+
+    monkeypatch.setattr(mugen_runner, "record_test_job_event", lambda *_, **__: None)
+    monkeypatch.setattr(mugen_runner, "write_remote_file", lambda **__: None)
+    monkeypatch.setattr(mugen_runner, "run_control_command", _fake_run)
+    monkeypatch.setattr(mugen_runner, "HangDetector", lambda **_: FakeDetector())
+
+    with pytest.raises(TestJobExecutionError) as exc_info:
+        mugen_runner.run_case(
+            db_session,
+            job=job,
+            control=control,
+            case_run=case_run,
+            cancel_check=lambda: False,
+            cancel_event=cancel_event,
+        )
+
+    assert exc_info.value.code == "job_cancelled"
+    # 与 DB cancel 语义一致:被终止的 case 标 not_executed,不留在 RUNNING
+    assert case_run.status == TestCaseRunStatus.NOT_EXECUTED.value
+
+
+def test_run_case_hang_does_not_cancel_the_test_job(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """HangDetector 只中断当前 case，不能取消整个 TestJob。"""
+    import threading
+
+    job, _env_set, case_run = _make_job_with_case_run(db_session)
+    control = SimpleNamespace(
+        ip="1.1.1.1", username="root", password="p",
+        resource=SimpleNamespace(host_resource_id=None),
+    )
+    cancel_event = threading.Event()
+    captured_on_hung: list = []
+
+    class FakeDetector:
+        def __init__(self, *, check_fn, interval=30.0, max_failures=5, on_hung=None, **_extra):  # noqa: ANN001
+            captured_on_hung.append(on_hung)
+
+        @staticmethod
+        def start() -> None:
+            # 模拟达到 max_failures → 触发 on_hung(真实 detector 会自己调)
+            if captured_on_hung and captured_on_hung[0] is not None:
+                captured_on_hung[0]()
+
+        @staticmethod
+        def stop() -> None:
+            pass
+
+        @staticmethod
+        def is_hung() -> bool:
+            return True
+
+    monkeypatch.setattr(mugen_runner, "record_test_job_event", lambda *_, **__: None)
+    monkeypatch.setattr(mugen_runner, "write_remote_file", lambda **__: None)
+    monkeypatch.setattr(
+        mugen_runner, "run_control_command",
+        lambda **_: RemoteCommandResult(returncode=0, stdout="", stderr=""),
+    )
+    monkeypatch.setattr(mugen_runner, "HangDetector", lambda **kw: FakeDetector(**kw))
+    monkeypatch.setattr(mugen_runner, "_capture_and_store_console", lambda *_, **__: None)
+
+    with pytest.raises(EnvSetHangError):
+        mugen_runner.run_case(
+            db_session,
+            job=job,
+            control=control,
+            case_run=case_run,
+            cancel_event=cancel_event,
+        )
+
+    assert captured_on_hung and captured_on_hung[0] is not None
+    assert not cancel_event.is_set()
+
+
+def test_map_job_status_cancelled() -> None:
+    """_map_job_status maps CANCELLED to 'cancelled'."""
+    from app.modules.pipelines.framework_executors.mugen import _map_job_status
+    from app.modules.test_management.models import TestJobStatus
+
+    assert _map_job_status(TestJobStatus.CANCELLED.value) == "cancelled"
+
+
+# ---------- DirectRunPipelineStrategy + registry dispatch ----------
+
+
+def _seed_pipeline_type(db, *, name, strategy_kind, framework="mugen"):
+    pt = PipelineType(
+        name=name,
+        display_name=name,
+        strategy_kind=strategy_kind,
+        test_framework=framework,
+        is_system=True,
+        default_config={},
+    )
+    db.add(pt)
+    db.flush()
+    return pt
+
+
+def _make_release_config(
+    db,
+    *,
+    suites,
+    versions,
+    archs,
+    case_names_map=None,
+    kernel_variant=None,
+    kernel_rpm_url=None,
+    physical_enabled=None,
+):
+    """release config：config_data.case_selections（每个 suite → {suite_name, case_names}）。
+
+    case_names_map 可按 suite 给定选中 case 名；未给定的 suite 用空列表（等价全选）。
+    """
+    case_selections = [
+        {"suite_name": s, "case_names": (case_names_map or {}).get(s, [])}
+        for s in suites
+    ]
+    config_data = {"case_selections": case_selections}
+    if physical_enabled is not None:
+        config_data["release_physical_enabled"] = physical_enabled
+    if kernel_variant:
+        config_data["kernel_variant"] = kernel_variant
+    if kernel_rpm_url:
+        config_data["kernel_rpm_url"] = kernel_rpm_url
+    config = PipelineConfig(
+        name="release-cfg",
+        pipeline_type="release",
+        versions=versions,
+        archs=archs,
+        config_data=config_data,
+        dist="openEuler",
+        image_round="round-9",
+    )
+    db.add(config)
+    db.flush()
+    return config
+
+
+def test_direct_run_strategy_creates_runjob_per_arch(
+    db_session: Session,
+) -> None:
+    """release RunJob 形状：每架构一个 RunJob（全部选中 suite 的 case 共一套环境）。"""
+    _seed_pipeline_type(db_session, name="release", strategy_kind="direct_run")
+    config = _make_release_config(
+        db_session,
+        suites=["smoke", "ltp"],
+        versions=["24.03-LTS-SP3"],
+        archs=["aarch64", "x86_64"],
+    )
+    execution = PipelineExecution(
+        config_id=config.id,
+        triggered_by="admin",
+        versions=["24.03-LTS-SP3"],
+        archs=["aarch64", "x86_64"],
+    )
+    db_session.add(execution)
+    db_session.flush()
+
+    strategy = get_pipeline_strategy(db_session, "release")
+    run_jobs = strategy.plan_run_jobs(
+        db_session,
+        config=config,
+        execution=execution,
+        versions=["24.03-LTS-SP3"],
+        archs=["aarch64", "x86_64"],
+        triggered_by="admin",
+    )
+
+    # 1 version × 2 archs = 2 RunJobs（per-arch；跨 suite 全部 case 共一套环境）
+    assert len(run_jobs) == 2
+    assert {rj.arch for rj in run_jobs} == {"aarch64", "x86_64"}
+
+    # 1 version → 1 PipelineRun
+    runs = list(
+        db_session.execute(select(PipelineRun).where(PipelineRun.execution_id == execution.id))
+        .scalars()
+        .all()
+    )
+    assert len(runs) == 1
+
+    # All RunJobs have env_type=None (no split for direct_run)
+    assert all(rj.env_type is None for rj in run_jobs)
+
+    # All RunJobs point to the single release template（跨 suite 共一个模板）
+    template_ids = {rj.module_template_id for rj in run_jobs}
+    assert len(template_ids) == 1
+    template = db_session.get(TestModuleTemplate, next(iter(template_ids)))
+    assert template.name == "release"
+    assert template.pipeline_type == "release"
+    assert template.post_env_script  # 默认 post_env 非空（日志拷贝）
+
+
+def test_direct_run_strategy_idempotent_on_template(db_session: Session) -> None:
+    """Re-triggering release should reuse the single release template, not duplicate."""
+    _seed_pipeline_type(db_session, name="release", strategy_kind="direct_run")
+    config = _make_release_config(db_session, suites=["smoke"], versions=["v1"], archs=["x86_64"])
+    execution = PipelineExecution(
+        config_id=config.id, triggered_by="admin", versions=["v1"], archs=["x86_64"]
+    )
+    db_session.add(execution)
+    db_session.flush()
+
+    strategy = get_pipeline_strategy(db_session, "release")
+    strategy.plan_run_jobs(
+        db_session,
+        config=config,
+        execution=execution,
+        versions=["v1"],
+        archs=["x86_64"],
+    )
+
+    templates_after_first = list(
+        db_session.execute(
+            select(TestModuleTemplate).where(TestModuleTemplate.name == "release")
+        )
+        .scalars()
+        .all()
+    )
+    assert len(templates_after_first) == 1
+
+    # Second trigger should reuse the same template
+    execution2 = PipelineExecution(
+        config_id=config.id, triggered_by="admin", versions=["v1"], archs=["x86_64"]
+    )
+    db_session.add(execution2)
+    db_session.flush()
+    strategy.plan_run_jobs(
+        db_session,
+        config=config,
+        execution=execution2,
+        versions=["v1"],
+        archs=["x86_64"],
+    )
+
+    templates_after_second = list(
+        db_session.execute(
+            select(TestModuleTemplate).where(TestModuleTemplate.name == "release")
+        )
+        .scalars()
+        .all()
+    )
+    assert len(templates_after_second) == 1  # No duplication
+
+
+def test_release_builder_selects_cases_and_snapshots_kernel_extras(
+    db_session: Session,
+) -> None:
+    """release (direct_run)：case 级选择 + node_num=max + 默认 post_env + 内核参数快照。"""
+    _seed_pipeline_type(db_session, name="release", strategy_kind="direct_run")
+    _seed_mugen_case(db_session, suite_name="smoke", case_name="oe_test_a", node_num=1)
+    _seed_mugen_case(db_session, suite_name="smoke", case_name="oe_test_b", node_num=1)
+    _seed_mugen_case(db_session, suite_name="smoke", case_name="oe_test_c", node_num=2)
+    config = _make_release_config(
+        db_session,
+        suites=["smoke"],
+        versions=["24.03-LTS-SP3"],
+        archs=["x86_64"],
+        case_names_map={"smoke": ["oe_test_a", "oe_test_c"]},
+        kernel_variant="26.09-with-kernel-6.18",
+    )
+    execution = PipelineExecution(
+        config_id=config.id,
+        triggered_by="admin",
+        versions=["24.03-LTS-SP3"],
+        archs=["x86_64"],
+    )
+    db_session.add(execution)
+    db_session.flush()
+
+    strategy = get_pipeline_strategy(db_session, "release")
+    run_jobs = strategy.plan_run_jobs(
+        db_session,
+        config=config,
+        execution=execution,
+        versions=["24.03-LTS-SP3"],
+        archs=["x86_64"],
+        triggered_by="admin",
+    )
+    assert len(run_jobs) == 1  # 1 suite × 1 arch
+    run_job = run_jobs[0]
+    template = db_session.get(TestModuleTemplate, run_job.module_template_id)
+
+    job = build_test_job_for_run_job(
+        db_session,
+        run_job=run_job,
+        config=config,
+        template=template,
+        version="24.03-LTS-SP3",
+        actor_user_id="admin",
+    )
+
+    # case selection: only the two selected cases (not oe_test_b)
+    assert {cr.case_name for cr in job.case_runs} == {"oe_test_a", "oe_test_c"}
+    # env_set node_num = max(selected cases' node_num) = 2
+    assert len(job.env_sets) == 1
+    assert job.env_sets[0].node_num == 2
+    # default post_env_script non-empty (log copy)
+    assert job.post_env_script and "${OET_PATH}" in job.post_env_script
+    # kernel variant snapshotted into pipeline_extras
+    assert job.pipeline_extras == {"kernel_variant": "26.09-with-kernel-6.18"}
+
+
+def test_release_builder_empty_case_names_selects_all(db_session: Session) -> None:
+    """case_names 空列表等价全选（spec §9.1）。"""
+    _seed_pipeline_type(db_session, name="release", strategy_kind="direct_run")
+    _seed_mugen_case(db_session, suite_name="smoke", case_name="oe_test_a")
+    _seed_mugen_case(db_session, suite_name="smoke", case_name="oe_test_b")
+    config = _make_release_config(
+        db_session, suites=["smoke"], versions=["v1"], archs=["x86_64"]
+    )  # case_names_map omitted → smoke gets [] → all
+    execution = PipelineExecution(
+        config_id=config.id, triggered_by="admin", versions=["v1"], archs=["x86_64"]
+    )
+    db_session.add(execution)
+    db_session.flush()
+    strategy = get_pipeline_strategy(db_session, "release")
+    run_jobs = strategy.plan_run_jobs(
+        db_session, config=config, execution=execution,
+        versions=["v1"], archs=["x86_64"], triggered_by="admin",
+    )
+    template = db_session.get(TestModuleTemplate, run_jobs[0].module_template_id)
+    job = build_test_job_for_run_job(
+        db_session, run_job=run_jobs[0], config=config, template=template,
+        version="v1", actor_user_id="admin",
+    )
+    assert {cr.case_name for cr in job.case_runs} == {"oe_test_a", "oe_test_b"}
+    assert job.pipeline_extras is None  # no kernel params → None
+
+
+def test_release_builder_gathers_cases_across_suites_into_one_env(
+    db_session: Session,
+) -> None:
+    """每架构一套环境：多个 suite 的选中 case 汇总进同一个 TestJob/env_set。"""
+    _seed_pipeline_type(db_session, name="release", strategy_kind="direct_run")
+    _seed_mugen_case(db_session, suite_name="smoke", case_name="oe_test_smoke_a", node_num=1)
+    _seed_mugen_case(db_session, suite_name="smoke", case_name="oe_test_smoke_b", node_num=1)
+    _seed_mugen_case(db_session, suite_name="ltp", case_name="oe_test_ltp", node_num=2)
+    config = _make_release_config(
+        db_session,
+        suites=["smoke", "ltp"],
+        versions=["v1"],
+        archs=["x86_64"],
+        case_names_map={"smoke": ["oe_test_smoke_a"], "ltp": []},  # smoke 子集 + ltp 全选
+    )
+    execution = PipelineExecution(
+        config_id=config.id, triggered_by="admin", versions=["v1"], archs=["x86_64"]
+    )
+    db_session.add(execution)
+    db_session.flush()
+    strategy = get_pipeline_strategy(db_session, "release")
+    run_jobs = strategy.plan_run_jobs(
+        db_session, config=config, execution=execution,
+        versions=["v1"], archs=["x86_64"], triggered_by="admin",
+    )
+    assert len(run_jobs) == 1  # 1 arch → 1 RunJob（跨 suite 全部 case 共一套环境）
+    template = db_session.get(TestModuleTemplate, run_jobs[0].module_template_id)
+    job = build_test_job_for_run_job(
+        db_session, run_job=run_jobs[0], config=config, template=template,
+        version="v1", actor_user_id="admin",
+    )
+    # 跨 suite 汇总：smoke 选中 oe_test_smoke_a（非 b）+ ltp 全选 oe_test_ltp
+    assert {cr.case_name for cr in job.case_runs} == {"oe_test_smoke_a", "oe_test_ltp"}
+    assert {cr.suite_name for cr in job.case_runs} == {"smoke", "ltp"}
+    # 单 env_set，node_num = max(全部选中 case node_num) = max(1, 2) = 2
+    assert len(job.env_sets) == 1
+    assert job.env_sets[0].node_num == 2
+
+
+def test_release_builder_physical_toggle_off_skips_as_not_executed(
+    db_session: Session,
+) -> None:
+    """release 全量跑（物理开关关）：物理机用例跳过为物理 NOT_EXECUTED 环境集呈现。"""
+    _seed_pipeline_type(db_session, name="release", strategy_kind="direct_run")
+    _seed_mugen_case(db_session, suite_name="smoke", case_name="oe_test_smoke_a", node_num=1)
+    _seed_mugen_case(
+        db_session,
+        suite_name="smoke",
+        case_name="oe_test_smoke_phys",
+        env_type="physical",
+        node_num=1,
+    )
+    _seed_mugen_case(db_session, suite_name="ltp", case_name="oe_test_ltp", node_num=2)
+    config = _make_release_config(
+        db_session,
+        suites=["smoke", "ltp"],
+        versions=["v1"],
+        archs=["x86_64"],
+        case_names_map={"smoke": [], "ltp": []},  # 全选
+        physical_enabled=False,
+    )
+    execution = PipelineExecution(
+        config_id=config.id, triggered_by="admin", versions=["v1"], archs=["x86_64"]
+    )
+    db_session.add(execution)
+    db_session.flush()
+    strategy = get_pipeline_strategy(db_session, "release")
+    run_jobs = strategy.plan_run_jobs(
+        db_session, config=config, execution=execution,
+        versions=["v1"], archs=["x86_64"], triggered_by="admin",
+    )
+    template = db_session.get(TestModuleTemplate, run_jobs[0].module_template_id)
+    assert template.env_type == "both"  # release 模板升级为 both
+    job = build_test_job_for_run_job(
+        db_session, run_job=run_jobs[0], config=config, template=template,
+        version="v1", actor_user_id="admin",
+    )
+    # VM 环境集：仅 vm 用例（物理用例不进 VM 环境）
+    vm_sets = [es for es in job.env_sets if es.env_type == "vm"]
+    assert len(vm_sets) == 1
+    vm_case_runs = [
+        cr for cr in job.case_runs if cr.env_set_id == vm_sets[0].id
+    ]
+    assert {cr.case_name for cr in vm_case_runs} == {"oe_test_smoke_a", "oe_test_ltp"}
+    # 物理用例：独立 NOT_EXECUTED 物理环境集（可见的跳过，不建节点）
+    phys_sets = [es for es in job.env_sets if es.env_type == "physical"]
+    assert len(phys_sets) == 1
+    assert phys_sets[0].node_num == 0
+    assert phys_sets[0].status == "not_executed"
+    phys_case_runs = [
+        cr for cr in job.case_runs if cr.env_set_id == phys_sets[0].id
+    ]
+    assert {cr.case_name for cr in phys_case_runs} == {"oe_test_smoke_phys"}
+    assert {cr.status for cr in phys_case_runs} == {"not_executed"}
+
+
+def test_release_builder_physical_toggle_on_creates_executable_env(
+    db_session: Session,
+) -> None:
+    """release 全量跑（物理开关开）：物理用例进可执行物理环境集（建节点）。"""
+    _seed_pipeline_type(db_session, name="release", strategy_kind="direct_run")
+    _seed_mugen_case(db_session, suite_name="smoke", case_name="oe_test_smoke_a", node_num=1)
+    _seed_mugen_case(
+        db_session,
+        suite_name="smoke",
+        case_name="oe_test_smoke_phys",
+        env_type="physical",
+        node_num=2,
+    )
+    config = _make_release_config(
+        db_session,
+        suites=["smoke"],
+        versions=["v1"],
+        archs=["x86_64"],
+        case_names_map={"smoke": []},  # 全选
+        physical_enabled=True,
+    )
+    execution = PipelineExecution(
+        config_id=config.id, triggered_by="admin", versions=["v1"], archs=["x86_64"]
+    )
+    db_session.add(execution)
+    db_session.flush()
+    strategy = get_pipeline_strategy(db_session, "release")
+    run_jobs = strategy.plan_run_jobs(
+        db_session, config=config, execution=execution,
+        versions=["v1"], archs=["x86_64"], triggered_by="admin",
+    )
+    template = db_session.get(TestModuleTemplate, run_jobs[0].module_template_id)
+    job = build_test_job_for_run_job(
+        db_session, run_job=run_jobs[0], config=config, template=template,
+        version="v1", actor_user_id="admin",
+    )
+    # vm 用例与物理用例各一个环境集
+    assert len(job.env_sets) == 2
+    vm_sets = [es for es in job.env_sets if es.env_type == "vm"]
+    phys_sets = [es for es in job.env_sets if es.env_type == "physical"]
+    assert len(vm_sets) == 1 and len(phys_sets) == 1
+    # 物理环境集可执行：节点数 = max(物理用例 node_num) = 2，状态非 NOT_EXECUTED
+    assert phys_sets[0].node_num == 2
+    assert phys_sets[0].status != "not_executed"
+    assert len(phys_sets[0].nodes) == 2
+    phys_case_runs = [
+        cr for cr in job.case_runs if cr.env_set_id == phys_sets[0].id
+    ]
+    assert {cr.case_name for cr in phys_case_runs} == {"oe_test_smoke_phys"}
+
+
+def test_release_plan_run_jobs_rejects_multi_version(db_session: Session) -> None:
+    """release 为单版本配置；plan_run_jobs 对多版本触发级覆盖 raise（defense-in-depth）。"""
+    _seed_pipeline_type(db_session, name="release", strategy_kind="direct_run")
+    config = _make_release_config(
+        db_session, suites=["smoke"], versions=["v1"], archs=["x86_64"]
+    )
+    execution = PipelineExecution(
+        config_id=config.id, triggered_by="admin", versions=["v1"], archs=["x86_64"]
+    )
+    db_session.add(execution)
+    db_session.flush()
+    strategy = get_pipeline_strategy(db_session, "release")
+    with pytest.raises(ValueError, match="单版本"):
+        strategy.plan_run_jobs(
+            db_session, config=config, execution=execution,
+            versions=["v1", "v2"], archs=["x86_64"], triggered_by="admin",
+        )
+
+
+def test_create_env_node_vm_passes_kernel_extras_to_vm_request(
+    db_session: Session,
+    monkeypatch,
+) -> None:
+    """create_env_node_vm 从 job.pipeline_extras 读内核参数透传 VMRequestCreate（release）。
+
+    update 的 job.pipeline_extras 为 None → 透传 None，不换内核（非干扰）。
+    """
+    from app.modules.test_management.envs import vm as env_vm
+    from app.modules.users.models import User
+
+    captured: dict = {}
+
+    def fake_create_vm_request(db, *, actor, payload):  # noqa: ANN001
+        captured["payload"] = payload
+        return SimpleNamespace(id="fake-req-id")
+
+    monkeypatch.setattr(env_vm, "create_vm_request", fake_create_vm_request)
+    monkeypatch.setattr(env_vm, "process_vm_request", lambda *a, **k: None)
+
+    user = User(id="user-1", username="u", role="ADMIN", password_hash="x")
+    db_session.add(user)
+    db_session.flush()
+    job = TestJob(
+        creator_user_id="user-1",
+        name="release-job",
+        status="pending",
+        framework="mugen",
+        env_type="vm",
+        dist="openEuler",
+        os_version="24.03-LTS-SP3",
+        image_round="round-9",
+        arch="x86_64",
+        mugen_commit_sha="abc",
+        env_set_num=1,
+        keep_failed_env=False,
+        keep_env=True,
+        pre_env_script="",
+        rerun_env_script="",
+        post_env_script="",
+        result_parser="mugen_results",
+        update_packages=[],
+        pipeline_extras={"kernel_variant": "26.09-with-kernel-6.18"},
+    )
+    db_session.add(job)
+    db_session.flush()
+    env_set = TestEnvSet(
+        job_id=job.id,
+        set_index=1,
+        status=TestEnvSetStatus.RUNNING.value,
+        node_num=1,
+        env_type="vm",
+        add_disk_num=0,
+        add_nic_num=0,
+    )
+    db_session.add(env_set)
+    db_session.flush()
+    node = TestEnvNode(
+        env_set_id=env_set.id,
+        node_index=1,
+        role="control",
+        status=TestEnvNodeStatus.CREATING.value,
+    )
+    db_session.add(node)
+    db_session.flush()
+
+    # 函数在捕获 payload 后会因无真实 VMRequest 行而 raise，但 payload 已捕获。
+    with pytest.raises(TestJobExecutionError):
+        env_vm.create_env_node_vm(
+            db_session, job=job, env_set=env_set, node=node, actor=user
+        )
+
+    payload = captured["payload"]
+    assert payload.kernel_variant == "26.09-with-kernel-6.18"
+    assert payload.kernel_rpm_url is None
+
+
+def test_get_pipeline_strategy_dispatches_by_strategy_kind(
+    db_session: Session,
+) -> None:
+    _seed_pipeline_type(db_session, name="update", strategy_kind="update_strategy")
+    _seed_pipeline_type(db_session, name="release", strategy_kind="direct_run")
+    _seed_pipeline_type(db_session, name="smoke", strategy_kind="direct_run")
+
+    from app.modules.pipelines.pipeline_strategies.direct_run import (
+        DirectRunPipelineStrategy,
+    )
+    from app.modules.pipelines.pipeline_strategies.update import (
+        UpdatePipelineStrategy,
+    )
+
+    assert isinstance(get_pipeline_strategy(db_session, "update"), UpdatePipelineStrategy)
+    assert isinstance(get_pipeline_strategy(db_session, "release"), DirectRunPipelineStrategy)
+    # Different pipeline_type names with same strategy_kind return same strategy class
+    assert isinstance(get_pipeline_strategy(db_session, "smoke"), DirectRunPipelineStrategy)
+
+
+def test_get_pipeline_strategy_unknown_type_raises(db_session: Session) -> None:
+    with pytest.raises(ValueError, match="unknown pipeline_type: nope"):
+        get_pipeline_strategy(db_session, "nope")
+
+
+def test_get_pipeline_strategy_unknown_strategy_kind_raises(
+    db_session: Session,
+) -> None:
+    _seed_pipeline_type(db_session, name="weird", strategy_kind="some_future_kind")
+    with pytest.raises(ValueError, match="unknown strategy_kind"):
+        get_pipeline_strategy(db_session, "weird")
+
+
+def _seed_64k_job(db, *, os_version: str):
+    """建 job + env_set + node + 2 case_run，用于测试未转测状态收敛。"""
+    from app.modules.test_management.models import utc_now
+
+    job = TestJob(
+        creator_user_id="admin",
+        name="tj-64k",
+        status="running",
+        framework="mugen",
+        env_type=TestEnvType.VM.value,
+        dist="openEuler",
+        os_version=os_version,
+        image_round="round-9",
+        arch="aarch64",
+        mugen_commit_sha="abc",
+        env_set_num=1,
+        keep_env=True,
+        created_at=utc_now(),
+    )
+    db.add(job)
+    db.flush()
+    env_set = TestEnvSet(job=job, set_index=1, node_num=1, add_disk_num=0, add_nic_num=0)
+    db.add(env_set)
+    db.flush()
+    db.add(
+        TestEnvNode(
+            env_set_id=env_set.id,
+            node_index=0,
+            role="control",
+            status=TestEnvNodeStatus.CREATING.value,
+        )
+    )
+    for suite, case in [("s1", "c1"), ("s2", "c2")]:
+        db.add(
+            TestCaseRun(
+                job_id=job.id,
+                env_set_id=env_set.id,
+                suite_name=suite,
+                case_name=case,
+                status="pending",
+            )
+        )
+    db.commit()
+    return job, env_set
+
+
+def test_mark_env_set_not_executed_is_scoped_to_current_env_set(
+    db_session: Session,
+) -> None:
+    """结构化未转测只收敛当前 EnvSet，不读取全局任务事件。"""
+    from app.modules.test_management.execution import _mark_env_set_not_executed
+
+    _job, env_set = _seed_64k_job(db_session, os_version="openEuler-24.03-LTS-SP4-64k")
+    _, other_env_set = _seed_64k_job(db_session, os_version="openEuler-24.03-LTS-SP4-64k")
+
+    _mark_env_set_not_executed(db_session, env_set=env_set)
+
+    cases = (
+        db_session.execute(select(TestCaseRun).where(TestCaseRun.env_set_id == env_set.id))
+        .scalars()
+        .all()
+    )
+    assert all(c.status == TestCaseRunStatus.NOT_EXECUTED.value for c in cases), [
+        c.status for c in cases
+    ]
+    db_session.refresh(env_set)
+    assert env_set.status == TestEnvSetStatus.NOT_EXECUTED.value
+    assert all(node.status == TestEnvNodeStatus.NOT_EXECUTED.value for node in env_set.nodes)
+    assert other_env_set.status == TestEnvSetStatus.PENDING.value
+
+
+def test_execute_env_set_stops_before_prepare_when_64k_is_not_transferred(
+    db_session: Session,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """环境创建返回未转测时，直接收敛状态且不进入测试准备。"""
+    from app.modules.test_management import execution as test_execution
+
+    _job, env_set = _seed_64k_job(
+        db_session,
+        os_version="openEuler-24.03-LTS-SP4-64k",
+    )
+    monkeypatch.setattr(test_execution, "create_env_node_vm", lambda *_, **__: False)
+    monkeypatch.setattr(
+        test_execution,
+        "prepare_env",
+        lambda *_, **__: pytest.fail("not-transferred environment must not be prepared"),
+    )
+
+    result = test_execution.execute_env_set(
+        db_session,
+        job=_job,
+        env_set=env_set,
+        actor=SimpleNamespace(id="admin"),
+    )
+
+    assert result == (False, False)
+    assert env_set.status == TestEnvSetStatus.NOT_EXECUTED.value
+    assert all(
+        case.status == TestCaseRunStatus.NOT_EXECUTED.value for case in env_set.case_runs
+    )
