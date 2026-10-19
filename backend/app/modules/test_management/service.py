@@ -24,7 +24,7 @@ from app.core.pagination import PAGE_SIZE, PageParams
 from app.modules.audit.service import record_audit_log
 from app.modules.resources.models import OccupancyStatus, Resource
 from app.modules.tasks.models import TaskEvent
-from app.modules.tasks.service import list_task_events, record_task_event
+from app.modules.tasks.service import TaskEventDraft, list_task_events, record_task_event
 from app.modules.test_management.errors import TestJobDeleteError
 from app.modules.test_management.frameworks.mugen import parse_suite_documents
 from app.modules.test_management.models import (
@@ -176,12 +176,14 @@ def enqueue_mugen_case_sync(db: Session, *, actor: User) -> str:
 
     record_task_event(
         db,
-        task_type=TASK_TYPE_MUGEN_SYNC,
-        subject_type=SUBJECT_TYPE_MUGEN_SYNC,
-        subject_id=SUBJECT_ID_MUGEN_SYNC,
-        celery_task_id=task_id,
-        phase="queued",
-        message="Mugen 用例同步已进入异步队列",
+        draft=TaskEventDraft(
+            task_type=TASK_TYPE_MUGEN_SYNC,
+            subject_type=SUBJECT_TYPE_MUGEN_SYNC,
+            subject_id=SUBJECT_ID_MUGEN_SYNC,
+            celery_task_id=task_id,
+            phase="queued",
+            message="Mugen 用例同步已进入异步队列",
+        ),
     )
     db.flush()
     return task_id
@@ -587,14 +589,16 @@ def record_test_job_event(
 ) -> TaskEvent:
     return record_task_event(
         db,
-        task_type=TASK_TYPE_TEST_JOB,
-        subject_type=SUBJECT_TYPE_TEST_JOB,
-        subject_id=str(job.id),
-        celery_task_id=job.task_id,
-        phase=phase,
-        message=message,
-        level=level,
-        error_code=error_code,
+        draft=TaskEventDraft(
+            task_type=TASK_TYPE_TEST_JOB,
+            subject_type=SUBJECT_TYPE_TEST_JOB,
+            subject_id=str(job.id),
+            celery_task_id=job.task_id,
+            phase=phase,
+            message=message,
+            level=level,
+            error_code=error_code,
+        ),
     )
 
 

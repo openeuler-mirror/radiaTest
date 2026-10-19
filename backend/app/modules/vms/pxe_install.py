@@ -42,7 +42,12 @@ from app.modules.test_management.remote import (
     run_ssh_command,
 )
 from app.modules.vms.host_contract import PXEInstallPayload, PXEInstallResult
-from app.modules.vms.host_runner import HostEventSink, HostScriptError, run_host_script
+from app.modules.vms.host_runner import (
+    HostEventSink,
+    HostRunOptions,
+    HostScriptError,
+    run_host_script,
+)
 from app.modules.vms.service import (
     Kernel64kInstallError,
     Kernel64kNotFoundError,
@@ -427,9 +432,11 @@ def run_pxe_install(
                 host_ip=pxe_server.primary_ip,
                 script_name="pxe-install.sh",
                 payload=payload,
-                result_model=PXEInstallResult,
-                event_sink=event_sink,
-                timeout_seconds=600 if image.iso_url else 120,
+                options=HostRunOptions(
+                    result_model=PXEInstallResult,
+                    event_sink=event_sink,
+                    timeout_seconds=600 if image.iso_url else 120,
+                ),
             )
             _record_event(
                 db,

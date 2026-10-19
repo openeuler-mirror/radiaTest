@@ -16,7 +16,6 @@ from sqlalchemy.orm import Session
 
 from app.modules.resources.models import ManagementStatus
 from app.modules.resources.physical_install_models import PhysicalInstallImage
-from app.modules.tasks.service import make_event_recorder
 from app.modules.test_management.errors import TestJobExecutionError
 from app.modules.test_management.models import (
     TestEnvNode,
@@ -171,7 +170,21 @@ def create_env_node_physical(
             install_latest_kernel_via_ssh,
         )
 
-        record_event = make_event_recorder(record_test_job_event, db=db, job=job)
+        def record_event(
+            phase: str,
+            message: str,
+            *,
+            level: str = "info",
+            error_code: str | None = None,
+        ) -> None:
+            record_test_job_event(
+                db,
+                job=job,
+                phase=phase,
+                message=message,
+                level=level,
+                error_code=error_code,
+            )
 
         record_event(
             "kernel_swap_start",

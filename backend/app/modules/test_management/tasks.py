@@ -17,7 +17,7 @@ from pathlib import Path
 
 from app.core.config import get_settings
 from app.db.session import SessionLocal
-from app.modules.tasks.service import record_task_event
+from app.modules.tasks.service import TaskEventDraft, record_task_event
 from app.modules.test_management.execution import process_test_job
 from app.modules.test_management.frameworks.dangerous_cases import (
     collect_dangerous_scan_reasons,
@@ -78,14 +78,16 @@ def record_sync_event(
     with SessionLocal() as db:
         record_task_event(
             db,
-            task_type=TASK_TYPE_MUGEN_SYNC,
-            subject_type=SUBJECT_TYPE_MUGEN_SYNC,
-            subject_id=SUBJECT_ID_MUGEN_SYNC,
-            celery_task_id=celery_task_id,
-            phase=phase,
-            message=message,
-            level=level,
-            error_code=error_code,
+            draft=TaskEventDraft(
+                task_type=TASK_TYPE_MUGEN_SYNC,
+                subject_type=SUBJECT_TYPE_MUGEN_SYNC,
+                subject_id=SUBJECT_ID_MUGEN_SYNC,
+                celery_task_id=celery_task_id,
+                phase=phase,
+                message=message,
+                level=level,
+                error_code=error_code,
+            ),
         )
         db.commit()
 
@@ -130,14 +132,16 @@ def sync_mugen_cases_task(self: object, actor_user_id: str, lock_token: str) -> 
                 )
                 record_task_event(
                     db,
-                    task_type=TASK_TYPE_MUGEN_SYNC,
-                    subject_type=SUBJECT_TYPE_MUGEN_SYNC,
-                    subject_id=SUBJECT_ID_MUGEN_SYNC,
-                    celery_task_id=task_id,
-                    phase="succeeded",
-                    message=(
-                        f"Mugen 用例同步完成，{result.case_count} 条 case，"
-                        f"脚本扫描标记危险 {len(dangerous_reasons)} 条"
+                    draft=TaskEventDraft(
+                        task_type=TASK_TYPE_MUGEN_SYNC,
+                        subject_type=SUBJECT_TYPE_MUGEN_SYNC,
+                        subject_id=SUBJECT_ID_MUGEN_SYNC,
+                        celery_task_id=task_id,
+                        phase="succeeded",
+                        message=(
+                            f"Mugen 用例同步完成，{result.case_count} 条 case，"
+                            f"脚本扫描标记危险 {len(dangerous_reasons)} 条"
+                        ),
                     ),
                 )
                 db.commit()
