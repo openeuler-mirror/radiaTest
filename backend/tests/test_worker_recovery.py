@@ -10,12 +10,14 @@
 from __future__ import annotations
 
 import logging
+import os
+import threading
 from collections.abc import Generator
 from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 import pytest
-from sqlalchemy import create_engine, func, select
+from sqlalchemy import create_engine, delete, func, select
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
@@ -38,6 +40,7 @@ from app.modules.resources.models import (
 from app.modules.tasks import recovery
 from app.modules.tasks.models import TaskEvent
 from app.modules.tasks.recovery import (
+    RecoverySummary,
     RecoveryTaskType,
     RecoveryTrigger,
     recover_interrupted_tasks,
@@ -967,3 +970,351 @@ def test_mugen_recovery_rolls_back_when_lock_cannot_be_released(
 
     assert recovered.recovered[RecoveryTaskType.MUGEN_SYNC] == 1
     assert released == ["mugen-started"]
+
+
+def test_postgresql_recovery_row_lock_prevents_duplicate_correction(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    database_url = os.getenv("TEST_DATABASE_URL")
+    if not database_url:
+        pytest.skip("TEST_DATABASE_URL is not configured")
+
+    engine = create_engine(database_url)
+    if engine.dialect.name != "postgresql":
+        engine.dispose()
+        pytest.skip("recovery row-lock test requires PostgreSQL")
+
+    integration_session = sessionmaker(bind=engine)
+    subject_id = f"recovery-lock-{uuid4()}"
+    task_id = str(uuid4())
+    as_of = datetime.now(UTC)
+    release_entered = threading.Event()
+    allow_commit = threading.Event()
+    first_summary: list[RecoverySummary] = []
+    first_errors: list[BaseException] = []
+
+    with integration_session() as db:
+        add_task_event(
+            db,
+            task_type=RecoveryTaskType.MUGEN_SYNC,
+            subject_type="mugen_sync",
+            subject_id=subject_id,
+            task_id=task_id,
+            phase="started",
+            created_at=as_of - timedelta(hours=1),
+        )
+        db.commit()
+
+    def hold_before_commit(token: str) -> None:
+        assert token == task_id
+        release_entered.set()
+        if not allow_commit.wait(timeout=10):
+            raise RuntimeError("timed out waiting for concurrent recovery")
+
+    def run_first_recovery() -> None:
+        try:
+            with integration_session() as db:
+                first_summary.append(
+                    recover_interrupted_tasks(
+                        db,
+                        trigger=RecoveryTrigger.WORKER_STARTUP,
+                        task_types=(RecoveryTaskType.MUGEN_SYNC,),
+                        as_of=as_of,
+                    )
+                )
+        except BaseException as exc:  # noqa: BLE001
+            first_errors.append(exc)
+
+    monkeypatch.setattr(recovery, "_release_mugen_sync_lock", hold_before_commit)
+    thread = threading.Thread(target=run_first_recovery)
+    thread.start()
+    try:
+        assert release_entered.wait(timeout=10)
+        with integration_session() as db:
+            second_summary = recover_interrupted_tasks(
+                db,
+                trigger=RecoveryTrigger.WORKER_STARTUP,
+                task_types=(RecoveryTaskType.MUGEN_SYNC,),
+                as_of=as_of,
+            )
+        assert second_summary.total == 0
+        allow_commit.set()
+        thread.join(timeout=10)
+        assert not thread.is_alive()
+        assert first_errors == []
+        assert first_summary[0].recovered[RecoveryTaskType.MUGEN_SYNC] == 1
+        with integration_session() as db:
+            assert db.scalar(
+                select(func.count())
+                .select_from(TaskEvent)
+                .where(
+                    TaskEvent.subject_id == subject_id,
+                    TaskEvent.phase == "failed",
+                )
+            ) == 1
+            assert db.scalar(
+                select(func.count())
+                .select_from(AuditLog)
+                .where(AuditLog.target_id == subject_id)
+            ) == 1
+    finally:
+        allow_commit.set()
+        thread.join(timeout=10)
+        with integration_session() as db:
+            db.execute(delete(AuditLog).where(AuditLog.target_id == subject_id))
+            db.execute(delete(TaskEvent).where(TaskEvent.subject_id == subject_id))
+            db.commit()
+        engine.dispose()
+
+
+ORPHAN_MESSAGE_FRAGMENT = "无 task_id"
+
+
+def _seed_orphan_requests(db: Session, *, created_at: datetime) -> list[VMRequest]:
+    """构造从未成功派发(task_id 为 NULL)的卡住申请，覆盖三种非终态。"""
+    orphans_rows = (
+        (
+            VMRequestStatus.CREATING,
+            VMRequestStatus.QUEUED,
+            VMRequestStatus.PENDING,
+        )
+    )
+    orphans = [
+        make_vm_request(status=status, task_id=None, created_at=created_at)
+        for status in orphans_rows
+    ]
+    db.add_all(orphans)
+    db.commit()
+    return orphans
+
+
+@pytest.mark.parametrize(
+    "trigger",
+    [RecoveryTrigger.LAZY_READ, RecoveryTrigger.WORKER_STARTUP],
+)
+def test_recovers_orphan_vm_requests_without_task_id(
+    db_session: Session,
+    trigger: RecoveryTrigger,
+) -> None:
+    as_of = datetime(2026, 7, 25, 12, 0, tzinfo=UTC)
+    orphans = _seed_orphan_requests(db_session, created_at=as_of - timedelta(hours=3))
+
+    summary = recover_interrupted_tasks(
+        db_session,
+        trigger=trigger,
+        task_types=(RecoveryTaskType.VM_CREATE,),
+        as_of=as_of,
+    )
+
+    assert summary.recovered[RecoveryTaskType.VM_CREATE] == 3
+    repeated = recover_interrupted_tasks(
+        db_session,
+        trigger=trigger,
+        task_types=(RecoveryTaskType.VM_CREATE,),
+        as_of=as_of,
+    )
+    assert repeated.recovered[RecoveryTaskType.VM_CREATE] == 0
+    for orphan in orphans:
+        db_session.refresh(orphan)
+        assert orphan.status == VMRequestStatus.FAILED.value
+        assert orphan.error_code == "orphaned_no_task"
+        assert ORPHAN_MESSAGE_FRAGMENT in orphan.error_message
+        assert orphan.completed_at is not None
+        # 孤儿分支也必须像有 task_id 分支一样留下 event + audit，
+        # 让详情页与审计查询看到"系统自动改过状态"而非"用户取消"。
+        db_session.flush()
+        assert db_session.execute(
+            select(func.count())
+            .select_from(TaskEvent)
+            .where(
+                TaskEvent.subject_type == "vm_request",
+                TaskEvent.subject_id == orphan.id,
+                TaskEvent.error_code == "orphaned_no_task",
+                TaskEvent.phase == "failed",
+            )
+        ).scalar_one() == 1
+        assert db_session.execute(
+            select(func.count())
+            .select_from(AuditLog)
+            .where(
+                AuditLog.action == "worker.recover_interrupted_task",
+                AuditLog.target_type == "vm_request",
+                AuditLog.target_id == orphan.id,
+            )
+        ).scalar_one() == 1
+
+
+@pytest.mark.parametrize(
+    "trigger",
+    [RecoveryTrigger.LAZY_READ, RecoveryTrigger.WORKER_STARTUP],
+)
+def test_orphan_recovery_waits_for_create_timeout(
+    db_session: Session,
+    trigger: RecoveryTrigger,
+) -> None:
+    """未到 VM_CREATE_TIMEOUT 时两种触发都不清,以避免与提交窗口竞争。"""
+    as_of = datetime(2026, 7, 25, 12, 0, tzinfo=UTC)
+    recent_orphan = make_vm_request(
+        status=VMRequestStatus.CREATING,
+        task_id=None,
+        created_at=as_of - timedelta(minutes=5),
+    )
+    db_session.add(recent_orphan)
+    db_session.commit()
+
+    summary = recover_interrupted_tasks(
+        db_session,
+        trigger=trigger,
+        task_types=(RecoveryTaskType.VM_CREATE,),
+        as_of=as_of,
+    )
+
+    assert summary.recovered.get(RecoveryTaskType.VM_CREATE, 0) == 0
+    db_session.refresh(recent_orphan)
+    assert recent_orphan.status == VMRequestStatus.CREATING.value
+
+
+def test_orphan_recovery_skips_requests_with_task_id(db_session: Session) -> None:
+    """有 task_id 但未 started 的 pending 仍视为在队列里，不得被孤儿分支误杀。"""
+    as_of = datetime(2026, 7, 25, 12, 0, tzinfo=UTC)
+    queued_pending = make_vm_request(
+        status=VMRequestStatus.PENDING,
+        task_id="vm-in-queue",
+        created_at=as_of - timedelta(hours=3),
+    )
+    db_session.add(queued_pending)
+    db_session.commit()
+
+    summary = recover_interrupted_tasks(
+        db_session,
+        trigger=RecoveryTrigger.WORKER_STARTUP,
+        task_types=(RecoveryTaskType.VM_CREATE,),
+        as_of=as_of,
+    )
+
+    assert summary.recovered.get(RecoveryTaskType.VM_CREATE, 0) == 0
+    db_session.refresh(queued_pending)
+    assert queued_pending.status == VMRequestStatus.PENDING.value
+
+
+def _seed_orphan_run_jobs(
+    db: Session, *, created_at: datetime
+) -> list[PipelineRunJob]:
+    """构造从未成功派发(task_id 为 NULL)的 pending RunJob 孤儿。"""
+    jobs = [
+        make_pipeline_run_job(
+            db, status="pending", task_id=None, created_at=created_at
+        )
+        for _ in range(3)
+    ]
+    db.commit()
+    return jobs
+
+
+@pytest.mark.parametrize(
+    "trigger",
+    [RecoveryTrigger.LAZY_READ, RecoveryTrigger.WORKER_STARTUP],
+)
+def test_recovers_orphan_run_jobs_without_task_id(
+    db_session: Session,
+    trigger: RecoveryTrigger,
+) -> None:
+    """pending + task_id NULL + created_at 超过 TEST_JOB_TIMEOUT 的 RunJob 应被回收为 error。"""
+    as_of = datetime(2026, 7, 25, 12, 0, tzinfo=UTC)
+    old = as_of - TEST_JOB_TIMEOUT - timedelta(hours=1)
+    orphans = _seed_orphan_run_jobs(db_session, created_at=old)
+
+    summary = recover_interrupted_tasks(
+        db_session,
+        trigger=trigger,
+        task_types=(RecoveryTaskType.PIPELINE_RUN_JOB,),
+        as_of=as_of,
+    )
+
+    assert summary.recovered[RecoveryTaskType.PIPELINE_RUN_JOB] == 3
+    repeated = recover_interrupted_tasks(
+        db_session,
+        trigger=trigger,
+        task_types=(RecoveryTaskType.PIPELINE_RUN_JOB,),
+        as_of=as_of,
+    )
+    assert repeated.recovered[RecoveryTaskType.PIPELINE_RUN_JOB] == 0
+    for orphan in orphans:
+        db_session.refresh(orphan)
+        assert orphan.status == "error"
+        # PipelineRunJob 模型无 error_code 列，语义记在恢复事件与系统审计里供详情页
+        # 与运维查询使用；孤儿分支与有 task_id 分支保持同样痕迹。
+        db_session.flush()
+        assert db_session.execute(
+            select(func.count())
+            .select_from(TaskEvent)
+            .where(
+                TaskEvent.subject_type == "runjob",
+                TaskEvent.subject_id == orphan.id,
+                TaskEvent.error_code == "orphaned_no_dispatch",
+            )
+        ).scalar_one() == 1
+        assert db_session.execute(
+            select(func.count())
+            .select_from(AuditLog)
+            .where(
+                AuditLog.action == "worker.recover_interrupted_task",
+                AuditLog.target_type == "runjob",
+                AuditLog.target_id == orphan.id,
+            )
+        ).scalar_one() == 1
+
+
+@pytest.mark.parametrize(
+    "trigger",
+    [RecoveryTrigger.LAZY_READ, RecoveryTrigger.WORKER_STARTUP],
+)
+def test_orphan_run_job_recovery_waits_for_db_timeout(
+    db_session: Session,
+    trigger: RecoveryTrigger,
+) -> None:
+    """未到 TEST_JOB_TIMEOUT 时两种触发都不清，以避免与 plan/enqueue 提交窗口竞态。"""
+    as_of = datetime(2026, 7, 25, 12, 0, tzinfo=UTC)
+    recent = make_pipeline_run_job(
+        db_session,
+        status="pending",
+        task_id=None,
+        created_at=as_of - timedelta(minutes=5),
+    )
+    db_session.commit()
+
+    summary = recover_interrupted_tasks(
+        db_session,
+        trigger=trigger,
+        task_types=(RecoveryTaskType.PIPELINE_RUN_JOB,),
+        as_of=as_of,
+    )
+
+    assert summary.recovered.get(RecoveryTaskType.PIPELINE_RUN_JOB, 0) == 0
+    db_session.refresh(recent)
+    assert recent.status == "pending"
+
+
+def test_orphan_run_job_recovery_skips_with_task_id_pending(
+    db_session: Session,
+) -> None:
+    """有 task_id 但停在 pending 的 RunJob 视为 broker 里的活消息,不进入自愈。"""
+    as_of = datetime(2026, 7, 25, 12, 0, tzinfo=UTC)
+    queued = make_pipeline_run_job(
+        db_session,
+        status="pending",
+        task_id="runjob-in-queue",
+        created_at=as_of - TEST_JOB_TIMEOUT - timedelta(hours=1),
+    )
+    db_session.commit()
+
+    summary = recover_interrupted_tasks(
+        db_session,
+        trigger=RecoveryTrigger.WORKER_STARTUP,
+        task_types=(RecoveryTaskType.PIPELINE_RUN_JOB,),
+        as_of=as_of,
+    )
+
+    assert summary.recovered.get(RecoveryTaskType.PIPELINE_RUN_JOB, 0) == 0
+    db_session.refresh(queued)
+    assert queued.status == "pending"
