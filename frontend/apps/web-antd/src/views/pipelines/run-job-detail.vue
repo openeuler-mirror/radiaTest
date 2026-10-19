@@ -824,3 +824,200 @@ watch(
     </div>
   </Page>
 </template>
+
+<style scoped>
+.runjob-grid {
+  display: grid;
+  grid-template: 'left right' / 3fr 1fr;
+  gap: 16px;
+}
+
+.runjob-left {
+  grid-area: left;
+}
+
+.runjob-right {
+  grid-area: right;
+}
+
+.run-history {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+}
+
+.run-history__item {
+  display: grid;
+  grid-template-columns: auto auto auto;
+  gap: 4px 8px;
+  align-items: center;
+  min-width: 230px;
+  padding: 9px 10px;
+  color: inherit;
+  text-align: left;
+  background: hsl(var(--muted) / 35%);
+  border: 1px solid hsl(var(--border));
+  border-radius: 6px;
+}
+
+.run-history__item:hover,
+.run-history__item:focus-visible {
+  outline: none;
+  border-color: hsl(var(--primary) / 55%);
+}
+
+.run-history__item--active {
+  background: hsl(var(--primary) / 7%);
+  border-color: hsl(var(--primary));
+}
+
+.run-history__marker {
+  width: 7px;
+  height: 7px;
+  background: hsl(var(--primary));
+  border-radius: 50%;
+}
+
+.run-history__title {
+  font-weight: 600;
+}
+
+.run-history__meta {
+  grid-column: 2 / -1;
+  font-size: 11px;
+  color: hsl(var(--muted-foreground));
+}
+
+@media (max-width: 1200px) {
+  .runjob-grid {
+    grid-template-areas: 'left' 'right';
+    grid-template-columns: 1fr;
+  }
+}
+
+.stats-row {
+  display: flex;
+  gap: 24px;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: hsl(var(--muted-foreground));
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.stat-pass {
+  color: hsl(var(--success));
+}
+
+.stat-fail {
+  color: hsl(var(--destructive));
+}
+
+.stat-skip {
+  color: hsl(var(--muted-foreground));
+}
+
+.log-arch {
+  font-size: 11px;
+  color: hsl(var(--muted-foreground));
+}
+
+.node-role {
+  font-size: 10px;
+  color: hsl(var(--muted-foreground));
+}
+
+.task-events {
+  padding-top: 8px;
+  margin-top: 12px;
+  border-top: 1px solid hsl(var(--border));
+}
+
+.task-events-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.task-events-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.task-event {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  font-size: 12px;
+  line-height: 1.8;
+}
+
+.task-event-time {
+  min-width: 160px;
+  color: hsl(var(--muted-foreground));
+  white-space: nowrap;
+}
+
+.task-event-level {
+  min-width: 120px;
+  text-align: center;
+}
+
+.task-event-msg {
+  flex: 1;
+  word-break: break-all;
+}
+
+.task-event-error {
+  font-weight: 500;
+  color: hsl(var(--destructive));
+}
+
+.case-result-block {
+  padding: 12px 16px;
+  border-top: 1px solid hsl(var(--border));
+}
+
+.case-result-header {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.case-result-name {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.case-result-pre {
+  max-height: 200px;
+  padding: 4px 8px;
+  margin: 4px 0;
+  overflow: auto;
+  font-size: 11px;
+  line-height: 1.5;
+  color: hsl(var(--card-foreground));
+  word-break: break-all;
+  white-space: pre-wrap;
+  background: hsl(var(--muted));
+  border: 1px solid hsl(var(--border));
+  border-radius: 4px;
+}
+
+.mugen-logs-section {
+  border-top: 1px solid hsl(var(--border));
+}
+</style>
