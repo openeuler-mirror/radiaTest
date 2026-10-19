@@ -33,11 +33,13 @@ from app.modules.pipelines.models import (
     TestModuleTemplate,
 )
 from app.modules.pipelines.service import (
+    PipelineEnvironmentBusyError,
     PipelineRunJobRerunConflict,
     PipelineRunJobRerunError,
     _execution_status_from_runs,
     _worst_wins_run_status,
     create_run_job_rerun,
+    ensure_execution_envs_destroyable,
     get_case_mugen_log,
     get_execution_summary,
     get_run_job_detail,
@@ -46,9 +48,14 @@ from app.modules.pipelines.service import (
 )
 from app.modules.resources.models import Resource, ResourceType
 from app.modules.tasks.models import TaskEvent
-from app.modules.test_management.errors import EnvSetHangError
+from app.modules.test_management.errors import EnvSetHangError, TestJobExecutionError
 from app.modules.test_management.frameworks import mugen_runner
-from app.modules.test_management.frameworks.mugen_runner import _HeartbeatStats
+from app.modules.test_management.frameworks.mugen_runner import (
+    _capture_and_store_console,
+    _HeartbeatStats,
+    _parse_and_store_subcases,
+    _per_case_collect_log,
+)
 from app.modules.test_management.log_collector import LogCollector
 from app.modules.test_management.models import (
     MugenCase,
@@ -1968,3 +1975,981 @@ def test_heartbeat_stats_summary_empty_and_last_error() -> None:
         RemoteCommandResult(returncode=255, stdout="", stderr="ssh: Connection refused\n")
     )
     assert stats.summary() == "：拒绝×1；末次错误：ssh: Connection refused"
+
+
+def test_run_case_hang_detail_includes_failure_modes(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """vm_hang 判死时 detail 带失败模式摘要，随 case_error 事件流出。"""
+    job, _env_set, case_run = _make_job_with_case_run(db_session)
+    control = SimpleNamespace(
+        ip="1.1.1.1",
+        username="root",
+        password="p",
+        resource=SimpleNamespace(host_resource_id=None),
+    )
+    events: list[str] = []
+
+    monkeypatch.setattr(
+        mugen_runner, "record_test_job_event", lambda _db, **kw: events.append(kw.get("message"))
+    )
+    monkeypatch.setattr(mugen_runner, "write_remote_file", lambda **__: None)
+
+    def fake_run_control(**kw: object) -> object:
+        # 等 on_hung 触发的 cancel_event 再返回，消除 detector 判死与命令返回的竞态。
+        cancel_event = kw.get("cancel_event")
+        if cancel_event is not None:
+            cancel_event.wait(timeout=5)
+        return RemoteCommandResult(returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr(mugen_runner, "run_control_command", fake_run_control)
+    monkeypatch.setattr(
+        mugen_runner,
+        "run_ssh_command",
+        lambda **_: RemoteCommandResult(returncode=255, stdout="", stderr="Connection refused"),
+    )
+    # 真实 HangDetector 换快速节奏：2 连败 + 复核失败 → 判死。
+    real_hang_detector = mugen_runner.HangDetector
+
+    def fast_detector(**kw: object) -> object:
+        return real_hang_detector(interval=0.01, max_failures=2, **kw)
+
+    monkeypatch.setattr(mugen_runner, "HangDetector", fast_detector)
+    monkeypatch.setattr(mugen_runner, "_capture_and_store_console", lambda *_, **__: None)
+
+    with pytest.raises(EnvSetHangError):
+        mugen_runner.run_case(db_session, job=job, control=control, case_run=case_run)
+
+    assert case_run.status == TestCaseRunStatus.ERROR.value
+    assert any(
+        message and "心跳连续失败：拒绝×" in message and "末次错误" in message
+        for message in events
+    )
+
+
+# ---------- BMC 交叉确认门（观察模式） ----------
+
+
+def _bmc_control() -> SimpleNamespace:
+    return SimpleNamespace(
+        ip="1.1.1.1",
+        username="root",
+        password="p",
+        resource=SimpleNamespace(
+            host_resource_id=None,
+            physical_spec=SimpleNamespace(
+                bmc_ip="192.0.2.10",
+                bmc_username="ADMIN",
+                bmc_password_ciphertext="cipher",
+            ),
+        ),
+    )
+
+
+def test_run_case_bmc_alive_enters_watch_and_recovers(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """OOM 类瞬断：BMC 报未重启 → 观察事件留痕；SSH 恢复后用例继续完成，不抛挂死。"""
+    import threading
+
+    import app.modules.test_management.hang_detector as hang_detector_module
+
+    job, _env_set, case_run = _make_job_with_case_run(db_session)
+    control = _bmc_control()
+    events: list[tuple[str | None, str | None]] = []
+    artifacts: list[str | None] = []
+    recovered_event = threading.Event()
+
+    monkeypatch.setattr(mugen_runner, "record_test_job_event", lambda *_, **__: None)
+    monkeypatch.setattr(mugen_runner, "write_remote_file", lambda **__: None)
+    monkeypatch.setattr(mugen_runner, "decrypt_secret", lambda _cipher: "pw")
+    monkeypatch.setattr(mugen_runner, "bmc_power_on", lambda **_kw: True)
+    monkeypatch.setattr(
+        mugen_runner,
+        "_record_hang_watch_event",
+        lambda _job_id, **kw: (
+            events.append((kw.get("phase"), kw.get("message"))),
+            recovered_event.set() if kw.get("phase") == "hang_recovered" else None,
+        ),
+    )
+    monkeypatch.setattr(
+        mugen_runner,
+        "_store_hang_watch_artifact",
+        lambda **kw: artifacts.append(kw.get("artifact_name")),
+    )
+    monkeypatch.setattr(
+        mugen_runner, "run_control_command", lambda **_: (
+            recovered_event.wait(timeout=5),
+            RemoteCommandResult(returncode=0, stdout="", stderr=""),
+        )[1]
+    )
+
+    def fake_ssh_alive(_control: object, _stats: object = None) -> bool:
+        probe_count[0] += 1
+        return probe_count[0] > 5
+
+    monkeypatch.setattr(mugen_runner, "_ssh_alive", fake_ssh_alive)
+    real_hang_detector = mugen_runner.HangDetector
+    probe_count = [0]
+
+    def fast_detector(**kw: object) -> object:
+        return real_hang_detector(interval=0.02, max_failures=3, **kw)
+
+    monkeypatch.setattr(mugen_runner, "HangDetector", fast_detector)
+    monkeypatch.setattr(mugen_runner, "_parse_and_store_subcases", lambda *_, **__: None)
+    monkeypatch.setattr(mugen_runner, "_per_case_collect_log", lambda *_, **__: None)
+    monkeypatch.setattr(hang_detector_module, "WATCH_TIMEOUT_SECONDS", 5.0)
+
+    mugen_runner.run_case(db_session, job=job, control=control, case_run=case_run)
+
+    assert recovered_event.wait(timeout=1)
+    phases = [phase for phase, _ in events]
+    assert "hang_watch" in phases
+    assert "hang_recovered" in phases
+    assert artifacts == [
+        f"bmc-{case_run.suite_name}-{case_run.case_name}-watch-entry.log",
+        f"bmc-{case_run.suite_name}-{case_run.case_name}-watch-recovered.log",
+    ]
+    assert case_run.status == TestCaseRunStatus.PASSED.value
+
+
+def test_run_case_watch_timeout_declares_hang(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """BMC 一直活着但 SSH 不恢复 → 观察上限后判死，事件与 case ERROR 齐全。"""
+    import app.modules.test_management.hang_detector as hang_detector_module
+
+    job, _env_set, case_run = _make_job_with_case_run(db_session)
+    control = _bmc_control()
+    events: list[str | None] = []
+
+    monkeypatch.setattr(
+        mugen_runner, "record_test_job_event", lambda _db, **kw: events.append(kw.get("message"))
+    )
+    monkeypatch.setattr(mugen_runner, "write_remote_file", lambda **__: None)
+    monkeypatch.setattr(mugen_runner, "decrypt_secret", lambda _cipher: "pw")
+    monkeypatch.setattr(mugen_runner, "bmc_power_on", lambda **_kw: True)
+    monkeypatch.setattr(
+        mugen_runner,
+        "_record_hang_watch_event",
+        lambda _job_id, **kw: events.append(kw.get("message")),
+    )
+    monkeypatch.setattr(
+        mugen_runner, "_store_hang_watch_artifact", lambda **_kw: None
+    )
+
+    def fake_run_control(**kw: object) -> object:
+        cancel_event = kw.get("cancel_event")
+        if cancel_event is not None:
+            cancel_event.wait(timeout=5)
+        return RemoteCommandResult(returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr(mugen_runner, "run_control_command", fake_run_control)
+    monkeypatch.setattr(
+        mugen_runner,
+        "run_ssh_command",
+        lambda **_: RemoteCommandResult(returncode=255, stdout="", stderr="Connection refused"),
+    )
+    real_hang_detector = mugen_runner.HangDetector
+
+    def fast_detector(**kw: object) -> object:
+        return real_hang_detector(interval=0.02, max_failures=2, **kw)
+
+    monkeypatch.setattr(mugen_runner, "HangDetector", fast_detector)
+    monkeypatch.setattr(mugen_runner, "_capture_and_store_console", lambda *_, **__: None)
+    monkeypatch.setattr(hang_detector_module, "WATCH_TIMEOUT_SECONDS", 0.3)
+    monkeypatch.setattr(hang_detector_module, "WATCH_CONFIRM_INTERVAL_SECONDS", 0.05)
+
+    with pytest.raises(EnvSetHangError):
+        mugen_runner.run_case(db_session, job=job, control=control, case_run=case_run)
+
+    assert case_run.status == TestCaseRunStatus.ERROR.value
+    assert any(message and "观察模式" in message for message in events)
+    assert any(message and "观察期" in message and "未见恢复" in message for message in events)
+
+
+def test_run_case_bmc_power_off_deadline_declares_hang(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """阈值首查即电源 off → 进观察锚定断电宽限；宽限内未恢复判死，detail 带电源证据。"""
+    import app.modules.test_management.hang_detector as hang_detector_module
+
+    job, _env_set, case_run = _make_job_with_case_run(db_session)
+    control = _bmc_control()
+    events: list[str | None] = []
+
+    monkeypatch.setattr(
+        mugen_runner, "record_test_job_event", lambda _db, **kw: events.append(kw.get("message"))
+    )
+    monkeypatch.setattr(mugen_runner, "write_remote_file", lambda **__: None)
+    monkeypatch.setattr(mugen_runner, "decrypt_secret", lambda _cipher: "pw")
+    monkeypatch.setattr(mugen_runner, "bmc_power_on", lambda **_kw: False)
+    monkeypatch.setattr(
+        mugen_runner,
+        "_record_hang_watch_event",
+        lambda _job_id, **kw: events.append(kw.get("message")),
+    )
+    monkeypatch.setattr(mugen_runner, "_store_hang_watch_artifact", lambda **_kw: None)
+
+    def fake_run_control(**kw: object) -> object:
+        cancel_event = kw.get("cancel_event")
+        if cancel_event is not None:
+            cancel_event.wait(timeout=5)
+        return RemoteCommandResult(returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr(mugen_runner, "run_control_command", fake_run_control)
+    monkeypatch.setattr(
+        mugen_runner,
+        "run_ssh_command",
+        lambda **_: RemoteCommandResult(returncode=255, stdout="", stderr="Connection refused"),
+    )
+    real_hang_detector = mugen_runner.HangDetector
+
+    def fast_detector(**kw: object) -> object:
+        return real_hang_detector(interval=0.02, max_failures=2, **kw)
+
+    monkeypatch.setattr(mugen_runner, "HangDetector", fast_detector)
+    monkeypatch.setattr(mugen_runner, "_capture_and_store_console", lambda *_, **__: None)
+    # 检测器宽限缩短到 0.15s 判死；mugen_runner 文案仍用真实常量渲染"10 分钟"。
+    monkeypatch.setattr(hang_detector_module, "WATCH_POWER_OFF_DEADLINE_SECONDS", 0.15)
+
+    with pytest.raises(EnvSetHangError):
+        mugen_runner.run_case(db_session, job=job, control=control, case_run=case_run)
+
+    assert case_run.status == TestCaseRunStatus.ERROR.value
+    # 首查 off 也进观察模式，watch-entry 事件注明电源断开。
+    assert any(
+        message and "电源断开" in message and "观察模式" in message for message in events
+    )
+    assert any(
+        message and "BMC 报告电源断开" in message and "10 分钟内 SSH 未恢复" in message
+        for message in events
+    )
+
+
+def test_run_case_vm_without_bmc_has_no_confirm_gate(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """VM/无 BMC 资源不建确认门，维持阈值+复核即判的现有行为。"""
+    job, _env_set, case_run = _make_job_with_case_run(db_session)
+    control = SimpleNamespace(
+        ip="1.1.1.1",
+        username="root",
+        password="p",
+        resource=SimpleNamespace(host_resource_id=None),
+    )
+    captured: dict[str, object] = {}
+
+    class FakeDetector:
+        def __init__(self, **kw: object) -> None:
+            captured.update(kw)
+
+        @staticmethod
+        def start() -> None:
+            pass
+
+        @staticmethod
+        def stop() -> None:
+            pass
+
+        @staticmethod
+        def is_hung() -> bool:
+            return True
+
+    monkeypatch.setattr(mugen_runner, "record_test_job_event", lambda *_, **__: None)
+    monkeypatch.setattr(mugen_runner, "write_remote_file", lambda **__: None)
+    monkeypatch.setattr(
+        mugen_runner,
+        "run_control_command",
+        lambda **_: RemoteCommandResult(returncode=0, stdout="", stderr=""),
+    )
+    monkeypatch.setattr(mugen_runner, "HangDetector", FakeDetector)
+    monkeypatch.setattr(mugen_runner, "_capture_and_store_console", lambda *_, **__: None)
+
+    with pytest.raises(EnvSetHangError):
+        mugen_runner.run_case(db_session, job=job, control=control, case_run=case_run)
+
+    assert captured.get("confirm_fn") is None
+    assert captured.get("on_watch_start") is None
+    assert captured.get("on_recovered") is None
+
+
+# ---------- 物理机挂死 BMC 取证 ----------
+
+
+def test_capture_console_physical_stores_bmc_diagnostic(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    job, _env_set, case_run = _make_job_with_case_run(db_session)
+    control = SimpleNamespace(
+        ip="1.1.1.1",
+        username="root",
+        password="p",
+        resource=SimpleNamespace(
+            host_resource_id=None,
+            physical_spec=SimpleNamespace(
+                bmc_ip="192.0.2.10",
+                bmc_username="ADMIN",
+                bmc_password_ciphertext="cipher",
+            ),
+        ),
+    )
+    stored: dict[str, object] = {}
+
+    class FakeCollector:
+        def __init__(self, base_dir: str) -> None:
+            self.base_dir = base_dir
+
+        @staticmethod
+        def store_artifact(db: Session, **kw: object) -> None:
+            stored.update(kw)
+
+    monkeypatch.setattr(mugen_runner, "LogCollector", FakeCollector)
+    monkeypatch.setattr(mugen_runner, "decrypt_secret", lambda _cipher: "pw")
+    monkeypatch.setattr(
+        mugen_runner, "capture_bmc_diagnostics", lambda **_kw: "SEL OUTPUT"
+    )
+
+    _capture_and_store_console(
+        db_session, job=job, control=control, case_run=case_run
+    )
+
+    assert stored["artifact_type"] == "bmc_diagnostic"
+    assert stored["artifact_name"] == f"bmc-{case_run.suite_name}-{case_run.case_name}.log"
+    assert stored["content"] == "SEL OUTPUT"
+    assert stored["job_id"] == job.id
+    assert stored["module"] == "hang"
+
+
+def test_capture_console_physical_without_bmc_is_noop(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    job, _env_set, case_run = _make_job_with_case_run(db_session)
+    control = SimpleNamespace(
+        ip="1.1.1.1",
+        username="root",
+        password="p",
+        resource=SimpleNamespace(host_resource_id=None),
+    )
+
+    def fail_collector(*_args: object, **_kw: object) -> None:
+        raise AssertionError("physical resource without BMC must not store artifacts")
+
+    monkeypatch.setattr(mugen_runner, "LogCollector", fail_collector)
+
+    _capture_and_store_console(
+        db_session, job=job, control=control, case_run=case_run
+    )
+
+
+def test_capture_console_physical_with_incomplete_bmc_is_noop(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """physical_spec 存在但 bmc_ip/username 缺失时同样零副作用。"""
+    job, _env_set, case_run = _make_job_with_case_run(db_session)
+    control = SimpleNamespace(
+        ip="1.1.1.1",
+        username="root",
+        password="p",
+        resource=SimpleNamespace(
+            host_resource_id=None,
+            physical_spec=SimpleNamespace(
+                bmc_ip="", bmc_username=None, bmc_password_ciphertext="c"
+            ),
+        ),
+    )
+
+    def fail_collector(*_args: object, **_kw: object) -> None:
+        raise AssertionError("incomplete BMC spec must not store artifacts")
+
+    monkeypatch.setattr(mugen_runner, "LogCollector", fail_collector)
+
+    _capture_and_store_console(
+        db_session, job=job, control=control, case_run=case_run
+    )
+
+
+def test_run_case_parses_subcases_after_success(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    job, _env_set, case_run = _make_job_with_case_run(db_session, result_parser="ltp")
+    control = SimpleNamespace(
+        ip="1.1.1.1",
+        username="root",
+        password="p",
+        resource=SimpleNamespace(host_resource_id=None),
+    )
+
+    monkeypatch.setattr(mugen_runner, "record_test_job_event", lambda *_, **__: None)
+    monkeypatch.setattr(mugen_runner, "write_remote_file", lambda **__: None)
+    monkeypatch.setattr(
+        mugen_runner,
+        "run_control_command",
+        lambda **_: RemoteCommandResult(returncode=0, stdout="", stderr=""),
+    )
+
+    class FakeDetector:
+        @staticmethod
+        def start() -> None:
+            pass
+
+        @staticmethod
+        def stop() -> None:
+            pass
+
+        @staticmethod
+        def is_hung() -> bool:
+            return False
+
+    monkeypatch.setattr(mugen_runner, "HangDetector", lambda **_: FakeDetector())
+    monkeypatch.setattr(
+        mugen_runner,
+        "_ssh_read_file",
+        lambda _control, _path: "foo 1 TPASS\nbar 2 TFAIL\n",
+    )
+
+    mugen_runner.run_case(db_session, job=job, control=control, case_run=case_run)
+
+    assert case_run.status == TestCaseRunStatus.PASSED.value
+    details = list(
+        db_session.execute(
+            select(TestCaseRunDetail).where(TestCaseRunDetail.case_run_id == case_run.id)
+        )
+        .scalars()
+        .all()
+    )
+    assert len(details) == 2
+
+
+# ---------- destroy_execution_envs ----------
+
+
+def test_destroy_execution_envs_calls_destroy(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    template = TestModuleTemplate(name="docker", display_name="Docker", suite_name="smoke")
+    db_session.add(template)
+    db_session.flush()
+    config, execution, run, run_job = _make_run_job(db_session, template=template)
+    resource = Resource(
+        resource_code="vm-1",
+        resource_type=ResourceType.VIRTUAL.value,
+        ssh_username="root",
+        ssh_password_ciphertext="x",
+    )
+    db_session.add(resource)
+    db_session.flush()
+    job = TestJob(
+        creator_user_id="admin",
+        name="tj",
+        status="succeeded",
+        framework="mugen",
+        env_type="vm",
+        dist="openEuler",
+        os_version="v",
+        image_round="",
+        arch="x86_64",
+        mugen_commit_sha="abc",
+        env_set_num=1,
+    )
+    db_session.add(job)
+    db_session.flush()
+    run_job.test_job_id = job.id
+    run_job.status = "succeeded"
+    env_set = TestEnvSet(job=job, set_index=1, node_num=1, add_disk_num=0, add_nic_num=0)
+    db_session.add(env_set)
+    db_session.flush()
+    db_session.add(
+        TestEnvNode(env_set=env_set, node_index=0, role="control", resource_id=resource.id)
+    )
+    db_session.commit()
+
+    destroyed: list[str] = []
+    monkeypatch.setattr(
+        "app.modules.test_management.envs.vm.destroy_env_node_vm",
+        lambda db, *, job, node, actor: destroyed.append(node.resource_id),
+    )
+
+    from app.modules.pipelines.service import destroy_execution_envs
+
+    result = destroy_execution_envs(
+        db_session, execution=execution, actor=SimpleNamespace(id="admin")
+    )
+    assert destroyed == [resource.id]
+    assert result["destroyed"] == [resource.id]
+
+
+def test_destroy_environment_rejects_active_rerun_with_lock(db_session: Session) -> None:
+    template = TestModuleTemplate(name="docker", display_name="Docker", suite_name="smoke")
+    db_session.add(template)
+    db_session.flush()
+    _config, execution, _run, run_job = _make_run_job(db_session, template=template)
+    run_job.status = "running"
+    db_session.commit()
+
+    with pytest.raises(PipelineEnvironmentBusyError):
+        ensure_execution_envs_destroyable(db_session, execution.id, lock=True)
+
+
+# ---------- execute_env_set physical 切换 ----------
+
+
+def test_execute_env_set_uses_physical_node_creation(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.modules.test_management import execution as test_execution
+    from app.modules.test_management.models import utc_now
+
+    physical_calls: list[str] = []
+    vm_calls: list[str] = []
+
+    def fake_physical(db, *, job, env_set, node, actor):
+        physical_calls.append(node.node_index)
+        return True
+
+    def fake_vm(db, *, job, env_set, node, actor):
+        vm_calls.append(node.node_index)
+        return True
+
+    monkeypatch.setattr(test_execution, "create_env_node_physical", fake_physical)
+    monkeypatch.setattr(test_execution, "create_env_node_vm", fake_vm)
+    monkeypatch.setattr(
+        test_execution,
+        "node_runtime",
+        lambda db, node: SimpleNamespace(
+            ip="1.1.1.1",
+            username="root",
+            password="p",
+            resource=SimpleNamespace(host_resource_id=None),
+        ),
+    )
+    monkeypatch.setattr(test_execution, "prepare_env", lambda *_, **__: "/tmp/dir")
+    monkeypatch.setattr(test_execution, "run_hook", lambda *_, **__: None)
+    monkeypatch.setattr(test_execution, "run_case", lambda *_, **__: None)
+
+    job = TestJob(
+        creator_user_id="admin",
+        name="tj",
+        status="pending",
+        framework="mugen",
+        env_type=TestEnvType.PHYSICAL.value,
+        dist="openEuler",
+        os_version="v",
+        image_round="",
+        arch="x86_64",
+        mugen_commit_sha="abc",
+        env_set_num=1,
+        keep_env=True,
+        created_at=utc_now(),
+    )
+    db_session.add(job)
+    db_session.flush()
+    env_set = TestEnvSet(job=job, set_index=1, node_num=1, add_disk_num=0, add_nic_num=0)
+    db_session.add(env_set)
+    db_session.flush()
+    db_session.add(TestEnvNode(env_set=env_set, node_index=0, role="control"))
+    db_session.commit()
+
+    has_failure, has_error = test_execution.execute_env_set(
+        db_session, job=job, env_set=env_set, actor=SimpleNamespace(id="admin")
+    )
+    assert physical_calls == [0]
+    assert vm_calls == []
+    assert has_error is False
+
+
+def test_execute_env_set_rerun_skips_environment_creation(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.modules.test_management import execution as test_execution
+    from app.modules.test_management.models import utc_now
+
+    calls: list[str] = []
+    monkeypatch.setattr(
+        test_execution,
+        "create_env_node_vm",
+        lambda *_, **__: pytest.fail("rerun must not create a VM"),
+    )
+    monkeypatch.setattr(
+        test_execution,
+        "create_env_node_physical",
+        lambda *_, **__: pytest.fail("rerun must not PXE a physical node"),
+    )
+    monkeypatch.setattr(
+        test_execution,
+        "node_runtime",
+        lambda db, node: SimpleNamespace(
+            ip="192.0.2.30",
+            username="root",
+            password="p",
+            resource=SimpleNamespace(host_resource_id=None),
+        ),
+    )
+    monkeypatch.setattr(
+        test_execution,
+        "prepare_rerun_env",
+        lambda *_, **__: "/root/kronos/jobs/rerun",
+    )
+    monkeypatch.setattr(
+        test_execution,
+        "archive_rerun_case_outputs",
+        lambda **__: calls.append("archive"),
+    )
+    monkeypatch.setattr(
+        test_execution,
+        "run_hook",
+        lambda *_, script_name, **__: calls.append(script_name),
+    )
+
+    def run_case(db, *, job, control, case_run, **kwargs):
+        calls.append(case_run.case_name)
+        case_run.status = TestCaseRunStatus.PASSED.value
+
+    monkeypatch.setattr(test_execution, "run_case", run_case)
+    job = TestJob(
+        creator_user_id="admin",
+        name="rerun",
+        status="pending",
+        framework="mugen",
+        env_type="physical",
+        dist="openEuler",
+        os_version="v",
+        image_round="round-9",
+        arch="x86_64",
+        mugen_commit_sha="abc",
+        env_set_num=1,
+        keep_env=True,
+        rerun_source_job_id=10000,
+        rerun_env_script="prepare rerun",
+        post_env_script="collect",
+        created_at=utc_now(),
+    )
+    db_session.add(job)
+    db_session.flush()
+    env_set = TestEnvSet(job=job, set_index=1, node_num=1, env_type="physical")
+    db_session.add(env_set)
+    db_session.flush()
+    db_session.add(
+        TestEnvNode(
+            env_set=env_set,
+            node_index=0,
+            role="control",
+            status="ready",
+            resource_id="resource-1",
+        )
+    )
+    db_session.add(
+        TestCaseRun(
+            job=job,
+            env_set=env_set,
+            suite_name="smoke",
+            case_name="case-1",
+        )
+    )
+    db_session.commit()
+
+    has_failure, has_error = test_execution.execute_env_set(
+        db_session, job=job, env_set=env_set, actor=SimpleNamespace(id="user")
+    )
+
+    assert calls == ["rerun_env.sh", "archive", "case-1", "post_env.sh"]
+    assert has_failure is False
+    assert has_error is False
+
+
+def test_rerun_env_error_survives_post_env_error(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.modules.test_management import execution as test_execution
+    from app.modules.test_management.models import utc_now
+
+    calls: list[str] = []
+    monkeypatch.setattr(
+        test_execution,
+        "node_runtime",
+        lambda db, node: SimpleNamespace(
+            ip="192.0.2.31",
+            username="root",
+            password="p",
+            resource=SimpleNamespace(host_resource_id=None),
+        ),
+    )
+    monkeypatch.setattr(
+        test_execution,
+        "prepare_rerun_env",
+        lambda *_, **__: "/root/kronos/jobs/rerun",
+    )
+
+    def fail_hooks(*_, script_name: str, **__) -> None:
+        calls.append(script_name)
+        code = "rerun_env_failed" if script_name == "rerun_env.sh" else "hook_failed"
+        raise TestJobExecutionError(code, script_name)
+
+    monkeypatch.setattr(test_execution, "run_hook", fail_hooks)
+    job = TestJob(
+        creator_user_id="admin",
+        name="rerun",
+        status="pending",
+        framework="mugen",
+        env_type="vm",
+        dist="openEuler",
+        os_version="v",
+        image_round="round-9",
+        arch="x86_64",
+        mugen_commit_sha="abc",
+        env_set_num=1,
+        keep_env=True,
+        rerun_source_job_id=10000,
+        rerun_env_script="prepare rerun",
+        post_env_script="collect",
+        created_at=utc_now(),
+    )
+    db_session.add(job)
+    db_session.flush()
+    env_set = TestEnvSet(job=job, set_index=1, node_num=1)
+    db_session.add(env_set)
+    db_session.flush()
+    db_session.add(TestEnvNode(env_set=env_set, node_index=0, role="control"))
+    case_run = TestCaseRun(
+        job=job,
+        env_set=env_set,
+        suite_name="smoke",
+        case_name="case-1",
+    )
+    db_session.add(case_run)
+    db_session.commit()
+
+    with pytest.raises(TestJobExecutionError) as error:
+        test_execution.execute_env_set(
+            db_session, job=job, env_set=env_set, actor=SimpleNamespace(id="user")
+        )
+
+    assert error.value.code == "rerun_env_failed"
+    assert calls == ["rerun_env.sh", "post_env.sh"]
+    assert case_run.status == TestCaseRunStatus.ERROR.value
+
+
+def test_archive_rerun_outputs_moves_module_logs_instead_of_deleting(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    scripts: list[str] = []
+    monkeypatch.setattr(
+        mugen_runner,
+        "run_control_command",
+        lambda *, script, **__: (
+            scripts.append(script)
+            or mugen_runner.RemoteCommandResult(returncode=0, stdout="", stderr="")
+        ),
+    )
+    mugen_runner.archive_rerun_case_outputs(
+        job=SimpleNamespace(
+            id=42,
+            mugen_exec_command=None,
+            result_parser="pkgcmd",
+            created_at=mugen_runner.utc_now(),
+        ),
+        control=SimpleNamespace(),
+        case_runs=[SimpleNamespace(suite_name="suite", case_name="case")],
+    )
+
+    assert "rm -rf" not in scripts[0]
+    assert "mv /opt/pkgcmd-logs/*" in scripts[0]
+    assert "mv /opt/mugen/logs/suite/case" in scripts[0]
+
+
+# ---------- pkgunion result_parser 接入点 ----------
+
+
+def test_archive_rerun_outputs_pkgunion_module_logs(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """pkgunion 的 rerun 归档走 /opt/pkgunion-logs（per-case 日志与自汇集同目录）。"""
+    scripts: list[str] = []
+    monkeypatch.setattr(
+        mugen_runner,
+        "run_control_command",
+        lambda *, script, **__: (
+            scripts.append(script)
+            or mugen_runner.RemoteCommandResult(returncode=0, stdout="", stderr="")
+        ),
+    )
+    mugen_runner.archive_rerun_case_outputs(
+        job=SimpleNamespace(
+            id=42,
+            mugen_exec_command=None,
+            result_parser="pkgunion",
+            created_at=mugen_runner.utc_now(),
+        ),
+        control=SimpleNamespace(),
+        case_runs=[SimpleNamespace(suite_name="suite", case_name="case")],
+    )
+
+    assert "mv /opt/pkgunion-logs/*" in scripts[0]
+
+
+def test_per_case_collect_log_pkgunion(monkeypatch: pytest.MonkeyPatch) -> None:
+    """pkgunion 逐 case 收集 mugen 结果到 /opt/pkgunion-logs/pkgunion.log。"""
+    scripts: list[str] = []
+    monkeypatch.setattr(
+        mugen_runner,
+        "run_control_command",
+        lambda *, script, **__: (
+            scripts.append(script)
+            or mugen_runner.RemoteCommandResult(returncode=0, stdout="", stderr="")
+        ),
+    )
+    _per_case_collect_log(
+        db=None,
+        job=SimpleNamespace(result_parser="pkgunion"),
+        control=SimpleNamespace(),
+        case_run=SimpleNamespace(),
+    )
+
+    assert len(scripts) == 1
+    assert "/opt/pkgunion-logs/pkgunion.log" in scripts[0]
+
+
+def test_parse_and_store_subcases_pkgunion_dispatches_to_mugen_results(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """pkgunion 子用例解析走 parse_mugen_results_dir（与 pkgcmd/pkgserver 同路）。"""
+    job = TestJob(
+        creator_user_id="admin",
+        name="tj",
+        status="running",
+        framework="mugen",
+        env_type="vm",
+        dist="openEuler",
+        os_version="v",
+        image_round="round-9",
+        arch="x86_64",
+        mugen_commit_sha="abc",
+        env_set_num=1,
+        result_parser="pkgunion",
+    )
+    db_session.add(job)
+    db_session.flush()
+    env_set = TestEnvSet(job=job, set_index=1, node_num=1)
+    db_session.add(env_set)
+    db_session.flush()
+    case_run = TestCaseRun(
+        job=job, env_set=env_set, suite_name="nginx", case_name="oe_test_service_nginx"
+    )
+    db_session.add(case_run)
+    db_session.commit()
+
+    listed: dict[str, str] = {}
+    monkeypatch.setattr(
+        mugen_runner,
+        "_ssh_results_listing",
+        lambda control, suite: listed.setdefault("suite", suite) or [],
+    )
+    monkeypatch.setattr(
+        mugen_runner,
+        "parse_mugen_results_dir",
+        lambda listing: [
+            mugen_runner.SubTestResult(sub_test_name="x", status="succeed")
+        ],
+    )
+
+    _parse_and_store_subcases(
+        db_session, job=job, control=SimpleNamespace(), case_run=case_run
+    )
+
+    assert listed["suite"] == "nginx"
+    details = list(
+        db_session.execute(
+            select(TestCaseRunDetail).where(TestCaseRunDetail.case_run_id == case_run.id)
+        ).scalars().all()
+    )
+    assert len(details) == 1
+    assert details[0].status == "succeed"
+
+
+# ---------- execute_env_set vm_hang / RemoteCommandError catch + continue + 熔断 ----------
+
+
+def _make_job_with_env_set_and_cases(db: Session, *, num_cases: int) -> tuple:
+    from app.modules.test_management.models import utc_now
+
+    job = TestJob(
+        creator_user_id="admin",
+        name="tj",
+        status="running",
+        framework="mugen",
+        env_type="vm",
+        dist="openEuler",
+        os_version="v",
+        image_round="",
+        arch="x86_64",
+        mugen_commit_sha="abc",
+        env_set_num=1,
+        keep_env=True,
+        created_at=utc_now(),
+    )
+    db.add(job)
+    db.flush()
+    env_set = TestEnvSet(job=job, set_index=1, node_num=1, add_disk_num=0, add_nic_num=0)
+    db.add(env_set)
+    db.flush()
+    case_runs = []
+    for i in range(num_cases):
+        cr = TestCaseRun(
+            job=job,
+            env_set=env_set,
+            suite_name="s",
+            case_name=f"c{i}",
+            status="pending",
+        )
+        db.add(cr)
+        case_runs.append(cr)
+    db.flush()
+    return job, env_set, case_runs
+
+
+def _patch_env_set_basics(monkeypatch, test_execution):
+    """Patch prepare_env, run_hook, and node_runtime."""
+    monkeypatch.setattr(
+        test_execution,
+        "node_runtime",
+        lambda db, node: SimpleNamespace(
+            ip="1.1.1.1",
+            username="root",
+            password="p",
+            resource=SimpleNamespace(host_resource_id=None),
+        ),
+    )
+    monkeypatch.setattr(test_execution, "prepare_env", lambda *_, **__: "/tmp/dir")
+    monkeypatch.setattr(test_execution, "run_hook", lambda *_, **__: None)
+    monkeypatch.setattr(test_execution, "create_env_node_vm", lambda *_, **__: True)
+
+
+def test_execute_env_set_hang_continues_to_next_case(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """vm_hang on case 0 → case 1 should still run."""
+    from app.modules.test_management import execution as test_execution
+
+    _patch_env_set_basics(monkeypatch, test_execution)
+
+    call_results: list[Exception | None] = [EnvSetHangError("hang"), None]
+
+    def fake_run_case(db, *, job, control, case_run, **kwargs):
+        result = call_results.pop(0)
+        if result is not None:
+            case_run.status = TestCaseRunStatus.ERROR.value
+            raise result
+        case_run.status = TestCaseRunStatus.PASSED.value
+
+    monkeypatch.setattr(test_execution, "run_case", fake_run_case)
+
+    job, env_set, case_runs = _make_job_with_env_set_and_cases(db_session, num_cases=2)
+    db_session.add(TestEnvNode(env_set=env_set, node_index=0, role="control"))
+    db_session.commit()
+
+    has_failure, has_error = test_execution.execute_env_set(
+        db_session, job=job, env_set=env_set, actor=SimpleNamespace(id="admin")
+    )
+    assert has_error is True
+    assert case_runs[0].status == TestCaseRunStatus.ERROR.value
+    assert case_runs[1].status == TestCaseRunStatus.PASSED.value
