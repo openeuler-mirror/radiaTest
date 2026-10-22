@@ -7,12 +7,15 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 
+import threading
+import time
 from collections.abc import Generator
 from contextlib import nullcontext
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 
 import pytest
+from billiard.exceptions import SoftTimeLimitExceeded
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session, sessionmaker
@@ -27,10 +30,15 @@ from app.modules.tasks import recovery as task_recovery
 from app.modules.tasks.models import TaskEvent
 from app.modules.test_management import execution as test_execution
 from app.modules.test_management import models as test_management_models
+from app.modules.test_management import remote as test_management_remote
+from app.modules.test_management import router as test_management_router
+from app.modules.test_management import service as test_management_service
 from app.modules.test_management import tasks as test_management_tasks
 from app.modules.test_management.envs import vm as vm_env
 from app.modules.test_management.errors import TestJobExecutionError as JobExecutionError
+from app.modules.test_management.frameworks import mugen_runner
 from app.modules.test_management.frameworks.mugen import parse_suite_documents
+from app.modules.test_management.remote import RemoteCommandError, RemoteCommandResult
 from app.modules.test_management.schemas import MugenCaseSyncRequest
 from app.modules.test_management.service import sync_mugen_cases
 from app.modules.users.models import UserRole
@@ -971,3 +979,915 @@ def test_process_test_job_marks_expired_job_as_error(
 
 def test_run_test_job_task_has_fifteen_hour_soft_time_limit() -> None:
     assert test_management_tasks.run_test_job_task.soft_time_limit == 15 * 60 * 60
+
+
+def test_run_test_job_task_ignores_legacy_uuid(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    processed: list[int] = []
+    monkeypatch.setattr(test_management_tasks, "process_test_job", processed.append)
+
+    test_management_tasks.run_test_job_task.run("legacy-uuid")
+    test_management_tasks.run_test_job_task.run("10000")
+
+    assert processed == [10000]
+
+
+def test_process_test_job_maps_soft_time_limit_to_task_timeout(
+    db_session: Session,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    actor = create_user(
+        db_session,
+        username="softtimeoutjob",
+        password="test-pass",
+        role=UserRole.TE,
+    )
+    job = seed_pending_test_job(db_session, creator_user_id=actor.id)
+    cleanup_calls: list[str] = []
+
+    monkeypatch.setattr(test_execution, "SessionLocal", lambda: nullcontext(db_session))
+    monkeypatch.setattr(
+        test_execution,
+        "execute_env_set",
+        lambda *_, **__: (_ for _ in ()).throw(SoftTimeLimitExceeded()),
+    )
+    monkeypatch.setattr(
+        test_execution,
+        "cleanup_env_vms",
+        lambda _db, *, env_set, **__: cleanup_calls.append(env_set.id),
+    )
+
+    test_execution.process_test_job(job.id)
+
+    db_session.refresh(job)
+    assert job.status == test_management_models.TestJobStatus.ERROR.value
+    assert job.error_code == "task_timeout"
+    assert cleanup_calls == [job.env_sets[0].id]
+
+
+def test_process_test_job_records_unexpected_execution_error(
+    db_session: Session,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    actor = create_user(
+        db_session,
+        username="brokenjob",
+        password="test-pass",
+        role=UserRole.TE,
+    )
+    job = seed_pending_test_job(db_session, creator_user_id=actor.id)
+    cleanup_calls: list[str] = []
+
+    monkeypatch.setattr(test_execution, "SessionLocal", lambda: nullcontext(db_session))
+    monkeypatch.setattr(
+        test_execution,
+        "execute_env_set",
+        lambda *_, **__: (_ for _ in ()).throw(RuntimeError("unexpected failure")),
+    )
+    monkeypatch.setattr(
+        test_execution,
+        "cleanup_env_vms",
+        lambda _db, *, env_set, **__: cleanup_calls.append(env_set.id),
+    )
+
+    test_execution.process_test_job(job.id)
+
+    db_session.refresh(job)
+    assert job.status == test_management_models.TestJobStatus.ERROR.value
+    assert job.error_code == "unexpected_execution_error"
+    assert "unexpected failure" in (job.error_message or "")
+    assert cleanup_calls == [job.env_sets[0].id]
+
+
+def test_failed_job_cleanup_keeps_previously_preserved_failed_env(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    failed_env = SimpleNamespace(id="failed", set_index=1, status="failed")
+    broken_env = SimpleNamespace(id="broken", set_index=2, status="error")
+    job = SimpleNamespace(keep_failed_env=True, keep_env=False, env_sets=[failed_env, broken_env])
+    cleaned: list[str] = []
+
+    class FakeSession:
+        @staticmethod
+        def commit() -> None:
+            pass
+
+        @staticmethod
+        def rollback() -> None:
+            pass
+
+    monkeypatch.setattr(
+        test_execution,
+        "cleanup_env_vms",
+        lambda _db, *, env_set, **__: cleaned.append(env_set.id),
+    )
+
+    test_execution.cleanup_failed_job_envs(
+        FakeSession(),  # type: ignore[arg-type]
+        job=job,  # type: ignore[arg-type]
+        actor=SimpleNamespace(),  # type: ignore[arg-type]
+    )
+
+    assert cleaned == ["broken"]
+    assert failed_env.status == test_management_models.TestEnvSetStatus.FAILED.value
+
+
+def test_run_case_treats_ssh_failure_as_task_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    case_run = SimpleNamespace(
+        suite_name="suite-a",
+        case_name="case-a1",
+        env_set_id=None,
+        status="pending",
+        exit_code=None,
+        stdout_summary=None,
+        stderr_summary=None,
+        started_at=None,
+        completed_at=None,
+    )
+    job = SimpleNamespace(
+        id="job-id",
+        task_id="task-id",
+        created_at=test_management_models.utc_now(),
+    )
+    control = SimpleNamespace(ip="192.0.2.10", username="root", password="password")
+
+    class FakeSession:
+        @staticmethod
+        def commit() -> None:
+            pass
+
+    monkeypatch.setattr(mugen_runner, "record_test_job_event", lambda *_, **__: None)
+    monkeypatch.setattr(
+        mugen_runner,
+        "run_control_command",
+        lambda **_: RemoteCommandResult(
+            returncode=255,
+            stdout="",
+            stderr="connection lost",
+        ),
+    )
+
+    with pytest.raises(RemoteCommandError, match="connection lost"):
+        mugen_runner.run_case(
+            FakeSession(),  # type: ignore[arg-type]
+            job=job,  # type: ignore[arg-type]
+            control=control,  # type: ignore[arg-type]
+            case_run=case_run,  # type: ignore[arg-type]
+        )
+
+    assert case_run.status == test_management_models.TestCaseRunStatus.ERROR.value
+
+
+def test_run_case_marks_local_ssh_error_as_case_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    case_run = SimpleNamespace(
+        suite_name="suite-a",
+        case_name="case-a1",
+        env_set_id=None,
+        status="pending",
+        exit_code=None,
+        stdout_summary=None,
+        stderr_summary=None,
+        started_at=None,
+        completed_at=None,
+    )
+    events: list[str] = []
+
+    class FakeSession:
+        @staticmethod
+        def commit() -> None:
+            pass
+
+    monkeypatch.setattr(
+        mugen_runner,
+        "record_test_job_event",
+        lambda *_, phase, **__: events.append(phase),
+    )
+    monkeypatch.setattr(
+        mugen_runner,
+        "run_control_command",
+        lambda **_: (_ for _ in ()).throw(RemoteCommandError("sshpass missing")),
+    )
+
+    with pytest.raises(RemoteCommandError, match="sshpass missing"):
+        mugen_runner.run_case(
+            FakeSession(),  # type: ignore[arg-type]
+            job=SimpleNamespace(
+                id="job-id",
+                task_id="task-id",
+                created_at=test_management_models.utc_now(),
+            ),  # type: ignore[arg-type]
+            control=SimpleNamespace(ip="192.0.2.10"),  # type: ignore[arg-type]
+            case_run=case_run,  # type: ignore[arg-type]
+        )
+
+    assert case_run.status == test_management_models.TestCaseRunStatus.ERROR.value
+    assert case_run.completed_at is not None
+    assert "case_error" in events
+
+
+def test_run_case_caps_command_timeout_to_remaining_job_time(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    case_run = SimpleNamespace(
+        suite_name="suite-a",
+        case_name="case-a1",
+        env_set_id=None,
+        status="pending",
+        exit_code=None,
+        stdout_summary=None,
+        stderr_summary=None,
+        started_at=None,
+        completed_at=None,
+    )
+    timeouts: list[int] = []
+
+    class FakeDetector:
+        def __init__(self, *args: object, **kwargs: object) -> None:
+            pass
+
+        @staticmethod
+        def start() -> None:
+            pass
+
+        @staticmethod
+        def stop() -> None:
+            pass
+
+        @staticmethod
+        def is_hung() -> bool:
+            return False
+
+    class FakeSession:
+        @staticmethod
+        def commit() -> None:
+            pass
+
+    monkeypatch.setattr(mugen_runner, "HangDetector", FakeDetector)
+    monkeypatch.setattr(mugen_runner, "record_test_job_event", lambda *_, **__: None)
+    monkeypatch.setattr(mugen_runner, "remaining_test_job_seconds", lambda *_, **__: 7)
+    call_count = {"n": 0}
+
+    def _fake_run_control(*, timeout_seconds: int, **_: object) -> RemoteCommandResult:
+        call_count["n"] += 1
+        if call_count["n"] == 1:
+            timeouts.append(timeout_seconds)
+        return RemoteCommandResult(returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr(mugen_runner, "run_control_command", _fake_run_control)
+
+    mugen_runner.run_case(
+        FakeSession(),  # type: ignore[arg-type]
+        job=SimpleNamespace(),  # type: ignore[arg-type]
+        control=SimpleNamespace(ip="192.0.2.10"),  # type: ignore[arg-type]
+        case_run=case_run,  # type: ignore[arg-type]
+    )
+
+    assert timeouts == [7]
+
+
+def test_run_case_marks_expired_job_as_case_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    case_run = SimpleNamespace(
+        suite_name="suite-a",
+        case_name="case-a1",
+        env_set_id=None,
+        status="pending",
+        exit_code=None,
+        stdout_summary=None,
+        stderr_summary=None,
+        started_at=None,
+        completed_at=None,
+    )
+
+    class FakeSession:
+        @staticmethod
+        def commit() -> None:
+            pass
+
+    monkeypatch.setattr(mugen_runner, "record_test_job_event", lambda *_, **__: None)
+    monkeypatch.setattr(mugen_runner, "remaining_test_job_seconds", lambda *_, **__: 0)
+
+    with pytest.raises(JobExecutionError) as exc_info:
+        mugen_runner.run_case(
+            FakeSession(),  # type: ignore[arg-type]
+            job=SimpleNamespace(),  # type: ignore[arg-type]
+            control=SimpleNamespace(ip="192.0.2.10"),  # type: ignore[arg-type]
+            case_run=case_run,  # type: ignore[arg-type]
+        )
+
+    assert exc_info.value.code == "task_timeout"
+    assert case_run.status == test_management_models.TestCaseRunStatus.ERROR.value
+
+
+def test_run_case_maps_deadline_limited_command_timeout_to_task_timeout(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    case_run = SimpleNamespace(
+        suite_name="suite-a",
+        case_name="case-a1",
+        env_set_id=None,
+        status="pending",
+        exit_code=None,
+        stdout_summary=None,
+        stderr_summary=None,
+        started_at=None,
+        completed_at=None,
+    )
+
+    class FakeSession:
+        @staticmethod
+        def commit() -> None:
+            pass
+
+    monkeypatch.setattr(mugen_runner, "record_test_job_event", lambda *_, **__: None)
+    monkeypatch.setattr(mugen_runner, "remaining_test_job_seconds", lambda *_, **__: 7)
+    monkeypatch.setattr(
+        mugen_runner,
+        "run_control_command",
+        lambda **_: RemoteCommandResult(
+            returncode=None,
+            stdout="",
+            stderr="",
+            timed_out=True,
+        ),
+    )
+
+    with pytest.raises(JobExecutionError) as exc_info:
+        mugen_runner.run_case(
+            FakeSession(),  # type: ignore[arg-type]
+            job=SimpleNamespace(),  # type: ignore[arg-type]
+            control=SimpleNamespace(ip="192.0.2.10"),  # type: ignore[arg-type]
+            case_run=case_run,  # type: ignore[arg-type]
+        )
+
+    assert exc_info.value.code == "task_timeout"
+    assert case_run.status == test_management_models.TestCaseRunStatus.ERROR.value
+
+
+def test_ssh_alive_skips_host_key_verification(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """心跳探活不校验 host key：测试机每轮 PXE 重装都会轮换 host key，
+    known_hosts 里的旧 key 会让 accept-new 在 preauth 阶段秒断，
+    心跳 3 连失败误判 vm_hang（prod 2026-09-09 实锤）。
+    """
+    from app.modules.test_management.frameworks.mugen_runner import _ssh_alive
+
+    captured: dict[str, object] = {}
+
+    def fake_run_ssh_command(**kwargs: object) -> RemoteCommandResult:
+        captured.update(kwargs)
+        return RemoteCommandResult(returncode=0, stdout="ok", stderr="")
+
+    monkeypatch.setattr(mugen_runner, "run_ssh_command", fake_run_ssh_command)
+
+    control = SimpleNamespace(ip="192.0.2.10", username="root", password="password")
+
+    assert _ssh_alive(control) is True  # type: ignore[arg-type]
+    assert captured["options"].verify_host_key is False
+
+
+def test_wait_for_ssh_ready_retries_until_login_succeeds(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    results = iter(
+        [
+            RemoteCommandResult(returncode=255, stdout="", stderr="not ready"),
+            RemoteCommandResult(returncode=0, stdout="", stderr=""),
+        ]
+    )
+    sleeps: list[float] = []
+    control = SimpleNamespace(ip="192.0.2.10", username="root", password="password")
+
+    monkeypatch.setattr(mugen_runner, "run_control_command", lambda **_: next(results))
+    monkeypatch.setattr(mugen_runner.time, "sleep", sleeps.append)
+    monkeypatch.setattr(mugen_runner, "record_test_job_event", lambda *a, **kw: None)
+
+    mugen_runner.wait_for_ssh_ready(
+        db=None,  # type: ignore[arg-type]
+        node=control,  # type: ignore[arg-type]
+        job=SimpleNamespace(created_at=test_management_models.utc_now()),  # type: ignore[arg-type]
+        timeout_seconds=60,
+        retry_interval_seconds=10,
+    )
+
+    assert sleeps == [10]
+
+
+def test_wait_for_ssh_ready_raises_job_cancelled_when_event_pre_set(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """cancel_event 进入前已 set：立即抛 job_cancelled，不发命令也不 sleep。"""
+    cancel_event = threading.Event()
+    cancel_event.set()
+    sleeps: list[float] = []
+    control = SimpleNamespace(ip="192.0.2.10", username="root", password="password")
+    calls: list[dict] = []
+
+    def _boom(**kwargs: object) -> RemoteCommandResult:
+        calls.append(kwargs)
+        raise AssertionError("run_control_command must not be called after cancel")
+
+    monkeypatch.setattr(mugen_runner, "run_control_command", _boom)
+    monkeypatch.setattr(mugen_runner.time, "sleep", sleeps.append)
+    monkeypatch.setattr(mugen_runner, "record_test_job_event", lambda *a, **kw: None)
+
+    with pytest.raises(JobExecutionError) as exc_info:
+        mugen_runner.wait_for_ssh_ready(
+            db=None,  # type: ignore[arg-type]
+            node=control,  # type: ignore[arg-type]
+            job=SimpleNamespace(created_at=test_management_models.utc_now()),  # type: ignore[arg-type]
+            timeout_seconds=60,
+            retry_interval_seconds=10,
+            cancel_event=cancel_event,
+        )
+
+    assert exc_info.value.code == "job_cancelled"
+    assert sleeps == []
+    assert calls == []
+
+
+def test_wait_for_ssh_ready_raises_job_cancelled_when_result_cancelled(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """run_control_command 因 cancel_event 返回 cancelled=True：
+    wait_for_ssh_ready 立即抛 job_cancelled 且不再 sleep(避免忙循环)。
+    """
+    cancel_event = threading.Event()
+    sleeps: list[float] = []
+    control = SimpleNamespace(ip="192.0.2.10", username="root", password="password")
+
+    def _fake_run_control(**kwargs: object) -> RemoteCommandResult:
+        # 模拟本地 run_process 因 cancel_event 主动 kill:cancelled=True,timed_out=False
+        cancel_event.set()
+        return RemoteCommandResult(
+            returncode=None, stdout="", stderr="", cancelled=True
+        )
+
+    monkeypatch.setattr(mugen_runner, "run_control_command", _fake_run_control)
+    monkeypatch.setattr(mugen_runner.time, "sleep", sleeps.append)
+    monkeypatch.setattr(mugen_runner, "record_test_job_event", lambda *a, **kw: None)
+
+    with pytest.raises(JobExecutionError) as exc_info:
+        mugen_runner.wait_for_ssh_ready(
+            db=None,  # type: ignore[arg-type]
+            node=control,  # type: ignore[arg-type]
+            job=SimpleNamespace(created_at=test_management_models.utc_now()),  # type: ignore[arg-type]
+            timeout_seconds=60,
+            retry_interval_seconds=10,
+            cancel_event=cancel_event,
+        )
+
+    assert exc_info.value.code == "job_cancelled"
+    # 关键:取消后不再 sleep 继续下一轮(忙循环防护)
+    assert sleeps == []
+
+
+def test_ensure_test_job_within_deadline_raises_job_cancelled_before_timeout(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """cancel_event 已 set → 抛 job_cancelled,即使 job 尚未 15h 过期也优先取消语义。"""
+    cancel_event = threading.Event()
+    cancel_event.set()
+    job = SimpleNamespace(  # type: ignore[arg-type]
+        created_at=test_management_models.utc_now(),
+    )
+
+    with pytest.raises(JobExecutionError) as exc_info:
+        test_execution.ensure_test_job_within_deadline(job, cancel_event=cancel_event)
+
+    assert exc_info.value.code == "job_cancelled"
+
+
+def test_ensure_test_job_within_deadline_no_event_preserves_task_timeout() -> None:
+    """回归:cancel_event 缺省时只按 15h 判 task_timeout,不引入新行为。"""
+    expired = SimpleNamespace(  # type: ignore[arg-type]
+        created_at=test_management_models.utc_now()
+        - timedelta(hours=16),
+        id=1,
+    )
+
+    with pytest.raises(JobExecutionError) as exc_info:
+        test_execution.ensure_test_job_within_deadline(expired)
+
+    assert exc_info.value.code == "task_timeout"
+
+
+def test_process_test_job_soft_timeout_converges_under_5s(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """SoftTimeLimitExceeded 抛在主线程时,`executor.shutdown(wait=True)` 不再
+    被 `with __exit__` 阻塞:handler 先 set cancel_event → 子线程从"卡在 SSH"
+    秒级返回 → 走 cleanup_failed_job_envs → 标 task_timeout。总耗时 <5s。
+    """
+    actor = create_user(
+        db_session, username="softconv", password="test-pass", role=UserRole.TE
+    )
+    job = seed_pending_test_job(db_session, creator_user_id=actor.id)
+
+    seen_events: list[threading.Event | None] = []
+
+    def _fake_execute_env_set(db, *, job, env_set, actor, cancel_event=None, **kwargs):
+        seen_events.append(cancel_event)
+        # 模拟一个"最长 30s 才返回的 SSH,但被 cancel_event 秒级打断"
+        if cancel_event is not None:
+            cancel_event.wait(timeout=30)
+        return False, True
+
+    def _soft_as_completed(*_args, **_kwargs):
+        # 主线程刚进入 for future in as_completed(...) 就被 SIGALRM 打断
+        yield from ()
+        raise SoftTimeLimitExceeded()
+
+    monkeypatch.setattr(test_execution, "SessionLocal", lambda: nullcontext(db_session))
+    monkeypatch.setattr(test_execution, "execute_env_set", _fake_execute_env_set)
+    monkeypatch.setattr(test_execution, "as_completed", _soft_as_completed)
+    monkeypatch.setattr(test_execution, "cleanup_env_vms", lambda *_, **__: None)
+
+    started = time.monotonic()
+    test_execution.process_test_job(job.id)
+    elapsed = time.monotonic() - started
+
+    db_session.refresh(job)
+    assert job.status == test_management_models.TestJobStatus.ERROR.value
+    assert job.error_code == "task_timeout"
+    # 若被 shutdown(wait=True) 阻塞,会等满 30s;<5s 才证明 set 生效。
+    assert elapsed < 5.0, f"Soft handler 阻塞过久: {elapsed:.2f}s"
+    for ev in seen_events:
+        assert ev is not None and ev.is_set()
+
+
+def test_process_test_job_db_cancel_finalizes_as_cancelled_not_error(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """已持久化的取消在启动前收敛，不能再创建环境或执行用例。"""
+    actor = create_user(
+        db_session, username="dbcancel", password="test-pass", role=UserRole.TE
+    )
+    job = seed_pending_test_job(db_session, creator_user_id=actor.id)
+    env_set = job.env_sets[0]
+    case_run = test_management_models.TestCaseRun(
+        job=job,
+        env_set=env_set,
+        suite_name="suite-a",
+        case_name="case-a",
+    )
+    db_session.add(case_run)
+    job.cancel_requested = True
+    db_session.commit()
+
+    monkeypatch.setattr(test_execution, "SessionLocal", lambda: nullcontext(db_session))
+    monkeypatch.setattr(
+        test_execution,
+        "execute_env_set",
+        lambda *_, **__: pytest.fail("cancelled job must not execute an env set"),
+    )
+
+    test_execution.process_test_job(job.id)
+
+    db_session.refresh(job)
+    db_session.refresh(env_set)
+    db_session.refresh(case_run)
+    assert job.status == test_management_models.TestJobStatus.CANCELLED.value
+    assert job.error_code is None
+    assert env_set.status == test_management_models.TestEnvSetStatus.NOT_EXECUTED.value
+    assert case_run.status == test_management_models.TestCaseRunStatus.NOT_EXECUTED.value
+
+
+def test_process_test_job_preserves_recovery_terminal_status(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """旧 Worker 的成功结果不能覆盖恢复服务已提交的 error。"""
+    actor = create_user(
+        db_session, username="recoveredjob", password="test-pass", role=UserRole.TE
+    )
+    job = seed_pending_test_job(db_session, creator_user_id=actor.id)
+
+    def emulate_recovery(db: Session, *, job, **_: object) -> tuple[bool, bool]:
+        job.status = test_management_models.TestJobStatus.ERROR.value
+        job.error_code = "task_timeout"
+        job.error_message = "recovery won"
+        db.commit()
+        return False, False
+
+    monkeypatch.setattr(test_execution, "SessionLocal", lambda: nullcontext(db_session))
+    monkeypatch.setattr(test_execution, "execute_env_set", emulate_recovery)
+
+    test_execution.process_test_job(job.id)
+
+    db_session.refresh(job)
+    assert job.status == test_management_models.TestJobStatus.ERROR.value
+    assert job.error_code == "task_timeout"
+
+
+def test_test_job_cancel_watcher_sets_lifecycle_event(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """VM 创建和环境准备阶段复用同一取消观察，提前唤醒 SSH 执行。"""
+    from app.modules.test_management.execution import _start_test_job_cancel_watcher
+
+    cancel_event = threading.Event()
+    monkeypatch.setattr(test_execution, "_CANCEL_OBSERVATION_SECONDS", 0.01)
+    monkeypatch.setattr(test_execution, "_cancel_check_factory", lambda _job_id: lambda: True)
+
+    stop_event, watcher = _start_test_job_cancel_watcher(10000, cancel_event)
+    try:
+        assert cancel_event.wait(timeout=1)
+    finally:
+        stop_event.set()
+        watcher.join(timeout=1)
+
+
+def test_build_env_file_includes_mugen_commit_sha() -> None:
+    """`build_env_file` 输出必须含 `KRONOS_MUGEN_COMMIT_SHA=<sha>`。
+    docker 模块 pre_env 靠这个变量在 source kronos.env 后 pin mugen 到
+    TestJob 建时冻结的 sha;若缺, docker 路径会拉 master tip 漂移。
+    """
+    job = SimpleNamespace(
+        id=10214,
+        name="docker-test",
+        dist="openEuler",
+        os_version="openEuler-24.03-LTS-SP4",
+        image_round="official",
+        arch="x86_64",
+        mugen_commit_sha="ae2e4a96af19b614728cf4e149c0bbf14e3cb74b",
+        update_packages=[],
+    )
+    env_set = SimpleNamespace(set_index=1, node_num=1, add_disk_num=0, add_nic_num=0)
+    control = SimpleNamespace(ip="10.0.0.1", username="root", password="p")
+
+    text = mugen_runner.build_env_file(job=job, env_set=env_set, control=control, peer=None)
+
+    assert "KRONOS_MUGEN_COMMIT_SHA=ae2e4a96af19b614728cf4e149c0bbf14e3cb74b" in text
+
+
+def test_mugen_sync_policy_is_enforced_by_domain_module(
+    db_session: Session,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    actor = create_user(
+        db_session,
+        username="syncuser",
+        password="test-pass",
+        role=UserRole.TE,
+    )
+    monkeypatch.setattr(
+        test_management_service,
+        "acquire_mugen_sync_lock",
+        lambda: pytest.fail("non-admin must be rejected before acquiring the lock"),
+    )
+
+    with pytest.raises(test_management_service.TestManagementPolicyError):
+        test_management_service.enqueue_mugen_case_sync(db_session, actor=actor)
+
+
+@pytest.mark.parametrize("path", ["/api/v1/test-cases/sync", "/api/v1/test-cases/sync/events"])
+def test_mugen_sync_policy_is_checked_before_lazy_recovery(
+    client: TestClient,
+    db_session: Session,
+    monkeypatch: pytest.MonkeyPatch,
+    path: str,
+) -> None:
+    token = login_as(client, db_session, username="syncuser", role=UserRole.TE)
+    monkeypatch.setattr(
+        test_management_router,
+        "recover_interrupted_tasks",
+        lambda *_args, **_kwargs: pytest.fail("unauthorized requests must not run recovery"),
+    )
+
+    request = client.post if path.endswith("/sync") else client.get
+    response = request(
+        path,
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 403
+
+
+def test_mugen_sync_uses_task_id_as_lock_token(
+    db_session: Session,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    actor = create_user(
+        db_session,
+        username="syncadmin",
+        password="test-pass",
+        role=UserRole.ADMIN,
+    )
+    lock_tokens: list[str] = []
+    sent: dict[str, object] = {}
+
+    def acquire_lock(token: str | None = None) -> str:
+        assert token is not None
+        lock_tokens.append(token)
+        return token
+
+    def send_task(name: str, **kwargs: object) -> None:
+        sent.update({"name": name, **kwargs})
+
+    monkeypatch.setattr(
+        test_management_service,
+        "acquire_mugen_sync_lock",
+        acquire_lock,
+    )
+    monkeypatch.setattr(test_management_service.celery_app, "send_task", send_task)
+
+    task_id = test_management_service.enqueue_mugen_case_sync(db_session, actor=actor)
+
+    assert lock_tokens == [task_id]
+    assert sent["task_id"] == task_id
+    assert sent["args"] == [actor.id, task_id]
+
+
+def test_write_remote_file_restricts_permissions(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    def fake_run_ssh_command(**kwargs: object) -> RemoteCommandResult:
+        captured.update(kwargs)
+        return RemoteCommandResult(returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr(
+        test_management_remote,
+        "run_ssh_command",
+        fake_run_ssh_command,
+    )
+
+    test_management_remote.write_remote_file(
+        target=test_management_remote.RemoteTarget(
+            host="192.0.2.1", username="root", password="secret"
+        ),
+        path="/opt/mugen/kronos.env",
+        content="PASSWORD=secret\n",
+    )
+
+    assert "umask 077" in str(captured["command"])
+    assert "chmod 600 /opt/mugen/kronos.env" in str(captured["command"])
+
+
+def test_release_mugen_sync_lock_compares_and_deletes_atomically(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class FakeRedis:
+        def __init__(self) -> None:
+            self.value = "current-token"
+            self.calls: list[tuple[str, int, str, str]] = []
+
+        def eval(
+            self,
+            script: str,
+            key_count: int,
+            key: str,
+            token: str,
+        ) -> int:
+            self.calls.append((script, key_count, key, token))
+            if self.value == token:
+                self.value = None
+                return 1
+            return 0
+
+    client = FakeRedis()
+    monkeypatch.setattr(test_management_service, "redis_client", lambda: client)
+
+    test_management_service.release_mugen_sync_lock("stale-token")
+    assert client.value == "current-token"
+
+    test_management_service.release_mugen_sync_lock("current-token")
+    assert client.value is None
+    assert all(call[1] == 1 for call in client.calls)
+    assert all(call[2] == test_management_service.MUGEN_SYNC_LOCK_KEY for call in client.calls)
+
+
+def test_configure_mugen_node_succeeds_without_retry_on_first_attempt(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    events: list[str] = []
+    control = SimpleNamespace(ip="192.0.2.10", username="root", password="password")
+    node = SimpleNamespace(ip="192.0.2.20", username="root", password="password")
+
+    class FakeSession:
+        @staticmethod
+        def commit() -> None:
+            pass
+
+    monkeypatch.setattr(
+        mugen_runner,
+        "run_control_command",
+        lambda **_: RemoteCommandResult(returncode=0, stdout="", stderr=""),
+    )
+    monkeypatch.setattr(
+        mugen_runner,
+        "record_test_job_event",
+        lambda *a, phase, level="info", **kw: events.append(phase),
+    )
+
+    mugen_runner.configure_mugen_node(
+        FakeSession(),  # type: ignore[arg-type]
+        job=SimpleNamespace(created_at=test_management_models.utc_now()),  # type: ignore[arg-type]
+        control=control,  # type: ignore[arg-type]
+        node=node,  # type: ignore[arg-type]
+        role="control",
+    )
+
+    assert events == ["mugen_config", "mugen_config_done"]
+
+
+def test_configure_mugen_node_retries_on_transient_failure_then_succeeds(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    results = iter(
+        [
+            RemoteCommandResult(
+                returncode=1,
+                stdout="",
+                stderr="Connection timed out during banner exchange",
+            ),
+            RemoteCommandResult(
+                returncode=1,
+                stdout="",
+                stderr="Connection timed out during banner exchange",
+            ),
+            RemoteCommandResult(returncode=0, stdout="", stderr=""),
+        ]
+    )
+    sleeps: list[float] = []
+    events: list[tuple[str, str]] = []
+    control = SimpleNamespace(ip="192.0.2.10", username="root", password="password")
+    node = SimpleNamespace(ip="192.0.2.20", username="root", password="password")
+
+    class FakeSession:
+        @staticmethod
+        def commit() -> None:
+            pass
+
+    monkeypatch.setattr(mugen_runner, "run_control_command", lambda **_: next(results))
+    monkeypatch.setattr(mugen_runner.time, "sleep", sleeps.append)
+    monkeypatch.setattr(
+        mugen_runner,
+        "record_test_job_event",
+        lambda *a, phase, level="info", **kw: events.append((phase, level)),
+    )
+
+    mugen_runner.configure_mugen_node(
+        FakeSession(),  # type: ignore[arg-type]
+        job=SimpleNamespace(created_at=test_management_models.utc_now()),  # type: ignore[arg-type]
+        control=control,  # type: ignore[arg-type]
+        node=node,  # type: ignore[arg-type]
+        role="peer",
+    )
+
+    assert [phase for phase, _ in events] == [
+        "mugen_config",
+        "mugen_config_retry",
+        "mugen_config_retry",
+        "mugen_config_done",
+    ]
+    assert all(level == "warning" for _, level in events[1:-1])
+    assert sleeps == [10, 10]
+
+
+def test_configure_mugen_node_fails_after_exhausting_retries(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    sleeps: list[float] = []
+    events: list[tuple[str, str]] = []
+    control = SimpleNamespace(ip="192.0.2.10", username="root", password="password")
+    node = SimpleNamespace(ip="192.0.2.20", username="root", password="password")
+
+    class FakeSession:
+        @staticmethod
+        def commit() -> None:
+            pass
+
+    monkeypatch.setattr(
+        mugen_runner,
+        "run_control_command",
+        lambda **_: RemoteCommandResult(
+            returncode=1,
+            stdout="",
+            stderr="Connection timed out during banner exchange",
+        ),
+    )
+    monkeypatch.setattr(mugen_runner.time, "sleep", sleeps.append)
+    monkeypatch.setattr(
+        mugen_runner,
+        "record_test_job_event",
+        lambda *a, phase, level="info", **kw: events.append((phase, level)),
+    )
+
+    with pytest.raises(JobExecutionError) as exc_info:
+        mugen_runner.configure_mugen_node(
+            FakeSession(),  # type: ignore[arg-type]
+            job=SimpleNamespace(created_at=test_management_models.utc_now()),  # type: ignore[arg-type]
+            control=control,  # type: ignore[arg-type]
+            node=node,  # type: ignore[arg-type]
+            role="control",
+        )
+
+    assert exc_info.value.code == "mugen_config_failed"
+    assert sum(1 for phase, _ in events if phase == "mugen_config_retry") == 4
+    assert any(
+        phase == "mugen_config_failed" and level == "error" for phase, level in events
+    )
+    assert sleeps == [10, 10, 10, 10]
