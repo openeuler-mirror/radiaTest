@@ -11,7 +11,10 @@
 
 以 Kronos 固定快照 `b0e0bc2` 和 `kronos-migration/pr-file-map.md` 为依据，
 按 K2 清单分批提交测试，每批审查、验证并合入上游 `devel` 后再继续。
-当前批次迁移 `backend/tests/test_case_log_upload.py`。
+`test_migration_0035.py`、`test_migration_0036.py` 依赖尚未合入的 pipeline/test_management
+生产迁移脚本，在该批次合入前不提交。
+`test_pxe_install_script.py` 依赖宿主 `wget`，在用例内按固定 PATH 探测后跳过，实跑验证由远程
+Linux 环境承担。
 用户已确认直接向 fork 提交、推送并创建上游 PR 的流程。
 
 ## 明确不做
