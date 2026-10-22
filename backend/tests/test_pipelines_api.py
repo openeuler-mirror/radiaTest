@@ -1968,3 +1968,42 @@ def test_admin_cancel_of_pending_runjob_finishes_without_a_test_job(
     assert run_job.cancel_requested is True
     assert run_job.status == "cancelled"
     assert run_job.test_job_id is None
+
+
+def test_cancel_rejects_terminal_runjob(
+    client: TestClient, db_session: Session, seeded_pipeline_types: None,
+    stub_run_job_queue: None,
+) -> None:
+    """已终止的 RunJob 不能取消 → 409。"""
+    token = login_as(client, db_session, username="admin", role=UserRole.ADMIN)
+    h = auth_headers(token)
+
+    for terminal in ("succeeded", "failed", "error", "cancelled"):
+        run_job = PipelineRunJob(
+            pipeline_run_id="r1", module_template_id="t1",
+            arch="x86_64", env_type=None, status=terminal,
+        )
+        db_session.add(run_job)
+        db_session.commit()
+
+        r = client.post(f"/api/v1/pipelines/run-jobs/{run_job.id}/cancel", headers=h)
+        assert r.status_code == 409, f"status={terminal}"
+
+
+def test_non_admin_cannot_cancel(
+    client: TestClient, db_session: Session, seeded_pipeline_types: None,
+    stub_run_job_queue: None,
+) -> None:
+    """非 ADMIN 不能取消 → 403。"""
+    token = login_as(client, db_session, username="user", role=UserRole.TE)
+    h = auth_headers(token)
+
+    run_job = PipelineRunJob(
+        pipeline_run_id="r1", module_template_id="t1",
+        arch="x86_64", env_type=None, status="running",
+    )
+    db_session.add(run_job)
+    db_session.commit()
+
+    r = client.post(f"/api/v1/pipelines/run-jobs/{run_job.id}/cancel", headers=h)
+    assert r.status_code == 403
