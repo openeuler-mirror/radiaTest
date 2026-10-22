@@ -173,15 +173,19 @@ def create_test_job_endpoint(
     db: Annotated[Session, Depends(get_db)],
     idempotency_key: Annotated[str | None, Header(alias="Idempotency-Key")] = None,
 ) -> TestJobDetailRead | JSONResponse:
-    record = begin_http_idempotent_request(
+    decision = begin_http_idempotent_request(
         db,
         actor=current_user,
         request=request,
         key=idempotency_key,
         payload=payload.model_dump(mode="json"),
     )
+    if decision.replay is not None:
+        return decision.replay
+    if decision.record is None:
+        raise RuntimeError("幂等请求必须已领取记录")
 
-    with abandon_idempotency_on_error(db, record):
+    with abandon_idempotency_on_error(db, decision.record):
         try:
             job = create_test_job(db, actor=current_user, payload=payload)
         except TestJobImageIndexUnavailableError as exc:
@@ -212,7 +216,7 @@ def create_test_job_endpoint(
         response = serialize_test_job_detail(db, job).model_dump(mode="json")
         record_idempotency_response(
             db,
-            record=record,
+            record=decision.record,
             response_body=response,
             status_code=status.HTTP_201_CREATED,
         )

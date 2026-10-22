@@ -62,6 +62,7 @@ class RemoteCommandResult:
         transport_failed 走 RemoteCommandError 链路，不按用例失败处理。
         cancelled(外部主动打断)不算传输失败——调用方要显式判并走取消分支。
         """
+        return self.timed_out or self.returncode == 255
 
 
 class RemoteCommandError(Exception):
