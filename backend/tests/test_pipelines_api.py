@@ -982,3 +982,989 @@ def test_trigger_enqueues_run_jobs_only_after_commit(
     assert response.status_code == 201
     assert len(observed) == 2, observed
     assert all(c > baseline for c in observed), (baseline, observed)
+
+
+def test_trigger_marks_runjob_error_when_enqueue_fails(
+    client: TestClient,
+    db_session: Session,
+    seeded_pipeline_types: None,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """单个 run_job enqueue 失败 → 标该 run_job error，其余继续，返 201。"""
+
+    from app.modules.pipelines import service as pipeline_service
+    from app.modules.test_management.service import TestJobQueueUnavailableError
+
+    calls = {"n": 0}
+
+    def fake_enqueue(run_job, actor_user_id):  # noqa: ANN001
+        calls["n"] += 1
+        if calls["n"] == 2:
+            raise TestJobQueueUnavailableError("broker down")
+        return "fake-task-id"
+
+    monkeypatch.setattr(pipeline_service, "enqueue_run_job", fake_enqueue)
+
+    token = login_as(client, db_session, username="admintc2", role=UserRole.ADMIN)
+    tmpl = TestModuleTemplate(name="dockertc2", display_name="Docker TC2", suite_name="smoke")
+    config = PipelineConfig(
+        name="wktc2",
+        versions=["v1", "v2", "v3"],
+        archs=["aarch64"],
+        config_data={"module_template_ids": [], "repo_base_url": "http://example.com"},
+    )
+    db_session.add_all([tmpl, config])
+    db_session.commit()
+    config.config_data = {**(config.config_data or {}), "module_template_ids": [tmpl.id]}
+    db_session.commit()
+
+    response = client.post(
+        "/api/v1/pipelines/trigger",
+        headers=auth_headers(token),
+        json={"config_id": config.id},
+    )
+
+    assert response.status_code == 201
+    exec_id = response.json()["id"]
+
+    run_jobs_db = (
+        db_session.execute(
+            select(PipelineRunJob)
+            .join(PipelineRun, PipelineRun.id == PipelineRunJob.pipeline_run_id)
+            .where(PipelineRun.execution_id == exec_id)
+            .order_by(PipelineRun.version, PipelineRunJob.arch)
+        )
+        .scalars()
+        .all()
+    )
+    statuses = [rj.status for rj in run_jobs_db]
+    assert len(statuses) == 3, statuses
+    assert statuses.count("error") == 1, statuses
+    assert statuses.count("pending") == 2, statuses
+
+    events = (
+        db_session.execute(
+            select(TaskEvent).where(
+                TaskEvent.subject_type == "runjob",
+                TaskEvent.phase == "enqueue_failed",
+                TaskEvent.error_code == "queue_unavailable",
+            )
+        )
+        .scalars()
+        .all()
+    )
+    assert len(events) == 1
+
+
+def test_trigger_pipeline_multiple_versions_and_archs(
+    client: TestClient,
+    db_session: Session,
+    stub_run_job_queue: None,
+    seeded_pipeline_types: None,
+) -> None:
+    token = login_as(client, db_session, username="admin2", role=UserRole.ADMIN)
+    tmpl = TestModuleTemplate(name="kernel", display_name="Kernel", suite_name="ltp")
+    config = PipelineConfig(
+        name="multi",
+        versions=["24.03-LTS-SP3", "22.03-LTS-SP4"],
+        archs=["aarch64", "x86_64"],
+        config_data={"module_template_ids": [], "repo_base_url": "http://example.com"},
+    )
+    db_session.add_all([tmpl, config])
+    db_session.commit()
+    config.config_data = {**(config.config_data or {}), "module_template_ids": [tmpl.id]}
+    db_session.commit()
+
+    response = client.post(
+        "/api/v1/pipelines/trigger",
+        headers=auth_headers(token),
+        json={"config_id": config.id},
+    )
+
+    assert response.status_code == 201
+    exec_data = response.json()
+    assert set(exec_data["versions"]) == {"24.03-LTS-SP3", "22.03-LTS-SP4"}
+
+    runs_resp = client.get(
+        f"/api/v1/pipelines/executions/{exec_data['id']}/runs",
+        headers=auth_headers(token),
+    )
+    assert len(runs_resp.json()) == 2
+
+
+def test_trigger_pipeline_env_type_both_creates_one_job(
+    client: TestClient,
+    db_session: Session,
+    stub_run_job_queue: None,
+    seeded_pipeline_types: None,
+) -> None:
+    token = login_as(client, db_session, username="admin3", role=UserRole.ADMIN)
+    pkgcmd_tmpl = TestModuleTemplate(
+        name="pkgcmd",
+        display_name="Pkgcmd",
+        suite_name="cli-test",
+        case_filter="repodata_packages",
+        env_type="both",
+    )
+    config = PipelineConfig(
+        name="split",
+        versions=["24.03-LTS-SP3"],
+        archs=["aarch64"],
+        config_data={
+            "module_template_ids": [],
+            "pkgcmd_physical_enabled": False,
+            "repo_base_url": "http://example.com",
+        },
+    )
+    db_session.add_all([pkgcmd_tmpl, config])
+    db_session.commit()
+    config.config_data = {**(config.config_data or {}), "module_template_ids": [pkgcmd_tmpl.id]}
+    db_session.commit()
+
+    response = client.post(
+        "/api/v1/pipelines/trigger",
+        headers=auth_headers(token),
+        json={"config_id": config.id},
+    )
+
+    assert response.status_code == 201
+    exec_data = response.json()
+
+    runs_resp = client.get(
+        f"/api/v1/pipelines/executions/{exec_data['id']}/runs",
+        headers=auth_headers(token),
+    )
+    run_id = runs_resp.json()[0]["id"]
+
+    jobs_response = client.get(
+        f"/api/v1/pipelines/runs/{run_id}/jobs",
+        headers=auth_headers(token),
+    )
+    jobs = jobs_response.json()
+    assert len(jobs) == 1
+    assert jobs[0]["env_type"] is None
+
+
+def test_trigger_pipeline_image_round_override_persists_on_execution(
+    client: TestClient,
+    db_session: Session,
+    stub_run_job_queue: None,
+    seeded_pipeline_types: None,
+) -> None:
+    """Trigger-level image_round should be persisted on PipelineExecution so the
+    Celery worker (which reads execution fresh from DB) sees the override.
+    """
+
+    token = login_as(client, db_session, username="adminir", role=UserRole.ADMIN)
+    docker_tmpl = TestModuleTemplate(
+        name="docker",
+        display_name="Docker",
+        suite_name="smoke",
+    )
+    config = PipelineConfig(
+        name="release-cfg",
+        pipeline_type="update",
+        versions=["24.03-LTS-SP3"],
+        archs=["aarch64"],
+        config_data={"module_template_ids": [], "repo_base_url": "http://x"},
+        dist="openEuler",
+        image_round="",  # config-level empty
+    )
+    db_session.add_all([docker_tmpl, config])
+    db_session.commit()
+    config.config_data = {"module_template_ids": [docker_tmpl.id], "repo_base_url": "http://x"}
+    db_session.commit()
+
+    response = client.post(
+        "/api/v1/pipelines/trigger",
+        headers=auth_headers(token),
+        json={
+            "config_id": config.id,
+            "image_round": "round-9",  # trigger-level override
+        },
+    )
+
+    assert response.status_code == 201
+    execution_id = response.json()["id"]
+
+    execution = db_session.get(PipelineExecution, execution_id)
+    assert execution is not None
+    assert execution.image_round == "round-9"  # override persisted
+
+
+def test_trigger_pipeline_without_image_round_uses_config_value(
+    client: TestClient,
+    db_session: Session,
+    stub_run_job_queue: None,
+    seeded_pipeline_types: None,
+) -> None:
+    """If trigger doesn't pass image_round, execution.image_round stays None
+    and builder falls back to config.image_round.
+    """
+
+    token = login_as(client, db_session, username="adminir2", role=UserRole.ADMIN)
+    docker_tmpl = TestModuleTemplate(
+        name="docker",
+        display_name="Docker",
+        suite_name="smoke",
+    )
+    config = PipelineConfig(
+        name="update-cfg",
+        pipeline_type="update",
+        versions=["24.03-LTS-SP3"],
+        archs=["aarch64"],
+        config_data={"module_template_ids": [], "repo_base_url": "http://x"},
+        dist="openEuler",
+        image_round="round-1",  # config-level set
+    )
+    db_session.add_all([docker_tmpl, config])
+    db_session.commit()
+    config.config_data = {"module_template_ids": [docker_tmpl.id], "repo_base_url": "http://x"}
+    db_session.commit()
+
+    response = client.post(
+        "/api/v1/pipelines/trigger",
+        headers=auth_headers(token),
+        json={"config_id": config.id},  # no image_round override
+    )
+
+    assert response.status_code == 201
+    execution_id = response.json()["id"]
+
+    execution = db_session.get(PipelineExecution, execution_id)
+    assert execution is not None
+    assert execution.image_round is None  # no override
+
+
+def test_build_test_job_prefers_execution_image_round_over_config(
+    db_session: Session,
+) -> None:
+    """Builder should use execution.image_round when set, else fall back to config.image_round."""
+    from app.modules.pipelines.builder import build_test_job_for_run_job
+    from app.modules.test_management.models import MugenCase
+
+    # Seed a mugen case so select_cases doesn't return empty
+    db_session.add(
+        MugenCase(
+            suite_name="smoke",
+            case_name="oe_test_smoke",
+            env_type="vm",
+            node_num=1,
+            commit_sha="abc",
+        )
+    )
+    db_session.flush()
+
+    template = TestModuleTemplate(
+        name="docker",
+        display_name="Docker",
+        suite_name="smoke",
+    )
+    config = PipelineConfig(
+        name="cfg",
+        pipeline_type="update",
+        versions=["v1"],
+        archs=["x86_64"],
+        config_data={"module_template_ids": [template.id], "repo_base_url": "http://x"},
+        dist="openEuler",
+        image_round="config-level-round",
+    )
+    db_session.add_all([template, config])
+    db_session.flush()
+
+    execution = PipelineExecution(
+        config_id=config.id,
+        triggered_by="admin",
+        versions=["v1"],
+        archs=["x86_64"],
+        image_round="trigger-level-round",  # override
+    )
+    db_session.add(execution)
+    db_session.flush()
+
+    run = PipelineRun(
+        config_id=config.id,
+        execution_id=execution.id,
+        version="v1",
+        status="pending",
+        triggered_by="admin",
+    )
+    db_session.add(run)
+    db_session.flush()
+
+    run_job = PipelineRunJob(
+        pipeline_run_id=run.id,
+        module_template_id=template.id,
+        arch="x86_64",
+        env_type=None,
+        status="pending",
+    )
+    db_session.add(run_job)
+    db_session.flush()
+
+    job = build_test_job_for_run_job(
+        db_session,
+        run_job=run_job,
+        config=config,
+        template=template,
+        version="v1",
+        actor_user_id="admin",
+    )
+    assert job.image_round == "trigger-level-round"
+
+
+def test_build_test_job_falls_back_to_config_image_round(
+    db_session: Session,
+) -> None:
+    """When execution.image_round is None, builder should use config.image_round."""
+    from app.modules.pipelines.builder import build_test_job_for_run_job
+    from app.modules.test_management.models import MugenCase
+
+    db_session.add(
+        MugenCase(
+            suite_name="smoke",
+            case_name="oe_test_smoke",
+            env_type="vm",
+            node_num=1,
+            commit_sha="abc",
+        )
+    )
+    db_session.flush()
+
+    template = TestModuleTemplate(
+        name="docker",
+        display_name="Docker",
+        suite_name="smoke",
+    )
+    config = PipelineConfig(
+        name="cfg2",
+        pipeline_type="update",
+        versions=["v1"],
+        archs=["x86_64"],
+        config_data={"module_template_ids": [template.id], "repo_base_url": "http://x"},
+        dist="openEuler",
+        image_round="config-level-round",
+    )
+    db_session.add_all([template, config])
+    db_session.flush()
+
+    # execution with image_round=None (no override)
+    execution = PipelineExecution(
+        config_id=config.id,
+        triggered_by="admin",
+        versions=["v1"],
+        archs=["x86_64"],
+    )
+    db_session.add(execution)
+    db_session.flush()
+
+    run = PipelineRun(
+        config_id=config.id,
+        execution_id=execution.id,
+        version="v1",
+        status="pending",
+        triggered_by="admin",
+    )
+    db_session.add(run)
+    db_session.flush()
+
+    run_job = PipelineRunJob(
+        pipeline_run_id=run.id,
+        module_template_id=template.id,
+        arch="x86_64",
+        env_type=None,
+        status="pending",
+    )
+    db_session.add(run_job)
+    db_session.flush()
+
+    job = build_test_job_for_run_job(
+        db_session,
+        run_job=run_job,
+        config=config,
+        template=template,
+        version="v1",
+        actor_user_id="admin",
+    )
+    assert job.image_round == "config-level-round"
+
+
+def test_list_pipeline_runs(client: TestClient, db_session: Session) -> None:
+    token = login_as(client, db_session, username="admin4", role=UserRole.ADMIN)
+    config = PipelineConfig(
+        name="weekly",
+        versions=["24.03-LTS-SP3"],
+        archs=["aarch64"],
+        config_data={"module_template_ids": [], "repo_base_url": "http://example.com"},
+    )
+    db_session.add(config)
+    db_session.commit()
+
+
+    tmpl = TestModuleTemplate(name="docker", display_name="Docker", suite_name="smoke")
+    db_session.add(tmpl)
+    db_session.flush()
+    run = PipelineRun(
+        config_id=config.id,
+        version="24.03-LTS-SP3",
+        status="succeeded",
+        triggered_by="admin4",
+    )
+    db_session.add(run)
+    db_session.flush()
+    # Add a RunJob with succeeded status so read-time worst-wins returns "succeeded"
+    db_session.add(
+        PipelineRunJob(
+            pipeline_run_id=run.id,
+            module_template_id=tmpl.id,
+            arch="aarch64",
+            env_type=None,
+            status="succeeded",
+        )
+    )
+    db_session.commit()
+
+    response = client.get(
+        "/api/v1/pipelines/runs",
+        headers=auth_headers(token),
+    )
+    assert response.status_code == 200
+    assert len(response.json()) == 1
+    assert response.json()[0]["status"] == "succeeded"
+
+
+# ---------- pipeline_types CRUD + frameworks ----------
+
+
+def test_list_pipeline_types(client: TestClient, db_session: Session) -> None:
+    token = login_as(client, db_session, username="admin", role=UserRole.ADMIN)
+    seed_pipeline_types(db_session)
+
+    response = client.get("/api/v1/pipelines/types", headers=auth_headers(token))
+    assert response.status_code == 200
+    types = response.json()
+    names = [t["name"] for t in types]
+    assert "update" in names
+    assert "release" in names
+
+    update = next(t for t in types if t["name"] == "update")
+    assert update["strategy_kind"] == "update_strategy"
+    assert update["test_framework"] == "mugen"
+    assert update["is_system"] is True
+
+
+def test_create_pipeline_type_admin_only(client: TestClient, db_session: Session) -> None:
+    token = login_as(client, db_session, username="te1", role=UserRole.TE)
+    response = client.post(
+        "/api/v1/pipelines/types",
+        headers=auth_headers(token),
+        json={
+            "name": "smoke",
+            "display_name": "Smoke Test",
+            "strategy_kind": "direct_run",
+            "test_framework": "mugen",
+        },
+    )
+    assert response.status_code == 403
+
+
+def test_create_pipeline_type_rejects_a_class(client: TestClient, db_session: Session) -> None:
+    token = login_as(client, db_session, username="admin", role=UserRole.ADMIN)
+    response = client.post(
+        "/api/v1/pipelines/types",
+        headers=auth_headers(token),
+        json={
+            "name": "custom_update",
+            "display_name": "Custom Update",
+            "strategy_kind": "update_strategy",
+            "test_framework": "mugen",
+        },
+    )
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "validation_error"
+
+
+def test_create_pipeline_type_duplicate_name_409(client: TestClient, db_session: Session) -> None:
+    token = login_as(client, db_session, username="admin", role=UserRole.ADMIN)
+    seed_pipeline_types(db_session)
+    response = client.post(
+        "/api/v1/pipelines/types",
+        headers=auth_headers(token),
+        json={
+            "name": "release",
+            "display_name": "Dup",
+            "strategy_kind": "direct_run",
+            "test_framework": "mugen",
+        },
+    )
+    assert response.status_code == 409
+
+
+def test_create_pipeline_type_unknown_framework_422(
+    client: TestClient, db_session: Session
+) -> None:
+    token = login_as(client, db_session, username="admin", role=UserRole.ADMIN)
+    response = client.post(
+        "/api/v1/pipelines/types",
+        headers=auth_headers(token),
+        json={
+            "name": "pytest_pipeline",
+            "display_name": "Pytest",
+            "strategy_kind": "direct_run",
+            "test_framework": "pytest",
+        },
+    )
+    assert response.status_code == 422
+
+
+def test_create_and_delete_pipeline_type_no_refs(client: TestClient, db_session: Session) -> None:
+    token = login_as(client, db_session, username="admin", role=UserRole.ADMIN)
+    create_resp = client.post(
+        "/api/v1/pipelines/types",
+        headers=auth_headers(token),
+        json={
+            "name": "smoke",
+            "display_name": "Smoke",
+            "strategy_kind": "direct_run",
+            "test_framework": "mugen",
+        },
+    )
+    assert create_resp.status_code == 201
+    type_id = create_resp.json()["id"]
+
+    delete_resp = client.delete(f"/api/v1/pipelines/types/{type_id}", headers=auth_headers(token))
+    assert delete_resp.status_code == 204
+
+    # Confirm it's gone
+    list_resp = client.get("/api/v1/pipelines/types", headers=auth_headers(token))
+    assert all(t["name"] != "smoke" for t in list_resp.json())
+
+
+def test_delete_system_type_returns_403(client: TestClient, db_session: Session) -> None:
+    token = login_as(client, db_session, username="admin", role=UserRole.ADMIN)
+    seed_pipeline_types(db_session)
+    update = next(
+        t
+        for t in client.get("/api/v1/pipelines/types", headers=auth_headers(token)).json()
+        if t["name"] == "update"
+    )
+    response = client.delete(f"/api/v1/pipelines/types/{update['id']}", headers=auth_headers(token))
+    assert response.status_code == 403
+
+
+def test_delete_type_with_refs_returns_409(client: TestClient, db_session: Session) -> None:
+    token = login_as(client, db_session, username="admin", role=UserRole.ADMIN)
+    seed_pipeline_types(db_session)
+    create_resp = client.post(
+        "/api/v1/pipelines/types",
+        headers=auth_headers(token),
+        json={
+            "name": "smoke",
+            "display_name": "Smoke",
+            "strategy_kind": "direct_run",
+            "test_framework": "mugen",
+        },
+    )
+    type_id = create_resp.json()["id"]
+
+    # Add a config that references "smoke"
+    db_session.add(
+        PipelineConfig(
+            name="cfg",
+            pipeline_type="smoke",
+            versions=["v1"],
+            archs=["x86_64"],
+            config_data={"suites": []},
+        )
+    )
+    db_session.commit()
+
+    delete_resp = client.delete(f"/api/v1/pipelines/types/{type_id}", headers=auth_headers(token))
+    assert delete_resp.status_code == 409
+    assert delete_resp.json()["error"]["code"] == "conflict"
+
+
+def test_list_frameworks(client: TestClient, db_session: Session) -> None:
+    token = login_as(client, db_session, username="te1", role=UserRole.TE)
+    response = client.get("/api/v1/pipelines/frameworks", headers=auth_headers(token))
+    assert response.status_code == 200
+    frameworks = response.json()
+    names = [f["name"] for f in frameworks]
+    assert "mugen" in names
+    mugen = next(f for f in frameworks if f["name"] == "mugen")
+    assert mugen["display_name"]  # non-empty
+
+
+# ---------- config delete + execution delete + list filtering ----------
+
+
+def _seed_config_with_execution(db_session: Session, *, name="cfg-with-exec"):
+
+    config = PipelineConfig(
+        name=name,
+        pipeline_type="update",
+        versions=["v1"],
+        archs=["x86_64"],
+        config_data={"module_template_ids": [], "repo_base_url": ""},
+    )
+    db_session.add(config)
+    db_session.flush()
+    execution = PipelineExecution(
+        config_id=config.id,
+        triggered_by="admin",
+        versions=["v1"],
+        archs=["x86_64"],
+    )
+    db_session.add(execution)
+    db_session.commit()
+    return config, execution
+
+
+def test_delete_pipeline_config_no_refs_returns_204(
+    client: TestClient, db_session: Session, seeded_pipeline_types: None
+) -> None:
+    token = login_as(client, db_session, username="admindel1", role=UserRole.ADMIN)
+
+    config = PipelineConfig(
+        name="to-delete",
+        pipeline_type="update",
+        versions=["v1"],
+        archs=["x86_64"],
+        config_data={"module_template_ids": [], "repo_base_url": ""},
+    )
+    db_session.add(config)
+    db_session.commit()
+
+    response = client.delete(f"/api/v1/pipelines/configs/{config.id}", headers=auth_headers(token))
+    assert response.status_code == 204
+    # Confirm gone
+    assert db_session.get(PipelineConfig, config.id) is None
+
+
+def test_delete_pipeline_config_with_refs_returns_409(
+    client: TestClient, db_session: Session, seeded_pipeline_types: None
+) -> None:
+    token = login_as(client, db_session, username="admindel2", role=UserRole.ADMIN)
+    config, _execution = _seed_config_with_execution(db_session)
+
+    response = client.delete(f"/api/v1/pipelines/configs/{config.id}", headers=auth_headers(token))
+    assert response.status_code == 409
+    assert response.json()["error"]["code"] == "conflict"
+
+
+def test_delete_pipeline_config_non_admin_returns_403(
+    client: TestClient, db_session: Session
+) -> None:
+    token = login_as(client, db_session, username="tedel1", role=UserRole.TE)
+
+    config = PipelineConfig(
+        name="te-delete",
+        pipeline_type="update",
+        versions=["v1"],
+        archs=["x86_64"],
+        config_data={},
+    )
+    db_session.add(config)
+    db_session.commit()
+    response = client.delete(f"/api/v1/pipelines/configs/{config.id}", headers=auth_headers(token))
+    assert response.status_code == 403
+
+
+def test_delete_pipeline_config_not_found_returns_404(
+    client: TestClient, db_session: Session
+) -> None:
+    token = login_as(client, db_session, username="admindel3", role=UserRole.ADMIN)
+    response = client.delete(
+        "/api/v1/pipelines/configs/nonexistent-id", headers=auth_headers(token)
+    )
+    assert response.status_code == 404
+
+
+def test_delete_pipeline_execution_returns_204_and_cascades(
+    client: TestClient, db_session: Session, seeded_pipeline_types: None
+) -> None:
+
+    token = login_as(client, db_session, username="admindel4", role=UserRole.ADMIN)
+    config, execution = _seed_config_with_execution(db_session)
+    # Add a run to verify cascade (note: SQLite test DB doesn't enforce FK by default;
+    # cascade is verified in production via PostgreSQL ondelete=CASCADE)
+    run = PipelineRun(
+        config_id=config.id,
+        execution_id=execution.id,
+        version="v1",
+        status="pending",
+        triggered_by="admin",
+    )
+    db_session.add(run)
+    db_session.commit()
+    execution_id = execution.id
+
+    response = client.delete(
+        f"/api/v1/pipelines/executions/{execution_id}", headers=auth_headers(token)
+    )
+    assert response.status_code == 204
+    assert db_session.get(PipelineExecution, execution_id) is None
+
+
+def test_delete_pipeline_execution_non_admin_returns_403(
+    client: TestClient, db_session: Session
+) -> None:
+    token = login_as(client, db_session, username="tedel2", role=UserRole.TE)
+    response = client.delete(
+        "/api/v1/pipelines/executions/nonexistent", headers=auth_headers(token)
+    )
+    assert response.status_code == 403
+
+
+def test_delete_pipeline_executions_by_config_batch(
+    client: TestClient, db_session: Session, seeded_pipeline_types: None
+) -> None:
+
+    token = login_as(client, db_session, username="admindel5", role=UserRole.ADMIN)
+    config, _ = _seed_config_with_execution(db_session)
+    # Add 2 more executions
+    for _ in range(2):
+        db_session.add(
+            PipelineExecution(
+                config_id=config.id,
+                triggered_by="admin",
+                versions=["v1"],
+                archs=["x86_64"],
+            )
+        )
+    db_session.commit()
+    assert (
+        db_session.execute(
+            select(func.count())
+            .select_from(PipelineExecution)
+            .where(PipelineExecution.config_id == config.id)
+        ).scalar_one()
+        == 3
+    )
+
+    response = client.delete(
+        f"/api/v1/pipelines/configs/{config.id}/executions",
+        headers=auth_headers(token),
+    )
+    assert response.status_code == 204
+    # All 3 executions gone
+    assert (
+        db_session.execute(
+            select(func.count())
+            .select_from(PipelineExecution)
+            .where(PipelineExecution.config_id == config.id)
+        ).scalar_one()
+        == 0
+    )
+    # Config still exists
+
+    assert db_session.get(PipelineConfig, config.id) is not None
+
+
+def test_list_pipeline_executions_filter_by_config_id(
+    client: TestClient, db_session: Session, seeded_pipeline_types: None
+) -> None:
+    token = login_as(client, db_session, username="adminlst1", role=UserRole.ADMIN)
+    config_a, _ = _seed_config_with_execution(db_session, name="cfg-a")
+    config_b, _ = _seed_config_with_execution(db_session, name="cfg-b")
+
+    response = client.get(
+        f"/api/v1/pipelines/executions?config_id={config_a.id}",
+        headers=auth_headers(token),
+    )
+    assert response.status_code == 200
+    items = response.json()
+    assert len(items) == 1
+    assert items[0]["config_id"] == config_a.id
+
+
+def test_list_pipeline_executions_limit_param(
+    client: TestClient, db_session: Session, seeded_pipeline_types: None
+) -> None:
+
+    token = login_as(client, db_session, username="adminlst2", role=UserRole.ADMIN)
+    config, _ = _seed_config_with_execution(db_session)
+    # Add 5 more executions
+    for _ in range(5):
+        db_session.add(
+            PipelineExecution(
+                config_id=config.id,
+                triggered_by="admin",
+                versions=["v1"],
+                archs=["x86_64"],
+            )
+        )
+    db_session.commit()
+
+    response = client.get("/api/v1/pipelines/executions?limit=3", headers=auth_headers(token))
+    assert response.status_code == 200
+    assert len(response.json()) == 3
+
+
+def test_run_log_read_endpoints_file_folder_download(
+    client: TestClient, db_session: Session, tmp_path
+) -> None:
+    """Regression guard for the log read endpoints.
+
+    Commit 715140a dropped the ``@router.get(.../files)`` decorator from
+    ``list_dir_artifact_files_endpoint``, so every ``pkg_folder`` artifact
+    (kernel ``ltp_results`` / ``logs`` / ``results``) 404'd as
+    "请求的内容不存在" when clicked. None of these endpoints had coverage.
+    """
+    from app.modules.test_management.models import TestLogArtifact
+
+    token = login_as(client, db_session, username="adminlog", role=UserRole.ADMIN)
+    config = PipelineConfig(
+        name="weekly",
+        versions=["24.03-LTS-SP3"],
+        archs=["aarch64"],
+        config_data={"module_template_ids": [], "repo_base_url": "http://example.com"},
+    )
+    db_session.add(config)
+    db_session.commit()
+    run = PipelineRun(
+        config_id=config.id,
+        version="24.03-LTS-SP3",
+        status="succeeded",
+        triggered_by="adminlog",
+    )
+    db_session.add(run)
+    db_session.flush()
+
+    log_file = tmp_path / "ltp.txt"
+    log_file.write_text("line1 TPASS\nline2 TFAIL\n", encoding="utf-8")
+    file_art = TestLogArtifact(
+        pipeline_run_id=run.id,
+        job_id=999,
+        module="kernel",
+        arch="aarch64",
+        artifact_type="module_log",
+        artifact_name="ltp.txt",
+        storage_path=str(log_file),
+    )
+    folder_dir = tmp_path / "ltp_results"
+    (folder_dir / "LTP_RUN_ON.log").parent.mkdir(parents=True, exist_ok=True)
+    (folder_dir / "LTP_RUN_ON.log").write_text("abort01 1 TPASS\n", encoding="utf-8")
+    folder_art = TestLogArtifact(
+        pipeline_run_id=run.id,
+        job_id=999,
+        module="kernel",
+        arch="aarch64",
+        artifact_type="pkg_folder",
+        artifact_name="ltp_results",
+        storage_path=str(folder_dir),
+    )
+    db_session.add_all([file_art, folder_art])
+    db_session.flush()
+
+    h = auth_headers(token)
+
+    r = client.get(f"/api/v1/pipelines/runs/{run.id}/logs/{file_art.id}", headers=h)
+    assert r.status_code == 200
+    assert "line1" in r.json()["content"]
+
+    r = client.get(f"/api/v1/pipelines/runs/{run.id}/logs/{folder_art.id}/files", headers=h)
+    assert r.status_code == 200
+    assert r.json()["files"] == ["LTP_RUN_ON.log"]
+
+    r = client.get(
+        f"/api/v1/pipelines/runs/{run.id}/logs/{folder_art.id}/files",
+        headers=h,
+        params={"path": "LTP_RUN_ON.log"},
+    )
+    assert r.status_code == 200
+    assert "TPASS" in r.json()["content"]
+
+    # Folder-file full download (streams the whole file, no 1 MB truncation).
+    r = client.get(
+        f"/api/v1/pipelines/runs/{run.id}/logs/{folder_art.id}/files/download",
+        headers=h,
+        params={"path": "LTP_RUN_ON.log"},
+    )
+    assert r.status_code == 200
+    assert b"abort01 1 TPASS" in r.content
+
+    # Folder-file download guards.
+    assert (
+        client.get(
+            f"/api/v1/pipelines/runs/{run.id}/logs/{folder_art.id}/files/download",
+            headers=h,
+        ).status_code
+        == 404  # no path
+    )
+    assert (
+        client.get(
+            f"/api/v1/pipelines/runs/{run.id}/logs/{folder_art.id}/files/download",
+            headers=h,
+            params={"path": "../../../etc/passwd"},
+        ).status_code
+        == 404  # traversal
+    )
+    assert (
+        client.get(
+            f"/api/v1/pipelines/runs/{run.id}/logs/{file_art.id}/files/download",
+            headers=h,
+            params={"path": "ltp.txt"},
+        ).status_code
+        == 404  # not a folder artifact
+    )
+
+    r = client.get(f"/api/v1/pipelines/runs/{run.id}/logs/{file_art.id}/download", headers=h)
+    assert r.status_code == 200
+    assert b"line2 TFAIL" in r.content
+
+    r = client.get(f"/api/v1/pipelines/runs/other-run-id/logs/{file_art.id}", headers=h)
+    assert r.status_code == 404
+
+
+# --- RunJob cancel ---
+
+
+def test_admin_can_cancel_running_runjob(
+    client: TestClient, db_session: Session, seeded_pipeline_types: None,
+    stub_run_job_queue: None,
+) -> None:
+    """ADMIN 对 running 状态的 RunJob 发起取消 → 202 + cancelling + cancel_requested。"""
+    token = login_as(client, db_session, username="admin", role=UserRole.ADMIN)
+    h = auth_headers(token)
+
+    run_job = PipelineRunJob(
+        pipeline_run_id="r1", module_template_id="t1",
+        arch="x86_64", env_type=None, status="running",
+    )
+    db_session.add(run_job)
+    db_session.commit()
+
+    r = client.post(f"/api/v1/pipelines/run-jobs/{run_job.id}/cancel", headers=h)
+    assert r.status_code == 202
+    assert r.json()["status"] == "cancelling"
+
+    db_session.refresh(run_job)
+    assert run_job.cancel_requested is True
+    assert run_job.status == "cancelling"
+
+
+def test_admin_cancel_of_pending_runjob_finishes_without_a_test_job(
+    client: TestClient, db_session: Session, seeded_pipeline_types: None,
+    stub_run_job_queue: None,
+) -> None:
+    """未被 worker 领取的 RunJob 取消后直接收敛，不能卡在 cancelling。"""
+    token = login_as(client, db_session, username="admin", role=UserRole.ADMIN)
+    run_job = PipelineRunJob(
+        pipeline_run_id="r1", module_template_id="t1",
+        arch="x86_64", env_type=None, status="pending",
+    )
+    db_session.add(run_job)
+    db_session.commit()
+
+    response = client.post(
+        f"/api/v1/pipelines/run-jobs/{run_job.id}/cancel",
+        headers=auth_headers(token),
+    )
+
+    assert response.status_code == 202
+    assert response.json()["status"] == "cancelled"
+    db_session.refresh(run_job)
+    assert run_job.cancel_requested is True
+    assert run_job.status == "cancelled"
+    assert run_job.test_job_id is None
