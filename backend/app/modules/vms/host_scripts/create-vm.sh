@@ -145,6 +145,31 @@ fail_command_output() {
   cleanup_and_error "$code" "${message}"$'\n'"failed command: ${command_line}"
 }
 
+# 只重试域枚举期间目标域消失的错误；调用方负责报告最后一次失败。
+run_virt_install_with_race_retry() {
+  local max_attempts=3
+  local retry_interval_seconds=2
+  local attempt=1
+  local retry_output
+  local diagnostic
+  while true; do
+    if virt-install "$@" >"$VIRT_INSTALL_XML_PATH" 2>"$VIRT_INSTALL_ERR_PATH"; then
+      return 0
+    fi
+    retry_output="$(<"$VIRT_INSTALL_ERR_PATH")"
+    grep -q 'no domain with matching' <<<"$retry_output" || return 1
+    (( attempt < max_attempts )) || return 1
+    event host_command_failed "$(shell_quote_command virt-install "$@")"
+    diagnostic="$(printf '%s' "$retry_output" | compact_text)"
+    if [[ -n "$diagnostic" ]]; then
+      event host_command_stderr "$(printf '%s' "$diagnostic" | compact_event_text)"
+    fi
+    event virt_install_retry "virt-install 域枚举竞态（第 ${attempt} 次失败），${retry_interval_seconds} 秒后进行第 $((attempt + 1)) 次尝试"
+    sleep "$retry_interval_seconds"
+    attempt=$((attempt + 1))
+  done
+}
+
 collect_command_diagnostic() {
   local output
   event_command "$@"
@@ -483,7 +508,7 @@ define_rc=0
   set +e
   trap - ERR HUP INT TERM
   event_command virt-install "${virt_install_args[@]}" "${print_xml_args[@]}"
-  if ! virt-install "${virt_install_args[@]}" "${print_xml_args[@]}" >"$VIRT_INSTALL_XML_PATH" 2>"$VIRT_INSTALL_ERR_PATH"; then
+  if ! run_virt_install_with_race_retry "${virt_install_args[@]}" "${print_xml_args[@]}"; then
     exit 1
   fi
   event configure_vnc_websocket "配置 VNC WebSocket"
