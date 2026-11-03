@@ -185,7 +185,7 @@ def _run_create(
     env["KRONOS_STUB_GRAPHICS_WEBSOCKET"] = "1" if host_supports_websocket else "0"
 
     result = subprocess.run(
-        ["bash", str(CREATE_VM_SH)], env=env, capture_output=True, text=True, timeout=120
+        [str(CREATE_VM_SH)], env=env, capture_output=True, text=True, timeout=120
     )
     return result, calls_file.read_text().splitlines()
 
