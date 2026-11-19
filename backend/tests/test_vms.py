@@ -292,7 +292,11 @@ def test_create_vm_script_uses_virt_install_with_cpu_topology() -> None:
     assert 'os_element.append(ET.Element("boot", {"dev": "cdrom"}))' in script
     assert "print_xml_args=(--print-xml 1)" in script
     assert 'event_command virt-install "${virt_install_args[@]}" "${print_xml_args[@]}"' in script
-    assert 'virt-install "${virt_install_args[@]}" "${print_xml_args[@]}"' in script
+    assert (
+        'run_virt_install_with_race_retry '
+        '"${virt_install_args[@]}" "${print_xml_args[@]}"' in script
+    )
+    assert 'virt-install "$@"' in script
     assert (
         'enable_vnc_websocket_xml "$install_type" <"$VIRT_INSTALL_XML_PATH" '
         '>"$DOMAIN_XML_PATH" 2>"$VIRT_INSTALL_ERR_PATH"' in script
